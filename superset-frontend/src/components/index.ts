@@ -25,7 +25,9 @@ export {
   ListViewUIFilters,
   DashboardCrossLinks,
   ListViewFilterOperator,
+  ListViewTitleCell,
   type ListViewProps,
+  type ListViewColumn,
   type ListViewActionProps,
   type ListViewFilters,
   type ListViewFilter,
@@ -48,5 +50,4 @@ export {
   usePluginContext,
   type PluginContextType,
 } from './DynamicPlugins';
-export * from './FacePile';
 export { KebabMenuButton, type KebabMenuButtonProps } from './KebabMenuButton';

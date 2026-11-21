@@ -4,6 +4,7 @@ hide_title: true
 sidebar_position: 4
 version: 1
 ---
+
 # Development How-tos
 
 ## Contributing to Documentation
@@ -230,10 +231,11 @@ For E2E testing, we recommend that you use a `docker compose` backend
 ```bash
 CYPRESS_CONFIG=true docker compose up --build
 ```
+
 `docker compose` will get to work and expose a Cypress-ready Superset app.
 This app uses a different database schema (`superset_cypress`) to keep it isolated from
 your other dev environment(s), a specific set of examples, and a set of configurations that
-aligns with the expectations within the end-to-end tests.  Also note that it's served on a
+aligns with the expectations within the end-to-end tests. Also note that it's served on a
 different port than the default port for the backend (`8088`).
 
 Now in another terminal, let's get ready to execute some Cypress commands. First, tell cypress
@@ -374,24 +376,24 @@ You are now ready to attach a debugger to the process. Using VSCode you can conf
 
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Superset App in Docker Container",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "pathMappings": [
         {
-            "name": "Attach to Superset App in Docker Container",
-            "type": "python",
-            "request": "attach",
-            "connect": {
-                "host": "127.0.0.1",
-                "port": 5678
-            },
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "/app"
-                }
-            ]
-        },
-    ]
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -402,9 +404,9 @@ VSCode will not stop on breakpoints right away. We've attached to PID 6 however 
 To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the `SYS_TRACE` capability. These settings should not be used in production environments.
 
 ```yaml
-  securityContext:
-    capabilities:
-      add: ["SYS_PTRACE"]
+securityContext:
+  capabilities:
+    add: ['SYS_PTRACE']
 ```
 
 See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
@@ -459,7 +461,7 @@ In TypeScript/JavaScript, the technique is similar:
 we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import { t, tn } from "@superset-ui/translation";
+import { t, tn } from '@superset-ui/translation';
 ```
 
 ### Enabling language selection
@@ -612,7 +614,7 @@ If using the eslint extension with vscode, put the following in your workspace `
 ## GitHub Ephemeral Environments
 
 On any given pull request on GitHub, it's possible to create a temporary environment/deployment
-by simply adding the label `testenv-up` to the PR.  Once you add the `testenv-up` label, a
+by simply adding the label `testenv-up` to the PR. Once you add the `testenv-up` label, a
 GitHub Action will be triggered that will:
 
 - build a docker image

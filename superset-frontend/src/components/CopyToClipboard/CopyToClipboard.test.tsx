@@ -66,6 +66,19 @@ test('non-element copyNode wrapper is keyboard-activatable', async () => {
   await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
 });
 
+test('custom copyNode is keyboard-activatable and focusable by default', async () => {
+  const onCopyEnd = jest.fn();
+  const copyNode = <span aria-label="Copy to clipboard">Custom node</span>;
+  render(<CopyToClipboard copyNode={copyNode} onCopyEnd={onCopyEnd} />, {
+    useRedux: true,
+  });
+  const button = screen.getByText('Custom node');
+  expect(button).toHaveAttribute('tabIndex', '0');
+  button.focus();
+  fireEvent.keyDown(button, { key: 'Enter' });
+  await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
+});
+
 test('renders without text showing', () => {
   const text = 'Text';
   render(<CopyToClipboard text={text} shouldShowText={false} />, {
@@ -77,14 +90,14 @@ test('renders without text showing', () => {
 test('getText on copy', async () => {
   const getText = jest.fn(() => 'Text');
   render(<CopyToClipboard getText={getText} />, { useRedux: true });
-  userEvent.click(screen.getByText('Copy'));
+  await userEvent.click(screen.getByText('Copy'));
   await waitFor(() => expect(getText).toHaveBeenCalled());
 });
 
 test('renders tooltip on hover', async () => {
   const tooltipText = 'Tooltip';
   render(<CopyToClipboard tooltipText={tooltipText} />, { useRedux: true });
-  userEvent.hover(screen.getByText('Copy'));
+  await userEvent.hover(screen.getByText('Copy'));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(tooltip).toHaveTextContent(tooltipText);
@@ -95,7 +108,7 @@ test('not renders tooltip on hover with hideTooltip props', async () => {
   render(<CopyToClipboard tooltipText={tooltipText} hideTooltip />, {
     useRedux: true,
   });
-  userEvent.hover(screen.getByText('Copy'));
+  await userEvent.hover(screen.getByText('Copy'));
   const tooltip = screen.queryByRole('tooltip');
   expect(tooltip).not.toBeInTheDocument();
 });
@@ -105,7 +118,7 @@ test('triggers onCopyEnd', async () => {
   render(<CopyToClipboard onCopyEnd={onCopyEnd} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getByText('Copy'));
+  await userEvent.click(screen.getByText('Copy'));
   await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
 });
 
@@ -122,7 +135,7 @@ test('does not copy when disabled', async () => {
   const copyButton = screen.getByText('Copy');
   expect(copyButton).toHaveAttribute('aria-disabled', 'true');
 
-  userEvent.click(copyButton);
+  await userEvent.click(copyButton);
 
   await waitFor(() => {
     expect(callback).not.toHaveBeenCalled();

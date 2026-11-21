@@ -137,6 +137,36 @@ describe('logger middleware', () => {
     }
   });
 
+  const getSourceForPath = (href: string): string | undefined => {
+    const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      href,
+    } as Location);
+    try {
+      (logger as Function)(mockStore)(next)(action);
+      jest.advanceTimersByTime(2000);
+      const { events } = postStub.mock.calls[0][0].postPayload;
+      return events[0].source;
+    } finally {
+      locationSpy.mockRestore();
+    }
+  };
+
+  test.each([
+    ['/dashboard/123/embedded/', 'embedded_dashboard'],
+    ['/embedded/abc-def-uuid/', 'embedded_dashboard'],
+    // React Router also matches these routes without a trailing slash
+    ['/dashboard/123/embedded', 'embedded_dashboard'],
+    ['/embedded/abc-def-uuid', 'embedded_dashboard'],
+    ['/dashboard/123/', 'dashboard'],
+    // slug is literally "embedded" - must not be treated as embedded
+    ['/dashboard/embedded/', 'dashboard'],
+    // "embedded" must be a full path segment, not a prefix
+    ['/dashboard/123/embeddedXYZ/', 'dashboard'],
+  ])('classifies %s as source "%s"', (path, expectedSource) => {
+    expect(getSourceForPath(`http://localhost${path}`)).toBe(expectedSource);
+  });
+
   test('should debounce a few log requests to one', () => {
     (logger as Function)(mockStore)(next)(action);
     (logger as Function)(mockStore)(next)(action);

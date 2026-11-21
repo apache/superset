@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
 from pandas import DataFrame
 
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import histogram
 
 data = DataFrame(
@@ -101,24 +103,20 @@ def test_histogram_with_groupby_and_cumulative_and_normalize():
         "6.4 - 8.2",
         "8.2 - 10.0",
     ]
-    assert result.values.tolist() == [
-        [
-            "A",
-            0.06666666666666667,
-            0.06666666666666667,
-            0.13333333333333333,
-            0.13333333333333333,
-            0.2,
-        ],
-        [
-            "B",
-            0.0,
-            0.06666666666666667,
-            0.06666666666666667,
-            0.13333333333333333,
-            0.13333333333333333,
-        ],
-    ]
+    # each bin holds the share of all data points that are in the group and up to
+    # that bin
+    assert result["group"].tolist() == ["A", "B"]
+    assert result.iloc[0, 1:].tolist() == pytest.approx([0.2, 0.2, 0.4, 0.4, 0.6])
+    assert result.iloc[1, 1:].tolist() == pytest.approx([0.0, 0.2, 0.2, 0.4, 0.4])
+
+
+def test_histogram_cumulative_and_normalize_ends_at_one():
+    data_with_no_groupings = DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+    result = histogram(
+        data_with_no_groupings, "a", [], bins, cumulative=True, normalize=True
+    )
+    assert result.shape == (1, bins)
+    assert result.values.tolist()[0] == pytest.approx([0.2, 0.4, 0.6, 0.8, 1.0])
 
 
 def test_histogram_with_non_numeric_column():
@@ -207,3 +205,26 @@ def test_histogram_with_no_groupby_and_all_null_values():
 
     result = histogram(data_with_no_groupby_and_all_nulls, "a", [], bins)
     assert result.empty
+
+
+def test_histogram_rejects_unbounded_bins():
+    """
+    ``bins`` comes from the unvalidated post-processing options dict; an
+    unbounded value would make numpy allocate a bin-edge array of that size
+    (bins=2e9 attempts ~16 GB). Non-integer values such as "auto" are also
+    rejected, since data-driven bin estimation is likewise unbounded.
+    """
+    for bad_bins in (0, -1, 2_000_000_000, "auto", None):
+        with pytest.raises(InvalidPostProcessingError):
+            histogram(data, "a", [], bad_bins)
+
+
+def test_histogram_rejects_bool_bins():
+    """
+    ``bool`` is a subclass of ``int`` in Python, so ``isinstance(bins, int)``
+    alone accepts ``True``/``False``. Both must still be rejected since
+    neither is a valid bin count.
+    """
+    for bad_bins in (True, False):
+        with pytest.raises(InvalidPostProcessingError):
+            histogram(data, "a", [], bad_bins)

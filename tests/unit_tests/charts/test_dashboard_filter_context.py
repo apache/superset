@@ -563,6 +563,178 @@ def test_get_dashboard_filter_context_out_of_scope_filter_excluded(
     assert ctx.filters[0].id == "f1"
 
 
+def _build_dashboard_mock(
+    mock_db: MagicMock,
+    filter_config: list[dict[str, Any]],
+    chart_ids: list[int],
+) -> MagicMock:
+    """Wire a dashboard MagicMock with the given filters and chart ids."""
+    metadata = {"native_filter_configuration": filter_config}
+    dashboard = MagicMock()
+    dashboard.id = 1
+    dashboard.slices = [MagicMock(id=cid) for cid in chart_ids]
+    dashboard.json_metadata = json.dumps(metadata)
+    dashboard.position_json = json.dumps(SAMPLE_POSITION_JSON)
+    (
+        mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value
+    ) = dashboard
+    return dashboard
+
+
+@patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")
+@patch("superset.charts.data.dashboard_filter_context.db")
+def test_active_data_mask_overrides_default(
+    mock_db: MagicMock,
+    mock_check_access: MagicMock,
+) -> None:
+    """An active filter value replaces the saved default."""
+    filter_config = [
+        _make_filter(
+            flt_id="f1",
+            name="Region",
+            scope_root=["ROOT_ID"],
+            default_value=["US"],
+            target_column="region",
+        ),
+    ]
+    _build_dashboard_mock(mock_db, filter_config, [10])
+
+    active_data_mask = {
+        "f1": {
+            "extraFormData": {
+                "filters": [{"col": "region", "op": "IN", "val": ["FR", "DE"]}]
+            }
+        }
+    }
+    ctx = get_dashboard_filter_context(
+        dashboard_id=1, chart_id=10, active_data_mask=active_data_mask
+    )
+
+    assert ctx.filters[0].status == DashboardFilterStatus.APPLIED
+    assert ctx.extra_form_data["filters"][0]["val"] == ["FR", "DE"]
+
+
+@patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")
+@patch("superset.charts.data.dashboard_filter_context.db")
+def test_active_data_mask_empty_clears_default(
+    mock_db: MagicMock,
+    mock_check_access: MagicMock,
+) -> None:
+    """An empty active extraFormData clears the filter; the default is NOT used."""
+    filter_config = [
+        _make_filter(
+            flt_id="f1",
+            name="Region",
+            scope_root=["ROOT_ID"],
+            default_value=["US"],
+            target_column="region",
+        ),
+    ]
+    _build_dashboard_mock(mock_db, filter_config, [10])
+
+    active_data_mask: dict[str, Any] = {"f1": {"extraFormData": {}}}
+    ctx = get_dashboard_filter_context(
+        dashboard_id=1, chart_id=10, active_data_mask=active_data_mask
+    )
+
+    assert ctx.filters[0].status == DashboardFilterStatus.NOT_APPLIED
+    assert "filters" not in ctx.extra_form_data
+
+
+@patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")
+@patch("superset.charts.data.dashboard_filter_context.db")
+def test_active_data_mask_absent_filter_falls_back_to_default(
+    mock_db: MagicMock,
+    mock_check_access: MagicMock,
+) -> None:
+    """A filter not present in the mask keeps its saved default."""
+    filter_config = [
+        _make_filter(
+            flt_id="f1",
+            name="Region",
+            scope_root=["ROOT_ID"],
+            default_value=["US"],
+            target_column="region",
+        ),
+    ]
+    _build_dashboard_mock(mock_db, filter_config, [10])
+
+    # Mask only references some other filter id
+    active_data_mask: dict[str, Any] = {"f2": {"extraFormData": {"filters": []}}}
+    ctx = get_dashboard_filter_context(
+        dashboard_id=1, chart_id=10, active_data_mask=active_data_mask
+    )
+
+    assert ctx.filters[0].status == DashboardFilterStatus.APPLIED
+    assert ctx.extra_form_data["filters"][0]["val"] == ["US"]
+
+
+@patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")
+@patch("superset.charts.data.dashboard_filter_context.db")
+def test_active_data_mask_applies_despite_default_to_first_item(
+    mock_db: MagicMock,
+    mock_check_access: MagicMock,
+) -> None:
+    """
+    defaultToFirstItem filters cannot be resolved from saved config, but when the
+    frontend supplies a concrete active value it is applied.
+    """
+    filter_config = [
+        _make_filter(
+            flt_id="f1",
+            name="City",
+            scope_root=["ROOT_ID"],
+            default_to_first_item=True,
+            target_column="city",
+        ),
+    ]
+    _build_dashboard_mock(mock_db, filter_config, [10])
+
+    active_data_mask = {
+        "f1": {
+            "extraFormData": {"filters": [{"col": "city", "op": "IN", "val": ["NYC"]}]}
+        }
+    }
+    ctx = get_dashboard_filter_context(
+        dashboard_id=1, chart_id=10, active_data_mask=active_data_mask
+    )
+
+    assert ctx.filters[0].status == DashboardFilterStatus.APPLIED
+    assert ctx.extra_form_data["filters"][0]["val"] == ["NYC"]
+
+
+@patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")
+@patch("superset.charts.data.dashboard_filter_context.db")
+def test_active_data_mask_out_of_scope_filter_still_excluded(
+    mock_db: MagicMock,
+    mock_check_access: MagicMock,
+) -> None:
+    """An active value for an out-of-scope filter does not leak into the chart."""
+    filter_config = [
+        _make_filter(
+            flt_id="f1",
+            name="Out-of-scope",
+            scope_root=["TABS-nonexistent"],
+            target_column="status",
+        ),
+    ]
+    _build_dashboard_mock(mock_db, filter_config, [10])
+
+    active_data_mask = {
+        "f1": {
+            "extraFormData": {
+                "filters": [{"col": "status", "op": "IN", "val": ["active"]}]
+            }
+        }
+    }
+    ctx = get_dashboard_filter_context(
+        dashboard_id=1, chart_id=10, active_data_mask=active_data_mask
+    )
+
+    assert ctx.filters == []
+    assert ctx.extra_form_data == {}
+
+
 @patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")
 @patch("superset.charts.data.dashboard_filter_context.db")
 def test_get_dashboard_filter_context_chart_not_in_layout_receives_root_filters(

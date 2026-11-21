@@ -43,7 +43,7 @@ def test_restore_chart_clears_deleted_at(app_context: None) -> None:
         ) as mock_find,
         patch("superset.commands.restore.security_manager") as mock_sec,
     ):
-        mock_sec.raise_for_ownership.return_value = None
+        mock_sec.raise_for_editorship.return_value = None
 
         cmd = RestoreChartCommand("1")
         cmd.run()
@@ -83,7 +83,7 @@ def test_restore_chart_forbidden_raises(app_context: None) -> None:
         patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
         patch("superset.commands.restore.security_manager") as mock_sec,
     ):
-        mock_sec.raise_for_ownership = raise_security
+        mock_sec.raise_for_editorship = raise_security
 
         cmd = RestoreChartCommand("1")
         with pytest.raises(ChartForbiddenError):

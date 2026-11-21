@@ -17,8 +17,9 @@
  * under the License.
  */
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-import InternalColorSchemeControl from './ColorSchemeControl/index';
-import { ColorSchemes } from './ColorSchemeControl/index';
+import InternalColorSchemeControl, {
+  ColorSchemes,
+} from './ColorSchemeControl/index';
 // NOTE: We copied the Explore ColorSchemeControl into this plugin to avoid
 // pulling the entire frontend src tree into this package’s tsconfig (importing
 // from src/ was dragging in fixtures, tests, and other plugins). Keep this copy

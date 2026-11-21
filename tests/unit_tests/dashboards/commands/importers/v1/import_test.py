@@ -29,10 +29,12 @@ from sqlalchemy.orm.session import Session
 
 from superset import security_manager
 from superset.commands.dashboard.importers.v1.utils import import_dashboard
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError, ImportFailedError
 from superset.commands.importers.v1.utils import import_tag
 from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.tags.models import TaggedObject
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import dashboard_config
@@ -117,7 +119,7 @@ def test_import_dashboard_without_permission(
         security_manager, "can_access", return_value=False
     )
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_dashboard(dashboard_config)
     assert (
         str(excinfo.value)
@@ -157,7 +159,7 @@ def test_import_existing_dashboard_without_access_permission(
     )
 
     with override_user(admin):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -169,12 +171,12 @@ def test_import_existing_dashboard_without_access_permission(
     mock_can_access_dashboard.assert_called_once_with(dashboard)
 
 
-def test_import_existing_dashboard_without_owner_permission(
+def test_import_existing_dashboard_without_editor_permission(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
-    Test importing a dashboard when a user doesn't have ownership and is not an Admin.
+    Test importing a dashboard when a user isn't an editor and is not an Admin.
     """
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
@@ -198,7 +200,7 @@ def test_import_existing_dashboard_without_owner_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -246,12 +248,12 @@ def test_import_existing_dashboard_with_permission(
     mock_can_access_dashboard.assert_called_once_with(dashboard)
 
 
-def test_import_existing_dashboard_does_not_add_importer_as_owner(
+def test_import_existing_dashboard_does_not_add_importer_as_editor(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
-    Importing an existing dashboard must NOT add the importer as an owner.
+    Importing an existing dashboard must NOT add the importer as an editor.
     Regression test for GitHub issue #36244.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
@@ -265,19 +267,25 @@ def test_import_existing_dashboard_does_not_add_importer_as_owner(
         username="admin",
         roles=[Role(name="Admin")],
     )
+    subject = Subject(label="Alice Doe", type=SubjectType.USER, user_id=admin.id)
+    get_user_subject = mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject,
+    )
 
     with override_user(admin):
         result = import_dashboard(dashboard_config, overwrite=True)
 
-    assert admin not in result.owners
+    get_user_subject.assert_not_called()
+    assert subject not in result.editors
 
 
-def test_import_new_dashboard_adds_importer_as_owner(
+def test_import_new_dashboard_adds_importer_as_editor(
     mocker: MockerFixture,
     session_with_schema: Session,
 ) -> None:
     """
-    Importing a new dashboard (UUID not in DB) should add the importer as owner.
+    Importing a new dashboard (UUID not in DB) should add the importer as editor.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
@@ -288,11 +296,17 @@ def test_import_new_dashboard_adds_importer_as_owner(
         username="bob",
         roles=[Role(name="Gamma")],
     )
+    subject = Subject(label="Bob Smith", type=SubjectType.USER, user_id=user.id)
+    get_user_subject = mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject,
+    )
 
     with override_user(user):
         result = import_dashboard(dashboard_config)
 
-    assert user in result.owners
+    get_user_subject.assert_called_once_with(user.id)
+    assert subject in result.editors
 
 
 def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
@@ -388,15 +402,15 @@ def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
     )
 
 
-def test_import_soft_deleted_dashboard_non_overwrite_restores_for_owner(
+def test_import_soft_deleted_dashboard_non_overwrite_restores_for_editor(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
     Non-overwrite re-import of a soft-deleted UUID is implicitly a
     restore-and-update: the user is bringing the dashboard back by
-    uploading it again. The same ownership rule as the overwrite path
-    applies, so an owner (or admin) succeeds without setting
+    uploading it again. The same editorship rule as the overwrite path
+    applies, so an editor (or admin) succeeds without setting
     overwrite=True.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
@@ -427,13 +441,13 @@ def test_import_soft_deleted_dashboard_non_overwrite_restores_for_owner(
     assert dashboard.deleted_at is None
 
 
-def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_owner(
+def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_editor(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
     Non-overwrite re-import that would resurrect a soft-deleted dashboard
-    must respect ownership: a non-owner without admin role cannot
+    must respect editorship: a non-editor without admin role cannot
     restore-via-import. Mirrors the explicit /restore endpoint's check.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
@@ -448,7 +462,7 @@ def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_owner(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
-    non_owner = User(
+    non_editor = User(
         first_name="Bob",
         last_name="Roe",
         email="bob@example.org",
@@ -456,8 +470,8 @@ def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_owner(
         roles=[Role(name="Gamma")],
     )
 
-    with override_user(non_owner):
-        with pytest.raises(ImportFailedError) as excinfo:
+    with override_user(non_editor):
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)
 
@@ -487,7 +501,7 @@ def test_import_soft_deleted_dashboard_raises_when_caller_lacks_can_write(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_dashboard(dashboard_config, overwrite=False)
     assert "can_write" in str(excinfo.value)
 
@@ -689,3 +703,57 @@ def test_import_soft_deleted_dashboard_slug_collision_raises(
     # Postgres / MySQL 8.0.13+) and leave the row half-restored in the
     # session. A failed import must leave the row still soft-deleted.
     assert existing.deleted_at is not None
+
+
+def test_import_slug_collision_requires_overwrite_permission(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    A config carrying a fresh UUID but a slug that already belongs to an
+    active dashboard is matched by slug in ``import_from_dict``. That path must
+    go through the same overwrite permission gate as a UUID match, so a caller
+    who is neither an editor of the existing dashboard nor an admin cannot
+    update it by reusing its slug.
+    """
+    engine = session.get_bind()
+    Dashboard.metadata.create_all(engine)  # pylint: disable=no-member
+
+    existing = Dashboard(
+        id=300,
+        dashboard_title="Existing dash",
+        slug="shared-slug",
+        slices=[],
+        published=True,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    )
+    session.add(existing)
+    session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access_dashboard = mocker.patch.object(
+        security_manager, "can_access_dashboard", return_value=True
+    )
+
+    config = copy.deepcopy(dashboard_config)
+    config["uuid"] = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    config["slug"] = "shared-slug"
+
+    user = User(
+        first_name="Gina",
+        last_name="Amma",
+        email="gamma@example.org",
+        username="gamma",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ForbiddenError) as excinfo:
+            import_dashboard(config, overwrite=True)
+        assert (
+            str(excinfo.value)
+            == "A dashboard already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+        )
+
+    mock_can_access_dashboard.assert_called_once_with(existing)
+    session.rollback()

@@ -18,6 +18,7 @@
  */
 
 import { AdhocFilter, DataMask } from '@superset-ui/core';
+import { DatasourceType } from './Datasource';
 
 export interface ColumnOption {
   label: string;
@@ -36,8 +37,10 @@ export interface NativeFilterScope {
 
 /** The target of a filter is the datasource/column being filtered */
 export interface NativeFilterTarget {
+  semantic_selection_version?: string;
   datasetId: number;
   column: NativeFilterColumn;
+  datasourceType?: DatasourceType;
 
   // maybe someday support this?
   // show values from these columns in the filter options selector
@@ -186,7 +189,10 @@ export function isFilterDivider(
 
 export function isChartCustomization(
   filterElement:
-    Filter | Divider | ChartCustomization | ChartCustomizationDivider,
+    | Filter
+    | Divider
+    | ChartCustomization
+    | ChartCustomizationDivider,
 ): filterElement is ChartCustomization {
   return filterElement.type === ChartCustomizationType.ChartCustomization;
 }
@@ -201,7 +207,10 @@ export type FilterConfiguration = Array<Filter | Divider>;
 
 export type Filters = {
   [filterId: string]:
-    Filter | Divider | ChartCustomization | ChartCustomizationDivider;
+    | Filter
+    | Divider
+    | ChartCustomization
+    | ChartCustomizationDivider;
 };
 
 export type PartialFilters = {
@@ -220,7 +229,8 @@ export type ChartCustomizationConfiguration = Array<
 
 export type ChartCustomizations = {
   [chartCustomizationId: string]:
-    ChartCustomization | ChartCustomizationDivider;
+    | ChartCustomization
+    | ChartCustomizationDivider;
 };
 
 export type PartialChartCustomizations = {
@@ -262,5 +272,3 @@ export interface LegacyChartCustomizationItem {
   chartId?: number;
   customization: LegacyChartCustomizationConfig;
 }
-
-export default {};

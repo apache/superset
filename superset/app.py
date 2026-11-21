@@ -18,21 +18,12 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from typing import cast, Iterable, Optional
+from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-
-if sys.version_info >= (3, 11):
-    from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
-else:
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
-
 from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
@@ -81,6 +72,14 @@ def create_app(
             # value of app_root so things work out of the box
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
+            # Prefix APP_ICON with the static assets prefix so the brand logo
+            # resolves in subdirectory and CDN deployments alike. Using
+            # STATIC_ASSETS_PREFIX (which defaults to app_root just above)
+            # honours a custom CDN/static prefix when the operator sets one.
+            if app.config.get("APP_ICON", "").startswith("/static/"):
+                app.config["APP_ICON"] = (
+                    f"{app.config['STATIC_ASSETS_PREFIX']}{app.config['APP_ICON']}"
+                )
             if app.config["APPLICATION_ROOT"] == "/":
                 app.config["APPLICATION_ROOT"] = app_root
 
@@ -185,28 +184,51 @@ class SupersetApp(Flask):
         app startup.
         """
         try:
-            # Import here to avoid circular import issues
-            from superset.extensions import feature_flag_manager
+            database_ready: bool = self._is_database_up_to_date()
+            # key_value predates pending migrations. Enabled installations can
+            # initialize identity before theme/tag synchronization reaches head.
+            from superset.semantic_layers.access import is_semantic_layers_enabled
+            from superset.semantic_layers.execution import bootstrap_semantic_namespace
+
+            namespace_ready: bool = True
+            try:
+                if is_semantic_layers_enabled():
+                    bootstrap_semantic_namespace()
+            except Exception as ex:
+                namespace_ready = False
+                if database_ready:
+                    logger.error(
+                        "Failed to bootstrap semantic execution namespace: %s", ex
+                    )
+                else:
+                    logger.info(
+                        "Semantic execution namespace initialization deferred until "
+                        "database upgrade; semantic access will retry (%s)",
+                        type(ex).__name__,
+                    )
 
             # Check if database is up-to-date with migrations
-            if not self._is_database_up_to_date():
+            if not database_ready:
                 logger.info("Pending database migrations: run 'superset db upgrade'")
                 return
 
             logger.info("Syncing configuration to database...")
 
-            # Register SQLA event listeners for tagging system
-            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                from superset.tags.core import register_sqla_event_listeners
+            # Register the tagged_object cleanup listeners for the tagging system.
+            # This is deletion only (see superset.tags.core), and must run
+            # regardless of the flag so a deleted object never leaves orphaned
+            # `tagged_object` rows behind.
+            from superset.tags.core import register_sqla_event_listeners
 
-                register_sqla_event_listeners()
+            register_sqla_event_listeners()
 
             # Seed system themes from configuration
             from superset.commands.theme.seed import SeedSystemThemesCommand
 
             SeedSystemThemesCommand().run()
 
-            logger.info("Configuration sync to database completed successfully")
+            if namespace_ready:
+                logger.info("Configuration sync to database completed successfully")
 
         except Exception as e:
             logger.error("Failed to sync configuration to database: %s", e)

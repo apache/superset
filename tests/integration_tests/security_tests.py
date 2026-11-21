@@ -31,12 +31,18 @@ from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset import appbuilder, db, security_manager, viz
+from superset import appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.security.guest_token import (
+    GuestTokenResource,
+    GuestTokenResourceType,
+    GuestTokenRlsRule,
+    GuestTokenUser,
+)
 from superset.sql.parse import Table
 from superset.utils.core import (
     DatasourceType,
@@ -44,13 +50,12 @@ from superset.utils.core import (
     get_example_default_schema,
     override_user,
 )
-from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.fixtures.public_role import (
     public_role_builtin,  # noqa: F401
     public_role_like_gamma,  # noqa: F401
@@ -1429,8 +1434,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_explore", "Superset") in perm_set
         assert ("can_share_chart", "Superset") in perm_set
         assert ("can_share_dashboard", "Superset") in perm_set
-        assert ("can_explore_json", "Superset") in perm_set
-        assert ("can_explore_json", "Superset") in perm_set
         assert ("can_userinfo", "UserDBModelView") in perm_set
         assert ("can_view_chart_as_table", "Dashboard") in perm_set
         assert ("can_view_query", "Dashboard") in perm_set
@@ -1525,9 +1528,6 @@ class TestRolePermission(SupersetTestCase):
         assert security_manager._is_public_pvm(
             security_manager.find_permission_view_menu("can_dashboard", "Superset")
         )
-        assert security_manager._is_public_pvm(
-            security_manager.find_permission_view_menu("can_explore_json", "Superset")
-        )
 
         # Should NOT include write permissions on core objects
         assert not security_manager._is_public_pvm(
@@ -1554,7 +1554,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_read", "Chart") in public_perm_set
         assert ("can_dashboard", "Superset") in public_perm_set
         assert ("can_slice", "Superset") in public_perm_set
-        assert ("can_explore_json", "Superset") in public_perm_set
         assert ("can_dashboard_permalink", "Superset") in public_perm_set
 
         # Filter state for interactive dashboards
@@ -1701,7 +1700,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_explore", "Superset") in gamma_perm_set
         assert ("can_share_chart", "Superset") in gamma_perm_set
         assert ("can_share_dashboard", "Superset") in gamma_perm_set
-        assert ("can_explore_json", "Superset") in gamma_perm_set
         assert ("can_userinfo", "UserDBModelView") in gamma_perm_set
         assert ("can_view_chart_as_table", "Dashboard") in gamma_perm_set
         assert ("can_view_query", "Dashboard") in gamma_perm_set
@@ -1721,6 +1719,13 @@ class TestRolePermission(SupersetTestCase):
             ["CurrentUserRestApi", "update_me"],
             ["CurrentUserRestApi", "get_my_roles"],
             ["UserRestApi", "avatar"],
+            # Secured in the body: admission is "can_read on ANY of
+            # Chart/Dashboard/Dataset", which @has_access cannot express
+            # (it binds one class_permission_name). The view redirects
+            # unauthenticated requests to login and answers 403 for readers
+            # of none of the three; the contract is pinned by
+            # tests/integration_tests/views/archived_assets_tests.py.
+            ["ArchivedAssetsView", "list"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
             ["EmbeddedView", "embedded"],
@@ -1741,6 +1746,30 @@ class TestRolePermission(SupersetTestCase):
             # Serves the PWA web app manifest unauthenticated (PWA install
             # fetches have no session); mirrors the RedirectView precedent.
             ["PwaManifestView", "manifest"],
+            # Serves translation catalogs (static public repo content, no
+            # user/tenant data) as content-addressed scripts; must load for
+            # anonymous principals (login page, embedded dashboards).
+            ["Superset", "language_pack_script"],
+            # Intentionally unauthenticated, matching a raw pre-signed S3 URL's
+            # own access model: the unguessable job_id in the path is the
+            # credential, and the underlying dashboard access check already
+            # ran once, when the export was requested (see
+            # security_manager.raise_for_access in export_xlsx). Must be
+            # reachable with no session at all, since it is clicked from a
+            # plain email link.
+            ["DashboardRestApi", "download_xlsx"],
+            # Self-service AUTH_DB password recovery: used by people who cannot
+            # sign in, so it has to be anonymous. Answers 404 unless recovery
+            # is enabled; the API is CSRF-protected and rate limited, and the
+            # reset only proceeds with a single-use emailed token.
+            ["PasswordRecoveryRestApi", "request_recovery"],
+            ["PasswordRecoveryRestApi", "reset"],
+            ["SupersetAuthView", "forgot_password"],
+            ["SupersetAuthView", "reset_password"],
+            # Language pack endpoint serves JS bundle translations, no auth
+            # needed; embedded dashboards fetch this without a guest-token
+            # header, so it must be reachable unauthenticated.
+            ["Superset", "language_pack"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
@@ -1798,11 +1827,11 @@ class TestSecurityManager(SupersetTestCase):
 
         assert not security_manager.can_access_table(database, table)
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_datasource(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_editor
     ):
         datasource = self.get_datasource_mock()
 
@@ -1811,14 +1840,14 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(datasource=datasource)
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
+    def test_raise_for_access_query(self, mock_can_access, mock_is_editor):
         query = Mock(
             database=get_example_database(),
             schema="bar",
@@ -1830,7 +1859,7 @@ class TestSecurityManager(SupersetTestCase):
         security_manager.raise_for_access(query=query)
 
         mock_can_access.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(query=query)
@@ -1844,21 +1873,21 @@ class TestSecurityManager(SupersetTestCase):
                     sql="SELECT * FROM foo",
                 )
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_sql(self, mock_can_access, mock_is_owner):
+    def test_raise_for_access_sql(self, mock_can_access, mock_is_editor):
         mock_can_access.return_value = True
-        mock_is_owner.return_value = True
+        mock_is_editor.return_value = True
         with override_user(security_manager.find_user("gamma")):
             security_manager.raise_for_access(
                 database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
             )
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_force_dataset_match_allows_dataset(
-        self, mock_can_access, mock_is_owner, mock_query_datasources
+        self, mock_can_access, mock_is_editor, mock_query_datasources
     ):
         """
         With force_dataset_match=True (SQL Lab path), a query that references
@@ -1877,18 +1906,18 @@ class TestSecurityManager(SupersetTestCase):
         # Only datasource_access succeeds; database_access / schema_access
         # / catalog_access return False.
         mock_can_access.side_effect = lambda perm, _vm: perm == "datasource_access"
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
         security_manager.raise_for_access(query=query, force_dataset_match=True)
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_force_dataset_match_denies_schema_only(
-        self, mock_can_access, mock_is_owner, mock_query_datasources
+        self, mock_can_access, mock_is_editor, mock_query_datasources
     ):
         """
         Regression test: with force_dataset_match=True, schema_access alone
-        is not sufficient. The user must have datasource_access (or own) a
+        is not sufficient. The user must have datasource_access on a
         registered Superset dataset for the referenced table.
         """
         query = Mock(
@@ -1902,16 +1931,127 @@ class TestSecurityManager(SupersetTestCase):
         # User holds schema_access only (would have been sufficient before
         # the fix); everything else returns False.
         mock_can_access.side_effect = lambda perm, _vm: perm == "schema_access"
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(query=query, force_dataset_match=True)
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_editor_only(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, being an
+        editor of a registered dataset for the referenced table is NOT
+        sufficient. Raw row access on the strict path (SQL Lab, MetaDB, MCP
+        execute_sql) must follow live data grants, not editorship — which any
+        dataset-creating principal can grant themselves and which would
+        otherwise survive revocation of every real data-access grant.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
+        )
+        # A dataset exists for the table and the user is its editor, but holds
+        # no datasource_access (nor any catalog/schema/database grant).
+        mock_query_datasources.return_value = [
+            Mock(perm="[examples].[bar].[foo](id:1)")
+        ]
+        mock_can_access.return_value = False
+        mock_is_editor.return_value = True
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_non_strict_allows_editor(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        The dataset-owner "explore your own dataset" grant (#20382) is
+        preserved on the non-strict path: without force_dataset_match,
+        editorship of a registered dataset for the referenced table still
+        authorizes access even when the user holds no datasource_access.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = [
+            Mock(perm="[examples].[bar].[foo](id:1)")
+        ]
+        mock_can_access.return_value = False
+        mock_is_editor.return_value = True
+
+        security_manager.raise_for_access(query=query)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_allow_editorship_false_denies_editor(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        With allow_editorship=False (dataset create/update SQL and table
+        validation), editorship of a registered dataset for the referenced
+        table is NOT sufficient. This stops a no-table decoy dataset named
+        after the table from letting its editor define a second dataset that
+        reads it, without ever holding data access to the table.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = [
+            Mock(perm="[examples].[bar].[foo](id:1)")
+        ]
+        mock_can_access.return_value = False
+        mock_is_editor.return_value = True
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, allow_editorship=False)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_allow_editorship_false_keeps_schema_access(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        allow_editorship=False still keeps the catalog/schema fallthroughs:
+        a user with schema_access can define a dataset over the table even
+        though they are not an editor and hold no datasource_access. This is
+        what distinguishes it from force_dataset_match=True (which drops the
+        schema fallthrough).
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
+        )
+        # No registered dataset, not an editor; only schema_access holds.
+        mock_query_datasources.return_value = []
+        mock_can_access.side_effect = lambda perm, _vm: perm == "schema_access"
+        mock_is_editor.return_value = False
+
+        security_manager.raise_for_access(query=query, allow_editorship=False)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_force_dataset_match_denies_unresolved_schema(
-        self, mock_can_access, mock_is_owner, mock_query_datasources
+        self, mock_can_access, mock_is_editor, mock_query_datasources
     ):
         """
         Regression test: with force_dataset_match=True, a query that
@@ -1942,16 +2082,16 @@ class TestSecurityManager(SupersetTestCase):
                 Mock(perm="[examples].[other_schema].[foo](id:1)")
             ]
             mock_can_access.return_value = False
-            mock_is_owner.return_value = False
+            mock_is_editor.return_value = False
 
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(query=query, force_dataset_match=True)
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_force_dataset_match_denies_unparseable(
-        self, mock_can_access, mock_is_owner, mock_query_datasources
+        self, mock_can_access, mock_is_editor, mock_query_datasources
     ):
         """
         Regression test: with force_dataset_match=True, a query whose AST
@@ -1970,19 +2110,19 @@ class TestSecurityManager(SupersetTestCase):
         )
         mock_query_datasources.return_value = []
         mock_can_access.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(query=query, force_dataset_match=True)
 
     @patch("superset.security.manager.process_jinja_sql")
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_force_dataset_match_prefers_executed_sql(
         self,
         mock_can_access,
-        mock_is_owner,
+        mock_is_editor,
         mock_query_datasources,
         mock_process_jinja,
     ):
@@ -2007,7 +2147,7 @@ class TestSecurityManager(SupersetTestCase):
         )
         mock_query_datasources.return_value = []
         mock_can_access.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         security_manager.raise_for_access(query=query, force_dataset_match=True)
 
@@ -2015,10 +2155,10 @@ class TestSecurityManager(SupersetTestCase):
         assert sql_passed == "SELECT * FROM bar.foo"
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_force_dataset_match_denies_kql(
-        self, mock_can_access, mock_is_owner, mock_query_datasources
+        self, mock_can_access, mock_is_editor, mock_query_datasources
     ):
         """
         Regression test: with force_dataset_match=True, Kusto KQL (and any
@@ -2039,16 +2179,16 @@ class TestSecurityManager(SupersetTestCase):
         )
         mock_query_datasources.return_value = []
         mock_can_access.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(query=query, force_dataset_match=True)
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_default_keeps_schema_access(
-        self, mock_can_access, mock_is_owner, mock_query_datasources
+        self, mock_can_access, mock_is_editor, mock_query_datasources
     ):
         """
         Without force_dataset_match (default), schema_access still grants
@@ -2064,15 +2204,15 @@ class TestSecurityManager(SupersetTestCase):
         )
         mock_query_datasources.return_value = []
         mock_can_access.side_effect = lambda perm, _vm: perm == "schema_access"
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         security_manager.raise_for_access(query=query)
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_force_dataset_match_table_uses_default_schema(
-        self, mock_can_access, mock_is_owner, mock_query_datasources
+        self, mock_can_access, mock_is_editor, mock_query_datasources
     ):
         """
         Regression test: under force_dataset_match=True, a caller that passes
@@ -2092,7 +2232,7 @@ class TestSecurityManager(SupersetTestCase):
                 Mock(perm="[examples].[public].[foo](id:1)")
             ]
             mock_can_access.side_effect = lambda perm, _vm: perm == "datasource_access"
-            mock_is_owner.return_value = False
+            mock_is_editor.return_value = False
             security_manager.raise_for_access(
                 database=database,
                 table=table,
@@ -2104,11 +2244,11 @@ class TestSecurityManager(SupersetTestCase):
             _args, kwargs = mock_query_datasources.call_args
             assert kwargs.get("schema") == "public"
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_editor
     ):
         query_context = Mock(datasource=self.get_datasource_mock(), form_data={})
 
@@ -2117,7 +2257,7 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
         with override_user(security_manager.find_user("gamma")):
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(query_context=query_context)
@@ -2134,190 +2274,6 @@ class TestSecurityManager(SupersetTestCase):
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(database=database, table=table)
-
-    @patch("superset.security.SupersetSecurityManager.is_owner")
-    @patch("superset.security.SupersetSecurityManager.can_access")
-    @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
-    ):
-        test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
-
-        mock_can_access_schema.return_value = True
-        security_manager.raise_for_access(viz=test_viz)
-
-        mock_can_access.return_value = False
-        mock_can_access_schema.return_value = False
-        mock_is_owner.return_value = False
-        with override_user(security_manager.find_user("gamma")):
-            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                security_manager.raise_for_access(viz=test_viz)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_feature_flags(DASHBOARD_RBAC=True)
-    @patch("superset.security.SupersetSecurityManager.is_owner")
-    @patch("superset.security.SupersetSecurityManager.can_access")
-    @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_rbac(
-        self,
-        mock_can_access_schema,
-        mock_can_access,
-        mock_is_owner,
-    ):
-        births = self.get_dash_by_slug("births")
-        girls = self.get_slice("Girls")
-        birth_names = girls.datasource
-
-        world_health = self.get_dash_by_slug("world_health")
-        treemap = self.get_slice("Treemap")
-
-        births.json_metadata = json.dumps(
-            {
-                "native_filter_configuration": [
-                    {
-                        "id": "NATIVE_FILTER-ABCDEFGH",
-                        "targets": [{"datasetId": birth_names.id}],
-                    },
-                    {
-                        "id": "NATIVE_FILTER-IJKLMNOP",
-                        "targets": [{"datasetId": treemap.id}],
-                    },
-                ]
-            }
-        )
-
-        mock_is_owner.return_value = False
-        mock_can_access.return_value = False
-        mock_can_access_schema.return_value = False
-        with override_user(security_manager.find_user("gamma")):
-            for kwarg in ["query_context", "viz"]:
-                births.roles = []
-
-                # No dashboard roles.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": births.id,
-                                    "slice_id": girls.id,
-                                },
-                            )
-                        }
-                    )
-
-                births.roles = [self.get_role("Gamma")]
-
-                # Undefined dashboard.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={},
-                            )
-                        }
-                    )
-
-                # Drill to Detail (no slice_id/chart_id): datasource on dashboard.
-                # Access is granted via DASHBOARD_RBAC — D2D is a valid operation
-                # for users who have dashboard access.
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={"dashboardId": births.id},
-                            slice_=None,
-                            queries=[],
-                        )
-                    }
-                )
-
-                # Ill-defined dashboard chart.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": births.id,
-                                    "slice_id": treemap.id,
-                                },
-                            )
-                        }
-                    )
-
-                # Dashboard chart not associated with said datasource.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": world_health.id,
-                                    "slice_id": treemap.id,
-                                },
-                            )
-                        }
-                    )
-
-                # Dashboard chart associated with said datasource.
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": births.id,
-                                "slice_id": girls.id,
-                            },
-                        )
-                    }
-                )
-
-                # Ill-defined native filter.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": births.id,
-                                    "type": "NATIVE_FILTER",
-                                },
-                            )
-                        }
-                    )
-
-                # Native filter not associated with said datasource.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": births.id,
-                                    "native_filter_id": "NATIVE_FILTER-IJKLMNOP",
-                                    "type": "NATIVE_FILTER",
-                                },
-                            )
-                        }
-                    )
-
-                # Native filter associated with said datasource.
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": births.id,
-                                "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
-                                "type": "NATIVE_FILTER",
-                            },
-                        )
-                    }
-                )
 
     def test_get_admin_user_roles(self):
         admin = security_manager.find_user("admin")
@@ -2511,6 +2467,182 @@ class TestGuestTokens(SupersetTestCase):
 
         assert guest_user is not None
         assert "test_guest" == guest_user.username
+
+    def create_guest_token_with_attributes(self) -> bytes:
+        user: GuestTokenUser = {
+            "username": "test_guest_with_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "role": "developer",
+                "team": "data-platform",
+            },
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "access = 1"}]
+        return security_manager.create_guest_access_token(user, resources, rls)
+
+    def test_create_guest_access_token_with_attributes(self) -> None:
+        """Test creating guest access token with user attributes."""
+        user_with_attributes: GuestTokenUser = {
+            "username": "test_guest_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "clearance_level": "standard",
+                "projects": ["analytics", "ml-platform"],
+                "team_lead": True,
+            },
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
+
+        token = security_manager.create_guest_access_token(
+            user_with_attributes, resources, rls
+        )
+
+        # Decode and verify the token contains attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"]["department"] == "Engineering"
+        assert user["attributes"]["region"] == "US"
+        assert user["attributes"]["clearance_level"] == "standard"
+        assert user["attributes"]["projects"] == ["analytics", "ml-platform"]
+        assert user["attributes"]["team_lead"] is True
+
+    def test_get_guest_user_with_attributes(self) -> None:
+        """Test that guest user properly retains attributes from token."""
+        token = self.create_guest_token_with_attributes()
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        assert guest_user is not None
+        assert "test_guest_with_attrs" == guest_user.username
+
+        # Verify attributes are accessible through guest_token
+        assert hasattr(guest_user, "guest_token")
+        token_user = guest_user.guest_token["user"]
+        assert "attributes" in token_user
+        token_attributes = token_user["attributes"]
+        assert token_attributes is not None
+        assert token_attributes["department"] == "Engineering"
+        assert token_attributes["region"] == "US"
+        assert token_attributes["role"] == "developer"
+        assert token_attributes["team"] == "data-platform"
+
+    def test_create_guest_access_token_without_attributes(self) -> None:
+        """Test creating guest access token without user attributes.
+
+        This test ensures backward compatibility.
+        """
+        user_without_attributes: GuestTokenUser = {
+            "username": "test_guest_no_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
+
+        token = security_manager.create_guest_access_token(
+            user_without_attributes, resources, rls
+        )
+
+        # Decode and verify the token works without attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" not in user
+        assert user["username"] == "test_guest_no_attrs"
+
+    def test_create_guest_access_token_with_empty_attributes(self) -> None:
+        """Test creating guest access token with empty attributes."""
+        user_with_empty_attributes: GuestTokenUser = {
+            "username": "test_guest_empty_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {},
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
+
+        token = security_manager.create_guest_access_token(
+            user_with_empty_attributes, resources, rls
+        )
+
+        # Decode and verify the token contains empty attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"] == {}
+
+    def test_create_guest_access_token_with_null_attributes(self) -> None:
+        """Test creating guest access token with null attributes."""
+        user_with_null_attributes: GuestTokenUser = {
+            "username": "test_guest_null_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": None,
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
+
+        token = security_manager.create_guest_access_token(
+            user_with_null_attributes, resources, rls
+        )
+
+        # Decode and verify the token contains null attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"] is None
 
     def test_get_guest_user_with_request_form(self):
         token = self.create_guest_token()

@@ -20,4 +20,5 @@ import ChangeDatasourceModal from './ChangeDatasourceModal';
 import DatasourceModal from './DatasourceModal';
 
 export { ChangeDatasourceModal, DatasourceModal };
+export { withCertificationFields } from './utils';
 export type { DatasourceModalProps, ChangeDatasourceModalProps } from './types';

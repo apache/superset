@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { type JsonObject } from '@superset-ui/core';
 import { type ReactNode } from 'react';
 
 export interface SortColumn {
@@ -102,6 +103,7 @@ export interface ListViewFetchDataConfig {
   pageSize: number;
   sortBy: SortColumn[];
   filters: ListViewFilterValue[];
+  extraQueryParams?: JsonObject;
 }
 
 export interface InternalFilter extends ListViewFilterValue {
@@ -125,6 +127,7 @@ export enum ListViewFilterOperator {
   NameOrDescription = 'name_or_description',
   AllText = 'all_text',
   ChartAllText = 'chart_all_text',
+  ChartDatasource = 'chart_datasource',
   DatasetIsNullOrEmpty = 'dataset_is_null_or_empty',
   Between = 'between',
   DashboardIsFav = 'dashboard_is_favorite',
@@ -141,4 +144,10 @@ export enum ListViewFilterOperator {
   ChartTagById = 'chart_tag_id',
   SavedQueryTagByName = 'saved_query_tags',
   SavedQueryTagById = 'saved_query_tag_id',
+  ChartDeletedState = 'chart_deleted_state',
+  ChartDeletedRecency = 'chart_deleted_recency',
+  DashboardDeletedState = 'dashboard_deleted_state',
+  DashboardDeletedRecency = 'dashboard_deleted_recency',
+  DatasetDeletedState = 'dataset_deleted_state',
+  DatasetDeletedRecency = 'dataset_deleted_recency',
 }

@@ -52,4 +52,60 @@ describe('renderNormalizedTooltip', () => {
     expect(tooltip).toContain('100');
     expect(tooltip).toContain('200');
   });
+
+  test('should render a missing metric as N/A instead of NaN', () => {
+    // A missing metric is denormalized to `null` (see #30270); the tooltip
+    // must not run it through the formatter, which would print "NaN".
+    const getDenormalizedValueWithGap = jest.fn((_, value) =>
+      value === 'null' ? null : Number(value),
+    );
+    const formatter = getNumberFormatter(',.2f');
+    const tooltip = renderNormalizedTooltip(
+      { ...params, value: [100, null] },
+      metrics,
+      getDenormalizedValueWithGap,
+      metricsWithCustomBounds,
+      formatter,
+    );
+    expect(tooltip).toContain('N/A');
+    expect(tooltip).not.toContain('NaN');
+  });
+
+  test('should HTML-escape series names from query data', () => {
+    // Regression test: the tooltip is rendered via innerHTML, so markup
+    // in query-result values must not become live DOM.
+    const tooltip = renderNormalizedTooltip(
+      { ...params, name: '<img src=x onerror=alert(1)>' },
+      metrics,
+      mockGetDenormalizedValue,
+      metricsWithCustomBounds,
+    );
+    expect(tooltip).not.toContain('<img');
+    expect(tooltip).toContain('&lt;img');
+  });
+
+  test('should HTML-escape metric labels', () => {
+    const tooltip = renderNormalizedTooltip(
+      params,
+      ['<svg onload=alert(1)>', 'metric2'],
+      mockGetDenormalizedValue,
+      metricsWithCustomBounds,
+    );
+    expect(tooltip).not.toContain('<svg');
+    expect(tooltip).toContain('&lt;svg');
+  });
+
+  test('should HTML-escape the series color used for the tooltip color dot', () => {
+    // Regression test: `color` is interpolated into a style attribute
+    // unquoted, so an unescaped quote could break out of the attribute
+    // and inject markup.
+    const tooltip = renderNormalizedTooltip(
+      { ...params, color: 'red" onmouseover="alert(1)' },
+      metrics,
+      mockGetDenormalizedValue,
+      metricsWithCustomBounds,
+    );
+    expect(tooltip).not.toContain('" onmouseover="alert(1)"');
+    expect(tooltip).toContain('&quot; onmouseover=&quot;alert(1)');
+  });
 });

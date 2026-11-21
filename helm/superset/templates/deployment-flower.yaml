@@ -36,10 +36,13 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: {{ include "superset-config" . | sha256sum }}
+        checksum/config: {{ include "superset.config" . | sha256sum }}
         checksum/secrets: {{ tpl (toJson .Values.extraSecretEnv) . | sha256sum }}
         {{- if .Values.supersetCeleryFlower.podAnnotations }}
           {{- toYaml .Values.supersetCeleryFlower.podAnnotations | nindent 8 }}
+        {{- end }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
         {{- include "supersetCeleryFlower.selectorLabels" . | nindent 8 }}
@@ -58,8 +61,14 @@ spec:
         {{- if .Values.supersetCeleryFlower.podSecurityContext }}
           {{- toYaml .Values.supersetCeleryFlower.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.supersetCeleryFlower.initContainers .Values.supersetCeleryFlower.extraInitContainers }}
+      initContainers:
       {{- if .Values.supersetCeleryFlower.initContainers }}
-      initContainers: {{-  tpl (toYaml .Values.supersetCeleryFlower.initContainers) . | nindent 6 }}
+      {{-  tpl (toYaml .Values.supersetCeleryFlower.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.supersetCeleryFlower.extraInitContainers }}
+      {{-  tpl (toYaml .Values.supersetCeleryFlower.extraInitContainers) . | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}

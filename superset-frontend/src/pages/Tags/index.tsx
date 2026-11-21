@@ -18,6 +18,7 @@
  */
 import { useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   Actions,
@@ -26,13 +27,14 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
+  ActionButton,
   ConfirmStatusChange,
-  Tooltip,
   FaveStar,
 } from '@superset-ui/core/components';
 import {
   Tag as AntdTag,
   ListView,
+  type ListViewColumn,
   ModifiedInfo,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilter,
@@ -49,6 +51,15 @@ import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 
 const PAGE_SIZE = 25;
+
+// A long tag name ellipsizes inside its pill instead of clipping the pill.
+const TitleTag = styled(AntdTag)`
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+`;
 
 interface TagListProps {
   addDangerToast: (msg: string) => void;
@@ -142,7 +153,7 @@ function TagList(props: TagListProps) {
     buttonText: t('Create a new Tag'),
   };
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Tag>[]>(
     () => [
       {
         Cell: ({
@@ -160,7 +171,7 @@ function TagList(props: TagListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        layout: 'icon',
         hidden: !userId,
       },
       {
@@ -169,13 +180,13 @@ function TagList(props: TagListProps) {
             original: { id, name: tagName },
           },
         }: any) => (
-          <AntdTag>
+          <TitleTag>
             <Link to={`/all_entities/?id=${id}`}>{tagName}</Link>
-          </AntdTag>
+          </TitleTag>
         ),
         Header: t('Name'),
         accessor: 'name',
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
@@ -189,7 +200,7 @@ function TagList(props: TagListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -209,47 +220,38 @@ function TagList(props: TagListProps) {
                   onConfirm={() => handleTagsDelete([original])}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={t('Delete')}
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={t('Delete')}
                       placement="bottom"
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
-                      >
+                      icon={
                         <Icons.DeleteOutlined
                           data-test="dashboard-list-trash-icon"
                           iconSize="l"
                         />
-                      </span>
-                    </Tooltip>
+                      }
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  onClick={handleEdit}
+                />
               )}
             </Actions>
           );
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canDelete,
         disableSortBy: true,
       },

@@ -49,7 +49,7 @@ def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
             return_value=False,
         ),
     ):
-        mock_sec.raise_for_ownership.return_value = None
+        mock_sec.raise_for_editorship.return_value = None
 
         cmd = RestoreDatasetCommand(_DATASET_UUID)
         cmd.run()
@@ -58,8 +58,8 @@ def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
         _DATASET_UUID,
         id_column="uuid",
         # Both bypasses are the lookup's contract: skip_base_filter keeps an
-        # owner's trash reachable when the RBAC base_filter has no ownership
-        # leg (audience is enforced by raise_for_ownership instead);
+        # editor's trash reachable when the RBAC base_filter has no editorship
+        # leg (audience is enforced by raise_for_editorship instead);
         # skip_visibility_filter lets the lookup see soft-deleted rows.
         skip_base_filter=True,
         skip_visibility_filter=True,
@@ -108,7 +108,7 @@ def test_restore_dataset_forbidden_raises(app_context: None) -> None:
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
         patch("superset.commands.restore.security_manager") as mock_sec,
     ):
-        mock_sec.raise_for_ownership = raise_security
+        mock_sec.raise_for_editorship = raise_security
 
         cmd = RestoreDatasetCommand(_DATASET_UUID)
         with pytest.raises(DatasetForbiddenError):
@@ -142,7 +142,7 @@ def test_restore_dataset_logical_duplicate_raises(app_context: None) -> None:
             return_value=True,
         ) as mock_dup_check,
     ):
-        mock_sec.raise_for_ownership.return_value = None
+        mock_sec.raise_for_editorship.return_value = None
 
         cmd = RestoreDatasetCommand(_DATASET_UUID)
         with pytest.raises(DatasetLogicalDuplicateError):
@@ -172,7 +172,7 @@ def test_restore_dataset_no_logical_duplicate_when_none_exists(
             return_value=False,
         ) as mock_dup_check,
     ):
-        mock_sec.raise_for_ownership.return_value = None
+        mock_sec.raise_for_editorship.return_value = None
 
         cmd = RestoreDatasetCommand(_DATASET_UUID)
         cmd.run()

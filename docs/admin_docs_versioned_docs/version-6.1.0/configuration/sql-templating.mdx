@@ -106,6 +106,7 @@ WHERE dttm_col > '{{ from_dttm | default("2024-01-01", true) }}'
 **Option 2: Use SQL Lab Parameters**
 
 Set parameters in the SQL Lab UI (Parameters menu):
+
 ```json
 {
   "from_dttm": "2024-01-01",
@@ -151,7 +152,7 @@ In the UI you can assign a set of parameters as JSON
 The parameters become available in your SQL (example: `SELECT * FROM {{ my_table }}` ) by using Jinja templating syntax.
 SQL Lab template parameters are stored with the dataset as `TEMPLATE PARAMETERS`.
 
-There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
+There is a special `_filters` parameter which can be used to test filters used in the jinja template.
 
 ```json
 {
@@ -172,7 +173,7 @@ WHERE action in {{ filter_values('action_type')|where_in }}
 GROUP BY action
 ```
 
-Note ``_filters`` is not stored with the dataset. It's only used within the SQL Lab UI.
+Note `_filters` is not stored with the dataset. It's only used within the SQL Lab UI.
 
 Besides default Jinja templating, SQL lab also supports self-defined template processor by setting
 the `CUSTOM_TEMPLATE_PROCESSORS` in your superset configuration. The values in this dictionary
@@ -306,16 +307,19 @@ cache key by adding the following parameter to your Jinja code:
 ```
 
 You can json-stringify the array by adding `|tojson` to your Jinja code:
+
 ```python
 {{ current_user_roles()|tojson }}
 ```
 
 You can use the `|where_in` filter to use your roles in a SQL statement. For example, if `current_user_roles()` returns `['admin', 'viewer']`, the following template:
+
 ```python
 SELECT * FROM users WHERE role IN {{ current_user_roles()|where_in }}
 ```
 
 Will be rendered as:
+
 ```sql
 SELECT * FROM users WHERE role IN ('admin', 'viewer')
 ```
@@ -341,6 +345,7 @@ Always treat `url_param()` values as untrusted input. Escaping behaviour varies 
 {% if cc not in ('US', 'ES', 'FR') %}{% set cc = 'US' %}{% endif %}
 WHERE country_code = '{{ cc }}'
 ```
+
 :::
 
 Here's a concrete example:
@@ -425,6 +430,7 @@ This is useful if:
     AND full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
 {%- endif -%}
 ```
+
 :::
 
 Here's a concrete example:
@@ -489,7 +495,7 @@ The macro takes the following parameters:
 - `column`: Name of the temporal column. Leave undefined to reference the time range from a Dashboard Native Time Range
   filter (when present).
 - `default`: The default value to fall back to if the time filter is not present, or has the value `No filter`
-- `target_type`: The target temporal type as recognized by the target  database (e.g. `TIMESTAMP`, `DATE` or
+- `target_type`: The target temporal type as recognized by the target database (e.g. `TIMESTAMP`, `DATE` or
   `DATETIME`). If `column` is defined, the format will default to the type of the column. This is used to produce
   the format of the `from_expr` and `to_expr` properties of the returned `TimeFilter` object.
 - `strftime`: format using the `strftime` method of `datetime` for custom time formatting.
@@ -595,6 +601,7 @@ The parameter can be used in SQL Lab, or when fetching a metric from another dat
 Superset supports [builtin filters from the Jinja2 templating package](https://jinja.palletsprojects.com/en/stable/templates/#builtin-filters). Custom filters have also been implemented:
 
 ### Where In
+
 Parses a list into a SQL-compatible statement. This is useful with macros that return an array (for example the `filter_values` macro):
 
 ```
@@ -614,6 +621,7 @@ Dashboard filter without any value applied
 ### To Datetime
 
 Loads a string as a `datetime` object. This is useful when performing date operations. For example:
+
 ```
 {% set from_expr = get_time_filter("dttm", strftime="%Y-%m-%d").from_expr %}
 {% set to_expr = get_time_filter("dttm", strftime="%Y-%m-%d").to_expr %}
@@ -625,5 +633,6 @@ Loads a string as a `datetime` object. This is useful when performing date opera
 ```
 
 :::resources
+
 - [Blog: Intro to Jinja Templating in Apache Superset](https://preset.io/blog/intro-jinja-templating-apache-superset/)
-:::
+  :::

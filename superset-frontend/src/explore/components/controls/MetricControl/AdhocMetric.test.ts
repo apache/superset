@@ -191,6 +191,29 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.inferSqlExpressionAggregate()).toBeNull();
   });
 
+  test('can infer the new extended aggregates (STDDEV_SAMP/VAR_SAMP/MEDIAN) from sql expressions', () => {
+    const stddevSamp = new AdhocMetric({
+      expressionType: EXPRESSION_TYPES.SQL,
+      sqlExpression: 'STDDEV_SAMP(my_column)',
+    });
+    expect(stddevSamp.inferSqlExpressionColumn()).toBe('my_column');
+    expect(stddevSamp.inferSqlExpressionAggregate()).toBe('STDDEV_SAMP');
+
+    const varSamp = new AdhocMetric({
+      expressionType: EXPRESSION_TYPES.SQL,
+      sqlExpression: 'VAR_SAMP(my_column)',
+    });
+    expect(varSamp.inferSqlExpressionColumn()).toBe('my_column');
+    expect(varSamp.inferSqlExpressionAggregate()).toBe('VAR_SAMP');
+
+    const median = new AdhocMetric({
+      expressionType: EXPRESSION_TYPES.SQL,
+      sqlExpression: 'MEDIAN(my_column)',
+    });
+    expect(median.inferSqlExpressionColumn()).toBe('my_column');
+    expect(median.inferSqlExpressionAggregate()).toBe('MEDIAN');
+  });
+
   test('will infer columns and aggregates when converting to a simple expression', () => {
     const adhocMetric = new AdhocMetric({
       expressionType: EXPRESSION_TYPES.SQL,
@@ -247,5 +270,21 @@ describe('AdhocMetric', () => {
       emptyColumnName.translateToSql({ transformCountDistinct: true }),
     ).toBe('COUNT_DISTINCT');
     expect(emptyColumnName.getDefaultLabel()).toBe('COUNT_DISTINCT');
+  });
+
+  test('should prefill a portable MEDIAN expression for the Custom SQL tab, but keep the raw label', () => {
+    const median = new AdhocMetric({
+      column: valueColumn,
+      aggregate: AGGREGATES.MEDIAN,
+      hasCustomLabel: false,
+    });
+    // MEDIAN(column) isn't valid SQL on every engine this PR verifies it
+    // for (e.g. PostgreSQL has no MEDIAN function), so the editable Custom
+    // SQL tab is prefilled with the portable, standards-based spelling.
+    expect(median.translateToSql({ transformCountDistinct: true })).toBe(
+      'PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value)',
+    );
+    // The display label stays the concise, human-readable form.
+    expect(median.getDefaultLabel()).toBe('MEDIAN(value)');
   });
 });

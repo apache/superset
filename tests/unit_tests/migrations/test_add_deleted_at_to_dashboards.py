@@ -103,7 +103,7 @@ def _indexes(engine: Engine) -> set[str]:
 
 
 def test_upgrade_adds_deleted_at_column_and_index(engine: Engine) -> None:
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -115,7 +115,7 @@ def test_upgrade_adds_deleted_at_column_and_index(engine: Engine) -> None:
 
 
 def test_downgrade_drops_deleted_at_column_and_index(engine: Engine) -> None:
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -138,7 +138,7 @@ def test_downgrade_preserves_soft_deleted_row_data(engine: Engine) -> None:
     hard-delete, restore, or rename BEFORE downgrading. See the
     "Rollback note" in ``UPDATING.md``.
     """
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -198,7 +198,7 @@ def test_sqlite_slug_constraint_swap_is_a_no_op(engine: Engine) -> None:
         "pre-condition: legacy slug constraint must exist before the migration runs"
     )
 
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -207,7 +207,7 @@ def test_sqlite_slug_constraint_swap_is_a_no_op(engine: Engine) -> None:
         "upgrade() must keep the legacy slug constraint on SQLite (no-op branch)"
     )
 
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.downgrade()
@@ -222,7 +222,7 @@ def test_upgrade_is_idempotent(engine: Engine) -> None:
     idempotent skip-if-exists; running ``upgrade()`` twice must not
     raise.
     """
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -233,7 +233,7 @@ def test_downgrade_is_idempotent(engine: Engine) -> None:
     """``drop_columns`` / ``drop_index`` are skip-if-not-exists; running
     ``downgrade()`` twice must not raise.
     """
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()

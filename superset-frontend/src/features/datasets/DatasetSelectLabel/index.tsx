@@ -19,17 +19,24 @@
 import { Tooltip } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import { parentLabelLower } from 'src/features/semanticLayers/label';
 
 type Database = {
   database_name: string;
 };
 
+/**
+ * One row of a dataset or combined datasource listing. Semantic views report
+ * ``kind: 'semantic_view'`` and carry no schema; their ``database`` names the
+ * owning semantic layer.
+ */
 export type Dataset = {
   id: number;
   table_name: string;
   datasource_type?: string;
-  schema: string;
-  database: Database;
+  kind?: string;
+  schema?: string | null;
+  database?: Database | null;
 };
 
 const TooltipContent = styled.div`
@@ -90,43 +97,53 @@ const StyledLabelDetail = styled.span`
 const isValidValue = (value: string): boolean =>
   !['null', 'none'].includes(value.toLowerCase()) && value.trim() !== '';
 
-export const DatasetSelectLabel = (item: Dataset) => (
-  <Tooltip
-    mouseEnterDelay={0.2}
-    placement="right"
-    title={
-      <TooltipContent>
-        <div className="tooltip-header">
-          {item.table_name && isValidValue(item.table_name)
-            ? item.table_name
-            : t('Not defined')}
-        </div>
-        <div className="tooltip-description">
-          <div>
-            {t('Database')}: {item.database.database_name}
-          </div>
-          <div>
-            {t('Schema')}:{' '}
-            {item.schema && isValidValue(item.schema)
-              ? item.schema
+/** Shared visible text for datasource options and their accessible names. */
+export const getDatasetSelectLabelParts = (
+  item: Dataset,
+): [string, string, string?] => {
+  const databaseName = item.database?.database_name ?? t('Not defined');
+  const name =
+    item.table_name && isValidValue(item.table_name)
+      ? item.table_name
+      : databaseName;
+  return item.schema && isValidValue(item.schema)
+    ? [name, databaseName, item.schema]
+    : [name, databaseName];
+};
+
+export const DatasetSelectLabel = (item: Dataset) => {
+  const [name, databaseName, schema] = getDatasetSelectLabelParts(item);
+  return (
+    <Tooltip
+      mouseEnterDelay={0.2}
+      placement="right"
+      title={
+        <TooltipContent>
+          <div className="tooltip-header">
+            {item.table_name && isValidValue(item.table_name)
+              ? item.table_name
               : t('Not defined')}
           </div>
-        </div>
-      </TooltipContent>
-    }
-  >
-    <StyledLabelContainer>
-      <StyledLabel>
-        {item.table_name && isValidValue(item.table_name)
-          ? item.table_name
-          : item.database.database_name}
-      </StyledLabel>
-      <StyledDetailWrapper>
-        <StyledLabelDetail>{item.database.database_name}</StyledLabelDetail>
-        {item.schema && isValidValue(item.schema) && (
-          <StyledLabelDetail>&nbsp;- {item.schema}</StyledLabelDetail>
-        )}
-      </StyledDetailWrapper>
-    </StyledLabelContainer>
-  </Tooltip>
-);
+          <div className="tooltip-description">
+            <div>
+              {parentLabelLower(item.kind)}: {databaseName}
+            </div>
+            {schema && (
+              <div>
+                {t('Schema')}: {schema}
+              </div>
+            )}
+          </div>
+        </TooltipContent>
+      }
+    >
+      <StyledLabelContainer>
+        <StyledLabel>{name}</StyledLabel>
+        <StyledDetailWrapper>
+          <StyledLabelDetail>{databaseName}</StyledLabelDetail>
+          {schema && <StyledLabelDetail>&nbsp;- {schema}</StyledLabelDetail>}
+        </StyledDetailWrapper>
+      </StyledLabelContainer>
+    </Tooltip>
+  );
+};

@@ -59,13 +59,18 @@ jest.mock('@apache-superset/core/theme', () => ({
   useTheme: jest.fn(),
 }));
 
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
-  Grid: {
-    ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => ({ md: true }),
-  },
-}));
+const mockUseBreakpoint = jest.fn<{ md?: boolean }, []>(() => ({ md: true }));
+
+jest.mock('antd', () => {
+  const actual = jest.requireActual('antd');
+  return {
+    ...actual,
+    Grid: {
+      ...actual.Grid,
+      useBreakpoint: () => mockUseBreakpoint(),
+    },
+  };
+});
 
 const dropdownItems = [
   {
@@ -302,6 +307,8 @@ beforeEach(() => {
   applicationRootMock.mockReturnValue('');
   // By default useTheme returns the real default theme (brandLogoUrl is falsy)
   useThemeMock.mockReturnValue(CoreTheme.supersetTheme);
+  // By default simulate a desktop viewport (md breakpoint active)
+  mockUseBreakpoint.mockReturnValue({ md: true });
 });
 
 test('should render', async () => {
@@ -325,6 +332,25 @@ test('should render the navigation', async () => {
     useTheme: true,
   });
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
+});
+
+test('hides the navigation when the standalone url param is set', async () => {
+  const originalLocationHref = window.location.href;
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  window.history.replaceState(null, '', '/superset/dashboard/1/?standalone=1');
+
+  try {
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  } finally {
+    window.history.replaceState(null, '', originalLocationHref);
+  }
 });
 
 test.each(['', '/myapp'])(
@@ -380,6 +406,20 @@ test('should render all the top navbar menu items', async () => {
   });
 });
 
+test('renders the down-chevron caret icon on top-level category dropdowns, not the caret glyph (regression #43531)', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const sources = await screen.findByText('Sources');
+  const caret = sources.closest('li')?.querySelector('.ant-menu-item-icon');
+  expect(caret).toHaveClass('anticon-down');
+  expect(caret?.querySelector('svg')).toHaveAttribute('data-icon', 'down');
+});
+
 test('should render the top navbar child menu items', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
@@ -392,7 +432,7 @@ test('should render the top navbar child menu items', async () => {
     useTheme: true,
   });
   const sources = await screen.findByText('Sources');
-  userEvent.hover(sources);
+  await userEvent.hover(sources);
 
   const datasets = await screen.findByText('Datasets');
   const databases = await screen.findByText('Databases');
@@ -412,7 +452,7 @@ test('should render the dropdown items', async () => {
     useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
-  userEvent.hover(dropdown);
+  await userEvent.hover(dropdown);
   // todo (philip): test data submenu
   expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute(
     'href',
@@ -454,7 +494,7 @@ test('should render the Settings menu item', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const label = await screen.findByText('Security');
   expect(label).toBeInTheDocument();
 });
@@ -470,7 +510,7 @@ test('should render the Settings dropdown child menu items', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const listUsers = await screen.findByText('List Users');
   expect(listUsers).toHaveAttribute('href', settings[0].childs[0].url);
 });
@@ -512,7 +552,7 @@ test('should render the user actions when user is not anonymous', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const user = await screen.findByText('User');
   expect(user).toBeInTheDocument();
 
@@ -549,7 +589,7 @@ test('should render the About section and version_string, sha or build_number wh
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
 
   // The version information is rendered as combined text in a single element
@@ -586,7 +626,7 @@ test('should render the Documentation link when available', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const doc = await screen.findByTitle('Documentation');
   expect(doc).toHaveAttribute('href', documentation_url);
 });
@@ -1045,6 +1085,59 @@ describe('active tab highlighting (regression #36403)', () => {
     expect(getMenuItemByText('Дашборды')).toHaveClass('ant-menu-item-selected');
   });
 
+  test.each([
+    ['/tablemodelview/list/', 'the legacy FAB dataset list route'],
+    ['/dataset/add/', 'the modern React dataset create route'],
+    ['/dataset/42', 'a dataset detail route'],
+  ])(
+    'highlights the Datasets tab on %s (%s) — regression #42467',
+    async (route, _label) => {
+      // ``/tablemodelview/list/`` is the pre-existing legacy path (kept as
+      // a coverage anchor so future prefix-matching changes cannot silently
+      // regress it); the ``/dataset/*`` routes are the modern React ones
+      // added by #42467.
+      useSelectorMock.mockReturnValue({ roles: user.roles });
+      window.history.pushState({}, '', route);
+
+      render(<Menu {...mockedProps} />, {
+        useRedux: true,
+        useQueryParams: true,
+        useRouter: true,
+        useTheme: true,
+      });
+
+      // Datasets is a child under the Sources submenu — expand it first so
+      // the item is in the DOM (same pattern as the existing "render the top
+      // navbar child menu items" test).
+      const sources = await screen.findByText('Sources');
+      await userEvent.hover(sources);
+
+      const datasets = await screen.findByText('Datasets');
+      expect(datasets.closest('li')).toHaveClass('ant-menu-item-selected');
+    },
+  );
+
+  test('does not highlight the Datasets tab on lookalike prefixes (e.g. /datasetXyz)', async () => {
+    // The active-tab matcher must use a boundary-aware startsWith so that
+    // an unrelated future route beginning with ``/dataset`` (e.g. a
+    // hypothetical ``/datasetXyz``) does not falsely trigger the highlight.
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', '/datasetXyz');
+
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    const sources = await screen.findByText('Sources');
+    await userEvent.hover(sources);
+
+    const datasets = await screen.findByText('Datasets');
+    expect(datasets.closest('li')).not.toHaveClass('ant-menu-item-selected');
+  });
+
   test('highlights the active SQL tab when the label is localized', async () => {
     // The SQL Lab top-level entry is a FAB category: its stable `name` is
     // "SQL Lab" while its label ("SQL") is localized.
@@ -1087,4 +1180,67 @@ describe('active tab highlighting (regression #36403)', () => {
       'ant-menu-submenu-selected',
     );
   });
+});
+
+test('navbar renders horizontal when breakpoints are not yet measured on a wide viewport (regression for layout flash)', async () => {
+  // Simulate first paint: useBreakpoint returns {} before the viewport is
+  // measured, so the layout falls back to the viewport width (jsdom defaults
+  // to 1024px, above the md threshold) → mode="horizontal".
+  mockUseBreakpoint.mockReturnValue({});
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const navbar = await screen.findByTestId('navbar-top');
+  expect(navbar).toHaveClass('ant-menu-horizontal');
+  expect(navbar).not.toHaveClass('ant-menu-inline');
+});
+
+test('navbar renders inline when breakpoints are not yet measured on a narrow viewport', async () => {
+  // Simulate first paint on a mobile-sized window: useBreakpoint returns {}
+  // and the viewport-width fallback (below the md threshold) → mode="inline",
+  // so mobile users don't see a horizontal flash either.
+  const originalInnerWidth = window.innerWidth;
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: 500,
+  });
+  try {
+    mockUseBreakpoint.mockReturnValue({});
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    const navbar = await screen.findByTestId('navbar-top');
+    expect(navbar).toHaveClass('ant-menu-inline');
+    expect(navbar).not.toHaveClass('ant-menu-horizontal');
+  } finally {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    });
+  }
+});
+
+test('navbar renders inline on mobile viewport (md: false)', async () => {
+  // Simulate a mobile viewport where the md breakpoint has resolved to false,
+  // which takes precedence over the viewport-width fallback → mode="inline".
+  mockUseBreakpoint.mockReturnValue({ md: false });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const navbar = await screen.findByTestId('navbar-top');
+  expect(navbar).toHaveClass('ant-menu-inline');
 });

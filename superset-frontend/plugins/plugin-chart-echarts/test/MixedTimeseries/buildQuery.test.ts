@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  BinaryAdhocFilter,
   ComparisonType,
   FreeFormAdhocFilter,
   RollingType,
@@ -197,6 +198,38 @@ test('should compile query object B', () => {
   });
 });
 
+test('should compile Matrixify filters for both mixed timeseries queries', () => {
+  // Matrixify injects a per-cell dimension filter into `adhoc_filters` and every
+  // query-specific `adhoc_filters_*` collection. Query A reads `adhoc_filters`
+  // and query B reads `adhoc_filters_b`, so both queries must end up filtered.
+  const matrixifyCountryFilter: BinaryAdhocFilter = {
+    clause: 'WHERE',
+    expressionType: 'SIMPLE',
+    subject: 'country',
+    operator: '==',
+    comparator: 'USA',
+    isExtra: false,
+  };
+  const formData = {
+    ...formDataMixedChart,
+    adhoc_filters: [
+      ...formDataMixedChart.adhoc_filters,
+      matrixifyCountryFilter,
+    ],
+    adhoc_filters_b: [
+      ...formDataMixedChart.adhoc_filters_b,
+      matrixifyCountryFilter,
+    ],
+  };
+
+  const [queryA, queryB] = buildQuery(formData).queries;
+
+  expect(queryA.filters).toEqual([{ col: 'country', op: '==', val: 'USA' }]);
+  expect(queryB.filters).toEqual([{ col: 'country', op: '==', val: 'USA' }]);
+  // The pre-existing free-form filter on query B is preserved in `extras`.
+  expect(queryB.extras?.where).toBe("(name in ('c', 'd'))");
+});
+
 test('should compile AA in query A', () => {
   const query = buildQuery(formDataMixedChartWithAA).queries[0];
   // time comparison
@@ -219,19 +252,13 @@ test('should compile AA in query A', () => {
   });
   // cumsum
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'cum')
+    query.post_processing?.find(operator => operator?.operation === 'cum')
       ?.operation,
   ).toEqual('cum');
 
   // resample
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'resample'),
+    query.post_processing?.find(operator => operator?.operation === 'resample'),
   ).toEqual({
     operation: 'resample',
     options: {
@@ -249,10 +276,7 @@ test('should compile AA in query B', () => {
 
   // rolling total
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'rolling'),
+    query.post_processing?.find(operator => operator?.operation === 'rolling'),
   ).toEqual({
     operation: 'rolling',
     options: {
@@ -268,10 +292,7 @@ test('should compile AA in query B', () => {
 
   // resample
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'resample'),
+    query.post_processing?.find(operator => operator?.operation === 'resample'),
   ).toEqual({
     operation: 'resample',
     options: {

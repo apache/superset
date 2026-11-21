@@ -17,9 +17,22 @@
  * under the License.
  */
 
-import { TimeGranularity } from '@superset-ui/core';
+import {
+  QueryFormMetric,
+  QueryObject,
+  TimeGranularity,
+} from '@superset-ui/core';
+import { ControlPanelsContainerProps } from '@superset-ui/chart-controls';
 import buildQuery from '../../src/plugin/buildQuery';
-import { PivotTableQueryFormData } from '../../src/types';
+import controlPanel from '../../src/plugin/controlPanel';
+import { MetricsLayoutEnum, PivotTableQueryFormData } from '../../src/types';
+
+// buildQuery attaches `grouping_sets` (one entry per rollup level) to the
+// query object; it is not part of the base QueryObject type, so narrow to a
+// local type instead of casting through `any`. Each level is serialized as
+// column *labels* (string[]), matching the backend's `list[list[str]]`
+// (see superset/common/query_context_processor.py), not `QueryFormColumn[]`.
+type GroupingSetsQuery = QueryObject & { grouping_sets: string[][] };
 
 const formData: PivotTableQueryFormData = {
   groupbyRows: ['row1', 'row2'],
@@ -28,7 +41,6 @@ const formData: PivotTableQueryFormData = {
   tableRenderer: 'Table With Subtotal',
   colOrder: 'key_a_to_z',
   rowOrder: 'key_a_to_z',
-  aggregateFunction: 'Sum',
   transposePivot: true,
   rowSubtotalPosition: true,
   colSubtotalPosition: true,
@@ -56,9 +68,161 @@ const formData: PivotTableQueryFormData = {
   currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
 };
 
+test('semantic pivot drops a saved series limit without changing SQL pivots', () => {
+  const semanticQuery = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+    series_limit: 2,
+  }).queries[0];
+  const sqlQuery = buildQuery({ ...formData, series_limit: 2 }).queries[0];
+
+  expect(semanticQuery.series_limit).toBe(0);
+  expect(sqlQuery.series_limit).toBe(2);
+});
+
+test.each([false, true])(
+  'semantic pivot marks a grained date as a column reference (transpose=%s)',
+  transposePivot => {
+    const semanticQuery = buildQuery({
+      ...formData,
+      datasource: '5__semantic_view',
+      transposePivot,
+    }).queries[0];
+    const sqlQuery = buildQuery({ ...formData, transposePivot }).queries[0];
+
+    const semanticDate = semanticQuery.columns?.find(
+      col => typeof col !== 'string' && col.sqlExpression === 'col1',
+    );
+    const sqlDate = sqlQuery.columns?.find(
+      col => typeof col !== 'string' && col.sqlExpression === 'col1',
+    );
+    expect(semanticDate).toMatchObject({
+      sqlExpression: 'col1',
+      timeGrain: TimeGranularity.MONTH,
+      isColumnReference: true,
+    });
+    expect(sqlDate).not.toHaveProperty('isColumnReference');
+  },
+);
+
+test('semantic pivot bounds its main query while SQL pivot keeps its limit', () => {
+  const semanticQuery = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+    row_limit: 0,
+  }).queries[0];
+  const sqlQuery = buildQuery({ ...formData, row_limit: 0 }).queries[0];
+
+  expect(semanticQuery.row_limit).toBeGreaterThan(0);
+  expect(sqlQuery.row_limit).toBe(0);
+});
+
+test.each([
+  { rowOrder: 'value_z_to_a' },
+  { metricsLayout: MetricsLayoutEnum.ROWS },
+  { combineMetric: true },
+])('semantic pivot preserves rollup layout for %p', override => {
+  const semanticQuery = buildQuery({
+    ...formData,
+    ...override,
+    datasource: '5__semantic_view',
+  }).queries[0] as GroupingSetsQuery;
+  const sqlQuery = buildQuery({ ...formData, ...override })
+    .queries[0] as GroupingSetsQuery;
+
+  expect(semanticQuery.row_limit).toBe(10000);
+  expect(semanticQuery.grouping_sets).toEqual(sqlQuery.grouping_sets);
+  expect(semanticQuery.orderby).toEqual(sqlQuery.orderby);
+  if (!override.combineMetric) {
+    expect(semanticQuery.grouping_sets).toHaveLength(9);
+    expect(semanticQuery.grouping_sets).toContainEqual([]);
+  }
+});
+
+test.each(['Sum', 'Average'])(
+  'semantic pivot refuses %s result aggregation instead of truncating totals',
+  aggregateFunction => {
+    expect(() =>
+      buildQuery({
+        ...formData,
+        datasource: '5__semantic_view',
+        aggregateFunction,
+      }),
+    ).toThrow('Set Aggregation function to "Use metric definition".');
+    expect(() => buildQuery({ ...formData, aggregateFunction })).not.toThrow();
+  },
+);
+
+test('pivot hides the Series limit control for semantic views', () => {
+  const control = controlPanel.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(
+      item =>
+        item !== null &&
+        typeof item === 'object' &&
+        'name' in item &&
+        item.name === 'series_limit',
+    );
+  if (!control || typeof control === 'string' || !('config' in control)) {
+    throw new Error('Series limit control is missing');
+  }
+  if (!control.config.visibility) {
+    throw new Error('Series limit visibility is missing');
+  }
+  const controlProps: ControlPanelsContainerProps = {
+    actions: { setDatasource: jest.fn() },
+    controls: {},
+    exportState: {},
+    form_data: formData,
+  };
+  expect(
+    control.config.visibility(
+      {
+        ...controlProps,
+        form_data: { ...formData, datasource: '5__semantic_view' },
+      },
+      {},
+    ),
+  ).toBe(false);
+  expect(control.config.visibility(controlProps, {})).toBe(true);
+});
+
+test('additive metrics use the fast-path: a single full-detail query', () => {
+  const { queries } = buildQuery({
+    ...formData,
+    metrics: [
+      {
+        expressionType: 'SIMPLE',
+        aggregate: 'SUM',
+        column: { column_name: 'num' },
+        label: 'sum_num',
+      },
+    ] as QueryFormMetric[],
+  });
+  expect(queries).toHaveLength(1);
+  // The single leaf query carries all dimensions (2 rows + 2 cols).
+  expect(queries[0].columns).toHaveLength(4);
+});
+
+test('non-additive metrics emit a single GROUPING SETS query with all levels', () => {
+  // 2 row dims x 2 col dims -> (2+1) x (2+1) = 9 rollup levels, carried as
+  // grouping_sets on a single query (saved-metric strings are non-additive).
+  const queryContext = buildQuery(formData);
+  expect(queryContext.queries).toHaveLength(1);
+  const [query] = queryContext.queries;
+  // The single query selects the full set of dimensions ...
+  expect(query.columns).toHaveLength(4);
+  // ... and requests every rollup level via grouping_sets (grand total = []).
+  expect((query as GroupingSetsQuery).grouping_sets).toHaveLength(9);
+  expect((query as GroupingSetsQuery).grouping_sets[0]).toEqual([]);
+  expect((query as GroupingSetsQuery).grouping_sets[8]).toHaveLength(4);
+});
+
 test('should build groupby with series in form data', () => {
   const queryContext = buildQuery(formData);
-  const [query] = queryContext.queries;
+  // Single GROUPING SETS query: the sole query carries the full column set.
+  const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.columns).toEqual([
     {
       columnType: 'BASE_AXIS',
@@ -80,7 +244,8 @@ test('should work with old charts', () => {
     granularity_sqla: 'col1',
   };
   const queryContext = buildQuery(modifiedFormData);
-  const [query] = queryContext.queries;
+  // Single GROUPING SETS query: the sole query carries the full column set.
+  const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.columns).toEqual([
     {
       timeGrain: 'P1M',
@@ -101,7 +266,8 @@ test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sql
     extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
   };
   const queryContext = buildQuery(modifiedFormData);
-  const [query] = queryContext.queries;
+  // Single GROUPING SETS query: the sole query carries the full column set.
+  const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.columns?.[0]).toEqual({
     timeGrain: TimeGranularity.QUARTER,
     columnType: 'BASE_AXIS',
@@ -113,7 +279,8 @@ test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sql
 
 test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
   const queryContext = buildQuery(formData);
-  const [query] = queryContext.queries;
+  // Single GROUPING SETS query: the sole query carries the full column set.
+  const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.columns?.[0]).toEqual({
     timeGrain: formData.time_grain_sqla,
     columnType: 'BASE_AXIS',
@@ -129,6 +296,28 @@ test('should not omit extras.time_grain_sqla from queryContext so dashboards app
     extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
   };
   const queryContext = buildQuery(modifiedFormData);
-  const [query] = queryContext.queries;
+  // Single GROUPING SETS query: the sole query carries the full column set.
+  const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.extras?.time_grain_sqla).toEqual(TimeGranularity.QUARTER);
+});
+
+test.each(['Average', 'Median', 'Count Unique Values'])(
+  'result aggregation (%s) queries leaf detail without database rollups',
+  aggregateFunction => {
+    const queryContext = buildQuery({ ...formData, aggregateFunction });
+    const query = queryContext.queries[queryContext.queries.length - 1];
+    expect(query).not.toHaveProperty('grouping_sets');
+  },
+);
+
+test('an unrecognized aggregateFunction value falls back to database rollups', () => {
+  // Covers both "Metric" (the control's explicit default) and any other
+  // value that isn't one of RESULT_AGGREGATIONS -- e.g. a stale form_data
+  // value from a chart saved against an older version of the control.
+  const queryContext = buildQuery({
+    ...formData,
+    aggregateFunction: 'Metric',
+  });
+  const query = queryContext.queries[queryContext.queries.length - 1];
+  expect(query).toHaveProperty('grouping_sets');
 });

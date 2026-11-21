@@ -33,13 +33,14 @@ from superset.commands.exceptions import CommandInvalidError  # noqa: F401
 from superset.commands.importers.exceptions import IncorrectVersionError  # noqa: F401
 from superset.commands.tag.create import CreateCustomTagCommand
 from superset.commands.tag.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
+from superset.commands.tag.exceptions import TagInvalidError
 from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.models.core import Database  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice  # noqa: F401
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.importexport import (
     chart_config,  # noqa: F401
     dashboard_config,  # noqa: F401
@@ -126,6 +127,53 @@ class TestDeleteTagsCommand(SupersetTestCase):
         command.run()
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tags))
         assert tags.count() == 0
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("with_tagging_system_feature")
+    def test_delete_tags_command_requires_authorization(self):
+        """
+        Regression test: DeleteTagsCommand used to check only that each named
+        tag existed, letting any Gamma user bulk-delete tags (and every
+        association they carry) they neither created nor own. It must now
+        require admin-or-creator, and must refuse system-generated tags
+        outright for everyone.
+        """
+        example_dashboard = (
+            db.session.query(Dashboard)
+            .filter_by(dashboard_title="World Bank's Data")
+            .one()
+        )
+        self.login(ADMIN_USERNAME)
+        example_tags = {"delete tag authz example"}
+        CreateCustomTagCommand(
+            ObjectType.dashboard.value, example_dashboard.id, example_tags
+        ).run()
+
+        system_tag = Tag(name="type:delete_tag_authz", type=TagType.type)
+        db.session.add(system_tag)
+        db.session.commit()
+
+        try:
+            # a non-admin who is not the tag's creator may not delete it
+            self.logout()
+            self.login(GAMMA_USERNAME)
+            with pytest.raises(TagInvalidError):
+                DeleteTagsCommand(example_tags).run()
+            assert db.session.query(Tag).filter(Tag.name.in_(example_tags)).count() == 1
+
+            # system-generated tags are refused outright, even for an admin
+            self.logout()
+            self.login(ADMIN_USERNAME)
+            with pytest.raises(TagInvalidError):
+                DeleteTagsCommand([system_tag.name]).run()
+            assert db.session.query(Tag).filter_by(name=system_tag.name).count() == 1
+        finally:
+            # cleanup
+            self.logout()
+            self.login(ADMIN_USERNAME)
+            DeleteTagsCommand(example_tags).run()
+            db.session.query(Tag).filter_by(name=system_tag.name).delete()
+            db.session.commit()
 
 
 # test delete tagged objects command

@@ -54,11 +54,12 @@ export const StyledSelect = styled(Select, {
     flex: ${headerPosition === 'left' ? 1 : 0};
     line-height: ${theme.sizeXL}px;
 
-    && .ant-select-selection-search {
+    && .ant-select-input {
       left: 0px;
     }
 
-    && .ant-select-selection-item, .ant-select-selection-placeholder {
+    && .ant-select-selection-item,
+    && .ant-select-placeholder {
       max-height: ${theme.sizeXL}px;
     }
     .ant-select-selection-item::after {
@@ -68,16 +69,16 @@ export const StyledSelect = styled(Select, {
     ${
       oneLine &&
       `
-        .ant-select-selection-overflow {
+        .ant-select-content {
           flex-wrap: nowrap;
         }
 
-        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+        .ant-select-content-item:not(.ant-select-content-item-rest):not(.ant-select-content-item-suffix) {
           flex-shrink: 1;
           min-width: ${theme.sizeUnit * 13}px;
         }
 
-        .ant-select-selection-overflow-item-suffix {
+        .ant-select-content-item-suffix {
           flex: unset;
           min-width: 0px;
         }
@@ -154,5 +155,20 @@ export const StyledBulkActionsContainer = styled(Flex)`
     & .superset-button:last-of-type {
       padding-left: 0 !important;
     }
+  `}
+`;
+
+export const StyledNewOptionBadge = styled.span`
+  ${({ theme }) => `
+    display: inline-block;
+    padding: 0 ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM - 2}px;
+    line-height: ${theme.sizeUnit * 4}px;
+    color: ${theme.colorTextSecondary};
+    background-color: ${theme.colorFillTertiary};
+    border-radius: ${theme.borderRadiusSM}px;
+    margin-left: ${theme.sizeUnit}px;
+    vertical-align: middle;
+    text-transform: lowercase;
   `}
 `;

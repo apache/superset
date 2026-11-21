@@ -21,9 +21,11 @@ templates:
   - deployment-beat.yaml
   - deployment-flower.yaml
   - deployment-ws.yaml
+  - deployment-mcp.yaml
   - service.yaml
   - service-ws.yaml
   - service-flower.yaml
+  - service-mcp.yaml
   - init-job.yaml
   - ingress.yaml
   - configmap-superset.yaml
@@ -34,6 +36,7 @@ templates:
   - pdb-beat.yaml
   - pdb-flower.yaml
   - pdb-ws.yaml
+  - pdb-mcp.yaml
 
 # These tests validate that Kubernetes recommended labels are consistently applied
 # across all chart resources per https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
@@ -186,6 +189,36 @@ tests:
           value: websocket
 
   # =============================================================================
+  # MCP Deployment Labels
+  # =============================================================================
+  - it: should have all recommended labels on mcp deployment
+    template: deployment-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/version"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on mcp deployment
+    template: deployment-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: mcp
+
+  # =============================================================================
   # Service Labels
   # =============================================================================
   - it: should have all recommended labels on main service
@@ -248,6 +281,27 @@ tests:
       - equal:
           path: metadata.labels["app.kubernetes.io/component"]
           value: flower
+
+  - it: should have all recommended labels on mcp service
+    template: service-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on mcp service
+    template: service-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: mcp
 
   # =============================================================================
   # Init Job Labels
@@ -365,6 +419,51 @@ tests:
       - equal:
           path: spec.template.metadata.labels["app.kubernetes.io/component"]
           value: worker
+
+  - it: should set selector matchLabels to concrete values on mcp deployment
+    template: deployment-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: superset
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: mcp
+
+  - it: should match pod template labels to the selector on mcp deployment
+    template: deployment-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+          value: superset
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/component"]
+          value: mcp
+
+  - it: should set selector to concrete values on mcp service
+    template: service-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+    asserts:
+      - equal:
+          path: spec.selector["app.kubernetes.io/name"]
+          value: superset
+      - equal:
+          path: spec.selector["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: spec.selector["app.kubernetes.io/component"]
+          value: mcp
 
   # =============================================================================
   # Extra Labels Support
@@ -504,6 +603,26 @@ tests:
       - equal:
           path: spec.selector.matchLabels["app.kubernetes.io/component"]
           value: websocket
+
+  - it: should have recommended labels and matching selector on mcp pdb
+    template: pdb-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+      supersetMcp.podDisruptionBudget.enabled: true
+      supersetMcp.podDisruptionBudget.maxUnavailable: null
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: mcp
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: mcp
 
   - it: should use recommended labels on init job pod template
     template: init-job.yaml

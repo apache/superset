@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from flask_babel import gettext as _
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session  # noqa: F401
@@ -28,6 +29,7 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.commands.importers.v1.utils import (
+    ImportFormatValidationError,
     load_configs,
     load_metadata,
     load_yaml,  # noqa: F401
@@ -86,6 +88,19 @@ class ImportModelsCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
 
+        # Declare the high-level avenue before any session writes. The
+        # change-record listener reads this on its first after_flush
+        # for the resulting ``version_transaction`` row and stamps
+        # ``version_transaction.action_kind = 'import'``. Lets operators
+        # explain otherwise-confusing diffs ("Cleared default_filters")
+        # as "this was an import".
+        # Method-scoped import — defers the versioning bootstrap path
+        # out of this command's module-load graph; see ``changes.py``
+        # module docstring for the broader init-order rationale.
+        from superset.versioning.changes import ACTION_KIND_IMPORT, ACTION_KIND_KEY
+
+        db.session.info[ACTION_KIND_KEY] = ACTION_KIND_IMPORT
+
         try:
             self._import(self._configs, self.overwrite, self.contents)
         except CommandException:
@@ -124,24 +139,37 @@ class ImportModelsCommand(BaseCommand):
                 # Extract detailed error information
                 if hasattr(ex, "messages") and isinstance(ex.messages, dict):
                     for file_name, errors in ex.messages.items():
-                        logger.error("Validation failed for %s: %s", file_name, errors)
+                        logger.warning(
+                            "Validation failed for %s: %s", file_name, errors
+                        )
                         detailed_errors.append(f"{file_name}: {errors}")
                 else:
-                    logger.error("Import validation error: %s", ex)
+                    logger.warning("Import validation error: %s", ex)
                     detailed_errors.append(str(ex))
 
             error_summary = "; ".join(detailed_errors)
-            raise CommandInvalidError(
-                f"Error importing {self.model_name}: {error_summary}",
-                exceptions,
-            )
+            message = f"Error importing {self.model_name}: {error_summary}"
+            if any(isinstance(ex, ImportFormatValidationError) for ex in exceptions):
+                message += ". " + _(
+                    "Re-export the assets from a compatible Superset version, "
+                    "then retry with the new file."
+                )
+            raise CommandInvalidError(message, exceptions)
+
+    def _reused_dependency_uuids(self) -> set[str]:
+        """
+        UUIDs of bundled ``prefix`` files that are only dependencies of other
+        files. Existing ones are reused unchanged, so they skip the overwrite
+        check.
+        """
+        return set()
 
     def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
         self, exceptions: list[ValidationError]
     ) -> None:
         """check if the object exists and shouldn't be overwritten"""
         if not self.overwrite:
-            existing_uuids = self._get_uuids()
+            existing_uuids = self._get_uuids() - self._reused_dependency_uuids()
             for file_name, config in self._configs.items():
                 if (
                     file_name.startswith(self.prefix)

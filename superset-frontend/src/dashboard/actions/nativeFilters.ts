@@ -20,14 +20,18 @@ import {
   Filter,
   FilterConfiguration,
   Filters,
+  SupersetApiError,
+  parseErrorJson,
   makeApi,
   Divider,
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Dispatch } from 'redux';
 import { RootState } from 'src/dashboard/types';
-import { cloneDeep } from 'lodash-es';
+import { cloneDeep, omit } from 'lodash-es';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import {
@@ -50,6 +54,7 @@ export interface SetNativeFiltersConfigComplete {
   filterChanges: Array<
     Filter | Divider | ChartCustomization | ChartCustomizationDivider
   >;
+  deletedIds?: string[];
 }
 
 export const SET_NATIVE_FILTERS_CONFIG_FAIL = 'SET_NATIVE_FILTERS_CONFIG_FAIL';
@@ -89,17 +94,51 @@ export const setFilterConfiguration =
     });
     try {
       const response = await updateFilters(filterChanges);
+      // chartsInScope/tabsInScope are derived from the live layout, and the
+      // response carries the persisted copy for every filter - including the
+      // ones this save never touched, whose copy is whatever was stored when
+      // the dashboard was last saved. Dropping them lets the reducers keep the
+      // scopes calculateScopes already computed for this session.
+      const savedFilters = response.result.map(
+        filter => omit(filter, ['chartsInScope', 'tabsInScope']) as Filter,
+      );
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges: response.result,
+        filterChanges: savedFilters,
+        deletedIds: filterChanges.deleted,
       });
-      dispatch(nativeFiltersConfigChanged(response.result));
+      dispatch(nativeFiltersConfigChanged(savedFilters));
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
     } catch (err) {
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_FAIL,
         filterConfig: filterChanges,
       });
+      // No reducer acts on the FAIL action, so without a toast and a rethrow
+      // the caller closes the modal as though the filters had been saved.
+      const apiError = err instanceof SupersetApiError ? err : undefined;
+      const status = apiError?.status;
+      const original = apiError?.originalError;
+      const message =
+        original && typeof original === 'object' && 'message' in original
+          ? typeof original.message === 'object'
+            ? parseErrorJson({ message: original.message }).error
+            : original.message
+          : err instanceof Error
+            ? err.message
+            : undefined;
+      const reason =
+        status === 403
+          ? t('you do not have permission to edit this dashboard.')
+          : status === 404
+            ? t('this dashboard is unavailable or you no longer have access.')
+            : typeof message === 'string' && message.trim()
+              ? message
+              : apiError?.statusText || t('An error occurred');
+      dispatch(
+        addDangerToast(t('Your filter changes were not saved: %s', reason)),
+      );
+      throw err;
     }
   };
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
@@ -34,7 +34,7 @@ import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
-import FilterConfigurationLink from '../FilterConfigurationLink';
+import MemoizedFilterConfigurationLink from '../FilterConfigurationLink';
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -55,6 +55,19 @@ const CHART_CUSTOMIZATION_MENU_KEY = 'chart-customization-menu-key';
 
 const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
+
+const renderSettingsPopup = (menu: ReactNode) => (
+  <div
+    css={css`
+      .filter-bar-orientation-submenu.ant-dropdown-menu-submenu-selected
+        > .ant-dropdown-menu-submenu-title {
+        color: inherit;
+      }
+    `}
+  >
+    {menu}
+  </div>
+);
 
 const FilterBarSettings = () => {
   const theme = useTheme();
@@ -170,9 +183,9 @@ const FilterBarSettings = () => {
       items.push({
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
-          <FilterConfigurationLink>
+          <MemoizedFilterConfigurationLink>
             {t('Add or edit filters and controls')}
-          </FilterConfigurationLink>
+          </MemoizedFilterConfigurationLink>
         ),
       });
       if (canEdit) {
@@ -255,18 +268,7 @@ const FilterBarSettings = () => {
           selectedKeys: [selectedFilterBarOrientation],
         }}
         trigger={['click']}
-        popupRender={menu => (
-          <div
-            css={css`
-              .filter-bar-orientation-submenu.ant-dropdown-menu-submenu-selected
-                > .ant-dropdown-menu-submenu-title {
-                color: inherit;
-              }
-            `}
-          >
-            {menu}
-          </div>
-        )}
+        popupRender={renderSettingsPopup}
       >
         <Button
           buttonStyle="link"

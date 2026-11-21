@@ -93,12 +93,13 @@ jest.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
   }),
 }));
 
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
-      children({ height: 500 }),
-);
+jest.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({
+    renderProp,
+  }: {
+    renderProp: (params: { height: number }) => ReactChild;
+  }) => renderProp({ height: 500 }),
+}));
 const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
 
 const mockedProps = {
@@ -353,6 +354,35 @@ describe('ResultSet', () => {
     });
     const errorMessages = screen.getAllByTestId('error-message');
     expect(errorMessages).toHaveLength(errors.length);
+  });
+
+  test('deduplicates errors present in both query.errors and query.extra.errors', async () => {
+    // The async fallback path (QueryAutoRefresh) populates both
+    // `query.errors` (via queryFailed) and `query.extra.errors` (via
+    // refreshQueries) with the same errors. ResultSet should render each
+    // error only once, not twice.
+    const duplicatedErrorQuery = {
+      ...failedQueryWithErrors,
+      extra: { errors: failedQueryWithErrors.errors },
+    };
+    const duplicatedErrorState = {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [duplicatedErrorQuery.id]: duplicatedErrorQuery,
+        },
+      },
+    };
+
+    await waitFor(() => {
+      setup(
+        { ...mockedProps, queryId: duplicatedErrorQuery.id },
+        mockStore(duplicatedErrorState),
+      );
+    });
+    const errorMessages = screen.getAllByTestId('error-message');
+    expect(errorMessages).toHaveLength(failedQueryWithErrors.errors.length);
   });
 
   test('should render a timeout error with a retrial button', async () => {
@@ -1176,5 +1206,41 @@ describe('ResultSet', () => {
       expect(queryByText('banana')).not.toBeInTheDocument();
     });
     expect(queryByText('apple')).toBeInTheDocument();
+  });
+
+  test('opens long text values in a modal from the results grid', async () => {
+    setupAGGridModules();
+    const longLog = `${'error detail '.repeat(15)}end`;
+    const longTextQuery = {
+      ...queries[0],
+      id: 'longTextQueryId',
+      cached: false,
+      results: {
+        columns: [{ is_dttm: false, column_name: 'log', type: 'STRING' }],
+        selected_columns: [
+          { is_dttm: false, column_name: 'log', type: 'STRING' },
+        ],
+        data: [{ log: longLog }],
+      },
+    };
+    const { findByTestId } = setup(
+      { ...mockedProps, cache: false, queryId: longTextQuery.id },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [longTextQuery.id]: longTextQuery,
+          },
+        },
+      }),
+    );
+
+    const trigger = await findByTestId('span-modal-trigger');
+    fireEvent.click(trigger);
+    expect(await findByTestId('text-modal-body')).toHaveTextContent(
+      longLog.trim(),
+    );
   });
 });

@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
+import {
+  createChartLayoutItemMap,
+  getChartIdsInFilterScope,
+} from './getChartIdsInFilterScope';
 import { CHART_TYPE } from './componentTypes';
 import { LayoutItem } from '../types';
 
@@ -90,6 +93,43 @@ test('filter scoped to all panels should include all charts', () => {
   );
 
   expect(chartsInScope.sort()).toEqual([1, 2, 3, 4, 5, 6]);
+});
+
+test('filter scope accepts a precomputed chart layout item map', () => {
+  const chartLayoutItemMap = createChartLayoutItemMap(createNestedTabsLayout());
+  const filterScope = {
+    rootPath: ['TAB-P1_Child1'],
+    excluded: [],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItemMap,
+  );
+
+  expect(chartsInScope).toEqual([1, 2]);
+});
+
+test('filter scope includes a chart when any duplicate layout holder is in scope', () => {
+  const chartLayoutItems = [
+    createChartLayoutItem('CHART-7-first', 7, ['ROOT_ID', 'TAB-first']),
+    createChartLayoutItem('CHART-7-second', 7, ['ROOT_ID', 'TAB-second']),
+  ];
+  const chartLayoutItemMap = createChartLayoutItemMap(chartLayoutItems);
+  const filterScope = {
+    rootPath: ['TAB-second'],
+    excluded: [],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    [7],
+    chartLayoutItemMap,
+  );
+
+  expect(chartLayoutItemMap.get(7)).toEqual(chartLayoutItems);
+  expect(chartsInScope).toEqual([7]);
 });
 
 test('filter scoped to Parent1 tab should include only charts in Parent1 (including nested tabs)', () => {

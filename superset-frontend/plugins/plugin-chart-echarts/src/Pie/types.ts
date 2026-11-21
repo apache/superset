@@ -35,10 +35,14 @@ export type EchartsPieFormData = QueryFormData &
     donut: boolean;
     defaultValue?: string[] | null;
     groupby: QueryFormColumn[];
+    startAngle: number;
+    sweptAngle: number;
     innerRadius: number;
     labelLine: boolean;
     labelType: EchartsPieLabelType;
     labelTemplate: string | null;
+    labelMaxWidth: number;
+    labelOverflow: EchartsPieLabelOverflow;
     labelsOutside: boolean;
     metric?: string;
     outerRadius: number;
@@ -61,6 +65,16 @@ export enum EchartsPieLabelType {
   Template = 'template',
 }
 
+/**
+ * How a pie slice label longer than `labelMaxWidth` is shortened.
+ */
+export enum EchartsPieLabelOverflow {
+  /** Cut the label and append an ellipsis. */
+  Truncate = 'truncate',
+  /** Wrap the label onto additional lines. */
+  Break = 'break',
+}
+
 export interface EchartsPieChartProps extends BaseChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
 }
@@ -73,6 +87,8 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   innerRadius: 30,
   labelLine: false,
   labelType: EchartsPieLabelType.Key,
+  labelMaxWidth: 0,
+  labelOverflow: EchartsPieLabelOverflow.Truncate,
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   numberFormat: 'SMART_NUMBER',
@@ -83,6 +99,8 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   dateFormat: 'smart_date',
   roseType: null,
   thresholdForOther: 0,
+  startAngle: 90,
+  sweptAngle: 360,
 };
 
 export type PieChartTransformedProps =

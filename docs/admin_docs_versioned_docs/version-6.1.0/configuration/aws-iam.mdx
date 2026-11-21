@@ -1,26 +1,28 @@
 {/*
 Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
+or more contributor license agreements. See the NOTICE file
 distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
+regarding copyright ownership. The ASF licenses this file
 to you under the Apache License, Version 2.0 (the
 "License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
+with the License. You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing,
 software distributed under the License is distributed on an
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
+KIND, either express or implied. See the License for the
 specific language governing permissions and limitations
 under the License.
 */}
 
 ---
+
 title: AWS IAM Authentication
 sidebar_label: AWS IAM Authentication
 sidebar_position: 15
+
 ---
 
 # AWS IAM Authentication for AWS Databases
@@ -31,7 +33,7 @@ Cross-account IAM role assumption via STS `AssumeRole` is supported, allowing a 
 
 ## Prerequisites
 
-- Enable the `AWS_DATABASE_IAM_AUTH` feature flag in `superset_config.py`. IAM authentication is gated behind this flag; if it is disabled, connections using `aws_iam` fail with *"AWS IAM database authentication is not enabled."*
+- Enable the `AWS_DATABASE_IAM_AUTH` feature flag in `superset_config.py`. IAM authentication is gated behind this flag; if it is disabled, connections using `aws_iam` fail with _"AWS IAM database authentication is not enabled."_
   ```python
   FEATURE_FLAGS = {
       "AWS_DATABASE_IAM_AUTH": True,
@@ -66,14 +68,14 @@ IAM authentication is configured via the **encrypted_extra** field of the databa
 }
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `enabled` | Yes | Set to `true` to activate IAM auth |
-| `role_arn` | No | ARN of the cross-account IAM role to assume via STS. Omit for same-account auth |
-| `external_id` | No | External ID for the STS `AssumeRole` call, if required by the target role's trust policy |
-| `region` | Yes | AWS region of the database cluster |
-| `db_username` | Yes | The database username associated with the IAM identity |
-| `session_duration` | No | STS session duration in seconds (default: `3600`) |
+| Field              | Required | Description                                                                              |
+| ------------------ | -------- | ---------------------------------------------------------------------------------------- |
+| `enabled`          | Yes      | Set to `true` to activate IAM auth                                                       |
+| `role_arn`         | No       | ARN of the cross-account IAM role to assume via STS. Omit for same-account auth          |
+| `external_id`      | No       | External ID for the STS `AssumeRole` call, if required by the target role's trust policy |
+| `region`           | Yes      | AWS region of the database cluster                                                       |
+| `db_username`      | Yes      | The database username associated with the IAM identity                                   |
+| `session_duration` | No       | STS session duration in seconds (default: `3600`)                                        |
 
 ### Redshift (Serverless)
 

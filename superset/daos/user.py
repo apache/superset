@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from flask_appbuilder.security.sqla.models import User
 
@@ -40,3 +41,42 @@ class UserDAO(BaseDAO[User]):
             attrs = UserAttribute(avatar_url=url, user_id=user.id)
             user.extra_attributes = [attrs]
             db.session.add(attrs)
+
+    @classmethod
+    def create(
+        cls,
+        item: User | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> User:
+        user = super().create(item=item, attributes=attributes)
+        db.session.flush()
+        cls._sync_subject(user)
+        return user
+
+    @classmethod
+    def update(
+        cls,
+        item: User | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> User:
+        user = super().update(item=item, attributes=attributes)
+        cls._sync_subject(user)
+        return user
+
+    @classmethod
+    def delete(cls, items: list[User]) -> None:
+        for item in items:
+            cls._delete_subject(item.id)
+        super().delete(items)
+
+    @staticmethod
+    def _sync_subject(user: User) -> None:
+        from superset.subjects.sync import sync_user_subject
+
+        sync_user_subject(user)
+
+    @staticmethod
+    def _delete_subject(user_id: int) -> None:
+        from superset.subjects.sync import delete_user_subject
+
+        delete_user_subject(user_id)

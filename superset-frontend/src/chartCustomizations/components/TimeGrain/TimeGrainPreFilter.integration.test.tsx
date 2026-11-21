@@ -55,7 +55,7 @@ const baseConfig = {
 };
 
 /**
- * Scenario: Dashboard owner configures a time grain filter to show only Hour, Day, Week.
+ * Scenario: Dashboard editor configures a time grain filter to show only Hour, Day, Week.
  * End-user opens the dashboard and can only select from those three options.
  */
 test('time grain pre-filter restricts dashboard filter options', async () => {
@@ -106,7 +106,7 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
 });
 
 /**
- * Scenario: Dashboard owner disables pre-filter (unchecks the CollapsibleControl).
+ * Scenario: Dashboard editor disables pre-filter (unchecks the CollapsibleControl).
  * No restrictions: all time grains appear in the runtime filter.
  */
 test('all time grains appear when pre-filter is unchecked', async () => {
@@ -141,7 +141,7 @@ test('all time grains appear when pre-filter is unchecked', async () => {
 });
 
 /**
- * Scenario: Dashboard owner narrowed the pre-filter after an end-user had
+ * Scenario: Dashboard editor narrowed the pre-filter after an end-user had
  * already selected a value that now falls outside the allowlist.
  * The current selection stays visible so the filter does not silently drop it.
  */

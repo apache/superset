@@ -16,14 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  styled,
-  useTheme,
-  type SupersetTheme,
-} from '@apache-superset/core/theme';
+import { styled } from '@apache-superset/core/theme';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn, ValueRange } from '../types';
-import { useIsDark } from '../utils/useTableTheme';
 import getRowBasicColorFormatter from '../utils/getRowBasicColorFormatter';
 
 const StyledTotalCell = styled.div`
@@ -32,11 +27,21 @@ const StyledTotalCell = styled.div`
   `}
 `;
 
+// `align` originates from the chart's stored column_config
+// (col.config.horizontalAlign), which can be set to an arbitrary string via
+// a direct chart-params API write. Emotion compiles interpolated strings as
+// CSS source, so the value must be clamped to a closed set of keywords
+// before it reaches the stylesheet — never interpolated raw.
+const ALLOWED_ALIGN_VALUES = new Set(['left', 'right', 'center']);
+
+const safeAlign = (align?: string) =>
+  align && ALLOWED_ALIGN_VALUES.has(align) ? align : 'left';
+
 const CellContainer = styled.div<{ backgroundColor?: string; align?: string }>`
   display: flex;
   background-color: ${({ backgroundColor }) =>
     backgroundColor || 'transparent'};
-  justify-content: ${({ align }) => align || 'left'};
+  justify-content: ${({ align }) => safeAlign(align)};
 `;
 
 const ArrowContainer = styled.div<{ arrowColor?: string }>`
@@ -111,13 +116,9 @@ function cellOffset({
 function cellBackground({
   value,
   colorPositiveNegative = false,
-  isDarkTheme = false,
-  theme,
 }: {
   value: number;
   colorPositiveNegative: boolean;
-  isDarkTheme: boolean;
-  theme: SupersetTheme | null;
 }) {
   if (!colorPositiveNegative) {
     return 'transparent'; // Use transparent background when colorPositiveNegative is false
@@ -153,9 +154,6 @@ export const NumericCellRenderer = (
     alignPositiveNegative,
     colorPositiveNegative,
   } = params;
-
-  const isDarkTheme = useIsDark();
-  const theme = !colorPositiveNegative ? null : useTheme();
 
   if (node?.rowPinned === 'bottom') {
     return <StyledTotalCell>{valueFormatted ?? value}</StyledTotalCell>;
@@ -200,8 +198,6 @@ export const NumericCellRenderer = (
   const background = cellBackground({
     value: value as number,
     colorPositiveNegative,
-    isDarkTheme,
-    theme,
   });
 
   return (

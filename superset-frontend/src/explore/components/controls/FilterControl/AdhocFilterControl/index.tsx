@@ -24,6 +24,7 @@ import {
   type ReactNode,
 } from 'react';
 import { SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -39,6 +40,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Modal } from '@superset-ui/core/components';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
@@ -47,6 +49,7 @@ import AdhocFilter, {
   isDictionaryForAdhocFilter,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { toQueryString } from 'src/utils/urlUtils';
+import { getSemanticMemberLabels } from 'src/components/SemanticMemberLabel';
 import { Clauses, ExpressionTypes } from '../types';
 
 interface ColumnMeta {
@@ -73,6 +76,7 @@ interface Datasource {
 }
 
 export interface AdhocFilterControlProps {
+  semanticSelectionVersion?: string;
   label?: ReactNode;
   name?: string;
   sections?: string[];
@@ -105,6 +109,10 @@ interface FilterOption {
 const { warning } = Modal;
 
 function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
+  const memberLabels =
+    props.datasource?.type === 'semantic_view'
+      ? getSemanticMemberLabels(props.columns || [])
+      : undefined;
   const options = [
     ...(props.columns || []),
     ...ensureIsArray(props.selectedMetrics).map(
@@ -130,6 +138,7 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
         results.push({
           ...filterOption,
           filterOptionName: `_col_${filterOption.column_name}`,
+          semanticMemberLabel: memberLabels?.get(filterOption.column_name),
         });
       } else if (option instanceof AdhocMetric) {
         results.push({
@@ -154,6 +163,7 @@ function AdhocFilterControl({
   onChange = () => {},
   value,
   datasource,
+  semanticSelectionVersion,
   columns = [],
   savedMetrics = [],
   selectedMetrics = [],
@@ -173,8 +183,9 @@ function AdhocFilterControl({
         columns,
         selectedMetrics,
         savedMetrics,
+        datasource,
       }),
-    [columns, selectedMetrics, savedMetrics],
+    [columns, selectedMetrics, savedMetrics, datasource?.type],
   );
 
   useEffect(() => {
@@ -321,20 +332,22 @@ function AdhocFilterControl({
     [values, onChange],
   );
 
-  const moveLabel = useCallback((dragIndex: number, hoverIndex: number) => {
-    setValues(prevValues => {
-      const newValues = [...prevValues];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
-      return newValues;
-    });
-  }, []);
+  const moveLabel = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
+      // @dnd-kit fires the reorder once at drag-end with the final indices, so
+      // this must be a full arrayMove, not an adjacent swap. Commit immediately
+      // rather than deferring to onDropLabel, whose render-time closure would
+      // persist the stale pre-move values.
+      const newValues = arrayMove(values, dragIndex, hoverIndex);
+      setValues(newValues);
+      onChange?.(newValues);
+    },
+    [values, onChange],
+  );
 
-  const onDropLabel = useCallback(() => {
-    onChange?.(values);
-  }, [onChange, values]);
+  // Reorder now commits through moveLabel; keep a no-op so the sortable's
+  // drop hook does not re-commit stale, pre-move values.
+  const onDropLabel = useCallback(() => {}, []);
 
   const onNewFilter = useCallback(
     (newFilter: FilterOption | AdhocFilter) => {
@@ -359,6 +372,7 @@ function AdhocFilterControl({
         sections={sections}
         operators={operators as Operators[] | undefined}
         datasource={datasource}
+        semanticSelectionVersion={semanticSelectionVersion}
         onRemoveFilter={e => {
           e.stopPropagation();
           onRemoveFilter(index);
@@ -374,6 +388,7 @@ function AdhocFilterControl({
       sections,
       operators,
       datasource,
+      semanticSelectionVersion,
       onRemoveFilter,
       moveLabel,
       onDropLabel,
@@ -388,6 +403,7 @@ function AdhocFilterControl({
         sections={sections}
         adhocFilter={new AdhocFilter({})}
         datasource={(datasource as Record<string, unknown>) || {}}
+        semanticSelectionVersion={semanticSelectionVersion}
         options={options}
         onFilterEdit={onNewFilter}
         partitionColumn={partitionColumn ?? undefined}
@@ -395,7 +411,15 @@ function AdhocFilterControl({
         {trigger}
       </AdhocFilterPopoverTrigger>
     ),
-    [operators, sections, datasource, options, onNewFilter, partitionColumn],
+    [
+      operators,
+      sections,
+      datasource,
+      semanticSelectionVersion,
+      options,
+      onNewFilter,
+      partitionColumn,
+    ],
   );
 
   return (
@@ -409,7 +433,17 @@ function AdhocFilterControl({
             ? values.map((val, index) => valueRenderer(val, index))
             : []),
           addNewFilterPopoverTrigger(
-            <AddControlLabel role="button" data-test="add-filter-button">
+            <AddControlLabel
+              as="button"
+              {...{ type: 'button' }}
+              css={css`
+                appearance: none;
+                background: none;
+                font: inherit;
+                text-align: left;
+              `}
+              data-test="add-filter-button"
+            >
               <Icons.PlusOutlined iconSize="m" />
               {t('Add filter')}
             </AddControlLabel>,

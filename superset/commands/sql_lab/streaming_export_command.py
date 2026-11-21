@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError
 
 from superset import db
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
@@ -85,6 +86,15 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=403,
+            ) from ex
+        except TemplateError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=str(ex),
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=400,
             ) from ex
 
     def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:

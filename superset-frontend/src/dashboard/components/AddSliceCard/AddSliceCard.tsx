@@ -174,7 +174,8 @@ const AddSliceCard: FC<{
   datasourceUrl?: string;
   datasourceName?: string;
   innerRef?:
-    RefObject<HTMLDivElement> | ((node: HTMLDivElement | null) => void);
+    | RefObject<HTMLDivElement>
+    | ((node: HTMLDivElement | null) => void);
   isSelected?: boolean;
   lastModified?: string;
   sliceName: string;
@@ -218,7 +219,7 @@ const AddSliceCard: FC<{
           color: ${theme.colorText};
 
           &:hover {
-            //background: ${theme.colorFillTertiary};
+            /* background: ${theme.colorFillTertiary}; */
           }
 
           opacity: ${isSelected ? 0.4 : 'unset'};

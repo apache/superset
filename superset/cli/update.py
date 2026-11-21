@@ -25,7 +25,6 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app
 from flask.cli import with_appcontext
-from flask_appbuilder import Model
 from flask_appbuilder.api import BaseApi
 from flask_appbuilder.api.manager import resolver
 
@@ -55,22 +54,6 @@ def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
 
 @click.command()
 @with_appcontext
-@transaction()
-def sync_tags() -> None:
-    """Rebuilds special tags (owner, type, favorited by)."""
-    # pylint: disable=no-member
-    metadata = Model.metadata
-
-    # pylint: disable=import-outside-toplevel
-    from superset.common.tags import add_favorites, add_owners, add_types
-
-    add_types(metadata)
-    add_owners(metadata)
-    add_favorites(metadata)
-
-
-@click.command()
-@with_appcontext
 def update_api_docs() -> None:
     """Regenerate the openapi.json file in docs"""
     superset_dir = os.path.abspath(os.path.dirname(__file__))
@@ -92,13 +75,16 @@ def update_api_docs() -> None:
         if isinstance(base_api, BaseApi) and base_api.version == api_version:
             base_api.add_api_spec(api_spec)
             version_found = True
-    if version_found:
-        click.secho("Generating openapi.json", fg="green")
-        with open(openapi_json, "w") as outfile:
-            json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
-            outfile.write("\n")
-    else:
-        click.secho("API version not found", err=True)
+    if not version_found:
+        # Exiting zero here would leave the stale file in place and report
+        # success, which reads as "the spec is current" to any caller diffing
+        # the result.
+        raise click.ClickException(f"No {api_version} API found to document")
+
+    click.secho("Generating openapi.json", fg="green")
+    with open(openapi_json, "w") as outfile:
+        json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
+        outfile.write("\n")
 
 
 @click.command()

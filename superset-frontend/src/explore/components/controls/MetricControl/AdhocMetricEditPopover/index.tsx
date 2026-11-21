@@ -22,7 +22,7 @@ import { useSelector } from 'react-redux';
 import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { editors } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,
@@ -36,6 +36,7 @@ import {
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 import {
+  AGGREGATES_LABELS,
   AGGREGATES_OPTIONS,
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -49,7 +50,7 @@ import {
 } from 'src/explore/components/optionRenderers';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
-import type { ExplorePageState } from 'src/explore/types';
+import { selectCompatibleMetricNames } from 'src/explore/selectors/compatibility';
 import type { RefObject } from 'react';
 
 interface ColumnType {
@@ -135,10 +136,7 @@ function AdhocMetricEditPopover({
   const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
   const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
 
-  const compatibleMetrics = useSelector<
-    ExplorePageState,
-    string[] | null | undefined
-  >(state => state.explore?.compatibleMetrics);
+  const compatibleMetrics = useSelector(selectCompatibleMetricNames);
 
   const aceEditorRef = useRef<editors.EditorHandle>(null);
 
@@ -491,16 +489,24 @@ function AdhocMetricEditPopover({
                   title={t('No saved metrics found')}
                   description={
                     <>
-                      <span
-                        tabIndex={0}
-                        role="button"
+                      <button
+                        type="button"
+                        css={css`
+                          appearance: none;
+                          border: none;
+                          background: none;
+                          padding: 0;
+                          font: inherit;
+                          color: inherit;
+                          cursor: pointer;
+                        `}
                         onClick={() => {
                           handleDatasetModal?.(true);
                           onClose();
                         }}
                       >
                         {t('Create a dataset')}
-                      </span>
+                      </button>
                       {t(' to add metrics')}
                     </>
                   }
@@ -540,7 +546,7 @@ function AdhocMetricEditPopover({
                   <Select
                     options={AGGREGATES_OPTIONS.map(option => ({
                       value: option,
-                      label: option,
+                      label: AGGREGATES_LABELS[option] ?? option,
                       key: option,
                     }))}
                     {...aggregateSelectProps}
@@ -607,6 +613,11 @@ function AdhocMetricEditPopover({
           {t('Save')}
         </Button>
         <Icons.ArrowsAltOutlined
+          // Drag-to-resize handle activated via mousedown, not click; there's
+          // no keyboard equivalent, so role="button" (which implies a
+          // click/Enter/Space-activatable control) isn't quite right, but no
+          // native tag fits a drag handle either.
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="button"
           aria-label={t('Resize')}
           tabIndex={0}

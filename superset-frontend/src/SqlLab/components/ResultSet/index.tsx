@@ -26,7 +26,7 @@ import {
   useMemo,
 } from 'react';
 
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
@@ -47,7 +47,7 @@ import {
 import type { GridThemeOverrides } from 'src/components/GridTable/types';
 import { buildResultsGridThemeOverrides } from './buildResultsGridThemeOverrides';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   QueryState,
   usePrevious,
@@ -55,7 +55,6 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
@@ -138,7 +137,6 @@ const ResultlessStyles = styled.div`
 // but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.fontFamilyCode};
-  white-space: pre;
   word-break: break-word;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -392,7 +390,7 @@ const ResultSet = ({
               // provides.
               redirect(getExportCsvUrl(query.id));
             },
-            confirmText: t('OK'),
+            confirmText: t('Confirm'),
             cancelText: t('Close'),
           });
         }
@@ -620,7 +618,26 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
-    const errors = [...(query.extra?.errors || []), ...(query.errors || [])];
+    // A failed query can carry the same error in both `query.errors` (set by
+    // the queryFailed action) and `query.extra.errors` (set by the async
+    // refresh). When falling back to async polling both get populated with
+    // identical errors, so deduplicate to avoid rendering each error twice.
+    const seenErrors = new Set<string>();
+    const errors = [
+      ...(query.extra?.errors || []),
+      ...(query.errors || []),
+    ].filter(error => {
+      // json-bigint parsing can leave native BigInt values in payloads,
+      // which JSON.stringify rejects; serialize them as strings.
+      const key = JSON.stringify(error, (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      );
+      if (seenErrors.has(key)) {
+        return false;
+      }
+      seenErrors.add(key);
+      return true;
+    });
 
     return (
       <ResultlessStyles>
@@ -702,7 +719,7 @@ const ResultSet = ({
     if (data && data.length > 0) {
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
-        true,
+        false,
       );
 
       const tableProps = {
@@ -712,6 +729,7 @@ const ResultSet = ({
         filterText: searchText,
         expandedColumns,
         allowHTML,
+        expandLongText: true,
         themeOverrides: resultsGridThemeOverrides,
       };
 
@@ -776,11 +794,11 @@ const ResultSet = ({
                 padding-bottom: ${theme.sizeUnit * 3}px;
               `}
             >
-              <AutoSizer disableWidth>
-                {({ height: autoHeight }) => (
-                  <ResultTable {...tableProps} height={autoHeight} />
+              <AutoSizer
+                renderProp={({ height }) => (
+                  <ResultTable {...tableProps} height={height ?? 0} />
                 )}
-              </AutoSizer>
+              />
             </div>
           </ResultContainer>
           <StreamingExportModal

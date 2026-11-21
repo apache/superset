@@ -23,7 +23,11 @@ from superset.models.core import Theme
 from superset.utils import json
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 
 
 class TestThemeAPIPermissions(SupersetTestCase):
@@ -92,9 +96,11 @@ class TestThemeAPIPermissions(SupersetTestCase):
 
     @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
     def test_non_admin_cannot_set_system_default(self):
-        """Test that non-admin users cannot set system themes"""
-        # Login as gamma user
-        self.login(GAMMA_USERNAME)
+        """Test that a non-admin user with theme write access (Alpha) still
+        cannot set system themes, since that is an admin-only action."""
+        # Login as alpha user, who has generic write access to themes but
+        # is not an admin
+        self.login(ALPHA_USERNAME)
 
         # Try to set theme as system default
         response = self.client.put(
@@ -105,6 +111,26 @@ class TestThemeAPIPermissions(SupersetTestCase):
         assert response.status_code == 403
         data = response.get_json()
         assert "Only administrators can set system themes" in data["message"]
+
+        # Verify theme is not system default
+        theme = db.session.query(Theme).filter_by(id=self.regular_theme.id).first()
+        assert theme.is_system_default is False
+
+    @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
+    def test_gamma_cannot_write_themes(self):
+        """Test that gamma users, who only have read access to themes, are
+        rejected before reaching the admin-only check."""
+        # Login as gamma user
+        self.login(GAMMA_USERNAME)
+
+        # Try to set theme as system default
+        response = self.client.put(
+            f"/api/v1/theme/{self.regular_theme.id}/set_system_default"
+        )
+
+        # Should be forbidden at the permission layer, since gamma has no
+        # write access to themes at all
+        assert response.status_code == 403
 
         # Verify theme is not system default
         theme = db.session.query(Theme).filter_by(id=self.regular_theme.id).first()
@@ -258,3 +284,58 @@ class TestThemeAPIPermissions(SupersetTestCase):
 
         # Note: Gamma users' ability to create/update/delete themes
         # depends on the specific permissions configuration
+
+    def test_admin_can_get_system_theme_slice(self):
+        """Admin can read the resolved system theme slice used for bootstrap."""
+        self.login(ADMIN_USERNAME)
+
+        response = self.client.get("/api/v1/theme/system")
+
+        assert response.status_code == 200
+        result = response.get_json()["result"]
+        # Mirrors the page bootstrap theme payload shape.
+        assert "default" in result
+        assert "dark" in result
+        assert "defaultMode" in result
+        assert "enableUiThemeAdministration" in result
+
+    def test_gamma_can_get_system_theme_slice(self):
+        """Reading the system theme slice requires only theme read access, so a
+        Gamma user (read-only) can fetch it, mirroring the list/show endpoints.
+        The slice is already sent to every user in the page bootstrap, so this
+        exposes nothing new."""
+        self.login(GAMMA_USERNAME)
+
+        response = self.client.get("/api/v1/theme/system")
+
+        assert response.status_code == 200
+
+    @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
+    def test_system_theme_slice_reflects_a_freshly_set_default(self):
+        """A subsequent /system read reflects a newly set system default,
+        proving it reads current DB state rather than a cached payload."""
+        self.login(ADMIN_USERNAME)
+
+        # The enabled administration flag is surfaced in the slice.
+        before = self.client.get("/api/v1/theme/system").get_json()["result"]
+        assert before["enableUiThemeAdministration"] is True
+
+        # Persist a DB-backed system default theme.
+        set_response = self.client.put(
+            f"/api/v1/theme/{self.regular_theme.id}/set_system_default"
+        )
+        assert set_response.status_code == 200
+
+        # The subsequent read resolves the newly persisted theme.
+        after = self.client.get("/api/v1/theme/system").get_json()["result"]
+        assert after["enableUiThemeAdministration"] is True
+        assert isinstance(after["default"], dict)
+        assert after["default"]  # non-empty: the DB theme is now resolved
+
+    def test_anonymous_cannot_get_system_theme_slice(self):
+        """An unauthenticated request to /system is rejected with 401."""
+        self.logout()
+
+        response = self.client.get("/api/v1/theme/system")
+
+        assert response.status_code == 401

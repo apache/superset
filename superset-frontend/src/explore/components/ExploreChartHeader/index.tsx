@@ -18,8 +18,8 @@
  */
 import { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { QueryFormData, JsonObject } from '@superset-ui/core';
+import type { Location } from 'history';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Tooltip,
   Button,
@@ -28,6 +28,8 @@ import {
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
 import {
+  QueryFormData,
+  JsonObject,
   SupersetClient,
   isMatrixifyEnabled,
   MatrixifyFormData,
@@ -44,13 +46,19 @@ import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { ReportObject } from 'src/features/reports/types';
-import { User } from 'src/types/bootstrapTypes';
+import { User, isUserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
+import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -103,7 +111,7 @@ const additionalItemsStyles = (theme: SupersetTheme) => css`
 const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   dashboardId,
   colorScheme: dashboardColorScheme,
-  slice,
+  slice: rawSlice,
   actions,
   formData,
   ownState,
@@ -117,7 +125,23 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   metadata,
   isSaveModalVisible,
 }) => {
+  const slice = useMemo(
+    () =>
+      rawSlice
+        ? {
+            ...rawSlice,
+            editors: rawSlice.editors?.filter(Number.isInteger),
+            extra_editors: rawSlice.extra_editors?.filter(Number.isInteger),
+          }
+        : rawSlice,
+    [rawSlice],
+  );
+  const canWriteChart = useSelector<
+    { explore?: { can_add?: boolean } },
+    boolean
+  >(state => state.explore?.can_add ?? false);
   const dispatch = useDispatch();
+  const isVersionPreviewActive = useSelector(selectIsChartVersionPreviewActive);
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -241,6 +265,17 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [originalFormData, currentFormData],
   );
 
+  // Explore's own chart-state entries (see updateHistory) keep the user on the
+  // chart, so stepping through them isn't leaving unsaved changes behind.
+  const isChartStateTransition = useCallback(
+    (state: Location['state']) =>
+      isSameChartState(getChartStateFromHistoryState(state), {
+        ...formData,
+        slice_id: formData?.slice_id ?? slice?.slice_id,
+      }),
+    [formData, slice?.slice_id],
+  );
+
   const {
     showModal: showUnsavedChangesModal,
     setShowModal: setShowUnsavedChangesModal,
@@ -254,6 +289,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     },
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
+    isInPlaceTransition: isChartStateTransition,
   });
 
   const showModal = useCallback(() => {
@@ -274,15 +310,27 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     () => ({
       title: sliceName ?? '',
       canEdit:
-        !slice ||
-        canOverwrite ||
-        (user?.userId !== undefined &&
-          (slice?.owners || []).includes(user.userId)),
+        !isVersionPreviewActive &&
+        (!slice ||
+          (canWriteChart &&
+            canOverwriteSlice({
+              slice,
+              user: isUserWithPermissionsAndRoles(user) ? user : undefined,
+              canOverwrite,
+            }))),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),
     }),
-    [actions.updateChartTitle, canOverwrite, slice, sliceName, user?.userId],
+    [
+      actions.updateChartTitle,
+      canOverwrite,
+      canWriteChart,
+      isVersionPreviewActive,
+      slice,
+      sliceName,
+      user,
+    ],
   );
 
   const certificatiedBadgeProps = useMemo(
@@ -343,7 +391,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           <Button
             buttonStyle="secondary"
             onClick={showModal}
-            disabled={saveDisabled}
+            disabled={saveDisabled || isVersionPreviewActive}
             data-test="query-save-button"
             css={saveButtonStyles}
             icon={<Icons.SaveOutlined />}
@@ -353,15 +401,16 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         </div>
       </Tooltip>
     ),
-    [saveDisabled, showModal],
+    [isVersionPreviewActive, saveDisabled, showModal],
   );
 
   const menuDropdownProps = useMemo(
     () => ({
       open: isDropdownVisible,
       onOpenChange: setIsDropdownVisible,
+      disabled: isVersionPreviewActive,
     }),
-    [isDropdownVisible, setIsDropdownVisible],
+    [isDropdownVisible, isVersionPreviewActive, setIsDropdownVisible],
   );
 
   return (
@@ -387,7 +436,6 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
       )}
 
       <ReportModal
-        userId={user.userId}
         show={isReportModalOpen}
         onHide={closeReportModal}
         userEmail={user.email}

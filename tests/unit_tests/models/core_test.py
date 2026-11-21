@@ -16,29 +16,44 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import base64
+import gc
+import sqlite3
+from contextlib import nullcontext
 from datetime import datetime
-from typing import Any, Callable
+from pathlib import Path
+from typing import Any, Callable, Iterator
 
-import numpy
 import pandas as pd
 import pytest
+import sqlalchemy.exc
 from flask import current_app
+from freezegun import freeze_time
+from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy import (
     Column,
+    create_engine,
     Integer,
     MetaData,
     select,
     Table as SqlalchemyTable,
 )
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import QueuePool, SingletonThreadPool, StaticPool
 from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    LockAlreadyHeldException,
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetGenericDBErrorException,
+)
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
@@ -159,6 +174,14 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         PostgresDBEngineSpec,
         OldDBEngineSpec,
     ]
+    # `get_db_engine_spec` is an `lru_cache` keyed on the URL, and the specs
+    # below are only loaded on a miss -- so this test passed only as long as
+    # nothing earlier in the session had resolved a Postgres URL. Any new test
+    # anywhere that builds a `postgresql://` database made it fail, which is a
+    # property of test ordering rather than of the code under test. Cleared
+    # here, and again afterwards so the real specs are not left cached under a
+    # mock's verdict.
+    Database.get_db_engine_spec.cache_clear()
 
     assert (
         Database(database_name="db", sqlalchemy_uri="postgresql://").db_engine_spec
@@ -199,6 +222,11 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         == OldDBEngineSpec
     )
 
+    # The mocked specs above are cached against these URLs now; leaving them
+    # there would answer a later test with a spec defined in this function's
+    # body.
+    Database.get_db_engine_spec.cache_clear()
+
 
 @pytest.mark.parametrize(
     "dttm,col,database,result",
@@ -214,6 +242,12 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
             TableColumn(python_date_format="epoch_ms"),
             Database(),
             "1672536225000",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="epoch_us"),
+            Database(),
+            "1672536225000000",
         ),
         (
             datetime(2023, 1, 1, 1, 23, 45, 600000),
@@ -259,9 +293,71 @@ def test_dttm_sql_literal(
     assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
 
 
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "postgresql://user:pass@host:notaport/db",
+        "not a SQLAlchemy URI",
+        "uninstalled_dialect://host/db",
+    ],
+)
+def test_connection_details_allow_uri_repair(app_context: None, uri: str) -> None:
+    """Broken saved connections serialize enough information for the URI editor."""
+    from superset.databases.schemas import DatabaseConnectionSchema
+
+    database = Database(database_name="db", sqlalchemy_uri=uri, extra="{}")
+    result = DatabaseConnectionSchema().dump(database)
+    assert result["parameters"] == {}
+    assert result["parameters_schema"] == {}
+    assert result["sqlalchemy_uri"] == uri
+
+
 def test_table_column_database() -> None:
     database = Database(database_name="db")
     assert TableColumn(database=database).database is database
+
+
+def _prefixing_sql_query_mutator(sql: str, **kwargs: Any) -> str:
+    """`SQL_QUERY_MUTATOR` stand-in that prepends a marker comment."""
+    return f"-- mutated\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "is_split,mutate_after_split,expect_mutated",
+    [
+        # A split-out statement is mutated only when the mutator is meant to run
+        # after the split, and an un-split block only when it runs before.
+        (True, True, True),
+        (True, False, False),
+        (False, False, True),
+        (False, True, False),
+    ],
+)
+def test_mutate_sql_based_on_config_respects_is_split(
+    app_context: None,
+    mocker: MockerFixture,
+    is_split: bool,
+    mutate_after_split: bool,
+    expect_mutated: bool,
+) -> None:
+    """
+    `mutate_sql_based_on_config` fires `SQL_QUERY_MUTATOR` only when the call
+    site's `is_split` matches the `MUTATE_AFTER_SPLIT` config. Regression guard
+    for issue #30169, where SQL Lab always passed the default `is_split=False`
+    and so never mutated when `MUTATE_AFTER_SPLIT=True`.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": _prefixing_sql_query_mutator,
+            "MUTATE_AFTER_SPLIT": mutate_after_split,
+        },
+    )
+
+    result = database.mutate_sql_based_on_config("SELECT 1", is_split=is_split)
+
+    assert result == ("-- mutated\nSELECT 1" if expect_mutated else "SELECT 1")
 
 
 def test_catalog_cache() -> None:
@@ -276,6 +372,40 @@ def test_catalog_cache() -> None:
 
     assert database.catalog_cache_enabled
     assert database.catalog_cache_timeout == 10
+    assert not database.schema_cache_enabled
+    assert database.schema_cache_timeout is None
+
+
+@pytest.mark.parametrize("level", ["catalog", "schema", "table"])
+@pytest.mark.parametrize(
+    "stored, expected",
+    [
+        (3600, 3600),
+        (0, 0),
+        ("3600", 3600),
+        ("0", 0),
+        (" 60", 60),
+        ("", None),
+        ("1h", None),
+        (None, None),
+    ],
+)
+def test_metadata_cache_timeout_legacy_values(
+    level: str, stored: object, expected: int | None
+) -> None:
+    """
+    Legacy string timeouts, stored by older database forms, are read as integers;
+    unparseable values fall back to the default timeout.
+    """
+    key = f"{level}_cache_timeout"
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"metadata_cache_timeout": {key: stored}}),
+    )
+
+    assert getattr(database, f"{level}_cache_enabled")
+    assert getattr(database, key) == expected
 
 
 def test_get_default_catalog() -> None:
@@ -318,7 +448,10 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
 
     get_inspector = mocker.patch.object(database, "get_inspector")
     with get_inspector() as inspector:
-        inspector.bind.execute.return_value = [("examples",), ("other",)]
+        inspector.engine.connect().__enter__().execute.return_value = [
+            ("examples",),
+            ("other",),
+        ]
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
     get_inspector.assert_called_with()
@@ -527,15 +660,47 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(database_name="my_db", sqlalchemy_uri="trino://")
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"source": "Apache Superset"},
     )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
+    )
+
+
+def test_get_sqla_engine_honors_adjusted_connect_args(mocker: MockerFixture) -> None:
+    """
+    ``adjust_engine_params`` returns a *new* ``connect_args`` dict (the base
+    impl merges ``enforce_uri_query_params`` into a fresh copy). The result must
+    be written back into ``engine_kwargs`` so those enforced params actually
+    reach ``create_engine``. Exercised via MySQL, which enforces
+    ``local_infile=0`` this way; before the write-back the enforcement was
+    silently dropped.
+    """
+    from superset.models.core import Database
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(database_name="my_db", sqlalchemy_uri="mysql://u:p@h/db")
+    database._get_sqla_engine(nullpool=False)
+
+    _, kwargs = create_engine_mock.call_args
+    assert kwargs["connect_args"].get("local_infile") == 0
 
 
 def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
@@ -562,17 +727,29 @@ def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
         "superset.models.core.security_manager.find_user",
         return_value=None,
     )
-    create_engine = mocker.patch("superset.models.core.create_engine")
-
-    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
-    database.id = 1  # Cache is keyed on id; skipped for unsaved instances.
-    database._get_sqla_engine()
-    database._get_sqla_engine()
-
-    assert create_engine.call_count == 1, (
-        "Database._get_sqla_engine should reuse the engine for the same URL "
-        f"(create_engine called {create_engine.call_count} times)"
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
     )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
+
+    try:
+        database = Database(database_name="my_db", sqlalchemy_uri="trino://")
+        database.id = 1  # Cache is keyed on id; skipped for unsaved instances.
+        database._get_sqla_engine()
+        database._get_sqla_engine()
+
+        assert create_engine_mock.call_count == 1, (
+            "Database._get_sqla_engine should reuse the engine for the same URL "
+            f"(create_engine called {create_engine_mock.call_count} times)"
+        )
+        listen.assert_any_call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        )
+    finally:
+        _ENGINE_CACHE.clear()
 
 
 def test_get_sqla_engine_does_not_cache_unsaved_instances(
@@ -590,12 +767,33 @@ def test_get_sqla_engine_does_not_cache_unsaved_instances(
         "superset.models.core.security_manager.find_user",
         return_value=None,
     )
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     Database(database_name="db_a", sqlalchemy_uri="trino://")._get_sqla_engine()
     Database(database_name="db_b", sqlalchemy_uri="trino://")._get_sqla_engine()
 
-    assert create_engine.call_count == 2
+    assert create_engine_mock.call_count == 2
+    handle_error_calls = [
+        call
+        for call in listen.call_args_list
+        if len(call.args) > 1 and call.args[1] == "handle_error"
+    ]
+    assert handle_error_calls == [
+        mocker.call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        ),
+        mocker.call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        ),
+    ]
     assert _ENGINE_CACHE == {}
 
 
@@ -629,6 +827,301 @@ def test_engine_cache_evicted_on_update_and_delete(mocker: MockerFixture) -> Non
     assert any(k[0] == 2 for k in _ENGINE_CACHE)
 
 
+def test_engine_cache_eviction_survives_dispose_failure() -> None:
+    """
+    Evicted engines are disposed, and an engine that fails to dispose must not
+    interrupt the update or delete, nor keep the others from being disposed.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import (
+        _ENGINE_CACHE,
+        _ENGINE_CACHE_LOCK,
+        _evict_engine_cache,
+    )
+
+    failing, healthy, other, shared = (
+        MagicMock(pool=MagicMock(spec=QueuePool)) for _ in range(4)
+    )
+    failing.dispose.side_effect = RuntimeError("boom")
+    # A single shared connection would be closed under its users by disposal.
+    shared.pool = MagicMock(spec=StaticPool)
+    with _ENGINE_CACHE_LOCK:
+        _ENGINE_CACHE.clear()
+        _ENGINE_CACHE[(1, "postgresql://old-host/db", "")] = failing
+        _ENGINE_CACHE[(1, "postgresql://new-host/db", "")] = healthy
+        _ENGINE_CACHE[(1, "postgresql://shared-host/db", "")] = shared
+        _ENGINE_CACHE[(2, "postgresql://other/db", "")] = other
+
+    db_instance = MagicMock()
+    db_instance.id = 1
+    try:
+        _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+        failing.dispose.assert_called_once()
+        healthy.dispose.assert_called_once()
+        shared.dispose.assert_not_called()
+        other.dispose.assert_not_called()
+    finally:
+        _ENGINE_CACHE.clear()
+
+
+@pytest.mark.parametrize("poolclass", [StaticPool, SingletonThreadPool])
+def test_engine_cache_eviction_keeps_checked_out_connection_usable(
+    poolclass: type,
+) -> None:
+    """
+    Disposing a ``StaticPool`` or ``SingletonThreadPool`` closes its connections
+    even while they are checked out, which would break a query that is running
+    when the database is edited. Those engines are evicted without being
+    disposed.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import _ENGINE_CACHE, _evict_engine_cache
+
+    engine = create_engine("sqlite://", poolclass=poolclass)
+    _ENGINE_CACHE.clear()
+    _ENGINE_CACHE[(1, "sqlite://", "")] = engine
+    try:
+        with engine.connect() as connection:
+            db_instance = MagicMock()
+            db_instance.id = 1
+            _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+            assert _ENGINE_CACHE == {}
+            assert connection.execute(select(1)).scalar() == 1
+    finally:
+        _ENGINE_CACHE.clear()
+        engine.dispose()
+
+
+@pytest.fixture
+def duckdb_engine_cache() -> Iterator[None]:
+    """
+    Isolate the engine cache for tests that open a real DuckDB file. Garbage
+    collection is paused so that an engine or connection that is dropped
+    without being closed is not released by an incidental collection, which
+    keeps the tests deterministic.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    pytest.importorskip("duckdb_engine")
+    _ENGINE_CACHE.clear()
+    gc.collect()
+    gc.disable()
+    try:
+        yield
+    finally:
+        gc.enable()
+        for engine in list(_ENGINE_CACHE.values()):
+            engine.dispose()
+        _ENGINE_CACHE.clear()
+
+
+@pytest.fixture
+def pooled_duckdb(mocker: MockerFixture, duckdb_engine_cache: None) -> None:
+    """
+    A DuckDB deployment whose ``DB_CONNECTION_MUTATOR`` swaps the default
+    ``NullPool`` for a real pool, so cached engines keep their connection open
+    between requests.
+    """
+
+    def mutator(
+        uri: Any, params: dict[str, Any], *_: Any
+    ) -> tuple[Any, dict[str, Any]]:
+        return uri, {**params, "poolclass": QueuePool, "pool_size": 1}
+
+    mocker.patch.dict(current_app.config, {"DB_CONNECTION_MUTATOR": mutator})
+
+
+def _duckdb_database(path: Path, threads: int) -> Database:
+    """A saved DuckDB database whose connection settings differ by ``threads``."""
+    database = Database(
+        database_name="duck",
+        sqlalchemy_uri=f"duckdb:///{path}",
+        extra=json.dumps(
+            {"engine_params": {"connect_args": {"config": {"threads": threads}}}}
+        ),
+    )
+    database.id = 1
+    return database
+
+
+def _query_duckdb(database: Database) -> None:
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        connection.execute(select(1))
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_on_update_releases_pooled_connection(tmp_path: Path) -> None:
+    """
+    DuckDB allows one configuration per database file per process. A cached
+    engine whose pool holds an idle connection must therefore release it when
+    the database is explicitly evicted, or the edited configuration cannot be
+    opened until the discarded engine happens to be garbage collected.
+    """
+    from superset.models.core import _evict_engine_cache
+
+    path = tmp_path / "db.duckdb"
+    _query_duckdb(_duckdb_database(path, threads=1))
+
+    edited = _duckdb_database(path, threads=2)
+    _evict_engine_cache(mapper=None, connection=None, target=edited)
+
+    _query_duckdb(edited)
+
+
+def _saved_duckdb_database(session: Session, path: Path) -> Database:
+    """Persist a DuckDB ``Database`` and leave a committed row to edit."""
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = _duckdb_database(path, threads=1)
+    session.add(database)
+    session.commit()
+    return database
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_again_when_update_rolls_back(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    The update's eviction runs at flush, before the transaction is known to
+    commit. If the update then rolls back after an engine built from the edited
+    settings was cached, the committed settings must not be blocked by that
+    engine's pooled connection.
+    """
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+    _query_duckdb(database)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()  # after_update evicts the engine for the committed settings
+    _query_duckdb(database)  # e.g. the permission sync after the edit
+
+    session.rollback()
+
+    _query_duckdb(_duckdb_database(path, threads=1))
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_not_evicted_by_rollback_after_commit(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    Only a rollback of the transaction that evicted the engines evicts them
+    again; an engine cached after the edit committed survives a later,
+    unrelated rollback.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.commit()
+    _query_duckdb(database)
+    cached = dict(_ENGINE_CACHE)
+    assert cached
+
+    session.rollback()
+
+    assert _ENGINE_CACHE == cached
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_again_when_update_rolls_back_after_savepoint(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    Releasing a savepoint is not a commit of the update: the enclosing
+    transaction can still roll back, and must still evict the engine built from
+    the uncommitted settings.
+    """
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+    original_extra = database.extra
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()
+    _query_duckdb(database)
+
+    with session.begin_nested():
+        pass
+
+    session.rollback()
+
+    assert database.extra == original_extra
+    _query_duckdb(database)
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_not_evicted_by_rollback_after_savepoint_and_commit(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    A savepoint released before the outermost commit does not keep the
+    remembered evictions alive: after the commit, an unrelated rollback leaves
+    the cached engines alone.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()
+    with session.begin_nested():
+        pass
+    session.commit()
+    _query_duckdb(database)
+    cached = dict(_ENGINE_CACHE)
+    assert cached
+
+    session.rollback()
+
+    assert _ENGINE_CACHE == cached
+
+
+def test_engine_rollback_eviction_survives_dispose_failure(
+    session: Session, tmp_path: Path
+) -> None:
+    """A failure to dispose an engine never breaks the rollback."""
+    from unittest.mock import MagicMock
+
+    from superset.models.core import _ENGINE_CACHE
+
+    database = _saved_duckdb_database(session, tmp_path / "db.duckdb")
+    engine = MagicMock(pool=MagicMock(spec=QueuePool))
+    engine.dispose.side_effect = RuntimeError("boom")
+    _ENGINE_CACHE.clear()
+    try:
+        database.database_name = "renamed"
+        session.flush()
+        _ENGINE_CACHE[(database.id, "duckdb://", "")] = engine
+
+        session.rollback()
+
+        engine.dispose.assert_called_once()
+        assert _ENGINE_CACHE == {}
+    finally:
+        _ENGINE_CACHE.clear()
+
+
+@pytest.mark.usefixtures("duckdb_engine_cache")
+def test_has_view_closes_its_connection(tmp_path: Path) -> None:
+    """
+    With the default ``NullPool`` a connection is only closed once it is
+    released. ``has_view`` must release the connection it opens: otherwise the
+    DuckDB database stays open with its old configuration, and opening it again
+    with edited settings fails until the leaked connection is garbage collected.
+    """
+    path = tmp_path / "db.duckdb"
+    _duckdb_database(path, threads=1).has_view(Table("missing"))
+
+    _query_duckdb(_duckdb_database(path, threads=2))
+
+
 def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     """
     Test user impersonation in `_get_sqla_engine`.
@@ -643,7 +1136,11 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(
         database_name="my_db",
@@ -652,9 +1149,14 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     )
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice", "source": "Apache Superset"},
+    )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
     )
 
 
@@ -698,7 +1200,11 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(
         database_name="my_db",
@@ -707,10 +1213,87 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
     )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
+    )
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_impersonation_username_uses_email_prefix(mocker: MockerFixture) -> None:
+    """
+    Test that the impersonated username is the local part of the user's email.
+
+    The login and the email prefix commonly differ, so the lookup result is
+    used rather than the login it was resolved from.
+    """
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.models.core.find_user_for_impersonation",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice.doe"
+    assert database.get_impersonation_email() == "alice.doe@example.org"
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_impersonation_username_without_email(mocker: MockerFixture) -> None:
+    """
+    Test that a user with no email on record falls back to the login.
+
+    This matches how the connection would be made with the flag off, rather
+    than impersonating nobody.
+    """
+    user = mocker.MagicMock()
+    user.email = None
+    mocker.patch(
+        "superset.models.core.find_user_for_impersonation",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice"
+    assert database.get_impersonation_email() is None
+
+
+def test_get_impersonation_username_without_flag(mocker: MockerFixture) -> None:
+    """
+    Test that the login is used verbatim when the flag is off.
+
+    No lookup should happen at all: it would be a metadata-DB read on the query
+    path whose result is then discarded.
+    """
+    find_user = mocker.patch("superset.models.core.find_user_for_impersonation")
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice"
+    find_user.assert_not_called()
 
 
 def test_get_sqla_engine_registers_prequery_event_listener(
@@ -1035,6 +1618,92 @@ def test_get_oauth2_config(app_context: None) -> None:
     }
 
 
+@pytest.mark.parametrize(
+    "explicit",
+    [
+        {},
+        {"authorization_request_uri": "", "token_request_uri": ""},
+        {"authorization_request_uri": "https://idp.example/authorize"},
+        {"token_request_uri": "https://idp.example/token"},
+    ],
+)
+def test_get_oauth2_config_databricks_derives_missing_endpoints(
+    app_context: None, explicit: dict[str, str]
+) -> None:
+    """
+    Databricks OAuth2 endpoints omitted from ``oauth2_client_info`` are derived
+    from the workspace host instead of failing validation (which disabled
+    OAuth2 for the database); explicit values win.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": {
+                    "id": "my_client_id",
+                    "secret": "my_client_secret",
+                    "scope": "sql offline_access",
+                    **explicit,
+                }
+            }
+        ),
+    )
+
+    config = database.get_oauth2_config()
+
+    assert database.is_oauth2_enabled()
+    assert config is not None
+    assert config["authorization_request_uri"] == (
+        explicit.get("authorization_request_uri")
+        or "https://dbc-1234.cloud.databricks.com/oidc/v1/authorize"
+    )
+    assert config["token_request_uri"] == (
+        explicit.get("token_request_uri")
+        or "https://dbc-1234.cloud.databricks.com/oidc/v1/token"
+    )
+
+
+def test_get_oauth2_config_databricks_without_host_raises(app_context: None) -> None:
+    """
+    Without a host there is nothing to derive from: a clear error, not a
+    silently disabled OAuth2.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="databricks://token:@/?http_path=/sql/1.0/warehouses/abc",
+        encrypted_extra=json.dumps(
+            {"oauth2_client_info": {"id": "a", "secret": "b", "scope": "sql"}}
+        ),
+    )
+
+    with pytest.raises(OAuth2Error):
+        database.get_oauth2_config()
+
+
+def test_get_oauth2_config_databricks_malformed_client_info(
+    app_context: None,
+) -> None:
+    """
+    A malformed ``oauth2_client_info`` is rejected by the schema, not by the
+    endpoint resolver failing on it.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps({"oauth2_client_info": "not-a-dict"}),
+    )
+
+    with pytest.raises(ValidationError):
+        database.get_oauth2_config()
+
+
 def test_get_oauth2_config_token_request_type_from_db_engine_specs(
     mocker: MockerFixture, app_context: None
 ) -> None:
@@ -1114,6 +1783,21 @@ def test_get_oauth2_config_redirect_uri_from_config(
 
     assert config is not None
     assert config["redirect_uri"] == custom_redirect_uri
+
+
+def test_get_oauth2_config_malformed_encrypted_extra(app_context: None) -> None:
+    """
+    Test that malformed JSON in ``encrypted_extra`` raises a Superset exception
+    instead of leaking the raw ``JSONDecodeError``.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = "{not valid json"
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        database.get_oauth2_config()
 
 
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
@@ -1372,6 +2056,159 @@ def test_purge_oauth2_tokens(session: Session) -> None:
     assert database.name == "my_oauth2_db"
 
 
+def test_purge_oauth2_tokens_scoped_by_database_id(session: Session) -> None:
+    """
+    Ensure `purge_oauth2_tokens` filters by ``database_id``, not by the
+    token-table primary key.
+
+    The existing ``test_purge_oauth2_tokens`` case inserts a single token per
+    database in an empty schema, so token PKs and database PKs align 1:1 by
+    coincidence. This regression test inserts several tokens on ``database1``
+    first so token PKs advance past 1, then creates ``database2`` and purges
+    it. All of ``database1``'s tokens must remain untouched.
+    """
+    from flask_appbuilder.security.sqla.models import Role, User  # noqa: F401
+
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe2@example.org",
+        username="adoe2",
+    )
+    session.add(user)
+    session.flush()
+
+    database1 = Database(database_name="db1_pk_drift", sqlalchemy_uri="sqlite://")
+    session.add(database1)
+    session.flush()
+
+    # Insert several tokens on database1, one per distinct user, so token PKs
+    # advance past 1 and drift away from any single database PK. Each token
+    # is for a different user to respect the unique (user_id, database_id)
+    # constraint -- PK drift is what this test needs, not repeat users.
+    for i in range(5):
+        drift_user = User(
+            first_name="Drift",
+            last_name=str(i),
+            email=f"drift{i}@example.org",
+            username=f"drift{i}",
+        )
+        session.add(drift_user)
+        session.flush()
+        session.add(
+            DatabaseUserOAuth2Tokens(
+                user_id=drift_user.id,
+                database_id=database1.id,
+                access_token=f"db1_access_{i}",  # noqa: S106
+                access_token_expiration=datetime(2023, 1, 1),
+                refresh_token=f"db1_refresh_{i}",  # noqa: S106
+            )
+        )
+    session.flush()
+
+    database2 = Database(database_name="db2_pk_drift", sqlalchemy_uri="sqlite://")
+    session.add(database2)
+    session.flush()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 5
+    )
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .count()
+        == 0
+    )
+
+    # Purging database2 must not touch database1's tokens, even though one
+    # of database1's token PKs will collide with database2's PK.
+    database2.purge_oauth2_tokens()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 5
+    )
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .count()
+        == 0
+    )
+
+    # Purging database1 must delete all of its tokens. Filtering by the
+    # token PK instead of `database_id` would delete at most one row here.
+    database1.purge_oauth2_tokens()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 0
+    )
+
+
+def test_oauth2_tokens_unique_per_user_and_database(session: Session) -> None:
+    """
+    ``database_user_oauth2_tokens`` allows at most one row per
+    (user_id, database_id) pair. `OAuth2StoreTokenCommand` always
+    deletes any existing token before storing a new one, so a second row for
+    the same pair can only appear via a lost race between two concurrent
+    callbacks -- the DB-level constraint is what makes that impossible rather
+    than merely unlikely.
+    """
+    from flask_appbuilder.security.sqla.models import Role, User  # noqa: F401
+    from sqlalchemy.exc import IntegrityError
+
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe3@example.org",
+        username="adoe3",
+    )
+    session.add(user)
+    session.flush()
+
+    database = Database(database_name="my_unique_oauth2_db", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.flush()
+
+    session.add(
+        DatabaseUserOAuth2Tokens(
+            user_id=user.id,
+            database_id=database.id,
+            access_token="first_access_token",  # noqa: S106
+            access_token_expiration=datetime(2023, 1, 1),
+            refresh_token="first_refresh_token",  # noqa: S106
+        )
+    )
+    session.flush()
+
+    session.add(
+        DatabaseUserOAuth2Tokens(
+            user_id=user.id,
+            database_id=database.id,
+            access_token="second_access_token",  # noqa: S106
+            access_token_expiration=datetime(2023, 1, 1),
+            refresh_token="second_refresh_token",  # noqa: S106
+        )
+    )
+    with pytest.raises(IntegrityError):
+        session.flush()
+
+
 def test_compile_sqla_query_no_optimization(query: Select) -> None:
     """
     Test the `compile_sqla_query` method.
@@ -1616,10 +2453,76 @@ def test_apply_limit_to_sql(
     """
     db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
     db_engine_spec = mocker.MagicMock(limit_method=method)
+    db_engine_spec.get_limit_method.return_value = method
     db.get_db_engine_spec = mocker.MagicMock(return_value=db_engine_spec)
 
     limited = db.apply_limit_to_sql(sql, limit, force)
     assert limited == expected
+
+
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("force", [False, True])
+@pytest.mark.parametrize("limit", [1, 3])
+@pytest.mark.parametrize("sql_limit", ["(1 + 1)", "0"])
+def test_apply_limit_to_sql_preserves_restrictions(
+    method: LimitMethod,
+    force: bool,
+    limit: int,
+    sql_limit: str,
+    mocker: MockerFixture,
+) -> None:
+    """Preserve smaller SQL limits unless explicitly forced to replace them."""
+    db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        db,
+        "get_db_engine_spec",
+        return_value=mocker.Mock(
+            engine="sqlite",
+            limit_method=method,
+            get_limit_method=mocker.Mock(return_value=method),
+        ),
+    )
+    # The LIMIT expression comes only from the fixed test parameters above.
+    sql = (
+        "SELECT n FROM (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3) "  # noqa: S608
+        f"ORDER BY n LIMIT {sql_limit}"
+    )
+    limited = db.apply_limit_to_sql(sql, limit, force)
+
+    with sqlite3.connect(":memory:") as connection:
+        original_rows = connection.execute(sql).fetchall()
+        expected = (
+            [(1,), (2,), (3,)][:limit]
+            if force and method == LimitMethod.FORCE_LIMIT
+            else original_rows[:limit]
+        )
+        assert connection.execute(limited).fetchall() == expected
+
+
+@pytest.mark.parametrize("top", ["50 PERCENT", "5 WITH TIES", "(1 + 4)", "0", "1", "5"])
+@pytest.mark.parametrize(
+    "projection", ["COUNT(*)", "1, 2", "1 AS n, 2 AS n", "a.*, b.*"]
+)
+def test_apply_limit_to_sql_bounds_tsql_without_derived_tables(
+    top: str, projection: str, mocker: MockerFixture
+) -> None:
+    """Legacy SQL-only caps must work without relying on the executor cursor."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.parse import SQLScript
+
+    database = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_db_engine_spec", return_value=MssqlEngineSpec)
+    sql = (
+        f"SELECT TOP {top} {projection} "  # noqa: S608
+        "FROM a JOIN b ON a.id = b.id ORDER BY 1"
+    )
+    expected_limit = min(int(top), 2) if top.isdigit() else 2
+    expected = (
+        f"SELECT TOP {expected_limit} {projection} "  # noqa: S608
+        "FROM a JOIN b ON a.id = b.id ORDER BY 1"
+    )
+
+    assert database.apply_limit_to_sql(sql, 2) == SQLScript(expected, "mssql").format()
 
 
 def test_database_execute_delegates_to_sql_executor(mocker: MockerFixture) -> None:
@@ -1812,6 +2715,119 @@ def test_execute_sql_preserves_line_comments_single_statement(
     assert "/*" not in executed_sql
 
 
+def test_get_df_captures_description_after_fetch(mocker: MockerFixture) -> None:
+    """Fetch asynchronous results before capturing their final column metadata.
+
+    Some asynchronous DB-API drivers (e.g. Spark Thrift) expose placeholder
+    ``cursor.description`` until a fetch call waits for the operation to finish.
+    Capturing ``description`` after ``fetch_data`` ensures the real column
+    metadata is used.
+    """
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    cursor = mocker.MagicMock()
+    placeholder_description: list[tuple[str, str, None, None, None, None, None]] = [
+        ("Result", "STRING", None, None, None, None, None),
+    ]
+    result_description: list[tuple[str, str, None, None, None, None, None]] = [
+        ("value", "BIGINT", None, None, None, None, None),
+    ]
+    cursor.description = placeholder_description
+
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+    mocker.patch.object(database.db_engine_spec, "execute")
+
+    def fetch_data(_: object) -> list[tuple[int]]:
+        cursor.description = result_description
+        return [(1,)]
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "fetch_data",
+        side_effect=fetch_data,
+    )
+
+    _, rows, description = database._execute_sql_with_mutation_and_logging(
+        "SELECT 1",
+        fetch_last_result=True,
+    )
+
+    assert rows == [(1,)]
+    assert description == result_description
+
+
+def test_get_df_emits_warehouse_phase_timers(mocker: MockerFixture) -> None:
+    """Connect, execute, fetch and dataframe build are timed per engine."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    cursor = mocker.MagicMock()
+    cursor.description = [("value", "BIGINT", None, None, None, None, None)]
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[(1,)])
+    stats_logger_manager = mocker.patch(
+        "superset.utils.timing_metrics.stats_logger_manager"
+    )
+
+    database.get_df("SELECT 1")
+
+    timers = [
+        call.args[0] for call in stats_logger_manager.instance.timing.call_args_list
+    ]
+    assert timers == [
+        "database.connect.sqlite",
+        "database.execute.sqlite",
+        "database.fetch.sqlite",
+        "database.dataframe.sqlite",
+    ]
+
+
+def test_get_df_emits_connect_timer_when_connection_fails(
+    mocker: MockerFixture,
+) -> None:
+    """A failed connection attempt is still timed."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_raw_connection", side_effect=OSError("down"))
+    stats_logger_manager = mocker.patch(
+        "superset.utils.timing_metrics.stats_logger_manager"
+    )
+
+    with pytest.raises(OSError, match="down"):
+        database.get_df("SELECT 1")
+
+    timers = [
+        call.args[0] for call in stats_logger_manager.instance.timing.call_args_list
+    ]
+    assert timers == ["database.connect.sqlite"]
+
+
+def test_get_df_dataframe_timer_excludes_mutator(mocker: MockerFixture) -> None:
+    """The dataframe timer covers DataFrame construction only."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        database,
+        "_execute_sql_with_mutation_and_logging",
+        return_value=(mocker.MagicMock(), [(1,)], [("value",)]),
+    )
+    mocker.patch.object(database, "load_into_dataframe", return_value=pd.DataFrame())
+    timed = mocker.patch("superset.models.core.timed")
+    seen_during_mutator: list[bool] = []
+
+    def mutator(df: pd.DataFrame) -> pd.DataFrame:
+        seen_during_mutator.append(timed.return_value.__exit__.called)
+        return df
+
+    database.get_df("SELECT 1", mutator=mutator)
+
+    assert seen_during_mutator == [True]
+
+
 def test_post_process_df_non_zero_based_index() -> None:
     """
     post_process_df must not raise when the DataFrame index doesn't contain 0
@@ -1821,7 +2837,7 @@ def test_post_process_df_non_zero_based_index() -> None:
     df = pd.DataFrame({"col": [None, [1, 2], [3, 4]]}, dtype=object)
     df = df[df["col"].notna()]  # index is now [1, 2], not [0, 1, 2]
     result = Database.post_process_df(df)
-    assert result["col"].dtype == numpy.object_
+    assert result["col"].dtype == "str"
     assert result["col"].iloc[0] == "[1, 2]"
     assert result["col"].iloc[1] == "[3, 4]"
 
@@ -1991,3 +3007,1867 @@ def test_prequery_listener_mutation_race_deterministic(
     assert not t_b.is_alive(), "thread B deadlocked"
 
     assert not errors, f"deterministic interleaving raised: {errors!r}"
+
+
+def test_function_names_returns_engine_spec_functions(mocker: MockerFixture) -> None:
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    spec = mocker.MagicMock()
+    spec.get_function_names.return_value = ["abs", "avg", "cardinality"]
+    database.get_db_engine_spec = mocker.MagicMock(return_value=spec)
+
+    assert database.function_names == ["abs", "avg", "cardinality"]
+    spec.get_function_names.assert_called_once_with(database)
+
+
+def test_function_names_returns_empty_list_when_engine_spec_raises(
+    mocker: MockerFixture,
+) -> None:
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    spec = mocker.MagicMock()
+    spec.get_function_names.side_effect = Exception("Connection refused")
+    database.get_db_engine_spec = mocker.MagicMock(return_value=spec)
+    logger = mocker.patch("superset.models.core.logger")
+
+    assert database.function_names == []
+    assert logger.error.called
+
+
+def _login_rejecting_database(mocker: MockerFixture, engine: Any) -> Database:
+    """A database with a user token that its engine rejects at login."""
+    database = Database(database_name="login_db", sqlalchemy_uri="snowflake://")
+    database.id = 1
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(Database, "get_oauth2_config", return_value={"id": "client-id"})
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = []
+    db_engine_spec.needs_oauth2.side_effect = lambda ex: "rejected" in str(ex)
+    g = mocker.MagicMock()
+    g.user.id = 2
+    mocker.patch("superset.models.core.g", g)
+    mocker.patch("superset.utils.oauth2.g", g)
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    metadata_db.session.query().filter_by().one_or_none.return_value = (
+        mocker.MagicMock(access_token="stale-token")  # noqa: S106
+    )
+    return database
+
+
+def test_get_raw_connection_refreshes_a_token_rejected_at_login(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A token the database rejects when the connection logs in is refreshed once
+    and the connection is opened again, instead of asking the user to sign in.
+    """
+    engine = mocker.MagicMock()
+    connection = mocker.MagicMock()
+    engine.raw_connection.side_effect = [RuntimeError("token rejected"), connection]
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(database.db_engine_spec, "start_oauth2_dance")
+
+    with database.get_raw_connection() as conn:
+        assert conn is connection
+
+    assert engine.raw_connection.call_count == 2
+    refresh.assert_called_once()
+    assert refresh.call_args.kwargs == {
+        "force": True,
+        "rejected_access_token": "stale-token",  # noqa: S106
+    }
+    start_dance.assert_not_called()
+    connection.close.assert_called_once()
+
+
+def test_get_inspector_refreshes_a_token_rejected_at_login(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Metadata (and the default schema chart data reads) log in the same way."""
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    inspector = mocker.MagicMock()
+    inspect = mocker.patch(
+        "superset.models.core.sqla.inspect",
+        side_effect=[RuntimeError("token rejected"), inspector],
+    )
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+
+    with database.get_inspector() as result:
+        assert result is inspector
+
+    assert inspect.call_count == 2
+    refresh.assert_called_once()
+
+
+def test_get_raw_connection_asks_to_sign_in_when_the_new_token_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_raw_connection():
+            pass
+
+    assert engine.raw_connection.call_count == 2
+    refresh.assert_called_once()
+    start_dance.assert_called_once_with(database)
+
+
+def test_outer_oauth2_retry_does_not_refresh_again_when_login_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Re-entering connection creation cannot exchange twice for one query."""
+    from superset.utils.oauth2 import execute_with_oauth2_retry, is_oauth2_retry_active
+
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    def operation() -> None:
+        """Open the connection inside the logical query's retry boundary."""
+        with database.get_raw_connection():
+            pytest.fail("A rejected token must not open a connection")
+
+    with pytest.raises(OAuth2RedirectError):
+        execute_with_oauth2_retry(database, operation)
+
+    refresh.assert_called_once()
+    assert engine.raw_connection.call_count == 2
+    start_dance.assert_called_once_with(database)
+    assert not is_oauth2_retry_active()
+
+
+def test_get_inspector_asks_to_sign_in_when_the_new_token_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A second inspector login rejection redirects instead of leaking the error."""
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    # Isolate inspector creation from get_sqla_engine's broader error handling.
+    mocker.patch.object(database, "get_sqla_engine", return_value=nullcontext(engine))
+    inspect = mocker.patch(
+        "superset.models.core.sqla.inspect",
+        side_effect=RuntimeError("token rejected"),
+    )
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_inspector():
+            pytest.fail("A rejected token must not create an inspector")
+
+    assert inspect.call_count == 2
+    refresh.assert_called_once()
+    start_dance.assert_called_once_with(database)
+
+
+def test_get_inspector_does_not_replay_the_callers_block(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Inspector errors after login trigger sign-in without replaying metadata work.
+
+    Stubbing get_sqla_engine pins the defensive guard, not the real path.
+    """
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    mocker.patch.object(database, "get_sqla_engine", return_value=nullcontext(engine))
+    inspector = mocker.MagicMock()
+    inspect = mocker.patch("superset.models.core.sqla.inspect", return_value=inspector)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_inspector():
+            raise RuntimeError("token rejected")
+
+    inspect.assert_called_once_with(engine)
+    refresh.assert_not_called()
+    start_dance.assert_called_once_with(database)
+
+
+def test_get_raw_connection_does_not_replay_the_callers_block(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Only opening the connection is retried, never work done with it."""
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+    mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_raw_connection():
+            raise RuntimeError("token rejected")
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
+
+
+def test_get_raw_connection_leaves_recovery_to_an_outer_retry(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Inside an operation that owns the recovery, the login is not retried."""
+    from superset.utils import oauth2
+
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    token = oauth2._oauth2_retry_active.set(True)
+    try:
+        with pytest.raises(RuntimeError, match="token rejected"):
+            with database.get_raw_connection():
+                pass
+    finally:
+        oauth2._oauth2_retry_active.reset(token)
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
+
+
+def test_get_raw_connection_without_oauth2_is_unchanged(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=False)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="token rejected"):
+        with database.get_raw_connection():
+            pass
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
+
+
+def test_get_raw_connection_survives_a_lost_refresh_race(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chart that loses the refresh race opens with the token the winner stored.
+
+    Every chart on a dashboard whose token is rejected at login competes for the
+    non-blocking refresh lock. The losers must pick up the committed token rather
+    than failing with an opaque lock error.
+    """
+    mocker.patch("time.sleep")  # avoid backoff delays in tests
+    engine = mocker.MagicMock()
+    connection = mocker.MagicMock()
+    engine.raw_connection.side_effect = [RuntimeError("token rejected"), connection]
+    database = _login_rejecting_database(mocker, engine)
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=metadata_db.session)
+    # The rejected token is read first, then the winner's committed replacement.
+    metadata_db.session.query().filter_by().one_or_none.side_effect = [
+        mocker.MagicMock(access_token="stale-token"),  # noqa: S106
+        mocker.MagicMock(access_token="winning-token"),  # noqa: S106
+    ]
+    mocker.patch(
+        "superset.utils.oauth2.DistributedLock",
+        side_effect=LockAlreadyHeldException("Lock already taken"),
+    )
+    start_dance = mocker.patch.object(database.db_engine_spec, "start_oauth2_dance")
+
+    with database.get_raw_connection() as conn:
+        assert conn is connection
+
+    assert engine.raw_connection.call_count == 2
+    start_dance.assert_not_called()
+
+
+@pytest.mark.parametrize("connection_method", ["get_raw_connection", "get_inspector"])
+def test_connection_does_not_re_exchange_a_refused_refresh_token(
+    mocker: MockerFixture,
+    connection_method: str,
+) -> None:
+    """A refused expired-token refresh starts sign-in without another exchange."""
+    from datetime import datetime, timedelta
+
+    from superset.exceptions import OAuth2TokenRefreshError
+    from superset.utils.oauth2 import get_oauth2_access_token
+
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    spec = database.db_engine_spec
+    mocker.patch.object(
+        spec,
+        "needs_oauth2",
+        side_effect=lambda ex: isinstance(ex, OAuth2TokenRefreshError),
+    )
+    spec.oauth2_exception = ValueError
+    exchange = mocker.patch.object(
+        spec, "get_oauth2_fresh_token", side_effect=ValueError("refresh refused")
+    )
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock(
+        access_token="expired-token",  # noqa: S106
+        access_token_expiration=datetime.now() - timedelta(seconds=1),
+        refresh_token="refused-token",  # noqa: S106
+    )
+    metadata_db.session.query().filter_by().one_or_none.return_value = token
+    # A coordination lock must not commit the caller's pending deletion.
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    isolated_session = mocker.patch("superset.utils.oauth2.Session")
+    mocker.patch.object(
+        Database,
+        "_get_sqla_engine",
+        side_effect=lambda *args, **kwargs: get_oauth2_access_token({}, 1, 2, spec),
+    )
+    start_dance = mocker.patch.object(
+        spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError) as exc:
+        with getattr(database, connection_method)():
+            pytest.fail("A refused refresh must not open a connection")
+
+    assert not isinstance(exc.value, OAuth2TokenRefreshError)
+    exchange.assert_called_once_with({}, "refused-token")
+    metadata_db.session.delete.assert_called_once_with(token)
+    metadata_db.session.flush.assert_called_once()
+    metadata_db.session.commit.assert_not_called()
+    isolated_session.assert_not_called()
+    start_dance.assert_called_once_with(database)
+    engine.raw_connection.assert_not_called()
+
+
+def _catch_all_database() -> Database:
+    """A database on an engine with the catch-all rule and a mixed payload."""
+    return Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(
+            {
+                "api_key": "x",
+                "connect_args": {"timeout": 5},
+                "oauth2_client_info": {"secret": "s"},
+            }
+        ),
+    )
+
+
+def test_stored_sensitive_fields_catch_all_rule() -> None:
+    """
+    On an engine with the catch-all rule, only the stored string fields are listed,
+    labeled by key name unless the path has a declared label.
+    """
+    assert _catch_all_database().stored_sensitive_fields() == {
+        "$.api_key": "api_key",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
+def test_stored_sensitive_fields_only_stored_declared_fields() -> None:
+    """
+    A declared field is listed with its label only when it is stored.
+    """
+    database = Database(
+        database_name="druid",
+        sqlalchemy_uri="druid://localhost:8082/druid/v2/sql/",
+        encrypted_extra=json.dumps({"connect_args": {"scheme": "https"}}),
+    )
+    assert database.stored_sensitive_fields() == {}
+
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"scheme": "https", "jwt": "token"}}
+    )
+    assert database.stored_sensitive_fields() == {"$.connect_args.jwt": "JWT Token"}
+
+
+@pytest.mark.parametrize("encrypted_extra", [None, "", "{oops", "[1, 2]", '"x"', "{}"])
+def test_stored_sensitive_fields_missing_or_malformed(
+    encrypted_extra: str | None,
+) -> None:
+    """
+    A missing, empty or malformed `encrypted_extra` lists no sensitive fields.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=encrypted_extra,
+    )
+
+    assert database.stored_sensitive_fields() == {}
+
+
+def test_engine_information_keeps_declared_patterns() -> None:
+    """
+    The engine information of a database lists the engine's declared patterns,
+    whatever is stored.
+    """
+    assert _catch_all_database().engine_information[
+        "encrypted_extra_sensitive_fields"
+    ] == {
+        "$.*": "Encrypted Extra",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
+def _jwt(exp: int) -> str:
+    """An HS256-shaped token with the given ``exp`` and a fake, decodable signature."""
+    claims = json.dumps({"sub": "service-account", "exp": exp}).encode()
+    payload = base64.urlsafe_b64encode(claims).rstrip(b"=").decode()
+    return f"eyJhbGciOiJIUzI1NiJ9.{payload}.c2lnbmF0dXJlXYZabcde"
+
+
+@freeze_time("2026-11-05T12:00:00Z")
+def test_stored_secret_expirations() -> None:
+    """
+    Each stored sensitive JWT with an exp claim is listed with its expiry and
+    whether it has passed; other secrets, such as a PEM key, are not.
+    """
+    pem = (
+        "-----BEGIN PRIVATE KEY-----\n"
+        + "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC" * 20
+        + "\n-----END PRIVATE KEY-----\n"
+    )
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(
+            {
+                "expiring": f"  {_jwt(1_794_312_000)}  ",
+                "expired": _jwt(1_762_257_600),
+                "private_key": pem,
+                "password": "hunter2",
+            }
+        ),
+    )
+
+    assert database.stored_secret_expirations() == {
+        "$.expired": {"expires_at": "2025-11-04T12:00:00+00:00", "expired": True},
+        "$.expiring": {"expires_at": "2026-11-10T12:00:00+00:00", "expired": False},
+    }
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra",
+    [None, "", "{oops", "[1, 2]", "{}", json.dumps({"password": "hunter2"})],
+)
+def test_stored_secret_expirations_none(encrypted_extra: str | None) -> None:
+    """
+    No stored JWT, or a missing or malformed `encrypted_extra`, gives no entries.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=encrypted_extra,
+    )
+
+    assert database.stored_secret_expirations() == {}
+
+
+def test_stored_secret_expirations_only_declared_fields() -> None:
+    """
+    A JWT outside the engine's declared sensitive paths is not listed.
+    """
+    database = Database(
+        database_name="druid",
+        sqlalchemy_uri="druid://localhost:8082/druid/v2/sql/",
+        encrypted_extra=json.dumps(
+            {"connect_args": {"scheme": _jwt(1_794_312_000), "jwt": "token"}}
+        ),
+    )
+
+    assert database.stored_secret_expirations() == {}
+
+
+def _embedded_snowflake_database(
+    *,
+    username: str = "embedded_svc",
+    password: str = "embedded_pw",  # noqa: S107
+) -> "Database":
+    """
+    A Snowflake connection carrying both an OAuth2 client and a guest credential.
+    """
+    from superset.models.core import Database
+
+    encrypted_extra: dict[str, Any] = {
+        "oauth2_client_info": {
+            "id": "client-id",
+            "secret": "client-secret",
+            "scope": "refresh_token",
+            "authorization_request_uri": "https://xy12345.snowflakecomputing.com/oauth/authorize",
+            "token_request_uri": "https://xy12345.snowflakecomputing.com/oauth/token-request",
+        },
+    }
+    if username or password:
+        encrypted_extra["embedded_credentials"] = {
+            "username": username,
+            "password": password,
+        }
+
+    return Database(
+        database_name="snowflake_db",
+        sqlalchemy_uri=(
+            "snowflake://svc_user:svc_pass@xy12345.us-east-2.aws/ANALYTICS_DB"
+            "?role=ANALYST&warehouse=COMPUTE_WH"
+        ),
+        impersonate_user=True,
+        encrypted_extra=json.dumps(encrypted_extra),
+    )
+
+
+def _become_guest(mocker: MockerFixture, username: str = "guest_user") -> None:
+    """
+    Install an embedded guest as the current principal.
+    """
+    from superset.security.guest_token import GuestToken, GuestUser
+
+    token: GuestToken = {
+        "user": {"username": username},
+        "resources": [],
+        "rls_rules": [],
+        "iat": 0,
+        "exp": 1,
+    }
+    guest = GuestUser(token=token, roles=[])
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=guest,
+    )
+    mocker.patch("superset.models.core.get_username", return_value=guest.username)
+
+
+def _stub_driver_dependent_uri_validation(mocker: MockerFixture) -> None:
+    """
+    Make URI validation driver-agnostic for these tests.
+
+    ``validate_database_uri`` resolves the dialect to look up disallowed query
+    params, which needs ``snowflake-sqlalchemy`` installed. That is an optional
+    extra and is absent from the unit-test environment, and it has nothing to do
+    with which credential is selected, so it is stubbed rather than depended on.
+    """
+    mocker.patch("superset.db_engine_specs.base.BaseEngineSpec.validate_database_uri")
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_fallback_credential_is_used_for_a_guest(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an embedded guest connects with the stored fallback credential.
+
+    The guest URL must carry the fallback username and password and must *not* carry
+    `authenticator=oauth`: skipping impersonation is the whole mechanism, because
+    Snowflake's `impersonate_user` sets that authenticator whether or not a per-user
+    token exists -- and a guest never has one.
+    """
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    _embedded_snowflake_database()._get_sqla_engine(nullpool=False)
+
+    url = create_engine_mock.call_args[0][0]
+    assert url.username == "embedded_svc"
+    assert url.password == "embedded_pw"  # noqa: S105
+    assert "authenticator" not in url.query
+
+
+@pytest.mark.parametrize("passphrase", ["", "key-passphrase"])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_keypair_is_used_only_for_a_guest(
+    mocker: MockerFixture, passphrase: str
+) -> None:
+    """A guest uses the PEM key while a logged-in user stays on OAuth2."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    from superset.models.core import _ENGINE_CACHE
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    encryption = (
+        serialization.BestAvailableEncryption(passphrase.encode())
+        if passphrase
+        else serialization.NoEncryption()
+    )
+    pem = private_key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        encryption,
+    ).decode()
+    expected_der = private_key.private_bytes(
+        serialization.Encoding.DER,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    )
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": pem,
+        "privatekey_pass": passphrase,
+    }
+    extra["auth_method"] = "keypair"
+    extra["auth_params"] = {"privatekey_body": "not-the-embedded-key"}
+    database.encrypted_extra = json.dumps(extra)
+    database.id = 1
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        side_effect=lambda *a, **kw: create_engine("sqlite://"),
+    )
+    _stub_driver_dependent_uri_validation(mocker)
+    _ENGINE_CACHE.clear()
+
+    _become_guest(mocker, username="ACCOUNTADMIN")
+    database._get_sqla_engine(nullpool=False)
+    guest_url = create_engine_mock.call_args[0][0]
+    guest_kwargs = create_engine_mock.call_args[1]
+    assert guest_url.username == "embedded_svc"
+    assert guest_url.password is None
+    assert "authenticator" not in guest_url.query
+    assert guest_kwargs["connect_args"]["private_key"] == expected_der
+
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    with current_app.test_request_context("/dashboard/"):
+        database._get_sqla_engine(nullpool=False)
+    user_url = create_engine_mock.call_args[0][0]
+    user_kwargs = create_engine_mock.call_args[1]
+    assert user_url.query["authenticator"] == "oauth"
+    assert "private_key" not in user_kwargs["connect_args"]
+    assert len(_ENGINE_CACHE) == 2
+    _ENGINE_CACHE.clear()
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        {"username": "   ", "password": "pw"},
+        {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        {"auth_method": "keypair", "privatekey_body": "PEM"},
+        {"username": "embedded_svc", "auth_method": "keypair", "password": "pw"},
+        {"username": "embedded_svc", "auth_method": "unknown", "password": "pw"},
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_incomplete_embedded_keypair_is_ignored(
+    mocker: MockerFixture, credentials: dict[str, str]
+) -> None:
+    """An incomplete or unknown fallback method cannot authenticate a guest."""
+    _become_guest(mocker)
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = credentials
+    database.encrypted_extra = json.dumps(extra)
+
+    assert database.get_embedded_fallback_credentials() is None
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_guest_username_from_the_token_never_reaches_the_connection(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the guest token's own username claim cannot become the connection
+    identity.
+
+    Whoever mints the guest token controls its `username`. If the fallback path went
+    through impersonation, that claim would be used to connect -- so a token minted
+    with `ACCOUNTADMIN` would try to connect as `ACCOUNTADMIN`.
+    """
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    _become_guest(mocker, username="ACCOUNTADMIN")
+    _stub_driver_dependent_uri_validation(mocker)
+
+    _embedded_snowflake_database()._get_sqla_engine(nullpool=False)
+
+    url = create_engine_mock.call_args[0][0]
+    assert url.username == "embedded_svc"
+    assert "ACCOUNTADMIN" not in url.render_as_string(hide_password=False)
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_connection_mutator_receives_the_embedded_connection_identity(
+    mocker: MockerFixture,
+) -> None:
+    """A username-forwarding hook must retain the configured guest identity."""
+    from flask import current_app
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    _become_guest(mocker, username="ACCOUNTADMIN")
+    _stub_driver_dependent_uri_validation(mocker)
+    mutator = mocker.Mock(
+        side_effect=lambda url, kwargs, username, security_manager, source: (
+            url.set(username=username),
+            kwargs,
+        )
+    )
+    mocker.patch.dict(current_app.config, {"DB_CONNECTION_MUTATOR": mutator})
+
+    _embedded_snowflake_database()._get_sqla_engine(nullpool=False)
+
+    assert mutator.call_args.args[2] == "embedded_svc"
+    assert create_engine_mock.call_args.args[0].username == "embedded_svc"
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_fallback_credential_is_not_used_for_a_logged_in_user(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a logged-in user on the same connection never sees the credential.
+    """
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+    _stub_driver_dependent_uri_validation(mocker)
+
+    _embedded_snowflake_database()._get_sqla_engine(nullpool=False)
+
+    rendered = create_engine_mock.call_args[0][0].render_as_string(hide_password=False)
+    assert "embedded_svc" not in rendered
+    assert "embedded_pw" not in rendered
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_guest_and_admin_do_not_share_an_engine_cache_entry(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a guest and a logged-in user get distinct engines for one connection.
+
+    The engine cache is keyed on (database id, rendered URL, engine kwargs) with no
+    user component. Putting the fallback credential on the URL -- rather than into
+    `connect_args` -- is what keeps the two principals apart; routing it through
+    `connect_args` would reach the key only via `repr()` of a nested dict.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    mocker.patch(
+        "superset.models.core.create_engine",
+        side_effect=lambda *a, **kw: create_engine("sqlite://"),
+    )
+    _ENGINE_CACHE.clear()
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = _embedded_snowflake_database()
+    database.id = 1
+
+    guest_patch = mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest"
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    _become_guest(mocker)
+    database._get_sqla_engine(nullpool=False)
+
+    guest_patch.return_value = None
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    urls = {key[1] for key in _ENGINE_CACHE}
+    assert len(_ENGINE_CACHE) == 2, _ENGINE_CACHE
+    assert any("embedded_svc" in url for url in urls)
+    assert any("svc_user" in url for url in urls)
+    _ENGINE_CACHE.clear()
+
+
+@pytest.mark.parametrize(
+    "username,password",
+    [("embedded_svc", ""), ("", "embedded_pw"), ("", "")],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_half_filled_embedded_credential_is_ignored(
+    mocker: MockerFixture,
+    username: str,
+    password: str,
+) -> None:
+    """
+    Test that an incomplete credential is ignored rather than half-applied.
+    """
+    _become_guest(mocker)
+
+    database = _embedded_snowflake_database(username=username, password=password)
+
+    assert database.get_embedded_fallback_credentials() is None
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=False, EMBEDDED_SUPERSET=True)
+def test_embedded_fallback_credential_requires_its_feature_flag(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the kill switch works on an otherwise fully configured connection.
+    """
+    _become_guest(mocker)
+
+    assert _embedded_snowflake_database().get_embedded_fallback_credentials() is None
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=False)
+def test_embedded_fallback_credential_requires_embedded_superset(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the credential is unreachable when embedding itself is disabled.
+
+    `get_current_guest_user_if_guest` is a bare isinstance check with no flag behind
+    it, so this is checked explicitly rather than inherited.
+    """
+    _become_guest(mocker)
+
+    assert _embedded_snowflake_database().get_embedded_fallback_credentials() is None
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_fallback_credential_requires_an_oauth2_connection(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an ordinary connection does not grow a second identity.
+
+    Without this condition a plain username/password Snowflake connection with the
+    field filled in would silently route guests elsewhere, which is wider than the
+    feature's purpose: a fallback for the per-user OAuth2 flow.
+    """
+    from superset.models.core import Database
+
+    _become_guest(mocker)
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+
+    database = Database(
+        database_name="snowflake_db",
+        sqlalchemy_uri="snowflake://svc_user:svc_pass@xy12345/ANALYTICS_DB",
+        impersonate_user=True,
+        encrypted_extra=json.dumps(
+            {
+                "embedded_credentials": {
+                    "username": "embedded_svc",
+                    "password": "embedded_pw",
+                }
+            }
+        ),
+    )
+
+    assert database.get_embedded_fallback_credentials() is None
+
+    # Supplying only the missing OAuth2 client makes this connection eligible.
+    database.encrypted_extra = _embedded_snowflake_database().encrypted_extra
+    assert database.get_embedded_fallback_credentials() == {
+        "username": "embedded_svc",
+        "password": "embedded_pw",
+    }
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_fallback_credential_requires_engine_opt_in(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an engine which has not opted in ignores the credential.
+    """
+    from superset.models.core import Database
+
+    _become_guest(mocker)
+
+    database = Database(
+        database_name="pg_db",
+        sqlalchemy_uri="postgresql://svc_user:svc_pass@localhost/db",
+        impersonate_user=True,
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": {
+                    "id": "client-id",
+                    "secret": "client-secret",
+                    "scope": "refresh_token",
+                    "authorization_request_uri": "https://oauth.example/authorize",
+                    "token_request_uri": "https://oauth.example/token",
+                },
+                "embedded_credentials": {
+                    "username": "embedded_svc",
+                    "password": "embedded_pw",
+                },
+            }
+        ),
+    )
+
+    assert not database.db_engine_spec.supports_embedded_credential_fallback
+    assert database.get_embedded_fallback_credentials() is None
+
+    # The engine opt-in is the only condition preventing fallback here.
+    mocker.patch.object(
+        database.db_engine_spec, "supports_embedded_credential_fallback", True
+    )
+    assert database.get_embedded_fallback_credentials() == {
+        "username": "embedded_svc",
+        "password": "embedded_pw",
+    }
+
+
+@pytest.mark.parametrize(
+    "username,password",
+    [("embedded_svc", ""), ("", "embedded_pw"), ("", "")],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_is_refused_rather_than_run_on_the_base_credential(
+    mocker: MockerFixture,
+    username: str,
+    password: str,
+) -> None:
+    """
+    Test that a guest with no applicable credential cannot reach the base one.
+
+    Falling through to the connection URL's own username and password is the
+    failure this feature exists to prevent: the embedded viewer would silently
+    query as whatever service account the connection was built with. Neither the
+    viewer nor the dashboard author can see that, so it is refused instead.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = _embedded_snowflake_database(username=username, password=password)
+
+    log_warning = mocker.patch("superset.models.core.logger.warning")
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    # A configuration problem, so monitoring must not count it as a server fault.
+    assert excinfo.value.status == 400
+    create_engine_mock.assert_not_called()
+    # The fix is for the administrator, so it goes to the server log.
+    reason = log_warning.call_args[0][-1]
+    assert "Embedded guest credentials" in reason
+
+
+@pytest.mark.parametrize("global_client", [False, True])
+@pytest.mark.parametrize("has_credentials", [False, True])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_fallback_does_not_change_service_account_connections(
+    mocker: MockerFixture, global_client: bool, has_credentials: bool
+) -> None:
+    """OAuth2 client configuration alone must not change a service-account query."""
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine", return_value=create_engine("sqlite://")
+    )
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = (
+        _embedded_snowflake_database()
+        if has_credentials
+        else _embedded_snowflake_database(username="", password="")
+    )
+    database.impersonate_user = False
+    extra = database.get_encrypted_extra()
+    client = extra.pop("oauth2_client_info")
+    mocker.patch.dict(
+        current_app.config,
+        {"DATABASE_OAUTH2_CLIENTS": {"Snowflake": client} if global_client else {}},
+    )
+    if global_client:
+        database.encrypted_extra = json.dumps(extra)
+
+    assert not database.embedded_fallback_applies()
+    assert database.get_embedded_fallback_credentials() is None
+    database._get_sqla_engine(nullpool=False)
+    url = create_engine_mock.call_args[0][0]
+    assert url.username == "svc_user"
+    assert url.password == "svc_pass"  # noqa: S105
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=False, EMBEDDED_SUPERSET=True)
+def test_a_guest_is_not_refused_when_the_feature_flag_is_off(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the refusal is scoped to deployments that opted in.
+
+    The flag is the whole opt-in: a deployment that has not turned it on keeps its
+    existing behaviour, including on connections this feature would otherwise have
+    an opinion about.
+    """
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    _embedded_snowflake_database(username="", password="")._get_sqla_engine(
+        nullpool=False
+    )
+
+    create_engine_mock.assert_called_once()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_logged_in_user_is_not_refused_when_no_credential_is_configured(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the refusal applies to embedded guests only.
+
+    A logged-in user on an OAuth2 connection has their own per-user token path and
+    must keep it, whether or not a guest credential happens to be configured.
+    """
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    _stub_driver_dependent_uri_validation(mocker)
+
+    _embedded_snowflake_database(username="", password="")._get_sqla_engine(
+        nullpool=False
+    )
+
+    create_engine_mock.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        {"auth_method": "keypair", "privatekey_body": "PEM"},
+        {"username": "embedded_svc", "auth_method": "unknown", "password": "pw"},
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_is_refused_for_an_incomplete_keypair_too(
+    mocker: MockerFixture,
+    credentials: dict[str, str],
+) -> None:
+    """
+    Test that the refusal covers every auth method, not just passwords.
+
+    An incomplete key pair -- or an auth method this version does not know -- is
+    ignored by the gate exactly as a half-filled password is, so it must reach the
+    same refusal rather than quietly connecting as the URL's own user.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = credentials
+    database.encrypted_extra = json.dumps(extra)
+
+    with pytest.raises(SupersetErrorException):
+        database._get_sqla_engine(nullpool=False)
+
+    create_engine_mock.assert_not_called()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_engine_spec_can_change_how_the_credential_is_applied(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that applying the credential is the engine spec's decision, not the model's.
+
+    `Database._get_sqla_engine` owns *when* a fallback credential may be used and
+    delegates *how* it reaches the driver. That split is what lets an engine whose
+    driver does not take a username and password on the SQLAlchemy URL support the
+    fallback without the model learning anything about it -- and what keeps a
+    downstream fork's delta inside its own engine spec.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    class CustomSnowflakeEngineSpec(SnowflakeEngineSpec):
+        @classmethod
+        def apply_embedded_credentials(
+            cls,
+            database: Database,
+            credentials: dict[str, str],
+            url: URL,
+            engine_kwargs: dict[str, Any],
+        ) -> tuple[URL, dict[str, Any]]:
+            engine_kwargs.setdefault("connect_args", {})["token"] = credentials[
+                "password"
+            ]
+            return (
+                URL.create(
+                    drivername=url.drivername,
+                    username="custom_svc",
+                    host=url.host,
+                    database=url.database,
+                    query=url.query,
+                ),
+                engine_kwargs,
+            )
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = _embedded_snowflake_database()
+    database.get_db_engine_spec = mocker.MagicMock(
+        return_value=CustomSnowflakeEngineSpec
+    )
+
+    database._get_sqla_engine(nullpool=False)
+
+    url = create_engine_mock.call_args[0][0]
+    engine_kwargs = create_engine_mock.call_args[1]
+    assert url.username == "custom_svc"
+    assert url.password is None
+    assert engine_kwargs["connect_args"]["token"] == "embedded_pw"  # noqa: S105
+    # Still the fallback arm, not impersonation: the override replaces how the
+    # credential is applied, not the decision to skip the OAuth2 authenticator.
+    assert "authenticator" not in url.query
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_engine_spec_can_change_what_counts_as_a_credential(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the credential's shape belongs to the engine spec too.
+
+    The canonical rule accepts a password or a PEM key pair, which covers the engines
+    in this repository. An engine whose driver authenticates some other way overrides
+    `validate_embedded_credentials` instead of widening the rule for everyone.
+    """
+    from superset.databases.utils import validated_embedded_credentials
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    class TokenCredentialEngineSpec(SnowflakeEngineSpec):
+        @classmethod
+        def validate_embedded_credentials(
+            cls, credentials: Any
+        ) -> dict[str, str] | None:
+            if isinstance(credentials, dict) and credentials.get("token"):
+                return {
+                    "username": credentials["username"],
+                    "token": credentials["token"],
+                }
+            return None
+
+    _become_guest(mocker)
+
+    credentials = {"username": "embedded_svc", "token": "t0ken"}
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = credentials
+    database.encrypted_extra = json.dumps(extra)
+
+    # The canonical rule rejects this shape, so the gate alone cannot be what
+    # accepts it.
+    assert validated_embedded_credentials(credentials) is None
+
+    database.get_db_engine_spec = mocker.MagicMock(
+        return_value=TokenCredentialEngineSpec
+    )
+
+    assert database.get_embedded_fallback_credentials() == credentials
+
+
+@pytest.mark.parametrize("global_client", [False, True])
+@pytest.mark.parametrize("request_context", [False, True])
+@pytest.mark.parametrize("auth_method", ["password", "keypair"])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_restored_embedded_guest_uses_fallback_with_or_without_request_context(
+    mocker: MockerFixture, global_client: bool, request_context: bool, auth_method: str
+) -> None:
+    """A restored async guest must use the same identity as a synchronous guest."""
+    from flask import has_request_context
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.security.guest_token import GuestToken, GuestUser
+    from superset.utils.core import override_user
+
+    token: GuestToken = {
+        "user": {"username": "ACCOUNTADMIN"},
+        "resources": [],
+        "rls_rules": [],
+        "iat": 0,
+        "exp": 1,
+    }
+    guest = GuestUser(token=token, roles=[])
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    client = extra.pop("oauth2_client_info")
+    if not global_client:
+        extra["oauth2_client_info"] = client
+    if auth_method == "keypair":
+        extra["embedded_credentials"] = {
+            "username": "embedded_svc",
+            "auth_method": "keypair",
+            "privatekey_body": "PEM",
+        }
+        mocker.patch.object(
+            SnowflakeEngineSpec, "_load_private_key", return_value=b"guest-key"
+        )
+    database.encrypted_extra = json.dumps(extra)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "DATABASE_OAUTH2_CLIENTS": {"Snowflake": client} if global_client else {},
+            "DATABASE_OAUTH2_REDIRECT_URI": None,
+            "SERVER_NAME": None,
+        },
+    )
+    _stub_driver_dependent_uri_validation(mocker)
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine", return_value=create_engine("sqlite://")
+    )
+    context = (
+        current_app.test_request_context("/dashboard/")
+        if request_context
+        else nullcontext()
+    )
+    with current_app.app_context(), context, override_user(guest):
+        assert has_request_context() == request_context
+        assert SnowflakeEngineSpec.is_oauth2_enabled() == (
+            global_client and request_context
+        )
+        database._get_sqla_engine(nullpool=False)
+
+    url = create_engine_mock.call_args[0][0]
+    connect_args = create_engine_mock.call_args[1]["connect_args"]
+    assert url.username == "embedded_svc"
+    assert "authenticator" not in url.query
+    assert "authenticator" not in connect_args
+    if auth_method == "keypair":
+        assert url.password is None
+        assert connect_args["private_key"] == b"guest-key"
+    else:
+        assert url.password == "embedded_pw"  # noqa: S105
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_async_embedded_guest_without_credentials_is_refused(
+    mocker: MockerFixture,
+) -> None:
+    """A globally configured async connection cannot fall back to its base user."""
+    from superset.exceptions import SupersetErrorException
+
+    database = _embedded_snowflake_database(username="", password="")
+    extra = database.get_encrypted_extra()
+    client = extra.pop("oauth2_client_info")
+    database.encrypted_extra = json.dumps(extra)
+    mocker.patch.dict(
+        current_app.config, {"DATABASE_OAUTH2_CLIENTS": {"Snowflake": client}}
+    )
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+    assert (
+        excinfo.value.error.error_type
+        == SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    create_engine_mock.assert_not_called()
+
+
+def _promoted_snowflake_database(credential_survived: bool) -> "Database":
+    """
+    A connection as dashboard/chart import leaves it.
+
+    Bundles do not carry ``encrypted_extra``, so the copy keeps "Impersonate logged
+    in user" but loses its OAuth2 client and, usually, the embedded credential.
+    """
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra.pop("oauth2_client_info")
+    if not credential_survived:
+        extra.pop("embedded_credentials")
+    database.encrypted_extra = json.dumps(extra)
+    return database
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_on_an_incomplete_oauth2_client_is_refused(
+    mocker: MockerFixture,
+) -> None:
+    """An incomplete client gets the refusal, not `get_oauth2_config()`'s raise."""
+    from superset.exceptions import SupersetErrorException
+
+    mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    database = _promoted_snowflake_database(credential_survived=False)
+    database.encrypted_extra = json.dumps({"oauth2_client_info": {"id": "client"}})
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert excinfo.value.status == 400
+
+
+@pytest.mark.parametrize("credential_survived", [False, True])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_on_a_promoted_connection_is_refused_with_an_actionable_message(
+    mocker: MockerFixture, credential_survived: bool
+) -> None:
+    """
+    A guest on an impersonating connection with no OAuth2 client is refused.
+
+    Serving them through impersonation would run on whatever identity the engine
+    derives from the URL -- for Snowflake, the base account -- with no error or
+    warning.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    database = _promoted_snowflake_database(credential_survived)
+
+    assert database.embedded_guest_missing_oauth2_client()
+    assert not database.embedded_fallback_applies()
+    log_warning = mocker.patch("superset.models.core.logger.warning")
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    assert excinfo.value.status == 400
+    create_engine_mock.assert_not_called()
+
+    # The administrator is told both ways to fix the connection.
+    log_warning.assert_called_once()
+    args = log_warning.call_args[0]
+    assert args[1:3] == (database.database_name, database.id)
+    reason = args[-1]
+    assert 'turn off "Impersonate logged in user"' in reason
+    assert "OAuth2 client information" in reason
+    assert "DATABASE_OAUTH2_CLIENTS" in reason
+    assert "add embedded guest credentials" in reason
+
+
+@pytest.mark.parametrize("missing", ["oauth2_client", "embedded_credentials"])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_refused_guest_sees_a_message_that_names_nothing_about_the_connection(
+    mocker: MockerFixture, missing: str
+) -> None:
+    """
+    The refusal reaches the embedded viewer intact, and says nothing sensitive.
+
+    Guest error responses are redacted to a generic "An error occurred while
+    fetching the data." unless the error type is one Superset authors itself, so
+    the refusal uses an allowlisted type with a fixed message. That message must
+    not name the connection, its engine, its authentication or its accounts.
+    """
+    from superset.exceptions import SupersetErrorException
+    from superset.utils.error_sanitization import sanitize_superset_error
+
+    mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    if missing == "oauth2_client":
+        database = _promoted_snowflake_database(credential_survived=False)
+    else:
+        database = _embedded_snowflake_database(username="", password="")
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    error = excinfo.value.error
+    assert sanitize_superset_error(error, required=True) is error
+    assert "isn't set up for embedded dashboards" in error.message
+    for detail in (
+        database.database_name,
+        "Snowflake",
+        "OAuth2",
+        "Impersonate",
+        "svc_user",
+        "xy12345",
+        "ANALYST",
+        "COMPUTE_WH",
+        "credential",
+    ):
+        assert detail.lower() not in error.message.lower()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_logged_in_user_on_a_promoted_connection_is_not_refused(
+    mocker: MockerFixture,
+) -> None:
+    """The refusal is for embedded guests; logged-in users keep impersonation."""
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine", return_value=create_engine("sqlite://")
+    )
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    _stub_driver_dependent_uri_validation(mocker)
+    database = _promoted_snowflake_database(credential_survived=False)
+
+    assert not database.embedded_guest_missing_oauth2_client()
+    database._get_sqla_engine(nullpool=False)
+
+    create_engine_mock.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "condition", ["impersonation_off", "flag_off", "engine_not_opted_in"]
+)
+def test_the_promoted_connection_refusal_needs_every_condition(
+    mocker: MockerFixture, condition: str
+) -> None:
+    """
+    Without any one condition the guest is not refused on this ground.
+
+    Impersonation off is an ordinary service-account connection; with the flag or
+    the engine opt-in off, the deployment never asked for this behaviour.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    flags = {"EMBEDDED_CREDENTIAL_FALLBACK": condition != "flag_off"}
+    mocker.patch(
+        "superset.models.core.is_feature_enabled",
+        side_effect=lambda name: flags.get(name, True),
+    )
+    mocker.patch.object(
+        SnowflakeEngineSpec,
+        "supports_embedded_credential_fallback",
+        condition != "engine_not_opted_in",
+    )
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    database = _promoted_snowflake_database(credential_survived=False)
+    database.impersonate_user = condition != "impersonation_off"
+
+    assert not database.embedded_guest_missing_oauth2_client()
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    ["postgresql://user:pass@host/db", "mysql://user:pass@host/db"],
+)
+def test_superset_owned_secure_extra_never_reaches_the_driver(
+    sqlalchemy_uri: str,
+) -> None:
+    """
+    Test that `oauth2_client_info` and `embedded_credentials` are never passed to
+    `create_engine`, whatever the engine's own handler copies across.
+
+    Engines like Postgres copy all of `encrypted_extra` into the engine kwargs, so
+    a connection switched to them from Snowflake used to fail every connect with
+    a `TypeError` -- a 500 on the very save that switched it.
+    """
+    database = Database(
+        database_name="switched",
+        sqlalchemy_uri=sqlalchemy_uri,
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": {"id": "client", "secret": "s3cret"},
+                "embedded_credentials": {"username": "u", "password": "p"},
+                "sslmode": "require",
+            }
+        ),
+    )
+    params: dict[str, Any] = {}
+
+    database.update_params_from_encrypted_extra(params)
+
+    assert "oauth2_client_info" not in params
+    assert "embedded_credentials" not in params
+    assert params.get("sslmode") == "require"
+
+
+@pytest.mark.parametrize("guest", [True, False])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_rejected_fallback_credential_is_logged_for_admins(
+    mocker: MockerFixture, guest: bool
+) -> None:
+    """
+    Test that only a guest's fallback engine logs a rejected sign-in.
+
+    Viewers only see a generic error, so the log is how an administrator finds a
+    wrong password or key. It names the connection and the exception class, never
+    the driver's message, which can carry the username.
+    """
+    mocker.patch("superset.models.core._ENGINE_CACHE", {})
+    mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite:////nonexistent/dir/embedded.db"),
+    )
+    if guest:
+        _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    warning = mocker.patch("superset.models.core.logger.warning")
+
+    engine = _embedded_snowflake_database()._get_sqla_engine(nullpool=True)
+    with pytest.raises(sqlalchemy.exc.OperationalError):
+        engine.connect()
+
+    rejections = [call for call in warning.call_args_list if "rejected" in call.args[0]]
+    if guest:
+        assert len(rejections) == 1
+        assert rejections[0].args[3] == "OperationalError"
+        rendered = rejections[0].args[0] % rejections[0].args[1:]
+        assert "embedded_pw" not in rendered
+        assert "embedded_svc" not in rendered
+    else:
+        assert rejections == []
+
+
+@pytest.mark.parametrize("guest", [True, False])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_rejected_fallback_credential_is_logged_on_the_raw_connection_path(
+    mocker: MockerFixture, guest: bool
+) -> None:
+    """
+    Chart data on a physical table connects through ``get_raw_connection``
+    (sc-127710). SQLAlchemy 2 doesn't dispatch ``handle_error`` for a failed
+    ``raw_connection()``, so that path must log the rejection itself, once.
+    """
+    mocker.patch("superset.models.core._ENGINE_CACHE", {})
+    mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite:////nonexistent/dir/embedded.db"),
+    )
+    if guest:
+        _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    warning = mocker.patch("superset.models.core.logger.warning")
+
+    with pytest.raises(Exception, match="unable to open database file"):
+        with _embedded_snowflake_database().get_raw_connection():
+            pass
+
+    rejections = [call for call in warning.call_args_list if "rejected" in call.args[0]]
+    if guest:
+        assert len(rejections) == 1
+        assert rejections[0].args[1] == "snowflake_db"
+        assert rejections[0].args[3] == "OperationalError"
+    else:
+        assert rejections == []
+
+
+def _encrypted_pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
+@pytest.mark.parametrize(
+    "body, passphrase, exception",
+    [
+        ("right", "wrong-passphrase", "ValueError"),
+        ("right", "", "TypeError"),
+        ("not a PEM key", "right-passphrase", "ValueError"),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_unreadable_embedded_key_is_refused_like_a_rejected_sign_in(
+    mocker: MockerFixture, body: str, passphrase: str, exception: str
+) -> None:
+    """
+    A key pair is decoded before any engine exists, so its failure never reaches
+    the engine's ``handle_error`` listener. The engine spec refuses the
+    guest itself: logged once for administrators, naming only the error's class,
+    and a handled 400 with the fixed embedded refusal message -- not a 500.
+    """
+    from superset.exceptions import SupersetErrorException
+    from superset.utils.error_sanitization import (
+        GENERIC_ERROR_MESSAGE,
+        sanitize_superset_error,
+    )
+
+    pem = _encrypted_pem("right-passphrase") if body == "right" else body
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": pem,
+        "privatekey_pass": passphrase,
+    }
+    database.encrypted_extra = json.dumps(extra)
+    database.id = 12
+
+    mocker.patch("superset.models.core._ENGINE_CACHE", {})
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    warning = mocker.patch("superset.models.core.logger.warning")
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=True)
+
+    assert excinfo.value.status == 400
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    # An error type Superset authors survives redaction with its fixed message.
+    sanitized = sanitize_superset_error(excinfo.value.error, required=True).message
+    assert sanitized == excinfo.value.error.message
+    assert sanitized != str(GENERIC_ERROR_MESSAGE)
+    create_engine_mock.assert_not_called()
+
+    # Logged once, by the engine spec's refusal, naming only the error's class.
+    refusals = [call for call in warning.call_args_list if "Refused" in call.args[0]]
+    assert len(refusals) == 1
+    assert refusals[0].args[1:3] == ("snowflake_db", 12)
+    assert f"({exception})" in refusals[0].args[3]
+    assert not [call for call in warning.call_args_list if "rejected" in call.args[0]]
+    rendered = refusals[0].args[0] % refusals[0].args[1:]
+    for secret in (pem, passphrase, "embedded_svc"):
+        if secret:
+            assert secret not in rendered
+            assert secret not in str(excinfo.value.error.message)
+
+
+def test_a_rejection_reported_by_two_paths_is_logged_once(
+    mocker: MockerFixture,
+) -> None:
+    """The engine event and the raw path can both see one failure; log it once."""
+    import sqlite3
+
+    from superset.models.core import _log_embedded_rejection
+
+    warning = mocker.patch("superset.models.core.logger.warning")
+    original = sqlite3.OperationalError("unable to open database file")
+    wrapped = sqlalchemy.exc.OperationalError("connect", {}, original)
+
+    _log_embedded_rejection(12, "snowflake_db", original, wrapped)
+    _log_embedded_rejection(12, "snowflake_db", original)
+    _log_embedded_rejection(12, "snowflake_db", wrapped)
+
+    warning.assert_called_once()
+    assert warning.call_args.args[3] == "OperationalError"
+
+
+def test_a_credential_kept_while_the_fallback_was_off_applies_when_it_returns(
+    mocker: MockerFixture,
+) -> None:
+    """
+    sc-130270 / OEF-REG-07: turning the fallback off leaves a stored credential
+    inert, not deleted, so turning it back on restores it unchanged.
+    """
+    flags = {"EMBEDDED_CREDENTIAL_FALLBACK": False, "EMBEDDED_SUPERSET": True}
+    mocker.patch(
+        "superset.models.core.is_feature_enabled",
+        side_effect=lambda name: flags.get(name, False),
+    )
+    _become_guest(mocker)
+    database = _embedded_snowflake_database()
+
+    assert database.get_embedded_fallback_credentials() is None
+
+    flags["EMBEDDED_CREDENTIAL_FALLBACK"] = True
+
+    assert database.get_embedded_fallback_credentials() == {
+        "username": "embedded_svc",
+        "password": "embedded_pw",
+    }
+
+
+@pytest.mark.parametrize(
+    "blank",
+    [
+        pytest.param({"id": "", "secret": ""}, id="blank-id-and-secret"),
+        pytest.param({"secret": "   "}, id="whitespace-secret"),
+        pytest.param({"id": ""}, id="blank-id"),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_blank_oauth2_client_does_not_open_the_embedded_gate(
+    mocker: MockerFixture, blank: dict[str, str]
+) -> None:
+    """
+    sc-127897: an OAuth2 client block with a blank id or secret is no client. The
+    fallback credential must not apply, and the guest gets the "no OAuth2 client
+    information" refusal rather than the one that points the administrator at a
+    missing embedded credential.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["oauth2_client_info"].update(blank)
+    database.encrypted_extra = json.dumps(extra)
+
+    assert not database.embedded_fallback_applies()
+    assert database.get_embedded_fallback_credentials() is None
+    assert database.embedded_guest_missing_oauth2_client()
+    log_warning = mocker.patch("superset.models.core.logger.warning")
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    # The viewer's message is fixed; the reason goes to the server log.
+    reason = log_warning.call_args[0][-1]
+    assert "no usable OAuth2 client information" in reason
+    assert "no complete embedded guest credential" not in reason
+    create_engine_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "client_info, configured",
+    [
+        ({"id": "client", "secret": "secret"}, True),
+        ({"id": "client", "secret": "XXXXXXXXXX"}, True),
+        ({"id": "client", "secret": ""}, False),
+        ({"id": " ", "secret": "secret"}, False),
+        ({"id": "client"}, False),
+        ({"id": "client", "secret": None}, False),
+        ({}, False),
+        (None, False),
+        ("client", False),
+    ],
+)
+def test_oauth2_client_info_configured(client_info: Any, configured: bool) -> None:
+    from superset.utils.oauth2 import oauth2_client_info_configured
+
+    assert oauth2_client_info_configured(client_info) is configured
+
+
+def test_compile_sqla_query_offset_before_limit_for_trino(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``compile_sqla_query`` must emit OFFSET before LIMIT for Trino/Presto even
+    when the underlying SQLAlchemy driver compiles paginated queries in the
+    ANSI ``LIMIT ... OFFSET`` order (as PyHive's Presto/Trino dialects do).
+
+    We drive a Trino ``Database`` but back it with a SQLite engine, whose
+    dialect emits ANSI ordering — standing in for a driver that lacks the
+    OFFSET-before-LIMIT override. The fix must reorder the compiled SQL so it
+    is valid Trino.
+    """
+    from contextlib import contextmanager
+
+    from sqlalchemy import create_engine
+
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="trino_db",
+        sqlalchemy_uri="trino://user@localhost:8080/catalog",
+    )
+    # SQLite compiles `LIMIT x OFFSET y` (ANSI order), mimicking PyHive.
+    ansi_engine = create_engine("sqlite://")
+
+    @contextmanager
+    def _get_engine(catalog=None, schema=None, **kwargs):
+        yield ansi_engine
+
+    mocker.patch.object(database, "get_sqla_engine", new=_get_engine)
+
+    # Sanity: the engine spec resolves to Trino, which requires the reorder.
+    assert database.db_engine_spec.offset_before_limit is True
+
+    tbl = SqlalchemyTable("t", MetaData(), Column("a", Integer))
+    qry = select(tbl.c.a).limit(50).offset(50)
+
+    sql = database.compile_sqla_query(qry)
+
+    upper = sql.upper()
+    assert "OFFSET" in upper
+    assert "LIMIT" in upper
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    )

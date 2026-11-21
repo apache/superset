@@ -49,7 +49,7 @@ class DeleteEmbeddedDashboardCommand(BaseCommand):
 
     def validate(self) -> None:
         try:
-            security_manager.raise_for_ownership(self._dashboard)
+            security_manager.raise_for_editorship(self._dashboard)
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
 
@@ -79,9 +79,9 @@ class DeleteDashboardCommand(BaseCommand):
                     report_names=",".join(report_names),
                 )
             )
-        # Check ownership
+        # Check editorship
         for model in self._models:
             try:
-                security_manager.raise_for_ownership(model)
+                security_manager.raise_for_editorship(model)
             except SupersetSecurityException as ex:
                 raise DashboardForbiddenError() from ex

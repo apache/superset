@@ -17,6 +17,7 @@
  * under the License.
  */
 import type React from 'react';
+import type { ToastProps } from 'src/components/MessageToasts/withToasts';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -29,7 +30,57 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { addTranslation } from '@apache-superset/core/translation';
 import AlertListComponent from 'src/pages/AlertReportList';
+import { SubjectType } from 'src/types/Subject';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import {
+  LAPTOP_CONTAINER_WIDTH,
+  getColumnWidthTotal,
+  getPinnedEndHeaders,
+  mockListViewContainerWidth,
+} from 'spec/helpers/listViewColumnWidths';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: [1],
+    },
+  })),
+}));
+
+// Mock withToasts HOC to inject default toast functions while preserving explicit test spies passed via props
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: (Component: React.ComponentType<ToastProps>) =>
+    function MockWithToasts(props: Partial<ToastProps>) {
+      return (
+        <Component
+          addDangerToast={jest.fn()}
+          addSuccessToast={jest.fn()}
+          addInfoToast={jest.fn()}
+          addWarningToast={jest.fn()}
+          {...props}
+        />
+      );
+    },
+}));
+
+const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
+  typeof getBootstrapData
+>;
+
+const mockBootstrapData = (userSubjects: number[]) =>
+  ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: userSubjects,
+    },
+  }) as ReturnType<typeof getBootstrapData>;
 
 jest.setTimeout(30000);
 
@@ -39,6 +90,11 @@ const AlertList = AlertListComponent as unknown as React.FC<
 
 // -- Mock data (IDs start at 1 to avoid the `if (data?.id)` falsy guard) --
 
+const EDITORS = [
+  { id: 1, label: 'Admin User', type: SubjectType.User },
+  { id: 2, label: 'Data Analyst', type: SubjectType.User },
+];
+
 const mockAlerts = [
   {
     id: 1,
@@ -46,8 +102,8 @@ const mockAlerts = [
     active: true,
     last_state: 'Success',
     type: 'Alert',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     recipients: [{ id: 1, type: 'Email' }],
+    editors: [EDITORS[0]],
     changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '1 day ago',
     created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
@@ -63,8 +119,8 @@ const mockAlerts = [
     active: true,
     last_state: 'Error',
     type: 'Alert',
-    owners: [{ id: 2, first_name: 'Data', last_name: 'Analyst' }],
     recipients: [{ id: 2, type: 'Slack' }],
+    editors: [EDITORS[1]],
     changed_by: { id: 2, first_name: 'Data', last_name: 'Analyst' },
     changed_on_delta_humanized: '2 days ago',
     created_by: { id: 2, first_name: 'Data', last_name: 'Analyst' },
@@ -80,8 +136,8 @@ const mockAlerts = [
     active: false,
     last_state: 'Working',
     type: 'Alert',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     recipients: [{ id: 3, type: 'Email' }],
+    editors: [EDITORS[0]],
     changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '5 days ago',
     created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
@@ -100,8 +156,8 @@ const mockReports = [
     active: true,
     last_state: 'Success',
     type: 'Report',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     recipients: [{ id: 10, type: 'Email' }],
+    editors: [EDITORS[0]],
     changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '1 day ago',
     created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
@@ -117,8 +173,8 @@ const mockReports = [
     active: false,
     last_state: 'Not triggered',
     type: 'Report',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     recipients: [{ id: 11, type: 'Slack' }],
+    editors: [EDITORS[0]],
     changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '3 days ago',
     created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
@@ -142,8 +198,8 @@ const ENDPOINTS = {
   LIST: 'glob:*/api/v1/report/?*',
   INFO: 'glob:*/api/v1/report/_info*',
   SINGLE: 'glob:*/api/v1/report/*',
+  EDITORS: 'glob:*/api/v1/report/related/editors*',
   CREATED_BY: 'glob:*/api/v1/report/related/created_by*',
-  OWNERS: 'glob:*/api/v1/report/related/owners*',
   CHANGED_BY: 'glob:*/api/v1/report/related/changed_by*',
 };
 
@@ -186,9 +242,20 @@ const setupMocks = (
     { name: 'list' },
   );
 
-  fetchMock.get(ENDPOINTS.CREATED_BY, { result: [] }, { name: 'created-by' });
+  fetchMock.get(
+    ENDPOINTS.EDITORS,
+    {
+      result: EDITORS.map(editor => ({
+        value: editor.id,
+        text: editor.label,
+        extra: { type: editor.type },
+      })),
+      count: EDITORS.length,
+    },
+    { name: 'editors' },
+  );
 
-  fetchMock.get(ENDPOINTS.OWNERS, { result: [], count: 0 }, { name: 'owners' });
+  fetchMock.get(ENDPOINTS.CREATED_BY, { result: [] }, { name: 'created-by' });
 
   fetchMock.get(
     ENDPOINTS.CHANGED_BY,
@@ -214,8 +281,21 @@ const setupMocks = (
 // -- Setup / teardown --
 
 beforeEach(() => {
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData([1]));
   fetchMock.removeRoutes().clearHistory();
   setupMocks();
+  addTranslation('Alert "%(alertName)s" triggered successfully', [
+    'Alert "%(alertName)s" triggered successfully [L10N]',
+  ]);
+  addTranslation('Report "%(alertName)s" triggered successfully', [
+    'Report "%(alertName)s" triggered successfully [L10N]',
+  ]);
+  addTranslation('Failed to trigger alert "%(alertName)s": %(error)s', [
+    'Failed to trigger alert "%(alertName)s": %(error)s [L10N]',
+  ]);
+  addTranslation('Failed to trigger report "%(alertName)s": %(error)s', [
+    'Failed to trigger report "%(alertName)s": %(error)s [L10N]',
+  ]);
 });
 
 afterEach(() => {
@@ -236,7 +316,7 @@ test('loads rows from API and renders alert names, status, and actions', async (
   const switches = screen.getAllByRole('switch');
   expect(switches).toHaveLength(3);
 
-  // Delete actions present for owned alerts (userId=1 owns alerts 1 and 3)
+  // Delete actions present for alerts where subject id 1 is an editor.
   const deleteButtons = screen.getAllByTestId('delete-action');
   expect(deleteButtons.length).toBeGreaterThanOrEqual(2);
 
@@ -438,6 +518,7 @@ test('bulk select shows selected count and enables bulk actions after row select
 });
 
 test('read-only users do not see delete and bulk select controls', async () => {
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData([]));
   fetchMock.removeRoutes().clearHistory();
   setupMocks(['can_read']); // no can_write
 
@@ -467,7 +548,7 @@ test('read-only users do not see delete and bulk select controls', async () => {
   // No bulk select toggle
   expect(screen.queryByTestId('bulk-select-toggle')).not.toBeInTheDocument();
 
-  // Switches are all disabled (user 99 doesn't own any alerts)
+  // Switches are all disabled because user 99 is not an editor of any alert.
   const switches = screen.getAllByRole('switch');
   switches.forEach(sw => {
     expect(sw).toBeDisabled();
@@ -496,7 +577,7 @@ test('trigger-now action calls execute API for owned alert', async () => {
   renderAlertList();
   await screen.findByText('Weekly Sales Alert');
 
-  // Alert 1 is owned by mockUser (userId: 1) so allowEdit is true,
+  // mockUser's subject is an editor of alert 1, so allowEdit is true,
   // meaning the trigger-now button is rendered.
   const triggerButtons = screen.getAllByTestId('trigger-now-action');
   expect(triggerButtons.length).toBeGreaterThanOrEqual(1);
@@ -548,4 +629,154 @@ test('trigger-now action does not duplicate in-flight requests', async () => {
   await waitFor(() => {
     expect(fetchMock.callHistory.calls('execute-report-slow')).toHaveLength(1);
   });
+});
+
+test('trigger-now action displays correct success toast for Alert', async () => {
+  const addSuccessToast = jest.fn();
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      execution_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+      message: 'Triggered',
+    },
+    { name: 'execute-alert-success' },
+  );
+
+  renderAlertList({ addSuccessToast });
+  await screen.findByText('Weekly Sales Alert');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+
+  await waitFor(() => {
+    expect(addSuccessToast).toHaveBeenCalledWith(
+      'Alert "Weekly Sales Alert" triggered successfully [L10N]',
+    );
+  });
+});
+
+test('trigger-now action displays correct success toast for Report', async () => {
+  const addSuccessToast = jest.fn();
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      execution_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+      message: 'Triggered',
+    },
+    { name: 'execute-report-success' },
+  );
+
+  renderAlertList({ isReportEnabled: true, addSuccessToast });
+  await screen.findByText('Weekly Dashboard Report');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+
+  await waitFor(() => {
+    expect(addSuccessToast).toHaveBeenCalledWith(
+      'Report "Weekly Dashboard Report" triggered successfully [L10N]',
+    );
+  });
+});
+
+test('trigger-now action displays correct failure toast for Alert', async () => {
+  const addDangerToast = jest.fn();
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      status: 500,
+      body: { message: 'Database failure' },
+    },
+    { name: 'execute-alert-failure' },
+  );
+
+  renderAlertList({ addDangerToast });
+  await screen.findByText('Weekly Sales Alert');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+
+  await waitFor(() => {
+    expect(addDangerToast).toHaveBeenCalledWith(
+      'Failed to trigger alert "Weekly Sales Alert": Database failure [L10N]',
+    );
+  });
+});
+
+test('trigger-now action displays correct failure toast for Report', async () => {
+  const addDangerToast = jest.fn();
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      status: 500,
+      body: { message: 'Renderer timeout' },
+    },
+    { name: 'execute-report-failure' },
+  );
+
+  renderAlertList({ isReportEnabled: true, addDangerToast });
+  await screen.findByText('Weekly Dashboard Report');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+
+  await waitFor(() => {
+    expect(addDangerToast).toHaveBeenCalledWith(
+      'Failed to trigger report "Weekly Dashboard Report": Renderer timeout [L10N]',
+    );
+  });
+});
+
+test('configuration button is only shown to admins and opens the modal', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/report/configuration/',
+    {
+      result: {
+        alerts_attach_reports: true,
+        alert_minimum_interval: 0,
+        report_minimum_interval: 0,
+        limit_recipients_to_users: false,
+        allowed_email_domains: [],
+      },
+    },
+    { name: 'configuration' },
+  );
+
+  const { unmount } = renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+  expect(
+    screen.queryByTestId('report-configuration-button'),
+  ).not.toBeInTheDocument();
+  unmount();
+
+  renderAlertList({
+    user: {
+      ...mockUser,
+      username: 'admin',
+      isActive: true,
+      isAnonymous: false,
+      roles: { Admin: [] },
+      permissions: {},
+    },
+  });
+  await screen.findByText('Weekly Sales Alert');
+  fireEvent.click(screen.getByTestId('report-configuration-button'));
+
+  expect(
+    await screen.findByText('Alerts & Reports configuration'),
+  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('configuration')).toHaveLength(1);
+  });
+});
+
+test('every column fits at a 1440px viewport', async () => {
+  const containerWidth = mockListViewContainerWidth(LAPTOP_CONTAINER_WIDTH);
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+  const table = screen.getByTestId('listview-table').querySelector('table')!;
+  // The table does not scroll, so Actions is in view.
+  expect(getColumnWidthTotal(table)).toBe(LAPTOP_CONTAINER_WIDTH);
+  expect(getPinnedEndHeaders(table)).toEqual([]);
+  containerWidth.mockRestore();
 });

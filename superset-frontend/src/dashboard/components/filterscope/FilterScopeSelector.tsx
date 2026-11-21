@@ -313,12 +313,18 @@ const ScopeSelector = styled.div`
           display: block;
         }
 
-        // disable style from react-checkbox-trees.css
+        /* disable style from react-checkbox-tree.css */
         .rct-node-clickable:hover,
         .rct-node-clickable:focus,
         label:hover,
         label:active {
           background: none !important;
+        }
+
+        /* react-checkbox-tree.css removes the focus outline on node titles */
+        .rct-node-clickable:focus-visible {
+          outline: 2px solid ${theme.colorPrimary};
+          outline-offset: -2px;
         }
       }
 
@@ -503,11 +509,10 @@ export default function FilterScopeSelector({
   const [filterFieldNodes] = useState<FilterFieldNode[]>(() =>
     initialized.showSelector ? initialized.initialState.filterFieldNodes : [],
   );
-  const [checkedFilterFields, setCheckedFilterFields] = useState<string[]>(
-    () =>
-      initialized.showSelector
-        ? initialized.initialState.checkedFilterFields
-        : [],
+  const [checkedFilterFields, setCheckedFilterFields] = useState<string[]>(() =>
+    initialized.showSelector
+      ? initialized.initialState.checkedFilterFields
+      : [],
   );
   const [expandedFilterIds, setExpandedFilterIds] = useState<
     (string | number)[]

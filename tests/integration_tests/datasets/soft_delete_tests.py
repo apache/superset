@@ -17,6 +17,11 @@
 """Integration tests for dataset soft-delete and restore."""
 
 from datetime import datetime
+from typing import cast
+from unittest.mock import patch
+
+from flask import Response
+from flask_appbuilder.security.sqla.models import User
 
 from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -24,6 +29,8 @@ from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
+from superset.subjects.utils import get_or_create_user_subject
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
@@ -32,6 +39,12 @@ from tests.integration_tests.constants import (
     ALPHA_USERNAME,
     GAMMA_USERNAME,
 )
+
+
+def _user_subject(user: User) -> Subject:
+    subject = get_or_create_user_subject(user.id)
+    assert subject is not None
+    return subject
 
 
 def _restore_dataset(dataset_id: int) -> None:
@@ -167,16 +180,17 @@ class TestDatasetSoftDelete(SupersetTestCase):
         db.session.commit()
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_deleted_state_list_shows_owner_their_own_deleted(self) -> None:
-        """A non-admin owner can still enumerate their own soft-deleted datasets.
+    def test_deleted_state_list_shows_editor_their_own_deleted(self) -> None:
+        """A non-admin editor can enumerate their own soft-deleted datasets.
         Deleted-state scoping mirrors the restore audience, so it must not lock
-        owners out of their own trash."""
+        editors out of their own trash."""
         alpha = self.get_user(ALPHA_USERNAME)
-        database = Database(database_name="sd_owner_db", sqlalchemy_uri="sqlite://")
+        alpha_subject = _user_subject(alpha)
+        database = Database(database_name="sd_editor_db", sqlalchemy_uri="sqlite://")
         db.session.add(database)
         db.session.flush()
         dataset = SqlaTable(
-            table_name="sd_owner_tbl", database=database, owners=[alpha]
+            table_name="sd_editor_tbl", database=database, editors=[alpha_subject]
         )
         db.session.add(dataset)
         db.session.commit()
@@ -201,33 +215,43 @@ class TestDatasetSoftDelete(SupersetTestCase):
             self._hard_delete_created(dataset_id, database)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
-        """A read-access non-owner must not enumerate a dataset once it is
+    def test_deleted_state_list_hides_non_editor_from_read_access_user(self) -> None:
+        """A read-access non-editor must not enumerate a dataset once it is
         soft-deleted.
 
         Gamma is granted ``datasource_access`` to the dataset, so
         ``DatasourceFilter`` makes it visible to gamma while live. After
         soft-delete, the deleted-state list is scoped to the restore audience
-        (owners/admins), so gamma — who could never restore it — must not see it
+        (editors/admins), so gamma — who could never restore it — must not see it
         via ``include`` or ``only``.
         """
         admin = self.get_user(ADMIN_USERNAME)
-        database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
-        db.session.add(database)
-        db.session.flush()
-        dataset = SqlaTable(table_name="sd_acl_tbl", database=database, owners=[admin])
-        db.session.add(dataset)
-        db.session.commit()
-        dataset_id = dataset.id
-
-        gamma_role = security_manager.find_role("Gamma")
-        pvm = security_manager.add_permission_view_menu(
-            "datasource_access", dataset.perm
-        )
-        gamma_role.permissions.append(pvm)
-        db.session.commit()
-
+        admin_subject = _user_subject(admin)
+        # Created inside the try so a setup failure cannot leak fixtures past
+        # the finally (a leaked sd_acl row was observed poisoning unrelated
+        # suites on a shared DB). Names seeded None; the finally cleans up
+        # exactly as far as setup got.
+        database = dataset = None
+        dataset_id = None
+        gamma_role = None
         try:
+            database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
+            db.session.add(database)
+            db.session.flush()
+            dataset = SqlaTable(
+                table_name="sd_acl_tbl", database=database, editors=[admin_subject]
+            )
+            db.session.add(dataset)
+            db.session.commit()
+            dataset_id = dataset.id
+
+            gamma_role = security_manager.find_role("Gamma")
+            pvm = security_manager.add_permission_view_menu(
+                "datasource_access", dataset.perm
+            )
+            gamma_role.permissions.append(pvm)
+            db.session.commit()
+
             # Precondition: gamma can see the dataset while it is live.
             self.login(GAMMA_USERNAME)
             rv = self.client.get("/api/v1/dataset/?q=(page_size:200)")
@@ -253,38 +277,44 @@ class TestDatasetSoftDelete(SupersetTestCase):
                 assert rv.status_code == 200
                 ids = [r["id"] for r in json.loads(rv.data)["result"]]
                 assert dataset_id not in ids, (
-                    "read-access non-owner must not enumerate a soft-deleted "
+                    "read-access non-editor must not enumerate a soft-deleted "
                     f"dataset via dataset_deleted_state={value}"
                 )
         finally:
-            pvm = security_manager.find_permission_view_menu(
-                "datasource_access", dataset.perm
-            )
-            if pvm:
-                security_manager.del_permission_role(gamma_role, pvm)
+            db.session.rollback()
+            if gamma_role is not None and dataset is not None:
+                pvm = security_manager.find_permission_view_menu(
+                    "datasource_access", dataset.perm
+                )
+                if pvm:
+                    security_manager.del_permission_role(gamma_role, pvm)
             db.session.commit()
-            self._hard_delete_created(dataset_id, database)
+            if dataset_id is not None and database is not None:
+                self._hard_delete_created(dataset_id, database)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_deleted_state_list_shows_gamma_owner_without_datasource_grant(
+    def test_deleted_state_list_shows_gamma_editor_without_datasource_grant(
         self,
     ) -> None:
-        """An owner keeps sight of their own trash even without a datasource
+        """An editor keeps sight of their own trash even without a datasource
         grant.
 
-        Gamma owns the dataset but holds NO ``datasource_access`` on it, so
-        every access leg of ``DatasourceFilter`` fails — the owned-soft-deleted
+        Gamma can edit the dataset but holds NO ``datasource_access`` on it, so
+        every access leg of ``DatasourceFilter`` fails — the editable-soft-deleted
         leg is what makes the row reachable, mirroring ``raise_for_access``
-        counting ownership as datasource access. The live-row precondition
+        counting editorship as datasource access. The live-row precondition
         also pins the leg's inertness: while the dataset is live, gamma
         (no grant) must NOT see it, because the leg requires
         ``deleted_at IS NOT NULL``.
         """
         gamma = self.get_user(GAMMA_USERNAME)
+        gamma_subject = _user_subject(gamma)
         database = Database(database_name="sd_own_db", sqlalchemy_uri="sqlite://")
         db.session.add(database)
         db.session.flush()
-        dataset = SqlaTable(table_name="sd_own_tbl", database=database, owners=[gamma])
+        dataset = SqlaTable(
+            table_name="sd_own_tbl", database=database, editors=[gamma_subject]
+        )
         db.session.add(dataset)
         db.session.commit()
         dataset_id = dataset.id
@@ -317,7 +347,7 @@ class TestDatasetSoftDelete(SupersetTestCase):
                 assert rv.status_code == 200
                 ids = [r["id"] for r in json.loads(rv.data)["result"]]
                 assert dataset_id in ids, (
-                    "owner without a datasource grant must still enumerate "
+                    "editor without a datasource grant must still enumerate "
                     f"their own trash via dataset_deleted_state={value}"
                 )
         finally:
@@ -334,10 +364,13 @@ class TestDatasetSoftDelete(SupersetTestCase):
         the untested one.
         """
         admin = self.get_user(ADMIN_USERNAME)
+        admin_subject = _user_subject(admin)
         database = Database(database_name="sd_off_db", sqlalchemy_uri="sqlite://")
         db.session.add(database)
         db.session.flush()
-        dataset = SqlaTable(table_name="sd_off_tbl", database=database, owners=[admin])
+        dataset = SqlaTable(
+            table_name="sd_off_tbl", database=database, editors=[admin_subject]
+        )
         db.session.add(dataset)
         db.session.commit()
         dataset_id = dataset.id
@@ -461,7 +494,7 @@ class TestDatasetRestore(SupersetTestCase):
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_restore_uses_can_write_permission(self) -> None:
-        """Non-admin owner with ``can_write_Dataset`` can hit the restore
+        """Non-admin editor with ``can_write_Dataset`` can hit the restore
         endpoint.
 
         Pins the permission contract: ``method_permission_name`` must map
@@ -479,26 +512,27 @@ class TestDatasetRestore(SupersetTestCase):
         dataset_id = dataset.id
         dataset_uuid = str(dataset.uuid)
         alpha = self.get_user(ALPHA_USERNAME)
+        alpha_subject = _user_subject(alpha)
 
-        # Make Alpha an owner so raise_for_ownership passes.
-        dataset.owners = list(dataset.owners) + [alpha]
+        # Make Alpha an editor so raise_for_editorship passes.
+        dataset.editors = list(dataset.editors) + [alpha_subject]
         db.session.commit()
 
         try:
             self.login(ALPHA_USERNAME)
             rv = self.client.delete(f"/api/v1/dataset/{dataset_id}")
             assert rv.status_code == 200, (
-                f"Alpha owner soft-delete failed: {rv.status_code} {rv.data!r}"
+                f"Alpha editor soft-delete failed: {rv.status_code} {rv.data!r}"
             )
 
             rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
             assert rv.status_code == 200, (
-                f"Expected 200 from Alpha owner restore (can_write_Dataset), "
+                f"Expected 200 from Alpha editor restore (can_write_Dataset), "
                 f"got {rv.status_code}: {rv.data!r}. If 403, "
                 "method_permission_name is missing 'restore': 'write'."
             )
         finally:
-            # Restore example dataset state: remove Alpha from owners and
+            # Restore example dataset state: remove Alpha from editors and
             # ensure deleted_at is cleared in case the restore attempt failed.
             row = (
                 db.session.query(SqlaTable)
@@ -506,7 +540,7 @@ class TestDatasetRestore(SupersetTestCase):
                 .filter(SqlaTable.id == dataset_id)
                 .one()
             )
-            row.owners = [o for o in row.owners if o.id != alpha.id]
+            row.editors = [s for s in row.editors if s.id != alpha_subject.id]
             if row.deleted_at is not None:
                 row.restore()
             db.session.commit()
@@ -582,3 +616,332 @@ class TestDatasetRestore(SupersetTestCase):
             )
             row.restore()
             db.session.commit()
+
+
+class TestDatasetArchiveListing(SupersetTestCase):
+    """Recently-Deleted view listing (sc-111760, T017): ``deleted_at``
+    ordering and a deletion-time cutoff filter work at the SQL layer and
+    compose with the ``dataset_deleted_state`` filter; the restore gate holds
+    for a non-owner."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._made: list[tuple[int, int]] = []
+
+    def tearDown(self) -> None:
+        """Remove every fixture this class created, however the test ended.
+
+        The per-test ``_cleanup`` calls only run when a test reaches its final
+        line. These fixtures are soft-deleted with ``deleted_at`` values far in
+        the past, so one left behind by a failed assertion becomes eligible for
+        an unrelated suite's global retention purge and is counted by it.
+        """
+        for dataset_id, database_id in self._made:
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+            database = db.session.query(Database).get(database_id)
+            if database:
+                db.session.delete(database)
+        db.session.commit()
+        super().tearDown()
+
+    def _make(self, name: str) -> tuple[SqlaTable, Database]:
+        admin = self.get_user("admin")
+        database = Database(database_name=f"db_{name}", sqlalchemy_uri="sqlite://")
+        db.session.add(database)
+        db.session.flush()
+        dataset = SqlaTable(
+            table_name=name, database=database, editors=[_user_subject(admin)]
+        )
+        db.session.add(dataset)
+        db.session.commit()
+        self._made.append((dataset.id, database.id))
+        return dataset, database
+
+    def _cleanup(self, dataset_id: int, database: Database) -> None:
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        if row:
+            db.session.delete(row)
+        db.session.delete(database)
+        db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_archive_list_orders_by_deleted_at(self) -> None:
+        """``order_column:deleted_at`` sorts archived datasets by deletion time
+        (SQL-layer ordering, not merely field presence)."""
+        older, older_db = self._make("arch_order_older_ds")
+        newer, newer_db = self._make("arch_order_newer_ds")
+        older_id, newer_id = older.id, newer.id
+        older.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        newer.deleted_at = datetime(2026, 3, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rison_query = (
+            "(filters:!((col:id,opr:dataset_deleted_state,value:only)),"
+            "order_column:deleted_at,order_direction:desc,page_size:200)"
+        )
+        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [r["id"] for r in json.loads(rv.data)["result"]]
+        assert older_id in ids
+        assert newer_id in ids
+        assert ids.index(newer_id) < ids.index(older_id)
+
+        # Cleanup
+        self._cleanup(older_id, older_db)
+        self._cleanup(newer_id, newer_db)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_archive_list_filters_by_deleted_at_cutoff(self) -> None:
+        """A ``deleted_at`` ``gt`` cutoff narrows the archive and composes with
+        the deleted-state filter."""
+        old, old_db = self._make("arch_cut_old_ds")
+        recent, recent_db = self._make("arch_cut_recent_ds")
+        old_id, recent_id = old.id, recent.id
+        old.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        recent.deleted_at = datetime(2026, 6, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rison_query = (
+            "(filters:!("
+            "(col:id,opr:dataset_deleted_state,value:only),"
+            "(col:deleted_at,opr:gt,value:'2026-03-01T00:00:00')"
+            "),page_size:200)"
+        )
+        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [r["id"] for r in json.loads(rv.data)["result"]]
+        assert recent_id in ids
+        assert old_id not in ids
+
+        # Cleanup
+        self._cleanup(old_id, old_db)
+        self._cleanup(recent_id, recent_db)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_archive_restore_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot restore another user's archived
+        dataset — the restore gate is owner/admin only (SC-003)."""
+        dataset, database = self._make("arch_rbac_ds")
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        self._cleanup(dataset_id, database)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_purge_by_owner_permanently_deletes(self) -> None:
+        """POST /api/v1/dataset/<uuid>/purge hard-deletes an archived dataset."""
+        dataset, database = self._make("arch_purge_ds")
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        impact_rv: Response = self.client.get(
+            f"/api/v1/dataset/{dataset_uuid}/purge-impact"
+        )
+        assert impact_rv.status_code == 200, impact_rv.data
+        impact: dict[str, object] = json.loads(impact_rv.data)
+        assert impact["charts"] == {
+            "count": 0,
+            "restricted_count": 0,
+            "result": [],
+        }
+        assert impact["dashboards"] == {
+            "count": 0,
+            "restricted_count": 0,
+            "result": [],
+        }
+        impact_token: str = str(impact["impact_token"])
+        assert impact_token.startswith("v1:")
+
+        rv: Response = self.client.post(
+            f"/api/v1/dataset/{dataset_uuid}/purge",
+            json={"confirmed_impact_token": impact_token},
+        )
+        assert rv.status_code == 200, rv.data
+
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        assert row is None
+
+        # The dataset is purged; clean up its database row.
+        db.session.delete(database)
+        db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_dataset_purge_rejects_missing_confirmation_token(self) -> None:
+        """A malformed client request cannot bypass impact confirmation."""
+        created: tuple[SqlaTable, Database] = self._make("arch_purge_missing_token")
+        dataset: SqlaTable = created[0]
+        database: Database = created[1]
+        dataset_id: int = dataset.id
+        dataset_uuid: str = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv: Response = self.client.post(
+            f"/api/v1/dataset/{dataset_uuid}/purge", json={}
+        )
+
+        assert rv.status_code == 400, rv.data
+        assert (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+            is not None
+        )
+        self._cleanup(dataset_id, database)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_dataset_purge_requires_reconfirmation_when_impact_changes(self) -> None:
+        """A stale token returns refreshed impact without mutating the dataset."""
+        created: tuple[SqlaTable, Database] = self._make("arch_purge_stale_token")
+        dataset: SqlaTable = created[0]
+        database: Database = created[1]
+        dataset_id: int = dataset.id
+        dataset_uuid: str = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        preview_rv: Response = self.client.get(
+            f"/api/v1/dataset/{dataset_uuid}/purge-impact"
+        )
+        preview: dict[str, object] = json.loads(preview_rv.data)
+        stale_token: str = str(preview["impact_token"])
+
+        chart: Slice = Slice(
+            slice_name="new impact chart",
+            datasource_id=dataset_id,
+            datasource_type="table",
+            viz_type="table",
+        )
+        db.session.add(chart)
+        db.session.commit()
+
+        stale_rv: Response = self.client.post(
+            f"/api/v1/dataset/{dataset_uuid}/purge",
+            json={"confirmed_impact_token": stale_token},
+        )
+        stale_payload: dict[str, object] = json.loads(stale_rv.data)
+
+        assert stale_rv.status_code == 409, stale_rv.data
+        assert stale_payload["reason"] == "purge_impact_changed"
+        refreshed: dict[str, object] = cast(dict[str, object], stale_payload["impact"])
+        refreshed_charts: dict[str, object] = cast(
+            dict[str, object], refreshed["charts"]
+        )
+        assert refreshed_charts["count"] == 1
+        assert db.session.get(SqlaTable, dataset_id) is not None
+        assert db.session.get(Slice, chart.id) is not None
+
+        refreshed_token: str = str(refreshed["impact_token"])
+        confirmed_rv: Response = self.client.post(
+            f"/api/v1/dataset/{dataset_uuid}/purge",
+            json={"confirmed_impact_token": refreshed_token},
+        )
+        assert confirmed_rv.status_code == 200, confirmed_rv.data
+        assert db.session.get(SqlaTable, dataset_id) is None
+
+        db.session.delete(chart)
+        db.session.delete(database)
+        db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_purge_impact_redacts_restricted_chart_for_non_admin_editor(
+        self,
+    ) -> None:
+        """Dataset editorship exposes impact cardinality, not object details."""
+        alpha: User = self.get_user(ALPHA_USERNAME)
+        database: Database = Database(
+            database_name="db_arch_impact_redaction", sqlalchemy_uri="sqlite://"
+        )
+        db.session.add(database)
+        db.session.flush()
+        dataset: SqlaTable = SqlaTable(
+            table_name="arch_impact_redaction",
+            database=database,
+            editors=[_user_subject(alpha)],
+        )
+        db.session.add(dataset)
+        db.session.flush()
+        chart: Slice = Slice(
+            slice_name="restricted impact chart",
+            datasource_id=dataset.id,
+            datasource_type="table",
+            viz_type="table",
+        )
+        db.session.add(chart)
+        db.session.commit()
+        dataset_id: int = dataset.id
+        dataset_uuid: str = str(dataset.uuid)
+        chart_uuid: str = str(chart.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        try:
+            self.login(ALPHA_USERNAME)
+            with patch.object(security_manager, "can_access_chart", return_value=False):
+                rv: Response = self.client.get(
+                    f"/api/v1/dataset/{dataset_uuid}/purge-impact"
+                )
+
+            assert rv.status_code == 200, rv.data
+            payload: dict[str, object] = json.loads(rv.data)
+            assert payload["charts"] == {
+                "count": 1,
+                "restricted_count": 1,
+                "result": [],
+            }
+            serialized_payload: str = rv.data.decode()
+            assert chart_uuid not in serialized_payload
+            assert "restricted impact chart" not in serialized_payload
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+            self._cleanup(dataset_id, database)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_purge_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot permanently delete another user's archived
+        dataset (SC-003)."""
+        dataset, database = self._make("arch_purge_ds_rbac")
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/purge")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        self._cleanup(dataset_id, database)

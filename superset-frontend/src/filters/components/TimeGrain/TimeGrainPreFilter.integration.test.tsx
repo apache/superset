@@ -39,7 +39,7 @@ import PluginFilterTimegrain from 'src/filters/components/TimeGrain/TimeGrainFil
 import type { PluginFilterTimeGrainProps } from 'src/filters/components/TimeGrain/types';
 
 /**
- * Scenario: Dashboard owner configures a time grain filter to show only Hour, Day, Week.
+ * Scenario: Dashboard editor configures a time grain filter to show only Hour, Day, Week.
  * End-user opens the dashboard and can only select from those three options.
  */
 test('time grain pre-filter restricts dashboard filter options', async () => {
@@ -121,7 +121,7 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
 });
 
 /**
- * Scenario: Dashboard owner disables pre-filter (unchecks the CollapsibleControl).
+ * Scenario: Dashboard editor disables pre-filter (unchecks the CollapsibleControl).
  * No restrictions: all time grains appear in the runtime filter.
  */
 test('all time grains appear when pre-filter is unchecked', async () => {

@@ -38,10 +38,15 @@ logger = logging.getLogger(__name__)
 @tool(
     tags=["discovery"],
     class_permission_name="User",
+    # FAB's security API views register can_get/can_info/... — never
+    # can_read — so the default "read" method permission can never be
+    # granted on User/Role, not even to Admin.
+    method_permission_name="get",
     annotations=ToolAnnotations(
         title="Get user info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_user_info(
@@ -63,6 +68,9 @@ async def get_user_info(
     await ctx.info("Retrieving user information: identifier=%s" % (request.identifier,))
 
     try:
+        from flask_appbuilder.security.sqla.models import Group, User
+        from sqlalchemy.orm import joinedload
+
         from superset.daos.user import UserDAO
 
         can_view_sensitive = user_can_view_data_model_metadata()
@@ -75,6 +83,17 @@ async def get_user_info(
         def _serializer(obj: object) -> UserInfo | None:
             return serialize_user_object(obj, include_sensitive=can_view_sensitive)
 
+        # Roles reported for a user include the ones held through a group, so
+        # load both relationships with the user rather than lazily per group.
+        eager_options = (
+            [
+                joinedload(User.roles),
+                joinedload(User.groups).joinedload(Group.roles),
+            ]
+            if can_view_sensitive
+            else []
+        )
+
         with event_logger.log_context(action="mcp.get_user_info.lookup"):
             get_tool = ModelGetInfoCore(
                 dao_class=UserDAO,
@@ -83,6 +102,7 @@ async def get_user_info(
                 serializer=_serializer,
                 supports_slug=False,
                 logger=logger,
+                query_options=eager_options,
             )
             result = get_tool.run_tool(request.identifier)
 

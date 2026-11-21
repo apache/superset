@@ -30,14 +30,24 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardNotFoundError,
+)
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
+from superset.mcp_service.dashboard.layout_validation import (
+    rebuild_parent_chains,
+    validate_dashboard_layout,
+)
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
     UpdateDashboardRequest,
     UpdateDashboardResponse,
+)
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -59,7 +69,7 @@ def _find_and_authorize_dashboard(
     the not-found and forbidden cases so the main tool body has a single
     pre-condition branch. Returns ``DashboardError`` on not-found and
     ``UpdateDashboardResponse`` (with ``permission_denied=True``) on
-    ownership failure — the two shapes carry different information for
+    editorship failure; the two shapes carry different information for
     the caller.
     """
     # avoids ImportError before Flask app initialisation:
@@ -73,10 +83,26 @@ def _find_and_authorize_dashboard(
 
     try:
         dashboard = DashboardDAO.get_by_id_or_slug(identifier)
-    except (DashboardNotFoundError, SQLAlchemyError):
+    except DashboardNotFoundError:
         return None, DashboardError(
             error=f"Dashboard not found: {identifier!r}",
             error_type="DashboardNotFound",
+        )
+    except DashboardAccessDeniedError:
+        return None, UpdateDashboardResponse(
+            permission_denied=True,
+            error=f"You don't have access to dashboard {identifier!r}.",
+        )
+    except SQLAlchemyError:
+        # ``str(exc)`` on SQLAlchemyError frequently contains table/column/
+        # constraint names that should not leak to the MCP response. The raw
+        # exception is captured here via ``logger.exception``; the response
+        # surfaces a generic message (mirrors generate_dashboard.py's
+        # rollback/error handling).
+        logger.exception("Database error looking up dashboard %r", identifier)
+        return None, DashboardError(
+            error="Failed to look up dashboard due to a database error.",
+            error_type="DatabaseError",
         )
 
     if dashboard is None:
@@ -86,7 +112,7 @@ def _find_and_authorize_dashboard(
         )
 
     try:
-        security_manager.raise_for_ownership(dashboard)
+        security_manager.raise_for_editorship(dashboard)
     except SupersetSecurityException:
         return None, UpdateDashboardResponse(
             permission_denied=True,
@@ -182,7 +208,14 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         changed.append("published")
 
     if request.position_json is not None:
-        dashboard.position_json = json.dumps(request.position_json)
+        # A caller-supplied replacement layout may carry only an immediate
+        # parent (or omit `parents` altogether); rebuild the full ancestor
+        # chains so filter-scope derivation sees the same tree the frontend
+        # would after hydration. See
+        # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+        dashboard.position_json = json.dumps(
+            rebuild_parent_chains(request.position_json)
+        )
         changed.append("position_json")
 
     metadata_overrides: dict[str, Any] = _collect_metadata_overrides(request)
@@ -225,6 +258,14 @@ def _validate_update_request(
     from superset.commands.utils import validate_tags
     from superset.dashboards.schemas import validate_css
     from superset.tags.models import ObjectType
+
+    if request.position_json is not None:
+        chart_ids = [chart.id for chart in dashboard.slices]
+        if error := validate_dashboard_layout(request.position_json, chart_ids):
+            return DashboardError(
+                error=f"Dashboard layout is invalid: {error}",
+                error_type="InvalidDashboardLayout",
+            )
 
     # Empty string clears CSS (no validation needed); only validate real content.
     if request.css:
@@ -270,17 +311,23 @@ def _validate_update_request(
     annotations=ToolAnnotations(
         title="Update dashboard layout/theme/CSS/metadata",
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
-def update_dashboard(
+async def update_dashboard(
     request: UpdateDashboardRequest, ctx: Context
 ) -> UpdateDashboardResponse | DashboardError:
     """Patch an existing dashboard's layout, theme, styling, or metadata.
 
-    Companion to ``generate_dashboard`` for incremental edits. An LLM can:
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
 
-      - Set or replace ``position_json`` after auto-generation
+    Companion to ``generate_dashboard`` for incremental metadata and styling
+    edits. An LLM can:
+
+      - Replace ``position_json`` only when it already has the complete raw tree
       - Apply brand ``label_colors`` and ``color_scheme`` via
         ``json_metadata_overrides``
       - Inject ``css`` to hide chrome on print-ready dashboards
@@ -305,11 +352,15 @@ def update_dashboard(
             "css": ".header-controls {display: none;}",
         })
     """
-    ctx.info(f"Updating dashboard: identifier={request.identifier}")
+    await ctx.info(f"Updating dashboard: identifier={request.identifier}")
 
     dashboard, auth_error = _find_and_authorize_dashboard(request.identifier)
     if auth_error is not None:
         return auth_error
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
+        return UpdateDashboardResponse(managed_externally=True, error=refusal)
 
     validation_error: DashboardError | None = _validate_update_request(
         dashboard, request
@@ -363,7 +414,7 @@ def update_dashboard(
             error_type="DatabaseError",
         )
 
-    ctx.info(f"Dashboard {dashboard.id} updated: changed={changed_fields}")
+    await ctx.info(f"Dashboard {dashboard.id} updated: changed={changed_fields}")
 
     return UpdateDashboardResponse(
         dashboard=dashboard_serializer(dashboard),

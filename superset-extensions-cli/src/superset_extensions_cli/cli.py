@@ -108,14 +108,17 @@ def init_frontend_deps(frontend_dir: Path) -> None:
     """
     node_modules = frontend_dir / "node_modules"
     if not node_modules.exists():
+        # The published @apache-superset/core still pins react/react-dom peers to
+        # ^17.0.2, while scaffolded extensions target the host's actual ^18.3.0 --
+        # a plain install hits ERESOLVE until core's peer range is widened.
         package_lock = frontend_dir / "package-lock.json"
         if package_lock.exists():
             click.secho("⚙️  node_modules not found, running `npm ci`…", fg="cyan")
-            npm_command = ["npm", "ci"]
+            npm_command = ["npm", "ci", "--legacy-peer-deps"]
             error_msg = "❌ `npm ci` failed. Aborting."
         else:
             click.secho("⚙️  node_modules not found, running `npm i`…", fg="cyan")
-            npm_command = ["npm", "i"]
+            npm_command = ["npm", "i", "--legacy-peer-deps"]
             error_msg = "❌ `npm i` failed. Aborting."
 
         validate_npm()
@@ -151,9 +154,6 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
 
     extension = ExtensionConfig.model_validate(extension_data)
 
-    # Generate composite ID from publisher and name
-    composite_id = f"{extension.publisher}.{extension.name}"
-
     frontend: ManifestFrontend | None = None
     if remote_entry:
         frontend = ManifestFrontend(
@@ -173,7 +173,6 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         backend = ManifestBackend(entrypoint=entrypoint)
 
     return Manifest(
-        id=composite_id,
         publisher=extension.publisher,
         name=extension.name,
         displayName=extension.displayName,
@@ -568,6 +567,9 @@ def build(ctx: click.Context) -> None:
     if frontend_dir.exists():
         init_frontend_deps(frontend_dir)
         remote_entry = rebuild_frontend(cwd, frontend_dir)
+
+        if remote_entry is None:
+            sys.exit(1)
 
     # Build backend independently if it exists
     if backend_dir.exists():

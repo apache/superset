@@ -447,52 +447,6 @@ describe('getCrossFilterDataMask', () => {
     });
   });
 
-  test('deck_polygon with cross_filter_column reads from extraProps fallback', () => {
-    const polygonFormData = {
-      ...formData,
-      line_column: 'geojson',
-      cross_filter_column: 'region_id',
-    };
-
-    const polygonPickingData = {
-      ...pickingData,
-      object: {
-        polygon: [
-          [-122.42, 37.8],
-          [-122.42, 37.81],
-          [-122.41, 37.81],
-          [-122.41, 37.8],
-          [-122.42, 37.8],
-        ],
-        extraProps: { region_id: 42 },
-      },
-    };
-
-    const dataMask = getCrossFilterDataMask({
-      formData: polygonFormData,
-      data: polygonPickingData,
-      filterState: {},
-    });
-
-    expect(dataMask).toStrictEqual({
-      dataMask: {
-        extraFormData: {
-          filters: [
-            {
-              col: 'region_id',
-              op: '==',
-              val: 42,
-            },
-          ],
-        },
-        filterState: {
-          value: [42],
-        },
-      },
-      isCurrentValueSelected: false,
-    });
-  });
-
   test('deck_polygon throws when cross_filter_column value missing on feature', () => {
     const polygonFormData = {
       ...formData,

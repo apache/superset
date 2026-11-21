@@ -19,6 +19,7 @@
 import {
   AdhocColumn,
   BuildQuery,
+  DatasourceType,
   PostProcessingRule,
   QueryFormOrderBy,
   QueryMode,
@@ -31,8 +32,11 @@ import {
 } from '@superset-ui/core';
 
 import {
+  getTotalsMetrics,
+  omitDormantTimeGrain,
   isTimeComparison,
   timeCompareOperator,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
@@ -64,6 +68,9 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     extra_form_data,
   } = formData;
   const queryMode = getQueryMode(formData);
+  const isSemanticView = formData.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  );
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
@@ -82,7 +89,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       return acc.concat([metric, ...newMetrics]);
     }, []);
 
-  return buildQueryContext(formDataCopy, baseQueryObject => {
+  const context = buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     const postProcessing: PostProcessingRule[] = [];
@@ -142,6 +149,8 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         // default to ordering by first metric in descending order
         // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
+      } else if (isSemanticView) {
+        orderby = [];
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
@@ -194,6 +203,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
+            ...(isSemanticView ? { isColumnReference: true } : {}),
           } as AdhocColumn;
           temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
@@ -262,14 +272,34 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
+    const requestedOrderby =
+      formData.server_pagination && sortByFromOwnState
+        ? sortByFromOwnState
+        : orderby;
+    const selectedColumns = new Set(
+      (baseQueryObject.columns || []).filter(isPhysicalColumn),
+    );
+    const sortableSemanticFields = new Set([
+      ...selectedColumns,
+      ...(queryMode === QueryMode.Aggregate
+        ? (metrics || []).map(getMetricLabel)
+        : []),
+    ]);
+    const effectiveOrderby =
+      isSemanticView &&
+      (queryMode === QueryMode.Raw ||
+        (formData.server_pagination && sortByFromOwnState))
+        ? requestedOrderby.filter(
+            ([column]) =>
+              isPhysicalColumn(column) && sortableSemanticFields.has(column),
+          )
+        : requestedOrderby;
+
     let queryObject = {
       ...baseQueryObject,
       columns,
       extras,
-      orderby:
-        formData.server_pagination && sortByFromOwnState
-          ? sortByFromOwnState
-          : orderby,
+      orderby: effectiveOrderby,
       metrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
@@ -347,9 +377,11 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
+      const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
       extraQueries.push({
         ...queryObject,
         columns: [],
+        metrics: getTotalsMetrics(metrics, totalsAggregate),
         row_limit: 0,
         row_offset: 0,
         // Reapply only the percent-metric contribution rule so the totals row
@@ -391,6 +423,19 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
 
     return [queryObject, ...extraQueries];
   });
+
+  // Normalize only rebuilt frontend requests, never saved form data. GET chart
+  // data can bypass this builder, so old stored query contexts may still fail
+  // strict host validation. Classify each final query, including derived ones.
+  if (
+    context.datasource.type === DatasourceType.SemanticView &&
+    queryMode === QueryMode.Aggregate
+  ) {
+    context.queries = context.queries.map(query =>
+      omitDormantTimeGrain(query, formData.temporal_columns_lookup),
+    );
+  }
+  return context;
 };
 
 // Use this closure to cache changing of external filters, if we have server pagination we need reset page to 0, after

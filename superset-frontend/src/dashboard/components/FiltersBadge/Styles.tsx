@@ -24,7 +24,6 @@ export const Pill = styled.div`
     color: ${theme.colorBgBase};
     background: ${theme.colorText};
     border-radius: 1em;
-    vertical-align: text-top;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};
@@ -86,6 +85,11 @@ export const FilterItem = styled.button`
 
     &::-moz-focus-inner {
       border: 0;
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: -2px;
     }
 
     & i svg {

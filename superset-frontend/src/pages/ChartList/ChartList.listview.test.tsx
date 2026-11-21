@@ -17,9 +17,16 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { isFeatureEnabled } from '@superset-ui/core';
+import rison from 'rison';
+import type { TagType } from 'src/types/TagType';
+import {
+  ChartMetadata,
+  getChartMetadataRegistry,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import {
   mockCharts,
   mockHandleResourceExport,
@@ -42,6 +49,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
@@ -202,7 +213,7 @@ test('renders all required column headers', async () => {
     'Type',
     'Dataset',
     'On dashboards',
-    'Owners',
+    'Editors',
     'Last modified',
     'Actions',
   ];
@@ -228,7 +239,7 @@ test('sorts table when clicking column headers', async () => {
   const allHeaders = table.querySelectorAll('.ant-table-column-sorters');
 
   const sortableHeaders = Array.from(allHeaders).filter(
-    header => !header.closest('.ant-table-measure-cell-content'),
+    header => !header.closest('.ant-table-measure-row'),
   );
   expect(sortableHeaders).toHaveLength(3);
 
@@ -274,6 +285,75 @@ test('sorts table when clicking column headers', async () => {
   });
 });
 
+test('sends display-ordered chart type slugs only for Type sorting', async () => {
+  const registry = getChartMetadataRegistry();
+  const customVizTypes = Array.from(
+    { length: 260 },
+    (_, index) => `custom_display_order_${index}`,
+  );
+  registry
+    .registerValue(
+      'slug_a',
+      new ChartMetadata({ name: '001 Zulu', thumbnail: '', behaviors: [] }),
+    )
+    .registerValue(
+      'slug_z',
+      new ChartMetadata({ name: '000 Alpha', thumbnail: '', behaviors: [] }),
+    );
+  customVizTypes.forEach((vizType, index) =>
+    registry.registerValue(
+      vizType,
+      new ChartMetadata({
+        name: `Plugin ${index}`,
+        thumbnail: '',
+        behaviors: [],
+      }),
+    ),
+  );
+
+  try {
+    renderChartList(mockUser);
+
+    const table = await screen.findByTestId('listview-table');
+    const initialCall = fetchMock.callHistory
+      .calls(/chart\/\?q/)
+      .find(call => !call.url.includes('order_column:viz_type'));
+    expect(initialCall).toBeDefined();
+    const initialQuery = new URL(
+      initialCall!.url,
+      'http://localhost',
+    ).searchParams.get('q');
+    expect(rison.decode(initialQuery!)).not.toHaveProperty('viz_type_order');
+
+    await userEvent.click(within(table).getByTitle('Type'));
+
+    await waitFor(() => {
+      const typeSortCall = fetchMock.callHistory
+        .calls(/chart\/\?q/)
+        .find(call => call.url.includes('order_column:viz_type'));
+      expect(typeSortCall).toBeDefined();
+
+      const query = new URL(
+        typeSortCall!.url,
+        'http://localhost',
+      ).searchParams.get('q');
+      const decoded = rison.decode(query!) as {
+        order_column: string;
+        viz_type_order: string[];
+      };
+      expect(decoded.order_column).toBe('viz_type');
+      expect(decoded.viz_type_order).toHaveLength(256);
+      expect(decoded.viz_type_order.indexOf('slug_z')).toBeLessThan(
+        decoded.viz_type_order.indexOf('slug_a'),
+      );
+    });
+  } finally {
+    registry.remove('slug_a');
+    registry.remove('slug_z');
+    customVizTypes.forEach(vizType => registry.remove(vizType));
+  }
+});
+
 test('displays chart data correctly in table rows', async () => {
   /**
    * @todo Implement test logic for tagging.
@@ -303,7 +383,7 @@ test('displays chart data correctly in table rows', async () => {
   // Check for favorite star column within the specific row
   const favoriteButton = within(chartRow).getByTestId('fave-unfave-icon');
   expect(favoriteButton).toBeInTheDocument();
-  expect(favoriteButton).toHaveAttribute('role', 'button');
+  expect(favoriteButton.tagName).toBe('BUTTON');
 
   // Check chart name link within the specific row
   const chartLink = within(chartRow).getByTestId(
@@ -328,15 +408,17 @@ test('displays chart data correctly in table rows', async () => {
     within(chartRow).getByText(testChart.dashboards[0].dashboard_title),
   ).toBeInTheDocument();
 
-  // Check owners display - find avatar group within the row
+  // Check editors display - find avatar group within the row
   const avatarGroup = chartRow.querySelector(
     '.ant-avatar-group',
   ) as HTMLElement;
   expect(avatarGroup).toBeInTheDocument();
 
-  // Test owner initials for mockCharts[0] (we know it has owners)
-  const ownerInitials = `${testChart.owners[0].first_name[0]}${testChart.owners[0].last_name[0]}`;
-  expect(within(avatarGroup).getByText(ownerInitials)).toBeInTheDocument();
+  // Test editor initials for mockCharts[0] (we know it has editors)
+  const editorLabel = testChart.editors[0].label;
+  const parts = editorLabel.split(' ');
+  const editorInitials = parts.map((p: string) => p[0]).join('');
+  expect(within(avatarGroup).getByText(editorInitials)).toBeInTheDocument();
 
   // Check last modified time within the specific row
   expect(
@@ -565,6 +647,82 @@ test('renders dashboard crosslinks as navigable links', async () => {
         name: new RegExp(dashboard.dashboard_title),
       }),
     ).toHaveAttribute('href', `/dashboard/${dashboard.id}`);
+  });
+});
+
+test.each<{
+  scenario: string;
+  tags: TagType[] | undefined;
+  visible: string[];
+  hidden: string[];
+}>([
+  {
+    scenario: 'numeric custom tags',
+    tags: [
+      { id: 1, name: 'custom-tag', type: 1 },
+      { id: 2, name: 'type:chart', type: 2 },
+      { id: 3, name: 'owner:admin', type: 3 },
+      { id: 4, name: 'favorited_by:user', type: 4 },
+    ],
+    visible: ['custom-tag'],
+    hidden: ['type:chart', 'owner:admin', 'favorited_by:user'],
+  },
+  {
+    scenario: 'legacy custom tags and tags without a type',
+    tags: [
+      { id: 1, name: 'legacy-custom', type: 'TagTypes.custom' },
+      { id: 2, name: 'untyped-tag' },
+      { id: 3, name: 'legacy-system', type: 'TagTypes.type' },
+    ],
+    visible: ['legacy-custom', 'untyped-tag'],
+    hidden: ['legacy-system'],
+  },
+  {
+    scenario: 'only system tags',
+    tags: [{ id: 1, name: 'type:chart', type: 2 }],
+    visible: [],
+    hidden: ['type:chart'],
+  },
+  { scenario: 'empty tags', tags: [], visible: [], hidden: [] },
+  { scenario: 'missing tags', tags: undefined, visible: [], hidden: [] },
+  {
+    scenario: 'truncation after filtering',
+    tags: [
+      { id: 1, name: 'custom-c', type: 1 },
+      { id: 2, name: 'aaa-system', type: 2 },
+      { id: 3, name: 'custom-a', type: 1 },
+      { id: 4, name: 'custom-e', type: 'TagTypes.custom' },
+      { id: 5, name: 'custom-b', type: 1 },
+      { id: 6, name: 'aab-system', type: 3 },
+      { id: 7, name: 'custom-d', type: 1 },
+    ],
+    visible: ['custom-a', 'custom-b', '+3...'],
+    hidden: ['aaa-system', 'aab-system', 'custom-c', 'custom-d', 'custom-e'],
+  },
+])('filters chart row tags: $scenario', async ({ tags, visible, hidden }) => {
+  mockIsFeatureEnabled.mockImplementation(
+    feature => feature === 'TAGGING_SYSTEM',
+  );
+  fetchMock.modifyRoute(API_ENDPOINTS.CHARTS, {
+    response: {
+      result: [{ ...mockCharts[0], tags }],
+      chart_count: 1,
+    },
+  });
+
+  renderChartList(mockUser);
+
+  const chart = await screen.findByText(mockCharts[0].slice_name);
+  const row = chart.closest('tr');
+  expect(row).toBeInTheDocument();
+  const tagList = row!.querySelector<HTMLElement>('.tag-list');
+  expect(tagList).toBeInTheDocument();
+  expect(tagList!.querySelectorAll('.ant-tag')).toHaveLength(visible.length);
+  visible.forEach(name => {
+    expect(within(tagList!).getByText(name)).toBeInTheDocument();
+  });
+  hidden.forEach(name => {
+    expect(within(tagList!).queryByText(name)).not.toBeInTheDocument();
   });
 });
 

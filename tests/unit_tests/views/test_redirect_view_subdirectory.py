@@ -46,10 +46,17 @@ from urllib.parse import quote
 import pytest
 from flask import Flask
 
+from superset.views.base import BaseSupersetView
 from superset.views.redirect import RedirectView
 
 INTERNAL_HOST = "http://localhost:8088"
 EXTERNAL_HOST = "https://external.example.com"
+
+#: Stand-in for the React warning page. `RedirectView` delegates the
+#: external-URL branch to `BaseSupersetView.render_app_template`, which needs a
+#: Jinja loader the minimal app below does not have; tests that exercise that
+#: branch patch the method to return this sentinel body.
+_WARNING_PAGE_BODY = "EXTERNAL_LINK_WARNING_PAGE"
 
 
 def _make_app(application_root: str = "/") -> Flask:
@@ -70,9 +77,8 @@ def _make_app(application_root: str = "/") -> Flask:
     app.config["WEBDRIVER_BASEURL"] = INTERNAL_HOST
     app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = INTERNAL_HOST
     # `BaseSupersetView.render_app_template` is the external-URL branch and
-    # touches Jinja. The subdir contract is the internal-URL 302 branch, so
-    # we only need to mount the handler — the template branch isn't exercised
-    # by these tests.
+    # touches Jinja, which this app has no loader for. Tests that exercise that
+    # branch patch the method out (see `_WARNING_PAGE_BODY`).
     view = RedirectView()
     app.add_url_rule(
         "/redirect/",
@@ -202,20 +208,39 @@ def test_feature_flag_disabled_returns_404_under_subdir() -> None:
     assert response.status_code == 404
 
 
-def test_protocol_relative_url_falls_through_to_warning_page_under_subdir() -> None:
-    """Protocol-relative URLs (`//evil.com`) are not "safe" — the shim must
-    not 302 them. With SCRIPT_NAME mounting the request still reaches the
-    handler; the response falls through to the external-warning branch
-    (which would render the React shell in a full app, but in this minimal
-    setup raises a TemplateNotFound on the bare Flask app — we only assert
-    the 302 path is NOT taken)."""
+@pytest.mark.parametrize(
+    "unsafe_url",
+    [
+        # Protocol-relative — `is_safe_redirect_url` rejects these outright.
+        "//evil.example.com/path",
+        "\\\\evil.example.com/path",
+        # Absolute URL on a host that is not the configured base host.
+        f"{EXTERNAL_HOST}/path",
+    ],
+)
+def test_unsafe_url_renders_warning_page_under_subdir(unsafe_url: str) -> None:
+    """An unsafe target must render the external-link warning page, never a
+    302 to the target itself.
+
+    `render_app_template` (the warning-page branch) is stubbed because the
+    minimal Flask app has no Jinja template loader — unstubbed it raises
+    `TemplateNotFound`, so the branch would 500. Asserting only "not a 302"
+    would pass on that 500, on a 404, and on a genuine warning page alike,
+    which does not distinguish "we showed the user a warning" from "the
+    handler blew up". Pin the status, the rendered body, and the absence of
+    a `Location` header instead.
+    """
     app = _make_app(application_root="/superset")
-    # `//evil.example.com/path` — `is_safe_redirect_url` rejects this branch.
-    response = _get(
-        app,
-        "/redirect/?url=" + quote("//evil.example.com/path", safe=""),
-        script_name="/superset",
-    )
-    # Either the warning page rendered (200) or the template lookup failed
-    # (500) — either way, no 302 to the unsafe target.
-    assert response.status_code != 302
+    with patch.object(
+        BaseSupersetView,
+        "render_app_template",
+        return_value=_WARNING_PAGE_BODY,
+    ):
+        response = _get(
+            app,
+            "/redirect/?url=" + quote(unsafe_url, safe=""),
+            script_name="/superset",
+        )
+    assert response.status_code == 200
+    assert response.get_data(as_text=True) == _WARNING_PAGE_BODY
+    assert "Location" not in response.headers

@@ -40,8 +40,23 @@ import {
   assertOnlyExpectedCalls,
   API_ENDPOINTS,
   mockDatasetListEndpoints,
+  mockDatasetEditors,
   getDeleteRouteName,
+  mockEditorUser,
 } from './DatasetList.testHelpers';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: [1],
+    },
+  })),
+  applicationRoot: jest.fn(() => ''),
+  staticAssetsPrefix: jest.fn(() => ''),
+}));
 
 const mockAddDangerToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
@@ -163,7 +178,7 @@ test('required API endpoints are called and no unmocked calls on initial render'
   // assertOnlyExpectedCalls checks: 1) no unmatched calls, 2) each expected endpoint was called
   assertOnlyExpectedCalls([
     API_ENDPOINTS.DATASETS_INFO, // Permission check
-    API_ENDPOINTS.DATASOURCE_COMBINED, // Main dataset list data
+    API_ENDPOINTS.DATASETS, // Main dataset list data
   ]);
 });
 
@@ -190,7 +205,7 @@ test('renders all required column headers', async () => {
     within(table).getByRole('columnheader', { name: /Schema/i }),
   ).toBeInTheDocument();
   expect(
-    within(table).getByRole('columnheader', { name: /Owners/i }),
+    within(table).getByRole('columnheader', { name: /Editors/i }),
   ).toBeInTheDocument();
   expect(
     within(table).getByRole('columnheader', { name: /Last modified/i }),
@@ -284,7 +299,7 @@ test('sorting by Name column updates API call with sort parameter', async () => 
 
   // Record initial calls
   const initialCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Click Name header to sort
@@ -292,14 +307,12 @@ test('sorting by Name column updates API call with sort parameter', async () => 
 
   // Wait for new API call
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
   // Verify latest call includes sort parameter
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -320,19 +333,17 @@ test('sorting by Database column updates sort parameter', async () => {
   });
 
   const initialCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   await userEvent.click(databaseHeader);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const { url } = calls[calls.length - 1];
   expect(url).toMatch(/order_column|sort/);
 });
@@ -350,19 +361,17 @@ test('sorting by Last modified column updates sort parameter', async () => {
   });
 
   const initialCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   await userEvent.click(modifiedHeader);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const { url } = calls[calls.length - 1];
   expect(url).toMatch(/order_column|sort/);
 });
@@ -414,6 +423,7 @@ test('delete button opens modal with dataset details', async () => {
   // Verify delete modal appears
   const modal = await screen.findByRole('dialog');
   expect(modal).toBeInTheDocument();
+  expect(modal).toHaveTextContent('is linked to 3 charts and 2 dashboards.');
 });
 
 test('delete action successfully deletes dataset and refreshes list', async () => {
@@ -446,7 +456,7 @@ test('delete action successfully deletes dataset and refreshes list', async () =
 
   // Track API calls before confirm
   const callsBefore = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Click confirm - find the danger button (last delete button in modal)
@@ -472,7 +482,7 @@ test('delete action successfully deletes dataset and refreshes list', async () =
   // List refreshes
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
     ).toBeGreaterThan(callsBefore);
   });
 });
@@ -544,7 +554,7 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
 
   // Track API calls before submit
   const callsBefore = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Submit
@@ -566,7 +576,7 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
   // List refreshes
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
     ).toBeGreaterThan(callsBefore);
   });
 });
@@ -991,10 +1001,10 @@ test('virtual dataset shows delete, export, edit, and duplicate actions', async 
   expect(duplicateButton).toBeInTheDocument();
 });
 
-test('edit action is enabled for dataset owner', async () => {
+test('edit action is enabled for dataset editor', async () => {
   const dataset = {
     ...mockDatasets[0],
-    owners: [{ id: mockAdminUser.userId, username: 'admin' }],
+    editors: [mockDatasetEditors.admin],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
@@ -1007,28 +1017,22 @@ test('edit action is enabled for dataset owner', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('.action-button, .disabled');
+  const editButton = editIcon.closest('button');
 
-  // Should have action-button class (not disabled)
-  expect(editButton).toHaveClass('action-button');
-  expect(editButton).not.toHaveClass('disabled');
+  // Should be enabled (not disabled)
+  expect(editButton).toHaveAttribute('aria-disabled', 'false');
 });
 
-test('edit action is disabled for non-owner', async () => {
+test('edit action is disabled for non-editor', async () => {
   const dataset = {
     ...mockDatasets[0],
-    owners: [{ id: 999, username: 'other_user' }], // Different user
+    editors: [mockDatasetEditors.external],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
-  // Use a non-admin user to test ownership check
-  const regularUser = {
-    ...mockAdminUser,
-    roles: { Admin: [['can_read', 'Dataset']] },
-  };
-
-  renderDatasetList(regularUser);
+  // editors does not include mockEditorUser, so edit button should be disabled
+  renderDatasetList(mockEditorUser);
 
   await waitFor(() => {
     expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
@@ -1036,17 +1040,15 @@ test('edit action is disabled for non-owner', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('.action-button, .disabled');
+  const editButton = editIcon.closest('button');
 
-  // Should have disabled class (disabled buttons still have 'action-button' class)
-  expect(editButton).toHaveClass('disabled');
-  expect(editButton).toHaveClass('action-button');
+  // Should be disabled
+  expect(editButton).toHaveAttribute('aria-disabled', 'true');
 });
 
 test('all action buttons are clickable and enabled for admin user', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [{ id: mockAdminUser.userId, username: 'admin' }],
   };
 
   mockDatasetListEndpoints({ result: [virtualDataset], count: 1 });
@@ -1065,22 +1067,16 @@ test('all action buttons are clickable and enabled for admin user', async () => 
   const editIcon = within(row!).getByTestId('edit');
   const duplicateIcon = within(row!).getByTestId('copy');
 
-  const deleteButton = deleteIcon.closest('.action-button, .disabled');
-  const exportButton = exportIcon.closest('.action-button, .disabled');
-  const editButton = editIcon.closest('.action-button, .disabled');
-  const duplicateButton = duplicateIcon.closest('.action-button, .disabled');
+  const deleteButton = deleteIcon.closest('button');
+  const exportButton = exportIcon.closest('button');
+  const editButton = editIcon.closest('button');
+  const duplicateButton = duplicateIcon.closest('button');
 
-  // All should have action-button class (enabled)
-  expect(deleteButton).toHaveClass('action-button');
-  expect(exportButton).toHaveClass('action-button');
-  expect(editButton).toHaveClass('action-button');
-  expect(duplicateButton).toHaveClass('action-button');
-
-  // None should be disabled
-  expect(deleteButton).not.toHaveClass('disabled');
-  expect(exportButton).not.toHaveClass('disabled');
-  expect(editButton).not.toHaveClass('disabled');
-  expect(duplicateButton).not.toHaveClass('disabled');
+  // None should be disabled (export/duplicate never set aria-disabled at all)
+  expect(deleteButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(exportButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(editButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(duplicateButton).not.toHaveAttribute('aria-disabled', 'true');
 });
 
 test('displays error when initial dataset fetch fails with 500', async () => {
@@ -1154,6 +1150,34 @@ test('dataset links use internal routing when PREVENT_UNSAFE_DEFAULT_URLS_ON_DAT
   internalLinks.forEach(link => {
     expect(link).toHaveAttribute('href');
   });
+});
+
+test('legacy dashboard default URLs use the registered client route', async () => {
+  const dataset = {
+    ...mockDatasets[0],
+    explore_url: '/superset/dashboard/123/?standalone=1#section',
+  };
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {
+      common: {
+        conf: {
+          PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: true,
+        },
+      },
+    },
+  );
+
+  const datasetLink = await screen.findByRole('link', {
+    name: dataset.table_name,
+  });
+  expect(datasetLink).toHaveAttribute(
+    'href',
+    '/dashboard/123/?standalone=1#section',
+  );
 });
 
 // Note: These delete error tests verify that the modal doesn't open when fetching
@@ -1237,13 +1261,7 @@ test('delete action gracefully handles 500 internal server error', async () => {
 test('duplicate action shows error toast on 403 forbidden', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
   setupErrorTestScenario({
@@ -1295,13 +1313,7 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
 test('duplicate action shows error toast on 500 internal server error', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
   setupErrorTestScenario({
@@ -1373,7 +1385,7 @@ test('sort order persists after deleting a dataset', async () => {
 
   // Record initial API calls count
   const initialCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Click Name header to sort
@@ -1381,16 +1393,12 @@ test('sort order persists after deleting a dataset', async () => {
 
   // Wait for new API call with sort parameter
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
   // Record the sort parameter from the API call after sorting
-  const callsAfterSort = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
-  );
+  const callsAfterSort = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const sortedUrl = callsAfterSort[callsAfterSort.length - 1].url;
   expect(sortedUrl).toMatch(/order_column|sort/);
 
@@ -1409,7 +1417,7 @@ test('sort order persists after deleting a dataset', async () => {
 
   // Record call count before delete to track refetch
   const callsBeforeDelete = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   const confirmButton = within(modal)
@@ -1430,7 +1438,7 @@ test('sort order persists after deleting a dataset', async () => {
   // Wait for list refetch to complete (prevents async cleanup error)
   await waitFor(() => {
     const currentCalls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
+      API_ENDPOINTS.DATASETS,
     ).length;
     expect(currentCalls).toBeGreaterThan(callsBeforeDelete);
   });
@@ -1507,7 +1515,7 @@ test('bulk selection clears when filter changes', async () => {
 
   // Record API call count before filter
   const beforeFilterCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Apply a filter using selectPillOption helper (compact pill UI)
@@ -1515,15 +1523,13 @@ test('bulk selection clears when filter changes', async () => {
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(beforeFilterCallCount);
   });
 
   // Verify filter was applied by decoding URL payload
   const urlAfterFilter = fetchMock.callHistory
-    .calls(API_ENDPOINTS.DATASOURCE_COMBINED)
+    .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.url;
   const risonAfterFilter = new URL(
     urlAfterFilter!,
@@ -1555,7 +1561,7 @@ test('type filter API call includes correct filter parameter', async () => {
 
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Apply Type filter using compact pill UI
@@ -1563,16 +1569,12 @@ test('type filter API call includes correct filter parameter', async () => {
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(callsBeforeFilter);
   });
 
   // Verify the latest API call includes the Type filter
-  const url = fetchMock.callHistory
-    .calls(API_ENDPOINTS.DATASOURCE_COMBINED)
-    .at(-1)?.url;
+  const url = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).at(-1)?.url;
   expect(url).toContain('filters');
 
   // searchParams.get() already URL-decodes, so pass directly to rison.decode
@@ -1602,7 +1604,7 @@ test('type filter persists after duplicating a dataset', async () => {
 
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Apply Type filter using compact pill UI
@@ -1610,15 +1612,13 @@ test('type filter persists after duplicating a dataset', async () => {
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(callsBeforeFilter);
   });
 
   // Verify filter is present by checking the latest API call
   const urlAfterFilter = fetchMock.callHistory
-    .calls(API_ENDPOINTS.DATASOURCE_COMBINED)
+    .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.url;
   const risonAfterFilter = new URL(
     urlAfterFilter!,
@@ -1638,7 +1638,7 @@ test('type filter persists after duplicating a dataset', async () => {
 
   // Capture datasets API call count BEFORE any duplicate operations
   const datasetsCallCountBeforeDuplicate = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Now duplicate the dataset
@@ -1646,9 +1646,7 @@ test('type filter persists after duplicating a dataset', async () => {
   expect(row).toBeInTheDocument();
 
   const duplicateIcon = await within(row!).findByTestId('copy');
-  const duplicateButton = duplicateIcon.closest(
-    '[role="button"]',
-  ) as HTMLElement | null;
+  const duplicateButton = duplicateIcon.closest('button') as HTMLElement | null;
   expect(duplicateButton).toBeTruthy();
 
   await userEvent.click(duplicateButton!);
@@ -1674,14 +1672,14 @@ test('type filter persists after duplicating a dataset', async () => {
   // Wait for datasets refetch to occur (proves duplicate triggered a refresh)
   await waitFor(() => {
     const datasetsCallCount = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
+      API_ENDPOINTS.DATASETS,
     ).length;
     expect(datasetsCallCount).toBeGreaterThan(datasetsCallCountBeforeDuplicate);
   });
 
   // Verify Type filter persisted in the NEW datasets API call after duplication
   const urlAfterDuplicate = fetchMock.callHistory
-    .calls(API_ENDPOINTS.DATASOURCE_COMBINED)
+    .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.url;
   const risonAfterDuplicate = new URL(
     urlAfterDuplicate!,
@@ -1704,19 +1702,13 @@ test('type filter persists after duplicating a dataset', async () => {
 
 test('edit action shows error toast when dataset fetch fails', async () => {
   const dataset = mockDatasets[0];
-  // Make the dataset owned by admin so edit button is enabled
-  const ownedDataset = {
+  // Make the dataset editable by admin so the edit button is enabled.
+  const editableDataset = {
     ...dataset,
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
-  mockDatasetListEndpoints({ result: [ownedDataset], count: 1 });
+  mockDatasetListEndpoints({ result: [editableDataset], count: 1 });
 
   // Mock SupersetClient.get to fail for the specific dataset endpoint
   jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
@@ -1736,7 +1728,7 @@ test('edit action shows error toast when dataset fetch fails', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByText(ownedDataset.table_name)).toBeInTheDocument();
+    expect(screen.getByText(editableDataset.table_name)).toBeInTheDocument();
   });
 
   const table = screen.getByTestId('listview-table');
@@ -1798,8 +1790,13 @@ test('bulk export error shows toast and clears loading state', async () => {
     );
   });
 
-  // Click bulk export
-  const exportButton = await screen.findByRole('button', { name: /export/i });
+  // Click bulk export. Disambiguate from the row-level export action (now
+  // sharing the same accessible name since it carries a real aria-label) and
+  // from the bulk-delete action (same data-test, different action key).
+  const exportButton = (
+    await screen.findByTestId('bulk-select-controls')
+  ).querySelector('[data-test-action-key="export"]') as HTMLElement;
+  expect(exportButton).toBeTruthy();
   await userEvent.click(exportButton);
 
   // Wait for error toast
@@ -1821,6 +1818,10 @@ test('bulk delete error shows toast without refreshing list', async () => {
   fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
     status: 500,
     body: { message: 'Bulk delete failed' },
+  });
+  fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+    charts: { count: 0, result: [] },
+    dashboards: { count: 0, result: [] },
   });
 
   mockDatasetListEndpoints({
@@ -1877,6 +1878,8 @@ test('bulk delete error shows toast without refreshing list', async () => {
   const confirmButton = within(modal)
     .getAllByRole('button', { name: /^delete$/i })
     .pop();
+  // The button stays disabled until the dependents lookup resolves.
+  await waitFor(() => expect(confirmButton).toBeEnabled());
   await userEvent.click(confirmButton!);
 
   // Wait for error toast
@@ -1987,6 +1990,39 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
     /1 Selected \(Physical\)/i,
   );
 }, 30000);
+
+test.each(['physical', 'virtual'] as const)(
+  'bulk select names both %s and semantic-view selections',
+  async kind => {
+    const dataset = mockDatasets.find(d => d.kind === kind)!;
+    const semanticView = {
+      ...dataset,
+      id: 999,
+      table_name: 'semantic_sales',
+      kind: 'semantic_view',
+    };
+    mockDatasetListEndpoints({
+      result: [dataset, semanticView],
+      count: 2,
+    });
+
+    renderDatasetList(mockAdminUser);
+    const table = await screen.findByTestId('listview-table');
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    await within(table).findAllByRole('checkbox');
+    for (const name of [dataset.table_name, semanticView.table_name]) {
+      const row = screen.getByText(name).closest('tr')!;
+      await userEvent.click(within(row).getByRole('checkbox'));
+    }
+
+    await waitFor(() =>
+      expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+        `2 Selected (1 ${kind === 'physical' ? 'Physical' : 'Virtual'}, 1 Semantic View)`,
+      ),
+    );
+  },
+  30000,
+);
 
 test('bulk select shows mixed count for virtual and physical selection', async () => {
   // Use a small mixed set - 1 physical + 1 virtual

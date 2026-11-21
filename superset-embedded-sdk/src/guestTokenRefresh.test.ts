@@ -96,10 +96,70 @@ describe("guest token refresh", () => {
     expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
   });
 
+  it("falls back to default timing for a completely malformed token", () => {
+    const timing = getGuestTokenRefreshTiming("not-a-jwt");
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("falls back to default timing for an empty string token", () => {
+    const timing = getGuestTokenRefreshTiming("");
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("falls back to default timing for a token with invalid base64 payload", () => {
+    const timing = getGuestTokenRefreshTiming(
+      "header.!!!invalid-base64!!!.signature",
+    );
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
   it("exposes a positive retry delay for failed token refreshes", () => {
     // The refresh loop reschedules itself after this delay when a fetch
     // fails or times out, so it must be a sane positive value.
     expect(DEFAULT_TOKEN_REFRESH_RETRY_MS).toBe(10000);
     expect(DEFAULT_TOKEN_REFRESH_RETRY_MS).toBeGreaterThan(0);
+  });
+
+  it("schedules refresh with very long TTL", () => {
+    const exp = Date.now() / 1000 + 86400;
+    const fakeToken = makeFakeJWT({ exp });
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+  });
+
+  it("schedules refresh with TTL just above minimum", () => {
+    const ttlMs = MIN_REFRESH_WAIT_MS + REFRESH_TIMING_BUFFER_MS + 1;
+    const ttl = ttlMs / 1000;
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+    expect(timing).toBeGreaterThanOrEqual(MIN_REFRESH_WAIT_MS);
+  });
+
+  it("handles time travel - system time moves forward", () => {
+    const ttl = 1300;
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    expect(timing).toBe(ttl * 1000 - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("returns minimum wait when token expires immediately", () => {
+    const exp = Date.now() / 1000;
+    const fakeToken = makeFakeJWT({ exp });
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+    expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("capitalizes on buffer period for nearly-expired tokens", () => {
+    const ttl = 1;
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+    expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
   });
 });
