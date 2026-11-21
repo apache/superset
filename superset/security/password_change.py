@@ -24,8 +24,8 @@ page (``/user_info/``, whose "Reset my password" modal calls ``PUT
 /api/v1/me/``) until they change it; the flag is cleared automatically on a
 successful *self-service* password change (see
 ``CurrentUserRestApi.pre_update`` and ``SupersetSecurityManager.reset_password``).
-An admin-initiated reset deliberately preserves the flag so the target user is
-still forced to change the temporary password at next login.
+An admin-initiated reset sets the flag so the target user is forced to change
+the temporary password at next login.
 """
 
 from __future__ import annotations
