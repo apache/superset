@@ -237,6 +237,37 @@ def test_df_to_records() -> None:
     ]
 
 
+def test_df_to_records_reads_column_labels_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The column labels are read once per call, however many rows there are.
+
+    Iterating the column ``Index`` converts every label, so reading it again
+    for each row makes the conversion cost grow with the row count.
+    """
+    label_reads: list[int] = []
+    original_iter = pd.Index.__iter__
+
+    def counting_iter(self: pd.Index) -> Any:
+        if list(self.array) == ["a", "b"]:
+            label_reads.append(1)
+        return original_iter(self)
+
+    monkeypatch.setattr(pd.Index, "__iter__", counting_iter)
+
+    def reads_for(rows: int) -> int:
+        label_reads.clear()
+        records = df_to_records(pd.DataFrame({"a": range(rows), "b": ["x"] * rows}))
+        assert len(records) == rows
+        return len(label_reads)
+
+    few, many = reads_for(2), reads_for(50)
+    assert few > 0
+    assert many == few, (
+        f"column labels were read {few} times for 2 rows and {many} for 50"
+    )
+
+
 def test_df_to_records_NaT_type() -> None:  # noqa: N802
     data = [(NaT,), (Timestamp("2023-01-06 20:50:31.749000+0000", tz="UTC"),)]
     cursor_descr: DbapiDescription = [
