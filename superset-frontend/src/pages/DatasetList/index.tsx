@@ -1127,9 +1127,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tooltip={
                       allowEdit
                         ? t('Delete')
-                        : t(
-                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
-                          )
+                        : t('Only admins can delete semantic views.')
                     }
                     placement="bottom"
                     icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -1144,9 +1142,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tooltip={
                       allowEdit
                         ? t('Edit')
-                        : t(
-                            'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
-                          )
+                        : t('Only admins can edit semantic views.')
                     }
                     placement="bottom"
                     icon={<Icons.EditOutlined iconSize="l" />}
