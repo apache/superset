@@ -285,13 +285,6 @@ membership reaches providers as one `IN` or `NOT_IN` leaf with an empty
 `frozenset`: render empty `IN` as FALSE and empty `NOT IN` as TRUE (NULL rows
 included), never as an empty SQL list. NULL comparison/LIKE operands are rejected
 before provider calls.
-User exclusions with non-NULL operands become
-`OrFilter(NOT_EQUALS(value), IS_NULL)`, `OrFilter(NOT_LIKE(value), IS_NULL)` or
-`OrFilter(NOT_ILIKE(value), IS_NULL)`. Non-empty `NOT_IN` selections without NULL
-become `OrFilter(NOT_IN(values), IS_NULL)` too. These groups keep missing-value
-rows, matching ordinary datasets. Explicit NULL exclusion and empty membership
-retain the leaf shapes above. This normalization applies to host user filters,
-not SDK-authored predicates; unsupported operators must still be refused.
 Scalar comparisons use the first collection value, or NULL for an empty collection,
 matching native datasources.
 
@@ -307,8 +300,7 @@ semantic views; explicit query filters still apply, including group-limit filter
 `OrFilter` is mandatory core vocabulary, not an optional capability. Every
 provider must render groups for main queries, row counts and group-limit
 subqueries. Upgrade adapters before, or atomically with, the host/SDK upgrade;
-leaf-only adapters cannot consume mixed positive NULL selections or NULL-preserving
-exclusions, even if they previously accepted the exclusion as a leaf. `get_values` retains
+leaf-only adapters cannot consume mixed positive NULL selections. `get_values` retains
 `set[Filter] | None`; its host caller supplies only a LIKE leaf or no filter.
 
 Query and group-limit readers need `isinstance` narrowing before accessing leaf
@@ -335,11 +327,9 @@ adapter module so older SDKs can still load the legacy leaf path.
 
 ### Result caches
 
-The host includes `semantic-null-filters-v2` in semantic result-cache keys. This
-separates answers computed before NULL-preserving exclusions during rolling
-deployment. Annotation cache context also includes this marker for every
-datasource, so ordinary dataset charts with annotation layers rebuild their
-cached results too. Keep this marker alongside metadata-generation cache keys.
+The host includes `semantic-null-filters-v1` in semantic result-cache keys. This
+separates legacy answers during rolling deployment without flushing unrelated
+caches. Keep this protocol marker alongside any metadata-generation cache keys.
 
 Containment-cache identities use format `v5`, separating grouped predicates from
 older leaf-only entries during rolling upgrades. OR groups require identical
