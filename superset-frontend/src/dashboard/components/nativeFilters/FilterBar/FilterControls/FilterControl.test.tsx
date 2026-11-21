@@ -100,6 +100,19 @@ test('does not render DeckglLayerVisibilityTooltip for standard filter type', ()
   ).not.toBeInTheDocument();
 });
 
+test('does not show multi-select guidance beside the filter label', () => {
+  render(
+    <FilterControl
+      filter={{ ...nativeFilter, controlValues: { multiSelect: true } }}
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.queryByText(/When typing or pasting filter values/),
+  ).not.toBeInTheDocument();
+});
+
 test('does not mark a defaultToFirstItem-only filter as required', () => {
   render(
     <FilterControl

@@ -25,7 +25,6 @@ import {
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { isChartCustomization } from '@superset-ui/core';
 import { ChartCustomizationPlugins } from 'src/constants';
-import { t } from '@apache-superset/core/translation';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -91,14 +90,6 @@ const FilterControl = ({
           {isRequired && <RequiredFieldIndicator />}
           {isOutOfScope && <OutOfScopeFilterToolTip />}
         </FilterControlTitleGroup>
-        {filter.filterType === 'filter_select' &&
-          filter.controlValues?.multiSelect && (
-            <DescriptionToolTip
-              description={t(
-                'When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
-              )}
-            />
-          )}
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
@@ -113,10 +104,10 @@ const FilterControl = ({
       FilterControlTitleBox,
       FilterControlTitle,
       name,
+      filter.id,
       isRequired,
       filter.description,
       filter.filterType,
-      filter.controlValues?.multiSelect,
       icon,
       isOutOfScope,
     ],
