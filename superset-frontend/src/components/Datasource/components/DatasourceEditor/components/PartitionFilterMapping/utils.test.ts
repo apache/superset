@@ -23,6 +23,7 @@ import {
   clearUnmappedTransforms,
   clearUnmappedTransformsAcrossMove,
   defaultTransformFor,
+  discardedMappedTransform,
   mappedColumnIsImplicit,
   mappingIsActive,
   nextMappedColumnOverride,
@@ -1014,7 +1015,7 @@ test("an unparseable transform is the server's call, not the editor's", () => {
   ).toEqual([]);
 });
 
-test("a transform missing the placeholder is not the editor's call either", () => {
+test('a missing placeholder is explained without blocking Save', () => {
   expect(
     partitionMappingErrors(
       {
@@ -1024,7 +1025,12 @@ test("a transform missing the placeholder is not the editor's call either", () =
       },
       withTransform('event_time', 'unix_timestamp(event_time)'),
     ),
-  ).toEqual([]);
+  ).toEqual([
+    expect.objectContaining({
+      blocking: false,
+      message: 'Include :value in the transform to represent the filter value.',
+    }),
+  ]);
 });
 
 test('the transform check judges the text it is handed, not the stored value', () => {
@@ -1079,4 +1085,46 @@ test('samples follow the mapped column type, not just whether it is temporal', (
     'US',
     'CA',
   ]);
+});
+
+test('discardedMappedTransform names the mapped column only when its transform goes', () => {
+  // SC-130258: the editor asks before a change costs the transform the mapping
+  // mirrors, and only then.
+  const datasource = {
+    main_dttm_col: 'event_time',
+    partition_column: 'dt',
+    partition_mapped_column: null,
+  };
+  const mapped = [
+    { column_name: 'event_time', partition_value_transform: 'to_date(:value)' },
+    { column_name: 'ingest_time', partition_value_transform: null },
+  ];
+  const cleared = clearMappingTransforms(mapped);
+
+  expect(discardedMappedTransform(datasource, mapped, cleared)).toBe(
+    'event_time',
+  );
+  // Nothing lost: no confirmation.
+  expect(discardedMappedTransform(datasource, mapped, mapped)).toBeNull();
+  // A transform stranded on a column the mapping does not mirror is a cleanup
+  // the owner cannot see, not a loss to confirm.
+  const stranded = [
+    { column_name: 'event_time', partition_value_transform: null },
+    { column_name: 'ingest_time', partition_value_transform: 'lower(:value)' },
+  ];
+  expect(
+    discardedMappedTransform(
+      datasource,
+      stranded,
+      clearMappingTransforms(stranded),
+    ),
+  ).toBeNull();
+  // Nothing is mapped without a partition column.
+  expect(
+    discardedMappedTransform(
+      { ...datasource, partition_column: null },
+      mapped,
+      cleared,
+    ),
+  ).toBeNull();
 });

@@ -43,6 +43,7 @@ import {
   type DashboardDatasetsContextValue,
 } from 'src/dashboard/contexts/DashboardDatasetsContext';
 import { buildQuery as buildTableQuery } from '../../../../../plugins/plugin-chart-table/src/buildQuery';
+import { buildQueryUncached as buildInteractiveQuery } from '../../../../../plugins/plugin-chart-ag-grid-table/src/buildQuery';
 import type { TableChartFormData } from '../../../../../plugins/plugin-chart-table/src/types';
 
 let capturedChartContainerProps: Record<string, unknown> = {};
@@ -405,57 +406,62 @@ test('ignores prior metadata when a completed response omits the semantic source
   );
 });
 
-test('omits a dormant semantic grain when current metadata proves the axis non-temporal', () => {
-  const savedFormData = {
-    ...chartQueries[queryId].form_data,
-    datasource: '2__semantic_view',
-    viz_type: VizType.Table,
-    metrics: ['orders'],
-    groupby: ['country'],
-    granularity: undefined,
-    time_grain_sqla: TimeGranularity.DAY,
-    temporal_columns_lookup: { country: true },
-  };
-  setup(
-    {},
-    {
-      charts: {
-        ...defaultState.charts,
-        [queryId]: {
-          ...defaultState.charts[queryId],
-          form_data: savedFormData,
+test.each([VizType.Table, VizType.TableAgGrid])(
+  'omits a dormant semantic grain for %s when current metadata proves the axis non-temporal',
+  vizType => {
+    const savedFormData = {
+      ...chartQueries[queryId].form_data,
+      datasource: '2__semantic_view',
+      viz_type: vizType,
+      metrics: ['orders'],
+      groupby: ['country'],
+      granularity: undefined,
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: { country: true },
+    };
+    setup(
+      {},
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            form_data: savedFormData,
+          },
+        },
+        datasources: {
+          '2__semantic_view': {
+            ...mockDatasource['7__table'],
+            type: DatasourceType.SemanticView,
+            columns: [{ column_name: 'country', is_dttm: false }],
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          datasetsStatus: 'complete',
         },
       },
-      datasources: {
-        '2__semantic_view': {
-          ...mockDatasource['7__table'],
-          type: DatasourceType.SemanticView,
-          columns: [{ column_name: 'country', is_dttm: false }],
-        },
+      {
+        dashboardId: props.dashboardId,
+        datasets: [
+          {
+            uid: '2__semantic_view',
+            type: DatasourceType.SemanticView,
+            columns: [{ column_name: 'country', is_dttm: false }],
+          },
+        ],
       },
-      dashboardState: {
-        ...defaultState.dashboardState,
-        datasetsStatus: 'complete',
-      },
-    },
-    {
-      dashboardId: props.dashboardId,
-      datasets: [
-        {
-          uid: '2__semantic_view',
-          type: DatasourceType.SemanticView,
-          columns: [{ column_name: 'country', is_dttm: false }],
-        },
-      ],
-    },
-  );
+    );
 
-  const formData = capturedChartContainerProps.formData as TableChartFormData;
-  expect(formData.temporal_columns_lookup).toEqual({ country: false });
-  expect(buildTableQuery(formData).queries[0].extras).not.toHaveProperty(
-    'time_grain_sqla',
-  );
-});
+    const formData = capturedChartContainerProps.formData as TableChartFormData;
+    expect(formData.temporal_columns_lookup).toEqual({ country: false });
+    expect(
+      (vizType === VizType.Table ? buildTableQuery : buildInteractiveQuery)(
+        formData,
+      ).queries[0].extras,
+    ).not.toHaveProperty('time_grain_sqla');
+  },
+);
 
 test('leaves saved SQL dataset lookup unchanged on dashboards', () => {
   const savedFormData = {
@@ -1280,4 +1286,85 @@ test('passes the form data of the last request to ChartContainer next to the cur
   expect(capturedChartContainerProps.formData).toEqual(
     expect.objectContaining({ groupby: ['region'] }),
   );
+});
+
+const stateWithCrossFilterScope = (chartsInScope?: number[]) => ({
+  ...defaultState,
+  dashboardInfo: {
+    ...defaultState.dashboardInfo,
+    crossFiltersEnabled: true,
+    metadata: chartsInScope
+      ? {
+          chart_configuration: {
+            [queryId]: {
+              id: queryId,
+              crossFilters: { scope: 'global', chartsInScope },
+            },
+          },
+        }
+      : {},
+  },
+});
+
+test('keeps cross-filter rendering on but reports no targets when the chart cross-filter scope targets no other chart', () => {
+  // emitCrossFilters drives plugin rendering (e.g. Table V2's numbered column
+  // and cell truncation), so it must keep following the dashboard setting.
+  setup({}, stateWithCrossFilterScope([]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
+
+  setup({}, stateWithCrossFilterScope([queryId]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
+});
+
+test('reports cross-filter targets when the chart cross-filter scope targets another chart', () => {
+  setup({}, stateWithCrossFilterScope([queryId + 1]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
+});
+
+test('reports cross-filter targets when the chart has no cross-filter configuration', () => {
+  setup({}, stateWithCrossFilterScope());
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
+});
+
+test('does not emit cross-filters when cross-filtering is disabled on the dashboard', () => {
+  setup({}, defaultState);
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
+});
+
+test('dashboard Chart omits SQL cross-filter using the emitter datasource in Redux', () => {
+  setup(
+    {},
+    {
+      charts: {
+        ...chartQueries,
+        999: { form_data: { datasource: '12__table' } },
+        [queryId]: {
+          ...chartQueries[queryId],
+          form_data: {
+            ...chartQueries[queryId].form_data,
+            datasource: '3__semantic_view',
+            semantic_selection_version: 'cube-member-id-v1',
+          },
+        },
+      },
+      dataMask: {
+        999: {
+          id: '999',
+          filterState: { value: ['US'] },
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: ['US'] }],
+          },
+        },
+      },
+      nativeFilters: { filters: {} },
+      dashboardState: { sliceIds: [queryId, 999] },
+    },
+  );
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.extra_form_data?.filters ?? []).toEqual([]);
+  expect(formData.semantic_selection_version).toBe('cube-member-id-v1');
 });
