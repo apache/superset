@@ -28,9 +28,11 @@ import {
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import DetailsPanel from '.';
 
+const mockTriggerFocus = jest.fn();
+
 const mockPopoverTriggerRef = {
   current: {
-    focus: jest.fn(),
+    focus: mockTriggerFocus,
   },
 } as unknown as RefObject<HTMLButtonElement>;
 
@@ -305,7 +307,7 @@ const createKeyboardProps = () => {
   ];
   props.appliedIndicators = [];
   props.onHighlightFilterSource = jest.fn();
-  (mockPopoverTriggerRef.current?.focus as jest.Mock).mockClear();
+  mockTriggerFocus.mockClear();
   return props;
 };
 
@@ -352,7 +354,7 @@ test('Enter on a focused menu item highlights its filter and closes the popover'
     'PATH_TO_CLINICAL_STAGE',
     'LABEL-clinical_stage',
   ]);
-  expect(mockPopoverTriggerRef.current?.focus).toHaveBeenCalled();
+  expect(mockTriggerFocus).toHaveBeenCalled();
   expect(props.setPopoverVisible).toHaveBeenLastCalledWith(false);
 });
 
@@ -373,7 +375,7 @@ test('Clicking a menu item highlights its filter once and closes the popover', a
     'PATH_TO_CLINICAL_STAGE',
     'LABEL-clinical_stage',
   ]);
-  expect(mockPopoverTriggerRef.current?.focus).toHaveBeenCalled();
+  expect(mockTriggerFocus).toHaveBeenCalled();
   expect(props.setPopoverVisible).toHaveBeenLastCalledWith(false);
 });
 
@@ -396,7 +398,7 @@ test('Escape in the menu returns focus to the trigger and closes the popover', a
     which: 27,
   });
 
-  expect(mockPopoverTriggerRef.current?.focus).toHaveBeenCalled();
+  expect(mockTriggerFocus).toHaveBeenCalled();
   expect(props.setPopoverVisible).toHaveBeenLastCalledWith(false);
   expect(props.onHighlightFilterSource).not.toHaveBeenCalled();
 });
