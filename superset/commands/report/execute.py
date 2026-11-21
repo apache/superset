@@ -117,6 +117,7 @@ from superset.utils.core import (
     apply_max_row_limit,
     get_user,
     HeaderDataType,
+    override_query_log_context,
     override_user,
 )
 from superset.utils.csv import (
@@ -831,11 +832,24 @@ class BaseReportState:
         notification fail too.
         """
         try:
+            if get_user() is None and self._report_schedule.dashboard is not None:
+                # Terminal-error handling can run outside the executor's user
+                # context; build the stateful link as the resolved executor.
+                # Chart reports never need a user for their link and have no
+                # dashboard to fall back to, so they use ``_get_url`` directly.
+                executor, _ = resolve_executor_user(self._report_schedule)
+                with override_user(executor):
+                    return self._get_url(user_friendly=True)
             return self._get_url(user_friendly=True)
-        except ReportScheduleExecutorAccessDeniedError:
+        except (
+            ReportScheduleExecutorAccessDeniedError,
+            ReportScheduleExecutorNotFoundError,
+        ):
             return self._get_plain_dashboard_url(user_friendly=True)
 
-    def _raise_for_executor_dashboard_access(self) -> None:
+    def _raise_for_executor_dashboard_access(
+        self, require_executor: bool = False
+    ) -> None:
         """
         Fail with an actionable error when the executor cannot see the dashboard.
 
@@ -843,7 +857,16 @@ class BaseReportState:
         executor and surfaces only as a generic screenshot failure.
         """
         user = get_user()
-        if user is None or getattr(user, "is_anonymous", False):
+        if getattr(user, "is_anonymous", False):
+            return
+        if user is None:
+            # No user context. When a permalink is about to be created, surface
+            # an unresolved executor as the same actionable error the screenshot
+            # step raises, instead of failing on a missing ``g.user``. A
+            # resolvable executor is applied by callers that wrap in
+            # ``override_user``.
+            if require_executor:
+                resolve_executor_user(self._report_schedule)
             return
         dashboard = self._report_schedule.dashboard
         try:
@@ -976,7 +999,7 @@ class BaseReportState:
         # without passing through ``get_dashboard_urls``, so the executor
         # check lives here to turn an exclusion (which the permalink command
         # reports as not-found) into the access-denied error callers handle.
-        self._raise_for_executor_dashboard_access()
+        self._raise_for_executor_dashboard_access(require_executor=True)
         force = self._get_force_param()
         # ``Superset.dashboard_permalink`` redirects by appending this
         # state's ``urlParams`` *before* its own query string (which is
@@ -1468,6 +1491,12 @@ class BaseReportState:
 
         return query_context
 
+    def _get_chart_data_url(self) -> str:
+        return get_url_path(
+            "ChartDataRestApi.data",
+            form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
+        )
+
     @staticmethod
     def _post_chart_data(
         chart_url: str,
@@ -1575,7 +1604,7 @@ class BaseReportState:
                     )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
-                url = get_url_path("ChartDataRestApi.data")
+                url = self._get_chart_data_url()
                 endpoint = "/api/v1/chart/data"
 
                 def fetch(timeout: float | None) -> bytes | None:
@@ -1674,7 +1703,7 @@ class BaseReportState:
                 request_payload: dict[str, Any] = self._get_chart_data_request_payload(
                     ChartDataResultFormat.JSON, form_data=form_data or None
                 )
-                url = get_url_path("ChartDataRestApi.data")
+                url = self._get_chart_data_url()
                 dataframe = chart_data_to_dataframe(
                     self._post_chart_data(
                         chart_url=url,
@@ -2918,7 +2947,10 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             user, username = get_executor_user(self._model)
 
             start_time: datetime = naive_utcnow()
-            with override_user(user):
+            with (
+                override_user(user),
+                override_query_log_context({"report_id": self._model.id}),
+            ):
                 # Pre-commit any permalink rows before the state machine's
                 # @transaction() opens. When called inside a transaction,
                 # CreateDashboardPermalinkCommand only flushes (not commits),

@@ -138,9 +138,6 @@ msgstr "یکی جدید"
 msgid " at line %(line)d"
 msgstr "در خط %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr "عبارتی که باید به دستور العمل‌ها پایبند باشد"
-
 #, fuzzy
 msgid " for details."
 msgstr "جزئیات"
@@ -150,40 +147,6 @@ msgstr "جزئیات"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr "نزدیک به '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" استاندارد تا ترتیب واژه‌نامه‌ای\n"
-"                      با ترتیب زمانی مطابقت داشته باشد. اگر\n"
-"                      قالب برچسب زمانی از استاندارد ISO 8601 پیروی "
-"نمی‌کند\n"
-"                      باید یک عبارت و نوع برای\n"
-"                      تبدیل رشته به تاریخ یا برچسب زمانی تعریف کنید. "
-"توجه:\n"
-"                      در حال حاضر مناطق زمانی پشتیبانی نمی‌شوند. اگر زمان"
-"\n"
-"                      در قالب epoch ذخیره شده است، `epoch_s`، `epoch_ms` "
-"یا `epoch_us` را وارد کنید. اگر هیچ الگویی\n"
-"                      مشخص نشده باشد، از مقادیر پیش‌فرض اختیاری در سطح هر"
-"\n"
-"                      پایگاه داده/نام ستون از طریق پارامتر extra استفاده "
-"می‌شود."
 
 msgid " to add calculated columns"
 msgstr "برای اضافه کردن ستون‌های محاسبه‌شده"
@@ -10598,9 +10561,6 @@ msgstr "ISO 3166-2"
 msgid "ISO 3166-2 Codes"
 msgstr "کدهای ISO ۳۱۶۶-۲"
 
-msgid "ISO 8601"
-msgstr "استاندارد ISO ۸۶۰۱"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "ISO suffix / abbreviation"
@@ -15135,9 +15095,6 @@ msgstr "برچسب‌ها را در خارج از دایره قرار دهید؟
 
 msgid "Put your code here"
 msgstr "کد خود را اینجا قرار دهید"
-
-msgid "Python datetime string pattern"
-msgstr "الگوی رشته تاریخ و زمان پایتون"
 
 msgid "Quarter"
 msgstr "سه‌ماه"
@@ -20321,8 +20278,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "رمزهای عبور پایگاه‌های داده زیر برای وارد کردن آن‌ها مورد نیاز است."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "الگوی فرمت زمان‌مهر. برای رشته‌ها از استفاده کنید"
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
