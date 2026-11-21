@@ -104,7 +104,7 @@ const renderComponent = (props: Partial<TestProps> = {}) =>
     },
   );
 
-test('semantic pre-filter subjects distinguish duplicate labels by member ID', async () => {
+test('dashboard Pre-filter subjects distinguish duplicate semantic labels by member ID', async () => {
   const onChange = jest.fn();
   const columns = semanticViewDimensionsToColumns([
     { name: 'CUSTOMERS.REGION', type: 'string', verbose_name: 'Region' },

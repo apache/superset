@@ -79,10 +79,19 @@ test('renders distinct semantic labels and keeps the selected member ID', async 
   const { onChange, onColumnsLoaded } = renderPicker(804, undefined, [
     { name: 'CUSTOMERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
     { name: 'ORDERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
+    { name: 'ORDERS.STATUS', type: 'string', verbose_name: 'Status' },
   ]);
   await waitFor(() => expect(onColumnsLoaded).toHaveBeenCalled());
   await userEvent.click(screen.getByRole('combobox'));
   const orderSegment = screen.getByTitle('Segment (ORDERS.SEGMENT)');
+  expect(
+    orderSegment.querySelector('[data-test="semantic-member-id"]'),
+  ).toHaveTextContent('ORDERS.SEGMENT');
+  expect(
+    screen
+      .getByTitle('Status')
+      .querySelector('.ant-select-item-option-content span'),
+  ).toBeNull();
   await userEvent.click(orderSegment);
   expect(onChange.mock.calls[0][0]).toBe('ORDERS.SEGMENT');
 });

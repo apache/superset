@@ -144,15 +144,13 @@ export function ColumnSelect({
       ),
     [columns, filterValues, showVerboseNames, datasourceType],
   );
-  const memberLabels = useMemo(
-    () =>
-      datasourceType === DatasourceType.SemanticView
-        ? getSemanticMemberLabels(
-            uniqBy(ensureIsArray(columns).filter(filterValues), 'column_name'),
-          )
-        : undefined,
-    [columns, filterValues, datasourceType],
-  );
+  const memberLabels = useMemo(() => {
+    if (datasourceType !== DatasourceType.SemanticView) return undefined;
+    const labels = getSemanticMemberLabels(
+      uniqBy(ensureIsArray(columns).filter(filterValues), 'column_name'),
+    );
+    return new Map([...labels].filter(([, label]) => label.memberId));
+  }, [columns, filterValues, datasourceType]);
 
   // Whether the current selection still matches a loaded column. An empty
   // selection has nothing to look up and is legitimate (e.g. a cleared
