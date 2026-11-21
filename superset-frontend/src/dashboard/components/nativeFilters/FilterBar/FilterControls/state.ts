@@ -23,6 +23,7 @@ import { RootState } from 'src/dashboard/types';
 import { mergeExtraFormData } from '../../utils';
 import {
   FilterConfigMap,
+  resolveTransitiveChildIds,
   resolveTransitiveParentIds,
 } from '../../dependencyGraph';
 
@@ -61,4 +62,21 @@ export function useFilterDependencies(
     });
     return dependencies;
   }, [dataMaskSelected, dependencyIds]);
+}
+
+/**
+ * Resolve the transitive descendant (child) filter ids for a given filter
+ * from the live native-filter configuration in Redux. Used to determine which
+ * dependent filters must be cleared when a parent filter's value changes.
+ */
+export function useTransitiveChildIds(id: string): string[] {
+  const filterConfig = useSelector<RootState, FilterConfigMap | undefined>(
+    state => state.nativeFilters?.filters,
+    shallowEqual,
+  );
+
+  return useMemo(
+    () => resolveTransitiveChildIds(id, filterConfig ?? {}),
+    [id, filterConfig],
+  );
 }

@@ -173,6 +173,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   toggleFiltersBar,
   width,
   mobileMode,
+  cascadeClearTriggers,
+  onCascadeClearComplete,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
@@ -272,6 +274,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           }
           chartCustomizationValues={chartCustomizationValues}
           hideHeader={hasOnlyOneSectionType}
+          cascadeClearTriggers={cascadeClearTriggers}
+          onCascadeClearComplete={onCascadeClearComplete}
         />
       </FilterControlsWrapper>
     ) : (
@@ -300,6 +304,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     onPendingCustomizationDataMaskChange,
     chartCustomizationValues,
     hasOnlyOneSectionType,
+    cascadeClearTriggers,
+    onCascadeClearComplete,
   ]);
 
   return (
