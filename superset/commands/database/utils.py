@@ -488,6 +488,8 @@ def rename_database_in_permissions(database: Database, old_database_name: str) -
                 dataset.schema_perm = security_manager.get_schema_perm(
                     new_database_name, dataset.catalog, dataset.schema
                 )
+        # Updating only dataset permission columns does not propagate through the
+        # dataset hook, and charts absent from the bundle have no save hook to run.
         datasets_by_id = {dataset.id: dataset for dataset in datasets}
         for chart in DatasetDAO.get_charts_for_datasets(list(datasets_by_id)):
             dataset = datasets_by_id[chart.datasource_id]

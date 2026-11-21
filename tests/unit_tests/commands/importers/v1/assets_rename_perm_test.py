@@ -177,6 +177,72 @@ def test_import_renamed_database_resyncs_catalog_perms(
 
 
 @pytest.mark.parametrize("entry_point", ["import", "sync"])
+@pytest.mark.parametrize("soft_deleted", [False, True])
+def test_database_rename_updates_untouched_chart_permissions(
+    mocker: MockerFixture,
+    session: Session,
+    entry_point: str,
+    soft_deleted: bool,
+) -> None:
+    """Persist chart permissions even when no chart save invokes its model hook."""
+    from sqlalchemy import select
+
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.database.sync_permissions import SyncPermissionsCommand
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Slice.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+    database = import_database(copy.deepcopy(databases_config[DATABASE_FILE]))
+    dataset = SqlaTable(
+        table_name="untouched", catalog="cat", schema="main", database=database
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    chart = Slice(
+        slice_name="untouched",
+        datasource_id=dataset.id,
+        datasource_type="table",
+        viz_type="table",
+    )
+    db.session.add(chart)
+    db.session.commit()
+    database_id, chart_id = database.id, chart.id
+    if soft_deleted:
+        dataset.soft_delete()
+        db.session.commit()
+    db.session.expunge_all()
+
+    if entry_point == "import":
+        # The bundle contains no datasets or charts to trigger their save hooks.
+        config = copy.deepcopy(databases_config[DATABASE_FILE])
+        config["database_name"] = RENAMED_DATABASE_NAME
+        import_database(config, overwrite=True)
+    else:
+        database = db.session.query(Database).filter_by(id=database_id).one()
+        database.database_name = RENAMED_DATABASE_NAME
+        db.session.flush()
+        command = SyncPermissionsCommand(
+            database.id, None, old_db_connection_name="examples", db_connection=database
+        )
+        command._rename_database_in_permissions("cat", ["main"])
+    db.session.commit()
+
+    # Read stored columns directly: loading/saving a chart must not repair them.
+    stored = db.session.execute(
+        select(Slice.schema_perm, Slice.catalog_perm).where(Slice.id == chart_id)
+    ).one()
+    assert tuple(stored) == (
+        f"[{RENAMED_DATABASE_NAME}].[cat].[main]",
+        f"[{RENAMED_DATABASE_NAME}].[cat]",
+    )
+
+
+@pytest.mark.parametrize("entry_point", ["import", "sync"])
 @pytest.mark.parametrize(
     "permission,old_name,new_name,perm_field",
     [
