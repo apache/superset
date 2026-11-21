@@ -37,6 +37,7 @@ from flask.ctx import AppContext
 from superset import security_manager
 from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     ChartDataExecutionResult,
@@ -46,6 +47,7 @@ from superset.common.chart_data_timing import (
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.errors import SupersetErrorType
+from superset.exceptions import QueryObjectValidationError
 from superset.extensions import db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
@@ -1888,6 +1890,55 @@ def test_chart_cache_timeout_chart_not_found(
 
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 1010
+
+
+@mock.patch("superset.charts.data.api.ChartDataCommand.execute")
+def test_chart_data_query_object_validation_error__400(
+    mock_execute, test_client, login_as_admin, physical_query_context
+):
+    """
+    Chart data API: a QueryObjectValidationError raised while executing the query
+    returns a 400 rather than a 500
+    """
+    mock_execute.side_effect = QueryObjectValidationError("Invalid query object")
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == 400
+    assert rv.json["message"] == "Invalid query object"
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [
+        QueryObjectValidationError("Invalid query object"),
+        ChartDataQueryFailedError("Error: column foo does not exist"),
+    ],
+)
+@with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
+@mock.patch("superset.charts.data.api.submit_chart_data_query_tasks")
+@mock.patch("superset.charts.data.api.ChartDataCommand.execute")
+def test_chart_data_async_cache_lookup_query_error__400(
+    mock_execute,
+    mock_submit,
+    test_client,
+    login_as_admin,
+    physical_query_context,
+    exception,
+):
+    """
+    Chart data API: a query error raised during the async cache lookup returns
+    the same 400 response as the sync path, and no async job is enqueued
+    """
+    mock_execute.side_effect = exception
+    # The cache lookup only happens when the request does not force a refresh
+    physical_query_context["force"] = False
+    physical_query_context["async_mode"] = True
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == 400
+    assert rv.json["message"] == exception.message
+    mock_execute.assert_called_once_with(force_cached=True)
+    mock_submit.assert_not_called()
 
 
 @pytest.mark.parametrize(
