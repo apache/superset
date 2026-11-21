@@ -179,7 +179,7 @@ jobs:
           docker run --rm $TAG bash -c \
           "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
 
-      # The last weird node command is to run tests fo custom Superset lint rules
+      # The last weird node command is to run tests for custom Superset lint rules
       - name: Lint
         run: |
           docker run --rm $TAG bash -c \
