@@ -17169,6 +17169,9 @@ msgstr ""
 msgid "Use a log scale for the Y-axis"
 msgstr ""
 
+msgid "Use a logarithmic scale for the Y axis"
+msgstr ""
+
 msgid "Use an encrypted connection to the database"
 msgstr ""
 
@@ -18017,6 +18020,9 @@ msgid "Y Axis Format"
 msgstr ""
 
 msgid "Y Axis Label"
+msgstr ""
+
+msgid "Y Axis Log Scale"
 msgstr ""
 
 msgid "Y Axis Minimum Interval"
