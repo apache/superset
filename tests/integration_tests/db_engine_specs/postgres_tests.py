@@ -520,7 +520,7 @@ def test_get_catalog_names(app_context: AppContext) -> None:
 
     database = get_example_database()
     with database.get_inspector() as inspector:
-        assert PostgresEngineSpec.get_catalog_names(database, inspector) == {
-            "postgres",
-            "superset",
-        }
+        # A pytest-xdist run adds one superset_gw<N> database per worker.
+        assert {"postgres", "superset"} <= PostgresEngineSpec.get_catalog_names(
+            database, inspector
+        )
