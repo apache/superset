@@ -25,11 +25,12 @@ Two distinct schemas:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, computed_field, Field  # noqa: I001
+from pydantic import BaseModel, computed_field, Field, field_validator  # noqa: I001
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
     PUBLISHER_PATTERN,
+    RESERVED_PUBLISHERS,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
 )
@@ -77,6 +78,16 @@ class BaseExtension(BaseModel):
         default_factory=list,
         description="Permissions required by this extension",
     )
+
+    @field_validator("publisher")
+    @classmethod
+    def _publisher_not_reserved(cls, value: str) -> str:
+        if value in RESERVED_PUBLISHERS:
+            raise ValueError(
+                f"Publisher '{value}' is reserved by the host "
+                f"(reserved: {', '.join(sorted(RESERVED_PUBLISHERS))})"
+            )
+        return value
 
     @computed_field(description="Composite extension ID (publisher.name)")  # type: ignore[prop-decorator]
     @property

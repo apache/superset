@@ -63,11 +63,42 @@ const notifyUnregister = (event: MenuItemUnregisteredEvent) => {
   unregisterEmitter.fire(event);
 };
 
+/** Host menu locations outside SQL Lab (see `menus.Locations` in the SDK). */
+export const MenuLocations: typeof menusApi.Locations = {
+  settingsMenu: 'global.settingsMenu',
+};
+
+/**
+ * `MenuItem` is a union, but extensions are plain JS at runtime, so the
+ * "exactly one of `page` / `command`" rule is enforced here rather than
+ * left to the host surfaces to skip silently.
+ */
+const validateMenuItem = (item: MenuItem, location: string): void => {
+  const hasPage = typeof item?.page === 'string' && item.page.length > 0;
+  const hasCommand =
+    typeof item?.command === 'string' && item.command.length > 0;
+  if (hasPage === hasCommand) {
+    throw new Error(
+      `Menu item at "${location}" must set exactly one of "page" or ` +
+        `"command" (got ${hasPage ? 'both' : 'neither'}).`,
+    );
+  }
+};
+
+/**
+ * Contributed items in render order: by `order` (unset sorts last), then
+ * by registration order. `Array.prototype.sort` is stable, so ties keep
+ * the order they were registered in.
+ */
+export const sortMenuItems = <T extends MenuItem>(items: T[]): T[] =>
+  [...items].sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || 0);
+
 const registerMenuItem: typeof menusApi.registerMenuItem = (
   item: MenuItem,
   location: string,
   group: 'primary' | 'secondary' | 'context',
 ): Disposable => {
+  validateMenuItem(item, location);
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
   notifyRegister({ item, location, group });
@@ -128,6 +159,7 @@ export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
   ): Disposable => unregisterEmitter.subscribe(listener, thisArgs);
 
 export const menus: typeof menusApi = {
+  Locations: MenuLocations,
   registerMenuItem,
   getMenu,
   onDidRegisterMenuItem,

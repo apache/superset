@@ -36,7 +36,8 @@ import { Event } from '../common';
  * `'dataset_list'` are the browse/list surfaces, distinct from those because no
  * single entity is active. `'sqllab'` is the SQL editor where
  * `sqlLab.getCurrentTab()` resolves; `'query_history'` and `'saved_queries'`
- * are the related SQL Lab browse pages, which are not the editor. `'home'` is
+ * are the related SQL Lab browse pages, which are not the editor.
+ * `'extension'` is an extension-owned page under `/extensions/pages/`. `'home'` is
  * the welcome surface and the fallback for any route not explicitly enumerated.
  */
 export type Page =
@@ -49,6 +50,7 @@ export type Page =
   | 'saved_queries'
   | 'dataset'
   | 'dataset_list'
+  | 'extension'
   | 'home';
 
 /**
@@ -79,3 +81,49 @@ export declare function getPage(): Page;
  * ```
  */
 export declare const onDidChangePage: Event<Page>;
+
+/**
+ * The current location, as router-relative path and query string.
+ */
+export interface Location {
+  /** Path below the application root, e.g. `/extensions/pages/acme.catalog.main/42`. */
+  pathname: string;
+  /** Query string including the leading `?`, or `''`. */
+  search: string;
+}
+
+/**
+ * Navigates to a router-relative path (starting with `/`) without a full
+ * page reload when the host can route it client-side, and with a regular
+ * navigation otherwise.
+ *
+ * @throws If `path` is not a router-relative path.
+ *
+ * To open an extension page by id, the built-in `core.navigation.openPage`
+ * command does the same: `commands.executeCommand('core.navigation.openPage', 'acme.catalog.main')`.
+ *
+ * @example
+ * ```typescript
+ * navigation.navigateTo('/extensions/pages/acme.catalog.main/42/edit');
+ * ```
+ */
+export declare function navigateTo(path: string): void;
+
+/**
+ * Returns the current location. An extension page reads its own sub-path
+ * (everything below `/extensions/pages/<id>/`) and query params from here.
+ */
+export declare function getLocation(): Location;
+
+/**
+ * Event fired whenever the path or query string changes, including
+ * navigation within the same page.
+ *
+ * @example
+ * ```typescript
+ * const sub = navigation.onDidChangeLocation(({ pathname, search }) => {
+ *   // re-render for the new sub-path / query params
+ * });
+ * ```
+ */
+export declare const onDidChangeLocation: Event<Location>;

@@ -137,6 +137,11 @@ const Extensions = lazyWithRetry(
     ),
 );
 
+const ExtensionPage = lazyWithRetry(
+  () =>
+    import(/* webpackChunkName: "ExtensionPage" */ 'src/pages/ExtensionPage'),
+);
+
 const RowLevelSecurityList = lazyWithRetry(
   () =>
     import(
@@ -311,6 +316,19 @@ if (isAdmin) {
   }
 }
 
+// Host for extension-owned pages (views registered at `global.page`).
+// Available to any signed-in user when extensions are enabled, not
+// admin-gated like the extension list above: a page that needs a
+// permission declares one on `registerView`, and the data behind it is
+// enforced by the extension's own endpoints. Matched non-exactly (the
+// `Route`s in `App.tsx` are), so sub-paths render the same page.
+if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+  routes.push({ path: RoutePaths.EXTENSION_PAGE, Component: ExtensionPage });
+}
+
+/** Prefix of the extension page host route; everything below is client-side. */
+const EXTENSION_PAGES_PREFIX = '/extensions/pages/';
+
 if (authRegistrationEnabled) {
   routes.push({ path: RoutePaths.REGISTRATIONS, Component: UserRegistrations });
 }
@@ -337,6 +355,13 @@ export const isFrontendRoute = (path?: string): boolean => {
     // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
     // full-page-reload fallback for those URLs.
     const basePath = stripAppRoot(path.split(/[?#]/)[0]);
+    if (
+      isFeatureEnabled(FeatureFlag.EnableExtensions) &&
+      basePath.startsWith(EXTENSION_PAGES_PREFIX) &&
+      basePath.length > EXTENSION_PAGES_PREFIX.length
+    ) {
+      return true;
+    }
     return !!frontEndRoutes[basePath];
   }
   return false;

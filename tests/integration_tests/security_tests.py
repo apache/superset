@@ -1733,6 +1733,9 @@ class TestRolePermission(SupersetTestCase):
             ["Superset", "log"],
             ["Superset", "theme"],
             ["Superset", "welcome"],
+            # Client-side shell for extension pages, gated by a login check in
+            # the body like welcome; the page id is resolved client-side.
+            ["ExtensionsView", "pages"],
             ["SecurityApi", "login"],
             ["SecurityApi", "refresh"],
             ["SupersetIndexView", "index"],

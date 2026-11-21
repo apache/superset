@@ -26,13 +26,20 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useLocation, matchPath } from 'react-router-dom';
+import { useHistory, useLocation, matchPath } from 'react-router-dom';
+import type { History } from 'history';
 import type { navigation as navigationApi } from '@apache-superset/core';
+import {
+  navigateTo as fullPageNavigate,
+  stripAppRoot,
+} from 'src/utils/navigationUtils';
 import { RoutePaths } from '../../views/routePaths';
+import { commands } from '../commands';
 import { Disposable } from '../models';
 import { createValueEventEmitter } from '../utils';
 
 type Page = navigationApi.Page;
+type Location = navigationApi.Location;
 
 /** Maps route path patterns to their corresponding Page type. */
 const PAGE_ROUTES: { path: string; page: Page }[] = [
@@ -52,6 +59,7 @@ const PAGE_ROUTES: { path: string; page: Page }[] = [
   { path: RoutePaths.DATASET_LIST, page: 'dataset_list' },
   { path: RoutePaths.DATASET_ADD, page: 'dataset' },
   { path: RoutePaths.DATASET, page: 'dataset' },
+  { path: RoutePaths.EXTENSION_PAGE, page: 'extension' },
 ];
 
 function derivePage(pathname: string): Page {
@@ -79,20 +87,123 @@ const onDidChangePage: typeof navigationApi.onDidChangePage = (
   thisArgs?: unknown,
 ): Disposable => pageEmitter.subscribe(listener, thisArgs);
 
+const EXTENSION_PAGES_PREFIX = '/extensions/pages/';
+
+// Seeded on first use rather than at import: `stripAppRoot` reads the
+// application root from bootstrap data, which is not guaranteed to be
+// readable while this module is still being evaluated.
+let locationEmitterInstance: ReturnType<
+  typeof createValueEventEmitter<Location>
+> | null = null;
+
+const getLocationEmitter = () => {
+  if (!locationEmitterInstance) {
+    locationEmitterInstance = createValueEventEmitter<Location>({
+      pathname: stripAppRoot(window.location.pathname),
+      search: window.location.search ?? '',
+    });
+  }
+  return locationEmitterInstance;
+};
+
+/**
+ * React Router's history, captured by `useNavigationTracker`, so
+ * `navigateTo` can push client-side from non-component code (a command
+ * handler). `react-router-dom` is not in the module-federation share scope,
+ * so an extension can't reach the host's router any other way, and a raw
+ * `history.pushState` fires no `popstate` the router would see.
+ */
+let routerHistory: History | null = null;
+
+/** Paths the host router renders client-side, so a push won't dead-end. */
+const isClientRoutable = (pathname: string): boolean =>
+  PAGE_ROUTES.some(({ path }) => !!matchPath(pathname, { path, exact: false }));
+
+const navigateTo: typeof navigationApi.navigateTo = (path: string) => {
+  if (
+    typeof path !== 'string' ||
+    !path.startsWith('/') ||
+    path.startsWith('//') ||
+    path.includes('\\')
+  ) {
+    throw new Error(
+      `navigateTo expects a router-relative path starting with "/" (got "${path}").`,
+    );
+  }
+  const relative = stripAppRoot(path);
+  const pathname = relative.split(/[?#]/)[0];
+  if (routerHistory && isClientRoutable(pathname)) {
+    routerHistory.push(relative);
+    return;
+  }
+  fullPageNavigate(relative);
+};
+
+/** Id of the built-in command that opens an extension page by its id. */
+export const OPEN_PAGE_COMMAND = 'core.navigation.openPage';
+
+// The handler behind `page` menu items, public so keybindings and other
+// menu locations can open a page without going through a menu item:
+// `commands.executeCommand('core.navigation.openPage', 'acme.catalog.main')`.
+commands.registerCommand(
+  {
+    id: OPEN_PAGE_COMMAND,
+    title: 'Open page',
+    description: 'Open an extension page registered at global.page.',
+  },
+  (pageId: string) => {
+    if (typeof pageId !== 'string' || !/^[^/?#%\s]+$/.test(pageId)) {
+      throw new Error(
+        `${OPEN_PAGE_COMMAND} expects a page id (got "${pageId}").`,
+      );
+    }
+    navigateTo(`${EXTENSION_PAGES_PREFIX}${pageId}`);
+  },
+);
+
+const getLocation: typeof navigationApi.getLocation = () =>
+  getLocationEmitter().getCurrent();
+
+const onDidChangeLocation: typeof navigationApi.onDidChangeLocation = (
+  listener: (location: Location) => void,
+  thisArgs?: unknown,
+): Disposable => getLocationEmitter().subscribe(listener, thisArgs);
+
 /** Synchronizes the navigation module with React Router. Call once in the app shell. */
 export const useNavigationTracker = () => {
   const location = useLocation();
+  const history = useHistory();
   const prevPathname = useRef<string | null>(null);
+
+  useEffect(() => {
+    routerHistory = history;
+    return () => {
+      if (routerHistory === history) routerHistory = null;
+    };
+  }, [history]);
 
   useEffect(() => {
     if (prevPathname.current !== location.pathname) {
       prevPathname.current = location.pathname;
       notifyLocationChanged(location.pathname);
     }
-  }, [location.pathname]);
+    const current = getLocationEmitter().getCurrent();
+    if (
+      current.pathname !== location.pathname ||
+      current.search !== location.search
+    ) {
+      getLocationEmitter().fire({
+        pathname: location.pathname,
+        search: location.search,
+      });
+    }
+  }, [location.pathname, location.search]);
 };
 
 export const navigation: typeof navigationApi = {
   getPage,
   onDidChangePage,
+  navigateTo,
+  getLocation,
+  onDidChangeLocation,
 };

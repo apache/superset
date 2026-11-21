@@ -67,7 +67,7 @@ commands.registerCommand(
 
 ### Menus
 
-Extensions can contribute new menu items or context menus to the host application, providing users with additional actions and options. Each menu item specifies the view and command to execute, the target area, and the location (`primary`, `secondary`, or `context`). Menu contribution areas are uniquely identified (e.g., `sqllab.editor` for the SQL Lab editor).
+Extensions can contribute new menu items or context menus to the host application, providing users with additional actions and options. Each menu item specifies the view and command to execute, the target area, and the location (`primary`, `secondary`, or `context`). Menu contribution areas are uniquely identified (e.g., `sqllab.editor` for the SQL Lab editor). Full-page extension views and the global Settings dropdown have their own locations; see [Pages and Settings Menu](./extension-points/pages.md).
 
 ```typescript
 import { menus } from '@apache-superset/core';

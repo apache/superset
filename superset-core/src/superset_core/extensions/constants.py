@@ -23,6 +23,11 @@ Constants for extension validation and naming.
 # letter; no consecutive hyphens or trailing hyphens
 PUBLISHER_PATTERN = r"^[a-z]([a-z0-9]*(-[a-z0-9]+)*)?$"
 
+# Publisher names that collide with host-owned routes under /extensions/
+# (the extension list, and the extension page host /extensions/pages/<id>),
+# which share a prefix with extension-owned /extensions/{publisher}/{name}/.
+RESERVED_PUBLISHERS = frozenset({"list", "pages"})
+
 # Technical name validation pattern: lowercase letters, numbers, hyphens; must start
 # with letter; no consecutive hyphens or trailing hyphens
 TECHNICAL_NAME_PATTERN = r"^[a-z]([a-z0-9]*(-[a-z0-9]+)*)?$"

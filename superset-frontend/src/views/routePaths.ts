@@ -59,4 +59,9 @@ export const RoutePaths = {
   USERS: '/users/',
   GROUPS: '/list_groups/',
   EXTENSIONS: '/extensions/list/',
+  // An extension-owned page: a view registered at `global.page`. Page ids
+  // are dotted (`acme.catalog.main`), so the id is one plain segment, and
+  // the route is matched non-exactly: everything below it is the page's own
+  // sub-path, read via `navigation.getLocation()`.
+  EXTENSION_PAGE: '/extensions/pages/:pageId',
 } as const;

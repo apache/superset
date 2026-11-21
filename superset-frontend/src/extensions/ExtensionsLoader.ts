@@ -20,6 +20,7 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
 import { makeUrl } from 'src/utils/navigationUtils';
+import { createOwnedRegisterView } from 'src/core/views';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
 
@@ -67,9 +68,24 @@ class ExtensionsLoader {
 
   private initializationPromise: Promise<void> | null = null;
 
-  // eslint-disable-next-line no-useless-constructor
+  private resolveReady!: () => void;
+
+  private readonly readyPromise: Promise<void>;
+
   private constructor() {
-    // Private constructor for singleton pattern
+    this.readyPromise = new Promise<void>(resolve => {
+      this.resolveReady = resolve;
+    });
+  }
+
+  /**
+   * Resolves once `initializeExtensions()` has settled, whether every
+   * extension loaded or some failed. Doesn't start loading itself, so a
+   * consumer (e.g. the extension page host telling "still loading" apart
+   * from "not found") can wait on it without racing the app's own startup.
+   */
+  public ready(): Promise<void> {
+    return this.readyPromise;
   }
 
   /**
@@ -111,6 +127,8 @@ class ExtensionsLoader {
         }
       } catch (error) {
         logging.error('Error setting up extensions:', error);
+      } finally {
+        this.resolveReady();
       }
     })();
     return this.initializationPromise;
@@ -216,6 +234,12 @@ class ExtensionsLoader {
       extensions: {
         ...window.superset.extensions,
         getContext: () => context,
+      },
+      // Bound to this extension, so a `global.page` id it registers must be
+      // prefixed with its own id (it can't claim another extension's page).
+      views: {
+        ...window.superset.views,
+        registerView: createOwnedRegisterView(id),
       },
     };
     // Reuse the version key webpack already resolved for the host's own

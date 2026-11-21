@@ -49,6 +49,7 @@ import {
   Tooltip,
   Menu,
   Icons,
+  type IconNameType,
   Typography,
   TelemetryPixel,
   Drawer,
@@ -75,6 +76,14 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
+import {
+  commands,
+  useMenu,
+  useViews,
+  window as extensionWindow,
+} from 'src/core';
+import { MenuLocations, sortMenuItems } from 'src/core/menus';
+import { canViewPage, getRegisteredView, ViewLocations } from 'src/core/views';
 import { useLanguageMenuItems } from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -388,6 +397,13 @@ const RightMenu = ({
     }
   };
 
+  // Extension-contributed items in the Settings dropdown (e.g. an
+  // extension's own admin/config screen), rendered as a "primary" group.
+  const settingsMenuExtension = useMenu(MenuLocations.settingsMenu);
+  // Subscribed so a `page` item appears once its page registers (and
+  // disappears if it's disposed); the entries themselves are read below.
+  const extensionPages = useViews(ViewLocations.page);
+
   // Use the theme menu hook
   const themeMenuItem = useThemeMenuItems({
     setThemeMode,
@@ -520,6 +536,70 @@ const RightMenu = ({
           items.push({ type: 'divider', key: `divider_${index}` });
         }
       });
+
+      const extensionIcon = (name?: string) => {
+        const Icon = name ? Icons[name as IconNameType] : undefined;
+        return Icon ? <Icon iconSize="m" /> : undefined;
+      };
+      const extensionSettingsItems = sortMenuItems(
+        settingsMenuExtension?.primary ?? [],
+      )
+        .map((menuItem): MenuItem | null => {
+          if (menuItem.page) {
+            // Only pages that are registered, at `global.page`, and that the
+            // user may see. A real link, so middle-click / open in new tab
+            // work and navigation stays client-side.
+            const entry = getRegisteredView(menuItem.page);
+            if (
+              !entry ||
+              entry.location !== ViewLocations.page ||
+              !canViewPage(entry, roles)
+            ) {
+              return null;
+            }
+            const to = `/extensions/pages/${menuItem.page}`;
+            return {
+              key: `extension-page:${menuItem.page}`,
+              icon: extensionIcon(menuItem.icon),
+              label: <Link to={to}>{entry.view.name}</Link>,
+              title: menuItem.description ?? entry.view.description,
+            };
+          }
+          const command = menuItem.command
+            ? commands.getCommand(menuItem.command)
+            : undefined;
+          if (!command) {
+            return null;
+          }
+          return {
+            key: `extension:${command.id}`,
+            icon: extensionIcon(menuItem.icon),
+            label: command.title,
+            title: menuItem.description ?? command.description,
+            onClick: () => {
+              Promise.resolve(commands.executeCommand(command.id)).catch(
+                (error: unknown) => {
+                  extensionWindow.showErrorMessage(
+                    error instanceof Error && error.message
+                      ? error.message
+                      : t('The %s command failed.', command.title),
+                  );
+                },
+              );
+            },
+          };
+        })
+        .filter((item): item is MenuItem => !!item);
+
+      if (extensionSettingsItems.length > 0) {
+        items.push({ type: 'divider', key: 'extension-settings-divider' });
+        items.push({
+          type: 'group',
+          label: t('Extensions'),
+          key: 'extension-settings-section',
+          children: extensionSettingsItems,
+        });
+      }
 
       if (!navbarRight.user_is_anonymous) {
         items.push({ type: 'divider', key: 'user-divider' });
@@ -662,6 +742,8 @@ const RightMenu = ({
     theme.colorPrimary,
     themeMenuItem,
     languageMenuItem,
+    settingsMenuExtension,
+    extensionPages,
     dropdownItems,
     roles,
     settings,

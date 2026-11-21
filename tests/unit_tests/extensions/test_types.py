@@ -112,6 +112,20 @@ def test_extension_config_empty_publisher():
     assert "publisher" in str(exc_info.value)
 
 
+@pytest.mark.parametrize("publisher", ["list", "pages"])
+def test_extension_config_reserved_publisher(publisher):
+    """Publishers colliding with host routes under /extensions/ are rejected."""
+    with pytest.raises(ValidationError) as exc_info:
+        ExtensionConfig.model_validate(
+            {
+                "publisher": publisher,
+                "name": "my-extension",
+                "displayName": "My Extension",
+            }
+        )
+    assert "reserved" in str(exc_info.value)
+
+
 def test_extension_config_invalid_version():
     """Test ExtensionConfig raises error for invalid version format."""
     with pytest.raises(ValidationError) as exc_info:

@@ -504,3 +504,73 @@ test('logs error when initializeExtensions fails', async () => {
 
   errorSpy.mockRestore();
 });
+
+test('ready() resolves only once initializeExtensions has settled, even on failure', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  jest.spyOn(logging, 'error').mockImplementation();
+  let rejectFetch!: (error: Error) => void;
+  jest.spyOn(SupersetClient, 'get').mockReturnValue(
+    new Promise((_, reject) => {
+      rejectFetch = reject;
+    }) as ReturnType<typeof SupersetClient.get>,
+  );
+
+  let ready = false;
+  loader.ready().then(() => {
+    ready = true;
+  });
+  const init = loader.initializeExtensions();
+  await Promise.resolve();
+  expect(ready).toBe(false);
+
+  rejectFetch(new Error('Network error'));
+  await init;
+  await loader.ready();
+  expect(ready).toBe(true);
+});
+
+test('the scoped core binds views.registerView to the loading extension', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  let scopedCore: typeof import('@apache-superset/core') | undefined;
+  const appendChildSpy = mockRemoteEntryLoad();
+  mockWebpackSharing({
+    '0.1.0': {
+      get: () => Promise.resolve(() => ({})),
+      loaded: true,
+      eager: true,
+    },
+  });
+  (window as any).owned_ext = {
+    init: jest.fn().mockImplementation(async (scope: WebpackSharedScope) => {
+      const factory = await scope['@apache-superset/core']['0.1.0'].get();
+      scopedCore = factory() as typeof import('@apache-superset/core');
+    }),
+    get: jest.fn().mockResolvedValue(() => {}),
+  };
+
+  await loader.initializeExtension({
+    ...createMockExtension({
+      id: 'acme.tools',
+      remoteEntry: 'http://acme/remoteEntry.js',
+    }),
+    moduleFederationName: 'owned_ext',
+  });
+
+  expect(() =>
+    scopedCore!.views.registerView(
+      { id: 'other.ext.page', name: 'Hijack' },
+      'global.page',
+      () => null,
+    ),
+  ).toThrow(/must start with the registering extension's id/);
+  scopedCore!.views
+    .registerView(
+      { id: 'acme.tools.page', name: 'Mine' },
+      'global.page',
+      () => null,
+    )
+    .dispose();
+
+  appendChildSpy.mockRestore();
+  cleanupWebpackSharing();
+});
