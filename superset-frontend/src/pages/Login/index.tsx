@@ -203,7 +203,7 @@ export default function Login() {
             <Flex justify="center" vertical gap="middle">
               <Form layout="vertical" requiredMark="optional" form={form}>
                 {providers.map((provider: OIDProvider) => (
-                  <Form.Item<LoginForm>>
+                  <Form.Item<LoginForm> key={provider.name}>
                     <Button
                       href={buildProviderLoginUrl(provider.name)}
                       block
@@ -222,7 +222,7 @@ export default function Login() {
             <Flex justify="center" gap={0} vertical>
               <Form layout="vertical" requiredMark="optional" form={form}>
                 {providers.map((provider: OAuthProvider) => (
-                  <Form.Item<LoginForm>>
+                  <Form.Item<LoginForm> key={provider.name}>
                     <Button
                       href={buildProviderLoginUrl(provider.name)}
                       block
