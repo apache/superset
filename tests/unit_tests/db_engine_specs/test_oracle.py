@@ -191,6 +191,18 @@ def test_get_column_spec_unmapped_types(native_type: str) -> None:
     assert OracleEngineSpec.get_column_spec(native_type) is None
 
 
+def test_get_materialized_view_names() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    inspector = mock.Mock()
+    inspector.get_materialized_view_names.return_value = ["sales_daily_mv"]
+
+    assert OracleEngineSpec.get_materialized_view_names(
+        mock.Mock(), inspector, "demo"
+    ) == {"sales_daily_mv"}
+    inspector.get_materialized_view_names.assert_called_once_with("demo")
+
+
 def test_get_cancel_query_id() -> None:
     from superset.db_engine_specs.oracle import OracleEngineSpec
     from superset.models.sql_lab import Query

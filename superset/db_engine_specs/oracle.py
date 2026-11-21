@@ -31,6 +31,7 @@ from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
+    from sqlalchemy.engine.reflection import Inspector
 
     from superset.models.core import Database
     from superset.models.sql_lab import Query
@@ -195,6 +196,15 @@ class OracleEngineSpec(BaseEngineSpec):
         TimeGrain.QUARTER: "TRUNC(CAST({col} as DATE), 'Q')",
         TimeGrain.YEAR: "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
+
+    @classmethod
+    def get_materialized_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        return set(inspector.get_materialized_view_names(schema))
 
     @classmethod
     def convert_dttm(
