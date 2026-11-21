@@ -111,6 +111,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Two row and two column dimensions with totals and subtotals can need
+# (2 + 1) * (2 + 1) rollup levels. Requests with more levels are refused.
+MAX_SEMANTIC_PIVOT_LEVELS: int = 9
+MAX_SEMANTIC_PIVOT_ROWS_PER_LEVEL: int = 10000
+
 
 def normalize_contribution_totals(
     queries: list[QueryObject],
@@ -679,7 +684,7 @@ class QueryContextProcessor:
         context: dict[str, Any] = {
             "user_id": get_user_id(),
             "source_rls": source_rls,
-            "semantic_filter_protocol": "semantic-null-filters-v1",
+            "semantic_filter_protocol": "semantic-null-filters-v2",
             "source_versions": metadata_versions,
         }
         # Omit optional components when empty to preserve unaffected key bytes.
@@ -782,13 +787,39 @@ class QueryContextProcessor:
         query per rollup level and concatenate, tagging each level's rows with
         the same per-column markers the native path emits.
 
-        This issues one sequential query per rollup level, with no cap on the
-        number of levels. The level count is bounded by the pivot's row/column
-        dimensionality (powerset of grouped dimensions in the worst case), so a
-        chart with many dimensions on an engine lacking native GROUPING SETS
-        support could fan out to a non-trivial number of queries per render.
+        This issues one sequential query per rollup level. Semantic pivots are
+        capped at nine levels; other datasources retain their existing fallback
+        behavior. The level count grows with the pivot's row/column dimensions.
         """
         levels: list[list[str]] = query_object.grouping_sets
+        is_semantic_pivot: bool = (
+            query_object.datasource is not None
+            and query_object.datasource.type == "semantic_view"
+        )
+        semantic_row_limit: int | None = None
+        if is_semantic_pivot:
+            if len(levels) > MAX_SEMANTIC_PIVOT_LEVELS:
+                raise QueryObjectValidationError(
+                    _(
+                        "Pivot Table has too many rollup levels for a semantic view. "
+                        "Remove row or column dimensions and try again."
+                    )
+                )
+            if query_object.row_offset:
+                raise QueryObjectValidationError(
+                    _(
+                        "Pivot Table pagination is not supported on semantic views. "
+                        "Clear the row offset and try again."
+                    )
+                )
+            semantic_row_limit = max(
+                1,
+                min(
+                    query_object.row_limit or MAX_SEMANTIC_PIVOT_ROWS_PER_LEVEL,
+                    current_app.config["ROW_LIMIT"],
+                    MAX_SEMANTIC_PIVOT_ROWS_PER_LEVEL,
+                ),
+            )
         # Use the same label derivation as the native path (physical column name
         # or adhoc column label) so both column kinds are represented and each
         # label maps back to its own column, in the same order as the source
@@ -807,19 +838,18 @@ class QueryContextProcessor:
             sub_query.columns = [
                 label_to_column[label] for label in all_labels if label in level_labels
             ]
-            # A GROUPING SETS query computes a bounded set of rollup levels, so
-            # the native path never applies row_limit to it (see the
-            # `use_grouping_sets` check in models/helpers.py). Match that here:
-            # limiting each level's fallback sub-query independently would
-            # truncate subtotal/grand-total rows and diverge from the native
-            # result shape. The native path applies `row_offset` exactly once,
+            # The SQL native path does not apply row_limit to GROUPING SETS
+            # (see `use_grouping_sets` in models/helpers.py). Semantic pivots
+            # bound every level and refuse a result that reaches the limit;
+            # other datasources retain the unbounded fallback. The native path
+            # applies `row_offset` exactly once,
             # to the combined multi-level result (see the unconditional
             # `qry.offset()` call in models/helpers.py). Applying the same
             # offset to each per-level sub-query independently would apply it
             # once per level instead of once overall, and can silently drop
             # low-row-count levels (e.g. the single grand-total row) entirely.
             # Zero it here and apply it once after concatenation instead.
-            sub_query.row_limit = None
+            sub_query.row_limit = semantic_row_limit if is_semantic_pivot else None
             sub_query.row_offset = 0
             result = self._execute_query_object(sub_query)
             if result.status == QueryStatus.FAILED:
@@ -827,6 +857,14 @@ class QueryContextProcessor:
                 # carrying on would let a later level's status overwrite it,
                 # and an incomplete concatenation would be cached as success.
                 return result
+            if semantic_row_limit is not None and len(result.df) >= semantic_row_limit:
+                raise QueryObjectValidationError(
+                    _(
+                        "Pivot Table level reached the row limit on a semantic "
+                        "view; it may be complete or truncated. Add filters or "
+                        "remove row or column dimensions and try again."
+                    )
+                )
             level_df = result.df.copy()
             for label in all_labels:
                 level_df[grouping_marker_label(label)] = (
