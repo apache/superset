@@ -172,6 +172,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [isFetchingActivityData, setIsFetchingActivityData] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const collapseState = getItem(LocalStorageKeys.HomepageCollapseState, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
@@ -179,6 +180,10 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
     setItem(LocalStorageKeys.HomepageCollapseState, state);
+  };
+
+  const handleRefreshActivity = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   const SubmenuExtension = extensionsRegistry.get('home.submenu');
@@ -214,28 +219,42 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   useEffect(() => {
     if (!otherTabFilters || WelcomeMainExtension) {
-      return;
+      return undefined;
     }
+    // Guards against out-of-order responses: if `refreshKey` changes again
+    // (e.g. a rapid follow-up delete) before this run's requests resolve,
+    // its results are discarded instead of overwriting newer state.
+    let isStale = false;
     const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
-    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
+    // Collapse state and the initial tab are only restored on first load, so
+    // later refreshes update the data without overriding user choices.
+    const isInitialLoad = refreshKey === 0;
+    if (isInitialLoad) {
+      setActiveState(
+        collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR,
+      );
+    }
     getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
+        if (isStale) return;
         const data: ActivityData | null = {};
         data[TableTab.Other] = res.other;
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data[TableTab.Viewed] = filtered;
-          if (!activeTab && data[TableTab.Viewed]) {
-            setActiveChild(TableTab.Viewed);
-          } else if (!activeTab && !data[TableTab.Viewed]) {
-            setActiveChild(TableTab.Created);
-          } else setActiveChild(activeTab || TableTab.Created);
-        } else if (!activeTab) setActiveChild(TableTab.Created);
-        else setActiveChild(activeTab);
+        }
+        if (isInitialLoad) {
+          if (res.viewed) {
+            if (!activeTab) setActiveChild(TableTab.Viewed);
+            else setActiveChild(activeTab);
+          } else if (!activeTab) setActiveChild(TableTab.Created);
+          else setActiveChild(activeTab);
+        }
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
       .catch(
         createErrorHandler((errMsg: unknown) => {
+          if (isStale) return;
           setActivityData(activityData => ({
             ...activityData,
             [TableTab.Viewed]: [],
@@ -257,44 +276,56 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     Promise.all([
       getUserEditableObjects(id, 'dashboard')
         .then(r => {
-          setDashboardData(r);
+          if (!isStale) setDashboardData(r);
           return Promise.resolve();
         })
         .catch((err: unknown) => {
-          setDashboardData([]);
-          addDangerToast(
-            t('There was an issue fetching your dashboards: %s', err),
-          );
+          if (!isStale) {
+            setDashboardData([]);
+            addDangerToast(
+              t('There was an issue fetching your dashboards: %s', err),
+            );
+          }
           return Promise.resolve();
         }),
       getUserEditableObjects(id, 'chart')
         .then(r => {
-          setChartData(r);
+          if (!isStale) setChartData(r);
           return Promise.resolve();
         })
         .catch((err: unknown) => {
-          setChartData([]);
-          addDangerToast(t('There was an issue fetching your chart: %s', err));
+          if (!isStale) {
+            setChartData([]);
+            addDangerToast(
+              t('There was an issue fetching your chart: %s', err),
+            );
+          }
           return Promise.resolve();
         }),
       canReadSavedQueries
         ? getUserEditableObjects(id, 'saved_query', ownSavedQueryFilters)
             .then(r => {
-              setQueryData(r);
+              if (!isStale) setQueryData(r);
               return Promise.resolve();
             })
             .catch((err: unknown) => {
-              setQueryData([]);
-              addDangerToast(
-                t('There was an issue fetching your saved queries: %s', err),
-              );
+              if (!isStale) {
+                setQueryData([]);
+                addDangerToast(
+                  t('There was an issue fetching your saved queries: %s', err),
+                );
+              }
               return Promise.resolve();
             })
         : Promise.resolve(),
     ]).then(() => {
-      setIsFetchingActivityData(false);
+      if (!isStale) setIsFetchingActivityData(false);
     });
-  }, [otherTabFilters]);
+
+    return () => {
+      isStale = true;
+    };
+  }, [otherTabFilters, refreshKey]);
 
   const handleToggle = () => {
     setChecked(!checked);
@@ -379,6 +410,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         setActiveChild={setActiveChild}
                         activityData={activityData}
                         isFetchingActivityData={isFetchingActivityData}
+                        refreshKey={refreshKey}
                       />
                     ) : (
                       <LoadingCards />
@@ -398,6 +430,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        onActivityRefresh={handleRefreshActivity}
                       />
                     ),
                 },
@@ -418,6 +451,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                               otherTabData={activityData?.[TableTab.Other]}
                               otherTabFilters={otherTabFilters}
                               otherTabTitle={otherTabTitle}
+                              onActivityRefresh={handleRefreshActivity}
                             />
                           ),
                       },
