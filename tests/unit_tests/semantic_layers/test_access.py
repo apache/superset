@@ -17,6 +17,9 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+from werkzeug.exceptions import BadRequest
+
 
 def test_availability_is_evaluated_on_every_call() -> None:
     """A runtime hook can change availability without reconstructing the app."""
@@ -40,3 +43,28 @@ def test_disabled_error_is_tenant_neutral() -> None:
 
     error: SemanticLayersDisabledError = SemanticLayersDisabledError()
     assert str(error) == "Semantic layers are not enabled."
+
+
+def test_unsupported_chart_image_translates_validation_error() -> None:
+    """Image callers receive an HTTP 400 with the chart policy's useful message."""
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.slice import Slice
+    from superset.semantic_layers.access import is_semantic_image_unavailable
+
+    chart: Slice = Slice(datasource_type="semantic_view", viz_type="histogram_v2")
+    error: pytest.ExceptionInfo[BadRequest]
+    with (
+        patch(
+            "superset.semantic_layers.access.is_semantic_layers_enabled",
+            return_value=True,
+        ),
+        pytest.raises(BadRequest) as error,
+    ):
+        is_semantic_image_unavailable(chart)
+    assert error.value.code == 400
+    assert error.value.description == (
+        "Histogram is not yet supported on semantic views. "
+        "Use a Bar or Table chart with an explicit count metric."
+    )
+    assert str(error.value) == error.value.description
+    assert isinstance(error.value.__cause__, QueryObjectValidationError)

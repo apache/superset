@@ -18,6 +18,7 @@
  */
 import { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import rison from 'rison';
+import { uniq, uniqBy } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   Column,
@@ -68,6 +69,34 @@ export const getDatasourceKey = (
   datasourceType: DatasourceType | undefined,
 ) => `${datasetId}__${datasourceType || DatasourceType.Table}`;
 
+export const getColumnOptions = (
+  columns: Column[],
+  filterValues: (column: Column) => boolean,
+  showVerboseNames: boolean,
+  datasourceType?: DatasourceType,
+): { label: string; value: string }[] => {
+  const filtered = uniqBy(
+    ensureIsArray(columns).filter(filterValues),
+    'column_name',
+  );
+  const semantic = datasourceType === DatasourceType.SemanticView;
+  const names = filtered.map(column =>
+    (semantic || showVerboseNames) && column.verbose_name
+      ? column.verbose_name
+      : column.column_name,
+  );
+  const counts = new Map<string, number>();
+  if (semantic)
+    names.forEach(name => counts.set(name, (counts.get(name) ?? 0) + 1));
+  return filtered.map((column, index) => ({
+    label:
+      semantic && (counts.get(names[index]) ?? 0) > 1
+        ? `${names[index]} (${column.column_name})`
+        : names[index],
+    value: column.column_name,
+  }));
+};
+
 /** Special purpose AsyncSelect that selects a column from a dataset */
 export function ColumnSelect({
   allowClear = false,
@@ -93,26 +122,28 @@ export function ColumnSelect({
     ]);
   }, [form, filterId, formField]);
 
-  // The names backing the rendered options: the loaded columns narrowed by
+  // The unique names backing the rendered options: the loaded columns narrowed by
   // `filterValues`, the same narrowing the option list applies, so a default
   // seeded through onColumnsLoaded matches the available options exactly.
   const filterColumnNames = useCallback(
     (cols: Column[]) =>
-      ensureIsArray(cols)
-        .filter(filterValues)
-        .map((col: Column) => col.column_name),
+      uniq(
+        ensureIsArray(cols)
+          .filter(filterValues)
+          .map((col: Column) => col.column_name),
+      ),
     [filterValues],
   );
 
   const options = useMemo(
     () =>
-      ensureIsArray(columns)
-        .filter(filterValues)
-        .map((col: Column) => ({
-          label: (showVerboseNames && col.verbose_name) || col.column_name,
-          value: col.column_name,
-        })),
-    [columns, filterValues, showVerboseNames],
+      getColumnOptions(
+        ensureIsArray(columns),
+        filterValues,
+        showVerboseNames,
+        datasourceType,
+      ),
+    [columns, filterValues, showVerboseNames, datasourceType],
   );
 
   // Whether the current selection still matches a loaded column. An empty

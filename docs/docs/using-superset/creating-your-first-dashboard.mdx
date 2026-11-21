@@ -116,6 +116,11 @@ we register the **cleaned_sales_data** table from the **examples** database.
 
 To finish, click the **Add** button in the bottom right corner. You should now see your dataset in the list of datasets.
 
+When Semantic Layers is enabled, the chart creation page calls datasets and semantic views
+**datasources**. Its **Add a datasource** link opens the Datasources list, where **New**
+offers both kinds. The adjacent **create a semantic view** link opens that creation form
+directly. With Semantic Layers disabled, the link opens the dataset creation form.
+
 ### Organizing Datasets into Folders
 
 The Datasets list view supports **folders** for organizing datasets into groups. To create and manage folders:
@@ -172,6 +177,11 @@ You can also certify metrics if you'd like for your team in this view.
 - [Blog: Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
 - [Blog: Unlocking the Power of Virtual Datasets](https://preset.io/blog/unlocking-the-power-of-virtual-datasets-in-apache-superset/)
   :::
+
+### Finding charts by semantic view
+
+With Semantic Layers enabled, the **Datasource** filter on the Charts list includes
+semantic views as well as datasets. Select a view to find charts built from it.
 
 ### Integer precision in semantic views
 
@@ -397,6 +407,12 @@ You can mark a dashboard as a favorite by clicking on the star icon next to the 
 
 ### Customizing dashboard
 
+Dashboard access errors distinguish missing dashboards (**404 Not Found**) from
+existing dashboards you cannot view (**403 Forbidden**). The dashboard page shows
+a separate permission message for a 403 response. Opening a dashboard directly
+in a browser renders the dashboard error page with the corresponding HTTP status;
+API requests return JSON error responses.
+
 The following URL parameters can be used to modify how the dashboard is rendered:
 
 - `standalone`:
@@ -419,6 +435,16 @@ Top Nav and remove the Filter Bar:
 ### Table Chart Features
 
 The **Table** chart type has several advanced capabilities worth knowing:
+
+#### Client-side Paging
+
+With server pagination disabled, sorting or searching a Table returns it to the first
+page. Changing query criteria, such as a dashboard filter, also returns it to the
+first page even if the returned rows are identical. Refreshing the same query,
+including changed values from auto-refresh, or updating cross-filter selection
+highlighting preserves the selected page (unless it is no longer in range).
+Server-paginated Tables also return to the first page on sort changes. This applies
+to both dataset and semantic-view Tables.
 
 #### Conditional Formatting
 
@@ -576,6 +602,10 @@ These menu items respect your permissions: the dashboard export menu only appear
 ### Sharing a Specific Tab
 
 When a dashboard has tabs, each tab gets its own shareable URL. Navigate to the tab you want to share and copy the URL from your browser's address bar — the tab anchor is encoded in the URL so that anyone opening the link lands directly on that tab.
+
+When you return to a dashboard with selected native filters, those values apply to charts
+in each filter's configured scope. A filter scoped to one tab does not apply to charts
+outside that scope.
 
 ### Auto-Refresh
 
