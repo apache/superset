@@ -2891,6 +2891,21 @@ def test_validate_data_uri_file_scheme_examples_allowed() -> None:
     validate_data_uri(uri_in_examples)
 
 
+def test_dataset_forbidden_data_uri_is_a_client_error_not_500() -> None:
+    """``DatasetForbiddenDataURI`` is raised when the forbidden-data-URI
+    security control correctly rejects a payload during dataset import.
+    That rejection must surface to the REST client as a 400 (bad/forbidden
+    input), not escape as an unhandled 500 — it inherits from
+    ``ImportRefusedError`` (not the base ``ImportFailedError``, whose
+    default ``status`` is 500) precisely so the REST layer's generic
+    ``CommandException``-to-response handling picks the right status."""
+    from superset.commands.exceptions import ImportRefusedError
+
+    exc = DatasetForbiddenDataURI()
+    assert isinstance(exc, ImportRefusedError)
+    assert exc.status == 400
+
+
 def test_validate_data_uri_file_scheme_outside_examples_blocked() -> None:
     """file:// URIs outside the examples folder are blocked."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
