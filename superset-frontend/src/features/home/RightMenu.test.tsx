@@ -26,6 +26,7 @@ import {
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -33,6 +34,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { isFeatureEnabled, FeatureFlag, CACHE_KEY } from '@superset-ui/core';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import { views, ViewLocations } from 'src/core';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
@@ -695,4 +697,62 @@ test('archive fallback respects the application root', async () => {
   } finally {
     rootSpy.mockRestore();
   }
+});
+
+describe('navbar.right view location', () => {
+  const disposables: Array<{ dispose: () => void }> = [];
+
+  afterEach(() => {
+    disposables.forEach(d => d.dispose());
+    disposables.length = 0;
+  });
+
+  const renderRightMenu = () => {
+    resetUseSelectorMock();
+    render(<RightMenu {...createProps()} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+  };
+
+  test('contributes nothing to the navigation bar by default', async () => {
+    renderRightMenu();
+
+    expect(await screen.findByText('Settings')).toBeInTheDocument();
+    expect(screen.queryByText('Contributed control')).not.toBeInTheDocument();
+  });
+
+  test('renders a view registered at navbar.right', async () => {
+    disposables.push(
+      views.registerView(
+        { id: 'acme.reviews.navbar', name: 'Reviews' },
+        ViewLocations.navbar.right,
+        () => <span>Contributed control</span>,
+      ),
+    );
+
+    renderRightMenu();
+
+    expect(await screen.findByText('Contributed control')).toBeInTheDocument();
+  });
+
+  test('a view registered after the first render still appears', async () => {
+    renderRightMenu();
+    expect(await screen.findByText('Settings')).toBeInTheDocument();
+    expect(screen.queryByText('Contributed control')).not.toBeInTheDocument();
+
+    act(() => {
+      disposables.push(
+        views.registerView(
+          { id: 'acme.reviews.navbar', name: 'Reviews' },
+          ViewLocations.navbar.right,
+          () => <span>Contributed control</span>,
+        ),
+      );
+    });
+
+    expect(await screen.findByText('Contributed control')).toBeInTheDocument();
+  });
 });

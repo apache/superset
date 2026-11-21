@@ -131,6 +131,8 @@ import type {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import type User from 'src/types/User';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 
 // Keep saved Default URLs compatible with the prefix-free SPA route.
 const normalizeLegacyDashboardUrl = (url: string) =>
@@ -950,6 +952,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({
           row: {
             original: {
+              id,
               extra,
               table_name: datasetTitle,
               description,
@@ -1014,7 +1017,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     )}
                   </>
                 }
-                trailing={description && <InfoTooltip tooltip={description} />}
+                trailing={
+                  <>
+                    {description && <InfoTooltip tooltip={description} />}
+                    {/* Beside the name rather than in a column of its own:
+                        anything an extension shows here is absent for most
+                        rows most of the time, and an always-empty column
+                        costs every reader width. `trailing` keeps it clear
+                        of the title's ellipsis, which is what the wrapper
+                        used to do. */}
+                    <ViewListExtension
+                      viewId={ViewLocations.listView.dataset.nameCell}
+                      viewProps={{ assetId: id }}
+                    />
+                  </>
+                }
               >
                 {titleLink}
               </ListViewTitleCell>
@@ -1227,6 +1244,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   onClick={handleDelete}
                 />
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.dataset.actions}
+                viewProps={{ assetId: original.id }}
+              />
             </Actions>
           );
         },
@@ -1779,6 +1800,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   dataset={datasetCurrentlyDeleting}
                 />
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.dataset.deleteConfirmation}
+                viewProps={{ assetId: datasetCurrentlyDeleting.id }}
+              />
             </>
           }
           onConfirm={() => {

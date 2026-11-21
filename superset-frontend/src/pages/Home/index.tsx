@@ -38,6 +38,8 @@ import {
   setItem,
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { resolveView, useViews } from 'src/core/views';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   CardContainer,
   createErrorHandler,
@@ -187,6 +189,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const WelcomeMainExtension = extensionsRegistry.get(
     'welcome.main.replacement',
   );
+
+  // Subscribed rather than read once: extensions are fetched and evaluated
+  // after this page has already rendered, so a one-shot read sees an empty
+  // registry and the section never appears.
+  const primarySections = useViews(ViewLocations.home.sectionPrimary);
+  const contributedSections = useViews(ViewLocations.home.section);
 
   const [otherTabTitle, otherTabFilters] = useMemo(() => {
     const lastTab = bootstrapData.common?.conf
@@ -364,6 +372,15 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               onChange={handleCollapse}
               ghost
               items={[
+                // Contributed sections that claim the top of the page. Each
+                // renders as a section like any other; the ordering is the
+                // whole of the difference, and it is the extension's to ask
+                // for rather than the host's to decide.
+                ...(primarySections ?? []).map(view => ({
+                  key: view.id,
+                  label: view.name,
+                  children: resolveView(view.id),
+                })),
                 {
                   key: 'recents',
                   label: t('Recents'),
@@ -441,6 +458,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                       },
                     ]
                   : []),
+                // Sections contributed by extensions, after the host's own so
+                // that an extension cannot push the page's primary content
+                // below the fold. A contributed section is a section like any
+                // other: it takes the full width, its heading is the view's
+                // name, and the panel starts collapsed, so what the component
+                // fetches is not fetched until a reader opens it.
+                ...(contributedSections ?? []).map(view => ({
+                  key: view.id,
+                  label: view.name,
+                  children: resolveView(view.id),
+                })),
               ]}
             />
           </>

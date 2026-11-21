@@ -17,34 +17,8 @@
  * under the License.
  */
 /**
- * View locations for SQL Lab extension integration.
- *
- * These define the locations where extensions can contribute views and menus.
- * The nested structure mirrors the extension.json contribution schema.
- *
- * @example
- * // In extension.json:
- * {
- *   "contributions": {
- *     "views": {
- *       "sqllab": {
- *         "panels": [{ "id": "my-ext.panel", "name": "My Panel" }]
- *       }
- *     }
- *   }
- * }
- *
- * // In component code:
- * <ViewListExtension viewId={ViewLocations.sqllab.panels} />
+ * Re-exported for the many SQL Lab components that already import it from
+ * here. The locations themselves are no longer SQL Lab's alone, so they live
+ * with the registry that resolves them.
  */
-export const ViewLocations = {
-  sqllab: {
-    leftSidebar: 'sqllab.leftSidebar',
-    rightSidebar: 'sqllab.rightSidebar',
-    panels: 'sqllab.panels',
-    editor: 'sqllab.editor',
-    statusBar: 'sqllab.statusBar',
-    results: 'sqllab.results',
-    queryHistory: 'sqllab.queryHistory',
-  },
-} as const;
+export { ViewLocations } from 'src/core/viewLocations';
