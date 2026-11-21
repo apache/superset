@@ -222,6 +222,39 @@ test('Clicking on checkbox when resetConfig:false', async () => {
   expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
 });
 
+test('stores the checked state, not the change event, for a requiredFirst control', async () => {
+  const props = createProps();
+  // Same flags as the Select filter's real `defaultToFirstItem` control.
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'defaultToFirstItem',
+      config: {
+        renderTrigger: true,
+        requiredFirst: true,
+        resetConfig: true,
+        affectsDataMask: true,
+      },
+    },
+  ]);
+  const controlItemsMap = getControlItemsMap(props);
+  renderControlItems(controlItemsMap);
+
+  await userEvent.click(screen.getByRole('checkbox'));
+  expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+    props.form,
+    props.filterId,
+    { requiredFirst: { defaultToFirstItem: true } },
+  );
+
+  (setNativeFilterFieldValues as jest.Mock).mockClear();
+  await userEvent.click(screen.getByRole('checkbox'));
+  expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+    props.form,
+    props.filterId,
+    { requiredFirst: { defaultToFirstItem: false } },
+  );
+});
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColumnSelect filterValues behavior', () => {
   beforeEach(() => {
