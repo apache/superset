@@ -24,6 +24,7 @@ import {
 } from '@superset-ui/core';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { Collapse } from '@superset-ui/core/components';
+import { outOfScopeCollapseStyles } from '../FiltersOutOfScopeCollapsible';
 
 export interface CustomizationsOutOfScopeCollapsibleProps {
   customizationsOutOfScope: (ChartCustomization | ChartCustomizationDivider)[];
@@ -43,6 +44,7 @@ export const CustomizationsOutOfScopeCollapsible = ({
     ghost
     bordered
     expandIconPosition="end"
+    css={outOfScopeCollapseStyles}
     collapsible={customizationsOutOfScope.length === 0 ? 'disabled' : undefined}
     items={[
       {
