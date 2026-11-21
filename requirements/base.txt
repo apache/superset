@@ -44,7 +44,7 @@ cachelib==0.17.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.3.1
+cachetools==8.0.1
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
