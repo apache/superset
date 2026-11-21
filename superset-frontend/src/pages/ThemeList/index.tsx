@@ -674,7 +674,11 @@ function ThemesList({
           title={t('Import themes')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+          <Icons.DownloadOutlined
+            iconSize="l"
+            data-test="import-button"
+            aria-label={t('Import themes')}
+          />
         </Tooltip>
       ),
       buttonStyle: 'link',

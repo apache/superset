@@ -1435,6 +1435,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             iconColor={theme.colorPrimary}
             data-test="import-button"
             iconSize="l"
+            aria-label={t('Import %s', datasetsLabelLower())}
           />
         </Tooltip>
       ),

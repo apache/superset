@@ -91,6 +91,19 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
+// A bare button around the exit icon, so it keeps the icon's footprint and
+// inherited color while staying focusable and keyboard-operable.
+const ExitFullscreenButton = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  line-height: 0;
+`;
+
 const VerticalDotsTrigger = () => (
   <Icons.EllipsisOutlined
     css={css`
@@ -810,8 +823,8 @@ const SliceHeaderControls = (
   return (
     <>
       {isFullSize && (
-        <Button
-          buttonStyle="link"
+        <ExitFullscreenButton
+          type="button"
           aria-label={t('Exit fullscreen')}
           onClick={() => {
             if (document.fullscreenElement) {
@@ -823,7 +836,7 @@ const SliceHeaderControls = (
           }}
         >
           <Icons.FullscreenExitOutlined style={{ fontSize: 22 }} aria-hidden />
-        </Button>
+        </ExitFullscreenButton>
       )}
       <NoAnimationDropdown
         popupRender={() => sliceMenu}

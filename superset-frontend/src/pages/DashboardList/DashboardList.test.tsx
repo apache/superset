@@ -178,6 +178,13 @@ test('shows delete confirmation', async () => {
   ).toBeInTheDocument();
 });
 
+test('names the Import button after its action', async () => {
+  renderDashboardList(mockAdminUser);
+  expect(
+    await screen.findByRole('button', { name: 'Import dashboards' }),
+  ).toBeInTheDocument();
+});
+
 test('renders an "Import Dashboard" tooltip', async () => {
   renderDashboardList(mockAdminUser);
 

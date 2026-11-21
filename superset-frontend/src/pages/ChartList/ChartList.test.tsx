@@ -113,6 +113,14 @@ describe('ChartList', () => {
     );
   });
 
+  test('names the Import button after its action', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+    expect(
+      screen.getByRole('button', { name: 'Import charts' }),
+    ).toBeInTheDocument();
+  });
+
   test('opens import modal on Import button click', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');

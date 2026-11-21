@@ -364,6 +364,21 @@ describe('ListView', () => {
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalled();
   });
 
+  test('names the view toggle buttons after the view they show', () => {
+    factory({
+      renderCard: jest.fn(),
+      data: [],
+      count: 0,
+      initialSort: [{ id: 'something' }],
+    });
+    expect(
+      screen.getByRole('button', { name: 'Grid view' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'List view' }),
+    ).toBeInTheDocument();
+  });
+
   test('switches view mode via click of the toggle buttons', async () => {
     const { container } = factory({
       renderCard: jest.fn(),

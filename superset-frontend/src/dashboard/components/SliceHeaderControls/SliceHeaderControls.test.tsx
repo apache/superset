@@ -1221,3 +1221,12 @@ test('Download menu icons do not add to the menu item names', async () => {
     await screen.findByRole('menuitem', { name: 'Export to .CSV' }),
   ).toBeInTheDocument();
 });
+
+test('Exit fullscreen keeps the bare icon footprint and leaves More Options in place', () => {
+  renderWrapper({ ...createProps(), isFullSize: true });
+  const exitButton = screen.getByRole('button', { name: 'Exit fullscreen' });
+  expect(exitButton).toHaveStyle({ padding: '0px', color: 'inherit' });
+  // Superset's Button adds a left margin to a .superset-button that follows
+  // another one, which would push the More Options trigger to the right.
+  expect(exitButton).not.toHaveClass('superset-button');
+});

@@ -230,7 +230,11 @@ function SavedQueryList({
           placement="bottomRight"
           data-test="import-tooltip-test"
         >
-          <Icons.DownloadOutlined data-test="import-icon" iconSize="l" />
+          <Icons.DownloadOutlined
+            data-test="import-icon"
+            iconSize="l"
+            aria-label={t('Import queries')}
+          />
         </Tooltip>
       ),
       buttonStyle: 'link',
