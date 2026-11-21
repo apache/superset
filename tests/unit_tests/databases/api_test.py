@@ -33,6 +33,7 @@ from flask import current_app
 from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.session import Session
 from werkzeug.test import TestResponse
 
@@ -339,6 +340,7 @@ def test_database_connection(
             "engine_information": {
                 "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
+                "encrypted_extra_expirations": {},
                 "encrypted_extra_sensitive_fields": {
                     "$.service_account_info.private_key": (
                         "Service Account Private Key"
@@ -2895,6 +2897,34 @@ def test_table_extra_metadata_happy_path(
     )
 
 
+def test_table_extra_metadata_database_error(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_extra_metadata` endpoint when the database itself fails.
+
+    Errors raised by the customer's database should result in a 422 and not be
+    logged as unhandled exceptions.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_extra_table_metadata.side_effect = OperationalError(
+        "SELECT 1", {}, Exception("too many errors talking to a worker node")
+    )
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+    logger = mocker.patch("superset.databases.api.logger")
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
+
+    assert response.status_code == 422
+    assert "too many errors talking to a worker node" in response.json["message"]
+    logger.warning.assert_called_once()
+    logger.exception.assert_not_called()
+    logger.error.assert_not_called()
+
+
 def test_table_extra_metadata_no_table(
     mocker: MockerFixture,
     client: Any,
@@ -3347,6 +3377,49 @@ def test_import_includes_configuration_method(
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
     assert db_obj_api["configuration_method"] == "dynamic_form"
+
+
+@pytest.mark.parametrize(
+    "drivers,expect_parameters",
+    [
+        # every pydruid dialect (`druid`, `druid+http`, `druid+https`) reports "rest"
+        ({"rest"}, True),
+        ({"other"}, False),
+    ],
+)
+def test_available_druid_dynamic_form(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    drivers: set[str],
+    expect_parameters: bool,
+) -> None:
+    """
+    Druid is offered with the dynamic connection form when pydruid's "rest"
+    driver is detected, and falls back to the SQLAlchemy URI box otherwise.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: drivers},
+    )
+
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+
+    (druid,) = response.json["databases"]
+    assert druid["engine"] == "druid"
+    assert druid["default_driver"] == "rest"
+    assert druid["available_drivers"] == sorted(drivers)
+    assert ("parameters" in druid) is expect_parameters
+    if expect_parameters:
+        assert set(druid["parameters"]["required"]) == {"host", "port"}
+        assert "database" not in druid["parameters"]["properties"]
+        assert (
+            druid["sqlalchemy_uri_placeholder"]
+            == "druid://user:password@host:port/druid/v2/sql/"
+        )
 
 
 def test_related_objects_includes_datasets(
@@ -4056,6 +4129,97 @@ def test_available_includes_sensitive_field_labels(
     }
 
 
+@freeze_time("2026-11-05T12:00:00Z")
+def test_connection_lists_stored_secret_expirations(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The connection endpoint says when each stored JWT expires; the plain GET, the
+    list and `available` carry no expirations. The expiry is years past any row
+    timestamp, and the checks are on keys, so they hold whatever the clock says.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    exp = int(datetime.fromisoformat("2031-06-15T12:00:00+00:00").timestamp())
+    token = jwt_with_claims({"sub": "service-account", "exp": exp})
+    add_druid_database(
+        session,
+        json.dumps({"connect_args": {"jwt": token, "password": "hunter2"}}),
+    )
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: {"pydruid"}},
+    )
+
+    response = client.get("/api/v1/database/1/connection")
+    assert response.status_code == 200
+    information = response.json["result"]["engine_information"]
+    assert information["encrypted_extra_expirations"] == {
+        "$.connect_args.jwt": {
+            "expires_at": "2031-06-15T12:00:00+00:00",
+            "expired": False,
+        },
+    }
+    assert token.encode() not in response.data
+    assert b"service-account" not in response.data
+
+    response = client.get("/api/v1/database/1")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["result"]["engine_information"])
+    )
+
+    response = client.get("/api/v1/database/")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["result"][0]["engine_information"])
+    )
+
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["databases"][0]["engine_information"])
+    )
+
+
+def test_connection_lists_expirations_with_hints_disabled(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The expiry warning does not depend on `ENCRYPTED_EXTRA_HINT_CHARS`: with hints
+    off, the connection endpoint still says when the stored JWT expires.
+    """
+    exp = int(datetime.fromisoformat("2031-06-15T12:00:00+00:00").timestamp())
+    token = jwt_with_claims({"sub": "service-account", "exp": exp})
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": token}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 0})
+
+    response = client.get("/api/v1/database/1/connection")
+
+    assert response.status_code == 200
+    assert response.json["result"]["engine_information"][
+        "encrypted_extra_expirations"
+    ] == {
+        "$.connect_args.jwt": {
+            "expires_at": "2031-06-15T12:00:00+00:00",
+            "expired": False,
+        },
+    }
+
+
 def test_connection_lists_stored_sensitive_fields(
     mocker: MockerFixture,
     session: Session,
@@ -4119,3 +4283,36 @@ def test_connection_lists_stored_sensitive_fields(
         "encrypted_extra_sensitive_fields"
     ]
     assert fields == declared
+
+
+def test_connection_parses_encrypted_extra_once(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The connection endpoint reads the sensitive fields and their expirations from
+    one parse of the stored `encrypted_extra`.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    add_druid_database(
+        session,
+        json.dumps({"connect_args": {"jwt": jwt_with_claims({"exp": 1})}}),
+    )
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: {"pydruid"}},
+    )
+    paths = mocker.spy(json, "get_sensitive_field_paths")
+    expirations = mocker.spy(json, "get_sensitive_field_expirations")
+
+    response = client.get("/api/v1/database/1/connection")
+
+    assert response.status_code == 200
+    paths.assert_called_once()
+    expirations.assert_called_once()
+    assert paths.call_args.args[0] is expirations.call_args.args[0]

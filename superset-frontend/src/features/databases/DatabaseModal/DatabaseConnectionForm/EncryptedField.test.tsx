@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { useState } from 'react';
 import {
   render,
   fireEvent,
@@ -254,6 +255,64 @@ describe('EncryptedField', () => {
 
       expect(textarea?.value).toBe('');
     });
+  });
+
+  // Mimics the parent form, which echoes changes back through `db.parameters`.
+  const StatefulEncryptedField = ({
+    engine,
+    initialValue,
+  }: {
+    engine: string;
+    initialValue?: string;
+  }) => {
+    const fieldName =
+      encryptedCredentialsMap[engine as keyof typeof encryptedCredentialsMap];
+    const [parameters, setParameters] = useState<Record<string, any>>({
+      [fieldName]: initialValue,
+    });
+    const changeMethods = {
+      ...createMockChangeMethods(),
+      onParametersChange: ({
+        target,
+      }: {
+        target: { name: string; value: any };
+      }) => setParameters(prev => ({ ...prev, [target.name]: target.value })),
+    };
+    return (
+      <EncryptedField
+        {...defaultProps}
+        isEditMode
+        changeMethods={changeMethods as any}
+        db={createMockDb(engine, parameters)}
+      />
+    );
+  };
+
+  test.each(supportedEngines)(
+    'displays text typed by the user in edit mode for %s engine',
+    engine => {
+      render(<StatefulEncryptedField engine={engine} />);
+      const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+      const fakeCreds = '{"type":"service_account","project_id":"fake"}';
+
+      fireEvent.change(textarea, { target: { value: fakeCreds } });
+
+      expect(textarea.value).toBe(fakeCreds);
+    },
+  );
+
+  test('keeps a stored credential hidden until the user edits the field', () => {
+    const stored = '{"type":"service_account","private_key":"stored-secret"}';
+    render(<StatefulEncryptedField engine="bigquery" initialValue={stored} />);
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+
+    // The mount effect clears the stored value and nothing is rendered.
+    expect(textarea.value).toBe('');
+
+    fireEvent.change(textarea, { target: { value: '{"type":"new"}' } });
+
+    expect(textarea.value).toBe('{"type":"new"}');
+    expect(textarea.value).not.toContain('stored-secret');
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

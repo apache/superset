@@ -635,7 +635,7 @@ def test_semantic_view_get_extra_cache_keys(
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
     query: QueryObject = QueryObject(
         columns=["category"],
-        filters=[{"col": "category", "op": "IN", "val": ["a", "<NULL>"]}],
+        filters=[{"col": "category", "op": "NOT IN", "val": ["a"]}],
     )
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         composed_key: str = query.cache_key(
@@ -643,10 +643,13 @@ def test_semantic_view_get_extra_cache_keys(
         )
         expected: list[Hashable] = [
             view.metadata_generation,
-            "semantic-null-filters-v1",
+            "semantic-null-filters-v2",
         ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))
+        assert composed_key != query.cache_key(
+            extra_cache_keys=[expected[0], "semantic-null-filters-v1", *expected[2:]]
+        )
         assert view.get_extra_cache_keys({}) == expected
         assert composed_key != query.cache_key(extra_cache_keys=expected[1:])
         assert composed_key != query.cache_key(
@@ -658,7 +661,7 @@ def test_semantic_view_get_extra_cache_keys(
                 extra_cache_keys=[("semantic-result-version", "fixture", version)]
             )
             assert composed_key != query.cache_key(
-                extra_cache_keys=["semantic-null-filters-v1"]
+                extra_cache_keys=["semantic-null-filters-v2"]
             )
         assert composed_key == query.cache_key(
             extra_cache_keys=view.get_extra_cache_keys({})
@@ -1367,6 +1370,50 @@ def test_semantic_view_get_query_result_wraps_post_processing_type_error(
         pytest.raises(QueryObjectValidationError),
     ):
         view.get_query_result(query_object)
+
+
+def test_semantic_view_get_query_result_leaves_a_custom_operation_fault_unwrapped(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    A fault inside a custom operation must not be reported as a bad request.
+
+    An operation registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` is the
+    operator's own code. ``exec_post_processing`` leaves its exceptions alone,
+    and this path must not convert them either, or a bug in that operation
+    answers 400 and tells the caller their request was malformed.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationError
+
+    def _raise_type_error(df: pd.DataFrame, **options: Any) -> pd.DataFrame:
+        raise TypeError("a fault inside the operator's own code")
+
+    view = SemanticView()
+    mock_result = MagicMock()
+    mock_result.df = pd.DataFrame({"metric": [1.0, 2.0]})
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "_raise_type_error"}],
+    )
+
+    with (
+        patch(
+            "superset.semantic_layers.models.get_results",
+            return_value=mock_result,
+        ),
+        patch.dict(
+            "superset.common.query_object.current_app.config",
+            {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_raise_type_error]},
+        ),
+        pytest.raises(TypeError, match="operator's own code") as excinfo,
+    ):
+        view.get_query_result(query_object)
+
+    assert not isinstance(excinfo.value, QueryObjectValidationError)
 
 
 def test_semantic_view_get_query_result_skips_post_processing_on_empty_df(
@@ -2959,7 +3006,7 @@ def test_result_generation_reads_class_without_provider_construction(
         assert view.result_cache_version == version
         expected: list[Hashable] = [
             view.metadata_generation,
-            "semantic-null-filters-v1",
+            "semantic-null-filters-v2",
         ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))

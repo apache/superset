@@ -32,13 +32,13 @@
     "esbuild": "^0.28.2",
     "oxfmt": "^0.78.0",
     "oxlint": "^1.93.0",
-    "oxlint-tsgolint": "^7.0.2006",
+    "oxlint-tsgolint": "^7.0.2007",
     "tscw-config": "^1.1.2",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   },
   "engines": {
-    "node": "^24.16.0",
-    "npm": "^11.13.0"
+    "node": "^24.22.3",
+    "npm": "^11.19.1"
   }
 }

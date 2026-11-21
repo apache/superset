@@ -2306,6 +2306,61 @@ def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> 
             ["dttm"],
             ["dttm"],
         ),
+        (
+            "A custom SQL filter listed before the time filter is skipped",
+            ["dttm"],
+            {},
+            "postgresql://mydb",
+            [
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SQL",
+                            "sqlExpression": "status = 'active'",
+                        },
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SIMPLE",
+                            "subject": "dttm",
+                            "operator": "TEMPORAL_RANGE",
+                            "comparator": "Last week",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                time_range="Last week",
+            ),
+            [],
+            ["dttm"],
+        ),
+        (
+            "A custom SQL filter and no time filter falls back to the default",
+            ["dttm"],
+            {"default": "Last week", "target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SQL",
+                            "sqlExpression": "status = 'active'",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                time_range="Last week",
+            ),
+            [],
+            [],
+        ),
     ],
 )
 def test_get_time_filter(
@@ -2348,6 +2403,40 @@ def test_get_time_filter(
         assert cache.get_time_filter(*args, **kwargs) == time_filter, description
         assert cache.removed_filters == removed_filters
         assert cache.applied_filters == applied_filters
+
+
+def test_get_time_filter_deeply_nested_default_raises_template_error() -> None:
+    """
+    A deeply nested date expression in the ``default`` must surface as a
+    handled ``SupersetTemplateException`` instead of a bare ``ValueError``
+    that escapes the template render as a 500.
+    """
+    columns = [
+        TableColumn(column_name="dt", is_dttm=1, type="DATE"),
+        TableColumn(column_name="dttm", is_dttm=1, type="TIMESTAMP"),
+    ]
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name="my_dataset",
+        columns=columns,
+        main_dttm_col="dt",
+        database=database,
+    )
+    # The grammar recurses once per nesting level; ~80 levels exhaust the
+    # interpreter stack (threshold measured between 60 and 80).
+    nested = "dateadd(" * 200 + "datetime('now')" + ", 1, day)" * 200 + " : "
+
+    with (
+        freeze_time("2024-09-03"),
+        current_app.test_request_context(json={"queries": None}),
+    ):
+        cache = ExtraCache(
+            database=database,
+            table=table,
+        )
+        with pytest.raises(SupersetTemplateException):
+            cache.get_time_filter(default=nested)
 
 
 def test_jinja2_template_syntax_error_handling(mocker: MockerFixture) -> None:

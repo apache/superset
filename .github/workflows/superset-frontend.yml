@@ -174,36 +174,21 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
-      # The last weird node command is to run tests fo custom Superset lint rules
-      - name: lint
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
-
-      - name: tsc
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run plugins:build -- --skip-lib && npm run type"
-
-  validate-frontend:
-    needs: frontend-build
-    if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-26.04
-    timeout-minutes: 20
-    steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: docker-image
-
-      - name: Load Docker Image
-        run: |
-          zstd -d < docker-image.tar.zst | docker load
-
       - name: Validate dependency tree
         run: |
           docker run --rm $TAG bash -c \
           "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
+
+      # The last weird node command is to run tests for custom Superset lint rules
+      - name: Lint
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
+
+      - name: Build plugins and typecheck
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm run plugins:build -- --skip-lib && npm run type"
 
   test-storybook:
     needs: frontend-build
@@ -273,7 +258,7 @@ jobs:
           bash -c "npm run build-storybook -- --webpack-stats-json"
       - name: Publish to Chromatic
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
-        uses: chromaui/action@2b75e3340bcec86b4ae38c6a10f14831114e8137 # v18.14.3
+        uses: chromaui/action@5d18868345f53a8f61258ad393396c7e169100fd # v18.14.4
         with:
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -285,7 +270,7 @@ jobs:
           zip: true
 
   actions-timeline:
-    needs: [report-coverage, lint-frontend, validate-frontend, test-storybook, chromatic]
+    needs: [report-coverage, lint-frontend, test-storybook, chromatic]
     if: always()
     runs-on: ubuntu-slim
     permissions:
