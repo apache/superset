@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { BarSeriesOption } from 'echarts/charts';
 import transformProps from '../../src/Histogram/transformProps';
@@ -28,6 +29,13 @@ import {
   HistogramChartProps,
   HistogramFormData,
 } from '../../src/Histogram/types';
+
+jest.mock('@apache-superset/core/translation', () => {
+  const translation = jest.requireActual<
+    typeof import('@apache-superset/core/translation')
+  >('@apache-superset/core/translation');
+  return { ...translation, t: jest.fn(translation.t) };
+});
 
 const formData: HistogramFormData = {
   datasource: '5__table',
@@ -255,4 +263,28 @@ test('tooltip rows start with a marker in the series color', () => {
   ]);
   expect(html.replace(/\s/g, '')).toContain('style="color:#1f77b4;');
   expect(html).toContain('price');
+});
+
+test('tooltip total row label is translated', () => {
+  const props = createChartProps(
+    [
+      { region: 'WEST', '0 - 5': 3, '5 - 10': 1 },
+      { region: 'EAST', '0 - 5': 4, '5 - 10': 2 },
+    ],
+    { groupby: ['region'] },
+  );
+  const { tooltip } = transformProps(props as HistogramChartProps)
+    .echartOptions as { tooltip: { formatter: (params: unknown) => string } };
+  jest
+    .mocked(t)
+    .mockImplementationOnce((text: string) =>
+      text === 'Total' ? 'Gesamt' : text,
+    );
+  const html = tooltip.formatter([
+    { name: '0 - 5', seriesName: 'WEST', value: 3, color: '#1f77b4' },
+    { name: '0 - 5', seriesName: 'EAST', value: 4, color: '#ff7f0e' },
+  ]);
+  expect(t).toHaveBeenCalledWith('Total');
+  expect(html).toContain('Gesamt');
+  expect(html).not.toContain('Total');
 });
