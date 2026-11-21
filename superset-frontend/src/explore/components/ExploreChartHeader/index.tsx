@@ -27,6 +27,7 @@ import {
   UnsavedChangesModal,
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
+import { VisuallyHidden } from 'src/components/Accessibility';
 import {
   QueryFormData,
   JsonObject,
@@ -415,6 +416,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
 
   return (
     <>
+      <VisuallyHidden as="h1">{sliceName || t('Explore chart')}</VisuallyHidden>
       <PageHeaderWithActions
         editableTitleProps={editableTitleProps}
         showTitlePanelItems={!!slice}

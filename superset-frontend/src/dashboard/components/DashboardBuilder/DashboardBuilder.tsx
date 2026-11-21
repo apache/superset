@@ -40,6 +40,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { Drawer, EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
+import { VisuallyHidden } from 'src/components/Accessibility';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
 import HeadlessAutoRefresh from 'src/dashboard/components/Header/HeadlessAutoRefresh';
@@ -768,6 +769,11 @@ const DashboardBuilder = () => {
             mid-capture. */}
         {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
+          filterBarOrientation === FilterBarOrientation.Horizontal &&
+          !hideFilterBar && (
+            <VisuallyHidden as="h2">{t('Filters')}</VisuallyHidden>
+          )}
+        {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <HorizontalFilterBarGate
               data-test="dashboard-filter-bar-gate"
@@ -869,6 +875,7 @@ const DashboardBuilder = () => {
           hidden={hideFilterBar}
           data-test="dashboard-filters-panel"
         >
+          <VisuallyHidden as="h2">{t('Filters')}</VisuallyHidden>
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
               <div
@@ -963,6 +970,7 @@ const DashboardBuilder = () => {
         )}
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
+        <VisuallyHidden as="h2">{t('Dashboard content')}</VisuallyHidden>
         <DashboardContentWrapper
           data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}

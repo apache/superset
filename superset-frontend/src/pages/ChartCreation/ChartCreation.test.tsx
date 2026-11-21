@@ -944,3 +944,10 @@ test('shows a danger toast and leaves the selection empty on a forbidden respons
 
   locationSpy.mockRestore();
 });
+
+test('renders the page title as the level-one heading', async () => {
+  await renderComponent();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Create a new chart' }),
+  ).toBeInTheDocument();
+});
