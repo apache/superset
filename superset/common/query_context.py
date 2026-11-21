@@ -164,6 +164,9 @@ class QueryContext:
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         return self._processor.query_cache_key(query_obj, **kwargs)
 
+    def annotation_cache_key(self, query_obj: QueryObject) -> str | None:
+        return self._processor.annotation_cache_key(query_obj)
+
     def prepare_contribution_totals(self) -> tuple[list[int], int | None]:
         """Identify contribution queries and normalize the totals query.
 
