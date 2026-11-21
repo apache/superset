@@ -20,7 +20,6 @@ import { RefObject, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { MenuProps } from 'antd';
 import { t } from '@apache-superset/core/translation';
-import { css, useTheme } from '@apache-superset/core/theme';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { NoAnimationDropdown } from '@superset-ui/core/components';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
@@ -48,7 +47,6 @@ const DetailsPanelPopover = ({
   popoverVisible,
   setPopoverVisible,
 }: DetailsPanelProps) => {
-  const theme = useTheme();
   const activeTabs = useSelector<RootState>(
     state => state.dashboardState?.activeTabs,
   );
@@ -140,23 +138,7 @@ const DetailsPanelPopover = ({
       onOpenChange={visible => setPopoverVisible(visible)}
       placement="bottomRight"
     >
-      <span
-        role="button"
-        aria-label={t('View applied filters')}
-        aria-haspopup="menu"
-        aria-expanded={popoverVisible}
-        css={css`
-          display: inline-flex;
-          outline: none;
-          cursor: pointer;
-          border-radius: 4px;
-
-          &:focus-visible {
-            outline: 2px solid ${theme.colorPrimary};
-            outline-offset: 1px;
-          }
-        `}
-      >
+      <span>
         {children}
       </span>
     </NoAnimationDropdown>
