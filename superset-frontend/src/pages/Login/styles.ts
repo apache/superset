@@ -65,7 +65,7 @@ export const StyledBackground = styled.div`
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url("${CSS.escape(bgImageUrl)}");
+            background-image: url('${CSS.escape(bgImageUrl)}');
             background-size: cover;
             background-position: center;
             filter: blur(${blurAmount});

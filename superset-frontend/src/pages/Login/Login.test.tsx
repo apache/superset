@@ -575,7 +575,7 @@ test('should render the escaped, quoted background image URL with the theme mask
   const background = getBackground();
   expect(background).toHaveStyleRule(
     'background-image',
-    'url("\\/static\\/assets\\/images\\/x\\.jpg")',
+    `url('\\/static\\/assets\\/images\\/x\\.jpg')`,
     { target: '::before' },
   );
   expect(background).toHaveStyleRule(
@@ -595,7 +595,7 @@ test('should apply the static assets prefix, blur and overlay color to the backg
   const background = getBackground();
   expect(background).toHaveStyleRule(
     'background-image',
-    'url("\\/analytics\\/static\\/bg\\.jpg")',
+    `url('\\/analytics\\/static\\/bg\\.jpg')`,
     { target: '::before' },
   );
   expect(background).toHaveStyleRule('filter', 'blur(4px)', {
@@ -610,26 +610,29 @@ test.each([
   ['OID', 0],
   ['OAuth', 4],
   ['SAML', 5],
-])('should render one button per %s provider without key warnings', (_name, authType) => {
-  const consoleError = jest.spyOn(console, 'error').mockImplementation();
-  mockGetBootstrapData.mockReturnValue({
-    common: {
-      conf: {
-        AUTH_TYPE: authType,
-        AUTH_PROVIDERS: [
-          { name: 'okta', icon: 'okta', url: 'https://okta.example' },
-          { name: 'google', icon: 'google', url: 'https://google.example' },
-        ],
-        AUTH_USER_REGISTRATION: false,
+])(
+  'should render one button per %s provider without key warnings',
+  (_name, authType) => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+    mockGetBootstrapData.mockReturnValue({
+      common: {
+        conf: {
+          AUTH_TYPE: authType,
+          AUTH_PROVIDERS: [
+            { name: 'okta', icon: 'okta', url: 'https://okta.example' },
+            { name: 'google', icon: 'google', url: 'https://google.example' },
+          ],
+          AUTH_USER_REGISTRATION: false,
+        },
       },
-    },
-  });
-  render(<Login />, { useRedux: true });
-  expect(screen.getByText('Sign in with Okta')).toBeInTheDocument();
-  expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
-  const keyWarnings = consoleError.mock.calls.filter(call =>
-    String(call[0]).includes('unique "key"'),
-  );
-  expect(keyWarnings).toHaveLength(0);
-  consoleError.mockRestore();
-});
+    });
+    render(<Login />, { useRedux: true });
+    expect(screen.getByText('Sign in with Okta')).toBeInTheDocument();
+    expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
+    const keyWarnings = consoleError.mock.calls.filter(call =>
+      String(call[0]).includes('unique "key"'),
+    );
+    expect(keyWarnings).toHaveLength(0);
+    consoleError.mockRestore();
+  },
+);

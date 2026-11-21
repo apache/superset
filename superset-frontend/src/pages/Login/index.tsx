@@ -253,7 +253,10 @@ export default function Login() {
                   label={<StyledLabel>{t('Username:')}</StyledLabel>}
                   name="username"
                   rules={[
-                    { required: true, message: t('Please enter your username') },
+                    {
+                      required: true,
+                      message: t('Please enter your username'),
+                    },
                   ]}
                 >
                   <Input
@@ -267,7 +270,10 @@ export default function Login() {
                   label={<StyledLabel>{t('Password:')}</StyledLabel>}
                   name="password"
                   rules={[
-                    { required: true, message: t('Please enter your password') },
+                    {
+                      required: true,
+                      message: t('Please enter your password'),
+                    },
                   ]}
                   extra={
                     passwordRecoveryEnabled && (
