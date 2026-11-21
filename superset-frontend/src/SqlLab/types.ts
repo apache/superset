@@ -137,7 +137,7 @@ export const EXPLORE_CHART_DEFAULT = {
 };
 
 export interface DatasetOptionAutocomplete {
-  value: string;
+  value: number;
   datasetId: number;
   editors: Subject[];
 }
