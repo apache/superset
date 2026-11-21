@@ -23,6 +23,7 @@ import {
   releaseFilterKeyPublish,
   resetFilterKeyHold,
   subscribeFilterKeyPublishRelease,
+  subscribeViewerFilterChange,
 } from './sharedFilterStateHold';
 
 afterEach(() => {
@@ -70,4 +71,21 @@ test('notifies subscribers only when an active hold is released', () => {
   holdFilterKeyPublish('k');
   releaseFilterKeyPublish();
   expect(listener).toHaveBeenCalledTimes(1);
+});
+
+test('notifies viewer filter change subscribers on every change, held or not', () => {
+  const listener = jest.fn();
+  const unsubscribe = subscribeViewerFilterChange(listener);
+
+  releaseFilterKeyPublish();
+  expect(listener).toHaveBeenCalledTimes(1);
+
+  holdFilterKeyPublish('k');
+  releaseFilterKeyPublish();
+  expect(listener).toHaveBeenCalledTimes(2);
+  expect(isFilterKeyPublishHeld()).toBe(false);
+
+  unsubscribe();
+  releaseFilterKeyPublish();
+  expect(listener).toHaveBeenCalledTimes(2);
 });
