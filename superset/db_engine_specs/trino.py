@@ -241,15 +241,12 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
         re.Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
     ] = {
         ACCESS_DENIED_REGEX: (
-            __(
-                "Trino denied access. Check that the username and password are "
-                "correct."
-            ),
+            _("Trino denied access. Check that the username and password are correct."),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             {"invalid": ["username", "password"]},
         ),
         TLS_REQUIRED_REGEX: (
-            __(
+            _(
                 "Trino requires an encrypted connection when a password is used. "
                 "Turn on SSL and check that the port serves HTTPS (usually 443)."
             ),
@@ -257,7 +254,7 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
             {"invalid": ["encryption"]},
         ),
         CERTIFICATE_VERIFY_REGEX: (
-            __(
+            _(
                 "The Trino server's SSL certificate could not be verified. If it "
                 "was issued by a private CA or is self-signed, add the CA "
                 "certificate under Root certificate."
@@ -266,7 +263,7 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
             {"invalid": ["encryption"]},
         ),
         CATALOG_NOT_FOUND_REGEX: (
-            __(
+            _(
                 "The catalog does not exist on this Trino server. Check the "
                 "Catalog name."
             ),

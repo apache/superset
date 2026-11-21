@@ -93,7 +93,9 @@ test('labels the Trino database field as the catalog', () => {
   expect(
     screen.getByText(/The Trino catalog to connect to/),
   ).toBeInTheDocument();
-  expect(screen.getByPlaceholderText('e.g. hive')).toBeInTheDocument();
+  expect(
+    screen.getByPlaceholderText('e.g. hive or hive/sales'),
+  ).toBeInTheDocument();
 });
 
 test('uses Trino port placeholder and HTTPS SSL tooltip', async () => {
@@ -123,11 +125,12 @@ test('other engines keep the common field text', () => {
   expect(screen.getByPlaceholderText('e.g. 5432')).toBeInTheDocument();
 });
 
-test('shows the root certificate field only when SSL is on', () => {
+test('shows the root certificate field only when SSL is on', async () => {
   const { unmount } = renderForm('trino', 'Catalog name');
   expect(screen.queryByText('Root certificate')).not.toBeInTheDocument();
   unmount();
 
+  const onChange = jest.fn();
   const props = {
     dbModel: basicParametersModel('trino', 'Catalog name'),
     db: {
@@ -138,7 +141,7 @@ test('shows the root certificate field only when SSL is on', () => {
     sslForced: false,
     isValidating: false,
     onParametersChange: jest.fn(),
-    onChange: jest.fn(),
+    onChange,
     onQueryChange: jest.fn(),
     onExtraInputChange: jest.fn(),
     onEncryptedExtraInputChange: jest.fn(),
@@ -155,6 +158,20 @@ test('shows the root certificate field only when SSL is on', () => {
   expect(
     screen.getByText('Certificate could not be verified'),
   ).toBeInTheDocument();
+
+  // A PEM bundle is multi-line, so the field must be a textarea.
+  const certField = screen.getByPlaceholderText(
+    'Optional: CA certificate (PEM)',
+  );
+  expect(certField.tagName).toBe('TEXTAREA');
+  await userEvent.click(certField);
+  await userEvent.paste('-----BEGIN CERTIFICATE-----\nabc');
+  expect(onChange).toHaveBeenLastCalledWith({
+    target: {
+      name: 'server_cert',
+      value: '-----BEGIN CERTIFICATE-----\nabc',
+    },
+  });
 });
 
 test('explains how to set a schema in the catalog field', () => {

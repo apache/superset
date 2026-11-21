@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ChangeEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { Switch } from '@superset-ui/core/components/Switch';
@@ -130,7 +131,11 @@ export const trinoEncryptionField = ({
           value={db?.server_cert || ''}
           placeholder={t('Optional: CA certificate (PEM)')}
           label={t('Root certificate')}
-          onChange={event =>
+          // A PEM bundle spans several lines, which a single-line input would
+          // collapse on paste.
+          renderAsTextArea
+          validationMethods={{ onBlur: () => {} }}
+          onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
             changeMethods.onChange({
               target: { name: 'server_cert', value: event.target.value },
             })

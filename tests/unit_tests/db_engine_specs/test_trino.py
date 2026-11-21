@@ -3229,9 +3229,9 @@ def test_apply_offset_before_limit_reorders_ansi_ordering() -> None:
     upper = result.upper()
     assert "OFFSET" in upper
     assert "LIMIT" in upper
-    assert upper.rfind("OFFSET") < upper.rfind(
-        "LIMIT"
-    ), f"OFFSET must precede LIMIT for Trino, got: {result!r}"
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {result!r}"
+    )
 
 
 def test_apply_offset_before_limit_leaves_correct_order_untouched() -> None:
