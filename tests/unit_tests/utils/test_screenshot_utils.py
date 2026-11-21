@@ -2872,9 +2872,9 @@ def _assert_markers_painted(png: bytes, markers: dict[str, tuple[int, int]]) -> 
         # Pillow pads a crop that falls outside the image with black, which
         # would satisfy the dark-pixel check below, so a row cropped away
         # (e.g. above the top of the capture) has to be rejected here.
-        assert (
-            0 <= y0 < y1 <= image.height
-        ), f"the {name} row (y={y0}..{y1}) lies outside the {image.height}px capture"
+        assert 0 <= y0 < y1 <= image.height, (
+            f"the {name} row (y={y0}..{y1}) lies outside the {image.height}px capture"
+        )
         dark = image.crop((0, y0, 200, y1)).point(lambda v: 255 if v < 80 else 0)
         painted = sum(1 for v in dark.getdata() if v) / (200 * (y1 - y0))
         assert painted > 0.5, (
