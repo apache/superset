@@ -1,0 +1,743 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Route-level tests for the one-time login token endpoints.
+
+These complement ``tests/unit_tests/security/login_token_test.py``, which
+exercises mint and consume directly. Driving the HTTP routes additionally covers
+the decorator stack -- ``@transaction()`` in particular, which does not nest --
+and the session cookie that ``login_user`` writes, neither of which the unit
+tests can see.
+"""
+
+from contextlib import contextmanager
+from typing import Any
+from unittest.mock import patch
+from uuid import UUID
+
+from flask_appbuilder.security.sqla.manager import user_updating
+
+from superset import db, security_manager
+from superset.daos.key_value import KeyValueDAO
+from superset.extensions import _event_logger, csrf
+from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import KeyValueResource
+from superset.utils import json
+from tests.conftest import with_config
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+
+ENDPOINT = "/api/v1/security/login-token/"
+MINT_SECRET = "integration-test-secret"  # noqa: S105
+
+
+def _resolver(request: Any, **kwargs: Any) -> dict[str, Any] | None:
+    """Stand-in for a deployment resolver: a shared header plus a username.
+
+    A real one would validate an id token or call an internal service; all this
+    needs to do is distinguish an authorized caller from an unauthorized one.
+    """
+    if request.headers.get("X-Test-Mint-Secret") != MINT_SECRET:
+        return None
+    username = (request.get_json(silent=True) or {}).get("username")
+    return {"username": username} if username else None
+
+
+def _verbatim_resolver(request: Any, **kwargs: Any) -> dict[str, Any] | None:
+    """Return the request body as ``userinfo``, unmodified.
+
+    Lets a test drive an arbitrary resolver result through the real route, which
+    is the only way to cover shapes a sensible resolver would not produce but a
+    misbehaving one will.
+    """
+    if request.headers.get("X-Test-Mint-Secret") != MINT_SECRET:
+        return None
+    return request.get_json(silent=True) or None
+
+
+def _logged_actions(log: Any) -> list[str | None]:
+    """The ``action`` of each call to a patched event logger's ``log``.
+
+    Route decorators pass it positionally; security audit events such as
+    ``UserLoggedIn`` pass it by keyword.
+    """
+    return [
+        call.kwargs["action"] if "action" in call.kwargs else call.args[1]
+        for call in log.call_args_list
+    ]
+
+
+@contextmanager
+def csrf_enabled(app: Any) -> Any:
+    """Turn real CSRF protection on for the duration of a test.
+
+    The integration config sets ``WTF_CSRF_ENABLED = False``, so
+    ``SupersetAppInitializer.configure_wtf`` never ran ``csrf.init_app`` and
+    never applied ``WTF_CSRF_EXEMPT_LIST``. Flipping the config alone does
+    nothing: there is no ``before_request`` hook to flip, and the defaults
+    ``validate_csrf`` reads (``WTF_CSRF_METHODS``, ``WTF_CSRF_FIELD_NAME`` and
+    the rest) are only set by ``init_app``.
+
+    So the real ``init_app`` runs, rather than those defaults being restated
+    here -- restating them would mean reimplementing part of what this is meant
+    to verify. It registers a ``before_request`` hook and a context processor,
+    which Flask refuses once a request has been served, so the setup guard is
+    lifted for that call and everything it appended is removed afterwards. This
+    keeps the test independent of its position in the suite.
+    """
+    got_first_request = app._got_first_request  # noqa: SLF001
+    before = list(app.before_request_funcs.get(None, []))
+    processors = list(app.template_context_processors.get(None, []))
+    extension = app.extensions.get("csrf")
+    exempt_views = set(csrf._exempt_views)  # noqa: SLF001
+    config = {
+        key: app.config[key] for key in list(app.config) if key.startswith("WTF_CSRF_")
+    }
+
+    try:
+        app._got_first_request = False  # noqa: SLF001
+        csrf.init_app(app)
+        for view in app.config["WTF_CSRF_EXEMPT_LIST"]:
+            csrf.exempt(view)
+        app._got_first_request = got_first_request  # noqa: SLF001
+        app.config["WTF_CSRF_ENABLED"] = True
+        yield
+    finally:
+        app._got_first_request = got_first_request  # noqa: SLF001
+        app.before_request_funcs[None] = before
+        app.template_context_processors[None] = processors
+        csrf._exempt_views = exempt_views  # noqa: SLF001
+        for key in [k for k in list(app.config) if k.startswith("WTF_CSRF_")]:
+            if key in config:
+                app.config[key] = config[key]
+            else:
+                del app.config[key]
+        if extension is None:
+            app.extensions.pop("csrf", None)
+        else:
+            app.extensions["csrf"] = extension
+
+
+class TestLoginTokenApi(SupersetTestCase):
+    def _mint(self, username: str = GAMMA_USERNAME) -> str:
+        """Mint a token through the route and return it."""
+        response = self.client.post(
+            ENDPOINT,
+            data=json.dumps({"username": username}),
+            content_type="application/json",
+            headers={"X-Test-Mint-Secret": MINT_SECRET},
+        )
+        assert response.status_code == 200, response.data
+        token = json.loads(response.data)["access_token"]
+        assert token
+        return token
+
+    @staticmethod
+    def _stored_tokens() -> int:
+        return (
+            db.session.query(KeyValueEntry)
+            .filter(KeyValueEntry.resource == KeyValueResource.LOGIN_TOKEN.value)
+            .count()
+        )
+
+    @staticmethod
+    def _is_stored(token: str) -> bool:
+        """Whether this specific token still has a row.
+
+        Scoped to one key rather than counting the table: the metadata database
+        is shared across the suite, so an absolute count couples these
+        assertions to whatever other tests happen to have left behind.
+        """
+        return (
+            KeyValueDAO.get_entry(KeyValueResource.LOGIN_TOKEN, UUID(token)) is not None
+        )
+
+    def _assert_no_session(self) -> None:
+        """Assert that no user was logged in to the test client's session.
+
+        Checks the session directly rather than asking ``/api/v1/me/``, whose
+        answer for an anonymous caller depends on deployment configuration (a
+        401, or a 200 describing the anonymous user).
+        """
+        with self.client.session_transaction() as session:
+            assert "_user_id" not in session, dict(session)
+
+    # ---------------------------------------------------------------- closed off
+
+    def test_endpoints_are_404_without_the_feature_flag(self):
+        """Closed by default: neither verb exists until the flag is on."""
+        assert self.client.post(ENDPOINT).status_code == 404
+        assert self.client.get(f"{ENDPOINT}?token=x").status_code == 404
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": None})
+    def test_endpoints_are_404_without_a_resolver(self):
+        """The flag alone is not enough -- a resolver must also be configured."""
+        assert self.client.post(ENDPOINT).status_code == 404
+        assert self.client.get(f"{ENDPOINT}?token=x").status_code == 404
+
+    # --------------------------------------------------------------------- mint
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_mint_rejects_a_caller_the_resolver_declines(self):
+        """No shared header, no token -- and nothing written to the store."""
+        before = self._stored_tokens()
+        response = self.client.post(
+            ENDPOINT,
+            data=json.dumps({"username": GAMMA_USERNAME}),
+            content_type="application/json",
+        )
+        assert response.status_code == 401
+        assert self._stored_tokens() == before
+
+    # ------------------------------------------------------------------ consume
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_establishes_a_session_and_redirects(self):
+        """The happy path: 302 to `next`, and the frame is authenticated."""
+        token = self._mint()
+        response = self.client.get(f"{ENDPOINT}?token={token}&next=/dashboard/list/")
+
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/dashboard/list/"
+
+        # The session belongs to the resolved user, not to whoever called mint.
+        me = self.client.get("/api/v1/me/")
+        assert me.status_code == 200
+        assert json.loads(me.data)["result"]["username"] == GAMMA_USERNAME
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_is_single_use(self):
+        """A spent token is refused on the second request."""
+        token = self._mint()
+        assert self.client.get(f"{ENDPOINT}?token={token}").status_code == 302
+        assert self.client.get(f"{ENDPOINT}?token={token}").status_code == 401
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_burn_survives_a_provisioning_rollback(self):
+        """Burn durability when provisioning *declines*.
+
+        Flask-AppBuilder's ``add_user`` / ``update_user`` catch their own
+        failures, call ``rollback()`` on the shared session and return ``False``
+        without raising -- and ``update_user_auth_stat`` discards that return
+        value. Before ``consume`` committed the delete itself, that rollback
+        discarded the pending DELETE, and a token already handed to a browser
+        became redeemable a second time.
+
+        This covers the 401 branch. The harder case -- a rollback on a login that
+        nonetheless *succeeds* -- is
+        :meth:`test_consume_burn_survives_a_failing_user_updating_hook`.
+        """
+        token = self._mint()
+
+        def rollback_and_decline(_userinfo: Any) -> None:
+            db.session.rollback()
+            return None
+
+        with patch.object(
+            self.app.appbuilder.sm,
+            "auth_user_oauth",
+            side_effect=rollback_and_decline,
+        ):
+            first = self.client.get(f"{ENDPOINT}?token={token}")
+
+        # Provisioning declined, so no session -- but the token is still spent.
+        assert first.status_code == 401
+
+        second = self.client.get(f"{ENDPOINT}?token={token}")
+        assert second.status_code == 401, (
+            "the token was redeemable after a provisioning rollback -- the burn "
+            "was not committed independently of provisioning"
+        )
+        assert not self._is_stored(token)
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_burn_survives_a_failing_user_updating_hook(self):
+        """Burn durability on a login that *succeeds* despite a rollback.
+
+        This is the worst case, and it uses the real Flask-AppBuilder code path
+        rather than a patched security manager. In FAB 5.2.2,
+        ``SecurityManager.update_user`` emits ``user_updating`` as a pre-commit
+        signal *inside* its ``try``, and ``_emit_pre_signal`` re-raises whatever a
+        handler throws. The handler's exception therefore lands in
+        ``update_user``'s own ``except``, which calls ``rollback()`` on the shared
+        session and returns ``False``.
+
+        Nothing upstream notices: ``update_user_auth_stat`` discards that return
+        value, and ``auth_user_oauth`` returns the user regardless. So the request
+        completes as a **successful login** -- a 302 and a valid session cookie --
+        while the rollback has silently undone whatever the endpoint had pending.
+
+        If the burn were not committed inside ``consume``, the token would be back
+        in the key-value store and redeemable for the rest of its TTL, even though
+        the user is now logged in. ``FAB_SECURITY_SIGNALS_ENABLED`` defaults to
+        ``True`` and Superset does not override it, so this is reachable in a
+        default deployment, not a contrived one.
+        """
+        token = self._mint()
+
+        def failing_hook(_sender: Any, **_kwargs: Any) -> None:
+            raise RuntimeError("user_updating handler failed")
+
+        # ``connected_to`` holds a strong reference for the duration; a plain
+        # ``connect`` of a local function can be garbage collected before the
+        # signal fires, which would silently make this test vacuous.
+        with user_updating.connected_to(failing_hook):
+            first = self.client.get(f"{ENDPOINT}?token={token}")
+
+        # The login SUCCEEDED -- that is precisely what makes this dangerous.
+        assert first.status_code == 302, (
+            f"expected a successful login despite the failing hook, got "
+            f"{first.status_code}"
+        )
+
+        second = self.client.get(f"{ENDPOINT}?token={token}")
+        assert second.status_code == 401, (
+            "the token was redeemable after a successful login whose "
+            "user_updating hook rolled the session back -- the burn must be "
+            "committed before provisioning runs"
+        )
+        assert not self._is_stored(token)
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_rejects_unknown_and_malformed_tokens(self):
+        """Missing, malformed and well-formed-but-unknown are the same 401."""
+        for token in ("", "not-a-uuid", "6d2b9921-2274-43b8-94d6-e5e1f05372c4"):
+            with self.subTest(token=token):
+                response = self.client.get(f"{ENDPOINT}?token={token}")
+                assert response.status_code == 401
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
+    def test_empty_identity_keys_do_not_mint_a_doomed_token(self):
+        """A token that mints must be redeemable, end to end.
+
+        ``auth_user_oauth`` selects the identifier on key *presence*: ``if
+        "username" in userinfo`` wins even when the value is empty, and the empty
+        username is then rejected outright. So a resolver returning
+        ``{"username": "", "email": ...}`` used to mint a perfectly good token
+        that could only ever 401 on redemption, instead of falling back to the
+        email.
+
+        Only empty and whitespace-only values are dropped -- a padded but
+        non-empty identifier is preserved verbatim, which
+        :meth:`test_a_padded_username_does_not_authenticate_the_unpadded_account`
+        pins. Note FAB
+        uses whichever value it selected as the ``find_user`` lookup key, which
+        is why the email slot here holds a username rather than an address.
+        """
+        for userinfo in (
+            {"username": "", "email": GAMMA_USERNAME},
+            {"username": "   ", "email": GAMMA_USERNAME},
+            {"username": None, "email": GAMMA_USERNAME},
+            {"username": "", "first_name": "", "email": GAMMA_USERNAME},
+        ):
+            with self.subTest(userinfo=userinfo):
+                response = self.client.post(
+                    ENDPOINT,
+                    data=json.dumps(userinfo),
+                    content_type="application/json",
+                    headers={"X-Test-Mint-Secret": MINT_SECRET},
+                )
+                assert response.status_code == 200, response.data
+                token = json.loads(response.data)["access_token"]
+
+                redeemed = self.client.get(f"{ENDPOINT}?token={token}")
+                assert redeemed.status_code == 302, (
+                    f"minted a token for {userinfo} that could not be redeemed "
+                    f"({redeemed.status_code}) -- empty or padded identity keys "
+                    "must be normalized before minting"
+                )
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
+    def test_mint_rejects_an_identity_with_no_usable_identifier(self):
+        """If nothing survives normalization there is no identity to mint for."""
+        for userinfo in (
+            {"username": "", "email": ""},
+            {"username": "   "},
+            {"first_name": "Jane", "last_name": "Doe"},
+        ):
+            with self.subTest(userinfo=userinfo):
+                response = self.client.post(
+                    ENDPOINT,
+                    data=json.dumps(userinfo),
+                    content_type="application/json",
+                    headers={"X-Test-Mint-Secret": MINT_SECRET},
+                )
+                assert response.status_code == 401, response.data
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
+    def test_a_padded_username_does_not_authenticate_the_unpadded_account(self):
+        """A resolver's identifier is never trimmed into a different account.
+
+        ``ab_user.username`` is unique but nothing forbids surrounding
+        whitespace, so " gamma " and "gamma" can both exist. Trimming the
+        resolver's value would silently authenticate the caller as the other
+        account: ``find_user`` folds case by default but never trims, and with
+        ``AUTH_ROLES_SYNC_AT_LOGIN`` off the session inherits whatever roles
+        that account already has.
+
+        Here no " gamma " exists, so the correct outcome is a 401 -- the token
+        mints, because a padded username is a plausible identity, and
+        redemption fails because that account does not exist. What must not
+        happen is a 302 establishing a session as "gamma".
+        """
+        padded = f"  {GAMMA_USERNAME}  "
+        response = self.client.post(
+            ENDPOINT,
+            data=json.dumps({"username": padded}),
+            content_type="application/json",
+            headers={"X-Test-Mint-Secret": MINT_SECRET},
+        )
+        assert response.status_code == 200, response.data
+        token = json.loads(response.data)["access_token"]
+
+        redeemed = self.client.get(f"{ENDPOINT}?token={token}")
+        assert redeemed.status_code == 401, (
+            f"{padded!r} was aliased onto an existing account instead of being "
+            f"passed through verbatim (got {redeemed.status_code})"
+        )
+
+        # And no session was established for anyone.
+        self._assert_no_session()
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config(
+        {
+            "LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver,
+            "AUTH_USER_REGISTRATION": True,
+            # Set explicitly: role lookup is case-sensitive, and the integration
+            # config's value would not resolve to a role at all.
+            "AUTH_USER_REGISTRATION_ROLE": "Gamma",
+            "AUTH_ROLES_MAPPING": {"superset_alpha": ["Alpha"]},
+        }
+    )
+    def test_consume_provisions_a_new_user_with_mapped_roles_only(self):
+        """The full userinfo reaches ``auth_user_oauth``, and roles stay bounded.
+
+        Every other success-path test redeems for an existing Gamma user, so
+        nothing else exercises registration or ``role_keys`` through the real
+        FAB code path: a handoff that forwarded only the username would leave
+        them green while mapped roles and profile fields were silently lost.
+
+        ``role_keys`` carries one mapped key and the literal ``"Admin"``, which
+        is unmapped. The persisted roles must be exactly the registration role
+        plus the mapped one -- the resolver can only select roles the operator
+        has already mapped, never name one directly.
+        """
+        username = "login_token_new_user"
+        user_model = security_manager.user_model
+
+        def delete_user() -> None:
+            query = db.session.query(user_model).filter_by(username=username)
+            if user := query.first():
+                db.session.delete(user)
+                db.session.commit()
+
+        delete_user()
+        try:
+            response = self.client.post(
+                ENDPOINT,
+                data=json.dumps(
+                    {
+                        "username": username,
+                        "email": "login_token_new_user@example.org",
+                        "first_name": "New",
+                        "last_name": "User",
+                        "role_keys": ["superset_alpha", "Admin"],
+                    }
+                ),
+                content_type="application/json",
+                headers={"X-Test-Mint-Secret": MINT_SECRET},
+            )
+            assert response.status_code == 200, response.data
+            token = json.loads(response.data)["access_token"]
+
+            redeemed = self.client.get(f"{ENDPOINT}?token={token}")
+            assert redeemed.status_code == 302, redeemed.data
+
+            db.session.expire_all()
+            user = db.session.query(user_model).filter_by(username=username).one()
+            assert sorted(role.name for role in user.roles) == ["Alpha", "Gamma"]
+            assert user.email == "login_token_new_user@example.org"
+            assert (user.first_name, user.last_name) == ("New", "User")
+
+            me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+            assert me["username"] == username
+        finally:
+            delete_user()
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_401s_when_login_user_refuses(self):
+        """A session that was not established is reported as a failure.
+
+        ``login_user`` returns ``False`` and sets no session for an inactive
+        user. ``auth_user_oauth`` checks ``is_active`` first, but an account
+        disabled between that check and ``login_user`` would otherwise receive a
+        302 into an anonymous frame -- the token burned, and nothing for the
+        parent application to act on. The race is forced by patching
+        ``login_user`` rather than timed.
+        """
+        token = self._mint()
+
+        with patch("superset.security.api.login_user", return_value=False) as login:
+            response = self.client.get(f"{ENDPOINT}?token={token}&next=/dashboard/1/")
+
+        # Control: the refusal must have come from login_user, not from an
+        # earlier branch that would make this test pass for the wrong reason.
+        assert login.call_count == 1
+        assert response.status_code == 401, response.headers.get("Location")
+        self._assert_no_session()
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
+    def test_mint_does_not_record_the_request_body(self):
+        """No part of the mint request reaches the event log.
+
+        A resolver may read the caller's proof of identity -- an OIDC id token,
+        a service credential -- from the body or query string, and
+        ``collect_request_payload`` would otherwise copy it verbatim into
+        ``logs.json``, on rejection as well as success. Both paths are covered:
+        the 401 path is where an attacker's guesses at a credential would land.
+        """
+        secret = "id-token-that-must-not-be-logged"  # noqa: S105
+        real_logger = _event_logger["event_logger"]
+
+        cases = (
+            # Accepted: the verbatim resolver returns the body as userinfo.
+            ({"username": GAMMA_USERNAME, "id_token": secret}, MINT_SECRET, 200),
+            # Rejected by the resolver: wrong shared secret.
+            ({"username": GAMMA_USERNAME, "id_token": secret}, "wrong", 401),
+        )
+        for body, header, expected in cases:
+            with self.subTest(expected=expected):
+                with patch.object(real_logger, "log") as log:
+                    response = self.client.post(
+                        f"{ENDPOINT}?credential={secret}",
+                        data=json.dumps(body),
+                        content_type="application/json",
+                        headers={"X-Test-Mint-Secret": header},
+                    )
+                assert response.status_code == expected, response.data
+
+                # Control: the mint endpoint's own event was recorded. Without
+                # this, a logger that never fired would pass trivially.
+                actions = _logged_actions(log)
+                assert "SecurityRestApi.login_token" in actions, actions
+
+                recorded = repr(log.call_args_list)
+                assert secret not in recorded, recorded
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_refuses_to_replace_a_different_users_session(self):
+        """A token cannot swap a signed-in user into another account.
+
+        This is the session-replacement half of login CSRF: an attacker mints
+        for their own identity and gets a victim's already-authenticated frame
+        to navigate to the consume URL. The exchange must be refused, the
+        victim's session must survive untouched, and the token must still be
+        burned so it cannot be tried again.
+        """
+        token = self._mint(GAMMA_USERNAME)
+        self.login(ADMIN_USERNAME)
+
+        response = self.client.get(f"{ENDPOINT}?token={token}&next=/dashboard/1/")
+        assert response.status_code == 401, response.headers.get("Location")
+
+        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+        assert me.get("username") == ADMIN_USERNAME, me
+
+        # Burned on refusal, so it is not a credential the attacker gets back.
+        assert not self._is_stored(token)
+        self.logout()
+        assert self.client.get(f"{ENDPOINT}?token={token}").status_code == 401
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_allows_the_same_user_to_sign_in_again(self):
+        """Re-establishing your own session -- a reloaded frame -- still works.
+
+        Guards the check above from being so strict that it refuses any
+        already-authenticated browser, which would break every reload of an
+        embed after its first.
+        """
+        self.login(GAMMA_USERNAME)
+        token = self._mint(GAMMA_USERNAME)
+
+        response = self.client.get(f"{ENDPOINT}?token={token}&next=/dashboard/list/")
+        assert response.status_code == 302, response.data
+        assert response.headers["Location"] == "/dashboard/list/"
+
+        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+        assert me.get("username") == GAMMA_USERNAME, me
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_does_not_record_the_token(self):
+        """The one-time token never reaches the event log.
+
+        It travels in the consume URL's query string, which
+        ``collect_request_payload`` would otherwise copy verbatim into
+        ``logs.json``. Covers a successful redemption and a rejected one, since a
+        token logged before it is burned would be a live credential at rest.
+        """
+        real_logger = _event_logger["event_logger"]
+        live = self._mint()
+        unknown = "6d2b9921-2274-43b8-94d6-e5e1f05372c4"
+
+        for token, expected in ((live, 302), (unknown, 401)):
+            with self.subTest(expected=expected):
+                with patch.object(real_logger, "log") as log:
+                    response = self.client.get(
+                        f"{ENDPOINT}?token={token}&next=/dashboard/list/"
+                    )
+                assert response.status_code == expected, response.data
+
+                # Control: the consume event was recorded, under its unchanged
+                # action name. Without this, a logger that never fired would
+                # pass trivially. A successful login also writes a
+                # `UserLoggedIn` audit event, which passes `action` by keyword.
+                actions = _logged_actions(log)
+                assert "login_with_token" in actions, actions
+
+                recorded = repr(log.call_args_list)
+                assert token not in recorded, recorded
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_allows_reload_when_the_identifier_differs_in_case(self):
+        """The same-user check compares accounts, not identifier strings.
+
+        ``auth_user_oauth`` resolves the account through ``find_user``, which
+        is case-insensitive by default (``AUTH_USERNAME_CI``). A resolver that
+        returns "GAMMA" for the account "gamma" signs that user in, so the
+        next token for the same user -- a reloaded embed -- must be accepted
+        too, rather than refused as a different user with the token burned.
+        """
+        first = self._mint(GAMMA_USERNAME.upper())
+        assert self.client.get(f"{ENDPOINT}?token={first}").status_code == 302
+
+        reload_ = self._mint(GAMMA_USERNAME.upper())
+        response = self.client.get(f"{ENDPOINT}?token={reload_}&next=/dashboard/list/")
+        assert response.status_code == 302, response.data
+
+        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+        assert me.get("username") == GAMMA_USERNAME, me
+
+    # --------------------------------------------------------------------- csrf
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_mint_is_csrf_exempt_with_protection_actually_on(self):
+        """The mint POST must work with no session and no CSRF token.
+
+        It is a server-to-server call from a backend that holds neither, so the
+        entry in ``WTF_CSRF_EXEMPT_LIST`` is load-bearing: without it the flow
+        cannot be used at all. Nothing else covers it, because the integration
+        config disables CSRF outright -- so removing or misspelling that entry
+        would leave the suite green and break production.
+        """
+        with csrf_enabled(self.app):
+            # Control first. If CSRF were not genuinely active, every assertion
+            # below would pass for the wrong reason, so prove a non-exempt POST
+            # on the same blueprint is rejected before trusting the rest.
+            control = self.client.post(
+                "/api/v1/security/guest_token/",
+                data=json.dumps({}),
+                content_type="application/json",
+            )
+            assert control.status_code == 400, (
+                "CSRF protection is not actually active, so this test proves "
+                f"nothing (guest_token returned {control.status_code})"
+            )
+
+            # The exempt endpoint: no session, no CSRF token, still mints.
+            response = self.client.post(
+                ENDPOINT,
+                data=json.dumps({"username": GAMMA_USERNAME}),
+                content_type="application/json",
+                headers={"X-Test-Mint-Secret": MINT_SECRET},
+            )
+            assert response.status_code == 200, response.data
+            token = json.loads(response.data)["access_token"]
+
+            # A rejected caller must fail on the credential, not on CSRF.
+            rejected = self.client.post(
+                ENDPOINT,
+                data=json.dumps({"username": GAMMA_USERNAME}),
+                content_type="application/json",
+            )
+            assert rejected.status_code == 401, rejected.data
+
+        # The minted token is a real one, redeemable after the fact.
+        assert self.client.get(f"{ENDPOINT}?token={token}").status_code == 302
+
+    # --------------------------------------------------------------------- next
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_falls_back_to_root_for_a_non_relative_next(self):
+        """`next` is site-relative only; anything else lands on `/`.
+
+        Absolute URLs are rejected even for the deployment's own origin. That is
+        deliberate: comparing against ``WEBDRIVER_BASEURL`` would have made a
+        legitimate same-origin URL depend on report-worker configuration.
+        """
+        for requested_next in (
+            "https://superset.example.com/dashboard/1/",
+            "//evil.example.com/",
+            "/\\evil.example.com/",
+            "javascript:alert(1)",
+            # Encoded CR/LF. These must reject rather than normalize: a
+            # surviving newline reaches `redirect()`, which Werkzeug refuses
+            # with a ValueError, and @safe turns that into a 500 -- after the
+            # token has been burned and the session cookie set, so the parent
+            # application cannot retry.
+            "%2Fdashboard%2F1%2F%0D%0AX-Injected:+yes",
+            "%2F%0Adashboard%2F",
+            "%2F%09dashboard",
+            # A trailing newline: the case a check on a stripped copy missed,
+            # since every value above has characters after it.
+            "%2Fdashboard%2F1%2F%0D%0A",
+            "%2Fdashboard%2F1%2F%0A",
+            "%20%2Fdashboard%2F1%2F",
+        ):
+            with self.subTest(next=requested_next):
+                token = self._mint()
+                response = self.client.get(
+                    f"{ENDPOINT}?token={token}&next={requested_next}"
+                )
+
+                # Exactly `/`, not merely "ends with a slash": the rejected
+                # input `https://superset.example.com/dashboard/1/` itself ends
+                # with one, so a looser assertion would pass even if the route
+                # stopped rejecting absolute URLs and redirected there verbatim.
+                assert response.status_code == 302
+                assert response.headers["Location"] == "/", (
+                    f"`next={requested_next}` was not rejected; redirected to "
+                    f"{response.headers['Location']}"
+                )
