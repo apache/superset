@@ -170,6 +170,45 @@ tests:
           path: spec.template.spec.initContainers[1].name
           value: prepare-assets
 
+  - it: passes envFromSecrets into the websockets init containers
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      envFromSecrets:
+        - my-db-credentials
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].envFrom
+          value:
+            - secretRef:
+                name: RELEASE-NAME-superset-env
+            - secretRef:
+                name: my-db-credentials
+
+  - it: passes extraEnv and extraEnvRaw into the websockets init containers
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      extraEnv:
+        DB_HOST: my-postgres.example.com
+      extraEnvRaw:
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: my-db-credentials
+              key: password
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].env
+          value:
+            - name: DB_HOST
+              value: my-postgres.example.com
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: my-db-credentials
+                  key: password
+
   - it: appends mcp extraInitContainers after wait-for-postgres-redis
     template: deployment-mcp.yaml
     set:
@@ -204,3 +243,100 @@ tests:
       - equal:
           path: spec.template.spec.initContainers[1].name
           value: prepare-assets
+
+  - it: only references the chart secret when no extra env sources are set
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].envFrom
+          value:
+            - secretRef:
+                name: RELEASE-NAME-superset-env
+      - notExists:
+          path: spec.template.spec.initContainers[0].env
+
+  - it: passes envFromSecrets into the init containers
+    template: deployment.yaml
+    set:
+      envFromSecrets:
+        - my-db-credentials
+        - "{{ .Release.Name }}-extra-credentials"
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].envFrom
+          value:
+            - secretRef:
+                name: RELEASE-NAME-superset-env
+            - secretRef:
+                name: my-db-credentials
+            - secretRef:
+                name: RELEASE-NAME-extra-credentials
+
+  - it: passes extraEnv and extraEnvRaw into the init containers
+    template: deployment.yaml
+    set:
+      extraEnv:
+        DB_HOST: my-postgres.example.com
+      extraEnvRaw:
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: my-db-credentials
+              key: password
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].env
+          value:
+            - name: DB_HOST
+              value: my-postgres.example.com
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: my-db-credentials
+                  key: password
+
+  - it: keeps env sources declared on a custom init container
+    template: deployment.yaml
+    set:
+      envFromSecrets:
+        - my-db-credentials
+      extraEnv:
+        DB_HOST: my-postgres.example.com
+      supersetNode.initContainers:
+        - name: custom-wait
+          image: busybox
+          env:
+            - name: CUSTOM
+              value: "1"
+          envFrom:
+            - configMapRef:
+                name: custom-config
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].env
+          value:
+            - name: CUSTOM
+              value: "1"
+            - name: DB_HOST
+              value: my-postgres.example.com
+      - equal:
+          path: spec.template.spec.initContainers[0].envFrom
+          value:
+            - configMapRef:
+                name: custom-config
+            - secretRef:
+                name: my-db-credentials
+
+  - it: passes envFromSecrets into the init job init containers
+    template: init-job.yaml
+    set:
+      envFromSecrets:
+        - my-db-credentials
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].envFrom
+          value:
+            - secretRef:
+                name: RELEASE-NAME-superset-env
+            - secretRef:
+                name: my-db-credentials
