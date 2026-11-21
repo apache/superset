@@ -24,6 +24,22 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `list` and `pages` are now reserved extension publisher names. An
+  extension already published under either will fail manifest validation
+  and the `superset-extensions` CLI will refuse to build it; the host owns
+  `/extensions/list/` and `/extensions/pages/<id>`, so a publisher of those
+  names could not be addressed. Rename the publisher and reinstall.
+
+- `navigation.getPage()` can now return `'extension'`, for a page contributed
+  by an extension. Code that switches exhaustively on the `Page` union will
+  not compile until that member is handled, and code that switches without a
+  default may fall through on an extension page at runtime.
+
+- `navigation.getLocation().pathname` is relative to the application root, so
+  on a deployment served under a prefix it does not carry that prefix.
+  `navigation.getApplicationRoot()` reports the prefix for callers that need
+  it, such as a `fetch` built by hand.
+
 - Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
   Period Pivot, Nightingale Rose, Horizon, and Paired t-test charts instead of
   returning misleading or empty data. This includes saved charts and their cached

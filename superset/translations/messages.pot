@@ -139,6 +139,31 @@ msgid "!= (Is not equal)"
 msgstr ""
 
 #, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
+
+msgid "No extension provides a page with this name."
+msgstr ""
+
+msgid "Not authorized"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
+
+msgid "Page not found"
+msgstr ""
+
+msgid "The extension may not be installed, may be switched off, or may have failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
+#, python-format
 msgid "\"%s\" is now the system dark theme"
 msgstr ""
 
