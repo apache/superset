@@ -37,6 +37,7 @@ export type HistogramFormData = QueryFormData & {
   xAxisFormat: string;
   xAxisTitle: string;
   yAxisFormat: string;
+  yAxisLogScale: boolean;
   yAxisTitle: string;
 };
 
