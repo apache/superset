@@ -90,6 +90,8 @@ export interface ChartProps {
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
+  /** False when the chart's cross-filter scope reaches no other chart */
+  hasCrossFilterTargets?: boolean;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   /** Whether to suppress the loading spinner (during auto-refresh) */
   suppressLoadingSpinner?: boolean;
@@ -212,6 +214,7 @@ function Chart({
     triggerQuery,
     postTransformProps,
     emitCrossFilters,
+    hasCrossFilterTargets,
     onChartStateChange,
     suppressLoadingSpinner,
     filterState,
@@ -424,6 +427,7 @@ function Chart({
             ownState={ownState}
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
+            hasCrossFilterTargets={hasCrossFilterTargets}
             onChartStateChange={onChartStateChange}
             latestQueryFormData={latestQueryFormData}
             filterState={filterState}
@@ -450,6 +454,7 @@ function Chart({
       emitCrossFilters,
       filterState,
       formData,
+      hasCrossFilterTargets,
       height,
       initialValues,
       latestQueryFormData,
