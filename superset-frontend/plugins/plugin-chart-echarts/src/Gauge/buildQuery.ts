@@ -20,10 +20,16 @@ import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
   const { metric, sort_by_metric } = formData;
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      ...(sort_by_metric && { orderby: [[metric, false]] }),
-    },
-  ]);
+  return buildQueryContext(formData, {
+    // bound metrics are queried alongside the value so every group row
+    // carries its own min/max; aliasing them to `metrics` lets the base
+    // query object collect them and drop duplicates by label
+    queryFields: { min_metric: 'metrics', max_metric: 'metrics' },
+    buildQuery: baseQueryObject => [
+      {
+        ...baseQueryObject,
+        ...(sort_by_metric && { orderby: [[metric, false]] }),
+      },
+    ],
+  });
 }

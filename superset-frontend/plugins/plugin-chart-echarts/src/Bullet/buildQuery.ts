@@ -19,20 +19,47 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getMetricLabel,
   QueryFormData,
+  QueryObject,
+  removeDuplicates,
 } from '@superset-ui/core';
 
 /**
  * A single ungrouped aggregate of the selected metric, mirroring the query
- * the legacy nvd3 bullet chart issued.
+ * the legacy nvd3 bullet chart issued. The per-row target metric rides along
+ * in the same query.
  */
 export default function buildQuery(formData: QueryFormData) {
-  const { metric, groupby } = formData;
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      columns: ensureIsArray(groupby),
-      metrics: metric ? [metric] : [],
+  const { groupby, marker_line_metrics, marker_metrics } = formData;
+  const chartWideMetrics = removeDuplicates(
+    [...ensureIsArray(marker_line_metrics), ...ensureIsArray(marker_metrics)],
+    getMetricLabel,
+  );
+  return buildQueryContext(formData, {
+    // aliasing the target to `metrics` lets the base query object collect it
+    // next to the measure and drop duplicates by label
+    queryFields: { target_metric: 'metrics' },
+    buildQuery: baseQueryObject => {
+      const queries: QueryObject[] = [
+        {
+          ...baseQueryObject,
+          columns: ensureIsArray(groupby),
+        },
+      ];
+      // The chart-wide marker lines and markers are aggregated over all rows
+      // rather than combined from per-group values, so non-additive metrics
+      // (averages, ratios, distinct counts) stay correct. They share one
+      // ungrouped query, however many there are.
+      if (chartWideMetrics.length) {
+        queries.push({
+          ...baseQueryObject,
+          columns: [],
+          metrics: chartWideMetrics,
+          orderby: [],
+        });
+      }
+      return queries;
     },
-  ]);
+  });
 }
