@@ -35,3 +35,12 @@ class CanAccessQueryValidatorImpl(CanAccessQueryValidator):
             template_params=template_params,
             force_dataset_match=True,
         )
+        # ``ExecuteSqlCommand`` validates the query twice: before rendering,
+        # then with ``executed_sql`` set to the rendered SQL about to run. The
+        # write or DDL targets of templated SQL are checked on that rendered
+        # SQL only, so the template is not rendered once more here.
+        security_manager.raise_for_write_target_access(
+            query=query,
+            template_params=template_params,
+            rendered_check_follows=True,
+        )

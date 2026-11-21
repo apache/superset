@@ -674,6 +674,7 @@ async def test_execute_sql_reports_missing_table_as_query_error(
             "superset.mcp_service.middleware.get_user_from_request", return_value=None
         ),
         patch("superset.security_manager.raise_for_access"),
+        patch("superset.security_manager.raise_for_write_target_access"),
         patch.dict(app.config, {"MCP_ERROR_HOOK": hook}),
     ):
         async with Client(mcp) as client:
