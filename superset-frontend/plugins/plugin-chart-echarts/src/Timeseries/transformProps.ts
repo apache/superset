@@ -1567,6 +1567,10 @@ export default function transformProps(
   // clipping can otherwise drop an out-of-bounds point (and the line
   // segments around it) entirely rather than truncating it at the
   // boundary (see https://github.com/apache/superset/issues/27449).
+  // The plotted coordinate is the clamped number. When that number
+  // differs from the source value, `originalValue` keeps the source so
+  // labels and tooltips do not report the bound as if it were the data
+  // (see https://github.com/apache/superset/issues/45475).
   if (yAxisMin !== undefined || yAxisMax !== undefined) {
     const valueIndex = isHorizontal ? 0 : 1;
     type AxisValue = string | number | null | undefined;
@@ -1583,6 +1587,26 @@ export default function transformProps(
       newPoint[valueIndex] = clampAxisValue(newPoint[valueIndex]);
       return newPoint;
     };
+    const withOriginalValue = (
+      point: AxisPoint | Record<string, unknown>,
+      source: AxisPoint,
+      clampedPoint: AxisPoint,
+    ): AxisPoint | Record<string, unknown> => {
+      const original = source[valueIndex];
+      const clamped = clampedPoint[valueIndex];
+      const changed =
+        typeof original === 'number' &&
+        typeof clamped === 'number' &&
+        original !== clamped;
+      if (!changed) {
+        return Array.isArray(point)
+          ? clampedPoint
+          : { ...point, value: clampedPoint };
+      }
+      return Array.isArray(point)
+        ? { value: clampedPoint, originalValue: original }
+        : { ...point, value: clampedPoint, originalValue: original };
+    };
     series.forEach((s, index) => {
       // Skip annotation series appended above; only clamp the chart's own
       // observation/legend/baseline series.
@@ -1592,7 +1616,7 @@ export default function transformProps(
         s.data as (AxisPoint | Record<string, unknown>)[]
       ).map(point => {
         if (Array.isArray(point)) {
-          return clampPoint(point);
+          return withOriginalValue(point, point, clampPoint(point));
         }
         // Some series paths (e.g. colorByPrimaryAxis, or negative bar
         // label positioning) wrap the tuple in an object of the shape
@@ -1604,10 +1628,8 @@ export default function transformProps(
           typeof point === 'object' &&
           Array.isArray((point as { value?: unknown }).value)
         ) {
-          return {
-            ...point,
-            value: clampPoint((point as { value: AxisPoint }).value),
-          };
+          const source = (point as { value: AxisPoint }).value;
+          return withOriginalValue(point, source, clampPoint(source));
         }
         return point;
       });

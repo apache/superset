@@ -695,8 +695,16 @@ export function transformSeries(
         ) {
           return '';
         }
-        const { value, dataIndex, seriesIndex, seriesName } = params;
-        const numericValue = isHorizontal ? value[0] : value[1];
+        const { value, data, dataIndex, seriesIndex, seriesName } = params;
+        // A point drawn at a Y-axis bound keeps its source number on
+        // `originalValue` so the label reports the data, not the bound.
+        const originalValue = data?.originalValue;
+        const numericValue =
+          typeof originalValue === 'number' && Number.isFinite(originalValue)
+            ? originalValue
+            : isHorizontal
+              ? value[0]
+              : value[1];
         const isSelectedLegend = !legendState || legendState[seriesName];
         const isAreaExpand = stack === StackControlsValue.Expand;
         if (!formatter) {
