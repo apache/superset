@@ -4200,8 +4200,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "New permission [%s] already exists, deleting the previous",
                 new_view_menu_name,
             )
-            self._delete_vm_database_access(
-                mapper, connection, target.id, old_database_name
+            # A rename must leave schema/catalog grants for permission sync to
+            # migrate; full database deletion would discard those role grants.
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "database_access", old_view_menu_name
             )
             return None
         connection.execute(

@@ -393,6 +393,110 @@ def add_permissions(database: Database, *, commit: bool = True) -> None:
             continue
 
 
+def rename_permission_view_menu(pvm: PermissionView, new_name: str | None) -> None:
+    """Rename a PVM atomically, merging role grants if the destination exists."""
+    old_view_menu = pvm.view_menu
+    if not new_name or old_view_menu.name == new_name:
+        return
+
+    destination = security_manager.find_permission_view_menu(
+        pvm.permission.name, new_name
+    )
+    if destination:
+        # Use the role relationship so loaded collections agree with the database.
+        roles = (
+            db.session.query(security_manager.role_model)
+            .filter(security_manager.role_model.permissions.contains(pvm))
+            .all()
+        )
+        for role in roles:
+            if destination not in role.permissions:
+                role.permissions.append(destination)
+            role.permissions.remove(pvm)
+        db.session.delete(pvm)
+    else:
+        # Do not rename other permissions sharing this view menu.
+        pvm.view_menu = add_vm(db.session, security_manager, new_name)
+
+    db.session.flush()
+    if not (
+        db.session.query(security_manager.permissionview_model)
+        .filter_by(view_menu_id=old_view_menu.id)
+        .first()
+    ):
+        db.session.delete(old_view_menu)
+
+
+def rename_database_in_permissions(database: Database, old_database_name: str) -> None:
+    """
+    Carry the schema and catalog permissions of a renamed database to its new name.
+
+    Schema and catalog permission names, and the ``schema_perm``/``catalog_perm``
+    of the datasets and charts, embed the database name. The rename hook of the
+    database model rewrites the database and dataset permissions only, since
+    listing the schemas needs a connection (see ``SyncPermissionsCommand`` for
+    the API rename). This works from what is stored instead, so a caller that
+    keeps permissions and assets in one transaction, like an import, needs no
+    live connection.
+
+    Run it before ``add_permissions()`` so a grant on the previous name is renamed
+    rather than left behind next to a new, ungranted permission.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.dataset import DatasetDAO
+    from superset.models.helpers import skip_visibility_filter
+    from superset.models.slice import Slice
+
+    new_database_name = database.database_name
+    if not old_database_name or old_database_name == new_database_name:
+        return
+
+    old_prefix = f"[{old_database_name}]."
+    new_prefix = f"[{new_database_name}]."
+    view_menu_model = security_manager.viewmenu_model
+    pv_model = security_manager.permissionview_model
+    permission_model = security_manager.permission_model
+    permissions = (
+        db.session.query(pv_model)
+        .join(view_menu_model, pv_model.view_menu_id == view_menu_model.id)
+        .join(permission_model, pv_model.permission_id == permission_model.id)
+        .filter(
+            permission_model.name.in_(("catalog_access", "schema_access")),
+            view_menu_model.name.startswith(old_prefix, autoescape=True),
+        )
+        .all()
+    )
+    for pvm in permissions:
+        new_name = new_prefix + pvm.view_menu.name[len(old_prefix) :]
+        rename_permission_view_menu(pvm, new_name)
+
+    # A soft-deleted dataset must not keep the previous name either, or restoring
+    # it would bring the stale permission strings back.
+    with skip_visibility_filter(db.session, SqlaTable, Slice):
+        datasets = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.database_id == database.id)
+            .all()
+        )
+        for dataset in datasets:
+            if dataset.catalog:
+                dataset.catalog_perm = security_manager.get_catalog_perm(
+                    new_database_name, dataset.catalog
+                )
+            if dataset.schema:
+                dataset.schema_perm = security_manager.get_schema_perm(
+                    new_database_name, dataset.catalog, dataset.schema
+                )
+        # Updating only dataset permission columns does not propagate through the
+        # dataset hook, and charts absent from the bundle have no save hook to run.
+        datasets_by_id = {dataset.id: dataset for dataset in datasets}
+        for chart in DatasetDAO.get_charts_for_datasets(list(datasets_by_id)):
+            dataset = datasets_by_id[chart.datasource_id]
+            chart.catalog_perm = dataset.catalog_perm
+            chart.schema_perm = dataset.schema_perm
+
+
 def add_vm(
     session: Session,
     security_manager: SupersetSecurityManager,
