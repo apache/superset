@@ -436,6 +436,43 @@ test('removes duplicated values', async () => {
   expect(values[3]).toHaveTextContent('d');
 });
 
+test('retains all typed values in multiple mode with allowNewOptions', async () => {
+  // 2 predefined options + 3 typed values puts the selection count at
+  // eligible + 1, which must not be read as "Select all" mode and collapse
+  // one extra tag behind an undercounted "+ 1 ..." placeholder.
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions
+      maxTagCount={2}
+      options={OPTIONS.slice(0, 2)}
+    />,
+  );
+  const typedValues = ['v1', 'v2', 'v3'];
+  for (const typedValue of typedValues) {
+    // eslint-disable-next-line no-await-in-loop
+    await type(typedValue);
+    // The new option is created by the debounced search handler, so wait for
+    // it to appear before confirming it with Enter.
+    // eslint-disable-next-line no-await-in-loop
+    await findSelectOption(typedValue);
+    // userEvent's `{enter}` has no keyCode, which rc-select's option list
+    // needs; the keyUp releases rc-select's Enter lock for the next value.
+    fireEvent.keyDown(getSelect(), {
+      key: 'Enter',
+      code: 'Enter',
+      keyCode: 13,
+    });
+    fireEvent.keyUp(getSelect(), { key: 'Enter', code: 'Enter', keyCode: 13 });
+  }
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(3);
+  expect(values[0]).toHaveTextContent('v1');
+  expect(values[1]).toHaveTextContent('v2');
+  expect(values[2]).toHaveTextContent('+ 1 ...');
+});
+
 test('typing an unquoted comma splits the value into a chip', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
   await type('Australia');
