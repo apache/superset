@@ -244,10 +244,10 @@ test('sessions without a user id get the data export but no bundle exports', () 
 });
 
 test('Export as Example does not depend on userCanExport', () => {
-  render(
-    <MenuWrapperWithProps userCanExport={false} canExportAsExample />,
-    { useRedux: true, initialState: loggedInState },
-  );
+  render(<MenuWrapperWithProps userCanExport={false} canExportAsExample />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
 
   expect(screen.getByText('Export as Example')).toBeInTheDocument();
 });
