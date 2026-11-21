@@ -46,7 +46,7 @@ jobs:
           fi
           echo "HAS_TAGS=1" >> "$GITHUB_ENV"
           git fetch --prune --unshallow
-          git tag -d "$(git tag | grep -E '^trigger-')"
+          git tag -l 'trigger-*' | xargs -r git tag -d
 
       - name: Install Node.js
         if: env.HAS_TAGS
@@ -108,7 +108,7 @@ jobs:
         if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: |
-          git tag -d "$(git tag | grep -E '^trigger-')"
+          git tag -l 'trigger-*' | xargs -r git tag -d
           npm run plugins:release-from-tag
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
