@@ -594,6 +594,33 @@ test('should save', async () => {
   expect(onSave).toHaveBeenCalledTimes(1);
 });
 
+test.each([
+  [true, [{ id: 7, type: 1, label: 'viewer' }]],
+  [false, undefined],
+])(
+  'overwrite includes viewers only when ENABLE_VIEWERS is %s',
+  async (enabled, expected) => {
+    window.featureFlags = { ENABLE_VIEWERS: enabled };
+    const viewers = [{ id: 7, type: 1, label: 'viewer' }];
+    setup({
+      ...editableState,
+      dashboardInfo: { ...editableState.dashboardInfo, viewers },
+      dashboardState: {
+        ...editableState.dashboardState,
+        hasUnsavedChanges: true,
+      },
+    });
+    await userEvent.click(screen.getByText('Save'));
+    const [data] = onSave.mock.calls[onSave.mock.calls.length - 1];
+    if (expected) {
+      expect(data.viewers).toEqual(expected);
+    } else {
+      expect(data).not.toHaveProperty('viewers');
+    }
+    window.featureFlags = {};
+  },
+);
+
 test('should block saving and surface the size, limit, and config key when the layout exceeds the limit', async () => {
   const oversizedState = {
     ...editableState,
