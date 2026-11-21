@@ -28,6 +28,7 @@ import {
   ValueFormatter,
   getSequentialSchemeRegistry,
 } from '@superset-ui/core';
+import { ColorFormatters } from '@superset-ui/chart-controls';
 import countries, { countryOptions } from './countries';
 
 /**
@@ -41,6 +42,7 @@ function escapeHtml(text: string): string {
 
 interface CountryMapDataItem {
   country_id: string;
+  source_value?: string;
   metric: number;
 }
 
@@ -59,6 +61,8 @@ interface GeoData {
 
 interface CountryMapProps {
   data: CountryMapDataItem[];
+  /** Original source value for each normalized region ISO code. */
+  sourceValues?: Record<string, string>;
   width: number;
   height: number;
   country: string;
@@ -81,6 +85,7 @@ interface CountryMapProps {
     };
   };
   entity?: string;
+  formatters?: ColorFormatters;
 }
 
 const maps: Record<string, GeoData> = {};
@@ -93,6 +98,7 @@ const zoomStates = new WeakMap<
 function CountryMap(element: HTMLElement, props: CountryMapProps) {
   const {
     data,
+    sourceValues,
     width,
     height,
     country,
@@ -105,6 +111,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     emitCrossFilters,
     onContextMenu,
     setDataMask,
+    formatters,
   } = props;
 
   const container = element;
@@ -120,16 +127,27 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
   const colorMap: Record<string, string> = {};
+  const conditionalColorByIso: Record<string, string> = {};
   data.forEach(d => {
     colorMap[d.country_id] = colorScheme
       ? colorScale(d.country_id, sliceId)
       : (linearColorScale(d.metric) ?? '');
+
+    if (formatters?.length) {
+      for (const colorFormatter of formatters) {
+        const cfColor = colorFormatter.getColorFromValue(d.metric);
+        if (cfColor) {
+          conditionalColorByIso[d.country_id] = cfColor;
+          break;
+        }
+      }
+    }
   });
 
   const colorFn = (feature: GeoFeature): string => {
     if (!feature?.properties) return '#d9d9d9';
     const iso = feature.properties.ISO;
-    return colorMap[iso] || '#d9d9d9';
+    return conditionalColorByIso[iso] || colorMap[iso] || '#d9d9d9';
   };
 
   // Check if dashboard is in edit mode
@@ -164,6 +182,16 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   // Track mouse position to distinguish clicks from drags
   let mousedownPos: { x: number; y: number } | null = null;
 
+  // Without a source map the ISO code is the raw entity value (legacy path).
+  // With one, a code absent from it has no source row, so interactions on it
+  // are suppressed by returning undefined.
+  const sourceValue = (code: string) => {
+    if (!sourceValues) return code;
+    return Object.prototype.hasOwnProperty.call(sourceValues, code)
+      ? sourceValues[code]
+      : undefined;
+  };
+
   // Cross-filter support
   const getCrossFilterDataMask = (
     source: GeoFeature,
@@ -174,18 +202,27 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     const iso = source?.properties?.ISO;
     if (!iso) return undefined;
 
+    // An already-selected boundary must stay clearable even when a later
+    // dashboard filter removed its source row.
     const isSelected = selected.includes(iso);
+    if (!isSelected && sourceValue(iso) === undefined) return undefined;
     const values = isSelected ? [] : [iso];
 
     return {
       dataMask: {
         extraFormData: {
           filters: values.length
-            ? [{ col: entity, op: 'IN', val: values }]
+            ? [
+                {
+                  col: entity,
+                  op: 'IN',
+                  val: values.map(sourceValue),
+                },
+              ]
             : [],
         },
         filterState: {
-          value: values.length ? values : null,
+          value: values.length ? values.map(sourceValue) : null,
           selectedValues: values.length ? values : null,
         },
       },
@@ -204,7 +241,8 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     const iso = feature?.properties?.ISO;
     if (!iso || typeof onContextMenu !== 'function' || !entity) return;
 
-    const drillVal = iso;
+    const drillVal = sourceValue(iso);
+    if (drillVal === undefined) return;
     const drillToDetailFilters = [
       { col: entity, op: '==', val: drillVal, formattedVal: drillVal },
     ];
@@ -230,13 +268,11 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   };
 
   const updatePopupPosition = (): void => {
-    const svgHeight = svg.node().getBoundingClientRect().height;
     const [x, y] = d3.mouse(svg.node());
     hoverPopup
       .style('display', 'block')
       .style('top', `${y + 30}px`)
-      .style('left', `${x}px`)
-      .classed('popup-at-bottom', y > (svgHeight * 2) / 3);
+      .style('left', `${x}px`);
   };
 
   const mouseenter = function mouseenter(
@@ -255,8 +291,11 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     const regionName = escapeHtml(getNameOfRegion(d));
     const metricValue =
       result.length > 0 ? escapeHtml(String(formatter(result[0].metric))) : '';
+    // Pick above/below once per region, so the popup doesn't jump while the
+    // cursor moves within a region that straddles the threshold.
     hoverPopup
       .style('display', 'block')
+      .classed('popup-at-bottom', d3.mouse(svg.node())[1] > (height * 2) / 3)
       .html(`<div><strong>${regionName}</strong><br>${metricValue}</div>`);
     updatePopupPosition();
   };

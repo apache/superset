@@ -18,6 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  createStore,
   render,
   screen,
   selectOption,
@@ -25,10 +26,12 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
+import type { DataMaskStateWithId } from '@superset-ui/core';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { ScopingModal, ScopingModalProps } from './ScopingModal';
 
@@ -169,7 +172,7 @@ test('switch currently edited chart scoping', async () => {
   expect(withinScopingList.getByText('All charts/global scoping')).toHaveClass(
     'active',
   );
-  userEvent.click(withinScopingList.getByText('Chart 3'));
+  await userEvent.click(withinScopingList.getByText('Chart 3'));
   await waitFor(() => {
     expect(withinScopingList.getByText('Chart 3')).toHaveClass('active');
     expect(
@@ -178,7 +181,7 @@ test('switch currently edited chart scoping', async () => {
   });
 });
 
-test('scoping tree global and custom checks', () => {
+test('scoping tree global and custom checks', async () => {
   setup();
 
   expect(
@@ -187,7 +190,7 @@ test('scoping tree global and custom checks', () => {
     ),
   ).toHaveLength(5);
 
-  userEvent.click(
+  await userEvent.click(
     within(screen.getByTestId('scoping-list-panel')).getByText('Chart 3'),
   );
 
@@ -201,7 +204,7 @@ test('scoping tree global and custom checks', () => {
 test('add new custom scoping', async () => {
   setup();
 
-  userEvent.click(screen.getByText('Add custom scoping'));
+  await userEvent.click(screen.getByText('Add custom scoping'));
 
   expect(screen.getByText('[new custom scoping]')).toBeInTheDocument();
   expect(screen.getByText('[new custom scoping]')).toHaveClass('active');
@@ -213,7 +216,7 @@ test('add new custom scoping', async () => {
     ),
   ).toHaveLength(4);
 
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 2'),
   );
 
@@ -228,29 +231,29 @@ test('edit scope and save', async () => {
   setup();
 
   // unselect chart 2 in global scoping
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 2'),
   );
 
-  userEvent.click(
+  await userEvent.click(
     within(screen.getByTestId('scoping-list-panel')).getByText('Chart 3'),
   );
 
   // select chart 1 in chart 3's custom scoping
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 1'),
   );
 
   // create custom scoping for chart 1 with unselected chart 2 (from global) and chart 4
-  userEvent.click(screen.getByText('Add custom scoping'));
+  await userEvent.click(screen.getByText('Add custom scoping'));
   await selectOption('chart 1', 'Select chart');
 
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 4'),
   );
 
   // remove custom scoping for chart 4
-  userEvent.click(
+  await userEvent.click(
     within(
       within(screen.getByTestId('scoping-list-panel'))
         .getByText('chart 4')
@@ -261,7 +264,7 @@ test('edit scope and save', async () => {
     within(screen.getByTestId('scoping-list-panel')).queryByText('chart 4'),
   ).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Save'));
+  await userEvent.click(screen.getByText('Save'));
 
   await waitFor(() => fetchMock.callHistory.called(DASHBOARD_UPDATE_URL));
 
@@ -306,4 +309,45 @@ test('edit scope and save', async () => {
       chartsInScope: [1, 3, 4],
     },
   });
+});
+
+const appliedCrossFilter = (value: string) => ({
+  extraFormData: { filters: [{ col: 'gender', op: 'IN', val: [value] }] },
+  filterState: { value: [value] },
+  ownState: { page: 2 },
+});
+
+test('saving a scope that leaves a chart with no targets clears its applied cross-filter', async () => {
+  const store = createStore(
+    {
+      ...INITIAL_STATE,
+      dataMask: {
+        2: { id: 2, ...appliedCrossFilter('girl') },
+        3: { id: 3, ...appliedCrossFilter('boy') },
+      },
+    },
+    reducerIndex,
+  );
+  render(<ScopingModal {...DEFAULT_PROPS} initialChartId={3} />, { store });
+  const getDataMask = () =>
+    (store.getState() as unknown as { dataMask: DataMaskStateWithId }).dataMask;
+
+  // deselect the only two targets of chart 3's custom scope
+  const tree = within(document.querySelector('.ant-tree')!);
+  await userEvent.click(tree.getByText('chart 2'));
+  await userEvent.click(tree.getByText('chart 4'));
+  await userEvent.click(screen.getByText('Save'));
+
+  await waitFor(() =>
+    expect(getDataMask()[3].filterState).toEqual({
+      value: null,
+      selectedValues: null,
+    }),
+  );
+  expect(getDataMask()[3].extraFormData).toEqual({ filters: [] });
+  expect(getDataMask()[3].ownState).toEqual({ page: 2 });
+  // chart 2 still has targets, so its cross-filter is left alone
+  expect(getDataMask()[2]).toEqual(
+    expect.objectContaining(appliedCrossFilter('girl')),
+  );
 });

@@ -69,7 +69,7 @@ export interface ComponentShape {
   meta: ComponentMeta;
 }
 
-interface HeaderProps {
+export interface HeaderProps {
   id: string;
   dashboardId: string;
   parentId: string;

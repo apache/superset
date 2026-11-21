@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const http = require('http');
-const zlib = require('zlib');
-const { ZSTDCompress } = require('simple-zstd');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+import http from 'node:http';
+import zlib from 'node:zlib';
+import { ZSTDCompress } from 'simple-zstd';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // yargs ships ESM-only and jest's default transform doesn't cover
 // node_modules; webpack.proxy-config.js only uses it to parse a `--env`
@@ -40,11 +40,11 @@ const HANG_GUARD_MS = 2000;
 async function startProxy(backendPort) {
   const previousPort = process.env.supersetPort;
   // webpack.proxy-config.js resolves its target port from process.env at
-  // require()-time, so the module must be (re-)required after this is set.
+  // import-time, so the module must be re-imported after this is set.
   process.env.supersetPort = String(backendPort);
   jest.resetModules();
-  // eslint-disable-next-line global-require
-  const getProxyConfig = require('../webpack.proxy-config');
+  const { default: getProxyConfig } =
+    await import('../webpack.proxy-config.js');
   process.env.supersetPort = previousPort;
 
   const proxyMiddleware = createProxyMiddleware(getProxyConfig(undefined));
@@ -157,16 +157,20 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
           );
         });
 
-        // Headers (including the 200 the backend sent before dying) are
-        // already flushed before the drop is detected, so the response
-        // completes with the original status; what matters is that it
-        // completes at all, promptly, with the error surfaced in the body
-        // instead of the connection hanging indefinitely.
-        const { body } = await Promise.race([
-          get(proxy.address().port),
+        // http-proxy-middleware destroys the client response when its
+        // upstream response closes incomplete, so this can either return
+        // the proxy error body or reject with ECONNRESET.
+        const settled = await Promise.race([
+          get(proxy.address().port)
+            .then(response => ({ response }))
+            .catch(error => ({ error })),
           hangGuard,
         ]);
-        expect(body).toContain('Error requesting');
+        if (settled.error) {
+          expect(settled.error.code).toBe('ECONNRESET');
+        } else {
+          expect(settled.response.body).toContain('Error requesting');
+        }
       } finally {
         clearTimeout(hangGuardTimer);
         await closeAll(proxy, backend);
@@ -207,11 +211,17 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
           );
         });
 
-        const { body } = await Promise.race([
-          get(proxy.address().port),
+        const settled = await Promise.race([
+          get(proxy.address().port)
+            .then(response => ({ response }))
+            .catch(error => ({ error })),
           hangGuard,
         ]);
-        expect(body).toContain('Error requesting');
+        if (settled.error) {
+          expect(settled.error.code).toBe('ECONNRESET');
+        } else {
+          expect(settled.response.body).toContain('Error requesting');
+        }
       } finally {
         clearTimeout(hangGuardTimer);
         await closeAll(proxy, backend);

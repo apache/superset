@@ -95,6 +95,13 @@ issues arise. Please clear your existing results cache store when upgrading an e
   - [s3werkzeugcache](https://pypi.python.org/pypi/s3werkzeugcache) for S3
   - [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) for MinIO or other S3 compatible service
 
+When Global Async Queries is enabled for charts, a failed, aborted, or timed-out
+chart query displays its task failure message in the chart error panel. The
+browser reads that message from the authorized task-status endpoint after a
+terminal status arrives by polling or websocket. Embedded guest viewers receive
+the same redacted message as synchronous chart requests. If no detail is
+available, the chart displays a generic failure message.
+
 ## Celery Flower
 
 Flower is a web based tool for monitoring the Celery cluster which you can install from pip:
@@ -113,3 +120,21 @@ celery --app=superset.tasks.celery_app:app flower
 
 - [Blog: How to Set Up Global Async Queries (GAQ) in Apache Superset](https://medium.com/@ngigilevis/how-to-set-up-global-async-queries-gaq-in-apache-superset-a-complete-guide-9d2f4a047559)
   :::
+
+## Cancelling SQL Server queries
+
+MCP queries using Microsoft SQL Server with `pyodbc` can cancel their original
+live cursor when their execution owner reaches a deadline or the caller
+disconnects. Superset waits for an in-flight native cancellation before releasing
+that cursor, and ignores queued cancellations after the cursor's scope ends.
+
+This uses the driver's `cursor.cancel()` API and does not require permission to
+kill other database sessions. Superset does not capture SQL Server session IDs or
+send `KILL`: those IDs can be reassigned to unrelated connections.
+
+This support does not extend to ordinary SQL Lab or chart-task cancellation from
+another process, `pymssql` (which has no public `cursor.cancel()` API), `pytds`
+(whose cancellation reads from the query's socket), Azure Synapse dedicated
+pools, or SAP Sybase. Configure driver connection, query, and
+network timeouts as well: native cancellation is best effort and cannot guarantee
+that an unreachable or unresponsive driver stops within a fixed time.

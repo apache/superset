@@ -174,8 +174,10 @@ const SelectorLabel = styled.button`
     position: relative;
     color: ${theme.colorText};
 
-    &:focus {
-      outline: initial;
+    /* Outset ring so it stays visible on the colorPrimary-filled selected label */
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: 2px;
     }
 
     &.selected {
@@ -277,7 +279,12 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   font: inherit;
   cursor: pointer;
   width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
-  outline: none; /* Remove focus outline to show only selected state */
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid ${theme.colorPrimary};
+    outline-offset: 2px;
+  }
 
   img {
     min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
@@ -716,13 +723,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     >
       <LeftPane aria-label={t('Choose chart type')} role="tablist">
         <Selector
-          css={({ sizeUnit }) =>
-            // adjust style for not being inside a collapse
-            css`
-              margin: ${sizeUnit * 2}px;
-              margin-bottom: 0;
-            `
-          }
+          // adjust style for not being inside a collapse
+          css={({ sizeUnit }) => css`
+            margin: ${sizeUnit * 2}px;
+            margin-bottom: 0;
+          `}
           sectionId={Sections.AllCharts}
           selector={ALL_CHARTS}
           icon={<Icons.Ballot iconSize="m" />}
@@ -734,13 +739,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           onClick={clickSelector}
         />
         <Selector
-          css={({ sizeUnit }) =>
-            // adjust style for not being inside a collapse
-            css`
-              margin: ${sizeUnit * 2}px;
-              margin-bottom: 0;
-            `
-          }
+          // adjust style for not being inside a collapse
+          css={({ sizeUnit }) => css`
+            margin: ${sizeUnit * 2}px;
+            margin-bottom: 0;
+          `}
           sectionId={Sections.Featured}
           selector={FEATURED}
           icon={<Icons.FireOutlined iconSize="m" />}

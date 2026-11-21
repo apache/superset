@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json  # noqa: TID251
 import re
 from datetime import timedelta
@@ -28,18 +29,31 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import Boolean, Column, Integer, types
+from sqlalchemy import Boolean, Column, column, Integer, text, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
+from superset.db_engine_specs.athena import AthenaEngineSpec
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersType,
     convert_inspector_columns,
 )
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
+from superset.db_engine_specs.crate import CrateEngineSpec
+from superset.db_engine_specs.druid import DruidEngineSpec
+from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+from superset.db_engine_specs.pinot import PinotEngineSpec
+from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetGenericDBErrorException,
+)
+from superset.security.guest_token import GuestToken, GuestUser
 from superset.sql.parse import Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -50,6 +64,7 @@ from superset.superset_typing import (
 from superset.utils.core import FilterOperator, GenericDataType
 from superset.utils.oauth2 import decode_oauth2_state
 from tests.conftest import with_config
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
@@ -155,6 +170,7 @@ def test_cte_query_parsing(original: types.TypeEngine, expected: str) -> None:
     "native_type,sqla_type,attrs,generic_type,is_dttm",
     [
         ("SMALLINT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
+        ("TINYINT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
         ("INTEGER", types.Integer, None, GenericDataType.NUMERIC, False),
         ("BIGINT", types.BigInteger, None, GenericDataType.NUMERIC, False),
         ("DECIMAL", types.Numeric, None, GenericDataType.NUMERIC, False),
@@ -213,6 +229,55 @@ def test_convert_inspector_columns(
     cols: list[SQLAColumnType], expected_result: list[ResultSetColumnType]
 ):
     assert convert_inspector_columns(cols) == expected_result
+
+
+def test_convert_inspector_columns_stringifies_sql_expressions() -> None:
+    float_type = types.Float()
+    date_type = types.Date()
+    string_type = types.String()
+    cols = cast(
+        list[SQLAColumnType],
+        [
+            {
+                "name": "total",
+                "type": float_type,
+                "nullable": False,
+                "comment": None,
+                "clickhouse_alias": text("price * qty"),
+            },
+            {
+                "name": "day",
+                "type": date_type,
+                "clickhouse_materialized": text("toDate(ts)"),
+                "clickhouse_ttl": text("day + toIntervalDay(30)"),
+            },
+            {"name": "note", "type": string_type, "server_default": text("'x'")},
+        ],
+    )
+
+    assert convert_inspector_columns(cols) == [
+        {
+            "column_name": "total",
+            "name": "total",
+            "type": float_type,
+            "nullable": False,
+            "comment": None,
+            "clickhouse_alias": "price * qty",
+        },
+        {
+            "column_name": "day",
+            "name": "day",
+            "type": date_type,
+            "clickhouse_materialized": "toDate(ts)",
+            "clickhouse_ttl": "day + toIntervalDay(30)",
+        },
+        {
+            "column_name": "note",
+            "name": "note",
+            "type": string_type,
+            "server_default": "'x'",
+        },
+    ]
 
 
 def test_select_star(mocker: MockerFixture) -> None:
@@ -298,6 +363,24 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     assert BaseEngineSpec.get_default_catalog(database) is None
 
 
+def test_get_catalog_from_engine_params_url_database() -> None:
+    """
+    Test that `get_catalog_from_engine_params` returns the URL's database by default.
+    """
+    url = make_url("postgresql://user:pw@host/my_db")
+    assert BaseEngineSpec.get_catalog_from_engine_params(url, {}) == "my_db"
+
+
+def test_get_catalog_from_engine_params_no_database() -> None:
+    """
+    Test that `get_catalog_from_engine_params` returns `None` when the URL has no
+    database, regardless of `connect_args` -- the base implementation ignores them.
+    """
+    url = make_url("postgresql://user:pw@host/")
+    connect_args = {"database": "ignored"}
+    assert BaseEngineSpec.get_catalog_from_engine_params(url, connect_args) is None
+
+
 def test_prepare_identifier_returns_name_unchanged() -> None:
     name = "physical_column"
 
@@ -325,6 +408,33 @@ def test_quote_table() -> None:
         BaseEngineSpec.quote_table(Table("ta ble", "sche.ma", 'cata"log'), dialect)
         == '"cata""log"."sche.ma"."ta ble"'
     )
+
+
+def test_get_extra_params_malformed_json(mocker: MockerFixture) -> None:
+    """
+    Test that malformed JSON in `extra` raises a Superset exception instead of
+    leaking the raw `JSONDecodeError`.
+    """
+    database = mocker.MagicMock(extra="{not valid json")
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        BaseEngineSpec.get_extra_params(database)
+
+
+def test_update_params_from_encrypted_extra_malformed_json(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that malformed JSON in `encrypted_extra` raises a Superset exception
+    instead of leaking the raw `JSONDecodeError`.
+    """
+    database = mocker.MagicMock(encrypted_extra="{not valid json")
+    params: dict[str, Any] = {}
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        BaseEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert params == {}
 
 
 def test_mask_encrypted_extra() -> None:
@@ -484,7 +594,141 @@ def test_encrypted_extra_sensitive_field_paths_from_dict(
         if masked_encrypted_extra:
             encrypted_extra_sensitive_fields = masked_encrypted_extra
 
-    assert DictFieldsSpec.encrypted_extra_sensitive_field_paths() == expected_result
+    assert DictFieldsSpec.encrypted_extra_sensitive_field_paths() == (
+        expected_result | ALWAYS_MASKED_PATHS
+    )
+
+
+# Masked for every engine, whatever it declares: `Database` reads both blocks from
+# any connection's `encrypted_extra`.
+ALWAYS_MASKED_PATHS = {
+    "$.oauth2_client_info.secret",
+    "$.embedded_credentials.password",
+    "$.embedded_credentials.privatekey_body",
+    "$.embedded_credentials.privatekey_pass",
+}
+
+
+def test_secrets_are_masked_for_an_engine_that_declares_no_sensitive_fields() -> None:
+    """
+    The OAuth2 client secret and embedded credential are masked regardless.
+
+    An engine with no sensitive fields of its own, or a deployment override that
+    fails to load, must not return either in clear.
+    """
+
+    class NoSensitiveFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields: set[str] = set()
+
+    masked_text = NoSensitiveFieldsSpec.mask_encrypted_extra(
+        json.dumps(
+            {
+                "oauth2_client_info": {"id": "client", "secret": "s3cret"},
+                "embedded_credentials": {"username": "svc", "password": "pw"},
+            }
+        )
+    )
+    assert masked_text is not None
+    masked = json.loads(masked_text)
+
+    assert masked["oauth2_client_info"] == {"id": "client", "secret": "XXXXXXXXXX"}
+    assert masked["embedded_credentials"] == {
+        "username": "svc",
+        "password": "XXXXXXXXXX",
+    }
+
+
+def test_encrypted_extra_sensitive_field_labels_default() -> None:
+    """
+    The base spec labels the catch-all path generically, and the secrets every
+    engine adds get readable defaults.
+    """
+    assert BaseEngineSpec.encrypted_extra_sensitive_field_labels() == {
+        "$.*": "Encrypted Extra",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
+def test_encrypted_extra_sensitive_field_labels_from_set() -> None:
+    """
+    A spec declaring a set of paths gets the last path segment as the label.
+    """
+
+    class SetFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {"$.a.b"}
+
+    labels = SetFieldsSpec.encrypted_extra_sensitive_field_labels()
+    assert labels == {
+        "$.a.b": "b",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+    assert list(labels) == sorted(labels)
+
+
+def test_encrypted_extra_sensitive_field_labels_from_dict() -> None:
+    """
+    A spec declaring a dict keeps its labels, and the keys are sorted by path.
+    """
+
+    class DictFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {"$.z": "Zed", "$.a.b": "Bee"}
+
+    labels = DictFieldsSpec.encrypted_extra_sensitive_field_labels()
+    assert labels == {
+        "$.a.b": "Bee",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+        "$.z": "Zed",
+    }
+    assert list(labels) == sorted(labels)
+
+
+def test_encrypted_extra_sensitive_field_labels_declared_label_wins() -> None:
+    """
+    A label the engine declares for a path that every engine adds overrides the
+    default one.
+    """
+
+    class DeclaredSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {
+            "$.oauth2_client_info.secret": "Client Secret",
+            "$.embedded_credentials.password": "Guest Password",
+        }
+
+    assert DeclaredSpec.encrypted_extra_sensitive_field_labels() == {
+        "$.embedded_credentials.password": "Guest Password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "Client Secret",
+    }
+
+
+def test_get_public_information_includes_sensitive_field_labels() -> None:
+    """
+    The engine information carries the sensitive fields so a client can render
+    one input per stored secret before any value is revealed.
+    """
+    information = BaseEngineSpec.get_public_information()
+    assert (
+        information["encrypted_extra_sensitive_fields"]
+        == BaseEngineSpec.encrypted_extra_sensitive_field_labels()
+    )
 
 
 def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:
@@ -953,6 +1197,18 @@ def test_extract_errors_no_match_falls_back(mocker: MockerFixture) -> None:
     assert result == [expected]
 
 
+@pytest.fixture(autouse=True)
+def _mock_safe_oauth2_host(mocker: MockerFixture) -> None:
+    """
+    OAuth2 endpoint URIs are now validated via ``is_safe_host`` (real DNS
+    resolution) before use. The test fixtures below use non-resolving
+    example hostnames, so mock it the same way test_impala.py mocks it for
+    its own SSRF check; SSRF-rejection behavior itself is covered by
+    dedicated tests further down that override this per-test.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+
+
 def test_get_oauth2_authorization_uri_standard_params(mocker: MockerFixture) -> None:
     """
     Test that BaseEngineSpec.get_oauth2_authorization_uri uses standard OAuth 2.0
@@ -1049,7 +1305,7 @@ def test_get_oauth2_token_without_pkce(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
         "expires_in": 3600,
@@ -1082,7 +1338,7 @@ def test_get_oauth2_token_with_pkce(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.utils.oauth2 import generate_code_verifier
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
         "expires_in": 3600,
@@ -1166,7 +1422,7 @@ def test_get_oauth2_token_additional_params(mocker: MockerFixture) -> None:
             "audience": "https://api.example.com",
         }
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
         "expires_in": 3600,
@@ -1203,7 +1459,7 @@ def test_get_oauth2_fresh_token_success(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.status_code = 200
     mock_post.return_value.json.return_value = {
         "access_token": "new-access-token",
@@ -1234,7 +1490,7 @@ def test_get_oauth2_fresh_token_raises_on_invalid_grant(
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.exceptions import OAuth2TokenRefreshError
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.status_code = 400
     mock_post.return_value.json.return_value = {"error": "invalid_grant"}
 
@@ -1268,7 +1524,7 @@ def test_get_oauth2_fresh_token_preserves_token_on_ambiguous_error(
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.status_code = status_code
     mock_post.return_value.json.return_value = {"error": error}
     mock_post.return_value.raise_for_status.side_effect = HTTPError()
@@ -1297,7 +1553,7 @@ def test_get_oauth2_fresh_token_raises_on_server_error(mocker: MockerFixture) ->
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.status_code = 500
     mock_post.return_value.raise_for_status.side_effect = HTTPError("500 Server Error")
 
@@ -1315,6 +1571,220 @@ def test_get_oauth2_fresh_token_raises_on_server_error(mocker: MockerFixture) ->
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
 
+def _mock_requester(mocker: MockerFixture) -> Any:
+    """
+    Patch ``get_ssrf_safe_requester`` where ``base.py`` looks it up and
+    return the mock, so callers can configure ``.return_value.post`` and/or
+    assert whether (and how) a requester was obtained at all.
+    """
+    return mocker.patch("superset.db_engine_specs.base.get_ssrf_safe_requester")
+
+
+def _oauth2_config_targeting(uri: str) -> OAuth2ClientConfig:
+    return {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": uri,
+        "token_request_uri": uri,
+        "request_content_type": "json",
+    }
+
+
+def test_get_oauth2_token_rejects_unsafe_host(mocker: MockerFixture) -> None:
+    """
+    ``token_request_uri`` can come from a database's own
+    ``encrypted_extra.oauth2_client_info`` (editable by anyone with
+    ``can_write`` on Database), and is POSTed to directly by this server
+    carrying the connection's client_secret. An internal/private target
+    must be refused rather than silently reaching it.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=False)
+    mock_get_requester = _mock_requester(mocker)
+
+    config = _oauth2_config_targeting("http://169.254.169.254/latest/meta-data/")
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_token(config, "code")
+
+    mock_get_requester.assert_not_called()
+
+
+def test_get_oauth2_fresh_token_rejects_unsafe_host(mocker: MockerFixture) -> None:
+    """
+    Same protection as ``get_oauth2_token``, for the refresh-token exchange.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=False)
+    mock_get_requester = _mock_requester(mocker)
+
+    config = _oauth2_config_targeting("http://10.0.0.5/token")
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
+
+    mock_get_requester.assert_not_called()
+
+
+def test_get_oauth2_authorization_uri_rejects_unsafe_host(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``authorization_request_uri`` is handed to the user's browser as a
+    redirect target; an internal host would turn Superset into an open
+    redirect into the internal network.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=False)
+
+    config = _oauth2_config_targeting("http://192.168.1.1/authorize")
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+    }
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_authorization_uri(config, state)
+
+
+def test_oauth2_endpoint_rejects_non_http_scheme(mocker: MockerFixture) -> None:
+    """
+    A non-http(s) scheme is refused outright, before any host resolution.
+    """
+    is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
+    mock_get_requester = _mock_requester(mocker)
+
+    config = _oauth2_config_targeting("file:///etc/passwd")
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_token(config, "code")
+
+    is_safe_host.assert_not_called()
+    mock_get_requester.assert_not_called()
+
+
+def test_oauth2_endpoint_allows_internal_host_when_configured(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Operators with a legitimately internal IdP can opt out via
+    DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS -- the host is not even checked
+    once that's set.
+    """
+    mocker.patch.dict(
+        "superset.db_engine_specs.base.app.config",
+        {"DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS": True},
+    )
+    is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
+    mock_get_requester = _mock_requester(mocker)
+    mock_post = mock_get_requester.return_value.post
+    mock_post.return_value.json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+    }
+
+    config = _oauth2_config_targeting("http://10.0.0.5/token")
+
+    BaseEngineSpec.get_oauth2_token(config, "code")
+
+    is_safe_host.assert_not_called()
+    mock_get_requester.assert_called_once_with(allow_unsafe_hosts=True)
+    mock_post.assert_called_once()
+
+
+def test_oauth2_endpoint_scheme_check_applies_even_with_internal_hosts_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS widens which *hosts* are acceptable,
+    not which URI *schemes* are -- a non-http(s) scheme (e.g. ``file://``)
+    must still be refused even when that flag is set.
+    """
+    mocker.patch.dict(
+        "superset.db_engine_specs.base.app.config",
+        {"DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS": True},
+    )
+    is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
+    mock_get_requester = _mock_requester(mocker)
+
+    config = _oauth2_config_targeting("file:///etc/passwd")
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_token(config, "code")
+
+    is_safe_host.assert_not_called()
+    mock_get_requester.assert_not_called()
+
+
+def test_oauth2_endpoint_malformed_uri_raises_oauth2_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``urlparse`` raises a bare ``ValueError`` (not caught anywhere upstream
+    of ``get_oauth2_authorization_uri``) for malformed IPv6 bracket syntax.
+    That must surface as ``OAuth2Error`` rather than an uncaught ValueError.
+    """
+    is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
+
+    config = _oauth2_config_targeting("http://[::1/authorize")
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+    }
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_authorization_uri(config, state)
+
+    is_safe_host.assert_not_called()
+
+
+def test_get_oauth2_token_does_not_follow_redirects(mocker: MockerFixture) -> None:
+    """
+    A hostname check alone doesn't stop a server at that (safe) host from
+    responding with a 30x that redirects the actual request -- carrying
+    ``client_secret`` -- to an internal target. The request must be made
+    with ``allow_redirects=False``.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+    mock_get_requester = _mock_requester(mocker)
+    mock_post = mock_get_requester.return_value.post
+    mock_post.return_value.json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+    }
+
+    config = _oauth2_config_targeting("https://oauth.example.com/token")
+
+    BaseEngineSpec.get_oauth2_token(config, "code")
+
+    mock_get_requester.assert_called_once_with(allow_unsafe_hosts=False)
+    assert mock_post.call_args.kwargs["allow_redirects"] is False
+
+
+def test_get_oauth2_fresh_token_does_not_follow_redirects(
+    mocker: MockerFixture,
+) -> None:
+    """Same protection as ``get_oauth2_token``, for the refresh-token exchange."""
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+    mock_get_requester = _mock_requester(mocker)
+    mock_post = mock_get_requester.return_value.post
+    mock_post.return_value.status_code = 200
+    mock_post.return_value.json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+    }
+
+    config = _oauth2_config_targeting("https://oauth.example.com/token")
+
+    BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
+
+    mock_get_requester.assert_called_once_with(allow_unsafe_hosts=False)
+    assert mock_post.call_args.kwargs["allow_redirects"] is False
+
+
 def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> None:
     """
     Test that start_oauth2_dance uses DATABASE_OAUTH2_REDIRECT_URI config if set.
@@ -1327,6 +1797,7 @@ def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> N
             "DATABASE_OAUTH2_REDIRECT_URI": custom_redirect_uri,
             "SECRET_KEY": "test-secret-key",
             "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
+            "DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS": True,
         },
     )
     mocker.patch("superset.daos.key_value.KeyValueDAO")
@@ -1634,3 +2105,574 @@ def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
 def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
     """An aggregate name outside the known extended set is also just None."""
     assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None
+
+
+class _NoResultSetCursor:
+    """
+    A DB-API cursor after a statement that returns no rows (DDL/DML): the
+    description is empty and, like mysql-connector, ibm_db, pyexasol and
+    impyla, fetching raises instead of returning an empty list.
+    """
+
+    def __init__(self, description: list[Any] | None) -> None:
+        self.description = description
+        self.arraysize = 1
+
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        raise RuntimeError("No result set to fetch from")
+
+    def fetchmany(self, size: int | None = None) -> list[tuple[Any, ...]]:
+        raise RuntimeError("No result set to fetch from")
+
+
+@pytest.mark.parametrize(
+    "spec_path",
+    [
+        "superset.db_engine_specs.base.BaseEngineSpec",
+        "superset.db_engine_specs.mysql.MySQLEngineSpec",
+        "superset.db_engine_specs.db2.Db2EngineSpec",
+        "superset.db_engine_specs.exasol.ExasolEngineSpec",
+        "superset.db_engine_specs.impala.ImpalaEngineSpec",
+        "superset.db_engine_specs.postgres.PostgresEngineSpec",
+        "superset.db_engine_specs.oracle.OracleEngineSpec",
+        "superset.db_engine_specs.mssql.MssqlEngineSpec",
+    ],
+)
+@pytest.mark.parametrize("description", [None, []])
+@pytest.mark.parametrize("limit", [None, 100])
+def test_fetch_data_no_result_set(
+    spec_path: str, description: list[Any] | None, limit: int | None
+) -> None:
+    """
+    Statements without a result set return no rows instead of failing after
+    they have already executed.
+    """
+    module_name, class_name = spec_path.rsplit(".", 1)
+    spec = getattr(importlib.import_module(module_name), class_name)
+
+    assert spec.fetch_data(_NoResultSetCursor(description), limit) == []
+
+
+def test_fetch_data_with_result_set(mocker: MockerFixture) -> None:
+    """
+    Rows are still fetched when the cursor describes a result set.
+    """
+    cursor = mocker.MagicMock()
+    cursor.description = [("a", "INTEGER", None, None, None, None, True)]
+    cursor.fetchall.return_value = [(1,), (2,)]
+
+    assert BaseEngineSpec.fetch_data(cursor) == [(1,), (2,)]
+
+
+class _EpochSpec(BaseEngineSpec):
+    """Minimal spec implementing only ``epoch_to_dttm``, like most engines."""
+
+    engine = "epoch"
+    engine_name = "epoch"
+    _time_grain_expressions = {
+        None: "{col}",
+        "P1D": "DATE_TRUNC('day', {col})",
+    }
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "from_unixtime({col})"
+
+
+@pytest.mark.parametrize(
+    "pdf,time_grain,expected",
+    [
+        ("epoch_s", None, "from_unixtime(ts)"),
+        ("epoch_ms", None, "from_unixtime((ts/1000))"),
+        ("epoch_us", None, "from_unixtime(((ts/1000)/1000))"),
+        (
+            "epoch_us",
+            "P1D",
+            "DATE_TRUNC('day', from_unixtime(((ts/1000)/1000)))",
+        ),
+        (None, None, "ts"),
+    ],
+)
+def test_get_timestamp_expr_epoch_formats(
+    pdf: str | None, time_grain: str | None, expected: str
+) -> None:
+    """
+    Every ``epoch_*`` python_date_format routes the raw column through the
+    matching ``epoch*_to_dttm`` template before the time grain is applied; the
+    default ``epoch_us_to_dttm`` reuses the millisecond template.
+    """
+    expr = _EpochSpec.get_timestamp_expr(column("ts"), pdf, time_grain)
+    assert str(expr.compile(compile_kwargs={"literal_binds": True})) == expected
+
+
+@pytest.mark.parametrize(
+    "spec,expected",
+    [
+        # engines relying on the default: their millisecond template is reused
+        (AthenaEngineSpec, "from_unixtime((({col}/1000)/1000))"),
+        (CrateEngineSpec, "({col}/1000)"),
+        (DruidEngineSpec, "MILLIS_TO_TIMESTAMP(({col}/1000))"),
+        (CouchbaseEngineSpec, "MILLIS_TO_STR(({col}/1000))"),
+        # engines with a native microsecond conversion
+        (BigQueryEngineSpec, "TIMESTAMP_MICROS({col})"),
+        (SnowflakeEngineSpec, "DATEADD(US, {col}, '1970-01-01')"),
+        (KustoKqlEngineSpec, "unixtime_microseconds_todatetime({col})"),
+        (
+            PinotEngineSpec,
+            "DATETIMECONVERT({col}, '1:MICROSECONDS:EPOCH', "
+            "'1:MICROSECONDS:EPOCH', '1:MICROSECONDS')",
+        ),
+    ],
+)
+def test_epoch_us_to_dttm(spec: type[BaseEngineSpec], expected: str) -> None:
+    """
+    ``epoch_us_to_dttm`` yields valid SQL for engines that override
+    ``epoch_ms_to_dttm`` (via the default) and for engines with a native
+    microsecond function (via their own override).
+    """
+    assert spec.epoch_us_to_dttm() == expected
+
+
+def _guest_user(username: str = "guest_user") -> GuestUser:
+    """
+    Build an embedded guest principal, the way the guest-token loader would.
+    """
+    token: GuestToken = {
+        "user": {"username": username},
+        "resources": [],
+        "rls_rules": [],
+        "iat": 0,
+        "exp": 1,
+    }
+    return GuestUser(token=token, roles=[])
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_for_a_logged_in_user(mocker: MockerFixture) -> None:
+    """
+    Test that a logged-in user hitting an OAuth2 error still starts the dance.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = mocker.MagicMock(spec=["id", "username"])
+
+    assert BaseEngineSpec.needs_oauth2(OAuth2RedirectError("url", "tab", "redirect"))
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_is_false_for_an_embedded_guest(mocker: MockerFixture) -> None:
+    """
+    Test that an embedded guest never triggers the OAuth2 dance.
+
+    A guest authenticates with a guest token rather than a Superset account, so there
+    is no per-user token to resolve and no way for them to authorize one. Before this
+    guard, `start_oauth2_dance` read `g.user.id` -- which `GuestUser` does not define
+    -- and the viewer got an `AttributeError` and a 500 instead of the driver's error.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = _guest_user()
+
+    assert not BaseEngineSpec.needs_oauth2(
+        OAuth2RedirectError("url", "tab", "redirect")
+    )
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_is_false_for_an_unrelated_exception(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a non-OAuth2 error is not treated as one, for either principal.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+
+    g.user = mocker.MagicMock(spec=["id", "username"])
+    assert not BaseEngineSpec.needs_oauth2(ValueError("not an OAuth2 problem"))
+
+    g.user = _guest_user()
+    assert not BaseEngineSpec.needs_oauth2(ValueError("not an OAuth2 problem"))
+
+
+def test_needs_oauth2_without_a_user(mocker: MockerFixture) -> None:
+    """
+    Test that a request with no user on `g` does not start the dance.
+    """
+    mocker.patch("superset.db_engine_specs.base.g", spec=[])
+
+    assert not BaseEngineSpec.needs_oauth2(
+        OAuth2RedirectError("url", "tab", "redirect")
+    )
+
+
+@with_config(
+    {
+        "SECRET_KEY": "test-secret-key",
+        "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
+    }
+)
+def test_start_oauth2_dance_rejects_a_principal_without_an_id(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the dance fails legibly when the principal has no id.
+
+    This is the backstop behind `needs_oauth2`: a caller that skips the guest check
+    should get an `OAuth2Error` naming the problem, not an `AttributeError` raised
+    while building the state dict.
+    """
+    mocker.patch("superset.daos.key_value.KeyValueDAO")
+    mocker.patch("superset.db_engine_specs.base.db")
+
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = _guest_user()
+
+    database = mocker.MagicMock()
+    database.id = 1
+
+    with pytest.raises(OAuth2Error) as excinfo:
+        BaseEngineSpec.start_oauth2_dance(database)
+
+    assert "authenticated user with an id" in excinfo.value.error.extra["error"]
+
+
+def test_apply_embedded_credentials_replaces_the_connection_identity(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the default implementation replaces, rather than merges, the identity.
+
+    ``URL.set`` ignores ``password=None``, so merging would leave a credential that
+    carries no password -- a key pair, say -- paired with the connection's own
+    password. Everything else about the URL has to survive: a dropped query
+    parameter here is a connection that silently loses its warehouse or role.
+    """
+    url = make_url(
+        "snowflake://svc_user:svc_pass@xy12345.us-east-2.aws:443/ANALYTICS_DB"
+        "?role=ANALYST&warehouse=COMPUTE_WH"
+    )
+    engine_kwargs: dict[str, Any] = {"connect_args": {}}
+
+    applied_url, applied_kwargs = BaseEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(),
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        url,
+        engine_kwargs,
+    )
+
+    assert applied_url.username == "embedded_svc"
+    assert applied_url.password is None
+    assert applied_url.host == "xy12345.us-east-2.aws"
+    assert applied_url.port == 443
+    assert applied_url.database == "ANALYTICS_DB"
+    assert dict(applied_url.query) == {"role": "ANALYST", "warehouse": "COMPUTE_WH"}
+    # The base implementation has no opinion about engine kwargs.
+    assert applied_kwargs is engine_kwargs
+
+
+def test_apply_embedded_credentials_sets_a_password_on_the_url(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a password credential lands on the URL, not in ``connect_args``.
+
+    The per-process engine cache is keyed on the rendered URL and the engine kwargs.
+    Putting the credential on the URL is what keeps a guest's engine and a logged-in
+    user's engine on separate entries; moving it into ``connect_args`` would still be
+    in the key today, but the URL is where the rest of the stack expects a
+    connection's identity to be visible.
+    """
+    url = make_url("snowflake://svc_user:svc_pass@xy12345/DB")
+
+    applied_url, _ = BaseEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(),
+        {"username": "embedded_svc", "password": "embedded_pw"},
+        url,
+        {},
+    )
+
+    assert applied_url.username == "embedded_svc"
+    assert applied_url.password == "embedded_pw"  # noqa: S105
+
+
+@pytest.mark.parametrize(
+    "credentials,expected",
+    [
+        (
+            {"username": "u", "password": "p"},
+            {"username": "u", "password": "p"},
+        ),
+        (
+            {"username": "u", "auth_method": "keypair", "privatekey_body": "PEM"},
+            {
+                "username": "u",
+                "auth_method": "keypair",
+                "privatekey_body": "PEM",
+                "privatekey_pass": "",
+            },
+        ),
+        ({"username": "   ", "password": "p"}, None),
+        (
+            {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
+            None,
+        ),
+        (
+            {"username": " u ", "password": " p "},
+            {"username": " u ", "password": " p "},
+        ),
+        ({"username": "u"}, None),
+        ({"password": "p"}, None),
+        ({"username": "u", "auth_method": "keypair"}, None),
+        ({"username": "u", "auth_method": "unknown", "password": "p"}, None),
+        ("not a dict", None),
+        (None, None),
+    ],
+)
+def test_validate_embedded_credentials_default_rule(
+    credentials: Any,
+    expected: dict[str, str] | None,
+) -> None:
+    """
+    Test the canonical credential shape every engine inherits.
+
+    A half-filled credential resolves to ``None`` rather than being half-applied, so
+    that a connection cannot end up authenticating with a username and no secret.
+    """
+    assert BaseEngineSpec.validate_embedded_credentials(credentials) == expected
+
+
+def test_get_embedded_credential_cache_key_default() -> None:
+    """
+    Test that the default cache key is the configured identity.
+
+    Not the requesting principal's: a ``GuestUser`` carries whatever username the
+    guest token claims, so keying on that would let whoever mints the token choose
+    which cache entry they read.
+    """
+    assert (
+        BaseEngineSpec.get_embedded_credential_cache_key(
+            {"username": "embedded_svc", "password": "embedded_pw"}
+        )
+        == "embedded:embedded_svc"
+    )
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_opting_in_engine_gets_the_credential_field_without_an_override() -> None:
+    """
+    Test that opting a second engine in is a schema field, not a copied override.
+
+    The ``x-encrypted-extra`` tagging and the feature-flag gating both live in the
+    shared ``parameters_json_schema``, so an engine opts in by declaring the field
+    and flipping ``supports_embedded_credential_fallback``. When each engine carried
+    its own copy of that method, opting in meant duplicating all of it -- and the
+    copies drifted.
+    """
+    from marshmallow import fields as ma_fields, Schema as MarshmallowSchema
+
+    from superset.databases.types import EncryptedString
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    class OptedInParametersSchema(MarshmallowSchema):
+        host = ma_fields.Str()
+        embedded_credentials = EncryptedString(required=False, allow_none=True)
+
+    # Subclassing a spec that already mixes in `BasicParametersMixin`, which is how
+    # a dynamic-parameters engine reaches `parameters_json_schema`. The opt-in is
+    # the schema field plus the class attribute and nothing else.
+    class OptedInEngineSpec(PostgresEngineSpec):
+        engine = "optedin"
+        engine_name = "Opted In"
+        parameters_schema = OptedInParametersSchema()
+        supports_embedded_credential_fallback = True
+
+    field = OptedInEngineSpec.parameters_json_schema()["properties"][
+        "embedded_credentials"
+    ]
+
+    assert field["x-encrypted-extra"] is True
+    assert field["default"] == {"engine_oauth2_client_configured": False}
+
+
+def test_expand_nested_columns_default_returns_input() -> None:
+    """
+    By default the columns inferred from ``cursor.description`` are kept as is.
+    """
+    columns = [
+        ResultSetColumnType(name="a", column_name="a", type="INT", is_dttm=False)
+    ]
+
+    assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+def test_make_label_compatible_with_database(mocker: MockerFixture) -> None:
+    """
+    The database's maximum column name length decides when a label is hashed.
+    """
+
+    class ShortLabelsEngineSpec(BaseEngineSpec):
+        max_column_name_length = 10
+
+    database = mocker.MagicMock()
+    assert BaseEngineSpec.get_max_column_name_length(database) is None
+    assert ShortLabelsEngineSpec.get_max_column_name_length(database) == 10
+
+    assert ShortLabelsEngineSpec.make_label_compatible("short", database) == "short"
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "63a949e13b"
+    )
+
+    mocker.patch.object(
+        ShortLabelsEngineSpec, "get_max_column_name_length", return_value=None
+    )
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "a longer label"
+    )
+
+
+def test_encrypted_extra_hints_disabled_or_unusable_input() -> None:
+    """
+    No hints are produced for a missing or malformed value, or a length of zero.
+    """
+    secret = json.dumps({"connect_args": {"jwt": "j" * 40}})
+
+    assert DruidEngineSpec.encrypted_extra_hints(None, 4) == []
+    assert DruidEngineSpec.encrypted_extra_hints("{not json", 4) == []
+    assert DruidEngineSpec.encrypted_extra_hints(secret, 0) == []
+    assert DruidEngineSpec.encrypted_extra_hints(secret, -1) == []
+
+
+def test_encrypted_extra_hints_bigquery_private_key() -> None:
+    """
+    A service account key in PEM format is hinted by the end of its base64 body.
+    """
+    body = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC" * 50 + "Ab3dE"
+    lines = [body[i : i + 64] for i in range(0, len(body), 64)]
+    private_key = "\n".join(
+        ["-----BEGIN PRIVATE KEY-----", *lines, "-----END PRIVATE KEY-----", ""]
+    )
+    config = json.dumps(
+        {"credentials_info": {"type": "service_account", "private_key": private_key}}
+    )
+
+    assert BigQueryEngineSpec.encrypted_extra_hints(config, 5) == [
+        {
+            "path": "$.credentials_info.private_key",
+            "label": "Service Account Private Key",
+            "suffix": "Ab3dE",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+def test_encrypted_extra_hints_non_object_json() -> None:
+    """
+    Valid JSON that is not an object yields no hints.
+    """
+    assert DruidEngineSpec.encrypted_extra_hints("[1, 2]", 4) == []
+    assert DruidEngineSpec.encrypted_extra_hints('"text"', 4) == []
+
+
+def test_encrypted_extra_hints_label_falls_back_to_last_path_segment(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Specs that declare their sensitive fields as a set get the field name as label.
+    """
+    mocker.patch.object(
+        BaseEngineSpec,
+        "encrypted_extra_sensitive_fields",
+        {"$.credentials.token"},
+    )
+    config = json.dumps({"credentials": {"token": "t" * 20 + "ab3d"}})
+
+    assert BaseEngineSpec.encrypted_extra_hints(config, 4) == [
+        {
+            "path": "$.credentials.token",
+            "label": "token",
+            "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra", ["null", "[]", "42", '"str"', "{}", "{oops"]
+)
+def test_encrypted_extra_hints_unexpected_json(encrypted_extra: str) -> None:
+    """
+    JSON that is not an object with sensitive fields yields no hints and no error.
+    """
+    assert DruidEngineSpec.encrypted_extra_hints(encrypted_extra, 5) == []
+
+
+def test_get_catalog_reference_schema() -> None:
+    """
+    An engine that doesn't say which schema a catalog gives a table named without
+    one (``catalog..table``) leaves it unknown.
+    """
+    assert BaseEngineSpec.get_catalog_reference_schema("cat") is None
+
+
+@pytest.mark.parametrize("default_schema, expected", [("main", ["main"]), (None, [])])
+def test_get_search_path(
+    mocker: MockerFixture, default_schema: str | None, expected: list[str]
+) -> None:
+    """
+    An engine without a search path looks an unqualified table up in its default
+    schema only, so it needn't look up which schema holds a table.
+    """
+    database = mocker.MagicMock()
+    get_default_schema = mocker.patch.object(
+        BaseEngineSpec, "get_default_schema", return_value=default_schema
+    )
+
+    assert BaseEngineSpec.get_search_path(database, "cat", ["sales"]) == (
+        expected,
+        {},
+    )
+    get_default_schema.assert_called_once_with(database, "cat")
+
+
+def test_update_params_from_encrypted_extra_drops_the_embedded_credential(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The fallback credential never becomes an engine kwarg.
+
+    It is read by `Database._get_sqla_engine`, not by any driver; splatting it into
+    `create_engine` kwargs would raise on every engine and leak it to the driver.
+    """
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "embedded_credentials": {"username": "svc", "password": "pw"},
+            "connect_args": {"sslmode": "require"},
+        }
+    )
+    params: dict[str, Any] = {}
+
+    BaseEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert params == {"connect_args": {"sslmode": "require"}}
+
+
+@pytest.mark.parametrize("catalog", [None, "sales", "Sales_Db", "a%b"])
+def test_catalog_for_connection_preserves_other_engine_catalogs(
+    catalog: str | None, mocker: MockerFixture
+) -> None:
+    """The database-aware hook changes no catalog outside Snowflake."""
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.Mock()
+    assert (
+        BaseEngineSpec.get_catalog_for_connection(
+            database, make_url("postgresql://user@host/sales"), catalog
+        )
+        == catalog
+    )
+    database.get_all_catalog_names.assert_not_called()

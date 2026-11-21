@@ -65,7 +65,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('Renders SSH Tunnel switch enabled by default and toggles its state', () => {
+test('Renders SSH Tunnel switch enabled by default and toggles its state', async () => {
   render(
     <SSHTunnelSwitch
       changeMethods={mockChangeMethods}
@@ -76,7 +76,7 @@ test('Renders SSH Tunnel switch enabled by default and toggles its state', () =>
   );
   const switchButton = screen.getByRole('switch');
   expect(switchButton).toHaveTextContent('OFF');
-  userEvent.click(switchButton);
+  await userEvent.click(switchButton);
   expect(mockChangeMethods.onParametersChange).toHaveBeenCalledWith({
     target: { type: 'toggle', name: 'ssh', checked: true, value: true },
   });
@@ -151,7 +151,7 @@ test('Displays tooltip text on hover over the InfoTooltip', async () => {
   const infoTooltipTrigger = screen.getByTestId('info-tooltip-icon');
   expect(infoTooltipTrigger).toBeInTheDocument();
 
-  userEvent.hover(infoTooltipTrigger);
+  await userEvent.hover(infoTooltipTrigger);
 
   const tooltip = await screen.findByText(tooltipText);
 

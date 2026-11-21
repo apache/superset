@@ -191,3 +191,21 @@ export const databaseInfo = {
 };
 
 <DatabasePage name="MySQL" database={databaseInfo} />
+
+## TLS connections
+
+The **SSL** toggle (or `ssl=1` in the connection URI) requires TLS rather than
+allowing an unencrypted fallback, and so does a URI or `connect_args` value of
+`ssl_mode=REQUIRED` (or stronger) without the toggle. With mysqlclient linked
+against Oracle libmysqlclient 5.7/8.x/9.x, this uses `ssl_mode=REQUIRED`.
+`REQUIRED` alone is not sufficient with MariaDB Connector/C, so with that or an
+unrecognized client library it becomes `ssl_mode=VERIFY_CA`: configure the
+appropriate `ssl_ca` for a private CA and use a certificate valid for the
+connection hostname. Explicit `VERIFY_CA` and `VERIFY_IDENTITY` are retained.
+
+With `mysql+mysqlconnector://` or `mysql+pymysql://`, the toggle enables
+certificate verification. A private CA must be supplied as `ssl_ca`; do not
+turn off verification to work around an untrusted certificate. PyMySQL 1.2 or
+newer is required for the toggle. Use individual SSL options rather than a
+nested `ssl` dictionary with PyMySQL. Conflicting options that disable TLS or
+verification are rejected.

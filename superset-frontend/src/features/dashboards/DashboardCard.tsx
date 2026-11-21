@@ -19,7 +19,7 @@
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { css } from '@apache-superset/core/theme';
+import { styled } from '@apache-superset/core/theme';
 import { CardStyles, isNavigationHandledByLink } from 'src/views/CRUD/utils';
 import {
   FaveStar,
@@ -31,13 +31,14 @@ import {
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
+import { deleteActionLabel } from 'src/utils/softDeleteCopy';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { useIsMobile } from 'src/hooks/useIsMobile';
 
-const menuItemButtonCss = css`
+const MenuItemButton = styled.button`
   appearance: none;
   border: none;
   background: none;
@@ -46,7 +47,11 @@ const menuItemButtonCss = css`
   width: 100%;
   font: inherit;
   text-align: left;
+  color: inherit;
   cursor: pointer;
+  &:disabled {
+    cursor: not-allowed;
+  }
 `;
 
 interface DashboardCardProps {
@@ -82,6 +87,7 @@ function DashboardCard({
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
   const allowEdit = isUserEditorOrAdmin(
     user,
@@ -95,31 +101,45 @@ function DashboardCard({
       : '';
 
   const menuItems: MenuItem[] = [];
+  const editPermissionHint = allowEdit
+    ? null
+    : t(
+        'You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access.',
+      );
+  const deletePermissionHint = allowEdit
+    ? null
+    : softDelete
+      ? t(
+          'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+        )
+      : t(
+          'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+        );
 
   if (canEdit && openDashboardEditModal) {
     menuItems.push({
       key: 'edit',
       label: (
         <Tooltip
-          title={
-            allowEdit
-              ? null
-              : t(
-                  'You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access.',
-                )
-          }
+          placement="right"
+          trigger={['hover', 'focus']}
+          title={editPermissionHint}
         >
-          <button
-            type="button"
-            css={menuItemButtonCss}
-            className="action-button"
-            onClick={
-              allowEdit ? () => openDashboardEditModal(dashboard) : undefined
-            }
-            data-test="dashboard-card-option-edit-button"
-          >
-            <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
-          </button>
+          <span>
+            <MenuItemButton
+              type="button"
+              className="action-button"
+              onClick={
+                allowEdit ? () => openDashboardEditModal(dashboard) : undefined
+              }
+              data-test="dashboard-card-option-edit-button"
+              disabled={!allowEdit}
+              aria-disabled={!allowEdit}
+            >
+              <Icons.EditOutlined iconSize="l" data-test="edit-alt" />{' '}
+              {t('Edit')}
+            </MenuItemButton>
+          </span>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -130,15 +150,14 @@ function DashboardCard({
     menuItems.push({
       key: 'export',
       label: (
-        <button
+        <MenuItemButton
           type="button"
-          css={menuItemButtonCss}
           onClick={() => handleBulkDashboardExport([dashboard])}
           className="action-button"
           data-test="dashboard-card-option-export-button"
         >
           <Icons.UploadOutlined iconSize="l" /> {t('Export')}
-        </button>
+        </MenuItemButton>
       ),
     });
   }
@@ -148,23 +167,22 @@ function DashboardCard({
       key: 'delete',
       label: (
         <Tooltip
-          title={
-            allowEdit
-              ? null
-              : t(
-                  'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                )
-          }
+          placement="right"
+          trigger={['hover', 'focus']}
+          title={deletePermissionHint}
         >
-          <button
-            type="button"
-            css={menuItemButtonCss}
-            className="action-button"
-            onClick={allowEdit ? () => onDelete(dashboard) : undefined}
-            data-test="dashboard-card-option-delete-button"
-          >
-            <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
-          </button>
+          <span>
+            <MenuItemButton
+              type="button"
+              className="action-button"
+              onClick={allowEdit ? () => onDelete(dashboard) : undefined}
+              disabled={!allowEdit}
+              aria-disabled={!allowEdit}
+              data-test="dashboard-card-option-delete-button"
+            >
+              <Icons.DeleteOutlined iconSize="l" /> {deleteActionLabel()}
+            </MenuItemButton>
+          </span>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -216,6 +234,17 @@ function DashboardCard({
               <KebabMenuButton
                 menuItems={menuItems}
                 dataTest="dashboard-card-menu"
+                tooltipTitle={
+                  !allowEdit &&
+                  ((canEdit && openDashboardEditModal) || canDelete) ? (
+                    <>
+                      {canEdit && openDashboardEditModal && (
+                        <div>{editPermissionHint}</div>
+                      )}
+                      {canDelete && <div>{deletePermissionHint}</div>}
+                    </>
+                  ) : undefined
+                }
               />
             )}
           </ListViewCard.Actions>

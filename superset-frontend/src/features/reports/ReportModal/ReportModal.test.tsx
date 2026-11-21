@@ -29,6 +29,7 @@ import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
+import type { ReportsState } from './reducer';
 import ReportModal from '.';
 
 const bootstrapData = (
@@ -57,7 +58,7 @@ const mockedGetBootstrapData = getBootstrapData as jest.MockedFunction<
 >;
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
-fetchMock.get(REPORT_ENDPOINT, {});
+fetchMock.get(REPORT_ENDPOINT, {}, { name: 'report-list' });
 
 const NOOP = () => {};
 
@@ -97,13 +98,39 @@ beforeEach(() => {
   );
 });
 
-test('inputs respond correctly', () => {
+// Routes registered inside individual tests. Several share a URL glob and
+// fetch-mock answers with the first matching route, so cleanup lives here:
+// a test that fails before its last line must not leave a route behind that
+// shadows the routes of the tests after it.
+const PER_TEST_ROUTES = [
+  'post-subscribe',
+  'post-subscribe-chart',
+  'put-report-77',
+  'put-report-42',
+  'put-report-44',
+  'put-chart-format',
+  'put-chart-metadata',
+  'put-chart-self',
+  'post-chart-subscribe',
+  'put-report-43',
+  'post-fail',
+  'post-retry',
+  'notice-dashboard',
+];
+
+afterEach(() => {
+  fetchMock.removeRoutes({ names: PER_TEST_ROUTES, includeFallback: false });
+  fetchMock.modifyRoute('report-list', { response: {} });
+  fetchMock.clearHistory();
+});
+
+test('inputs respond correctly', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
   // ----- Report name textbox
   const reportNameTextbox = screen.getByTestId('report-name-test');
   expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
-  userEvent.clear(reportNameTextbox);
-  userEvent.type(reportNameTextbox, 'Report name text test');
+  await userEvent.clear(reportNameTextbox);
+  await userEvent.type(reportNameTextbox, 'Report name text test');
   expect(reportNameTextbox).toHaveDisplayValue('Report name text test');
 
   // ----- Report description textbox
@@ -111,7 +138,10 @@ test('inputs respond correctly', () => {
     'report-description-test',
   );
   expect(reportDescriptionTextbox).toHaveDisplayValue('');
-  userEvent.type(reportDescriptionTextbox, 'Report description text test');
+  await userEvent.type(
+    reportDescriptionTextbox,
+    'Report description text test',
+  );
   expect(reportDescriptionTextbox).toHaveDisplayValue(
     'Report description text test',
   );
@@ -121,7 +151,7 @@ test('inputs respond correctly', () => {
   expect(crontabInputs).toHaveLength(5);
 });
 
-test('does not allow user to create a report without a name', () => {
+test('does not allow user to create a report without a name', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
   const reportNameTextbox = screen.getByTestId('report-name-test');
   const addButton = screen.getByRole('button', { name: /add/i });
@@ -129,7 +159,7 @@ test('does not allow user to create a report without a name', () => {
   expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
   expect(addButton).toBeEnabled();
 
-  userEvent.clear(reportNameTextbox);
+  await userEvent.clear(reportNameTextbox);
 
   expect(reportNameTextbox).toHaveDisplayValue('');
   expect(addButton).toBeDisabled();
@@ -154,7 +184,7 @@ test('creates a new email report via modal Add button', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
 
   const addButton = screen.getByRole('button', { name: /add/i });
-  await waitFor(() => userEvent.click(addButton));
+  await userEvent.click(addButton);
 
   // Verify exactly one POST to the subscribe endpoint
   await waitFor(() => {
@@ -172,8 +202,6 @@ test('creates a new email report via modal Add button', async () => {
   expect(body.recipients).toBeUndefined();
   expect(body.dashboard).toBe(1);
   expect(body.chart).toBeUndefined();
-
-  fetchMock.removeRoute('post-subscribe');
 });
 
 test('creating a chart report in a dashboard context sends only the chart id', async () => {
@@ -205,8 +233,6 @@ test('creating a chart report in a dashboard context sends only the chart id', a
   const body = JSON.parse(postCalls[0].options.body as string);
   expect(body.chart).toBe(119);
   expect(body.dashboard).toBeUndefined();
-
-  fetchMock.removeRoute('post-subscribe-chart');
 });
 
 test('text-based chart hides screenshot width and shows message content', () => {
@@ -243,7 +269,7 @@ test('non-text chart shows screenshot width and message content', () => {
   expect(screen.getByText('Screenshot width')).toBeInTheDocument();
 });
 
-test('screenshot width input preserves a typed zero instead of dropping it', () => {
+test('screenshot width input preserves a typed zero instead of dropping it', async () => {
   const lineChartProps = {
     ...defaultProps,
     dashboardId: undefined,
@@ -260,11 +286,11 @@ test('screenshot width input preserves a typed zero instead of dropping it', () 
   // The old `|| null` / `|| ''` logic silently coerced a typed 0 to null, so the
   // invalid width was swallowed instead of being submitted and surfaced by the
   // server's min-width validation. The field must preserve the literal value.
-  userEvent.type(widthInput, '0');
+  await userEvent.type(widthInput, '0');
   expect(widthInput).toHaveDisplayValue('0');
 
   // Clearing the field still yields an empty value (parsed NaN → null).
-  userEvent.clear(widthInput);
+  await userEvent.clear(widthInput);
   expect(widthInput).toHaveDisplayValue('');
 });
 
@@ -389,8 +415,6 @@ test('edit mode in a dashboard context resolves and saves the chart report', asy
   const body = JSON.parse(calls[calls.length - 1].options.body as string);
   expect(body.chart).toBe(119);
   expect(body.dashboard).toBeUndefined();
-
-  fetchMock.removeRoute('put-report-77');
 });
 
 test('edit mode dispatches editReport via PUT on save', async () => {
@@ -434,7 +458,7 @@ test('edit mode dispatches editReport via PUT on save', async () => {
 
   expect(screen.getByText('Edit email report')).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
-  await waitFor(() => userEvent.click(saveButton));
+  await userEvent.click(saveButton);
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-report-42');
@@ -453,8 +477,6 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   expect(body.editors).toEqual([99]);
   expect(body.recipients).toBeDefined();
   expect(body.recipients[0].type).toBe('Email');
-
-  fetchMock.removeRoute('put-report-42');
 });
 
 test('edit mode preserves the fetched report_format on save', async () => {
@@ -514,8 +536,276 @@ test('edit mode preserves the fetched report_format on save', async () => {
   const calls = fetchMock.callHistory.calls('put-report-44');
   const body = JSON.parse(calls[calls.length - 1].options.body as string);
   expect(body.report_format).toBe('XLSX');
+});
 
-  fetchMock.removeRoute('put-report-44');
+test('changing a legacy chart subscription format requires an explicit takeover', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportDynamicExecutor,
+  );
+  mockedGetBootstrapData.mockReturnValue({
+    ...bootstrapData(),
+    user: {
+      firstName: 'Chart',
+      lastName: 'Subscriber',
+      username: 'subscriber',
+      isActive: true,
+      isAnonymous: false,
+      userId: 7,
+      roles: {},
+      permissions: {},
+      groups: [],
+    },
+  });
+  const existingReport = {
+    id: 44,
+    chart_id: 96,
+    creation_method: 'charts',
+    crontab: '0 12 * * 1',
+    name: 'Existing Chart Report',
+    report_format: 'PNG',
+    run_as_type: null,
+    run_as: null,
+  };
+  const store = createStore(
+    { reports: { charts: { 96: existingReport } } },
+    reducerIndex,
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-chart-format',
+    },
+  );
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ id: 96, sliceFormData: { viz_type: VizType.Line } }}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  const save = screen.getByRole('button', { name: 'Save' });
+  expect(save).toBeEnabled();
+  await userEvent.click(
+    screen.getByRole('radio', { name: 'Formatted CSV attached in email' }),
+  );
+  expect(save).toBeDisabled();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Execute using my permissions' }),
+  );
+  expect(save).toBeEnabled();
+  await userEvent.click(save);
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('put-chart-format')).toHaveLength(1);
+  });
+  const body = JSON.parse(
+    fetchMock.callHistory.calls('put-chart-format')[0].options.body as string,
+  );
+  expect(body.report_format).toBe('CSV');
+  expect(body.run_as).toBe(7);
+  expect(body.run_as_type).toBe('fixed_user');
+});
+
+test('unchanged chart subscription format needs no takeover', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportDynamicExecutor,
+  );
+  const store = createStore(
+    {
+      reports: {
+        charts: {
+          96: {
+            id: 44,
+            chart_id: 96,
+            creation_method: 'charts',
+            crontab: '0 12 * * 1',
+            name: 'Existing Chart Report',
+            report_format: 'PNG',
+            run_as_type: null,
+            run_as: null,
+          },
+        },
+      },
+    },
+    reducerIndex,
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-chart-metadata',
+    },
+  );
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ id: 96, sliceFormData: { viz_type: VizType.Line } }}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  expect(
+    screen.queryByRole('button', { name: 'Execute using my permissions' }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('put-chart-metadata')).toHaveLength(1);
+  });
+  const body = JSON.parse(
+    fetchMock.callHistory.calls('put-chart-metadata')[0].options.body as string,
+  );
+  expect(body.run_as).toBeUndefined();
+  expect(body.run_as_type).toBeUndefined();
+});
+
+test('changing a chart subscription format needs no takeover when it runs as the owner', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportDynamicExecutor,
+  );
+  mockedGetBootstrapData.mockReturnValue({
+    ...bootstrapData(),
+    user: {
+      firstName: 'Chart',
+      lastName: 'Subscriber',
+      username: 'subscriber',
+      isActive: true,
+      isAnonymous: false,
+      userId: 7,
+      roles: {},
+      permissions: {},
+      groups: [],
+    },
+  });
+  const store = createStore(
+    {
+      reports: {
+        charts: {
+          96: {
+            id: 44,
+            chart_id: 96,
+            creation_method: 'charts',
+            crontab: '0 12 * * 1',
+            name: 'Existing Chart Report',
+            report_format: 'PNG',
+            run_as_type: 'fixed_user',
+            run_as: { id: 7 },
+          },
+        },
+      },
+    },
+    reducerIndex,
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-chart-self',
+    },
+  );
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ id: 96, sliceFormData: { viz_type: VizType.Line } }}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  await userEvent.click(
+    screen.getByRole('radio', { name: 'Formatted CSV attached in email' }),
+  );
+  expect(
+    screen.queryByRole('button', { name: 'Execute using my permissions' }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('put-chart-self')).toHaveLength(1);
+  });
+  const body = JSON.parse(
+    fetchMock.callHistory.calls('put-chart-self')[0].options.body as string,
+  );
+  expect(body.report_format).toBe('CSV');
+  expect(body.run_as).toBeUndefined();
+});
+
+test('new subscription refreshes its server-defaulted executor before format edits', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportDynamicExecutor,
+  );
+  mockedGetBootstrapData.mockReturnValue({
+    ...bootstrapData(),
+    user: {
+      firstName: 'Chart',
+      lastName: 'Subscriber',
+      username: 'subscriber',
+      isActive: true,
+      isAnonymous: false,
+      userId: 7,
+      roles: {},
+      permissions: {},
+      groups: [],
+    },
+  });
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    {
+      id: 44,
+      result: { chart: 96, creation_method: 'charts', report_format: 'PNG' },
+    },
+    { name: 'post-chart-subscribe' },
+  );
+  fetchMock.modifyRoute('report-list', {
+    response: {
+      result: [
+        {
+          id: 44,
+          chart_id: 96,
+          creation_method: 'charts',
+          name: 'Weekly Report',
+          report_format: 'PNG',
+          run_as_type: 'fixed_user',
+          run_as: { id: 7 },
+        },
+      ],
+    },
+  });
+  const store = createStore({}, reducerIndex);
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ id: 96, sliceFormData: { viz_type: VizType.Line } }}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+  await waitFor(() => {
+    const state = store.getState() as unknown as { reports: ReportsState };
+    expect(state.reports.charts?.[96].run_as).toEqual({ id: 7 });
+  });
+  await userEvent.click(
+    screen.getByRole('radio', { name: 'Formatted CSV attached in email' }),
+  );
+  expect(
+    screen.queryByRole('button', { name: 'Execute using my permissions' }),
+  ).not.toBeInTheDocument();
 });
 
 test('edit mode does not fall back to user id when subject id is unavailable', async () => {
@@ -568,7 +858,7 @@ test('edit mode does not fall back to user id when subject id is unavailable', a
   });
 
   const saveButton = screen.getByRole('button', { name: /save/i });
-  await waitFor(() => userEvent.click(saveButton));
+  await userEvent.click(saveButton);
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-report-43');
@@ -579,8 +869,6 @@ test('edit mode does not fall back to user id when subject id is unavailable', a
   const body = JSON.parse(calls[calls.length - 1].options.body as string);
 
   expect(body.editors).toBeUndefined();
-
-  fetchMock.removeRoute('put-report-43');
 });
 
 test('submit failure dispatches danger toast and keeps modal open', async () => {
@@ -594,7 +882,7 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
   });
 
   const addButton = screen.getByRole('button', { name: /add/i });
-  await waitFor(() => userEvent.click(addButton));
+  await userEvent.click(addButton);
 
   // The addReport action catches 500 errors, dispatches a danger toast, and re-throws
   await waitFor(() => {
@@ -610,8 +898,165 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
   // Modal stays open; onHide should NOT have been called.
   expect(onHide).not.toHaveBeenCalled();
   expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
+});
 
-  fetchMock.removeRoute('post-fail');
+const subscriberBootstrapData = (): BootstrapData => ({
+  ...bootstrapData(),
+  user: {
+    firstName: 'Dashboard',
+    lastName: 'Subscriber',
+    username: 'subscriber',
+    isActive: true,
+    isAnonymous: false,
+    userId: 7,
+    roles: {},
+    permissions: {},
+    groups: [],
+  },
+});
+
+test('duplicate subscription opens the existing report for editing', async () => {
+  mockedGetBootstrapData.mockReturnValue(subscriberBootstrapData());
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    {
+      status: 409,
+      body: {
+        errors: [{ message: 'Resource already has an attached report.' }],
+      },
+    },
+    { name: 'post-duplicate-subscribe' },
+  );
+  fetchMock.modifyRoute('report-list', {
+    response: {
+      result: [
+        {
+          id: 12,
+          dashboard_id: 1,
+          creation_method: 'dashboards',
+          name: 'My existing report',
+          crontab: '0 9 * * *',
+          report_format: 'PNG',
+        },
+      ],
+    },
+  });
+  const onHide = jest.fn();
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} chart={undefined} onHide={onHide} />, {
+    useRedux: true,
+    store,
+  });
+
+  // A width typed into the abandoned create form must not carry over onto
+  // the existing report, since the list endpoint does not return custom_width.
+  await userEvent.type(
+    screen.getByPlaceholderText('Input custom width in pixels'),
+    '1200',
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+  expect(await screen.findByText('Edit email report')).toBeInTheDocument();
+  expect(screen.getByTestId('report-name-test')).toHaveDisplayValue(
+    'My existing report',
+  );
+  expect(
+    screen.getByPlaceholderText('Input custom width in pixels'),
+  ).toHaveDisplayValue('');
+  const toasts = (store.getState() as any).messageToasts;
+  expect(
+    toasts.some((toast: { text: string }) =>
+      toast.text.includes('already subscribed to this dashboard'),
+    ),
+  ).toBe(true);
+  expect(
+    toasts.some((toast: { text: string }) =>
+      toast.text.includes('Failed to create report'),
+    ),
+  ).toBe(false);
+  expect(screen.queryByText('Failed to create report')).not.toBeInTheDocument();
+  expect(onHide).not.toHaveBeenCalled();
+
+  fetchMock.modifyRoute('report-list', { response: {} });
+  fetchMock.removeRoute('post-duplicate-subscribe');
+});
+
+test('duplicate chart subscription opens the existing chart report for editing', async () => {
+  mockedGetBootstrapData.mockReturnValue(subscriberBootstrapData());
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    {
+      status: 409,
+      body: {
+        errors: [{ message: 'Resource already has an attached report.' }],
+      },
+    },
+    { name: 'post-duplicate-chart-subscribe' },
+  );
+  fetchMock.modifyRoute('report-list', {
+    response: {
+      result: [
+        {
+          id: 13,
+          chart_id: 1,
+          creation_method: 'charts',
+          name: 'My existing chart report',
+          crontab: '0 9 * * *',
+          report_format: 'PNG',
+        },
+      ],
+    },
+  });
+  const chartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 1, sliceFormData: { viz_type: VizType.Line } },
+    chartName: 'My Line Chart',
+    creationMethod: 'charts' as const,
+  };
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...chartProps} />, { useRedux: true, store });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+  expect(await screen.findByText('Edit email report')).toBeInTheDocument();
+  expect(screen.getByTestId('report-name-test')).toHaveDisplayValue(
+    'My existing chart report',
+  );
+  const toasts = (store.getState() as any).messageToasts;
+  expect(
+    toasts.some((toast: { text: string }) =>
+      toast.text.includes('already subscribed to this chart'),
+    ),
+  ).toBe(true);
+
+  fetchMock.modifyRoute('report-list', { response: {} });
+  fetchMock.removeRoute('post-duplicate-chart-subscribe');
+});
+
+test('duplicate subscription shows the error when the existing report cannot be found', async () => {
+  mockedGetBootstrapData.mockReturnValue(subscriberBootstrapData());
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    {
+      status: 409,
+      body: {
+        errors: [{ message: 'Resource already has an attached report.' }],
+      },
+    },
+    { name: 'post-duplicate-subscribe-missing' },
+  );
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+  expect(
+    await screen.findByText('Failed to create report'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
+
+  fetchMock.removeRoute('post-duplicate-subscribe-missing');
 });
 
 // ---------------------------------------------------------------------------
@@ -706,6 +1151,30 @@ test('retry fields are included in the POST body when Enable Retries is enabled'
     expect(typeof body.retry_notify_owners).toBe('boolean');
     expect(typeof body.retry_notify_recipients).toBe('boolean');
   });
-
-  fetchMock.removeRoute('post-retry');
 });
+
+test.each([false, true])(
+  'dashboard header notice follows published=%s',
+  async published => {
+    fetchMock.get(
+      '/api/v1/dashboard/1',
+      { result: { published } },
+      { name: 'notice-dashboard' },
+    );
+    render(<ReportModal {...defaultProps} />, { useRedux: true });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.called('notice-dashboard')).toBe(true),
+    );
+    await fetchMock.callHistory.flush(true);
+    if (published) {
+      expect(
+        screen.queryByText('Draft dashboard access'),
+      ).not.toBeInTheDocument();
+    } else {
+      await waitFor(() =>
+        expect(screen.getByText('Draft dashboard access')).toBeVisible(),
+      );
+    }
+    fetchMock.removeRoute('notice-dashboard');
+  },
+);

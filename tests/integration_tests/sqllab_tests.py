@@ -27,6 +27,7 @@ from unittest import mock
 import rison
 
 from superset import db, security_manager
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
@@ -266,8 +267,19 @@ class TestSqlLab(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         for endpoint in ("/sqllab/", "/sqllab/history/"):
             resp = self.client.get(endpoint)
-            # Redirects to the main page
+            # An authenticated user missing the permission is forbidden. Sending
+            # them to the login view would be wrong: they are authenticated, the
+            # failure is one of authorization.
+            assert 403 == resp.status_code
+
+    def test_sqllab_no_access_anonymous(self):
+        self.logout()
+        for endpoint in ("/sqllab/", "/sqllab/history/"):
+            resp = self.client.get(endpoint)
+            # The unauthenticated case is the other half of that distinction and
+            # still redirects to the login view.
             assert 302 == resp.status_code
+            assert "/login/" in resp.headers["Location"]
 
     def test_sql_json_schema_access(self):
         examples_db = get_example_database()
@@ -649,15 +661,16 @@ class TestSqlLab(SupersetTestCase):
         )
         assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
 
-    @mock.patch("superset.sql_lab.db")
+    @mock.patch("superset.sql_lab.db.session")
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_query")
     def test_execute_sql_statements(
         self,
-        mock_execute_query,
-        mock_get_query,
-        mock_db,
-    ):
+        mock_execute_query: mock.MagicMock,
+        mock_get_query: mock.MagicMock,
+        mock_session: mock.MagicMock,
+    ) -> None:
+        """Split statements without using a real session in shared helpers."""
         sql = dedent(
             """
             -- comment
@@ -665,7 +678,6 @@ class TestSqlLab(SupersetTestCase):
             SELECT /*+ hint */ @value AS foo;
         """
         )
-        mock_db = mock.MagicMock()  # noqa: F841
         mock_query = mock.MagicMock(select_as_cta=False)
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
@@ -687,6 +699,8 @@ class TestSqlLab(SupersetTestCase):
             expand_data=False,
             log_params=None,
         )
+        mock_session.query.assert_called_with(Query)
+        assert mock_query.status == QueryStatus.SUCCESS
         mock_execute_query.assert_has_calls(
             [
                 mock.call(mock_query, mock_cursor, None),
@@ -746,15 +760,16 @@ class TestSqlLab(SupersetTestCase):
             },
         )
 
-    @mock.patch("superset.sql_lab.db")
+    @mock.patch("superset.sql_lab.db.session")
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_query")
     def test_execute_sql_statements_ctas(
         self,
-        mock_execute_query,
-        mock_get_query,
-        mock_db,
-    ):
+        mock_execute_query: mock.MagicMock,
+        mock_get_query: mock.MagicMock,
+        mock_session: mock.MagicMock,
+    ) -> None:
+        """Split statements without using a real session in shared helpers."""
         sql = dedent(
             """
             -- comment
@@ -762,7 +777,6 @@ class TestSqlLab(SupersetTestCase):
             SELECT /*+ hint */ @value AS foo;
         """
         )
-        mock_db = mock.MagicMock()  # noqa: F841
         mock_query = mock.MagicMock(
             select_as_cta=True,
             ctas_method=CTASMethod.TABLE.name,
@@ -794,6 +808,8 @@ class TestSqlLab(SupersetTestCase):
             expand_data=False,
             log_params=None,
         )
+        mock_session.query.assert_called_with(Query)
+        assert mock_query.status == QueryStatus.SUCCESS
         mock_execute_query.assert_has_calls(
             [
                 mock.call(mock_query, mock_cursor, None),

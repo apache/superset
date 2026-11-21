@@ -49,6 +49,7 @@ import AdhocFilter, {
   isDictionaryForAdhocFilter,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { toQueryString } from 'src/utils/urlUtils';
+import { getSemanticMemberLabels } from 'src/components/SemanticMemberLabel';
 import { Clauses, ExpressionTypes } from '../types';
 
 interface ColumnMeta {
@@ -75,6 +76,7 @@ interface Datasource {
 }
 
 export interface AdhocFilterControlProps {
+  semanticSelectionVersion?: string;
   label?: ReactNode;
   name?: string;
   sections?: string[];
@@ -107,6 +109,10 @@ interface FilterOption {
 const { warning } = Modal;
 
 function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
+  const memberLabels =
+    props.datasource?.type === 'semantic_view'
+      ? getSemanticMemberLabels(props.columns || [])
+      : undefined;
   const options = [
     ...(props.columns || []),
     ...ensureIsArray(props.selectedMetrics).map(
@@ -132,6 +138,7 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
         results.push({
           ...filterOption,
           filterOptionName: `_col_${filterOption.column_name}`,
+          semanticMemberLabel: memberLabels?.get(filterOption.column_name),
         });
       } else if (option instanceof AdhocMetric) {
         results.push({
@@ -156,6 +163,7 @@ function AdhocFilterControl({
   onChange = () => {},
   value,
   datasource,
+  semanticSelectionVersion,
   columns = [],
   savedMetrics = [],
   selectedMetrics = [],
@@ -175,8 +183,9 @@ function AdhocFilterControl({
         columns,
         selectedMetrics,
         savedMetrics,
+        datasource,
       }),
-    [columns, selectedMetrics, savedMetrics],
+    [columns, selectedMetrics, savedMetrics, datasource?.type],
   );
 
   useEffect(() => {
@@ -363,6 +372,7 @@ function AdhocFilterControl({
         sections={sections}
         operators={operators as Operators[] | undefined}
         datasource={datasource}
+        semanticSelectionVersion={semanticSelectionVersion}
         onRemoveFilter={e => {
           e.stopPropagation();
           onRemoveFilter(index);
@@ -378,6 +388,7 @@ function AdhocFilterControl({
       sections,
       operators,
       datasource,
+      semanticSelectionVersion,
       onRemoveFilter,
       moveLabel,
       onDropLabel,
@@ -392,6 +403,7 @@ function AdhocFilterControl({
         sections={sections}
         adhocFilter={new AdhocFilter({})}
         datasource={(datasource as Record<string, unknown>) || {}}
+        semanticSelectionVersion={semanticSelectionVersion}
         options={options}
         onFilterEdit={onNewFilter}
         partitionColumn={partitionColumn ?? undefined}
@@ -399,7 +411,15 @@ function AdhocFilterControl({
         {trigger}
       </AdhocFilterPopoverTrigger>
     ),
-    [operators, sections, datasource, options, onNewFilter, partitionColumn],
+    [
+      operators,
+      sections,
+      datasource,
+      semanticSelectionVersion,
+      options,
+      onNewFilter,
+      partitionColumn,
+    ],
   );
 
   return (

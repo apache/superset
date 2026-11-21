@@ -19,7 +19,10 @@
 
 export { default as TimeFormats, LOCAL_PREFIX } from './TimeFormats';
 export { default as TimeFormatter, PREVIEW_TIME } from './TimeFormatter';
-export { default as DateWithFormatter } from './DateWithFormatter';
+export {
+  default as DateWithFormatter,
+  isEmptyDateInput,
+} from './DateWithFormatter';
 export { DEFAULT_D3_TIME_FORMAT } from './D3FormatConfig';
 
 export {

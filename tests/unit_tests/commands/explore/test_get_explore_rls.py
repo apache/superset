@@ -25,7 +25,16 @@ Two branches are exercised:
 """
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
+
+import pytest
+from pytest_mock import MockerFixture
+
+from superset.commands.explore.get import GetExploreCommand
+from superset.commands.explore.parameters import CommandParameters
+from superset.connectors.sqla.models import SqlaTable
+from superset.models.sql_lab import Query
+from superset.semantic_layers.models import SemanticView
 
 _FULL_FILTER: dict[str, Any] = {
     "id": 1,
@@ -121,3 +130,70 @@ def test_rls_empty_list_on_dao_exception(
         datasource_data["rls_filters"] = []
 
     assert datasource_data["rls_filters"] == []
+
+
+@pytest.mark.parametrize("non_sql_type", ["semantic_view", "query"])
+def test_explore_rls_lookup_uses_sql_dataset_identity(
+    mocker: MockerFixture, non_sql_type: str
+) -> None:
+    """Non-table datasources cannot inherit SQL RLS metadata by numeric id."""
+    view: SemanticView = SemanticView(id=42, name="orders_view")
+    dataset: SqlaTable = SqlaTable(id=42, table_name="orders")
+    query: Query = Query(id=42)
+    mocker.patch.object(
+        Query, "data", new_callable=PropertyMock, return_value={"name": "query"}
+    )
+    mocker.patch.object(
+        SemanticView,
+        "data",
+        new_callable=PropertyMock,
+        return_value={"name": "orders_view"},
+    )
+    mocker.patch.object(
+        SqlaTable, "data", new_callable=PropertyMock, return_value={"name": "orders"}
+    )
+    mocker.patch("superset.commands.explore.get.get_form_data", return_value=({}, None))
+    mocker.patch(
+        "superset.commands.explore.get.get_datasource_info",
+        side_effect=lambda id, kind, form: (id, kind),
+    )
+    mocker.patch(
+        "superset.commands.explore.get.utils.convert_legacy_filters_into_adhoc"
+    )
+    mocker.patch("superset.commands.explore.get.utils.merge_extra_filters")
+    mocker.patch("superset.commands.explore.get.utils.merge_request_params")
+    mocker.patch("superset.commands.explore.get.request", new=MagicMock())
+    mocker.patch(
+        "superset.commands.explore.get.sanitize_datasource_data",
+        side_effect=lambda data: data,
+    )
+    mocker.patch(
+        "superset.commands.explore.get.security_manager"
+    ).can_access.return_value = True
+    datasource_lookup: MagicMock = mocker.patch(
+        "superset.commands.explore.get.DatasourceDAO.get_datasource",
+        side_effect=lambda kind, id: {
+            "semantic_view": view,
+            "table": dataset,
+            "query": query,
+        }[kind],
+    )
+    rls_lookup: MagicMock = mocker.patch(
+        "superset.commands.explore.get.DatasetDAO.get_rls_filters_for_dataset",
+        return_value=[_FULL_FILTER],
+    )
+
+    non_sql_result: dict[str, Any] | None = GetExploreCommand(
+        CommandParameters(None, None, 42, non_sql_type, None)
+    ).run()
+    assert non_sql_result is not None
+    assert non_sql_result["dataset"].get("rls_filters", []) == []
+    rls_lookup.assert_not_called()
+
+    dataset_result: dict[str, Any] | None = GetExploreCommand(
+        CommandParameters(None, None, 42, "table", None)
+    ).run()
+    assert dataset_result is not None
+    assert dataset_result["dataset"]["rls_filters"] == [_FULL_FILTER]
+    rls_lookup.assert_called_once_with(42)
+    assert datasource_lookup.call_count == 2

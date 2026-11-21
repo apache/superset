@@ -26,7 +26,7 @@ import pytest
 import pytz
 from pyhive.sqlalchemy_presto import PrestoDialect
 from pytest_mock import MockerFixture
-from sqlalchemy import column, sql, text, types
+from sqlalchemy import column, create_engine, sql, text, types
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
@@ -44,6 +44,18 @@ from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
+
+
+def test_dialect_loads_under_installed_sqlalchemy(mocker: MockerFixture) -> None:
+    """Pin presto:// entry point resolution and the pyformat paramstyle, without I/O."""
+    socket = mocker.patch("socket.socket", side_effect=AssertionError("Network I/O"))
+    engine = create_engine("presto://user@localhost:8080/hive/default")
+    try:
+        assert isinstance(engine.dialect, PrestoDialect)
+        assert str(text("SELECT :value").compile(engine)) == "SELECT %(value)s"
+    finally:
+        engine.dispose()
+    socket.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -1462,3 +1474,88 @@ def test_unmask_encrypted_extra() -> None:
     assert PrestoEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
         {"auth_method": "jwt", "auth_params": {"token": "old-token"}}
     )
+
+
+def test_encrypted_extra_hints_jwt_in_connect_args() -> None:
+    """
+    A JWT in `connect_args.requests_kwargs` is hinted; its siblings are not.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils import json
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https" * 10,
+                "requests_kwargs": {"jwt": "j" * 20 + "ab3d"},
+            },
+        }
+    )
+
+    assert PrestoEngineSpec.encrypted_extra_hints(config, 4) == [
+        {
+            "path": "$.connect_args.requests_kwargs.jwt",
+            "label": "JWT Token",
+            "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+def test_encrypted_extra_hints_auth_params_token() -> None:
+    """
+    The `auth_params` token and password are hinted; `username` is not.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils import json
+
+    config = json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {
+                "username": "u" * 40,
+                "token": "t" * 20 + "ab3d",
+                "password": "short",
+            },
+        }
+    )
+
+    assert PrestoEngineSpec.encrypted_extra_hints(config, 4) == [
+        {
+            "path": "$.auth_params.password",
+            "label": "Password",
+            "suffix": None,
+            "expires_at": None,
+            "expired": None,
+        },
+        {
+            "path": "$.auth_params.token",
+            "label": "JWT Token",
+            "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
+        },
+    ]
+
+
+def test_encrypted_extra_hints_oauth2_client_secret() -> None:
+    """
+    The OAuth2 client secret is always hinted, even without a declared label.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils import json
+
+    config = json.dumps(
+        {"oauth2_client_info": {"id": "i" * 40, "secret": "s" * 20 + "ab3d"}}
+    )
+
+    assert PrestoEngineSpec.encrypted_extra_hints(config, 4) == [
+        {
+            "path": "$.oauth2_client_info.secret",
+            "label": "OAuth2 client secret",
+            "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]

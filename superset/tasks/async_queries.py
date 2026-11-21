@@ -17,43 +17,60 @@
 from __future__ import annotations
 
 import logging
+import threading
 from contextlib import contextmanager
 from typing import Any, cast, Iterator, TYPE_CHECKING
 from uuid import UUID
 
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as _
 from superset_core.tasks.types import TaskOptions, TaskScope
 
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_serialization import (
     load_serialized_query,
     serialize_query,
     SerializedQuery,
 )
 from superset.constants import CacheRegion
-from superset.exceptions import SupersetException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    QueryObjectValidationMessage,
+    SemanticResultCompletenessError,
+    SupersetException,
+)
 from superset.extensions import (
     security_manager,
 )
+from superset.semantic_layers.chart_types import validate_semantic_chart_type
 from superset.tasks.ambient_context import get_context
 from superset.tasks.decorators import task
 from superset.tasks.query_cancel import (
     cancel_chart_query,
     capture_cancel_id,
     capture_cancel_query_id,
+    ChartQueryAbortedError,
+    CursorPhase,
 )
 from superset.tasks.subscription import get_request_tab_id, TaskSubscriptionPolicy
 from superset.tasks.utils import (
     floored_status_cursor,
     SUBSCRIPTION_PRIVATE_NAMESPACE,
 )
-from superset.utils.core import override_user
+from superset.utils.core import (
+    get_query_log_context,
+    override_query_log_context,
+    override_user,
+)
 
 if TYPE_CHECKING:
     from superset_core.tasks.models import Task as CoreTask
 
+    from superset.common.chart_data_timing import QueryAcquisitionResult
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.models.core import Database
     from superset.models.tasks import Task
     from superset.security.guest_token import GuestToken
 
@@ -181,6 +198,7 @@ def _inject_contribution_totals(
     populated instead of re-running the totals query. ``contribution_totals`` is
     stripped from the cache key, so this affects only the result, not the key.
     """
+    from superset.common.query_context_processor import is_summable
     from superset.common.utils.query_cache_manager import QueryCacheManager
 
     cache = QueryCacheManager.get(key=totals_cache_key, region=CacheRegion.DATA)
@@ -195,7 +213,7 @@ def _inject_contribution_totals(
             f"Contribution totals not found in cache under {totals_cache_key}"
         )
     df = cache.df
-    totals = {col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"}
+    totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
     for post_processing in query_obj.post_processing or []:
         if post_processing.get("operation") == "contribution":
             post_processing.setdefault("options", {})["contribution_totals"] = totals
@@ -216,48 +234,200 @@ def _get_dependency_cache_key() -> str:
     raise SupersetException("Prerequisite task did not publish a cache key")
 
 
+# ``_QueryCancellation._persisted_id`` after a failed write: the metastore keeps
+# the old id until any later write of the task persists the new one.
+_UNKNOWN_PERSISTED_ID = object()
+
+
+class _QueryCancellation:
+    """Cancel the warehouse operation a chart-data task is running when it aborts.
+
+    Used as the task's cursor sink (see ``superset.tasks.query_cancel``). It keeps
+    the cancel id of the operation running on the task's own database. Cursors on
+    other databases (e.g. an annotation layer's source chart) never replace it,
+    since their id would be cancelled against the wrong database.
+
+    Where the id is read depends on ``has_query_id_before_execute``:
+
+    - True (e.g. PostgreSQL, MySQL): the id names the cursor's session, so it is
+      read once per cursor, when the cursor opens. Reading it after execution
+      would run SQL on the live cursor (``SELECT pg_backend_pid()``) and replace
+      the rows the chart is about to fetch.
+    - False (Impala): the id names a single operation, so it is read after each
+      statement is submitted, and retired before the next one. Until then the
+      cursor's last operation is a finished one, such as the ``USE`` that impyla
+      runs when the URL names a database.
+
+    The task registers a single abort handler. For engines read after submission
+    it is registered when the cursor opens, so an abort while a statement is
+    being submitted (Impala plans it then) is accepted. Other engines register
+    at their first id, since there is nothing to cancel without one. Abort
+    handlers run once, so the handler records the abort and cancels the published
+    id; when the worker publishes an id after that, it cancels the id itself.
+    Either way the worker stops before the next fetch or statement. A lock
+    guards the state shared with the handler's thread, which never touches the
+    live cursor.
+
+    The handle is also persisted for the orphan reaper, and replaced or cleared
+    as the running operation changes, so the reaper never cancels an operation
+    the task is done with. After a failed write, the next id is written even if
+    it matches the last one written.
+    """
+
+    def __init__(self, database: "Database") -> None:
+        self._database = database
+        self._database_id = database.id
+        self._after_submission = not database.db_engine_spec.has_query_id_before_execute
+        self._ctx = get_context()
+        self._app = current_app._get_current_object()  # noqa: SLF001
+        self._lock = threading.Lock()
+        # Shared with the abort handler's thread; guarded by ``_lock``.
+        self._active_id: str | None = None
+        self._abort_requested = False
+        # Worker thread only.
+        self._registered = False
+        # The id last written, or _UNKNOWN_PERSISTED_ID after a failed write.
+        self._persisted_id: object = None
+
+    def __call__(self, cursor: Any, database: "Database", phase: CursorPhase) -> None:
+        own = database.id == self._database.id
+        if phase == CursorPhase.OPENED:
+            if own:
+                self._opened(cursor)
+        elif phase == CursorPhase.SUBMITTING:
+            if own and self._after_submission:
+                # The previous statement is over: its id must not be cancelled,
+                # or reaped, in place of the one about to be submitted.
+                self._publish(None)
+            # Checked after the retire, so an abort accepted at any point before
+            # this check stops the statement from being submitted.
+            self._raise_if_aborted()
+        elif phase == CursorPhase.SUBMITTED:
+            try:
+                if own and self._after_submission:
+                    self._submitted(cursor)
+            finally:
+                # Even if publishing or cancelling the id failed, an accepted
+                # abort must stop the worker before it fetches.
+                self._raise_if_aborted()
+        else:
+            if own:
+                self._publish(None)
+            if phase == CursorPhase.FAILED:
+                # Once aborting, the failure is the cancel's doing: report the
+                # abort, not a failed query whose empty result could be cached.
+                self._raise_if_aborted()
+
+    def _opened(self, cursor: Any) -> None:
+        if self._after_submission:
+            self._register()
+            return
+        cancel_id = self._capture(cursor)
+        if cancel_id is None or self._registered:
+            self._publish(cancel_id)
+            return
+        with self._lock:
+            self._active_id = cancel_id
+        # Registering the first abort handler flushes the whole property cache,
+        # persisting the handle in that write.
+        self._ctx.set_cancellation(self._database.id, cancel_id)
+        self._persisted_id = cancel_id
+        self._register()
+
+    def _submitted(self, cursor: Any) -> None:
+        cancel_id = self._capture(cursor)
+        if self._publish(cancel_id) and cancel_id is not None:
+            # The abort arrived while the statement was being submitted, when
+            # the handler had nothing to cancel, and the handler does not run
+            # again.
+            cancel_chart_query(self._database, cancel_id, self._app)
+
+    def _capture(self, cursor: Any) -> str | None:
+        try:
+            return capture_cancel_query_id(self._database, cursor)
+        except Exception:  # noqa: BLE001 pylint: disable=broad-except
+            logger.warning("Cancel-id capture failed", exc_info=True)
+            return None
+
+    def _publish(self, cancel_id: str | None) -> bool:
+        """Make ``cancel_id`` the id an abort cancels.
+
+        :returns: whether an abort was requested before it was published
+        """
+        with self._lock:
+            self._active_id = cancel_id
+            abort_requested = self._abort_requested
+        if cancel_id != self._persisted_id:
+            try:
+                self._ctx.persist_cancellation(self._database.id, cancel_id)
+                self._persisted_id = cancel_id
+            except Exception:  # noqa: BLE001 pylint: disable=broad-except
+                # Only the orphan reaper reads the persisted handle; the abort
+                # handler uses the in-memory one. The next publish writes even
+                # to clear the id, since a later write of the task would persist
+                # this one from the property cache.
+                self._persisted_id = _UNKNOWN_PERSISTED_ID
+                logger.warning("Failed to persist the cancel id", exc_info=True)
+        return abort_requested
+
+    def _raise_if_aborted(self) -> None:
+        with self._lock:
+            abort_requested = self._abort_requested
+        if abort_requested:
+            raise ChartQueryAbortedError()
+
+    def _register(self) -> None:
+        if self._registered:
+            return
+        self._registered = True
+        # Registering the first abort handler marks the task abortable and
+        # starts the abort listener.
+        self._ctx.on_abort(self._on_abort)
+
+    def _on_abort(self) -> None:
+        """The task's abort handler: runs once, usually on another thread."""
+        with self._lock:
+            self._abort_requested = True
+            cancel_id = self._active_id
+        if cancel_id is not None:
+            cancel_chart_query(self._handler_database(), cancel_id, self._app)
+
+    def _handler_database(self) -> "Database":
+        """The task's database, loaded in the handler thread's own session.
+
+        The worker's metastore writes expire its ``Database`` instance, and
+        reloading that instance from this thread would use the worker's session
+        while the worker uses it. Falls back to the worker's instance when the
+        metastore cannot be read (e.g. a self-fence).
+        """
+        from superset import db
+        from superset.models.core import Database
+
+        try:
+            return db.session.get(Database, self._database_id) or self._database
+        except Exception:  # noqa: BLE001 pylint: disable=broad-except
+            # Leave this thread's session usable after the failed read.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return self._database
+
+
 @contextmanager
 def _capture_query_cancellation(query_context: "QueryContext") -> Iterator[None]:
-    """Enable engine-level cancellation of this task's warehouse query.
+    """Enable engine-level cancellation of this task's warehouse queries.
 
-    Captures the engine cancel id off the live cursor (for engines that expose
-    one before execution) and registers an abort handler that kills the backend
-    session over a fresh connection, unblocking the task's ``get_df``. Engines
-    without cancel support capture nothing and the task stays non-abortable, so
-    an abort/timeout simply frees the task without killing the (uncancellable)
-    query — matching the pre-cancellation behavior for those engines.
+    Follows the operation the task is running and registers an abort handler
+    that cancels it over a fresh connection, unblocking the task's ``get_df``
+    (see ``_QueryCancellation``). Engines without cancel support capture nothing
+    and the task stays non-abortable, so an abort/timeout simply frees the task
+    without killing the (uncancellable) query — matching the pre-cancellation
+    behavior for those engines.
     """
     database = getattr(query_context.datasource, "database", None)
     if database is None:
         yield
         return
 
-    ctx = get_context()
-    app = current_app._get_current_object()  # noqa: SLF001
-    captured = False
-
-    def _sink(cursor: Any) -> None:
-        nonlocal captured
-        if captured:
-            return
-        cancel_id = capture_cancel_query_id(database, cursor)
-        if cancel_id is None:
-            return
-        captured = True
-
-        # Persist the handle so the orphan reaper can cancel the query if this
-        # worker dies. Set it before on_abort: registering the first handler
-        # flushes the whole property cache, persisting the handle in that write.
-        ctx.set_cancellation(database.id, cancel_id)
-
-        # Registering the first abort handler marks the task abortable and starts
-        # the abort listener; on abort it cancels the query on a fresh connection.
-        def _cancel() -> None:
-            cancel_chart_query(database, cancel_id, app)
-
-        ctx.on_abort(_cancel)
-
-    with capture_cancel_id(_sink):
+    with capture_cancel_id(_QueryCancellation(database)):
         yield
 
 
@@ -271,6 +441,8 @@ def execute_chart_query(
     user_id: int | None = None,
     guest_token: "GuestToken | None" = None,
     requires_totals: bool = False,
+    is_totals_prerequisite: bool = False,
+    query_log_context: dict[str, Any] | None = None,
 ) -> None:
     """Execute a single chart-data query and cache it under its query_cache_key.
 
@@ -279,11 +451,21 @@ def execute_chart_query(
     the existing per-query execution/caching path so a re-request reads the same
     DATA-cache entry. The query runs under ``_capture_query_cancellation`` so an
     abort/timeout can cancel it on engines that support query cancellation.
+    Typed validation failures and failed totals prerequisites fail before advertising
+    a cache key; ordinary SQL engine errors retain structured-error readback.
     """
     from superset.charts.data.form_data import set_query_context_form_data
 
-    with override_user(_resolve_user(user_id, guest_token), force=False):
+    with (
+        override_user(_resolve_user(user_id, guest_token), force=False),
+        override_query_log_context(query_log_context),
+    ):
         query_context = load_serialized_query(serialized_query)
+        if query_context.datasource.type == "semantic_view":
+            viz_type: object = (query_context.form_data or {}).get("viz_type")
+            if not viz_type and query_context.slice_ is not None:
+                viz_type = query_context.slice_.viz_type
+            validate_semantic_chart_type(query_context.datasource.type, viz_type)
         # Re-establish ``g.form_data`` from the serialized payload. There is no
         # request context in the worker, and Jinja helpers (``filter_values``,
         # ``url_param``, ``get_filters``) resolve form data from ``g`` via
@@ -314,8 +496,30 @@ def execute_chart_query(
         if requires_totals:
             _inject_contribution_totals(query_obj, _get_dependency_cache_key())
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
-        with _capture_query_cancellation(query_context):
-            result = query_context.get_df_payload_result(query_obj)
+        try:
+            with _capture_query_cancellation(query_context):
+                result: QueryAcquisitionResult = query_context.get_df_payload_result(
+                    query_obj
+                )
+        except SemanticResultCompletenessError as error:
+            # Task details remain subscriber-authorized. Publish only a closed
+            # reason code so clients never need to display raw worker errors.
+            get_context().update_task(
+                payload={"semantic_result_error": error.reason}, immediate=True
+            )
+            raise
+        validation_error: object = result.payload.get("error")
+        if result.payload.get("status") == QueryStatus.FAILED and isinstance(
+            validation_error, QueryObjectValidationMessage
+        ):
+            raise QueryObjectValidationError(
+                _("Error: %(error)s", error=validation_error)
+            ) from validation_error.cause
+        if (
+            is_totals_prerequisite
+            and result.payload.get("status") == QueryStatus.FAILED
+        ):
+            raise SupersetException(result.payload["error"])
         if cache_key := result.payload.get(CACHE_KEY_PAYLOAD_KEY):
             # Write synchronously: a dependent contribution query reads this
             # cache key via get_dependency_payloads once the DAG gate releases,
@@ -364,8 +568,8 @@ def submit_chart_data_query_tasks(
     subscription policy recorded for this request (echoed so a later cancel detaches
     exactly this tab; omitted when the caller supplied none). Client aborts may
     unsubscribe from shared work or abort pending work; a running query is also
-    cancelled at the engine level on engines that expose a pre-execution cancel id
-    (see ``_capture_query_cancellation``).
+    cancelled at the engine level on engines that expose a cancel id (see
+    ``_capture_query_cancellation``).
     """
     guest_user = security_manager.get_current_guest_user_if_guest()
     guest_token = guest_user.guest_token if guest_user else None
@@ -379,6 +583,11 @@ def submit_chart_data_query_tasks(
     # helper so it can't sit after a same-second change under the metastore's
     # ``changed_on`` precision (see floored_status_cursor).
     poll_cursor = floored_status_cursor()
+    query_log_context = (
+        get_query_log_context()
+        if current_app.config["QUERY_LOG_COMMENT_FUNC"]
+        else None
+    )
 
     queries = query_context.queries
     # Contribution queries normalize against a shared totals row. Identify the coupling
@@ -420,13 +629,22 @@ def submit_chart_data_query_tasks(
         index: int,
         depends_on: "list[CoreTask | UUID | str] | None" = None,
     ) -> "Task":
+        is_totals_prerequisite: bool = index == totals_idx and bool(needs_totals)
+        # Task dedup ignores arguments; keep the two failure policies distinct.
+        task_key: str | None = (
+            f"totals:{query_cache_keys[index]}"
+            if is_totals_prerequisite and query_cache_keys[index] is not None
+            else query_cache_keys[index]
+        )
         return execute_chart_query.schedule(
             serialized_queries[index],
             user_id,
             guest_token,
             _needs_prerequisite_totals(index),
+            **({"is_totals_prerequisite": True} if is_totals_prerequisite else {}),
+            **({"query_log_context": query_log_context} if query_log_context else {}),
             options=TaskOptions(
-                task_key=query_cache_keys[index],
+                task_key=task_key,
                 task_name=_task_name(index),
                 depends_on=depends_on,
                 # Abort the query after this many seconds; for cancellable

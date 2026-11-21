@@ -485,6 +485,50 @@ def test_get_timestamp_expr_datetime_column_not_cast() -> None:
     assert _compile(expr) == "DATE_TRUNC('day', event_ts)"
 
 
+def test_get_timestamp_expr_string_column_casts_to_timestamp() -> None:
+    """DB Eng Specs (postgres): temporal string columns are cast before truncation."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, "P1D")
+    assert _compile(expr) == "DATE_TRUNC('day', CAST(event_timestamp AS TIMESTAMP))"
+
+
+def test_get_timestamp_expr_string_column_without_grain_not_cast() -> None:
+    """DB Eng Specs (postgres): strings without a time grain remain unchanged."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, None)
+    assert _compile(expr) == "event_timestamp"
+
+
+@pytest.mark.parametrize(
+    "pdf,col_expr",
+    [
+        ("epoch_s", "event_timestamp"),
+        ("epoch_ms", "(event_timestamp/1000)"),
+        ("epoch_us", "((event_timestamp/1000)/1000)"),
+    ],
+)
+def test_get_timestamp_expr_epoch_string_column_not_cast(
+    pdf: str, col_expr: str
+) -> None:
+    """DB Eng Specs (postgres): timestamp casts are not added to epoch expressions."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, pdf, "P1D")
+    assert _compile(expr) == (
+        f"DATE_TRUNC('day', (timestamp 'epoch' + {col_expr} * interval '1 second'))"
+    )
+
+
+def test_get_timestamp_expr_string_column_casts_every_grain_reference() -> None:
+    """DB Eng Specs (postgres): compound grains cast every string reference."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, "PT5S")
+    assert _compile(expr) == (
+        "DATE_TRUNC('minute', CAST(event_timestamp AS TIMESTAMP)) "
+        "+ INTERVAL '5 seconds' * "
+        "FLOOR(EXTRACT(SECOND FROM CAST(event_timestamp AS TIMESTAMP)) / 5)"
+    )
+
+
 def test_get_timestamp_expr_date_column_without_grain_not_cast() -> None:
     """
     DB Eng Specs (postgres): without a time grain there is no DATE_TRUNC, so the
@@ -568,6 +612,24 @@ def test_get_schema_names_excludes_only_actual_system_schemas(
         "pgstats",
         "information_schema",
     }
+
+
+def test_get_materialized_view_names(mocker: MockerFixture) -> None:
+    """
+    DB Eng Specs (postgres): Test ``get_materialized_view_names``
+
+    SQLAlchemy 2.0 no longer returns materialized views from
+    ``get_view_names``, so they must be listed through the inspector's
+    dedicated method. See issue #46054.
+    """
+    database = mocker.MagicMock()
+    inspector = mocker.MagicMock()
+    inspector.get_materialized_view_names.return_value = ["mv_sales", "mv_users"]
+
+    views = spec.get_materialized_view_names(database, inspector, "public")
+
+    assert views == {"mv_sales", "mv_users"}
+    inspector.get_materialized_view_names.assert_called_once_with("public")
 
 
 def _basic_parameters(**overrides: Any) -> dict[str, Any]:
@@ -890,3 +952,176 @@ def test_extended_aggregation_func_compiles_expected_sql(
         )
     )
     assert compiled == expected_sql
+
+
+def _search_path_database(
+    mocker: MockerFixture,
+    search_path: Any,
+    found: list[tuple[str, str]] | None = None,
+) -> MagicMock:
+    """
+    A database whose connection reports a search path and the schema each quoted
+    table name resolves to. A path given as the schemas alone is set as the
+    ``search_path`` too, for a user without a schema.
+    """
+    database = mocker.MagicMock()
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
+    if isinstance(search_path, Exception):
+        cursor.return_value.execute.side_effect = search_path
+    else:
+        if (
+            isinstance(search_path, tuple)
+            and len(search_path) == 1
+            and isinstance(search_path[0], list)
+        ):
+            schemas = [s for s in search_path[0] if s != "pg_catalog"]
+            search_path = (search_path[0], ", ".join(schemas), "nobody")
+        cursor.return_value.fetchone.return_value = search_path
+        cursor.return_value.fetchall.return_value = found or []
+    return database
+
+
+SEARCH_PATH_QUERY = (
+    "SELECT pg_catalog.current_schemas(true)::text[], "
+    "pg_catalog.current_setting('search_path'), current_user::text"
+)
+
+
+def test_get_search_path(mocker: MockerFixture) -> None:
+    """
+    DB Eng Specs (postgres): ``get_search_path`` lists every schema searched for an
+    unqualified table, the implicit ``pg_catalog`` included, and resolves each
+    table to the schema holding it, both spellings of a name that may be quoted.
+    """
+    database = _search_path_database(
+        mocker,
+        (["pg_catalog", "analyst", "public"],),
+        [
+            ('"pg_class"', "pg_catalog"),
+            ('"Sales"', "public"),
+            ('"sales"', "analyst"),
+            ('"temp"', "pg_temp_3"),
+        ],
+    )
+
+    assert spec.get_search_path(
+        database, "analytics", ["Sales", "pg_class", "missing", "temp"]
+    ) == (
+        ["pg_catalog", "analyst", "public"],
+        {
+            "Sales": ["analyst", "public"],
+            "pg_class": ["pg_catalog"],
+            "temp": ["pg_temp_3"],
+        },
+    )
+    database.get_raw_connection.assert_called_once_with(catalog="analytics")
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
+    (paths,), (lookup, params) = (
+        call.args for call in cursor.return_value.execute.call_args_list
+    )
+    assert paths == SEARCH_PATH_QUERY
+    assert "pg_catalog.to_regclass(spelling)" in lookup
+    assert params == (['"Sales"', '"sales"', '"pg_class"', '"missing"', '"temp"'],)
+
+
+def test_get_search_path_without_tables(mocker: MockerFixture) -> None:
+    """
+    DB Eng Specs (postgres): only the search path is read when no table is asked
+    about, and a name is quoted so it's looked up exactly as written.
+    """
+    database = _search_path_database(mocker, (["public"],))
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
+
+    assert spec.get_search_path(database, None) == (["public"], {})
+    cursor.return_value.execute.assert_called_once_with(SEARCH_PATH_QUERY)
+
+    spec.get_search_path(database, None, ['a"b'])
+    assert cursor.return_value.execute.call_args.args[1] == (['"a""b"'],)
+
+
+@pytest.mark.parametrize(
+    "table, spellings",
+    [
+        # either spelling of an ASCII name, since it may have been quoted
+        ("Sales", ['"Sales"', '"sales"']),
+        ("sales", ['"sales"']),
+        # Postgres folds ASCII letters only: ``VENTÉ`` is read as ``ventÉ``, never
+        # the ``venté`` ``str.lower`` makes of it. The name is also passed unquoted
+        # for a database whose encoding folds other letters as well.
+        ("VENTÉ", ['"VENTÉ"', '"ventÉ"', "VENTÉ"]),
+        ("ventÉ", ['"ventÉ"', "ventÉ"]),
+        # a name ``to_regclass`` would read as several isn't passed unquoted
+        ("A.É", ['"A.É"', '"a.É"']),
+    ],
+)
+def test_get_search_path_folds_ascii_letters_only(
+    mocker: MockerFixture, table: str, spellings: list[str]
+) -> None:
+    """
+    DB Eng Specs (postgres): ``get_search_path`` looks a table up under the names
+    Postgres reads it as, folding ASCII letters only, so the schema it returns is
+    the one holding the table the query reads (a ``ventÉ`` in ``public`` isn't
+    shadowed by a ``venté`` in the user's schema).
+    """
+    database = _search_path_database(
+        mocker, (["pg_catalog", "analyst", "public"],), [('"ventÉ"', "public")]
+    )
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
+
+    found = spec.get_search_path(database, None, [table])
+
+    assert cursor.return_value.execute.call_args.args[1] == (spellings,)
+    assert found[1] == ({table: ["public"]} if '"ventÉ"' in spellings else {})
+
+
+@pytest.mark.parametrize(
+    "setting, schemas",
+    [
+        ('"$user", public', ["pg_catalog", "public", "analyst"]),
+        ("analyst, public", ["pg_catalog", "public", "analyst"]),
+        (
+            'Staging, "My, ""S""", pg_temp, public',
+            ["pg_catalog", "public", "staging", 'My, "S"'],
+        ),
+        ("", ["pg_catalog", "public"]),
+    ],
+)
+def test_get_search_path_lists_schemas_not_created_yet(
+    mocker: MockerFixture, setting: str, schemas: list[str]
+) -> None:
+    """
+    DB Eng Specs (postgres): ``current_schemas`` leaves out a schema the path names
+    that doesn't exist, which a script can create before reading a table from it,
+    so ``get_search_path`` lists it after the schemas searched: ``$user`` as the
+    current user's schema, an unquoted name folded and a quoted one as written.
+    The session's own ``pg_temp`` isn't one.
+    """
+    database = _search_path_database(
+        mocker, (["pg_catalog", "public"], setting, "analyst")
+    )
+
+    assert spec.get_search_path(database, None) == (schemas, {})
+
+
+@pytest.mark.parametrize("search_path", [None, ("{analyst,public}",)])
+def test_get_search_path_unreadable(mocker: MockerFixture, search_path: Any) -> None:
+    """
+    DB Eng Specs (postgres): a search path the connection doesn't report as a list
+    raises, rather than reading as an empty one.
+    """
+    database = _search_path_database(mocker, search_path)
+
+    with pytest.raises(ValueError, match="Unexpected search path"):
+        spec.get_search_path(database, None, ["sales"])
+
+
+def test_get_search_path_failure_raises(mocker: MockerFixture) -> None:
+    """
+    DB Eng Specs (postgres): a connection that can't be asked raises, rather than
+    falling back to its default schema, which needn't be where a table is read.
+    """
+    database = _search_path_database(mocker, Exception("permission denied"))
+
+    with pytest.raises(Exception, match="permission denied"):
+        spec.get_search_path(database, None, ["sales"])
+    database.get_inspector.assert_not_called()

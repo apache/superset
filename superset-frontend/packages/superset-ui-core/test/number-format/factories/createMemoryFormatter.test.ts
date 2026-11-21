@@ -165,3 +165,10 @@ test('formats bytes in human readable format with additional decimals option', (
   expect(formatter3decimals(0)).toBe('0B');
   expect(formatter3decimals(1111)).toBe('1.111kB');
 });
+
+test('formats bigint values decoded by json-bigint', () => {
+  const formatter = createMemoryFormatter({ binary: true });
+  // integers beyond Number.MAX_SAFE_INTEGER arrive as native BigInt
+  const big = BigInt('1425300509404304697') as unknown as number;
+  expect(formatter(big)).toBe('1.24EiB');
+});

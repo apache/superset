@@ -30,6 +30,7 @@ import { RootState } from 'src/dashboard/types';
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
   appliedIndicators: Indicator[];
+  incompatibleIndicators?: Indicator[];
   onHighlightFilterSource: (path: string[]) => void;
   children: JSX.Element;
   popoverVisible: boolean;
@@ -41,6 +42,7 @@ export interface DetailsPanelProps {
 const DetailsPanelPopover = ({
   appliedCrossFilterIndicators = [],
   appliedIndicators = [],
+  incompatibleIndicators = [],
   onHighlightFilterSource,
   children,
   popoverVisible,
@@ -90,6 +92,29 @@ const DetailsPanelPopover = ({
       label: t('Applied filters (%d)', appliedIndicators.length),
       children: appliedIndicators.map(indicator => ({
         key: `applied-${indicatorKey(indicator)}`,
+        label: (
+          <FilterIndicator
+            indicator={indicator}
+            onClick={onHighlightFilterSource}
+          />
+        ),
+      })),
+    });
+  }
+
+  if (incompatibleIndicators.length > 0) {
+    if (
+      appliedCrossFilterIndicators.length > 0 ||
+      appliedIndicators.length > 0
+    ) {
+      menuItems.push({ type: 'divider' });
+    }
+    menuItems.push({
+      key: 'grp-incompatible',
+      type: 'group',
+      label: t('Incompatible filters (%d)', incompatibleIndicators.length),
+      children: incompatibleIndicators.map(indicator => ({
+        key: `incompatible-${indicatorKey(indicator)}`,
         label: (
           <FilterIndicator
             indicator={indicator}

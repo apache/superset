@@ -21,6 +21,7 @@ import {
   CategoricalModernSunset,
   CategoricalScheme,
   ColorSchemeGroup,
+  SequentialScheme,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
 import {
@@ -28,6 +29,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import ColorSchemeControl, { ColorSchemes } from '.';
 
@@ -106,7 +108,7 @@ test('displays color scheme options when only "other" group is registered', asyn
     getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
   );
   setup();
-  userEvent.click(
+  await userEvent.click(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),
   );
   await waitFor(() => {
@@ -133,7 +135,7 @@ test('displays color scheme options', async () => {
     getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
   );
   setup();
-  userEvent.click(
+  await userEvent.click(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),
   );
   await waitFor(() => {
@@ -147,6 +149,34 @@ test('displays color scheme options', async () => {
     expect(screen.getByText('Featured color palettes')).toBeInTheDocument();
     expect(screen.getByText('Other color palettes')).toBeInTheDocument();
   });
+});
+
+test('grouped-option styles reach the popup portaled to document.body', async () => {
+  [...CategoricalD3, ...CategoricalModernSunset].forEach(scheme =>
+    getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
+  );
+  const { container } = setup();
+  await userEvent.click(
+    screen.getByLabelText('Select color scheme', { selector: 'input' }),
+  );
+  await waitFor(() => {
+    expect(screen.getByText('Featured color palettes')).toBeInTheDocument();
+  });
+  const popup = document.querySelector('.ant-select-dropdown')!;
+  expect(container.contains(popup)).toBe(false);
+  expect(document.body.contains(popup)).toBe(true);
+  // The popup lives outside the Select's css-prop scope, so the grouped
+  // styles are attached via an emotion class on the popup root instead.
+  const emotionClass = Array.from(popup.classList).find(cls =>
+    /^(superset|css)-(?!dev-only|var)/.test(cls),
+  );
+  expect(emotionClass).toBeDefined();
+  const styleText = Array.from(document.styleSheets)
+    .flatMap(sheet => Array.from(sheet.cssRules).map(rule => rule.cssText))
+    .join('\n');
+  expect(styleText).toContain(
+    `.${emotionClass} .ant-select-item-option-grouped`,
+  );
 });
 
 test('Renders control with dashboard id and dashboard color scheme', () => {
@@ -190,7 +220,7 @@ test('should show tooltip on hover when text overflows', async () => {
     setup();
 
     // Open the dropdown
-    userEvent.click(
+    await userEvent.click(
       screen.getByLabelText('Select color scheme', { selector: 'input' }),
     );
 
@@ -199,7 +229,7 @@ test('should show tooltip on hover when text overflows', async () => {
     expect(d3Category10).toBeInTheDocument();
 
     // Hover over the color scheme label - this should trigger tooltip due to overflow
-    userEvent.hover(d3Category10);
+    await userEvent.hover(d3Category10);
 
     // The real component should now show the tooltip because scrollWidth > offsetWidth
     await waitFor(() => {
@@ -209,7 +239,7 @@ test('should show tooltip on hover when text overflows', async () => {
     });
 
     // Test mouseout behavior - tooltip should hide
-    userEvent.unhover(d3Category10);
+    await userEvent.unhover(d3Category10);
 
     await waitFor(() => {
       // Tooltip should be hidden after mouseout
@@ -253,7 +283,7 @@ test('should handle tooltip content verification for color schemes', async () =>
   setup();
 
   // Open dropdown and verify our test scheme appears
-  userEvent.click(
+  await userEvent.click(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),
   );
 
@@ -265,7 +295,7 @@ test('should handle tooltip content verification for color schemes', async () =>
   expect(testOption).toBeInTheDocument();
 
   // Test hover behavior
-  userEvent.hover(testColorScheme);
+  await userEvent.hover(testColorScheme);
 
   // The tooltip behavior is controlled by text overflow conditions
   // We're verifying the basic hover infrastructure works
@@ -293,10 +323,10 @@ test('should support search functionality for color schemes', async () => {
   const selectInput = screen.getByLabelText('Select color scheme', {
     selector: 'input',
   });
-  userEvent.click(selectInput);
+  await userEvent.click(selectInput);
 
   // Type search term
-  userEvent.type(selectInput, 'lyftColors');
+  await userEvent.type(selectInput, 'lyftColors');
 
   // Verify the search result appears
   await waitFor(() => {
@@ -316,12 +346,12 @@ test('should NOT show tooltip for search results (original Cypress contract)', a
   const selectInput = screen.getByLabelText('Select color scheme', {
     selector: 'input',
   });
-  userEvent.click(selectInput);
-  userEvent.type(selectInput, 'lyftColors');
+  await userEvent.click(selectInput);
+  await userEvent.type(selectInput, 'lyftColors');
 
   // Find the search result and hover (matching original Cypress)
   const lyftColorOption = await screen.findByTestId('lyftColors');
-  userEvent.hover(lyftColorOption);
+  await userEvent.hover(lyftColorOption);
 
   // Original Cypress contract: search results should NOT show tooltips
   await waitFor(() => {
@@ -336,4 +366,78 @@ test('should NOT show tooltip for search results (original Cypress contract)', a
     const tooltipContent = document.querySelector('.color-scheme-tooltip');
     expect(tooltipContent).toBeFalsy();
   });
+});
+
+test('searching for a color scheme and selecting it calls onChange with the scheme id', async () => {
+  getCategoricalSchemeRegistry().registerValue(lyftColors.id, lyftColors);
+  const onChange = jest.fn();
+  setup({ onChange });
+
+  const selectInput = screen.getByLabelText('Select color scheme', {
+    selector: 'input',
+  });
+  await userEvent.click(selectInput);
+  await userEvent.type(selectInput, 'lyftColors');
+  await userEvent.click(await screen.findByTestId('lyftColors'));
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  expect(onChange).toHaveBeenCalledWith('lyftColors');
+});
+
+test('searching by label matches a scheme and filters out non-matching schemes', async () => {
+  [...CategoricalD3, lyftColors].forEach(scheme =>
+    getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
+  );
+  setup();
+
+  const selectInput = screen.getByLabelText('Select color scheme', {
+    selector: 'input',
+  });
+  await userEvent.click(selectInput);
+  await userEvent.type(selectInput, 'Lyft');
+
+  expect(await screen.findByTestId('lyftColors')).toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.queryByText('D3 Category 10')).not.toBeInTheDocument(),
+  );
+});
+
+test('isLinear: searching a sequential scheme and selecting it calls onChange with the scheme id', async () => {
+  const sequentialSchemes = [
+    new SequentialScheme({
+      id: 'testBlues',
+      label: 'Test Blues',
+      colors: ['#eff3ff', '#6baed6', '#08519c'],
+    }),
+    new SequentialScheme({
+      id: 'testGreens',
+      label: 'Test Greens',
+      colors: ['#edf8e9', '#74c476', '#006d2c'],
+    }),
+  ];
+  const onChange = jest.fn();
+  setup({
+    isLinear: true,
+    value: 'testBlues',
+    choices: sequentialSchemes.map(s => [s.id, s.label]),
+    schemes: Object.fromEntries(
+      sequentialSchemes.map(s => [s.id, s]),
+    ) as ColorSchemes,
+    onChange,
+  });
+
+  const selectInput = screen.getByLabelText('Select color scheme', {
+    selector: 'input',
+  });
+  await userEvent.click(selectInput);
+  await userEvent.type(selectInput, 'Greens');
+
+  const option = await screen.findByTestId('testGreens');
+  // Sequential schemes are interpolated to 10 swatches, not their 3 raw colors
+  expect(within(option).getAllByTestId('color')).toHaveLength(10);
+
+  await userEvent.click(option);
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  expect(onChange).toHaveBeenCalledWith('testGreens');
 });

@@ -32,15 +32,23 @@ reported as skipped rather than revived or dangling.
 from __future__ import annotations
 
 import logging
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+import sqlalchemy as sa
+from flask_babel import gettext as _
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.attributes import set_committed_value
+from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
-from superset.versioning.baseline import OPERATION_DELETE
+from superset.versioning.baseline import OPERATION_DELETE, OPERATION_INSERT
+from superset.versioning.db_errors import is_foreign_key_violation
 from superset.versioning.queries import find_active_by_uuid
 from superset.versioning.utils import single_flush_scope
 
@@ -63,12 +71,502 @@ logger = logging.getLogger(__name__)
 #
 # Unknown models fail closed (``LookupError``) rather than defaulting to a
 # relation-less restore — a silently partial restore is worse than a loud
-# failure (mirrors ``_RAISE_FOR_ACCESS_KWARG`` in ``api_helpers``).
+# failure (mirrors ``_version_endpoint_models`` in ``api_helpers``).
 _RESTORE_RELATIONS: dict[str, list[str]] = {
     "SqlaTable": ["columns", "metrics"],
     "Dashboard": [],
     "Slice": [],
 }
+
+
+class PrunedChildHistoryError(Exception):
+    """The target version's child history is no longer fully recoverable.
+
+    Version-history retention prunes closed child shadow rows (and their
+    ``version_transaction`` rows) once they age out; a restore that
+    proceeded anyway would persist an INCOMPLETE column/metric set for a
+    ``SqlaTable`` — a durable partial write. Restore fails closed
+    instead (sc-120012). The message is user-facing.
+    """
+
+    def __init__(self, model_name: str, detail: str) -> None:
+        super().__init__(
+            f"This {model_name} version can no longer be fully restored: "
+            f"{detail} needed by the snapshot were pruned by "
+            "version-history retention. The entity was left unchanged."
+        )
+
+
+def _reserve_sqlite_write_lock() -> None:
+    """Take SQLite's write lock before a guard's reads, once per transaction.
+
+    SQLite drops FOR UPDATE, and pysqlite's legacy mode starts no real
+    transaction for SELECTs — a guard's reads and the reverter's re-reads
+    could straddle a concurrent commit, and the write lock would otherwise
+    arrive only at the deferred flush. Reserving it up front (BEGIN
+    IMMEDIATE) means no other writer can commit between the checks and the
+    restore's own commit; the read-to-write upgrade conflict cannot occur
+    because the reservation precedes every read. Each guard calls this for
+    itself, so none depends on running after another. No-op on other
+    dialects and when the driver is already in a transaction.
+    """
+    if db.engine.dialect.name != "sqlite":
+        return
+    conn: sa.engine.Connection = db.session.connection()
+    if not conn.connection.dbapi_connection.in_transaction:
+        # Issued through the SQLAlchemy Connection (not the raw DBAPI
+        # handle) so exception translation applies: reservation
+        # contention surfaces as sqlalchemy.exc.OperationalError,
+        # which the command's @transaction wraps into its failure
+        # type and the endpoint maps to 422 — a raw sqlite3 error
+        # would escape both as a 500.
+        conn.exec_driver_sql("BEGIN IMMEDIATE")
+
+
+class RecycledChildIdentityError(Exception):
+    """A child id in the target version now identifies a different live child.
+
+    Continuum's reverter resolves a column or metric by integer primary key
+    alone, so if that id was freed by a hard delete and reused under another
+    dataset (while capture was denied), reverting would overwrite that
+    dataset's child in place. The restore refuses instead, so both datasets
+    stay unchanged. The message is user-facing.
+    """
+
+    def __init__(self, model_name: str, detail: str) -> None:
+        super().__init__(
+            f"This {model_name} version cannot be restored: {detail} in the "
+            "snapshot now identify different live columns or metrics, so the "
+            "restore would overwrite them. The entity was left unchanged."
+        )
+
+
+class ChartPurgedDuringRestoreError(Exception):
+    """A chart whose dashboard membership the restore was changing was
+    permanently deleted before the restore could write the change.
+
+    The purge commits between the restore's read of the dashboard's charts
+    and its write. Reattaching the chart then fails on the foreign key, and
+    unlinking it finds its ``dashboard_slices`` row already gone; either way
+    the whole restore rolls back. Retrying is safe: the next attempt no
+    longer finds the chart. ``chart_ids`` are the charts whose membership the
+    restore was changing, so the caller can confirm, after the rollback,
+    that one of them is gone. The message is user-facing.
+    """
+
+    def __init__(self, chart_ids: Sequence[int]) -> None:
+        super().__init__(
+            _(
+                "A chart on this dashboard or in this version was permanently "
+                "deleted while the dashboard was being restored, so nothing was "
+                "changed. Please try again."
+            )
+        )
+        self.chart_ids: list[int] = sorted(chart_ids)
+
+
+class MissingDatasourceError(Exception):
+    """The chart version's datasource no longer exists.
+
+    A version snapshot records the chart's datasource by type and id, but
+    restoring a snapshot does not restore the datasource itself. Restoring
+    onto a deleted one would leave the chart resolving no datasource while
+    reporting success, so the restore refuses instead. The message is
+    user-facing.
+    """
+
+    def __init__(self, datasource_label: str) -> None:
+        message: str = (
+            _(
+                "This chart version can't be restored because the semantic view "
+                "it used has been permanently deleted. Restore a version that "
+                "uses an existing semantic view or dataset, or recreate the chart."
+            )
+            if datasource_label == "semantic view"
+            else _(
+                "This chart version can't be restored because the dataset it "
+                "used has been permanently deleted. Restore a version that uses "
+                "an existing dataset, or recreate the chart."
+            )
+        )
+        super().__init__(message)
+
+
+def _lock_chart_datasource(model_cls: type, target_version: Any) -> Any | None:
+    """Lock and return the datasource a chart snapshot names, or refuse.
+
+    Restoring a snapshot does not restore its datasource, so the restore
+    refuses when that datasource no longer exists. The row is locked in the
+    restore's transaction, so it cannot be deleted between this check and
+    the chart write; SQLite drops ``FOR UPDATE``, so its write lock is
+    reserved before the lookup instead.
+
+    A soft-deleted dataset still counts as existing: it is restorable from
+    the trash with its permissions intact, so the restored chart works again
+    once the dataset is restored. A snapshot without a datasource id has no
+    dependency to check and returns ``None``, as does any non-chart model.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.datasource import Datasource, DatasourceDAO
+    from superset.models.helpers import skip_visibility_filter
+    from superset.utils.core import DatasourceType
+
+    if model_cls.__name__ != "Slice":
+        return None
+    datasource_id: int | None = target_version.datasource_id
+    if not datasource_id:
+        return None
+    datasource_type: str = target_version.datasource_type
+    label: str = (
+        "semantic view"
+        if datasource_type == DatasourceType.SEMANTIC_VIEW.value
+        else "dataset"
+    )
+    src_class: type[Datasource] | None = DatasourceDAO.sources.get(datasource_type)
+    if src_class is None:
+        raise MissingDatasourceError(label)
+    _reserve_sqlite_write_lock()
+    with skip_visibility_filter(db.session, src_class):
+        # ``populate_existing`` re-reads a row the session already holds, so a
+        # rename committed before the lock is not hidden by a stale copy.
+        datasource: Datasource | None = (
+            db.session.query(src_class)
+            .populate_existing()
+            .enable_eagerloads(False)
+            .filter_by(id=datasource_id)
+            .with_for_update()
+            .one_or_none()
+        )
+    if datasource is None:
+        raise MissingDatasourceError(label)
+    return datasource
+
+
+def _sync_chart_perms(chart: Any, datasource: Any | None) -> None:
+    """Copy the restored datasource's permission fields onto the chart.
+
+    The chart's own listener resolves its datasource through the soft-delete
+    visibility filter, so for a soft-deleted dataset it would keep the
+    previous datasource's permission fields.
+    """
+    if datasource is None:
+        return
+    chart.perm = getattr(datasource, "perm", None)
+    chart.catalog_perm = getattr(datasource, "catalog_perm", None)
+    chart.schema_perm = getattr(datasource, "schema_perm", None)
+
+
+def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
+    """Refuse the restore when a needed child shadow row was pruned.
+
+    ``revert(relations=...)`` reconstructs a ``SqlaTable``'s columns and
+    metrics from the child shadow rows valid at *target_tx*. Retention
+    can have pruned exactly those rows while the parent's row at
+    *target_tx* survives; the pruner also deletes the covering
+    ``version_transaction`` rows (change records cascade with them), so
+    the only surviving evidence is the validity chain itself. Per child
+    (grouped by the child's own ``id``), the state at *target_tx* is
+    PROVABLE when a surviving row's validity interval covers it (a
+    non-DELETE covering row: present, restored; a DELETE covering row:
+    provably absent). Without a covering interval, a last same-parent
+    row at/before the target that is DELETE is accepted as absence.
+    If no row is at/before the target, an earliest surviving INSERT
+    is accepted as born-after evidence, not proof of the original birth. See
+    :func:`_child_state_provable_at` for the interval semantics.
+
+    Anything else means a pruned row MAY have covered ``target_tx`` —
+    fail closed (sc-120012).
+
+    Known limitation (ratified, sc-120012): the fail-closed guard refuses
+    every DETECTABLE pruning of needed child history, including a pruned
+    closed row whose successor survives, and protects all restores
+    targeting versions within the retention window. Missing evidence can
+    be indistinguishable from legitimate absence in three shapes:
+
+    * a column/metric deleted AFTER the target version whose entire
+      shadow chain — including its closing DELETE row — has aged out of
+      retention leaves no surviving evidence anywhere;
+    * an erased same-parent re-birth window leaves an earlier terminal
+      DELETE, indistinguishable from a purged foreign incarnation;
+    * erased birth and covering rows leave only a later re-insertion
+      INSERT, indistinguishable from a child first born after the target;
+    * a child id reassigned to another parent at ``E`` (the surviving
+      foreign closer proves absence from ``E``) and later re-born under
+      this parent in a window whose create-tx was pruned while ``E``'s
+      rows survived: the re-birth is silently omitted, the same shape as
+      the erased same-parent re-birth above.
+
+    No read-side check can recover that erased evidence. The pruner
+    deletes shadow rows by create-tx OR close-tx
+    (``tasks/version_history_retention.py`` ``_delete_for_transactions``)
+    and then the ``version_transaction`` rows themselves, cascading the
+    change records (same module, transaction-delete step) — and change
+    records are per-tx DIFFS (``versioning/changes/table.py`` path /
+    from_value / to_value columns), never a full child set, so replay
+    cannot reconstruct what pruning erased. Only reachable for targets
+    older than the retention window (the closing DELETE row's own tx must
+    itself have been prunable). Dependency-closure retention is the
+    separate post-GA sc-120945 follow-up, not implemented by this guard.
+    """
+    # pylint: disable=import-outside-toplevel
+    # Local imports: the models pull in the initialised-app graph (same
+    # bootstrap-cycle rationale as the other deferred imports here).
+    from superset.connectors.sqla.models import SqlMetric, TableColumn
+
+    _reserve_sqlite_write_lock()
+
+    missing: list[str] = []
+    for label, child_cls in (("column", TableColumn), ("metric", SqlMetric)):
+        shadow: sa.Table = version_class(child_cls).__table__
+        # One locked read: EVERY surviving row the verdict depends on is
+        # taken FOR UPDATE in the transaction that owns the restore —
+        # covering non-DELETE rows (the reconstruction inputs) AND
+        # covering DELETE witnesses. The witnesses are load-bearing for
+        # the WRITE as well as the verdict: Continuum's one-to-many
+        # reconstruction selects the latest surviving row at/before the
+        # target and then excludes DELETEs, so a pruner deleting a
+        # covering DELETE witness mid-restore would resurrect an older
+        # incarnation the target never had. The row locks block the
+        # pruner's DELETE until this transaction commits (its
+        # SERIALIZABLE pass waits or retries). On SQLite the BEGIN
+        # IMMEDIATE reservation above provides the equivalent.
+        rows: Sequence[sa.engine.Row[Any]] = db.session.execute(
+            sa.select(
+                shadow.c.id,
+                shadow.c.transaction_id,
+                shadow.c.end_transaction_id,
+                shadow.c.operation_type,
+            )
+            .where(shadow.c.table_id == entity.id)
+            .order_by(shadow.c.id, shadow.c.transaction_id)
+            .with_for_update()
+        ).all()
+        by_child: dict[int, list[Any]] = {}
+        for row in rows:
+            by_child.setdefault(row.id, []).append(row)
+        # A child id recycled under ANOTHER parent closes this parent's open
+        # row with its own INSERT at the same transaction (see
+        # ``snapshot._reconcile_children``). Those foreign rows are the
+        # surviving closers that prove this parent's absence, so they are
+        # read under the same lock as the same-parent rows.
+        foreign_closers: set[tuple[int, int]] = set()
+        if by_child:
+            foreign_closers = {
+                (row.id, row.transaction_id)
+                for row in db.session.execute(
+                    sa.select(shadow.c.id, shadow.c.transaction_id)
+                    .where(
+                        shadow.c.id.in_(list(by_child)),
+                        shadow.c.table_id != entity.id,
+                    )
+                    .with_for_update()
+                ).all()
+            }
+
+        for child_id, child_rows in by_child.items():
+            if not _child_state_provable_at(
+                child_rows, target_tx, foreign_closers=foreign_closers
+            ):
+                missing.append(f"{label} id={child_id}")
+                # The refusal is fail-closed by design; the chain dump is
+                # what lets an operator (or CI) see WHY this child's state
+                # at the target is unprovable from the surviving intervals.
+                logger.warning(
+                    "versioning: restore refused for %s id=%s at tx=%s — "
+                    "%s id=%s surviving chain=%s",
+                    type(entity).__name__,
+                    entity.id,
+                    target_tx,
+                    label,
+                    child_id,
+                    [
+                        (
+                            row.transaction_id,
+                            row.end_transaction_id,
+                            row.operation_type,
+                        )
+                        for row in child_rows
+                    ],
+                )
+
+    if missing:
+        raise PrunedChildHistoryError(
+            type(entity).__name__,
+            f"{len(missing)} column/metric history row(s) ({', '.join(missing[:10])})",
+        )
+
+
+def _child_state_provable_at(
+    rows: list[Any],
+    target_tx: int,
+    *,
+    foreign_closers: frozenset[tuple[int, int]] | set[tuple[int, int]] = frozenset(),
+) -> bool:
+    """Whether *rows* (one child's surviving SAME-PARENT shadow rows,
+    in any order) prove the child's state at *target_tx*.
+
+    *foreign_closers* holds ``(id, transaction_id)`` of surviving rows of the
+    same child ids under OTHER parents. A same-parent non-DELETE row whose
+    interval expired at such a row's transaction was closed by the child's
+    reassignment, not by a pruned same-parent successor: the shadow key is
+    unique per transaction, so no same-parent row at that transaction can
+    have existed. That is accepted as absence with exactly the strength of
+    the terminal-DELETE branch: a later same-parent re-birth whose window
+    was pruned is not excluded (see the known limitations above).
+
+    Interval semantics: a row is valid over ``[transaction_id,
+    end_transaction_id)`` (open end = unbounded). A covering interval
+    proves the state (non-DELETE: present, restored; DELETE: provably
+    absent). With no covering interval the verdict rests on the LAST
+    same-parent row at/before the target:
+
+    * none at all → born-after: provable only when the earliest
+      surviving row is INSERT (original birth and re-insertion cannot
+      be distinguished if earlier history was erased);
+    * a DELETE → provably absent, UNCONDITIONALLY — even with a closed
+      end whose closer row no longer survives. Two invariants make this
+      sound (ratified, sc-120012): retention cannot erase the closer of
+      a surviving closed DELETE (the pruner deletes rows whose CLOSE
+      transaction is pruned, so this DELETE row would have gone with
+      it), and purge never touches the live parent's own rows — so a
+      missing closer is a purged FOREIGN incarnation of a recycled id,
+      not this parent's history;
+    * a non-DELETE whose interval expired before the target → its
+      same-parent successor is missing (that row's close-tx was pruned
+      while its own create-tx survived): the child may have existed at
+      the target — fail closed. This is the classic pruned-history
+      shape the guard exists for. The one exception is a closer that
+      survives under ANOTHER parent (``foreign_closers``): the id was
+      reassigned at that transaction, so absence is proved.
+
+    Known limitation (ratified): a same-parent re-birth whose window
+    ``[X, e)`` was retention-pruned via ``e`` while ``X`` survived is
+    observationally identical to a purged foreign closer, and is
+    accepted as absence. Only reachable for targets inside a
+    retention-pruned window (older than the cutoff); the consequence is
+    a silently omitted column that existed only in that window. Closing
+    it is sc-120945's separate post-GA dependency-closure retention work.
+    Similarly, if only a later re-insertion INSERT survives, the born-after
+    branch cannot distinguish it from the child's original birth.
+    """
+    for row in rows:
+        if row.transaction_id <= target_tx and (
+            row.end_transaction_id is None or row.end_transaction_id > target_tx
+        ):
+            return True
+    at_or_before: list[Any] = [row for row in rows if row.transaction_id <= target_tx]
+    if not at_or_before:
+        earliest: Any = min(rows, key=lambda row: row.transaction_id)
+        return earliest.operation_type == OPERATION_INSERT
+    last: Any = max(at_or_before, key=lambda row: row.transaction_id)
+    if last.operation_type == OPERATION_DELETE:
+        return True
+    return (
+        bool(foreign_closers) and (last.id, last.end_transaction_id) in foreign_closers
+    )
+
+
+def _verify_child_identities(entity: Any, target_tx: int) -> None:
+    """Refuse the restore when a snapshot child id now names another child.
+
+    The reverter applies, for each child id, the latest shadow row at or
+    before *target_tx* when that row belongs to *entity* and is not a DELETE
+    (Continuum's ``one_to_many_criteria``). It then writes that row's values
+    onto whatever live row carries the id. A freed id reused under another
+    dataset would be overwritten in place: that dataset silently loses its
+    child. Refuse, before any write, when a live row the reverter would
+    write belongs to a different parent, so both datasets stay unchanged.
+    An id that is no longer live anywhere is fine: the reverter recreates
+    it. A live row under this same parent is left to the reverter even when
+    its ``uuid`` differs: import rewrites a name-matched child's ``uuid`` in
+    place (``import_from_dict``), and a same-parent re-birth is rewritten to
+    the snapshot's values, which is what the restore asks for.
+
+    The live rows are read ``FOR UPDATE`` in the restore's transaction, so a
+    concurrent write to a checked child waits for this restore. A reuse of a
+    freed id that is not live at check time is serialized by the SQLite
+    write reservation; PostgreSQL sequences and MySQL 8's persistent
+    auto-increment never hand out a freed id.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlMetric, TableColumn
+
+    _reserve_sqlite_write_lock()
+
+    mismatched: list[str] = []
+    label: str
+    child_cls: type[Any]
+    row: sa.engine.Row[Any]
+    for label, child_cls in (("column", TableColumn), ("metric", SqlMetric)):
+        live: sa.Table = child_cls.__table__
+        expected: dict[int, UUID] = _child_identities_at(child_cls, entity, target_tx)
+        if not expected:
+            continue
+        for row in db.session.execute(
+            sa.select(live.c.id, live.c.uuid, live.c.table_id)
+            .where(live.c.id.in_(list(expected)))
+            .with_for_update()
+        ).all():
+            if row.table_id != entity.id:
+                mismatched.append(f"{label} id={row.id}")
+                logger.warning(
+                    "versioning: restore refused for %s id=%s at tx=%s — %s id=%s "
+                    "is now uuid=%s under table_id=%s, snapshot uuid=%s",
+                    type(entity).__name__,
+                    entity.id,
+                    target_tx,
+                    label,
+                    row.id,
+                    row.uuid,
+                    row.table_id,
+                    expected[row.id],
+                )
+    if mismatched:
+        raise RecycledChildIdentityError(
+            type(entity).__name__,
+            f"{len(mismatched)} column/metric id(s) ({', '.join(mismatched[:10])})",
+        )
+
+
+def _child_identities_at(
+    child_cls: type[Any], entity: Any, target_tx: int
+) -> dict[int, UUID]:
+    """``{child id: uuid}`` of the rows the reverter applies for *entity*.
+
+    Mirrors Continuum's ``one_to_many_criteria``: for every child id this
+    parent ever owned, the latest shadow row at or before *target_tx*
+    (across parents), kept when it belongs to *entity* and is not a DELETE.
+    """
+    shadow: sa.Table = version_class(child_cls).__table__
+    ever_owned_ids: sa.sql.Select = sa.select(shadow.c.id).where(
+        shadow.c.table_id == entity.id
+    )
+    latest_at_target: sa.sql.Subquery = (
+        sa.select(
+            shadow.c.id.label("id"),
+            sa.func.max(shadow.c.transaction_id).label("transaction_id"),
+        )
+        .where(shadow.c.transaction_id <= target_tx, shadow.c.id.in_(ever_owned_ids))
+        .group_by(shadow.c.id)
+        .subquery()
+    )
+    return {
+        row.id: row.uuid
+        for row in db.session.execute(
+            sa.select(shadow.c.id, shadow.c.uuid)
+            .join(
+                latest_at_target,
+                sa.and_(
+                    shadow.c.id == latest_at_target.c.id,
+                    shadow.c.transaction_id == latest_at_target.c.transaction_id,
+                ),
+            )
+            .where(
+                shadow.c.table_id == entity.id,
+                shadow.c.operation_type != OPERATION_DELETE,
+            )
+        ).all()
+    }
 
 
 @dataclass
@@ -83,6 +581,42 @@ class RestoreResult:
 
     entity: Any
     skipped_slice_ids: list[int] = field(default_factory=list)
+
+
+def _find_target_version(
+    model_cls: type, entity: Any, transaction_id: int
+) -> Any | None:
+    """Return *entity*'s version row at *transaction_id*, unless it is absent
+    or a DELETE row (never a valid restore target)."""
+    ver_cls: type[Any] = version_class(model_cls)
+    target_version: Any | None = (
+        db.session.query(ver_cls)
+        .filter(
+            # Pin to (id, uuid): a hard delete frees the integer id, so
+            # matching on it alone can resolve a *predecessor's* version row
+            # and restore its content over the current entity.
+            ver_cls.id == entity.id,
+            ver_cls.uuid == entity.uuid,
+            ver_cls.transaction_id == transaction_id,
+        )
+        .one_or_none()
+    )
+    if target_version is None or target_version.operation_type == OPERATION_DELETE:
+        return None
+    return target_version
+
+
+def lock_snapshot_datasource(model_cls: type, entity: Any, transaction_id: int) -> None:
+    """Lock a chart version's datasource before the caller locks the chart.
+
+    A datasource rename updates the datasource row and then its charts, so
+    the restore takes its locks in the same order to avoid a deadlock;
+    ``restore_version`` re-checks under the same lock. A missing datasource
+    is refused here already. No-op for other models and absent versions.
+    """
+    target_version: Any | None = _find_target_version(model_cls, entity, transaction_id)
+    if target_version is not None:
+        _lock_chart_datasource(model_cls, target_version)
 
 
 def restore_version(
@@ -131,20 +665,8 @@ def restore_version(
             "identified by entity_uuid"
         )
 
-    ver_cls = version_class(model_cls)
-    target_version = (
-        db.session.query(ver_cls)
-        .filter(
-            # Pin to (id, uuid): a hard delete frees the integer id, so
-            # matching on it alone can resolve a *predecessor's* version row
-            # and restore its content over the current entity.
-            ver_cls.id == entity.id,
-            ver_cls.uuid == entity.uuid,
-            ver_cls.transaction_id == transaction_id,
-        )
-        .one_or_none()
-    )
-    if target_version is None or target_version.operation_type == OPERATION_DELETE:
+    target_version: Any | None = _find_target_version(model_cls, entity, transaction_id)
+    if target_version is None:
         return None
 
     relations = _RESTORE_RELATIONS.get(model_cls.__name__)
@@ -161,20 +683,43 @@ def restore_version(
     # race, and so the change-records listener sees the complete state in
     # one ``after_flush`` pass. See ``single_flush_scope`` for the full
     # rationale.
+    # SC-120012 (fail closed): ``revert(relations=...)`` reconstructs
+    # children from the child shadow rows valid at the target transaction,
+    # and retention can have pruned exactly those rows while the parent's
+    # row survives — proceeding would persist an incomplete column/metric
+    # set. Verified BEFORE any write; refusal leaves the entity untouched.
+    # The verification also row-locks the reconstruction inputs in this
+    # same transaction, so a retention pass committing between the check
+    # and the reverter's re-reads cannot delete them out from under the
+    # restore (the pruner blocks on the locks until this commits).
+    # Refuse when a live child belongs to a different dataset; same-parent
+    # UUID rewrites are restored to the snapshot's values. Also verified
+    # before any write; refusal leaves both datasets untouched.
+    if model_cls.__name__ == "SqlaTable":
+        _verify_child_history_complete(entity, transaction_id)
+        _verify_child_identities(entity, transaction_id)
+    chart_datasource: Any | None = _lock_chart_datasource(model_cls, target_version)
+
     skipped_slice_ids: list[int] = []
+    changed_slice_ids: list[int] = []
+    # Read before the flush: after a failed flush, touching an expired
+    # attribute raises PendingRollbackError instead of the original error.
+    entity_id: int = entity.id
     try:
         with single_flush_scope(db.session):
             target_version.revert(relations=relations)
+            _sync_chart_perms(entity, chart_datasource)
             if model_cls.__name__ == "Dashboard":
-                skipped_slice_ids = _restore_dashboard_membership(
+                skipped_slice_ids, changed_slice_ids = _restore_dashboard_membership(
                     entity, transaction_id
                 )
             _stamp_audit_fields_for_restore(entity)
-    except Exception:
+    except Exception as ex:
+        _raise_for_chart_purge_race(ex, changed_slice_ids)
         logger.exception(
             "Continuum revert() failed for %s id=%s tx=%s relations=%s",
             model_cls.__name__,
-            entity.id,
+            entity_id,
             transaction_id,
             relations,
         )
@@ -191,7 +736,40 @@ def restore_version(
     return RestoreResult(entity=entity, skipped_slice_ids=skipped_slice_ids)
 
 
-def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[int]:
+#: ``dashboard_slices`` as a whole word, so ``dashboard_slices_version`` (the
+#: association's history table) does not match.
+_DASHBOARD_SLICES_PATTERN: re.Pattern[str] = re.compile(r"\bdashboard_slices\b")
+
+
+def _raise_for_chart_purge_race(ex: Exception, changed_slice_ids: list[int]) -> None:
+    """Raise :class:`ChartPurgedDuringRestoreError` when *ex* is the
+    restore's write to ``dashboard_slices`` failing because a chart it was
+    linking or unlinking has been purged.
+
+    Linking a purged chart fails the row's foreign key; unlinking one finds
+    its row already deleted by the purge, so the delete matches no row.
+    Only failures of the ``dashboard_slices`` write itself are candidates,
+    and the caller still confirms, once the transaction has rolled back,
+    that one of the charts is gone. Any other failure returns, so it is
+    logged and re-raised as before.
+    """
+    if not changed_slice_ids:
+        return
+    if isinstance(ex, IntegrityError):
+        candidate: bool = is_foreign_key_violation(ex) and bool(
+            _DASHBOARD_SLICES_PATTERN.search(ex.statement or "")
+        )
+    elif isinstance(ex, StaleDataError):
+        candidate = _DASHBOARD_SLICES_PATTERN.search(str(ex)) is not None
+    else:
+        candidate = False
+    if candidate:
+        raise ChartPurgedDuringRestoreError(changed_slice_ids) from ex
+
+
+def _restore_dashboard_membership(
+    dashboard: Any, transaction_id: int
+) -> tuple[list[int], list[int]]:
     """Reset *dashboard*'s chart membership to what it was at
     *transaction_id*, reattaching only charts that still exist.
 
@@ -207,37 +785,70 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     ``end_transaction_id`` the validity backfill does close (sc-119907).
 
     Returns the ids of snapshot members that no longer exist and were
-    skipped. Live charts' content is never touched — restoring a chart's
-    content is the chart's own restore endpoint's job.
+    skipped, and the ids of charts whose membership the restore changes:
+    those it attaches and those it unlinks. Live charts' content is never
+    touched — restoring a chart's content is the chart's own restore
+    endpoint's job.
+
+    An archived (soft-deleted) chart still exists: it stays a recoverable
+    member, so its membership follows the snapshot like any other chart's.
     """
     # pylint: disable=import-outside-toplevel
     # Local imports: models.slice transitively imports models.core, which needs
     # the initialised app — a module-top import would recreate the bootstrap
-    # cycle documented in changes/listener.py. charts_attached_to_dashboard is
+    # cycle documented in changes/listener.py. chart_attachment_windows_for_dashboard is
     # imported lazily for the same reason: it pulls the window helpers, whose
     # package transitively imports the versioning.changes listener graph, so a
     # module-top import here would re-enter that same bootstrap cycle.
+    from superset.models.dashboard import dashboard_slices
+    from superset.models.helpers import skip_visibility_filter
     from superset.models.slice import Slice
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
-    # charts_attached_to_dashboard owns the association-shadow read and the
+    # chart_attachment_windows_for_dashboard owns the association-shadow read and the
     # attach/detach window pairing (the single place that must never filter the
     # M2M shadow by end_transaction_id — Continuum never closes it). A slice was
     # a member at transaction_id iff one of its windows contains it (sc-119907).
     member_ids = sorted(
         {
             slice_id
-            for slice_id, window in charts_attached_to_dashboard(dashboard.id)
+            for slice_id, window in chart_attachment_windows_for_dashboard(dashboard.id)
             if window.contains(transaction_id)
         }
     )
-    if not member_ids:
-        dashboard.slices = []
-        return []
-
-    live_slices = db.session.query(Slice).filter(Slice.id.in_(member_ids)).all()
+    # Archived charts must be visible both to the lookup and to the
+    # assignment, which diffs against the current membership. A membership
+    # loaded through ``dashboard.slices`` misses archived members, even inside
+    # the bypass, because the dashboard's own load carried the filter, so the
+    # flush would keep or re-insert their rows. Read it from the association
+    # table instead and diff against that.
+    with skip_visibility_filter(db.session, Slice):
+        current_slices: list[Slice] = (
+            db.session.query(Slice)
+            .join(dashboard_slices, dashboard_slices.c.slice_id == Slice.id)
+            .filter(dashboard_slices.c.dashboard_id == dashboard.id)
+            .all()
+        )
+        live_slices: list[Slice] = (
+            db.session.query(Slice).filter(Slice.id.in_(member_ids)).all()
+            if member_ids
+            else []
+        )
+    # Installing the baseline drops any unflushed change to the collection.
+    # There is none here: the dashboard revert restores no relationships, and
+    # single_flush_scope holds back autoflush until the restore is done. Fail
+    # loudly rather than silently discard one if that ever changes.
+    if sa.inspect(dashboard).attrs.slices.history.has_changes():
+        raise RuntimeError(
+            "dashboard.slices has unflushed changes; the membership baseline "
+            "would drop them"
+        )
+    set_committed_value(dashboard, "slices", current_slices)
+    dashboard.slices = live_slices
     live_ids = {slc.id for slc in live_slices}
     skipped = sorted(set(member_ids) - live_ids)
+    current_ids: set[int] = {slc.id for slc in current_slices}
+    changed: list[int] = sorted(live_ids ^ current_ids)
     if skipped:
         logger.warning(
             "versioning: dashboard id=%s restore to tx=%s skipped %d "
@@ -247,8 +858,7 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
             len(skipped),
             skipped,
         )
-    dashboard.slices = live_slices
-    return skipped
+    return skipped, changed
 
 
 def _stamp_audit_fields_for_restore(entity: Any) -> None:

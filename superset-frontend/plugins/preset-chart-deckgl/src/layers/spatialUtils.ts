@@ -256,10 +256,11 @@ export function processSpatialData(
       }
     }
 
+    const extraProps: Record<string, unknown> = {};
     const spatialPoint: SpatialPoint = {
       position,
       weight,
-      extraProps: {},
+      extraProps,
     };
 
     Object.keys(record).forEach(key => {
@@ -271,6 +272,10 @@ export function processSpatialData(
         return;
       }
 
+      if (['position', 'weight', 'extraProps'].includes(key)) {
+        extraProps[key] = record[key];
+        return;
+      }
       spatialPoint[key] = record[key];
     });
 

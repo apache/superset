@@ -170,6 +170,15 @@ class DatasourceQuerySchema(Schema):
     QueryObject shape happens in ``superset.common.tabular_query``.
     """
 
+    semantic_selection_version: fields.String = fields.String(
+        allow_none=True,
+        load_default=None,
+        metadata={
+            "description": "Identity version from datasource metadata, after selecting "
+            "its current metric and dimension IDs. Never infer legacy IDs."
+        },
+    )
+
     # Raw, not String: Metric/Column are `AdhocMetric | str` and
     # `AdhocColumn | str`, so ad-hoc expressions are accepted for datasets
     # exactly as ChartDataQueryObjectSchema accepts them. Semantic views

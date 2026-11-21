@@ -34,6 +34,7 @@ import pkgutil
 from collections import defaultdict
 from importlib import import_module
 from importlib.metadata import entry_points
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, Optional
 
@@ -41,6 +42,7 @@ import sqlalchemy.dialects
 from flask import current_app as app
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.sql import compiler as sqla_compiler
 
 from superset import feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -129,6 +131,31 @@ backend_replacements = {
 }
 
 
+def _get_installed_native_driver(dialect: Any) -> Optional[str]:
+    """
+    Return the driver name of a native SQLAlchemy dialect if its DBAPI is installed.
+    """
+    if not (
+        issubclass(dialect, DefaultDialect)
+        and hasattr(dialect, "driver")
+        # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
+        # DBAPI import method, hence needs to be ignored to avoid a warning
+        and dialect.driver != "adodbapi"
+    ):
+        return None
+    try:
+        if hasattr(dialect, "import_dbapi"):
+            dialect.import_dbapi()
+        else:
+            dialect.dbapi()
+    except ModuleNotFoundError:
+        return None
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.warning("Unable to load dialect %s: %s", dialect, ex)
+        return None
+    return dialect.driver
+
+
 # pylint: disable=too-many-branches
 def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noqa: C901
     """
@@ -140,28 +167,53 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
     for attr in sqlalchemy.dialects.__all__:
         try:
             dialect = sqlalchemy.dialects.registry.load(attr)
-            if (
-                issubclass(dialect, DefaultDialect)
-                and hasattr(dialect, "driver")
-                # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
-                # DBAPI import method, hence needs to be ignored to avoid a warning
-                and dialect.driver != "adodbapi"
-            ):
-                try:
-                    if hasattr(dialect, "import_dbapi"):
-                        dialect.import_dbapi()
-                    else:
-                        dialect.dbapi()
-                except ModuleNotFoundError:
-                    continue
-                except Exception as ex:  # pylint: disable=broad-except
-                    logger.warning("Unable to load dialect %s: %s", dialect, ex)
-                    continue
-                drivers[attr].add(dialect.driver)
         except NoSuchModuleError:
             continue
+        if native_driver := _get_installed_native_driver(dialect):
+            drivers[attr].add(native_driver)
+
+    # ``registry.load(backend)`` only resolves SQLAlchemy's default dialect for a
+    # backend (e.g. pyodbc for mssql). Engine specs may recommend a different
+    # dialect bundled with SQLAlchemy (e.g. mssql+pymssql), so probe each spec's
+    # ``default_driver`` among the bundled dialects of its native backend too.
+    engine_specs = list(load_engine_specs())
+    for engine_spec in engine_specs:
+        engine = engine_spec.engine
+        default_driver = engine_spec.default_driver
+        if (
+            engine not in sqlalchemy.dialects.__all__
+            or not default_driver
+            or default_driver in drivers[engine]
+        ):
+            continue
+        module_name = f"sqlalchemy.dialects.{engine}.{default_driver}"
+        try:
+            if find_spec(module_name) is None:
+                continue
+            dialect = import_module(module_name).dialect
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.debug("Unable to load dialect %s: %s", module_name, ex)
+            continue
+        if native_driver := _get_installed_native_driver(dialect):
+            drivers[engine].add(native_driver)
 
     # installed 3rd-party dialects
+    #
+    # `ep.load()` runs arbitrary module-level code in the third-party package.
+    # Some dialects (e.g. sqlalchemy-monetdb) mutate SQLAlchemy's shared,
+    # process-global `compiler.OPERATORS` mapping in place on import instead
+    # of subclassing it, which would otherwise silently change SQL rendering
+    # (e.g. `!=` -> `<>`) for every dialect for the rest of the process, not
+    # just the misbehaving one. Others (e.g. kylinpy) rebind or extend the
+    # shared `IdentifierPreparer.reserved_words` set, which changes identifier
+    # quoting (e.g. `name` -> `"name"`) for every dialect that doesn't define
+    # its own reserved words. Snapshot/restore around each load so a buggy
+    # connector can't leak global compiler state into unrelated dialects just
+    # because it was enumerated here.
+    operators_snapshot = dict(sqla_compiler.OPERATORS)
+    preparer_cls = sqla_compiler.IdentifierPreparer
+    reserved_words = preparer_cls.reserved_words
+    reserved_words_snapshot = set(reserved_words)
     for ep in entry_points(group="sqlalchemy.dialects"):
         try:
             dialect = ep.load()
@@ -196,6 +248,23 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
             if isinstance(driver, bytes):
                 driver = driver.decode()
             drivers[backend].add(driver)
+        finally:
+            # Restore without ever emptying the shared objects, so SQL compiled
+            # concurrently on another thread never sees a transiently empty
+            # operator map or reserved-word set: drop only what the dialect
+            # added, then put back what it removed or changed.
+            operators = sqla_compiler.OPERATORS
+            if operators != operators_snapshot:
+                for key in operators.keys() - operators_snapshot.keys():
+                    operators.pop(key, None)
+                operators.update(operators_snapshot)
+            if preparer_cls.reserved_words is not reserved_words:
+                preparer_cls.reserved_words = reserved_words
+            if reserved_words != reserved_words_snapshot:
+                reserved_words.difference_update(
+                    reserved_words - reserved_words_snapshot
+                )
+                reserved_words.update(reserved_words_snapshot)
 
     dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
@@ -203,12 +272,14 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
     dbs_denylist_engines = dbs_denylist.keys()
     available_engines = {}
 
-    for engine_spec in load_engine_specs():
+    for engine_spec in engine_specs:
         driver = drivers[engine_spec.engine]
-        if (
-            engine_spec.engine in dbs_denylist_engines
-            and hasattr(engine_spec, "default_driver")
-            and engine_spec.default_driver in dbs_denylist[engine_spec.engine]
+        if engine_spec.engine in dbs_denylist_engines and any(
+            driver in dbs_denylist[engine_spec.engine]
+            for driver in (
+                engine_spec.default_driver,
+                *engine_spec.default_driver_aliases,
+            )
         ):
             # do not add denied db engine specs to available list
             continue

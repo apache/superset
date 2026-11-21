@@ -98,7 +98,6 @@ BASE_NGINX=80
 BASE_SUPERSET=8088
 BASE_NODE=9000
 BASE_WEBSOCKET=8080
-BASE_CYPRESS=8081
 BASE_DATABASE=5432
 BASE_REDIS=6379
 
@@ -108,7 +107,6 @@ find_and_claim_port $BASE_NGINX NGINX_PORT
 find_and_claim_port $BASE_SUPERSET SUPERSET_PORT
 find_and_claim_port $BASE_NODE NODE_PORT
 find_and_claim_port $BASE_WEBSOCKET WEBSOCKET_PORT
-find_and_claim_port $BASE_CYPRESS CYPRESS_PORT
 find_and_claim_port $BASE_DATABASE DATABASE_PORT
 find_and_claim_port $BASE_REDIS REDIS_PORT
 
@@ -144,7 +142,6 @@ export NGINX_PORT
 export SUPERSET_PORT
 export NODE_PORT
 export WEBSOCKET_PORT
-export CYPRESS_PORT
 export DATABASE_PORT
 export REDIS_PORT
 
@@ -188,7 +185,6 @@ case "${1:-}" in
         echo "export SUPERSET_PORT=$SUPERSET_PORT"
         echo "export NODE_PORT=$NODE_PORT"
         echo "export WEBSOCKET_PORT=$WEBSOCKET_PORT"
-        echo "export CYPRESS_PORT=$CYPRESS_PORT"
         echo "export DATABASE_PORT=$DATABASE_PORT"
         echo "export REDIS_PORT=$REDIS_PORT"
         exit 0

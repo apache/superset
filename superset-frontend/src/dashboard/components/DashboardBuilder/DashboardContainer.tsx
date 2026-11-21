@@ -150,6 +150,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     state => state.dashboardInfo,
   );
   const filterItems = useSelector(selectFilterConfiguration);
+  const nativeFilters = useSelector<
+    RootState,
+    RootState['nativeFilters']['filters']
+  >(state => state.nativeFilters.filters);
   const chartCustomizations = useSelector<
     RootState,
     ChartCustomizationConfiguration
@@ -164,8 +168,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   const renderedChartIds = useRenderedChartIds();
 
-  const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
-    useState(false);
+  const [colorInitializedDashboardId, setColorInitializedDashboardId] =
+    useState<number | null>(null);
+  const dashboardLabelsColorInitiated =
+    colorInitializedDashboardId === dashboardInfo?.id;
   const prevRenderedChartIds = useRef<number[]>([]);
   const prevTabIndexRef = useRef<number>();
   const prevFilterScopesRef = useRef<FilterScopeData[]>([]);
@@ -218,11 +224,27 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       tabsInScope: scope.tabsInScope,
     }));
 
-    if (!isEqual(scopes, prevFilterScopesRef.current)) {
+    // Hydration can replace the store's scopes after the last calculation.
+    // The reducer keeps the last scope per filter id.
+    const latestScopes = new Map(
+      scopes.map(scope => [scope.filterId, scope] as const),
+    );
+    const storeIsStale = Array.from(latestScopes.values()).some(scope => {
+      const stored = nativeFilters[scope.filterId];
+      return (
+        stored &&
+        stored.type !== ChartCustomizationType.ChartCustomization &&
+        stored.type !== ChartCustomizationType.Divider &&
+        (!isEqual(stored.chartsInScope, scope.chartsInScope) ||
+          !isEqual(stored.tabsInScope, scope.tabsInScope))
+      );
+    });
+
+    if (storeIsStale || !isEqual(scopes, prevFilterScopesRef.current)) {
       prevFilterScopesRef.current = scopes;
       dispatch(setInScopeStatusOfFilters(scopes));
     }
-  }, [chartIds, filterItems, chartLayoutItemMap, dispatch]);
+  }, [chartIds, filterItems, nativeFilters, chartLayoutItemMap, dispatch]);
 
   useEffect(() => {
     if (chartCustomizations.length === 0) {
@@ -246,11 +268,30 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       tabsInScope: scope.tabsInScope,
     }));
 
-    if (!isEqual(scopes, prevCustomizationScopesRef.current)) {
+    const latestScopes = new Map(
+      scopes.map(scope => [scope.customizationId, scope] as const),
+    );
+    const storeIsStale = Array.from(latestScopes.values()).some(scope => {
+      const stored = nativeFilters[scope.customizationId];
+      return (
+        (stored?.type === ChartCustomizationType.ChartCustomization ||
+          stored?.type === ChartCustomizationType.Divider) &&
+        (!isEqual(stored.chartsInScope, scope.chartsInScope) ||
+          !isEqual(stored.tabsInScope, scope.tabsInScope))
+      );
+    });
+
+    if (storeIsStale || !isEqual(scopes, prevCustomizationScopesRef.current)) {
       prevCustomizationScopesRef.current = scopes;
       dispatch(setInScopeStatusOfCustomizations(scopes));
     }
-  }, [chartIds, chartCustomizations, chartLayoutItemMap, dispatch]);
+  }, [
+    chartIds,
+    chartCustomizations,
+    nativeFilters,
+    chartLayoutItemMap,
+    dispatch,
+  ]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
@@ -304,7 +345,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     if (dashboardInfo?.id && !dashboardLabelsColorInitiated) {
       dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
       // apply labels color as dictated by stored metadata (if any)
-      setDashboardLabelsColorInitiated(true);
+      setColorInitializedDashboardId(dashboardInfo.id);
     }
 
     return () => {
@@ -315,12 +356,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [dashboardInfo?.id, dispatch]);
 
   useEffect(() => {
-    // 'beforeunload' event interferes with Cypress data cleanup process.
-    // This code prevents 'beforeunload' from triggering in Cypress tests,
-    // as it is not required for end-to-end testing scenarios.
-    if (!(window as any).Cypress) {
-      window.addEventListener('beforeunload', onBeforeUnload);
-    }
+    window.addEventListener('beforeunload', onBeforeUnload);
 
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
@@ -379,7 +415,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   return (
     <div className="grid-container" data-test="grid-container" ref={parentRef}>
-      {renderParentSizeChildren({ width })}
+      {/* Defer the grid until hydration and color initialization complete,
+          before cached charts consume their color scales on first render. */}
+      {dashboardLabelsColorInitiated && renderParentSizeChildren({ width })}
     </div>
   );
 };

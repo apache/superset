@@ -25,7 +25,13 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import tinycolor from 'tinycolor2';
-import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
+import {
+  BoundUnit,
+  ColorSchemeEnum,
+  Comparator,
+  ObjectFormattingEnum,
+  PercentDenominator,
+} from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
@@ -75,22 +81,22 @@ const getBoundInputs = () => ({
 // the open dropdown via `document.querySelector('.ant-select-dropdown-list')`
 // -- the first match anywhere in the document -- which is safe only when a
 // test opens a single Select. This `Select` (from `@superset-ui/core/components`)
-// renders its popup through `getPopupContainer={trigger => trigger.parentNode}`
-// (inline, as a sibling of the trigger, rather than portaled to <body>), and
-// antd never removes a closed dropdown's list node afterward. Because "Bound
-// unit" sits earlier in the DOM than "Percent denominator", opening "Bound
-// unit" once leaves a stale, closed dropdown list that permanently wins any
-// *unscoped* "first match" query -- a later interaction with "Percent
-// denominator" via the shared helper would silently re-read "Bound unit"'s
-// stale list and time out looking for an option that was never there.
-// Scope explicitly to the target Select's own popup container (its trigger's
-// parent) to sidestep that.
+// portals its popup to <body>, and antd never removes a closed dropdown's list
+// node afterward, so a stale closed list from an earlier Select would win any
+// *unscoped* "first match" query. Scope explicitly to the target Select's own
+// open popup.
 const selectFieldOption = async (option: string, selectName: string) => {
   const trigger = await screen.findByRole('combobox', { name: selectName });
-  const container = trigger.closest('.ant-select')!
-    .parentElement as HTMLElement;
   await userEvent.click(trigger);
-  const item = await within(container).findByText(option);
+  // closed dropdowns keep a hidden node, so only an open one is a match
+  const dropdown = await waitFor(() => {
+    const open = Array.from(
+      document.querySelectorAll<HTMLElement>('.ant-select-dropdown'),
+    ).filter(el => !el.classList.contains('ant-select-dropdown-hidden'));
+    expect(open.length).toBeGreaterThan(0);
+    return open[open.length - 1];
+  });
+  const item = await within(dropdown).findByText(option);
   await userEvent.click(item);
 };
 
@@ -172,21 +178,13 @@ test('renders None for operator when Green for increase is selected', async () =
   });
 
   const presets = document.querySelectorAll('.ant-color-picker-presets-color');
-  const greenPreset = Array.from(presets).find(preset => {
-    const inner = preset.querySelector('.ant-color-picker-color-block-inner');
-    return (
-      inner && inner.getAttribute('style')?.includes('rgba(0, 150, 0, 0.2)')
-    );
-  });
+  // The extra "Colors" group (Green, Red) is last; Green renders the live
+  // theme success color rather than a fixed rgba, so locate it by position.
+  const greenPreset = presets[presets.length - 2];
 
   expect(greenPreset).toBeDefined();
   expect(greenPreset).toBeInTheDocument();
   const safeGreenPreset = greenPreset as HTMLElement;
-
-  const innerColorBlock = safeGreenPreset.querySelector(
-    '.ant-color-picker-color-block-inner',
-  );
-  expect(innerColorBlock).toHaveStyle({ background: 'rgba(0, 150, 0, 0.2)' });
 
   expect(safeGreenPreset).toBeInTheDocument();
   await userEvent.click(safeGreenPreset);
@@ -430,6 +428,80 @@ test('should not display tooltip icon when extraColorChoices is empty', () => {
   expect(tooltipIcon).not.toBeInTheDocument();
 });
 
+test('hides formatting column and formatting object when metricOnly is true', () => {
+  const mockColumns = [
+    { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  ];
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={mockColumns}
+      allColumns={mockColumns}
+      metricOnly
+    />,
+  );
+
+  expect(screen.getByLabelText('Column')).toBeInTheDocument();
+  expect(screen.getByLabelText('Color scheme')).toBeInTheDocument();
+  expect(screen.getByLabelText('Operator')).toBeInTheDocument();
+  expect(screen.queryByText('Use gradient')).toBeInTheDocument();
+  expect(screen.queryByText('Formatting column')).not.toBeInTheDocument();
+  expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
+});
+
+test('shows formatting column and formatting object when metricOnly is false', () => {
+  const mockColumns = [
+    { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  ];
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={mockColumns}
+      allColumns={mockColumns}
+      metricOnly={false}
+    />,
+  );
+
+  expect(screen.getByLabelText('Column')).toBeInTheDocument();
+  expect(screen.getByLabelText('Color scheme')).toBeInTheDocument();
+  expect(screen.getByLabelText('Operator')).toBeInTheDocument();
+  expect(screen.queryByText('Use gradient')).toBeInTheDocument();
+  expect(screen.queryByText('Formatting column')).toBeInTheDocument();
+  expect(screen.queryByText('Formatting object')).toBeInTheDocument();
+});
+
+test('omits stale formatting targets on submit when metricOnly is true', async () => {
+  mockOnChange.mockClear();
+  const mockColumns = [
+    { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  ];
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={mockColumns}
+      allColumns={mockColumns}
+      metricOnly
+      config={{
+        column: 'sales',
+        columnFormatting: 'stale_column',
+        objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+      }}
+    />,
+  );
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(mockOnChange).toHaveBeenCalled();
+  });
+
+  const submitted = mockOnChange.mock.calls[0][0];
+  expect(submitted).not.toHaveProperty('columnFormatting');
+  expect(submitted).not.toHaveProperty('objectFormatting');
+});
 test('shows min/max bound fields for the default None operator on a numeric column', () => {
   render(
     <FormattingPopoverContent
@@ -1133,4 +1205,127 @@ test('disables the % of column option when serverPagination is true', async () =
   });
 
   expect(onChange.mock.calls[0][0].boundUnit).toBe('value');
+});
+
+test('keeps formatting values when the formatting block remounts', async () => {
+  const { rerender } = render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  const objectSelect = screen.getByLabelText('Select object name');
+  fireEvent.change(objectSelect, { target: { value: 'TEXT_COLOR' } });
+  fireEvent.click(await screen.findByTitle('text color'));
+
+  const columnSelect = screen.getByLabelText('Select column name');
+  fireEvent.change(columnSelect, { target: { value: 'column2' } });
+  fireEvent.click(await screen.findByTitle('Column 2'));
+
+  // Unmount the formatting block, then mount it again
+  rerender(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+  expect(screen.queryByLabelText('Select object name')).not.toBeInTheDocument();
+  rerender(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  // The user's selections survive the remount instead of resetting to the
+  // initialValue
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Select object name')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('text color');
+  });
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Select column name')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('Column 2');
+  });
+});
+
+test('keeps the gradient selection when the gradient row remounts', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  const gradientCheckbox = findUseGradientCheckbox();
+  fireEvent.click(gradientCheckbox);
+  expect(gradientCheckbox).not.toBeChecked();
+
+  const objectSelect = screen.getByLabelText('Select object name');
+  // Switch away from background color to unmount the gradient row
+  fireEvent.change(objectSelect, { target: { value: 'TEXT_COLOR' } });
+  fireEvent.click(await screen.findByTitle('text color'));
+  await waitFor(() => {
+    expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
+  });
+
+  // Switch back to remount the gradient row
+  fireEvent.change(objectSelect, { target: { value: 'BACKGROUND_COLOR' } });
+  fireEvent.click(await screen.findByTitle('background color'));
+
+  await waitFor(() => {
+    expect(findUseGradientCheckbox()).not.toBeChecked();
+  });
+});
+
+test('opens a saved rule with the stored operator, target value, bound unit, and percent denominator', async () => {
+  render(
+    <FormattingPopoverContent
+      config={{
+        column: 'column1',
+        operator: Comparator.GreaterThan,
+        targetValue: 5,
+        boundUnit: BoundUnit.Percent,
+        percentDenominator: PercentDenominator.Sum,
+      }}
+      columns={columns}
+      allColumns={columns}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Operator')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('>');
+  });
+  expect(screen.getByLabelText('Target value')).toHaveValue('5');
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Bound unit')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('% of column');
+  });
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Percent denominator')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('Column sum');
+  });
 });

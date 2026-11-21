@@ -29,7 +29,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import security_manager
 from superset.commands.dashboard.importers.v1.utils import import_dashboard
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError, ImportFailedError
 from superset.commands.importers.v1.utils import import_tag
 from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
@@ -119,7 +119,7 @@ def test_import_dashboard_without_permission(
         security_manager, "can_access", return_value=False
     )
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_dashboard(dashboard_config)
     assert (
         str(excinfo.value)
@@ -159,7 +159,7 @@ def test_import_existing_dashboard_without_access_permission(
     )
 
     with override_user(admin):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -200,7 +200,7 @@ def test_import_existing_dashboard_without_editor_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -471,7 +471,7 @@ def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_editor(
     )
 
     with override_user(non_editor):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)
 
@@ -501,7 +501,7 @@ def test_import_soft_deleted_dashboard_raises_when_caller_lacks_can_write(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_dashboard(dashboard_config, overwrite=False)
     assert "can_write" in str(excinfo.value)
 
@@ -703,3 +703,57 @@ def test_import_soft_deleted_dashboard_slug_collision_raises(
     # Postgres / MySQL 8.0.13+) and leave the row half-restored in the
     # session. A failed import must leave the row still soft-deleted.
     assert existing.deleted_at is not None
+
+
+def test_import_slug_collision_requires_overwrite_permission(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    A config carrying a fresh UUID but a slug that already belongs to an
+    active dashboard is matched by slug in ``import_from_dict``. That path must
+    go through the same overwrite permission gate as a UUID match, so a caller
+    who is neither an editor of the existing dashboard nor an admin cannot
+    update it by reusing its slug.
+    """
+    engine = session.get_bind()
+    Dashboard.metadata.create_all(engine)  # pylint: disable=no-member
+
+    existing = Dashboard(
+        id=300,
+        dashboard_title="Existing dash",
+        slug="shared-slug",
+        slices=[],
+        published=True,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    )
+    session.add(existing)
+    session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access_dashboard = mocker.patch.object(
+        security_manager, "can_access_dashboard", return_value=True
+    )
+
+    config = copy.deepcopy(dashboard_config)
+    config["uuid"] = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    config["slug"] = "shared-slug"
+
+    user = User(
+        first_name="Gina",
+        last_name="Amma",
+        email="gamma@example.org",
+        username="gamma",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ForbiddenError) as excinfo:
+            import_dashboard(config, overwrite=True)
+        assert (
+            str(excinfo.value)
+            == "A dashboard already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+        )
+
+    mock_can_access_dashboard.assert_called_once_with(existing)
+    session.rollback()
