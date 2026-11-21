@@ -1808,6 +1808,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TaskManager.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
+        from superset.integrations.teams.api import register_teams_api
+
+        register_teams_api(self.superset_app)
         # Register custom blueprints from config
         for bp in self.config["BLUEPRINTS"]:
             try:
