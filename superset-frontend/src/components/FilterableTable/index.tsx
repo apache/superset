@@ -34,6 +34,7 @@ export const FilterableTable = ({
   filterText = '',
   expandedColumns = [],
   allowHTML = false,
+  expandLongText = false,
   striped,
   themeOverrides,
 }: FilterableTableProps) => {
@@ -79,10 +80,11 @@ export const FilterableTable = ({
             cellData: value,
             columnKey: colDef.field,
             allowHTML,
+            expandLongText,
             getCellContent,
           }),
       })),
-    [orderedColumnKeys, allowHTML, getCellContent, comparator],
+    [orderedColumnKeys, allowHTML, expandLongText, getCellContent, comparator],
   );
 
   const keywordFilter = useCallback(

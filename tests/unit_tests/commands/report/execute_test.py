@@ -6646,3 +6646,23 @@ def test_failure_notification_url_falls_back_when_permalink_fails(
     url = state._get_failure_notification_url()
 
     assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+
+
+@pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
+def test_report_preserves_saved_semantic_chart_type_for_validation(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Old report contexts still identify the semantic visualization being exported."""
+    report_state: BaseReportState = BaseReportState(
+        create_report_schedule(mocker), "January 1, 2021", "test-execution"
+    )
+    report_state._report_schedule.chart.datasource_type = datasource_type
+    report_state._report_schedule.chart.viz_type = "histogram_v2"
+    report_state._report_schedule.chart.query_context = json.dumps({"queries": [{}]})
+    payload: dict[str, Any] = report_state._get_chart_data_request_payload(
+        ChartDataResultFormat.CSV
+    )
+    if datasource_type == "semantic_view":
+        assert payload["form_data"]["viz_type"] == "histogram_v2"
+    else:
+        assert "form_data" not in payload
