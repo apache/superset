@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-20 08:54+1100\n"
+"POT-Creation-Date: 2026-11-21 14:24+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5264,6 +5264,9 @@ msgstr ""
 msgid "Default schema (database) to connect to"
 msgstr ""
 
+msgid "Default time filter"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 
@@ -8287,6 +8290,10 @@ msgid "Invalid date/timestamp format"
 msgstr ""
 
 #, python-format
+msgid "Invalid default time filter: %(range)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid domain(s): %s"
 msgstr ""
 
@@ -10462,6 +10469,12 @@ msgstr ""
 msgid "Only `SELECT` statements are allowed"
 msgstr ""
 
+msgid "Only admins can delete semantic views."
+msgstr ""
+
+msgid "Only admins can edit semantic views."
+msgstr ""
+
 msgid "Only admins can set this field to a user other than themselves"
 msgstr ""
 
@@ -10503,12 +10516,6 @@ msgstr ""
 
 #, python-format
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
-msgstr ""
-
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -14622,10 +14629,7 @@ msgid ""
 "          value distribution and transformation."
 msgstr ""
 
-msgid ""
-"The Snowflake connection could not be established. Check the account "
-"identifier, connection address, network access, and authentication "
-"settings, then retry the import."
+msgid "The Snowflake connection could not be established. Check the account identifier, connection address, network access, and authentication settings, then retry the import."
 msgstr ""
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
@@ -14661,10 +14665,7 @@ msgstr ""
 msgid "The annotation has been updated"
 msgstr ""
 
-msgid ""
-"The asset configuration is invalid. Review this file's fields and "
-"references. Re-export the assets from a compatible Superset version, then"
-" retry with the new file."
+msgid "The asset configuration is invalid. Review this file's fields and references. Re-export the assets from a compatible Superset version, then retry with the new file."
 msgstr ""
 
 msgid "The background color of the charts."
@@ -16069,9 +16070,7 @@ msgstr ""
 msgid "This field is used as a unique identifier to attach the metric to charts. It is also used as the alias in the SQL query."
 msgstr ""
 
-msgid ""
-"This file is not a supported dashboard export. Re-export the dashboard "
-"from a compatible Superset version, then retry with the new ZIP file."
+msgid "This file is not a supported dashboard export. Re-export the dashboard from a compatible Superset version, then retry with the new ZIP file."
 msgstr ""
 
 msgid "This filter already exist on the report"
@@ -16422,6 +16421,9 @@ msgid "Time lag"
 msgstr ""
 
 msgid "Time range"
+msgstr ""
+
+msgid "Time range of the time filters Explore adds for this dataset, such as on new charts."
 msgstr ""
 
 msgid "Time ratio"
@@ -17200,6 +17202,9 @@ msgid "Use example.com for an exact domain, *.example.com for subdomains, or pre
 msgstr ""
 
 msgid "Use gradient"
+msgstr ""
+
+msgid "Use instance default"
 msgstr ""
 
 msgid "Use metric definition"

@@ -390,7 +390,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     togglePopover(true);
   }, [togglePopover]);
 
-  const defaultTimeFilter = useDefaultTimeFilter();
+  const defaultTimeFilter = useDefaultTimeFilter(props.datasource);
   const adhocFilter = useMemo(() => {
     if (isSavedMetric(droppedItem)) {
       return new AdhocFilter({
@@ -422,7 +422,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       config.comparator = defaultTimeFilter;
     }
     return new AdhocFilter(config);
-  }, [droppedItem]);
+  }, [droppedItem, defaultTimeFilter]);
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {

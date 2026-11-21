@@ -56,7 +56,11 @@ from superset.connectors.sqla.partition_mapping import (
     validate_partition_mapping,
 )
 from superset.daos.dataset import DatasetDAO
-from superset.datasets.schemas import FolderSchema
+from superset.datasets.schemas import (
+    FolderSchema,
+    get_default_time_filter,
+    validate_default_time_filter,
+)
 from superset.exceptions import (
     QueryClauseValidationException,
     SupersetParseError,
@@ -166,6 +170,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         self._validate_dataset_source(exceptions)
         self._validate_semantics(exceptions)
+        self._validate_default_time_filter(exceptions)
         if (
             self._delete_metric_ids is not None
             and not DatasetDAO.validate_metrics_exist(
@@ -706,6 +711,21 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     field_name="fetch_values_predicate",
                 )
             )
+
+    def _validate_default_time_filter(self, exceptions: list[ValidationError]) -> None:
+        """
+        Validate a new or changed ``extra.default_time_filter``. An unchanged value
+        is not checked again, so it never blocks an unrelated edit.
+        """
+        if "extra" not in self._properties:
+            return
+        model = cast(SqlaTable, self._model)
+        time_range = get_default_time_filter(self._properties["extra"])
+        if time_range and time_range != get_default_time_filter(model.extra):
+            try:
+                validate_default_time_filter(time_range)
+            except ValidationError as ex:
+                exceptions.append(ex)
 
     @staticmethod
     def _get_duplicates(data: list[dict[str, Any]], key: str) -> list[str]:

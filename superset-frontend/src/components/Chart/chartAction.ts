@@ -41,6 +41,7 @@ import {
   buildV1ChartDataPayload,
   getQuerySettings,
   getChartDataUri,
+  getInitialTimeRange,
 } from 'src/explore/exploreUtils';
 import {
   addDangerToast,
@@ -425,6 +426,11 @@ export const dynamicPluginControlsReady =
     const exploreState = {
       ...state.explore,
       datasource: state.explore.datasource || { type: 'table' },
+      initialTimeRange: getInitialTimeRange(
+        !state.explore.slice,
+        state.explore.form_data,
+        state.common?.conf?.DEFAULT_TIME_FILTER as string | undefined,
+      ),
     };
     const controlsState = getControlsState(
       exploreState,

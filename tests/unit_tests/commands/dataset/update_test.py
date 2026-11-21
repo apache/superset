@@ -44,6 +44,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
+from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
 
@@ -2132,3 +2133,28 @@ def test_a_self_mapping_is_still_rejected_alongside_a_column_payload(
     command._validate_partition_mapping(exceptions)
 
     assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@pytest.mark.parametrize(
+    "stored, requested, field_names",
+    [
+        (None, "Last week", []),
+        (None, "Last dya", ["extra"]),
+        ("Last week", "Last dya", ["extra"]),
+        # An unchanged value is not checked again.
+        ("Last dya", "Last dya", []),
+    ],
+)
+def test_update_dataset_validates_a_new_default_time_filter(
+    stored: str | None, requested: str, field_names: list[str]
+) -> None:
+    """Only a new or changed default time filter is validated."""
+    command = UpdateDatasetCommand(
+        1, {"extra": json.dumps({"default_time_filter": requested})}
+    )
+    command._model = MagicMock(extra=json.dumps({"default_time_filter": stored}))
+
+    exceptions: list[ValidationError] = []
+    command._validate_default_time_filter(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == field_names
