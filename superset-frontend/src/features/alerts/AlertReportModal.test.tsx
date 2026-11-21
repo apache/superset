@@ -4761,3 +4761,62 @@ test('dashboard picker marks drafts without marking published dashboards', async
     screen.queryByText('Published example (Draft)'),
   ).not.toBeInTheDocument();
 });
+
+test('identifies a missing alert name on the name input', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
+    useRedux: true,
+  });
+  const nameInput = screen.getByPlaceholderText(/enter alert name/i);
+  const error = await screen.findByText('Alert name is required');
+  expect(error).toHaveAttribute('role', 'alert');
+  expect(nameInput).toHaveAttribute('aria-invalid', 'true');
+  expect(nameInput).toHaveAttribute('aria-describedby', error.id);
+  expect(
+    screen.queryByText('At least one editor is required'),
+  ).not.toBeInTheDocument();
+
+  await userEvent.type(nameInput, 'My alert');
+  await waitFor(() => {
+    expect(
+      screen.queryByText('Alert name is required'),
+    ).not.toBeInTheDocument();
+  });
+  expect(nameInput).not.toHaveAttribute('aria-invalid');
+});
+
+test('does not identify errors on a valid alert being edited', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  await waitFor(() => {
+    expect(
+      screen.queryAllByRole('img', { name: /check-circle/i }),
+    ).toHaveLength(5);
+  });
+  expect(screen.queryByText('Alert name is required')).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('At least one editor is required'),
+  ).not.toBeInTheDocument();
+  expect(screen.getByPlaceholderText(/enter alert name/i)).not.toHaveAttribute(
+    'aria-invalid',
+  );
+});
+
+test('identifies missing editors on the editors select', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  await waitFor(() => {
+    expect(
+      screen.queryAllByRole('img', { name: /check-circle/i }),
+    ).toHaveLength(5);
+  });
+
+  await removeFirstAsyncSelectValue('editors-select');
+
+  const error = await screen.findByText('At least one editor is required');
+  expect(error).toHaveAttribute('role', 'alert');
+  const editors = screen.getByRole('combobox', { name: 'Editors' });
+  expect(editors).toHaveAttribute('aria-invalid', 'true');
+  expect(editors).toHaveAttribute('aria-describedby', error.id);
+});

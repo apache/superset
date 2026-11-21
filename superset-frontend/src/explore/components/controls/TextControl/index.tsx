@@ -21,6 +21,7 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
+  useId,
   useRef,
   ChangeEvent,
 } from 'react';
@@ -76,6 +77,9 @@ function TextControl<T extends InputValueType = InputValueType>({
   // `onChange`.
   const [pendingValue, setPendingValue] = useState<string | null>(null);
   const deferredPendingValue = useDeferredValue(pendingValue);
+  const errorId = useId();
+  // ControlHeader renders the error element only when it renders a label.
+  const hasErrors = !!label && !!validationErrors?.length;
 
   const handleChange = useCallback(
     (inputValue: string) => {
@@ -201,6 +205,7 @@ function TextControl<T extends InputValueType = InputValueType>({
         renderTrigger={renderTrigger}
         validationErrors={validationErrors}
         hovered={hovered}
+        errorId={errorId}
       />
       <Input
         type="text"
@@ -212,6 +217,8 @@ function TextControl<T extends InputValueType = InputValueType>({
         value={displayValue}
         disabled={disabled}
         aria-label={ariaLabel ?? label}
+        aria-invalid={hasErrors || undefined}
+        aria-describedby={hasErrors ? errorId : undefined}
       />
     </div>
   );

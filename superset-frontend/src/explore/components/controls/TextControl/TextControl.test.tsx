@@ -307,3 +307,30 @@ test('should drop a pending edit on unmount', () => {
     jest.useRealTimers();
   }
 });
+
+test('identifies validation errors on the input for assistive technology', () => {
+  render(
+    <TextControl
+      name="x_axis_label"
+      label="X axis label"
+      validationErrors={['cannot be empty']}
+    />,
+  );
+  const input = screen.getByRole('textbox');
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+  const errorId = input.getAttribute('aria-describedby');
+  expect(errorId).toBeTruthy();
+  const error = document.getElementById(errorId as string);
+  expect(error).toHaveTextContent('cannot be empty');
+  expect(error).toHaveAttribute('role', 'alert');
+  expect(screen.getAllByRole('alert')).toHaveLength(1);
+  expect(screen.getAllByText('cannot be empty')).toHaveLength(1);
+});
+
+test('does not mark the input invalid without validation errors', () => {
+  render(<TextControl name="x_axis_label" label="X axis label" />);
+  const input = screen.getByRole('textbox');
+  expect(input).not.toHaveAttribute('aria-invalid');
+  expect(input).not.toHaveAttribute('aria-describedby');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});

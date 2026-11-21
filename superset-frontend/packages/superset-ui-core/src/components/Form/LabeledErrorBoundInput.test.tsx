@@ -90,3 +90,44 @@ describe('LabeledErrorBoundInput', () => {
     expect(await screen.findByTestId('icon-eye')).toBeVisible();
   });
 });
+
+const errorProps: LabeledErrorBoundInputProps = {
+  id: 'host',
+  label: 'Host',
+  name: 'host',
+  validationMethods: { onBlur: () => {} },
+  errorMessage: 'Host is required',
+  helpText: 'Help text',
+  value: '',
+};
+
+const expectErrorIdentified = (input: HTMLElement) => {
+  const alert = screen.getByRole('alert');
+  expect(alert).toHaveTextContent('Host is required');
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+  expect(input).toHaveAttribute('aria-describedby', alert.id);
+};
+
+test('identifies the error on a text input', () => {
+  render(<LabeledErrorBoundInput {...errorProps} />);
+  expectErrorIdentified(screen.getByRole('textbox'));
+});
+
+test('identifies the error on a password input', () => {
+  render(<LabeledErrorBoundInput {...errorProps} visibilityToggle />);
+  expectErrorIdentified(screen.getByRole('textbox'));
+});
+
+test('identifies the error on a textarea', () => {
+  render(<LabeledErrorBoundInput {...errorProps} renderAsTextArea />);
+  expectErrorIdentified(screen.getByRole('textbox'));
+});
+
+test('does not mark the input invalid without an error', () => {
+  render(<LabeledErrorBoundInput {...errorProps} errorMessage="" />);
+  const input = screen.getByRole('textbox');
+  expect(input).not.toHaveAttribute('aria-invalid');
+  expect(input).not.toHaveAttribute('aria-describedby');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.getByText('Help text')).toBeInTheDocument();
+});

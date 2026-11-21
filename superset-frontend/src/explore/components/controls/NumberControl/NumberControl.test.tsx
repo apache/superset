@@ -110,3 +110,31 @@ test('updates local value when prop changes', () => {
   rerender(<NumberControl {...props} value={8} />);
   expect(input).toHaveValue('8');
 });
+
+test('identifies validation errors on the input for assistive technology', () => {
+  render(
+    <NumberControl
+      {...mockedProps}
+      name="row_limit"
+      label="Row limit"
+      validationErrors={['must be a number']}
+    />,
+  );
+  const input = screen.getByRole('spinbutton');
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+  const errorId = input.getAttribute('aria-describedby');
+  expect(errorId).toBeTruthy();
+  const error = document.getElementById(errorId as string);
+  expect(error).toHaveTextContent('must be a number');
+  expect(error).toHaveAttribute('role', 'alert');
+  expect(screen.getAllByRole('alert')).toHaveLength(1);
+  expect(screen.getAllByText('must be a number')).toHaveLength(1);
+});
+
+test('does not mark the input invalid without validation errors', () => {
+  render(<NumberControl {...mockedProps} name="row_limit" label="Row limit" />);
+  const input = screen.getByRole('spinbutton');
+  expect(input).not.toHaveAttribute('aria-invalid');
+  expect(input).not.toHaveAttribute('aria-describedby');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});

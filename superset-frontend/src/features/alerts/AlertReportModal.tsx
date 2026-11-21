@@ -2497,6 +2497,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <ModalFormField
                     label={isReport ? t('Report name') : t('Alert name')}
                     required
+                    error={
+                      currentAlert &&
+                      validationStatus[Sections.General].errors.includes(
+                        TRANSLATIONS.NAME_ERROR_TEXT,
+                      )
+                        ? isReport
+                          ? t('Report name is required')
+                          : t('Alert name is required')
+                        : undefined
+                    }
                   >
                     <Input
                       name="name"
@@ -2509,7 +2519,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       onChange={onInputChange}
                     />
                   </ModalFormField>
-                  <ModalFormField label={t('Editors')} required>
+                  <ModalFormField
+                    label={t('Editors')}
+                    required
+                    error={
+                      currentAlert &&
+                      validationStatus[Sections.General].errors.includes(
+                        TRANSLATIONS.EDITORS_ERROR_TEXT,
+                      )
+                        ? t('At least one editor is required')
+                        : undefined
+                    }
+                  >
                     <SubjectPicker
                       relatedUrl="/api/v1/report/related/editors"
                       ariaLabel={t('Editors')}

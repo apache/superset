@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { Input } from '@superset-ui/core/components';
+import { Form, FormItem, Input } from '@superset-ui/core/components';
 import { ModalFormField } from './ModalFormField';
 
 test('renders field with label and input', () => {
@@ -133,4 +133,51 @@ test('renders both helper text and error message', () => {
 
   expect(screen.getByText('Helper text')).toBeInTheDocument();
   expect(screen.getByText('Error message')).toBeInTheDocument();
+});
+
+test('identifies the error and associates it with a direct child input', () => {
+  render(
+    <ModalFormField label="Name" required error="Name is required">
+      <Input aria-label="Name" />
+    </ModalFormField>,
+  );
+  const input = screen.getByLabelText('Name');
+  const alert = screen.getByRole('alert');
+  expect(alert).toHaveTextContent('Name is required');
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+  expect(input).toHaveAttribute('aria-describedby', alert.id);
+});
+
+test('associates the error with an input inside a single-child wrapper', () => {
+  render(
+    <Form>
+      <ModalFormField label="Title" required error="Title is required">
+        <FormItem noStyle>
+          <Input aria-label="Title" />
+        </FormItem>
+      </ModalFormField>
+    </Form>,
+  );
+  const input = screen.getByLabelText('Title');
+  const alert = screen.getByRole('alert');
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+  expect(input).toHaveAttribute('aria-describedby', alert.id);
+});
+
+test('keeps the same input element when the error appears', () => {
+  const { rerender } = render(
+    <ModalFormField label="Name">
+      <Input aria-label="Name" />
+    </ModalFormField>,
+  );
+  const input = screen.getByLabelText('Name');
+  expect(input).not.toHaveAttribute('aria-invalid');
+  expect(input).not.toHaveAttribute('aria-describedby');
+  rerender(
+    <ModalFormField label="Name" error="Name is required">
+      <Input aria-label="Name" />
+    </ModalFormField>,
+  );
+  expect(screen.getByLabelText('Name')).toBe(input);
+  expect(input).toHaveAttribute('aria-invalid', 'true');
 });

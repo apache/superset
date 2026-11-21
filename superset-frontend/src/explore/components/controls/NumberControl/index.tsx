@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import ControlHeader, { ControlHeaderProps } from '../../ControlHeader';
@@ -62,6 +62,9 @@ export default function NumberControl({
   ...rest
 }: NumberControlProps) {
   const pendingValueRef = useRef<NumberValueType>(value);
+  const errorId = useId();
+  // ControlHeader renders the error element only when it renders a label.
+  const hasErrors = !!rest.label && !!rest.validationErrors?.length;
 
   const handleChange = (val: string | number | null) => {
     pendingValueRef.current = parseValue(val);
@@ -78,7 +81,7 @@ export default function NumberControl({
 
   return (
     <FullWidthDiv>
-      <ControlHeader {...rest} />
+      <ControlHeader {...rest} errorId={errorId} />
       <FullWidthInputNumber
         min={min}
         max={max}
@@ -90,6 +93,8 @@ export default function NumberControl({
         onStep={handleStep}
         disabled={disabled}
         aria-label={rest.label}
+        aria-invalid={hasErrors || undefined}
+        aria-describedby={hasErrors ? errorId : undefined}
       />
     </FullWidthDiv>
   );

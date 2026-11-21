@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useId } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Button, Icons, InfoTooltip, Tooltip, Flex } from '..';
@@ -71,6 +72,10 @@ export const LabeledErrorBoundInput = ({
   ...props
 }: LabeledErrorBoundInputProps) => {
   const hasError = !!errorMessage;
+  const errorId = useId();
+  const errorProps = hasError
+    ? { 'aria-invalid': true, 'aria-describedby': errorId }
+    : {};
   return (
     <StyledFormGroup className={className}>
       <Flex align="center">
@@ -84,13 +89,22 @@ export const LabeledErrorBoundInput = ({
         validateStatus={
           isValidating ? 'validating' : hasError ? 'error' : 'success'
         }
-        help={errorMessage || helpText}
+        help={
+          hasError ? (
+            <span id={errorId} role="alert">
+              {errorMessage}
+            </span>
+          ) : (
+            helpText
+          )
+        }
         hasFeedback={isValidating || !!hasError}
       >
         {visibilityToggle || props.name === 'password' ? (
           <StyledInputPassword
             {...props}
             {...validationMethods}
+            {...errorProps}
             iconRender={visible =>
               visible ? (
                 <Tooltip title={t('Hide password.')}>
@@ -109,9 +123,14 @@ export const LabeledErrorBoundInput = ({
             role="textbox"
           />
         ) : renderAsTextArea ? (
-          <StyledTextArea css={textAreaCss} {...props} {...validationMethods} />
+          <StyledTextArea
+            css={textAreaCss}
+            {...props}
+            {...validationMethods}
+            {...errorProps}
+          />
         ) : (
-          <StyledInput {...props} {...validationMethods} />
+          <StyledInput {...props} {...validationMethods} {...errorProps} />
         )}
         {get_url && description ? (
           <Button

@@ -291,3 +291,25 @@ test('SubjectPicker preserves subject metadata on change', async () => {
     }),
   ]);
 });
+
+test('SubjectPicker forwards error identification attributes to the select', async () => {
+  const { default: SubjectPicker } = await import('.');
+
+  render(
+    <SubjectPicker
+      relatedUrl="/api/v1/report/related/editors"
+      ariaLabel="Editors"
+      value={[]}
+      onChange={jest.fn()}
+      aria-invalid
+      aria-describedby="editors-error"
+    />,
+  );
+
+  expect(mockAsyncSelect).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      'aria-invalid': true,
+      'aria-describedby': 'editors-error',
+    }),
+  );
+});
