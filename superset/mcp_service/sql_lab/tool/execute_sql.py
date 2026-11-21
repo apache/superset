@@ -28,6 +28,7 @@ from typing import Any
 import pandas as pd
 from fastmcp import Context
 from jinja2.exceptions import TemplateError
+from sqlalchemy.exc import DatabaseError, DBAPIError, OperationalError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.queries.types import (
     CacheOptions,
@@ -40,6 +41,7 @@ from superset.errors import SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
+    SupersetErrorException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetTemplateException,
@@ -279,6 +281,33 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             query_id=ex.query_id,
             error=OAUTH2_CONFIG_ERROR_MESSAGE,
             error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR.value,
+        )
+    except (DBAPIError, DatabaseError, OperationalError, SupersetErrorException) as ex:
+        # A DB-level failure (e.g. a customer's SQL raising a backend
+        # exception such as ClickHouse's ILLEGAL_AGGREGATION, or a
+        # connection-level error) is an expected "bad query"/"bad
+        # connection" outcome, not a Superset bug. Surface it to the
+        # caller as a normal typed tool error and log it at WARNING so
+        # it is not captured by Sentry as an unhandled ERROR, matching
+        # how the SQL Lab execution endpoint reports the same class of
+        # DBAPIError/DatabaseError.
+        error_message = (
+            ex.error.message
+            if isinstance(ex, SupersetErrorException)
+            else database.db_engine_spec.extract_error_message(ex)
+        )
+        await ctx.warning(
+            "SQL execution failed with a database-level error: error=%s, "
+            "database_id=%s" % (error_message, request.database_id)
+        )
+        return ExecuteSqlResponse(
+            success=False,
+            error=error_message,
+            error_type=(
+                ex.error.error_type.value
+                if isinstance(ex, SupersetErrorException)
+                else SupersetErrorType.GENERIC_DB_ENGINE_ERROR.value
+            ),
         )
     except Exception as e:
         await ctx.error(

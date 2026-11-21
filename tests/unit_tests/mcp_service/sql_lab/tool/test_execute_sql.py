@@ -717,6 +717,50 @@ class TestExecuteSql:
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
+    async def test_execute_sql_dbapi_error_is_handled(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """A DBAPIError raised by Database.execute() (e.g. a customer SQL
+        query that a backend like ClickHouse rejects with an illegal
+        aggregation error) must be caught and returned as a typed tool
+        error, not re-raised and left to escape as an unhandled exception
+        (SUPERSET-PYTHON-1CE7).
+        """
+        from sqlalchemy.exc import DBAPIError
+
+        mock_database = _mock_database()
+        orig_error = Exception(
+            "Received ClickHouse exception, code: 184, server response: "
+            "Code: 184. DB::Exception: Aggregate function countIf(cc_chg) "
+            "AS cc_chg is found inside another aggregate function in "
+            "query. (ILLEGAL_AGGREGATION)"
+        )
+        mock_database.execute.side_effect = DBAPIError(
+            "SELECT countIf(countIf(cc_chg)) FROM t", {}, orig_error
+        )
+        mock_database.db_engine_spec.extract_error_message.return_value = (
+            "clickhouse error: " + str(orig_error)
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+
+        request = {
+            "database_id": 5,
+            "sql": "SELECT countIf(countIf(cc_chg)) FROM t",
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is False
+            assert "clickhouse error" in data["error"]
+            assert data["error_type"] == "GENERIC_DB_ENGINE_ERROR"
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
     async def test_execute_sql_multi_statement(
         self, mock_db, mock_security_manager, mcp_server
     ):
