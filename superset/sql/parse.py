@@ -3215,7 +3215,7 @@ def tokenize_kql(kql: str) -> list[tuple[KQLTokenType, str]]:
                     else KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
                 )
                 buffer = ch
-            elif ch == "`" and script[i - 2 : i] == "``":
+            elif ch == "`" and buffer.endswith("``"):
                 # the first two backticks were buffered as plain text; flush
                 # whatever precedes them before starting the string literal
                 if buffer[:-2]:
@@ -3239,8 +3239,8 @@ def tokenize_kql(kql: str) -> list[tuple[KQLTokenType, str]]:
                 )
                 or (
                     state == KQLSplitState.INSIDE_MULTILINE_STRING
-                    and ch == "`"
-                    and script[i - 2 : i] == "``"
+                    and len(buffer) >= 6
+                    and buffer.endswith("```")
                 )
             )
             if end_str:
