@@ -186,8 +186,9 @@ const buildTlsOptions = (baseConfig: RedisConfig): ConnectionOptions => {
 /**
  * Translate the `redis` config into ioredis options, covering the same modes as
  * the Python coordination backend: standalone or Sentinel (`sentinels` set),
- * each optionally over TLS. In Sentinel mode TLS applies to the resolved master
- * only; the sentinel nodes are reached in plaintext, as on the Python side.
+ * each optionally over TLS. In Sentinel mode `ssl` secures the connection to the
+ * resolved master and `sentinelSsl` the connections to the sentinel nodes, both
+ * using the same CA, client certificate and verification settings.
  */
 export const buildRedisOpts = (baseConfig: RedisConfig) => {
   const redisOpts: RedisOptions = { db: baseConfig.db };
@@ -221,12 +222,21 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
     redisOpts.password = baseConfig.password;
   }
 
-  if (baseConfig.ssl) {
-    redisOpts.tls = buildTlsOptions(baseConfig);
-    // ioredis ignores `tls` for the Sentinel-resolved master (connecting in
-    // plaintext) unless this flag is set.
-    if (redisOpts.sentinels) {
-      redisOpts.enableTLSForSentinelMode = true;
+  // `sentinelSsl` only applies in Sentinel mode, so it must not trigger reading
+  // the certificate files for a standalone connection.
+  const sentinelSsl = baseConfig.sentinelSsl && baseConfig.sentinels.length > 0;
+  if (baseConfig.ssl || sentinelSsl) {
+    const tlsOpts = buildTlsOptions(baseConfig);
+    if (baseConfig.ssl) {
+      redisOpts.tls = tlsOpts;
+      // ioredis ignores `tls` for the Sentinel-resolved master (connecting in
+      // plaintext) unless this flag is set.
+      if (redisOpts.sentinels) {
+        redisOpts.enableTLSForSentinelMode = true;
+      }
+    }
+    if (sentinelSsl) {
+      redisOpts.sentinelTLS = tlsOpts;
     }
   }
 

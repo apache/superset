@@ -433,6 +433,112 @@ def test_owner_token_backend_errors_propagate(operation: str) -> None:
         operation_call()
 
 
+def _sentinel_node_pools(backend: Any) -> list[Any]:
+    return [node.connection_pool for node in backend._sentinel.sentinels]
+
+
+@pytest.mark.parametrize("master_ssl", [True, False])
+def test_redis_sentinel_cache_backend_secures_sentinels_with_tls(
+    master_ssl: bool,
+) -> None:
+    """``sentinel_ssl`` puts the sentinel-node connections on TLS with the shared
+    certificate settings, keeping their credentials and protocol, while ``ssl``
+    independently decides whether the resolved-master connection uses TLS. The
+    master's DB and ACL user are not applied to the sentinel nodes."""
+    from redis.sentinel import SentinelManagedConnection, SentinelManagedSSLConnection
+
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    tls: dict[str, Any] = {
+        "ssl_certfile": "/certs/client.crt",
+        "ssl_keyfile": "/certs/client.key",
+        "ssl_cert_reqs": "required",
+        "ssl_ca_certs": "/certs/ca.crt",
+        "ssl_check_hostname": False,
+    }
+    backend = RedisSentinelCacheBackend(
+        sentinels=[("sentinel1", 26379), ("sentinel2", 26379)],
+        master="mymaster",
+        password="master-pwd",  # noqa: S106
+        sentinel_password="sentinel-pwd",  # noqa: S106
+        username="master-user",
+        db=3,
+        ssl=master_ssl,
+        sentinel_ssl=True,
+        ssl_certfile=tls["ssl_certfile"],
+        ssl_keyfile=tls["ssl_keyfile"],
+        ssl_cert_reqs=tls["ssl_cert_reqs"],
+        ssl_ca_certs=tls["ssl_ca_certs"],
+        ssl_check_hostname=tls["ssl_check_hostname"],
+    )
+
+    pools = _sentinel_node_pools(backend)
+    assert len(pools) == 2
+    for pool in pools:
+        assert issubclass(pool.connection_class, SSLConnection)
+        assert {k: pool.connection_kwargs[k] for k in tls} == tls
+        assert pool.connection_kwargs["password"] == "sentinel-pwd"  # noqa: S105
+        assert pool.connection_kwargs["protocol"] == 2
+        assert pool.connection_kwargs.get("username") is None
+        assert pool.connection_kwargs.get("db", 0) == 0
+
+    master_pool = backend._cache.connection_pool
+    assert master_pool.connection_kwargs["password"] == "master-pwd"  # noqa: S105
+    assert master_pool.connection_kwargs["username"] == "master-user"
+    assert master_pool.connection_kwargs["db"] == 3
+    if master_ssl:
+        assert issubclass(master_pool.connection_class, SentinelManagedSSLConnection)
+        assert {k: master_pool.connection_kwargs[k] for k in tls} == tls
+    else:
+        assert master_pool.connection_class is SentinelManagedConnection
+        assert not tls.keys() & master_pool.connection_kwargs.keys()
+
+
+def test_redis_sentinel_cache_backend_is_plaintext_without_tls() -> None:
+    """TLS stays off for the sentinels and the master unless configured."""
+    from redis.sentinel import SentinelManagedSSLConnection
+
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    backend = RedisSentinelCacheBackend(
+        sentinels=[("sentinel1", 26379)],
+        master="mymaster",
+        ssl_ca_certs="/certs/ca.crt",
+    )
+
+    for pool in _sentinel_node_pools(backend):
+        assert not issubclass(pool.connection_class, SSLConnection)
+        assert "ssl_ca_certs" not in pool.connection_kwargs
+    master_pool = backend._cache.connection_pool
+    assert not issubclass(master_pool.connection_class, SentinelManagedSSLConnection)
+    assert "ssl_ca_certs" not in master_pool.connection_kwargs
+
+
+def test_redis_sentinel_cache_backend_from_config_reads_sentinel_ssl() -> None:
+    """``CACHE_REDIS_SENTINEL_SSL`` enables TLS on the sentinel-node connections,
+    which honor ``CACHE_REDIS_SSL_CHECK_HOSTNAME`` like the master connection."""
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    backend = RedisSentinelCacheBackend.from_config(
+        {
+            "CACHE_REDIS_SENTINELS": [("sentinel1", 26379)],
+            "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+            "CACHE_REDIS_SSL": True,
+            "CACHE_REDIS_SENTINEL_SSL": True,
+            "CACHE_REDIS_SSL_CA_CERTS": "/certs/ca.crt",
+            "CACHE_REDIS_SSL_CHECK_HOSTNAME": False,
+        }
+    )
+
+    for pool in _sentinel_node_pools(backend):
+        assert issubclass(pool.connection_class, SSLConnection)
+        assert pool.connection_kwargs["ssl_ca_certs"] == "/certs/ca.crt"
+        assert pool.connection_kwargs["ssl_check_hostname"] is False
+    assert (
+        backend._cache.connection_pool.connection_kwargs["ssl_check_hostname"] is False
+    )
+
+
 @pytest.mark.parametrize("check_hostname", [None, True, False])
 def test_redis_hostname_verification_config(check_hostname: bool | None) -> None:
     """TLS verifies hostnames by default and respects an explicit opt-out."""
