@@ -108,7 +108,7 @@ from superset.security.guest_token import (
     GuestUser,
     incr_security_metric,
 )
-from superset.sql.parse import process_jinja_sql, Table
+from superset.sql.parse import JinjaSQLResult, process_jinja_sql, SQLScript, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
@@ -5856,6 +5856,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 parse_query: Any = (
                     SimpleNamespace(
                         sql=sql_for_parse,
+                        executed_sql=sql_for_parse,
                         schema=typed_query.schema,
                         catalog=typed_query.catalog,
                     )
@@ -5867,9 +5868,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     cast(Query, parse_query),
                     parse_template_params,
                 )
-                parse_result = process_jinja_sql(
-                    sql_for_parse, database, parse_template_params
-                )
+                if use_executed_sql:
+                    script = SQLScript(
+                        sql_for_parse, engine=database.db_engine_spec.engine
+                    )
+                    parse_result = JinjaSQLResult(
+                        script=script,
+                        tables={
+                            table
+                            for statement in script.statements
+                            for table in statement.tables
+                        },
+                    )
+                else:
+                    parse_result = process_jinja_sql(
+                        sql_for_parse, database, parse_template_params
+                    )
                 # Under strict scoping, refuse any statement the parser
                 # could not fully model: sqlglot ``exp.Command`` nodes
                 # (e.g. dynamic SQL inside a stored-procedure call) and

@@ -30,8 +30,9 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
 from superset.models.sql_lab import Query
 from superset.sql.parse import CTASMethod
+from superset.sqllab.utils import get_query_limit
 from superset.utils import core as utils, json
-from superset.utils.core import apply_max_row_limit, get_user_id
+from superset.utils.core import get_user_id
 from superset.utils.dates import now_as_float
 from superset.views.utils import get_cta_schema_name
 
@@ -45,6 +46,7 @@ SqlResults = dict[str, Any]
 
 @dataclass
 class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
+    prepared_query_id: str | None
     database_id: int
     catalog: str | None
     schema: str
@@ -75,6 +77,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self.query = query
 
     def _init_from_query_params(self, query_params: dict[str, Any]) -> None:
+        self.prepared_query_id = query_params.get("prepared_query_id")
         self.database_id = cast(int, query_params.get("database_id"))
         self.catalog = cast(str, query_params.get("catalog"))
         self.schema = cast(str, query_params.get("schema"))
@@ -110,13 +113,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _get_limit_param(query_params: dict[str, Any]) -> int:
-        limit = apply_max_row_limit(query_params.get("queryLimit") or 0)
-        if limit < 0:
-            logger.warning(
-                "Invalid limit of %i specified. Defaulting to max limit.", limit
-            )
-            limit = 0
-        return limit
+        return get_query_limit(query_params.get("queryLimit"))
 
     def is_run_asynchronous(self) -> bool:
         return self.async_flag

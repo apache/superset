@@ -20,6 +20,9 @@ from superset.utils.backports import StrEnum
 class QueryStatus(StrEnum):
     """Enum-type class for query statuses"""
 
+    PREPARING = "preparing"
+    PREPARED = "prepared"
+    DISCARDED = "discarded"
     STOPPED = "stopped"
     FAILED = "failed"
     PENDING = "pending"
@@ -33,4 +36,9 @@ class QueryStatus(StrEnum):
 # Terminal outcomes that a stop request must not overwrite.
 FINISHED_QUERY_STATUSES = frozenset(
     {QueryStatus.SUCCESS, QueryStatus.FAILED, QueryStatus.TIMED_OUT}
+)
+
+
+HIDDEN_QUERY_STATUSES = frozenset(
+    {QueryStatus.PREPARING, QueryStatus.PREPARED, QueryStatus.DISCARDED}
 )

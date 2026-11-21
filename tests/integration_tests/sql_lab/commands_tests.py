@@ -26,7 +26,7 @@ from jinja2.exceptions import TemplateError, TemplateSyntaxError
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import object_session
 
-from superset import db, sql_lab
+from superset import db, security_manager, sql_lab
 from superset.commands.sql_lab import estimate, export, results
 from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -49,6 +49,32 @@ from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class TestQueryEstimationCommand(SupersetTestCase):
+    @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=False)
+    def test_warning_preparation_does_not_pollute_session(
+        self, mock_is_feature_enabled: Mock
+    ) -> None:
+        """The limit probe must not leave an incomplete Query pending for autoflush."""
+        database = get_example_database()
+        command = estimate.QueryEstimationCommand(
+            {
+                "database_id": database.id,
+                "sql": "SELECT 1",
+                "catalog": None,
+                "schema": None,
+                "template_params": {},
+                "query_limit": 10,
+                "check_warning": True,
+            }
+        )
+        command._database = database
+        with override_user(security_manager.find_user("admin")):
+            sql, reason = command._prepare_warning_sql()
+        assert reason is None
+        assert sql is not None
+        assert "LIMIT 11" in sql
+        assert not any(isinstance(obj, Query) for obj in db.session.new)
+        db.session.flush()
+
     def test_validation_no_database(self) -> None:
         params = {"database_id": 1, "sql": "SELECT 1"}
         schema = EstimateQueryCostSchema()
@@ -109,11 +135,14 @@ class TestQueryEstimationCommand(SupersetTestCase):
         data: EstimateQueryCostSchema = schema.dump(params)
         command = estimate.QueryEstimationCommand(data)
 
-        payload = {"value": 100}
+        payload = [{"value": 100}]
 
         db_mock = mock.Mock()
         db_mock.db_engine_spec = mock.Mock()
-        db_mock.db_engine_spec.estimate_query_cost = mock.Mock(return_value=100)
+        estimate_response = [{"Total cost": 100}]
+        db_mock.db_engine_spec.estimate_query_cost = mock.Mock(
+            return_value=estimate_response
+        )
         db_mock.db_engine_spec.query_cost_formatter = mock.Mock(return_value=payload)
 
         with (
@@ -123,6 +152,9 @@ class TestQueryEstimationCommand(SupersetTestCase):
             mock_dao.find_by_id.return_value = db_mock
             result = command.run()
             assert result == payload
+            db_mock.db_engine_spec.query_cost_formatter.assert_called_once_with(
+                estimate_response
+            )
 
     @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
     def test_apply_sql_security_rls_does_not_pollute_session(

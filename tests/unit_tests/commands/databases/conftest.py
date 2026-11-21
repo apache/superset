@@ -41,6 +41,7 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     Mock a database with catalogs and schemas.
     """
     database = mocker.MagicMock()
+    database.extra = "{}"
     database.database_name = "my_db"
     database.db_engine_spec.__name__ = "test_engine"
     database.db_engine_spec.supports_catalog = True
@@ -60,6 +61,7 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     Mock a database without catalogs.
     """
     database = mocker.MagicMock()
+    database.extra = "{}"
     database.database_name = "my_db"
     database.db_engine_spec.__name__ = "test_engine"
     database.db_engine_spec.supports_catalog = False
@@ -76,6 +78,7 @@ def database_needs_oauth2(mocker: MockerFixture) -> MagicMock:
     Mock a database without catalogs that needs OAuth2.
     """
     database = mocker.MagicMock()
+    database.extra = "{}"
     database.database_name = "my_db"
     database.db_engine_spec.__name__ = "test_engine"
     database.db_engine_spec.supports_catalog = False

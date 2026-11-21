@@ -24,6 +24,7 @@ from flask_babel import gettext as __
 from sqlalchemy import and_, or_
 
 from superset import db
+from superset.common.db_query_status import HIDDEN_QUERY_STATUSES
 from superset.models.sql_lab import Query, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -246,7 +247,7 @@ class TabStateView(BaseSupersetView):
         try:
             # Before deleting the query, ensure it's not tied to any
             # active tab as the last query. If so, replace the query
-            # with the latest one created in that tab
+            # with the latest visible query created in that tab.
             tab_state_query = db.session.query(TabState).filter_by(
                 id=tab_state_id, latest_query_id=client_id
             )
@@ -258,6 +259,7 @@ class TabStateView(BaseSupersetView):
                             Query.client_id != client_id,
                             Query.user_id == get_user_id(),
                             Query.sql_editor_id == str(tab_state_id),
+                            ~Query.status.in_(HIDDEN_QUERY_STATUSES),
                         ),
                     )
                     .order_by(Query.id.desc())

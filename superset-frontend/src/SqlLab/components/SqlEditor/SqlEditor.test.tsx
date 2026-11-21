@@ -82,14 +82,6 @@ jest.mock('src/components/DatabaseSelector', () => ({
   ),
 }));
 
-fetchMock.get('glob:*/api/v1/database/*/function_names/', {
-  function_names: [],
-});
-fetchMock.get('glob:*/api/v1/database/*', { result: [] });
-fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
-fetchMock.get('glob:*/tabstateview/*', defaultQueryEditor);
-fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
-
 let store: Store;
 let actions: Action[];
 const latestQuery = {
@@ -163,6 +155,7 @@ describe('SqlEditor', () => {
   afterEach(async () => {
     cleanup();
     await new Promise(resolve => setTimeout(resolve, 0));
+    fetchMock.clearHistory().removeRoutes();
   });
 
   const mockedProps = {
@@ -179,6 +172,14 @@ describe('SqlEditor', () => {
   };
 
   beforeEach(() => {
+    mockIsFeatureEnabled.mockReset();
+    fetchMock.get('glob:*/api/v1/database/*/function_names/', {
+      function_names: [],
+    });
+    fetchMock.get('glob:*/api/v1/database/*', { result: [] });
+    fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
+    fetchMock.get('glob:*/tabstateview/*', defaultQueryEditor);
+    fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
     store = createStore(mockInitialState);
     actions = [];
 
@@ -201,6 +202,71 @@ describe('SqlEditor', () => {
       await findByText('Select a database to write a query'),
     ).toBeInTheDocument();
   });
+
+  test.each([
+    { action: 'proceed', proceed: false, executions: 1 },
+    { action: 'confirm', proceed: false, executions: 0 },
+    { action: 'confirm', proceed: true, executions: 1 },
+  ])(
+    'pre-run $action, continue $proceed executes $executions queries',
+    async ({ action, proceed, executions }) => {
+      mockIsFeatureEnabled.mockImplementation(
+        flag => flag === FeatureFlag.EstimateQueryCost,
+      );
+      fetchMock.post(
+        'glob:*/api/v1/sqllab/warning/',
+        {
+          prepared_query_id: '5148e631-18c4-4bb8-97d1-e8d161bc086e',
+          result: {
+            action,
+            reason: 'warning',
+            message: 'Estimate result',
+          },
+        },
+        { name: 'pre-run-estimate' },
+      );
+      store = createStore({
+        ...mockInitialState,
+        sqlLab: {
+          ...mockInitialState.sqlLab,
+          databases: {
+            1991: {
+              ...mockInitialState.sqlLab.databases[1991],
+              id: 1991,
+              allows_cost_estimate: true,
+              query_cost_warning: {
+                enabled: true,
+                metric: 'bytes_processed',
+                threshold: 100,
+              },
+            },
+          },
+        },
+      });
+      try {
+        const { findByTestId, findByRole } = setup(mockedProps, store);
+        fireEvent.click(await findByTestId('run-query-action'));
+        await act(async () => {
+          await fetchMock.callHistory.flush(true);
+        });
+        if (action === 'confirm') {
+          fireEvent.click(
+            await findByRole('button', {
+              name: proceed ? 'Run anyway' : 'Cancel',
+            }),
+          );
+        }
+        await waitFor(() =>
+          expect(
+            actions.filter(action => action.type === 'START_QUERY'),
+          ).toHaveLength(executions),
+        );
+      } finally {
+        fetchMock.removeRoute('pre-run-estimate');
+        mockIsFeatureEnabled.mockReset();
+      }
+    },
+  );
 
   test('renders db unavailable message', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[1];
@@ -297,6 +363,7 @@ describe('SqlEditor', () => {
             allow_file_upload: false,
             allow_run_async: true,
             backend: 'postgresql',
+            query_warning_state: 'disabled',
             database_name: 'examples',
             expose_in_sqllab: true,
             force_ctas_schema: null,

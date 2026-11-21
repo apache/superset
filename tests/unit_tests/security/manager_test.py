@@ -6423,3 +6423,48 @@ def test_user_view_menu_names_resolves_direct_and_group_roles(
     mocker.patch("superset.security.manager.get_user_id", return_value=users[username])
 
     assert sm.user_view_menu_names("schema_access") == expected
+
+
+@pytest.mark.parametrize("registered", [True, False])
+def test_rendered_query_authorization_uses_literal_sql(
+    mocker: MockerFixture, app_context: None, registered: bool
+) -> None:
+    """Dataset-scoped users authorize retained SQL without interpreting it as Jinja."""
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: perm == "datasource_access"
+    )
+    database = Database(
+        database_name="rendered", sqlalchemy_uri="postgresql://localhost/db"
+    )
+    mocker.patch.object(database, "get_default_catalog", return_value="db")
+    mocker.patch.object(PostgresEngineSpec, "get_default_schema", return_value="public")
+    lookup = mocker.patch(
+        "superset.connectors.sqla.models.SqlaTable.query_datasources_by_name"
+    )
+    lookup.return_value = [mocker.Mock(perm="allowed")] if registered else []
+    query = Query(
+        database=database,
+        sql="SELECT {{ table }}",
+        executed_sql="SELECT '{{%' FROM public.allowed",
+        catalog="db",
+        schema="public",
+    )
+    renderer = mocker.patch(
+        "superset.security.manager.process_jinja_sql",
+        side_effect=AssertionError("already rendered"),
+    )
+    if registered:
+        sm.raise_for_access(query=query, force_dataset_match=True)
+    else:
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(query=query, force_dataset_match=True)
+    renderer.assert_not_called()
+    assert lookup.call_args.args[1] == "allowed"

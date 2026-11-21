@@ -248,7 +248,11 @@ class Query(
             "user": user_label(self.user),
             "resultsKey": self.results_key,
             "trackingUrl": self.tracking_url,
-            "extra": self.extra,
+            "extra": {
+                key: value
+                for key, value in self.extra.items()
+                if key != "_warning_preparation"
+            },
         }
 
     @property

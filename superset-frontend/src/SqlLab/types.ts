@@ -57,6 +57,8 @@ export interface QueryEditor {
   catalog?: string | null;
   schema?: string;
   autorun: boolean;
+  /** "Run query in a new tab" uses autorun, but must still receive the warning check. */
+  autorunSource?: 'history';
   sql: string;
   remoteId: number | null;
   hideLeftBar?: boolean;

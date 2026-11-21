@@ -21,14 +21,16 @@ These tests call the undecorated view methods directly (via
 ``__wrapped__``, which ``flask_appbuilder.has_access_api`` preserves through
 ``functools.update_wrapper``) so that the business logic of each method can
 be exercised against an in-memory database without needing a fully
-authenticated HTTP session. Only the ownership-check logic inside the view
-methods themselves is under test here.
+authenticated HTTP session. Ownership checks and persisted tab state are
+exercised through the view methods themselves.
 """
 
 import pytest
 from flask import current_app
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset.common.db_query_status import QueryStatus
 from superset.models.sql_lab import Query, TabState
 from superset.views.sql_lab.views import TabStateView
 
@@ -83,6 +85,56 @@ def _create_tab_state_and_query(
     )
 
     return tab_state, query
+
+
+@pytest.mark.parametrize(
+    "hidden_status",
+    [QueryStatus.PREPARING, QueryStatus.PREPARED, QueryStatus.DISCARDED],
+)
+@pytest.mark.parametrize("has_previous_run", [False, True])
+def test_delete_latest_query_skips_warning_preparations(
+    session: Session,
+    mocker: MockerFixture,
+    hidden_status: QueryStatus,
+    has_previous_run: bool,
+) -> None:
+    """Reloading a tab restores an executed query, never an unexecuted attempt."""
+    tab = TabState(user_id=1, label="Warning history", database_id=1)
+    session.add(tab)
+    session.flush()
+    if has_previous_run:
+        previous = _add_query(
+            session, client_id="previous", user_id=1, sql_editor_id=str(tab.id)
+        )
+        previous.status = QueryStatus.SUCCESS
+    latest = _add_query(
+        session, client_id="latest", user_id=1, sql_editor_id=str(tab.id)
+    )
+    latest.status = QueryStatus.SUCCESS
+    hidden = _add_query(
+        session, client_id="hidden", user_id=1, sql_editor_id=str(tab.id)
+    )
+    hidden.status = hidden_status
+    tab.latest_query_id = latest.client_id
+    session.commit()
+    mocker.patch("superset.views.sql_lab.views.get_user_id", return_value=1)
+
+    view = TabStateView()
+    response = TabStateView.delete_query.__wrapped__(view, tab.id, "latest")
+    assert response.status_code == 200
+    session.expire_all()
+    response = TabStateView.get.__wrapped__(view, tab.id)
+    assert response.status_code == 200
+    restored = response.get_json()["latest_query"]
+    if has_previous_run:
+        assert restored["id"] == "previous"
+        assert restored["state"] == QueryStatus.SUCCESS
+    else:
+        assert restored is None
+    assert session.query(Query).filter_by(client_id="latest").count() == 0
+    assert (
+        session.query(Query).filter_by(client_id="hidden").one().status == hidden_status
+    )
 
 
 def test_delete_query_rejects_update_from_non_owning_user(

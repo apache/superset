@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Collection
+from contextlib import closing
 from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
@@ -47,11 +48,15 @@ from superset.db_engine_specs.base import (
     DatabaseCategory,
     TimestampExpression,
 )
+from superset.db_engine_specs.query_warning import (
+    QueryCostEstimate,
+    QueryCostThresholdCheck,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
 from superset.sql.dialects.postgres import normalize_date_trunc_units
-from superset.sql.parse import process_jinja_sql
+from superset.sql.parse import process_jinja_sql, SQLScript
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
 
@@ -900,7 +905,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         This method simply uses the parent method after checking that the query
         cannot rebind the schema used to resolve unqualified table names.
         """
-        script = process_jinja_sql(query.sql, database, template_params).script
+        script = (
+            SQLScript(query.executed_sql, engine=cls.engine)
+            if query.executed_sql is not None
+            else process_jinja_sql(query.sql, database, template_params).script
+        )
         if script.changes_default_schema():
             raise SupersetSecurityException(
                 SupersetError(
@@ -1053,6 +1062,45 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
         return True
+
+    @classmethod
+    def get_query_warning_check(cls) -> QueryCostThresholdCheck | None:
+        """Opt only the verified PostgresEngineSpec into native cost warnings."""
+        return (
+            QueryCostThresholdCheck("total_cost") if cls is PostgresEngineSpec else None
+        )
+
+    @classmethod
+    def estimate_query_cost_for_warning(
+        cls,
+        database: Database,
+        catalog: str | None,
+        schema: str,
+        sql: str,
+    ) -> QueryCostEstimate:
+        """Read the root planner cost with EXPLAIN, without executing the SQL."""
+        if cls.get_query_warning_check() is None:
+            return QueryCostEstimate()
+        script = SQLScript(sql, engine=cls.engine)
+        if len(script.statements) != 1 or not script.statements[0].is_select():
+            return QueryCostEstimate()
+        with database.get_raw_connection(
+            catalog=catalog, schema=schema, source=QuerySource.SQL_LAB
+        ) as connection:
+            with closing(connection.cursor()) as cursor:
+                statement = cls.process_statement(script.statements[0], database)
+                cursor.execute(f"EXPLAIN (FORMAT JSON) {statement}")
+                row = cursor.fetchone()
+        if not isinstance(row, (list, tuple)) or len(row) != 1:
+            return QueryCostEstimate()
+        plans = row[0]
+        if not isinstance(plans, list) or len(plans) != 1:
+            return QueryCostEstimate()
+        root = plans[0]
+        plan = root.get("Plan") if isinstance(root, dict) else None
+        if not isinstance(plan, dict):
+            return QueryCostEstimate()
+        return QueryCostEstimate.from_value(plan.get("Total Cost"))
 
     @classmethod
     def estimate_statement_cost(

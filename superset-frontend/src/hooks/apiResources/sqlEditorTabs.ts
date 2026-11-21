@@ -25,7 +25,7 @@ export type EditorMutationParams = {
   extra?: Record<string, any>;
 };
 
-const sqlEditorApi = api.injectEndpoints({
+export const sqlEditorApi = api.injectEndpoints({
   endpoints: builder => ({
     updateSqlEditorTab: builder.mutation<JsonResponse, EditorMutationParams>({
       query: ({
