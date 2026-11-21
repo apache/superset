@@ -166,11 +166,14 @@ jobs:
             # controlled only by docker-build-extra-flags.sh, mirroring the
             # docker-build job. assert_supersetbot_exports_cache_with_token
             # below covers the unhidden case.
-            env -u DOCKERHUB_TOKEN supersetbot_dry_run \
-              --preset "$preset" \
-              --platform linux/amd64 \
-              "$@" \
-              --extra-flags "$extra_flags"
+            (
+              unset DOCKERHUB_TOKEN
+              supersetbot_dry_run \
+                --preset "$preset" \
+                --platform linux/amd64 \
+                "$@" \
+                --extra-flags "$extra_flags"
+            )
           }
           docker_command_with_token() {
             local preset="$1" extra_flags="$2"
