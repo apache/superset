@@ -29,3 +29,8 @@ class DashboardPermalinkCreateFailedError(CreateFailedError):
 
 class DashboardPermalinkGetFailedError(CommandException):
     message = _("An error occurred while accessing the value.")
+
+
+class DashboardPermalinkInvalidKeyError(DashboardPermalinkGetFailedError):
+    status = 404
+    message = _("Invalid permalink key")

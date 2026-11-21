@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import {
   ChartLabel,
   ChartMetadata,
@@ -23,6 +24,7 @@ import {
   Preset,
   VizType,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   render,
   cleanup,
@@ -436,5 +438,14 @@ describe('VizTypeControl', () => {
         within(visualizations).getByText('Big Number'),
       ).toBeInTheDocument();
     });
+  });
+
+  test('Category tabs show a visible keyboard focus ring', async () => {
+    await waitForRenderWrapper();
+    expect(screen.getByRole('tab', { name: 'All charts' })).toHaveStyleRule(
+      'outline',
+      `2px solid ${supersetTheme.colorPrimary}`,
+      { target: ':focus-visible' },
+    );
   });
 });

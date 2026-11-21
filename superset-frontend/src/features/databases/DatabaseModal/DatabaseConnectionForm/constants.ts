@@ -39,6 +39,8 @@ import { OAuth2ClientField } from './OAuth2ClientField';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
 import { TableCatalog } from './TableCatalog';
+import { DRUID_ENGINE, DRUID_FORM_FIELD_MAP } from './DruidParameters';
+import { MSSQL_ENGINE, MSSQL_FORM_FIELD_MAP } from './MssqlParameters';
 import SSHTunnelSwitch from '../SSHTunnelSwitch';
 
 export const FormFieldOrder = [
@@ -108,4 +110,17 @@ export const FORM_FIELD_MAP = {
   work_group: validatedInputField,
   ssh: SSHTunnelSwitchComponent,
   project_id: projectIdfield,
+};
+
+/**
+ * Per-engine replacements for entries of ``FORM_FIELD_MAP``, keyed by the
+ * engine name. Engines use these when a common field needs engine-specific
+ * labels, placeholders or tooltips.
+ */
+export const ENGINE_FORM_FIELD_OVERRIDES: Record<
+  string,
+  Partial<typeof FORM_FIELD_MAP>
+> = {
+  [DRUID_ENGINE]: DRUID_FORM_FIELD_MAP,
+  [MSSQL_ENGINE]: MSSQL_FORM_FIELD_MAP,
 };

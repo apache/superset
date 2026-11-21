@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 from contextlib import closing
+from functools import partial
 from typing import Any
 
 from flask import current_app as app
@@ -31,7 +32,7 @@ from jsonpath_ng import parse
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -87,6 +88,30 @@ def uri_identity_changed(
     return engine_spec.get_connection_identity(
         stored, _connect_args(existing_extra)
     ) != engine_spec.get_connection_identity(incoming, _connect_args(submitted_extra))
+
+
+def reuse_stored_password(
+    model: Database, submitted_uri: str, submitted_extra: str | None = None
+) -> str | None:
+    """
+    Return ``submitted_uri`` with the stored password restored, if the
+    submission keeps the masked password and reaches the same destination as
+    the stored URI (per ``uri_identity_changed``); ``None`` otherwise.
+    """
+    safe_uri = model.safe_sqlalchemy_uri()
+    if submitted_uri == safe_uri:
+        return model.sqlalchemy_uri_decrypted
+    try:
+        submitted = make_url_safe(submitted_uri)
+        stored = make_url_safe(safe_uri)
+    except DatabaseInvalidError:
+        return None
+    if submitted.password != stored.password or uri_identity_changed(
+        safe_uri, submitted_uri, model.extra, submitted_extra
+    ):
+        return None
+    password = make_url_safe(model.sqlalchemy_uri_decrypted).password
+    return submitted.set(password=password).render_as_string(hide_password=False)
 
 
 def engine_params_changed(
@@ -316,11 +341,16 @@ def _get_all_schema_names_with_retry(
         return database.get_all_schema_names(catalog=catalog, cache=False)
 
 
-def add_permissions(database: Database) -> None:
+def add_permissions(database: Database, *, commit: bool = True) -> None:
     """
     Add DAR for catalogs and schemas.
     """
-    # TODO: Migrate this to use the non-commiting add_pvm helper instead
+    # Imports must keep permissions and assets in the same transaction.
+    add_permission = (
+        security_manager.add_permission_view_menu
+        if commit
+        else partial(add_pvm, db.session, security_manager)
+    )
     if database.db_engine_spec.supports_catalog:
         # Adding permissions to all catalogs (and all their schemas) can take a long
         # time (minutes, while importing a chart, eg). If the database does not
@@ -336,7 +366,7 @@ def add_permissions(database: Database) -> None:
             catalogs = {database.get_default_catalog()}
 
         for catalog in catalogs:
-            security_manager.add_permission_view_menu(
+            add_permission(
                 "catalog_access",
                 security_manager.get_catalog_perm(
                     database.database_name,
@@ -350,7 +380,7 @@ def add_permissions(database: Database) -> None:
         try:
             schemas = _get_all_schema_names_with_retry(database, catalog)
             for schema in schemas:
-                security_manager.add_permission_view_menu(
+                add_permission(
                     "schema_access",
                     security_manager.get_schema_perm(
                         database.database_name,
