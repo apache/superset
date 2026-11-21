@@ -25,6 +25,7 @@ import CodeSyntaxHighlighter, {
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { Button } from '@superset-ui/core/components';
 import { ToastProps } from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
@@ -33,7 +34,7 @@ const SyntaxHighlighterWrapper = styled.div`
 
   &:hover {
     .copy-button {
-      visibility: visible;
+      opacity: 1;
     }
   }
 
@@ -42,7 +43,8 @@ const SyntaxHighlighterWrapper = styled.div`
     top: 40px;
     right: 16px;
     z-index: 10;
-    visibility: hidden;
+    /* opacity rather than visibility keeps the button reachable by keyboard */
+    opacity: 0;
     margin: -4px;
     padding: 4px;
     background: ${({ theme }) => theme.colorBgContainer};
@@ -56,8 +58,8 @@ const SyntaxHighlighterWrapper = styled.div`
       color: ${({ theme }) => theme.colorIconHover};
     }
 
-    &:focus {
-      visibility: visible;
+    &:focus-visible {
+      opacity: 1;
       outline: 2px solid ${({ theme }) => theme.colorPrimary};
       outline-offset: 2px;
     }
@@ -107,24 +109,16 @@ export default function SyntaxHighlighterCopy({
     copyToClipboard(children);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      copyToClipboard(children);
-    }
-  };
-
   return (
     <SyntaxHighlighterWrapper>
-      {/* role is auto-computed by BaseIconComponent as "button" since
-          onClick is present, so no explicit role needed here. */}
-      <Icons.CopyOutlined
+      <Button
+        buttonStyle="link"
         className="copy-button"
-        tabIndex={0}
         aria-label={t('Copy code to clipboard')}
         onClick={handleCopyClick}
-        onKeyDown={handleKeyDown}
-      />
+      >
+        <Icons.CopyOutlined />
+      </Button>
       <CodeSyntaxHighlighter
         language={language}
         showCopyButton={false}
