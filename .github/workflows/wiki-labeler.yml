@@ -1,0 +1,85 @@
+name: "Wiki Labeler"
+
+# Applies labels whose rules live on the project wiki, so committers can edit
+# them without a PR. The pages are indexed at
+# https://github.com/apache/superset/wiki/Labeling-Automation
+
+on: # zizmor: ignore[dangerous-triggers] - needs pull_request_target for a
+  # writable token on fork PRs; the scripts only read the opaque author
+  # login/number fields, never PR-controlled free text (title, body,
+  # branch), nothing is interpolated into a shell `run:`, and the checkout
+  # is of the base branch, never of PR code
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+  issues:
+    types: [opened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # no-hold-label.yml waits on this job by name before it reads a PR's
+  # labels, so keep the two in step if this is renamed.
+  wiki-labeler:
+    name: wiki-labeler
+    permissions:
+      contents: read
+      issues: write # to add a roster label to an issue, and to create a label on first use
+      pull-requests: write # to add roster and path labels to a PR, and to request reviews
+    runs-on: ubuntu-slim
+    steps:
+    # All of the logic lives in .github/scripts/wiki-labels.js, shared with
+    # wiki-labels-lint.yml. On pull_request_target the default ref is the
+    # base branch, so this never checks out PR code.
+    - name: Check out the wiki label script
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+        sparse-checkout: .github/scripts
+        sparse-checkout-cone-mode: false
+
+    # https://github.com/apache/superset/wiki/Label-Rosters
+    - name: Label if the author is on a wiki roster
+      if: github.event.action == 'opened'
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        script: |
+          const wiki = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/wiki-labels.js`);
+          await wiki.labelRosterAuthor({ github, context, core });
+
+    # https://github.com/apache/superset/wiki/Audit-Hold-Paths
+    # Fails if the page cannot be read: these labels gate merges.
+    - name: Read the path rules from the wiki
+      id: paths
+      if: github.event_name == 'pull_request_target'
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        script: |
+          const wiki = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/wiki-labels.js`);
+          await wiki.writePathConfig({ context, core }, { required: ['holds'] });
+
+    # A label that does not exist in the repository yet is created by GitHub
+    # the first time it is applied (hence `issues: write`).
+    - name: Apply the path labels
+      if: github.event_name == 'pull_request_target'
+      uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+      with:
+        configuration-path: ${{ steps.paths.outputs.config }}
+        sync-labels: true
+
+    # The pages can name reviewers for a label. Asks them once the PR is out
+    # of draft, leaving out the author and anyone already asked or already
+    # reviewing. Only ever warns.
+    - name: Request reviews from the reviewers named on the wiki
+      if: github.event_name == 'pull_request_target'
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        PATH_REVIEWERS: ${{ steps.paths.outputs.reviewers }}
+      with:
+        script: |
+          const wiki = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/wiki-labels.js`);
+          await wiki.requestReviews({ github, context, core }, process.env.PATH_REVIEWERS);

@@ -95,6 +95,14 @@ Automated scanners (LLM-based code scanners, static analyzers, dependency tools)
 
 Findings that cannot identify both should be filed as questions, not vulnerabilities. This requirement exists to ensure every reported issue is testable against the published security model and to keep speculative or pattern-match-only reports out of the triage queue.
 
+## Hold Labels for Sensitive Paths
+
+A PR touching certain paths is automatically tagged with a `hold:audit-*` label and blocked from merging until a reviewer removes it: `check-hold-label` (`no-hold-label.yml`) is a required status check in `.asf.yaml`, and it fails while any `hold:*` label is present.
+
+The labels, the paths that trigger each one, and what to check before removing it are kept in one place, the [Audit Hold Paths](https://github.com/apache/superset/wiki/Audit-Hold-Paths) wiki page (raw markdown: `https://raw.githubusercontent.com/wiki/apache/superset/Audit-Hold-Paths.md`). `wiki-labeler.yml` reads that page, so it is always what CI enforces. Read the section for a label before acting on a PR that carries it.
+
+Removing the label is an explicit acknowledgment that the specific risk described there was checked and is either not present or has been addressed - not a formality to clear once the rest of the review looks fine.
+
 ## Key Directories
 
 ```
