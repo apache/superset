@@ -606,33 +606,54 @@ test('should apply the static assets prefix, blur and overlay color to the backg
   });
 });
 
+interface ReactFiberNode {
+  key: string | null;
+  return: ReactFiberNode | null;
+}
+
+// React warns about missing keys only once per owner component, so a console
+// spy cannot detect a missing key reliably across tests. Read the keys React
+// assigned to the element's ancestors instead.
+const getAncestorKeys = (element: HTMLElement): string[] => {
+  const fiberProp = Object.keys(element).find(prop =>
+    prop.startsWith('__reactFiber$'),
+  );
+  const keys: string[] = [];
+  let fiber = fiberProp
+    ? ((element as unknown as Record<string, ReactFiberNode>)[fiberProp] ??
+      null)
+    : null;
+  while (fiber) {
+    if (fiber.key !== null) {
+      keys.push(fiber.key);
+    }
+    fiber = fiber.return;
+  }
+  return keys;
+};
+
 test.each([
   ['OID', 0],
   ['OAuth', 4],
   ['SAML', 5],
-])(
-  'should render one button per %s provider without key warnings',
-  (_name, authType) => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation();
-    mockGetBootstrapData.mockReturnValue({
-      common: {
-        conf: {
-          AUTH_TYPE: authType,
-          AUTH_PROVIDERS: [
-            { name: 'okta', icon: 'okta', url: 'https://okta.example' },
-            { name: 'google', icon: 'google', url: 'https://google.example' },
-          ],
-          AUTH_USER_REGISTRATION: false,
-        },
+])('should key each %s provider item by provider name', (_name, authType) => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: authType,
+        AUTH_PROVIDERS: [
+          { name: 'okta', icon: 'okta', url: 'https://okta.example' },
+          { name: 'google', icon: 'google', url: 'https://google.example' },
+        ],
+        AUTH_USER_REGISTRATION: false,
       },
-    });
-    render(<Login />, { useRedux: true });
-    expect(screen.getByText('Sign in with Okta')).toBeInTheDocument();
-    expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
-    const keyWarnings = consoleError.mock.calls.filter(call =>
-      String(call[0]).includes('unique "key"'),
-    );
-    expect(keyWarnings).toHaveLength(0);
-    consoleError.mockRestore();
-  },
-);
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(getAncestorKeys(screen.getByText('Sign in with Okta'))).toContain(
+    'okta',
+  );
+  expect(getAncestorKeys(screen.getByText('Sign in with Google'))).toContain(
+    'google',
+  );
+});
