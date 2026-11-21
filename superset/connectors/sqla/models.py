@@ -92,11 +92,17 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.constants import EPOCH_FORMATS
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    reuse_discovered_default_schema,
+    TimestampExpression,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
+    OAuth2Error,
+    OAuth2RedirectError,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetGenericDBErrorException,
@@ -3286,6 +3292,7 @@ class SqlaTable(
                 return True
         return False
 
+    @reuse_discovered_default_schema()
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         """
         The cache key of a SqlaTable needs to consider any keys added by the parent
@@ -3312,12 +3319,25 @@ class SqlaTable(
             # which the Jinja template processor collects, and the mapping's own
             # identity is appended below. A miss falls through to SQL
             # generation, which probes.
-            sqla_query = self.get_sqla_query(
-                **cast(Any, filtered_query_obj),
-                mirror_partition_filters=False,
-                execute_prequeries=False,
-            )
-            extra_cache_keys += sqla_query.extra_cache_keys
+            try:
+                sqla_query = self.get_sqla_query(
+                    **cast(Any, filtered_query_obj),
+                    mirror_partition_filters=False,
+                    execute_prequeries=False,
+                )
+            except (OAuth2RedirectError, OAuth2Error):
+                # the user has to sign in to the database to build the query
+                raise
+            except Exception:  # pylint: disable=broad-except
+                # An incomplete macro context cannot identify cached results.
+                # In particular, a viewer identity does not capture templated
+                # RLS or guest-token attributes. Preserve the original error
+                # rather than serving a result under a partial key. Query
+                # construction can also leave the metadata session unusable.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                raise
+            else:
+                extra_cache_keys += sqla_query.extra_cache_keys
 
         resolve_catalog = cache(self.database.get_default_catalog)
         resolve_schema = cache(self._get_rls_schema)

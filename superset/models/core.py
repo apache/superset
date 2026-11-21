@@ -39,6 +39,7 @@ from contextlib import (
 from copy import deepcopy
 from functools import lru_cache
 from inspect import signature
+from time import monotonic
 from typing import (
     Any,
     Callable,
@@ -82,6 +83,7 @@ from sqlalchemy.orm import (
     Session,
     SessionTransaction,
 )
+from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
@@ -141,6 +143,13 @@ T = TypeVar("T")
 # different kwargs naturally falls through to a fresh engine.
 _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
+_DEFAULT_SCHEMA_CACHE_TIMEOUT = 3600
+# Publish once per engine so a long-lived dialect cannot renew stale discovery.
+_DEFAULT_SCHEMA_PUBLISHED_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
+_DEFAULT_SCHEMA_DISCOVERED_AT: weakref.WeakKeyDictionary[Engine, float] = (
+    weakref.WeakKeyDictionary()
+)
+_DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
 # sign-in on them is logged for administrators (see
@@ -149,6 +158,14 @@ _EMBEDDED_FALLBACK_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
 # Set on an exception once its rejection is logged, so a path that both dispatches
 # ``handle_error`` and catches the error itself logs it once.
 _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
+
+
+def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
+    """Preserve existing discovery when the backend supports add-if-absent."""
+    try:
+        return bool(cache_manager.cache.add(cache_key, schema, timeout=timeout))
+    except (AttributeError, NotImplementedError):
+        return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
 
 
 def _log_embedded_rejection(
@@ -997,6 +1014,31 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+        if cacheable:
+            # Private engines' per-call session SQL is not captured by URL or kwargs.
+            # Only reusable engines can share schema discovery. Hash the effective
+            # identity so cache keys and values contain no connection credentials.
+            engine.update_execution_options(
+                superset_engine_identity=cache_util.generate_cache_key(
+                    {
+                        "url": sqlalchemy_url.render_as_string(hide_password=False),
+                        "kwargs": repr(sorted(engine_kwargs.items())),
+                    }
+                )
+            )
+        engine_ref = weakref.ref(engine)
+
+        def record_first_connect(
+            _dbapi_connection: object, _connection_record: object
+        ) -> None:
+            """Bound shared discovery's age even when normal queries warm the engine."""
+            if connected_engine := engine_ref():
+                with _DEFAULT_SCHEMA_CACHE_LOCK:
+                    _DEFAULT_SCHEMA_DISCOVERED_AT.setdefault(
+                        connected_engine, monotonic()
+                    )
+
+        sqla.event.listen(engine, "first_connect", record_first_connect)
         sqla.event.listen(engine, "handle_error", mark_database_engine_error)
         if embedded_fallback:
             self._log_rejected_embedded_credential(engine)
@@ -1123,6 +1165,79 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
 
+    def get_default_schema_from_engine(self, catalog: str | None) -> str | None:
+        """Read the selected engine's default, discovering it only when unknown.
+
+        An inspector's default_schema_name is the value retained on the dialect,
+        but constructing the inspector checks out a connection. Reusing that
+        value lets cache keys collect their full macro/RLS context offline. This
+        shortcut is reserved for cache-key collection; other schema lookups use
+        the engine spec's inspector policy. Shared discovery survives worker
+        restarts for one hour, scoped to the database, catalog and effective
+        engine identity. Cache failures leave local discovery available.
+        Discovery is published once per engine, only within one hour of its first
+        connection, without renewing its expiry on warm lookups. SSH tunnels do not
+        share discovery because their local connection URLs contain ephemeral ports.
+        Cold-engine discovery retains the inspector's OAuth2 retry policy.
+        """
+
+        @contextmanager
+        def open_schema() -> Iterator[str | None]:
+            """Resolve before yielding so login failures can be retried."""
+            with self.get_sqla_engine(catalog=catalog) as engine:
+                identity = engine.get_execution_options().get(
+                    "superset_engine_identity"
+                )
+                cache_key = (
+                    cache_util.generate_cache_key(
+                        {
+                            "database_id": self.id,
+                            "catalog": catalog,
+                            "engine": identity,
+                        },
+                        key_prefix="database_default_schema:",
+                    )
+                    if self.id is not None
+                    and isinstance(identity, str)
+                    and not self.ssh_tunnel
+                    else None
+                )
+                schema = engine.dialect.default_schema_name
+                if schema is None and cache_key is not None:
+                    cached_schema = None
+                    try:
+                        cached_schema = cache_manager.cache.get(cache_key)
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning("Unable to read the default schema cache")
+                    if isinstance(cached_schema, str):
+                        yield cached_schema
+                        return
+                if schema is None:
+                    schema = sqla.inspect(engine).default_schema_name
+                if schema is not None and cache_key is not None:
+                    with _DEFAULT_SCHEMA_CACHE_LOCK:
+                        discovered_at = _DEFAULT_SCHEMA_DISCOVERED_AT.get(engine)
+                        if (
+                            engine not in _DEFAULT_SCHEMA_PUBLISHED_ENGINES
+                            and discovered_at is not None
+                            and (age := monotonic() - discovered_at)
+                            < _DEFAULT_SCHEMA_CACHE_TIMEOUT
+                        ):
+                            try:
+                                timeout = max(
+                                    1, int(_DEFAULT_SCHEMA_CACHE_TIMEOUT - age)
+                                )
+                                if _publish_default_schema(cache_key, schema, timeout):
+                                    _DEFAULT_SCHEMA_PUBLISHED_ENGINES.add(engine)
+                            except Exception:  # pylint: disable=broad-except
+                                logger.warning(
+                                    "Unable to write the default schema cache"
+                                )
+                yield schema
+
+        with self._open_with_oauth2_retry(open_schema) as schema:
+            return schema
+
     def get_search_path(
         self, catalog: str | None, tables: Collection[str] = ()
     ) -> tuple[list[str], dict[str, list[str]]]:
@@ -1166,10 +1281,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         Builds a transient (unsaved) ``Query`` probe so the engine spec resolves
         the schema exactly as execution does -- running engine-specific per-query
-        security gates too -- then expunges it so the ``database`` backref's
-        ``cascade="all, delete-orphan"`` cannot autoflush this incomplete row
-        into the session. Centralizes the probe construction shared by the SQL
-        Lab executor, the cost-estimate command, and datasource denylist checks
+        security gates too. The database relationship is set without backref
+        events: the probe must neither enter the session nor mark the database
+        dirty and evict its cached engines on a later flush. Centralizes the
+        probe construction shared by the SQL Lab executor, the cost-estimate
+        command, and datasource denylist checks
         so the schema-resolution behavior stays in sync across these
         security-sensitive paths.
 
@@ -1182,15 +1298,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         from superset.models.sql_lab import Query
 
         probe_query = Query(
-            database=self,
             sql=sql,
             schema=schema or None,
             catalog=catalog,
             client_id=utils.shortid()[:10],
             user_id=utils.get_user_id(),
         )
-        if probe_query in db.session:
-            db.session.expunge(probe_query)
+        set_committed_value(probe_query, "database", self)
         return self.get_default_schema_for_query(probe_query, template_params)
 
     @staticmethod

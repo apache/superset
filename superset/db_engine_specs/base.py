@@ -23,6 +23,7 @@ import re
 import warnings
 from collections.abc import Collection, Iterator
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
@@ -148,6 +149,26 @@ _TRAILING_LIMIT_OFFSET = re.compile(
 )
 
 logger = logging.getLogger()
+
+_reuse_discovered_schema: ContextVar[bool] = ContextVar(
+    "reuse_discovered_schema", default=False
+)
+
+
+@contextmanager
+def reuse_discovered_default_schema() -> Iterator[None]:
+    """Reuse engine schema discovery only while collecting chart cache keys.
+
+    Execution and metadata inspection retain their engine-specific inspector
+    behavior. Context-local state keeps nested collectors and concurrent requests
+    from changing each other's schema policy.
+    """
+    token = _reuse_discovered_schema.set(True)
+    try:
+        yield
+    finally:
+        _reuse_discovered_schema.reset(token)
+
 
 # When connecting to a database it's hard to catch specific exceptions, since we support
 # more than 50 different database drivers. Usually the try/except block will catch the
@@ -1367,7 +1388,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_default_schema(cls, database: Database, catalog: str | None) -> str | None:
         """
         Return the default schema for a catalog in a given database.
+
+        Cache-key collection can reuse an initialized engine's discovery without
+        changing the inspector policy of execution and metadata callers.
         """
+        if _reuse_discovered_schema.get():
+            return database.get_default_schema_from_engine(catalog)
         with database.get_inspector(catalog=catalog) as inspector:
             return inspector.default_schema_name
 

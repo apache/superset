@@ -28,6 +28,7 @@ import pandas as pd
 import pytest
 import sqlalchemy.exc
 from flask import current_app
+from flask_caching import Cache
 from freezegun import freeze_time
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
@@ -3083,26 +3084,44 @@ def test_get_raw_connection_refreshes_a_token_rejected_at_login(
     connection.close.assert_called_once()
 
 
+@pytest.mark.parametrize("lookup", ["inspector", "schema"])
+@pytest.mark.parametrize("failure_phase", ["engine", "inspector"])
 def test_get_inspector_refreshes_a_token_rejected_at_login(
     app_context: None,
     mocker: MockerFixture,
+    lookup: str,
+    failure_phase: str,
 ) -> None:
     """Metadata (and the default schema chart data reads) log in the same way."""
     engine = mocker.MagicMock()
+    engine.dialect.default_schema_name = None
     database = _login_rejecting_database(mocker, engine)
     inspector = mocker.MagicMock()
+    inspector.default_schema_name = "public"
+    error = RuntimeError("token rejected")
     inspect = mocker.patch(
         "superset.models.core.sqla.inspect",
-        side_effect=[RuntimeError("token rejected"), inspector],
+        side_effect=[error, inspector] if failure_phase == "inspector" else [inspector],
     )
+    if failure_phase == "engine":
+        mocker.patch.object(database, "_get_sqla_engine", side_effect=[error, engine])
     refresh = mocker.patch(
         "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
     )
 
-    with database.get_inspector() as result:
-        assert result is inspector
+    if lookup == "inspector":
+        with database.get_inspector() as result:
+            assert result is inspector
+    else:
+        from superset.db_engine_specs.base import (
+            BaseEngineSpec,
+            reuse_discovered_default_schema,
+        )
 
-    assert inspect.call_count == 2
+        with reuse_discovered_default_schema():
+            assert BaseEngineSpec.get_default_schema(database, None) == "public"
+
+    assert inspect.call_count == (2 if failure_phase == "inspector" else 1)
     refresh.assert_called_once()
 
 
@@ -4871,3 +4890,328 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
         f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
     )
+
+
+@pytest.mark.parametrize("entry_point", ["schema", "access"])
+@pytest.mark.parametrize("database_state", ["transient", "persistent", "detached"])
+def test_transient_query_read_does_not_dirty_database(
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+    entry_point: str,
+    database_state: str,
+) -> None:
+    """Read-only schema and access probes must not mutate the query backref."""
+    from sqlalchemy import inspect
+
+    from superset import security_manager
+    from superset.models.sql_lab import Query
+
+    Database.metadata.create_all(session.get_bind())
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    if database_state != "transient":
+        session.add(database)
+        session.flush()
+    if database_state == "detached":
+        session.expunge(database)
+    assert getattr(inspect(database), database_state)
+    resolve = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="main"
+    )
+    mocker.patch.object(security_manager, "can_access_database", return_value=True)
+    mocker.patch.object(security_manager, "is_guest_user", return_value=False)
+
+    if entry_point == "schema":
+        assert database.resolve_query_default_schema("SELECT 1", None, None) == "main"
+        probe = resolve.call_args.args[0]
+        assert probe.database is database
+        assert inspect(probe).transient
+    else:
+        security_manager.raise_for_access(database=database, sql="SELECT 1")
+
+    assert database not in session.dirty
+    assert not inspect(database).attrs.queries.history.has_changes()
+    session.flush()
+    assert session.query(Query).count() == 0
+
+
+@pytest.fixture
+def shared_default_schema_cache(
+    app_context: None, mocker: MockerFixture
+) -> Iterator[Cache]:
+    """Isolate the shared schema store from the process-local engine cache."""
+    from superset.extensions import cache_manager
+    from superset.models.core import _retire_cached_engines
+
+    cache = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    cache.init_app(current_app._get_current_object())
+    mocker.patch.object(cache_manager, "_cache", cache)
+    mocker.patch("superset.models.core.security_manager.find_user", return_value=None)
+    _retire_cached_engines(987654)
+    _retire_cached_engines(987655)
+    yield cache
+    _retire_cached_engines(987654)
+    _retire_cached_engines(987655)
+    cache.clear()
+
+
+@pytest.mark.parametrize("entry_point", ["schema", "query_schema", "search_path"])
+def test_default_schema_shared_cache_survives_worker_restart(
+    shared_default_schema_cache: Cache, mocker: MockerFixture, entry_point: str
+) -> None:
+    """A cold dialect reads discovery made by another worker without connecting."""
+    from superset.db_engine_specs.base import reuse_discovered_default_schema
+    from superset.models.core import _retire_cached_engines
+
+    @reuse_discovered_default_schema()
+    def lookup(database: Database) -> str | None:
+        """Exercise each base-spec schema entry point used by key collectors."""
+        if entry_point == "query_schema":
+            return database.resolve_query_default_schema(
+                "SELECT * FROM physical", None, None
+            )
+        if entry_point == "search_path":
+            schemas, _ = database.get_search_path(None, ["physical"])
+            return schemas[0] if schemas else None
+        return database.get_default_schema(None)
+
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    assert lookup(database) == "main"
+    _retire_cached_engines(database.id)
+    fresh_database = Database(
+        id=database.id, database_name="analytic", sqlalchemy_uri="sqlite://"
+    )
+    with fresh_database.get_sqla_engine() as engine:
+        assert engine.dialect.default_schema_name is None
+        connect = mocker.patch.object(
+            engine,
+            "raw_connection",
+            side_effect=ConnectionError("database unreachable"),
+        )
+    assert lookup(fresh_database) == "main"
+    connect.assert_not_called()
+    # Reading shared discovery must not pretend SQLAlchemy initialized the dialect.
+    assert engine.dialect.default_schema_name is None
+
+
+@pytest.mark.parametrize(
+    "identity", ["uri", "engine_params", "mutator", "database_id", "catalog"]
+)
+def test_default_schema_shared_cache_separates_engine_identity(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    tmp_path: Path,
+    identity: str,
+) -> None:
+    """Never reuse discovery across catalogs, connections, or effective kwargs."""
+    from superset.models.core import _retire_cached_engines
+
+    cache = shared_default_schema_cache
+    write = mocker.spy(cache, "add")
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    assert database.get_default_schema_from_engine(None) == "main"
+    write.assert_called_once()
+    key = write.call_args.args[0]
+    assert cache.get(key) == "main"
+    assert write.call_args.kwargs["timeout"] > 0
+    _retire_cached_engines(database.id)
+    catalog = None
+    if identity == "uri":
+        database.sqlalchemy_uri = f"sqlite:///{tmp_path / 'other.db'}"
+    elif identity == "engine_params":
+        database.extra = json.dumps(
+            {"engine_params": {"connect_args": {"timeout": 42}}}
+        )
+    elif identity == "mutator":
+
+        def mutate(
+            url: URL, kwargs: dict[str, Any], *args: Any
+        ) -> tuple[URL, dict[str, Any]]:
+            """Change the effective connection without changing the stored URI."""
+            kwargs["connect_args"]["timeout"] = 42
+            return url, kwargs
+
+        mocker.patch.dict(current_app.config, {"DB_CONNECTION_MUTATOR": mutate})
+    elif identity == "database_id":
+        database.id = 987655
+    else:
+        catalog = "other"
+    with database.get_sqla_engine(catalog=catalog) as engine:
+        assert engine.dialect.default_schema_name is None
+        error = ConnectionError("new database unreachable")
+        mocker.patch.object(engine, "raw_connection", side_effect=error)
+    with pytest.raises(ConnectionError) as raised:
+        database.get_default_schema_from_engine(catalog)
+    assert raised.value is error
+    assert cache.get(key) == "main"
+    assert write.call_count == 1
+
+
+@pytest.mark.parametrize("operation", ["get", "add"])
+def test_default_schema_shared_cache_failure_falls_back(
+    shared_default_schema_cache: Cache, mocker: MockerFixture, operation: str
+) -> None:
+    """A cache outage cannot replace discovery or the local dialect fallback."""
+    cache = shared_default_schema_cache
+    failed = mocker.patch.object(
+        cache, operation, side_effect=ConnectionError("cache unreachable")
+    )
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    assert database.get_default_schema_from_engine(None) == "main"
+    failed.assert_called_once()
+    with database.get_sqla_engine() as engine:
+        connect = mocker.patch.object(
+            engine,
+            "raw_connection",
+            side_effect=ConnectionError("database unreachable"),
+        )
+    assert database.get_default_schema_from_engine(None) == "main"
+    connect.assert_not_called()
+
+
+def test_default_schema_private_engine_is_not_shared(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """Per-call session SQL is not represented by a reusable engine identity."""
+    cache = shared_default_schema_cache
+    write = mocker.spy(cache, "add")
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        database.db_engine_spec, "get_prequeries", return_value=["SELECT 1"]
+    )
+    assert database.get_default_schema_from_engine(None) == "main"
+    write.assert_not_called()
+    error = ConnectionError("private database unreachable")
+    mocker.patch("sqlalchemy.engine.Engine.raw_connection", side_effect=error)
+    with pytest.raises(ConnectionError) as raised:
+        database.get_default_schema_from_engine(None)
+    assert raised.value is error
+
+
+@pytest.mark.parametrize("already_discovered", [False, True])
+def test_default_schema_warm_engine_publishes_once(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    already_discovered: bool,
+) -> None:
+    """Repeated warm lookups must not renew stale shared discovery's expiry."""
+    cache = shared_default_schema_cache
+    write = mocker.spy(cache, "add")
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        if already_discovered:
+            assert sqlalchemy.inspect(engine).default_schema_name == "main"
+    for _ in range(5):
+        assert database.get_default_schema_from_engine(None) == "main"
+    write.assert_called_once()
+    key = write.call_args.args[0]
+    # Expiry must not make a long-lived dialect re-publish its old discovery.
+    cache.delete(key)
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert cache.get(key) is None
+    write.assert_called_once()
+
+
+def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """Random local tunnel ports must not leave one shared key per lookup."""
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.extensions.ssh import SSHManager
+
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    database.ssh_tunnel = SSHTunnel(server_address="gateway", server_port=22)
+    manager = mocker.patch("superset.models.core.ssh_manager_factory").instance
+    # Use the real URL rewriter, but SQLite engines to avoid a live SSH/DB service.
+    manager.build_sqla_url.side_effect = SSHManager.build_sqla_url.__get__(manager)
+    engines = [create_engine("sqlite://"), create_engine("sqlite://")]
+    build = mocker.patch("superset.models.core.create_engine", side_effect=engines)
+    write = mocker.spy(shared_default_schema_cache, "add")
+    read = mocker.spy(shared_default_schema_cache, "get")
+    for port in (40001, 40002):
+        server = mocker.Mock(
+            local_bind_address=("127.0.0.1", port), local_bind_port=port
+        )
+        manager.create_tunnel.return_value = nullcontext(server)
+        assert database.get_default_schema_from_engine(None) == "main"
+    assert [call.args[0].port for call in build.call_args_list] == [40001, 40002]
+    read.assert_not_called()
+    write.assert_not_called()
+
+
+@pytest.mark.parametrize("recycle_pool", [False, True])
+@pytest.mark.parametrize("elapsed", [1800, 3600, 3 * 24 * 3600])
+def test_default_schema_old_worker_does_not_overwrite_new_discovery(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    elapsed: int,
+    recycle_pool: bool,
+) -> None:
+    """An older engine must not replace another worker's shared discovery."""
+    from superset.models.core import _retire_cached_engines
+
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0, create=True)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as old_engine:
+        sqlalchemy.inspect(old_engine)
+        old_engine.dialect.default_schema_name = "old"
+    _retire_cached_engines(database.id)
+    clock.return_value = elapsed
+    with database.get_sqla_engine() as new_engine:
+        sqlalchemy.inspect(new_engine)
+        new_engine.dialect.default_schema_name = "new"
+    if recycle_pool:
+        old_engine.dispose()
+        sqlalchemy.inspect(old_engine)
+    write = mocker.spy(shared_default_schema_cache, "add")
+    fallback_write = mocker.spy(shared_default_schema_cache, "set")
+    assert database.get_default_schema_from_engine(None) == "new"
+    key = (write.call_args or fallback_write.call_args).args[0]
+    mocker.patch.object(
+        database, "get_sqla_engine", return_value=nullcontext(old_engine)
+    )
+    assert database.get_default_schema_from_engine(None) == "old"
+    assert shared_default_schema_cache.get(key) == "new"
+    assert write.call_count + fallback_write.call_count == (2 if elapsed < 3600 else 1)
+
+
+def test_default_schema_unsuccessful_publication_retries(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """A false cache write result must not mark the engine as published."""
+    cache = shared_default_schema_cache
+    real_add = cache.add
+    write = mocker.patch.object(cache, "add", return_value=False)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    assert database.get_default_schema_from_engine(None) == "main"
+    key = write.call_args.args[0]
+    assert cache.get(key) is None
+    write.side_effect = real_add
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert cache.get(key) == "main"
+    assert write.call_count == 2
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert write.call_count == 2
+
+
+@pytest.mark.parametrize("supports_add", [False, True])
+@pytest.mark.parametrize("elapsed", [1800, 3599.5])
+def test_default_schema_publication_uses_remaining_lifetime(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    supports_add: bool,
+    elapsed: float,
+) -> None:
+    """Delayed publication must not extend discovery past its original lifetime."""
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+    if not supports_add:
+        mocker.patch.object(
+            shared_default_schema_cache, "add", side_effect=NotImplementedError
+        )
+    normalize = mocker.spy(shared_default_schema_cache.cache, "_normalize_timeout")
+    clock.return_value = elapsed
+    assert database.get_default_schema_from_engine(None) == "main"
+    normalize.assert_called_once_with(max(1, int(3600 - elapsed)))
