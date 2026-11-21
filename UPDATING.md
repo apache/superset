@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **OAuth login with a single provider:** when `OAUTH_PROVIDERS` contains exactly
+  one provider, the login page now skips the provider choice and redirects
+  straight to that provider's sign-in. After logout, users land on the login page
+  and are redirected to the provider again, which may sign them straight back in
+  while their provider session is active. Set `LOGOUT_REDIRECT_URL` (or override
+  `logout` in a custom OAuth view) to send users elsewhere or end the provider
+  session.
 - Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
 
 - Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
