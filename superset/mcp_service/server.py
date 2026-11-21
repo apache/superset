@@ -406,7 +406,7 @@ def _serialize_tools_without_output_schema(
     results = []
     for tool in tools:
         data = tool.to_mcp_tool().model_dump(
-            mode="json", exclude_none=True, exclude={"outputSchema"}
+            mode="json", by_alias=True, exclude_none=True, exclude={"outputSchema"}
         )
         data.pop("outputSchema", None)
         if input_schema := data.get("inputSchema"):
@@ -429,7 +429,7 @@ def _build_summary_serializer(max_desc: int) -> Any:
         results = []
         for tool in tools:
             data = tool.to_mcp_tool().model_dump(
-                mode="json", exclude_none=True, exclude={"outputSchema"}
+                mode="json", by_alias=True, exclude_none=True, exclude={"outputSchema"}
             )
             data.pop("outputSchema", None)
             instructions = _request_instructions(tool)
@@ -456,21 +456,22 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
             _get_app_context_manager,
             get_user_from_request,
             is_tool_visible_to_current_user,
+            MCPNoAuthSourceError,
         )
 
         def _check() -> bool:
             if not getattr(g, "user", None):
                 try:
                     g.user = get_user_from_request()
-                except PermissionError:
-                    # Invalid credentials (bad API key) → deny all, matching
-                    # RBACToolVisibilityMiddleware's fail-closed behaviour.
-                    return False
-                except ValueError:
+                except MCPNoAuthSourceError:
                     # No auth source configured → only pass public tools
                     # (those with no class-level permission requirement).
                     func = getattr(tool, "fn", tool)
                     return not getattr(func, "_class_permission_name", None)
+                except (PermissionError, ValueError):
+                    # Rejected API-key, JWT, or guest credentials deny all tools,
+                    # matching RBACToolVisibilityMiddleware's fail-closed path.
+                    return False
             return is_tool_visible_to_current_user(tool)
 
         if has_app_context():
@@ -643,7 +644,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     in a future major version, these subclasses will need to be updated.
     """
     from fastmcp.server.context import Context
-    from fastmcp.tools.tool import Tool, ToolResult
+    from fastmcp.tools import Tool, ToolResult
 
     strategy = config.get("strategy", "bm25")
     kwargs: dict[str, Any] = {
@@ -707,6 +708,15 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     )
 
 
+def _name_words(text: str) -> list[str]:
+    """Split a tool name or query into lowercase words for name matching.
+
+    Mirrors the BM25 tokenizer: runs of letters and digits, dropping
+    single-character fragments.
+    """
+    return [word for word in re.split(r"[^a-z0-9]+", text.lower()) if len(word) > 1]
+
+
 def _create_search_transform(  # noqa: C901
     *,
     strategy: str,
@@ -715,7 +725,7 @@ def _create_search_transform(  # noqa: C901
 ) -> Any:
     """Create the configured search transform with tool-permission filtering."""
     from fastmcp.server.context import Context
-    from fastmcp.tools.tool import Tool
+    from fastmcp.tools import Tool
 
     def _make_optional_query_search_tool(transform: Any) -> Any:
         """Create search tool with optional query — returns all tools when omitted."""
@@ -742,13 +752,32 @@ def _create_search_transform(  # noqa: C901
         tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
         return _fix_search_tool_query(tool)
 
-    def _promote_exact_name(
+    def _promote_name_matches(
         tools: Sequence[Tool],
         query: str,
         ranked: Sequence[Tool],
         max_results: int,
+        *,
+        cover_query_words: bool = False,
     ) -> Sequence[Tool]:
-        """Promote caller-visible exact names without duplicating ranked matches."""
+        """Promote tools whose names the query spells out, within ``max_results``.
+
+        BM25 indexes a tool's name as ordinary text next to its description, so
+        a tool with a long definition can rank below the result limit even when
+        the query contains every word of its name. Two kinds of name match are
+        moved ahead of the upstream ranking:
+
+        1. Exact names, which always come first.
+        2. With ``cover_query_words`` (natural-language search only), multi-word
+           names whose words appear in the query as a contiguous, in-order run,
+           for example ``get_dataset_info`` for "get dataset info execute sql",
+           ordered by name length, query position, and then upstream rank.
+           Names nested inside another covered name are not promoted. Words
+           scattered across the query do not count.
+
+        Only caller-visible candidates are inspected, never the full catalog,
+        and the result never exceeds ``max_results``.
+        """
         normalized_query = " ".join(query.casefold().replace("_", " ").split())
         exact = [
             tool
@@ -756,15 +785,48 @@ def _create_search_transform(  # noqa: C901
             if " ".join(tool.name.casefold().replace("_", " ").split())
             == normalized_query
         ]
-        if not exact:
-            return ranked
-        # Only inspect the caller-filtered candidates, never the full catalog.
-        # The upstream top-N contains enough non-exact results to fill the
-        # remaining slots, without changing upstream ordering or shared limits.
         exact_names = {tool.name for tool in exact}
+        covered: list[Tool] = []
+        if cover_query_words:
+            query_words = _name_words(query)
+            ranked_position = {tool.name: index for index, tool in enumerate(ranked)}
+            matches: list[tuple[Tool, list[str], int]] = []
+            for tool in tools:
+                if tool.name in exact_names:
+                    continue
+                words = _name_words(tool.name)
+                if len(words) <= 1:
+                    continue
+                for run_start in range(len(query_words) - len(words) + 1):
+                    if query_words[run_start : run_start + len(words)] == words:
+                        matches.append((tool, words, run_start))
+                        break
+            covered = [
+                tool
+                for tool, words, run_start in sorted(
+                    matches,
+                    key=lambda match: (
+                        -len(match[1]),
+                        match[2],
+                        ranked_position.get(match[0].name, len(ranked_position)),
+                    ),
+                )
+                if not any(
+                    len(other_words) > len(words)
+                    and any(
+                        other_words[start : start + len(words)] == words
+                        for start in range(len(other_words) - len(words) + 1)
+                    )
+                    for _, other_words, _ in matches
+                )
+            ]
+        promoted_names = exact_names | {tool.name for tool in covered}
+        if not promoted_names:
+            return ranked
         return [
             *exact,
-            *(tool for tool in ranked if tool.name not in exact_names),
+            *covered,
+            *(tool for tool in ranked if tool.name not in promoted_names),
         ][:max_results]
 
     if strategy == "regex":
@@ -783,7 +845,7 @@ def _create_search_transform(  # noqa: C901
             ) -> Sequence[Tool]:
                 """Promote visible exact names before applying the result limit."""
                 ranked = await super()._search(tools, query)
-                return _promote_exact_name(tools, query, ranked, self._max_results)
+                return _promote_name_matches(tools, query, ranked, self._max_results)
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -808,9 +870,11 @@ def _create_search_transform(  # noqa: C901
             return await _filter_visible_tools_fail_open(tools)
 
         async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
-            """Promote visible exact names before applying the final result limit."""
+            """Promote visible exact names and contiguous name runs before the limit."""
             ranked = await super()._search(tools, query)
-            return _promote_exact_name(tools, query, ranked, self._max_results)
+            return _promote_name_matches(
+                tools, query, ranked, self._max_results, cover_query_words=True
+            )
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""

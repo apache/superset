@@ -55,7 +55,7 @@ import {
   useTheme,
   SupersetTheme,
 } from '@apache-superset/core/theme';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
@@ -274,6 +274,7 @@ const VisuallyHidden = styled.label`
 `;
 
 function SearchInput({
+  count,
   value,
   onChange,
   onBlur,
@@ -285,8 +286,8 @@ function SearchInput({
     <Space direction="vertical" size={4} className="dt-global-filter">
       <span aria-hidden="true">{t('Search')}</span>
       <Input
-        aria-label={t('Search records')}
-        placeholder={t('Search records')}
+        aria-label={tn('Search %s record', 'Search %s records', count, count)}
+        placeholder={tn('%s record...', '%s records...', count, count)}
         value={value}
         size="small"
         onChange={onChange}
@@ -411,6 +412,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     height,
     width,
     data,
+    paginationQuery,
     totals,
     isRawRecords,
     rowCount = 0,
@@ -1699,6 +1701,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         sortBy,
+        currentPage: 0,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -1724,6 +1727,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
+        currentPage: 0,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
@@ -1776,6 +1780,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   return (
     <Styles>
       <DataTable<D>
+        pageResetKey={paginationQuery}
         columns={columns}
         data={data}
         rowCount={rowCount}

@@ -17,6 +17,7 @@
 """Tool workers and the transport loop share the metadata connection pool."""
 
 import asyncio
+import contextlib
 import sqlite3
 import threading
 import time
@@ -145,7 +146,10 @@ async def test_saturated_workers_holding_metadata_pool_do_not_freeze_loop(
             try:
                 await asyncio.sleep(0.05)
                 pinged = time.monotonic()
-                await client.ping()
+                # FastMCP 4 answers ``ping`` with "Method not found"; the round
+                # trip still measures loop responsiveness.
+                with contextlib.suppress(Exception):
+                    await client.ping()
                 ping_latency = time.monotonic() - pinged
                 results = await asyncio.gather(*calls)
                 elapsed = time.monotonic() - started
@@ -874,8 +878,9 @@ async def test_saturated_default_pool_never_waits_for_a_connection(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("tool_name", ["list_charts", "list_semantic_views"])
 async def test_metadata_only_tools_answer_while_warehouse_bound_is_full(
-    app: Any, default_pool_engine: Engine
+    app: Any, default_pool_engine: Engine, tool_name: str
 ) -> None:
     """Slow warehouse calls fill their bound; listing tools keep succeeding.
 
@@ -896,7 +901,7 @@ async def test_metadata_only_tools_answer_while_warehouse_bound_is_full(
         release.wait(timeout=5)
         return "slow"
 
-    def list_charts() -> int:
+    def list_metadata() -> int:
         """Answer from the metadata database alone."""
         return db.session.execute(text("SELECT 1")).scalar()
 
@@ -906,7 +911,7 @@ async def test_metadata_only_tools_answer_while_warehouse_bound_is_full(
         patch("superset.mcp_service.worker._get_pool", return_value=pool),
     ):
         mcp.tool(mcp_auth_hook(slow_query, tool_name="slow_query"))
-        mcp.tool(mcp_auth_hook(list_charts, tool_name="list_charts"))
+        mcp.tool(mcp_auth_hook(list_metadata, tool_name=tool_name), name=tool_name)
         async with Client(mcp) as client:
             slow = [
                 asyncio.create_task(client.call_tool("slow_query", {}))
@@ -917,10 +922,7 @@ async def test_metadata_only_tools_answer_while_warehouse_bound_is_full(
                 with pytest.raises(ToolError, match="server busy"):
                     await client.call_tool("slow_query", {})
                 listed = await asyncio.gather(
-                    *(
-                        client.call_tool("list_charts", {})
-                        for _ in range(metadata_workers)
-                    )
+                    *(client.call_tool(tool_name, {}) for _ in range(metadata_workers))
                 )
             finally:
                 release.set()

@@ -39,10 +39,14 @@ from superset.mcp_service.common.error_schemas import (
     ColumnSuggestion,
     DatasetContext,
 )
+from superset.mcp_service.common.temporal_filter_values import (
+    invalid_temporal_filter_value,
+)
 from superset.mcp_service.utils.error_builder import (
     MAX_DID_YOU_MEAN_CANDIDATES,
     MAX_ERROR_SUGGESTIONS,
 )
+from superset.utils.core import format_list
 
 _C = TypeVar("_C", bound=ChartConfig)
 _T = TypeVar("_T")
@@ -132,6 +136,41 @@ def is_dataset_column_temporal(
     return False
 
 
+def temporal_filter_storage_format(column: Any, db_engine_spec: Any) -> str | None:
+    """Return a date format only when SIMPLE filters compare raw stored values.
+
+    A native DATE/TIMESTAMP ignores python_date_format in the shared filter
+    handler. Applying it here would validate a different representation.
+    """
+    from superset.utils.core import GenericDataType
+
+    format_ = getattr(column, "python_date_format", None)
+    if not isinstance(format_, str) or not format_:
+        return None
+    spec = db_engine_spec.get_column_spec(column.type) if column.type else None
+    if spec and spec.generic_type == GenericDataType.TEMPORAL:
+        return None
+    return format_
+
+
+def is_temporal_filter_column(column: Any, db_engine_spec: Any) -> bool:
+    """Distinguish temporal SIMPLE comparisons from time-axis eligibility.
+
+    An is_dttm flag permits time-axis operations, but does not change the SQL
+    type used by filter_values_handler. Unformatted VARCHAR values remain plain
+    strings even when the column is eligible for a time axis.
+    """
+    from superset.utils.core import GenericDataType
+
+    spec = db_engine_spec.get_column_spec(column.type) if column.type else None
+    if spec and spec.generic_type == GenericDataType.TEMPORAL:
+        return True
+    return bool(
+        getattr(column, "is_dttm", False)
+        and temporal_filter_storage_format(column, db_engine_spec)
+    )
+
+
 def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     """Construct a :class:`DatasetContext` from an already-fetched ORM dataset.
 
@@ -155,6 +194,16 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
                     else getattr(col, "is_temporal", False)
                 ),
                 "is_numeric": getattr(col, "is_numeric", False),
+                "is_temporal_filter": (
+                    is_temporal_filter_column(col, db_engine_spec)
+                    if db_engine_spec
+                    else getattr(col, "is_temporal", False)
+                ),
+                "python_date_format": (
+                    temporal_filter_storage_format(col, db_engine_spec)
+                    if db_engine_spec
+                    else None
+                ),
             }
         )
 
@@ -227,6 +276,42 @@ def resolve_dataset_reference(
     return matches[0] if matches else None
 
 
+def resolve_dataset_column(
+    column_name: str, dataset_context: DatasetContext
+) -> Mapping[str, Any] | None:
+    """Resolve an exact, otherwise unique case-insensitive dataset column.
+
+    Metadata ordering must never decide which SQL type is used for validation.
+    Exact case is authoritative; a case-insensitive fallback is safe only when
+    it identifies one column.
+    """
+
+    exact = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"] == column_name
+    ]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        raise ValueError(f"Duplicate exact dataset column {column_name!r}")
+
+    folded = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"].casefold() == column_name.casefold()
+    ]
+    if len(folded) == 1:
+        return folded[0]
+    if len(folded) > 1:
+        raise AmbiguousDatasetReferenceError(
+            column_name,
+            [column["name"] for column in folded],
+            "column",
+        )
+    return None
+
+
 class DatasetValidator:
     """Validates chart configuration against dataset schema."""
 
@@ -266,6 +351,8 @@ class DatasetValidator:
         config: ChartConfig,
         dataset_id: int | str,
         dataset_context: DatasetContext | None = None,
+        *,
+        validate_temporal_values: bool = True,
     ) -> Tuple[bool, ChartGenerationError | None]:
         """
         Validate chart configuration against dataset schema.
@@ -275,6 +362,8 @@ class DatasetValidator:
             dataset_id: Dataset ID to validate against
             dataset_context: Pre-fetched dataset context to avoid duplicate
                 DB queries. If None, fetches from the database.
+            validate_temporal_values: Check comparator values as well as references.
+                Updates validate authored values separately from retained references.
 
         Returns:
             Tuple of (is_valid, error)
@@ -299,7 +388,7 @@ class DatasetValidator:
             return False, ambiguity_error
 
         filter_error = DatasetValidator._validate_filter_references(
-            config, dataset_context
+            config, dataset_context, validate_temporal_values=validate_temporal_values
         )
         if filter_error:
             return False, filter_error
@@ -343,9 +432,12 @@ class DatasetValidator:
 
     @staticmethod
     def _validate_filter_references(
-        config: ChartConfig, dataset_context: DatasetContext
+        config: ChartConfig,
+        dataset_context: DatasetContext,
+        *,
+        validate_temporal_values: bool = True,
     ) -> ChartGenerationError | None:
-        """Validate typed WHERE subjects through the shared resolver."""
+        """Validate typed WHERE subjects and temporal comparators."""
         filters = [
             *(getattr(config, "filters", None) or []),
             *(getattr(config, "filters_secondary", None) or []),
@@ -371,7 +463,43 @@ class DatasetValidator:
                     },
                     dataset_context,
                 )
+            if validate_temporal_values and (
+                error := DatasetValidator.validate_temporal_filter(
+                    match, filter_.column, filter_.op, filter_.value
+                )
+            ):
+                return error
         return None
+
+    @staticmethod
+    def validate_temporal_filter(
+        column: Mapping[str, Any], column_name: str, operator: str, value: Any
+    ) -> ChartGenerationError | None:
+        """Validate typed and preserved SIMPLE predicates with the same metadata."""
+        if not column.get("is_temporal_filter", column.get("is_temporal", False)):
+            return None
+        format_ = column.get("python_date_format")
+        reason = invalid_temporal_filter_value(
+            operator, value, python_date_format=format_
+        )
+        if reason is None:
+            return None
+        return ChartGenerationError(
+            error_type="invalid_temporal_filter_value",
+            message=(
+                f"Filter value for temporal column '{column_name}' is not a valid date"
+            ),
+            details=reason,
+            suggestions=(
+                [f"Use the column's stored date format {format_!r}"]
+                if format_
+                else [
+                    "Use an ISO 8601 date or datetime such as '2000-01-01'",
+                    "Pass epoch milliseconds as a number, not a string",
+                ]
+            ),
+            error_code="INVALID_TEMPORAL_FILTER_VALUE",
+        )
 
     @staticmethod
     def _validate_temporal_column(
@@ -918,7 +1046,7 @@ class DatasetValidator:
         )[:MAX_DID_YOU_MEAN_CANDIDATES]
         if not names:
             return []
-        quoted = ", ".join(f"'{name}'" for name in names)
+        quoted = format_list(names, quote="'")
         return [
             f"Did you mean the saved metric {quoted}? Reference a saved metric "
             'as {"name": "<metric>", "saved_metric": true} rather than setting '

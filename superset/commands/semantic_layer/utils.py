@@ -34,7 +34,7 @@ def validate_configuration(
 ) -> None:
     """Validate provider configuration without exposing values in error traces."""
     try:
-        layer_class.from_configuration(configuration)
+        layer_class.configuration_class.model_validate(configuration)
     except ValidationError as ex:
         # Messages and context can contain credentials even when input is omitted.
         # Retain only structural paths and error codes, never the original cause.

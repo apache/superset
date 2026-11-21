@@ -210,6 +210,7 @@ def test_get_entry_shared_lock(
         queries.append(self)
         return original_first(self)
 
+    assert key_value_entry.uuid is not None
     with patch.object(Query, "first", capture_first):
         found_entry = KeyValueDAO.get_entry(
             resource=RESOURCE,

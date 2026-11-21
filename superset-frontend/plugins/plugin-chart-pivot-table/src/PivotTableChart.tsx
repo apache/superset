@@ -251,6 +251,8 @@ export default function PivotTableChart(props: PivotTableProps) {
     currencyFormats,
     metricsLayout,
     showValuesAs,
+    hideEmptyColumns = true,
+    aggregateFunction,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,
@@ -759,6 +761,8 @@ export default function PivotTableChart(props: PivotTableProps) {
           onContextMenu={handleContextMenu}
           allowRenderHtml={allowRenderHtml}
           showValuesAs={showValuesAs}
+          hideEmptyColumns={hideEmptyColumns}
+          aggregateFunction={aggregateFunction}
         />
       </PivotTableWrapper>
     </Styles>

@@ -84,8 +84,12 @@ REGISTERED_PLUGIN_QUERY_ROLE_KEYS = (
 )
 QUERY_ROLE_KEYS = SHARED_FORM_DATA_QUERY_ROLE_KEYS | REGISTERED_PLUGIN_QUERY_ROLE_KEYS
 
+DEFAULT_COMPILE_ROW_LIMIT = 10
 
-def capped_compile_row_limit(form_data: Mapping[str, Any], cap: int = 10) -> int:
+
+def capped_compile_row_limit(
+    form_data: Mapping[str, Any], cap: int = DEFAULT_COMPILE_ROW_LIMIT
+) -> int:
     """Cap compile samples, falling back to the cap for invalid saved limits."""
     value = form_data.get("row_limit")
     if isinstance(value, bool):
@@ -166,6 +170,15 @@ class ChartTypePlugin(Protocol):
 
         Returns a Superset form_data dict ready for caching and rendering.
         """
+        ...
+
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Correct mapped time-axis fields using authorized view metadata."""
         ...
 
     def post_map_validate(
@@ -272,6 +285,9 @@ class ChartTypePlugin(Protocol):
     #: saved query roles cannot be trusted on another dataset.
     requires_config_for_dataset_rebind: ClassVar[bool]
 
+    #: Roles named in the guidance returned when such a rebind is rejected.
+    dataset_rebind_roles: ClassVar[str]
+
     #: Whether a replacement config on another dataset is merged by the
     #: plugin's own rebind contract (``merge_update_form_data`` with
     #: ``dataset_rebind=True``) instead of the shared inherited-state pruning.
@@ -293,6 +309,9 @@ class ChartTypePlugin(Protocol):
     #: Whether an empty result is a valid, renderable preview.
     allows_empty_result: ClassVar[bool]
 
+    #: Whether get_chart_data returns a successful response for zero rows.
+    allows_empty_data_result: ClassVar[bool]
+
     #: Whether saved-chart Vega-Lite previews take the requested width,
     #: height and chart description instead of the spec's own frame.
     resizes_saved_preview: ClassVar[bool]
@@ -300,6 +319,10 @@ class ChartTypePlugin(Protocol):
     #: Whether update_chart may append columns to the saved chart
     #: (``add_columns``) instead of requiring a complete replacement config.
     supports_column_append: ClassVar[bool]
+
+    #: Whether a Vega-Lite preview can represent this chart, so capability
+    #: metadata may advertise the ``vega_lite`` format.
+    supports_vega_lite_preview: ClassVar[bool]
 
     #: Caveat appended to saved-chart preview descriptions, if any.
     preview_note: ClassVar[str | None]
@@ -314,6 +337,20 @@ class ChartTypePlugin(Protocol):
     invalid_result_error_code: ClassVar[str]
     invalid_result_message: ClassVar[str]
     invalid_result_suggestions: ClassVar[tuple[str, ...]]
+
+    #: Whether chart-data consumers convert temporal and duration result
+    #: values to the JSON numbers and text the frontend ``transformProps``
+    #: receives, instead of the generic scalar serialization.
+    temporal_json_numbers: ClassVar[bool]
+
+    #: Whether an explicit ``time_range`` sets the comparator of the generated
+    #: dashboard temporal filter instead of being ignored by the binding.
+    binds_time_range_to_temporal_filter: ClassVar[bool]
+
+    #: Whether the compile check's validation tier also resolves every column
+    #: and saved-metric reference of the canonical native QueryObjects (saved
+    #: native roles the typed config does not model) against the dataset.
+    validates_native_references: ClassVar[bool]
 
     def resolve_query_fields(
         self, form_data: Mapping[str, Any], viz_type: str
@@ -457,13 +494,22 @@ class ChartTypePlugin(Protocol):
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
     ) -> Any | None:
         """Validate the final merged update state.
 
-        Return the config the merged state implies (replacing the request
+        ``update_config`` is the request config (None for a dataset-only
+        update), so a plugin can tell explicitly supplied controls from saved
+        ones. Return the config the merged state implies (replacing the request
         config for compile and persistence), or None to keep the request
         config. Raise ``ValueError`` when the merged state is invalid.
         """
+        ...
+
+    def sanitize_data_rows(
+        self, data: list[Any], form_data: Mapping[str, Any]
+    ) -> tuple[list[Any], ChartError | None]:
+        """Return the rows get_chart_data (JSON, CSV, XLSX) exposes, or an error."""
         ...
 
 
@@ -487,17 +533,23 @@ class BaseChartPlugin:
     additional_viz_types: ClassVar[frozenset[str]] = frozenset()
     requires_compile_check: ClassVar[bool] = False
     requires_config_for_dataset_rebind: ClassVar[bool] = False
+    dataset_rebind_roles: ClassVar[str] = "roles"
     strict_dataset_rebind: ClassVar[bool] = False
     owns_update_merge: ClassVar[bool] = False
     unbound_form_data_is_rebind: ClassVar[bool] = False
     normalize_data_results: ClassVar[bool] = False
     allows_empty_result: ClassVar[bool] = False
+    allows_empty_data_result: ClassVar[bool] = False
     resizes_saved_preview: ClassVar[bool] = False
     supports_column_append: ClassVar[bool] = False
+    supports_vega_lite_preview: ClassVar[bool] = True
     preview_note: ClassVar[str | None] = None
     null_data_is_empty: ClassVar[bool] = True
     invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"
     invalid_result_message: ClassVar[str] = "Chart query returned invalid values"
+    temporal_json_numbers: ClassVar[bool] = False
+    binds_time_range_to_temporal_filter: ClassVar[bool] = False
+    validates_native_references: ClassVar[bool] = False
     invalid_result_suggestions: ClassVar[tuple[str, ...]] = (
         "Use a numeric-producing metric",
         "Check the metric alias and SQL expression",
@@ -527,6 +579,14 @@ class BaseChartPlugin:
         raise NotImplementedError(
             f"{self.__class__.__name__}.to_form_data() is not implemented"
         )
+
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Leave mapped form data unchanged when this plugin has no time axis."""
 
     def post_map_validate(
         self,
@@ -665,8 +725,14 @@ class BaseChartPlugin:
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
     ) -> Any | None:
         return None
+
+    def sanitize_data_rows(
+        self, data: list[Any], form_data: Mapping[str, Any]
+    ) -> tuple[list[Any], ChartError | None]:
+        return data, None
 
     @staticmethod
     def _with_context(what: str, context: str | None) -> str:

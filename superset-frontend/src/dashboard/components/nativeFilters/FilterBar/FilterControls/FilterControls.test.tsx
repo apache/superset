@@ -25,7 +25,11 @@ import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import {
   ChartCustomizationType,
   ChartCustomizationDivider,
+  ChartCustomization,
+  DatasourceType,
 } from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
+import { styled } from '@apache-superset/core/theme';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterControls from './FilterControls';
 
@@ -51,6 +55,49 @@ const defaultProps = {
   onPendingCustomizationDataMaskChange: jest.fn(),
   chartCustomizationValues: [],
 };
+
+jest.mock('./GroupByFilterCard', () => () => (
+  <div data-test="dynamic-groupby-card" />
+));
+
+const dynamicGroupBy: ChartCustomization = {
+  id: 'CHART_CUSTOMIZATION-groupby',
+  name: 'Dynamic Group By',
+  type: ChartCustomizationType.ChartCustomization,
+  filterType: ChartCustomizationPlugins.DynamicGroupBy,
+  targets: [{ datasetId: 7, datasourceType: DatasourceType.Table }],
+  scope: { rootPath: [], excluded: [] },
+  controlValues: {},
+  defaultDataMask: {},
+};
+
+test('saved semantic-view Dynamic group by is absent from display controls', () => {
+  render(
+    <FilterControls
+      {...defaultProps}
+      chartCustomizationValues={[
+        {
+          ...dynamicGroupBy,
+          targets: [
+            { datasetId: 7, datasourceType: DatasourceType.SemanticView },
+          ],
+        },
+      ]}
+    />,
+  );
+  expect(screen.queryByTestId('dynamic-groupby-card')).not.toBeInTheDocument();
+  expect(screen.queryByText('Display controls')).not.toBeInTheDocument();
+});
+
+test('saved ordinary-dataset Dynamic group by remains visible', () => {
+  render(
+    <FilterControls
+      {...defaultProps}
+      chartCustomizationValues={[dynamicGroupBy]}
+    />,
+  );
+  expect(screen.getByTestId('dynamic-groupby-card')).toBeInTheDocument();
+});
 
 test('renders chart customization divider in vertical mode', () => {
   const divider: ChartCustomizationDivider = {
@@ -203,6 +250,7 @@ const createMockFilter = (id: string, name: string) => ({
     rootPath: ['ROOT_ID'],
     excluded: [] as string[],
   },
+  chartsInScope: [] as number[],
   isInstant: true,
   allowsMultipleValues: true,
   isRequired: false,
@@ -239,11 +287,13 @@ const getDefaultState = (orientation: FilterBarOrientation) => ({
         type: 'CHART',
         id: 'CHART-1',
         meta: { chartId: 1 },
+        parents: [] as string[],
       },
       'CHART-2': {
         type: 'CHART',
         id: 'CHART-2',
         meta: { chartId: 2 },
+        parents: [] as string[],
       },
     },
   },
@@ -421,4 +471,65 @@ test('FilterControls overflowedByIndex updates when filters change scope', () =>
   );
 
   expect(container).toBeInTheDocument();
+});
+
+// Mirrors FilterControlsWrapper in ../Vertical.tsx, which wraps FilterControls
+// in production and supplies the flex `gap` between vertical sections.
+const FilterControlsWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+test('out-of-scope section does not add margin on top of the wrapper flex gap', () => {
+  const state = getDefaultState(FilterBarOrientation.Vertical);
+  state.dashboardLayout.present['CHART-1'].parents = [
+    'ROOT_ID',
+    'TABS-1',
+    'TAB-1',
+  ];
+  state.dashboardLayout.present['CHART-2'].parents = [
+    'ROOT_ID',
+    'TABS-1',
+    'TAB-2',
+  ];
+  state.nativeFilters.filters['filter-1'].chartsInScope = [1];
+  state.nativeFilters.filters['filter-2'].chartsInScope = [1];
+  // filter-3 lives under the inactive TAB-2, so it renders out of scope.
+  state.nativeFilters.filters['filter-3'].chartsInScope = [2];
+  (state as any).dashboardInfo = {
+    ...state.dashboardInfo,
+    metadata: {
+      native_filter_configuration: Object.values(state.nativeFilters.filters),
+    },
+  };
+
+  const { useSelector } = jest.requireMock('react-redux');
+  useSelector.mockImplementation((selector: (s: typeof state) => unknown) =>
+    selector(state),
+  );
+
+  const store = mockStore(state) as Store;
+  const { container } = render(
+    <Provider store={store}>
+      <FilterControlsWrapper>
+        <FilterControls
+          dataMaskSelected={{}}
+          onFilterSelectionChange={jest.fn()}
+          onPendingCustomizationDataMaskChange={jest.fn()}
+          chartCustomizationValues={[]}
+        />
+      </FilterControlsWrapper>
+    </Provider>,
+  );
+
+  expect(screen.getByText('Filters out of scope (1)')).toBeInTheDocument();
+
+  // The "Filters" section is the out-of-scope collapsible's previous sibling
+  // inside the flex column. The parent already adds spacing via `gap`, so this
+  // section must not add its own margin-bottom on top of it.
+  const outOfScopeCollapse = container.querySelector('.ant-collapse');
+  const filtersSection = outOfScopeCollapse?.previousElementSibling as Element;
+  const { marginBottom } = getComputedStyle(filtersSection);
+  expect(parseInt(marginBottom, 10) || 0).toBe(0);
 });

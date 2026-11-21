@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, PropertyMock
 import pandas as pd
 import pyarrow as pa
 import pytest
-from flask import g
+from flask import Flask, g
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine, literal, select, union_all
@@ -62,8 +62,9 @@ def set_guest(rules: list[GuestTokenRlsRule]) -> None:
 
 
 @pytest.fixture
-def provider(mocker: MockerFixture) -> MagicMock:
+def provider(app: Flask, mocker: MockerFixture) -> MagicMock:
     """The provider returns rows unless the request is refused."""
+    mocker.patch.dict(app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "guest-rls-tests"})
     implementation: MagicMock = MagicMock()
     implementation.features = frozenset()
     # An unversioned view, so value suggestions are served normally.

@@ -19,9 +19,10 @@
 
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 import { Switchboard } from "@superset-ui/switchboard";
 import { embedDashboard, PortClosedError } from "./index";
+import { DEFAULT_TOKEN_REFRESH_RETRY_MS } from "./guestTokenRefresh";
 
 vi.mock("@superset-ui/switchboard");
 
@@ -536,5 +537,93 @@ describe("embedDashboard", () => {
     await expect(embedding).rejects.toThrow("host down");
     expect(mountPoint.querySelector("iframe")).toBeNull();
     expect(ports[0].close).toHaveBeenCalled();
+  });
+
+  it("a refresh whose fetch fails is retried after the retry delay", async () => {
+    vi.useFakeTimers();
+    const mockFetchGuestToken = vi
+      .fn()
+      .mockResolvedValueOnce(fakeToken())
+      .mockRejectedValueOnce(new Error("token expired"))
+      .mockImplementationOnce(() => Promise.resolve(fakeToken()));
+    const embedding = embedDashboard({
+      id: "test-id",
+      supersetDomain: "https://superset.example.com",
+      mountPoint,
+      fetchGuestToken: mockFetchGuestToken,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const dashboard = await embedding;
+    expect(mockFetchGuestToken).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(mockFetchGuestToken).toHaveBeenCalledTimes(2);
+    expect(mockSwitchboard.emit).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(DEFAULT_TOKEN_REFRESH_RETRY_MS);
+    expect(mockFetchGuestToken).toHaveBeenCalledTimes(3);
+    expect(mockSwitchboard.emit).toHaveBeenCalledTimes(2);
+
+    dashboard.unmount();
+    vi.useRealTimers();
+  });
+
+  it("handles unmount during token refresh", async () => {
+    const mockFetch = vi.fn().mockResolvedValue("token-1");
+
+    const result = await embedDashboard({
+      id: "test-dashboard",
+      supersetDomain: "http://localhost:8200",
+      mountPoint,
+      fetchGuestToken: mockFetch,
+    });
+
+    result.unmount();
+
+    expect(mountPoint.querySelector("iframe")).toBeNull();
+    expect(ports[0].close).toHaveBeenCalled();
+  });
+
+  test("a refresh that resolves after unmount sends nothing", async () => {
+    vi.useFakeTimers();
+    const refresh = deferred<string>();
+    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
+    const mockFetchGuestToken = vi
+      .fn()
+      .mockResolvedValueOnce(fakeToken)
+      .mockReturnValueOnce(refresh.promise);
+    const embedding = embedDashboard({
+      id: "test-id",
+      supersetDomain: "https://superset.example.com",
+      mountPoint,
+      fetchGuestToken: mockFetchGuestToken,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const dashboard = await embedding;
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(mockFetchGuestToken).toHaveBeenCalledTimes(2);
+    dashboard.unmount();
+    refresh.resolve(fakeToken);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mockSwitchboard.emit).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("hands the iframe its end of the message channel", async () => {
+    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
+    const dashboard = await embedDashboard({
+      id: "test-id",
+      supersetDomain: "https://superset.example.com",
+      mountPoint,
+      fetchGuestToken: vi.fn().mockResolvedValue(fakeToken),
+    });
+
+    const iframe = mountPoint.querySelector("iframe")!;
+    expect(iframe.contentWindow!.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ handshake: "port transfer" }),
+      "https://superset.example.com",
+      [expect.anything()],
+    );
+    dashboard.unmount();
   });
 });

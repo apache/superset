@@ -60,6 +60,11 @@ from superset.mcp_service.semantic_layer.schemas import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
+from superset.semantic_layers.exceptions import normalize_provider_request_errors
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -168,6 +173,7 @@ def _grains_by_column(dimensions: Iterable[Dimension]) -> dict[str, dict[str, st
     return grains
 
 
+@normalize_provider_request_errors()
 def _resolve_external_view(
     request: GetTableRequest,
 ) -> _ResolvedDatasource | SemanticLayerError:
@@ -485,9 +491,10 @@ async def _run_get_table_query(
         and request.metrics
         and required_dimensions
     ):
-        compatible: set[str] = set(
-            resolved.view.get_compatible_dimensions(request.metrics, [])
-        )
+        with normalize_provider_request_errors():
+            compatible: set[str] = set(
+                resolved.view.get_compatible_dimensions(request.metrics, [])
+            )
         incompatible: list[str] = sorted(required_dimensions - compatible)
         if incompatible:
             return SemanticLayerError.create(
@@ -625,6 +632,12 @@ async def _get_table(
             request.row_limit,
         )
     )
+
+    if request.view_id is not None and not is_semantic_layers_enabled():
+        return SemanticLayerError.create(
+            error=SemanticLayersDisabledError.message,
+            error_type="SemanticLayersDisabledError",
+        )
 
     if not user_can_view_data_model_metadata():
         return SemanticLayerError.create(

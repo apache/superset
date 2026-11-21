@@ -1501,6 +1501,38 @@ class TestGenerateChartName:
 class TestGenerateExploreLink:
     """Test generate_explore_link function"""
 
+    @pytest.mark.parametrize("source_type", ["query", "saved_query", "future_family"])
+    def test_other_source_families_keep_identity_without_writes(
+        self, source_type: str
+    ) -> None:
+        """Non-table sources fall back without table lookup or cached state."""
+        lookup: MagicMock
+        permalink: MagicMock
+        form_data_command: MagicMock
+        with (
+            patch(
+                "superset.mcp_service.chart.chart_utils.get_superset_base_url",
+                return_value="https://superset.example.com",
+            ),
+            patch("superset.daos.dataset.DatasetDAO.find_by_id") as lookup,
+            patch(
+                "superset.commands.explore.permalink.create.CreateExplorePermalinkCommand"
+            ) as permalink,
+            patch(
+                "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand"
+            ) as form_data_command,
+        ):
+            result: str = generate_explore_link(
+                17, {"viz_type": "table"}, datasource_type=source_type
+            )
+        assert result == (
+            "https://superset.example.com/explore/"
+            f"?datasource_type={source_type}&datasource_id=17"
+        )
+        lookup.assert_not_called()
+        permalink.assert_not_called()
+        form_data_command.assert_not_called()
+
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
     def test_generate_explore_link_uses_base_url(self, mock_get_base_url) -> None:
         """Test that generate_explore_link uses the configured base URL"""
@@ -2435,6 +2467,22 @@ class TestAdhocFiltersToQueryFilters:
         ]
         result = adhoc_filters_to_query_filters(adhoc)
         assert result == [{"col": "genre", "op": "==", "val": "Action"}]
+
+    def test_keeps_the_grain_of_a_drilled_bucket(self) -> None:
+        """A chart saved from a Drill by compares its time bucket by grain."""
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "order_date",
+                "operator": "==",
+                "comparator": 1072915200000,
+                "timeGrain": "P1M",
+            }
+        ]
+        assert adhoc_filters_to_query_filters(adhoc) == [
+            {"col": "order_date", "op": "==", "val": 1072915200000, "grain": "P1M"}
+        ]
 
     def test_converts_multiple_filters(self) -> None:
         adhoc = [

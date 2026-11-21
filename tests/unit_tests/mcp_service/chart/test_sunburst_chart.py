@@ -64,9 +64,12 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
     BubbleChartConfig,
+    BulletChartConfig,
     ChartConfig,
     ChartError,
     ColumnRef,
+    CountryMapChartConfig,
+    DeckScatterChartConfig,
     GanttChartConfig,
     GanttSortByConfig,
     GaugeChartConfig,
@@ -88,6 +91,7 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartPreviewRequest,
     UpdateChartRequest,
     WaterfallChartConfig,
+    WorldMapChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.sunburst import (
@@ -121,6 +125,7 @@ from superset.utils.core import GenericDataType
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
 )
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 
 @pytest.fixture(autouse=True)
@@ -378,6 +383,10 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
         for query_mode in ("raw", "aggregate")
     ] + [
         PieChartConfig(dimension=ColumnRef(name="region"), metric=metric),
+        # Bullet inherits omitted ordering; a replacement states it explicitly.
+        BulletChartConfig(
+            metric=metric, dimensions=[ColumnRef(name="region")], order_by=[]
+        ),
         GaugeChartConfig(metric=metric, groupby=[ColumnRef(name="region")]),
         TreemapChartConfig(
             groupby=[ColumnRef(name="region")],
@@ -448,6 +457,35 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
             tooltip_metrics=["SavedSales"],
             order_by=[GanttSortByConfig(column="order_date", ascending=True)],
             row_limit=1000,
+        ),
+        CountryMapChartConfig.model_validate(
+            {
+                "chart_type": "country_map",
+                "country": "usa",
+                "region_format": "abbreviation",
+                "entity": {"name": "region"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            }
+        ),
+        WorldMapChartConfig.model_validate(
+            {
+                "chart_type": "world_map",
+                "country_format": "cca2",
+                "entity": {"name": "country"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+                # Maps preserve omitted optional roles by contract, so the
+                # adversarial matrix supplies each one explicitly.
+                "secondary_metric": {"name": "profit", "aggregate": "SUM"},
+            }
+        ),
+        DeckScatterChartConfig.model_validate(
+            {
+                "chart_type": "deck_scatter",
+                "latitude": {"name": "latitude"},
+                "longitude": {"name": "longitude"},
+                "dimension": {"name": "region"},
+                "radius_metric": {"name": "sales", "aggregate": "SUM"},
+            }
         ),
         _config(),
     ]
@@ -760,7 +798,7 @@ async def test_get_chart_data_fallback_uses_rebound_chart_identity() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.get_chart_data.find_chart_by_identifier",
@@ -4181,7 +4219,7 @@ def test_cached_update_preview_rejects_orphan_grain_before_recaching() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4231,7 +4269,9 @@ def test_cached_update_preview_rebinds_datasource_and_stays_unsaved() -> None:
         _dataset: object,
         *,
         run_compile_check: bool,
+        temporal_form_data: dict[str, object] | None = None,
     ) -> Mock:
+        assert temporal_form_data is not None
         if run_compile_check:
             compile_calls.append(deepcopy(form_data))
         return Mock(success=True)
@@ -4242,7 +4282,7 @@ def test_cached_update_preview_rebinds_datasource_and_stays_unsaved() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4319,7 +4359,7 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4479,7 +4519,7 @@ def test_cached_sunburst_cross_viz_rebind_discards_stale_identity(
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4562,7 +4602,7 @@ async def test_saved_update_product_paths_reject_same_and_cross_viz_orphan_grain
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
@@ -4646,7 +4686,7 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4732,7 +4772,7 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4818,7 +4858,7 @@ def test_cached_update_deletes_explicit_null_mapping_envelopes() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4993,7 +5033,7 @@ async def test_generate_chart_product_path_returns_sunburst_preview() -> None:
         warnings={},
         error=None,
     )
-    user = Mock(id=1, username="admin", roles=[], groups=[])
+    user = regular_user(id=1, username="admin", roles=[], groups=[])
 
     with (
         patch(
@@ -5051,7 +5091,7 @@ async def test_unsaved_generate_ignores_native_chart_and_datasource_identity(
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.validation.ValidationPipeline."
@@ -5121,7 +5161,7 @@ async def test_saved_generate_assigns_only_the_new_chart_identity() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.validation.ValidationPipeline."
@@ -5197,7 +5237,7 @@ async def test_generate_chart_rejects_orphan_grain_before_caching_preview() -> N
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.validation.ValidationPipeline."
@@ -5267,7 +5307,7 @@ async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
@@ -5303,7 +5343,7 @@ async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -5354,7 +5394,7 @@ async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
@@ -5545,3 +5585,149 @@ def test_sunburst_docs_warn_about_nonfinite_metric_normalization() -> None:
     assert "normalized to null and then to zero" in section
     assert "overflowing aggregate can therefore appear as zero" in section
     assert "infinite metric values remain invalid" not in section
+
+
+# Form data as Explore saves a Sunburst with a monthly grain: the grain lives in
+# the Sunburst time grain control and the hidden ``temporal_columns_lookup``
+# marks the temporal level. Explore drops ``granularity_sqla`` because the
+# Sunburst panel has no control for it.
+_EXPLORE_SAVED_GRAINED_SUNBURST: dict[str, object] = {
+    "viz_type": "sunburst_v2",
+    "columns": ["order_date", "region"],
+    "metric": {"label": "Sales", "expressionType": "SQL", "sqlExpression": "1"},
+    "time_grain_sqla": "P1M",
+    "temporal_columns_lookup": {"order_date": True},
+}
+
+_GRAINED_ORDER_DATE: dict[str, object] = {
+    "timeGrain": "P1M",
+    "columnType": "BASE_AXIS",
+    "sqlExpression": "order_date",
+    "label": "order_date",
+    "expressionType": "SQL",
+    "isColumnReference": True,
+}
+
+
+def test_shared_query_builder_grains_explore_saved_temporal_level() -> None:
+    query = build_query_context_from_form_data(
+        deepcopy(_EXPLORE_SAVED_GRAINED_SUNBURST),
+        {"id": 7, "type": "table"},
+        viz_type="sunburst_v2",
+    )["queries"][0]
+
+    assert query["columns"] == [_GRAINED_ORDER_DATE, "region"]
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert "granularity" not in query
+
+    # The same chart saved without a grain keeps its temporal level raw.
+    ungrained = deepcopy(_EXPLORE_SAVED_GRAINED_SUNBURST)
+    del ungrained["time_grain_sqla"]
+    raw_query = build_query_context_from_form_data(
+        ungrained, {"id": 7, "type": "table"}, viz_type="sunburst_v2"
+    )["queries"][0]
+    assert raw_query["columns"] == ["order_date", "region"]
+    assert "time_grain_sqla" not in (raw_query.get("extras") or {})
+
+
+def test_shared_query_builder_grains_mcp_saved_temporal_level() -> None:
+    form_data = map_config_to_form_data(
+        _config(
+            hierarchy=[{"name": "order_date"}, {"name": "region"}],
+            temporal_column="order_date",
+            time_grain="P1M",
+        )
+    )
+    query = build_query_context_from_form_data(
+        form_data, {"id": 7, "type": "table"}, viz_type="sunburst_v2"
+    )["queries"][0]
+
+    assert query["columns"] == [_GRAINED_ORDER_DATE, "region"]
+    assert query["granularity"] == "order_date"
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+
+
+def test_shared_query_builder_drops_grain_without_temporal_level() -> None:
+    form_data = {
+        **deepcopy(_EXPLORE_SAVED_GRAINED_SUNBURST),
+        "columns": ["region", "country"],
+    }
+    query = build_query_context_from_form_data(
+        form_data, {"id": 7, "type": "table"}, viz_type="sunburst_v2"
+    )["queries"][0]
+
+    assert query["columns"] == ["region", "country"]
+    assert "time_grain_sqla" not in (query.get("extras") or {})
+
+
+def test_temporal_state_accepts_explore_saved_grain() -> None:
+    from superset.mcp_service.chart.sunburst import validate_sunburst_temporal_state
+
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema="analytics",
+        database_name="main",
+        available_columns=[
+            {"name": name, "type": "DOUBLE", "is_temporal": name == "order_date"}
+            for name in ("region", "order_date")
+        ],
+    )
+
+    assert (
+        validate_sunburst_temporal_state(_EXPLORE_SAVED_GRAINED_SUNBURST, context)
+        is None
+    )
+    # The lookup only names a subject; the dataset must still confirm it.
+    lying_lookup = {
+        **_EXPLORE_SAVED_GRAINED_SUNBURST,
+        "columns": ["region"],
+        "temporal_columns_lookup": {"region": True},
+    }
+    error = validate_sunburst_temporal_state(lying_lookup, context)
+    assert error is not None
+    assert error.error_code == "NON_TEMPORAL_COLUMN"
+    # A grain with no temporal subject at all is still rejected.
+    orphan = {**_EXPLORE_SAVED_GRAINED_SUNBURST, "temporal_columns_lookup": {}}
+    error = validate_sunburst_temporal_state(orphan, context)
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_STATE"
+
+
+@pytest.mark.parametrize("lookup", [None, {"order_date": True, "ship_date": True}])
+def test_mcp_time_column_override_keeps_lookup_marked_grains(
+    lookup: dict[str, bool] | None,
+) -> None:
+    """MCP uses its subject fallback without suppressing Explore lookup levels."""
+    form_data = {
+        "viz_type": "sunburst_v2",
+        "columns": ["order_date", "ship_date"],
+        "metric": "count",
+        "granularity_sqla": "order_date",
+        "time_grain_sqla": "P1M",
+        "temporal_columns_lookup": lookup,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        [query] = build_query_dicts_from_form_data(
+            form_data,
+            datasource_id=7,
+            datasource_type="table",
+            extra_form_data={"granularity_sqla": "ship_date"},
+        )
+    if lookup:
+        assert query["columns"][0]["sqlExpression"] == "order_date"
+        assert query["columns"][0]["timeGrain"] == "P1M"
+    else:
+        assert query["columns"][0] == "order_date"
+    assert query["columns"][1] == {
+        "timeGrain": "P1M",
+        "columnType": "BASE_AXIS",
+        "sqlExpression": "ship_date",
+        "label": "ship_date",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+    }
+    assert query["granularity"] == "ship_date"

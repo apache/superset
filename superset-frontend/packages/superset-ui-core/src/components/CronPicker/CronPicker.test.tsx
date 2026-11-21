@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { render, waitFor } from '@superset-ui/core/spec';
+import { render, userEvent, waitFor } from '@superset-ui/core/spec';
+import { useState } from 'react';
 import * as ReactCronPicker from 'react-js-cron';
 import { CronPicker } from '.';
 
@@ -58,4 +59,29 @@ test('flags an invalid cron value with the error state', async () => {
     // eslint-disable-next-line testing-library/no-node-access
     container.querySelector('.react-js-cron-error'),
   ).toBeInTheDocument();
+});
+
+// Choosing "minute" as the period yields `* * * * *`, which react-js-cron v6
+// considers "empty" and, by default, flags as invalid unless it was the initial
+// value. It is a valid schedule, so it must not get the error state.
+test('does not flag "Every minute" as invalid when switching to it', async () => {
+  const onError = jest.fn();
+  const Wrapper = () => {
+    const [value, setValue] = useState('0 0 * * *');
+    return (
+      <>
+        <button type="button" onClick={() => setValue('* * * * *')}>
+          every minute
+        </button>
+        <CronPicker value={value} setValue={setValue} onError={onError} />
+      </>
+    );
+  };
+  const { container, getByRole } = render(<Wrapper />);
+  await userEvent.click(getByRole('button', { name: 'every minute' }));
+  await waitFor(() => expect(onError).toHaveBeenLastCalledWith(undefined));
+  expect(
+    // eslint-disable-next-line testing-library/no-node-access
+    container.querySelector('.react-js-cron-error'),
+  ).not.toBeInTheDocument();
 });

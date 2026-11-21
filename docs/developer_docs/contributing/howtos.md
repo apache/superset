@@ -173,6 +173,9 @@ npm run test -- --watch
 
 # Run specific test file
 npm run test -- MyComponent.test.tsx
+
+# Cap the worker pool (default is 80% of cores) on a shared or busy machine
+JEST_MAX_WORKERS=2 npm run test -- MyComponent.test.tsx
 ```
 
 ### E2E Integration Testing
@@ -301,19 +304,92 @@ pybabel init -i superset/translations/messages.pot -d superset/translations -l d
 ### Extracting new strings for translation
 
 ```bash
-# Extract Python strings
-pybabel extract -F babel.cfg -o superset/translations/messages.pot -k lazy_gettext superset
-
-# Extract JavaScript strings
-npm run build-translation
+# Extract backend and frontend strings into messages.pot, then update every
+# language catalog from it
+./scripts/translations/babel_update.sh
 ```
+
+Run the script rather than `pybabel extract` directly. It passes the keywords
+the frontend uses (`t`, `tn`, `tct`), extracts `i18n:` translator comments,
+and stamps do-not-translate markers. A bare
+`pybabel extract` does none of these. CI's template drift check
+(`scripts/translations/check_pot_drift.py`) fails when the template's strings
+differ from what the script's extraction finds.
+
+### Adding context for translators
+
+A translatable string arrives in a catalog with no surrounding code, so a term
+that is unambiguous in context can be guessed wrong in isolation. Shipped
+examples include `Slug` rendered as the animal, `Host` as a guest, and `Backend`
+as a driver.
+
+To attach context, put a comment tagged `i18n:` on the line directly above the
+call:
+
+```python
+# i18n: the short identifier in a dashboard's URL, not the animal
+"slug": _("Slug"),
+```
+
+```tsx
+// i18n: the kind of system behind a connection: a database engine
+// (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
+Header: t('Backend'),
+```
+
+`babel_update.sh` extracts these with `--add-comments=i18n:`, so they land on the
+entry in `messages.pot` as `#. i18n: ...` and `pybabel update` propagates them
+into every language catalog, the same way the do-not-translate marker described
+below does:
+
+```
+#. i18n: the short identifier in a dashboard's URL, not the animal
+msgid "Slug"
+msgstr ""
+```
+
+Where the comment goes decides whether it is extracted:
+
+- A blank line between the comment and the call drops the comment.
+- A comment inside the call's parentheses is dropped.
+- In Python, the comment is dropped when the string starts on the line after
+  `_(` and only a comment, such as `# noqa: E501`, or nothing follows the
+  string. Put the string on the same line as `_(`, or follow it with a comma.
+  A wrapped `t(` call in TypeScript keeps the comment.
+- When two calls are on one line, only the first call gets the comment. Put
+  each call on its own line.
+- Every comment line between the `i18n:` line and the call is published with
+  the note. Put lint directives and other comments above the `i18n:` line.
+
+A dropped comment raises no error, and the drift check cannot see it. After
+`babel_update.sh`, confirm the note is on its entry, for example with
+`grep -B3 'msgid "Slug"' superset/translations/messages.pot`.
+
+Write the comment for someone who cannot see the code: say what the term refers
+to, and where a translation would plausibly go wrong. A note only guides the
+translation; to keep a string untranslated, add it to the do-not-translate
+registry described below.
+
+For terms that apply to a whole language, see the
+[Translation Guide](./translation-guide.md).
+
+`scripts/translations/backfill_po.py` also sends the comment to the model as a
+developer note. In a live run, the note did not change the model's choice when
+every reference translation used another sense, so review machine translations
+of noted strings. After changing a comment, re-run `babel_update.sh`: CI's
+template drift check fails when a string's `i18n:` comment in source no longer
+matches `messages.pot`.
+
+Per-string context disambiguates one entry. It does not enforce consistency
+across entries — one term used for two concepts across a catalog is a
+catalog-wide problem and needs a per-language terminology decision instead.
 
 ### Updating language files
 
-```bash
-# Update all language files with new strings
-pybabel update -i superset/translations/messages.pot -d superset/translations
-```
+`babel_update.sh` updates every language catalog from `messages.pot`. Do not
+run `pybabel update` on its own: babel adds a `python-format` flag to labels
+such as `% calculation`, and `msgfmt` then rejects their translations. The
+script removes that flag after its update pass.
 
 ### Applying translations
 
@@ -400,15 +476,21 @@ python scripts/translations/backfill_po.py --lang fr
 
 Options:
 
-| Flag              | Default             | Description                                           |
-| ----------------- | ------------------- | ----------------------------------------------------- |
-| `--lang LANG`     | required            | ISO language code (`fr`, `de`, `ja`, …)               |
-| `--batch-size N`  | 50                  | Strings per Claude request                            |
-| `--limit N`       | unlimited           | Stop after N entries                                  |
-| `--min-context N` | 0                   | Skip entries with fewer than N reference translations |
-| `--model MODEL`   | `claude-sonnet-4-6` | Claude model to use                                   |
-| `--dry-run`       | off                 | Print without writing                                 |
-| `--no-fuzzy`      | off                 | Don't mark entries as fuzzy                           |
+| Flag              | Default   | Description                                                      |
+| ----------------- | --------- | ---------------------------------------------------------------- |
+| `--lang LANG`     | required  | ISO language code (`fr`, `de`, `ja`, …)                          |
+| `--batch-size N`  | 50        | Strings per Claude request                                       |
+| `--limit N`       | unlimited | Stop after N entries                                             |
+| `--min-context N` | 0         | Skip entries with fewer than N reference translations            |
+| `--model MODEL`   | `sonnet`  | Claude model ID, or an alias such as `sonnet` for the latest one |
+| `--dry-run`       | off       | Print without writing                                            |
+| `--no-fuzzy`      | off       | Don't mark entries as fuzzy                                      |
+
+A model alias is resolved to its concrete model ID once per run, and that ID is
+what appears in each entry's `# Machine-translated via backfill_po.py (…)`
+comment. After writing, the script re-serializes the catalog with Babel in the
+same format `babel_update.sh` produces, so the diff contains only the new
+translations.
 
 Use `--min-context 2` to skip strings that have fewer than 2 reference
 translations in other languages. Those strings are more likely to be ambiguous
@@ -437,6 +519,39 @@ npm run translations:build-index
 # Backfill (pass arguments after --)
 npm run translations:backfill -- --lang fr --dry-run
 ```
+
+To backfill several languages at once, eight in parallel, use
+`scripts/translations/backfill_all.sh` (every catalog except `en` when no
+languages are given):
+
+```bash
+scripts/translations/backfill_all.sh fr de ja
+```
+
+It can also run through [Apache LLMAO](https://llm.apache.org), the ASF's
+model gateway, with a personal LLMAO key in `LLMAO_KEY`:
+
+```bash
+LLMAO_KEY=... scripts/translations/backfill_all.sh --provider llmao fr
+```
+
+LLMAO uses `gemma4-26b` by default, in batches of 20 to stay under the
+gateway's 8,192-token output cap. With `LLMAO_KEY` set, a default run on
+Claude also falls back to LLMAO when Claude can't be reached, and retries
+there any language Claude left with failed entries. Pass `--no-fallback` to
+turn that off.
+
+#### Scheduled backfill in CI
+
+The `Backfill Translations` workflow
+(`.github/workflows/backfill-translations.yml`) runs the backfill over every
+catalog each Tuesday, the day after the weekly catalog sync, and opens a PR
+with the result. It skips the run while a previous backfill PR is still open,
+so review it and merge (or close) it to let the next week's run proceed. It
+translates with Claude through the `ANTHROPIC_API_KEY` secret and falls back to
+Apache LLMAO (the `LLMAO_KEY` secret) the same way `backfill_all.sh` does. It
+can also be started by hand from the Actions tab, optionally limited to
+specific languages, or with a different provider or model.
 
 ## Linting
 

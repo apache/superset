@@ -14,7 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, cast
+
 from marshmallow import fields, Schema
+from marshmallow.validate import OneOf, Range
+
+from superset.subjects.types import PrincipalReference, SubjectReference
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a Subject"}},
@@ -49,3 +54,45 @@ class SubjectResponseSchema(Schema):
     secondary_label = fields.String()
     img = fields.String()
     type = fields.Integer()
+
+
+class PrincipalReferenceSchema(Schema):
+    type = fields.String(
+        required=True, validate=OneOf(["user", "role", "group", "subject"])
+    )
+    id = fields.Integer(required=True, strict=True, validate=Range(min=1))
+
+
+class SubjectReferenceField(fields.Field):
+    """Accept legacy Subject IDs or explicit principal references on writes.
+
+    Deserialization validates shape only. Resolution belongs in the authorized,
+    transactional command, not in schema loading or API documentation generation.
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        metadata = dict(kwargs.pop("metadata", {}) or {})
+        metadata["oneOf"] = [
+            {"type": "integer", "description": "Subject ID, not a user ID."},
+            {
+                "type": "object",
+                "required": ["type", "id"],
+                "additionalProperties": False,
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["user", "role", "group", "subject"],
+                    },
+                    "id": {"type": "integer", "minimum": 1},
+                },
+            },
+        ]
+        super().__init__(metadata=metadata, **kwargs)
+
+    def _deserialize(
+        self, value: Any, attr: str | None, data: Any, **kwargs: Any
+    ) -> SubjectReference:
+        if isinstance(value, dict):
+            return cast(PrincipalReference, PrincipalReferenceSchema().load(value))
+        # Preserve the existing integer field's coercion/validation behavior.
+        return fields.Integer().deserialize(value)

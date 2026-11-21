@@ -105,6 +105,7 @@ interface PivotTableCustomizeProps {
    * Viewers can still expand each group with its arrow.
    */
   collapseRows?: boolean;
+  hideEmptyColumns?: boolean;
   valueFormat: string;
   currencyFormat: Currency;
   currencyCodeColumn?: string;
@@ -117,6 +118,7 @@ interface PivotTableCustomizeProps {
   currencyFormats: Record<string, Currency>;
   metricsLayout?: MetricsLayoutEnum;
   showValuesAs?: ShowValuesAsEnum;
+  aggregateFunction?: string;
   metricColorFormatters: ColorFormatters;
   dateFormatters: Record<string, DateFormatter | undefined>;
   legacy_order_by: QueryFormMetric[] | QueryFormMetric | null;

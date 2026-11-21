@@ -22,10 +22,12 @@
 import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import {
+  act,
   fireEvent,
   render,
   within,
   screen,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { addAlpha, FeatureFlag } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -39,6 +41,7 @@ import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSide
 import {
   fetchFaveStar,
   setActiveTab,
+  setEditMode,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import {
@@ -56,6 +59,18 @@ import {
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import { FilterBarOrientation } from 'src/dashboard/types';
+import DashboardVersionHistory from 'src/features/versionHistory/DashboardVersionHistory';
+import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import {
+  fetchDashboardHydrationData,
+  type DashboardHydrationData,
+} from 'src/features/versionHistory/api';
+import { useDashboardVersionPreview } from 'src/features/versionHistory/useDashboardVersionPreview';
+import {
+  openVersionHistoryPanel,
+  versionRestored,
+} from 'src/features/versionHistory/reducer';
 import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -140,7 +155,44 @@ jest.mock('src/features/versionHistory/DashboardVersionHistory', () => ({
   __esModule: true,
   // Renders a marker inside the column so placement can be asserted; the
   // real component's restore modal portals out, which is irrelevant here.
-  default: () => <aside data-test="mock-dashboard-version-history" />,
+  default: jest.fn(() => <aside data-test="mock-dashboard-version-history" />),
+}));
+jest.mock('src/features/versionHistory/VersionHistoryPanel', () => ({
+  __esModule: true,
+  default: () => <aside data-test="mock-history-panel" />,
+}));
+jest.mock('src/features/versionHistory/useDashboardVersionPreview', () => ({
+  useDashboardVersionPreview: jest.fn(),
+}));
+jest.mock('src/features/versionHistory/useVersionActions', () => ({
+  useVersionActions: () => ({
+    requestRestore: jest.fn(),
+    openAsNew: jest.fn(),
+    restoreModal: null,
+  }),
+}));
+jest.mock('src/features/versionHistory/useVersionActivity', () => ({
+  useVersionActivity: () => ({
+    records: [],
+    timeline: [],
+    newestGroup: null,
+    currentVersionStatus: 'empty',
+    count: 0,
+    isLoading: false,
+    error: null,
+    hasMore: false,
+    truncated: false,
+    loadMore: jest.fn(),
+    refresh: jest.fn(),
+  }),
+}));
+jest.mock('src/features/versionHistory/api', () => ({
+  ...jest.requireActual('src/features/versionHistory/api'),
+  fetchDashboardHydrationData: jest.fn(),
+}));
+jest.mock('src/dashboard/actions/hydrate', () => ({
+  ...jest.requireActual('src/dashboard/actions/hydrate'),
+  hydrateDashboard: jest.fn(() => ({ type: 'TEST_HYDRATE_DASHBOARD' })),
 }));
 
 jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
@@ -262,29 +314,24 @@ describe('DashboardBuilder', () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
 
-      // Wide: an in-flow third column beside the content, in the content
-      // row only — never spanning the header row.
+      // One layout at every viewport width: the panel is anchored
+      // absolutely inside the CONTENT cell (column 2, row 2), so it adds no
+      // width to the page and leaves nothing beside the header. It stacks
+      // below the sticky header (99) so the header stays clickable.
+      expect(column).toHaveStyleRule('position', 'absolute');
+      expect(column).toHaveStyleRule('grid-column', '2');
       expect(column).toHaveStyleRule('grid-row', '2');
-      expect(column).toHaveStyleRule('grid-column', '3');
-      expect(column).toHaveStyleRule('position', 'sticky');
-      expect(column).toHaveStyleRule('top', '120px');
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      expect(column).toHaveStyleRule('right', '0');
+      expect(column).toHaveStyleRule('align-self', 'stretch');
+      expect(column).toHaveStyleRule('z-index', '98');
       expect(column).toHaveStyleRule('display', 'none', { target: ':empty' });
-
-      // Below XXL: anchored absolutely inside the CONTENT cell (column 2,
-      // row 2) — not fixed to the viewport — and stacked below the sticky
-      // header (99) so the header stays clickable.
+      // No breakpoint switches the layout.
       const narrow = { media: `(max-width: ${supersetTheme.screenXLMax}px)` };
-      expect(column).toHaveStyleRule('position', 'absolute', narrow);
-      expect(column).toHaveStyleRule('grid-column', '2', narrow);
-      expect(column).toHaveStyleRule('right', '0', narrow);
-      expect(column).toHaveStyleRule('align-self', 'stretch', narrow);
-      expect(column).toHaveStyleRule('z-index', '98', narrow);
-      expect(column).not.toHaveStyleRule('position', 'fixed', narrow);
+      expect(column).not.toHaveStyleRule('position', 'absolute', narrow);
       // The panel itself sticks below the measured header height while the
       // page scrolls, so it never slides under the header.
-      expect(column).toHaveStyleRule('top', '120px', {
-        ...narrow,
+      expect(column).toHaveStyleRule('top', '120px', { target: 'aside' });
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', {
         target: 'aside',
       });
     } finally {
@@ -308,24 +355,17 @@ describe('DashboardBuilder', () => {
     try {
       const { findByTestId, unmount } = setup();
       const column = await findByTestId('dashboard-version-history-column');
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)');
+      const aside = { target: 'aside' };
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)', aside);
       headerTop = 0;
       fireEvent.scroll(column);
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', {
-        media: `(max-width: ${supersetTheme.screenXLMax}px)`,
-        target: 'aside',
-      });
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', aside);
       headerTop = -200;
       fireEvent.scroll(column);
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', aside);
       headerTop = 64;
       fireEvent.scroll(window);
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)');
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)', {
-        media: `(max-width: ${supersetTheme.screenXLMax}px)`,
-        target: 'aside',
-      });
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)', aside);
       const scrollListener = addListenerSpy.mock.calls.find(
         ([type, , options]) =>
           type === 'scroll' &&
@@ -1317,4 +1357,243 @@ test('filters panel carries the column separator in an embed', () => {
   );
   nativeFiltersSpy.mockRestore();
   (isEmbedded as jest.Mock).mockReturnValue(false);
+});
+
+// Renders a dashboard previewing a historical version with a horizontal
+// filter bar. Callers must call `restore()` once done.
+const renderHorizontalFilterBarPreview = () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+  const nativeFiltersSpy = jest
+    .spyOn(useNativeFiltersModule, 'useNativeFilters')
+    .mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+      hasFilters: true,
+    });
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  const view = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        filterBarOrientation: FilterBarOrientation.Horizontal,
+      },
+      dashboardLayout: undoableDashboardLayout,
+      versionHistory: dashboardPreviewState,
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const restore = () => {
+    nativeFiltersSpy.mockRestore();
+    window.featureFlags = {};
+  };
+  return { ...view, restore };
+};
+
+test('renders the preview banner in the sticky header, after the horizontal filter bar', async () => {
+  // In the sticky header, the banner never meets the filter bar, and the
+  // measured header height (and every offset derived from it) includes it.
+  const { findByTestId, getByTestId, restore } =
+    renderHorizontalFilterBarPreview();
+  try {
+    const banner = await findByTestId('version-preview-banner');
+    const header = getByTestId('dashboard-header-wrapper');
+    const gate = within(header).getByTestId('dashboard-filter-bar-gate');
+
+    expect(header).toContainElement(banner);
+    expect(
+      gate.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  } finally {
+    restore();
+  }
+});
+
+test('backs the preview banner with an opaque slot', async () => {
+  // The sticky header is transparent; the slot keeps content scrolled
+  // beneath it from showing through the banner's rounded corners.
+  const { findByTestId, restore } = renderHorizontalFilterBarPreview();
+  try {
+    const slot = await findByTestId('dashboard-preview-banner-slot');
+
+    expect(slot).toContainElement(await findByTestId('version-preview-banner'));
+    expect(slot).toHaveStyleRule('background-color', supersetTheme.colorBgBase);
+  } finally {
+    restore();
+  }
+});
+
+test('dims the horizontal filter bar during a preview without making the gate see-through', async () => {
+  const { findByTestId, restore } = renderHorizontalFilterBarPreview();
+  try {
+    const gate = await findByTestId('dashboard-filter-bar-gate');
+
+    expect(gate).not.toHaveStyleRule('opacity', '0.5');
+    expect(gate).toHaveStyleRule('background-color', supersetTheme.colorBgBase);
+    expect(gate).toHaveStyleRule('opacity', '0.5', { target: '>*' });
+  } finally {
+    restore();
+  }
+});
+
+test('entering edit mode closes history and allows reopening after editing', async () => {
+  const originalHref = window.location.href;
+  window.history.replaceState({}, '', '/?version_history=true');
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+  jest
+    .mocked(DashboardVersionHistory)
+    .mockImplementation(
+      jest.requireActual('src/features/versionHistory/DashboardVersionHistory')
+        .default,
+    );
+  jest.mocked(useStoredSidebarWidth).mockReturnValue([100, jest.fn()]);
+  jest.mocked(fetchFaveStar).mockReturnValue(async () => {});
+  jest.mocked(setActiveTab).mockReturnValue(() => ({
+    type: 'SET_ACTIVE_TAB',
+    prevTabId: undefined,
+    activeTabs: [],
+    inactiveTabs: [],
+  }));
+  const store = storeWithState({
+    ...mockState,
+    dashboardLayout: undoableDashboardLayout,
+  });
+  const { unmount } = render(<DashboardBuilder />, {
+    store,
+    useRedux: true,
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  try {
+    expect(await screen.findByTestId('mock-history-panel')).toBeInTheDocument();
+    act(() => {
+      store.dispatch(setEditMode(true));
+    });
+    expect(
+      screen.getByTestId('mock-builder-component-pane'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('dashboard-version-history-column'),
+    ).toHaveAttribute('hidden');
+    expect(screen.queryByTestId('mock-history-panel')).not.toBeInTheDocument();
+    expect(store.getState().versionHistory.isPanelOpen).toBe(false);
+    act(() => {
+      store.dispatch(setEditMode(false));
+    });
+    expect(
+      screen.getByTestId('dashboard-version-history-column'),
+    ).not.toHaveAttribute('hidden');
+    expect(screen.queryByTestId('mock-history-panel')).not.toBeInTheDocument();
+    act(() => {
+      store.dispatch(openVersionHistoryPanel('dashboard'));
+    });
+    expect(await screen.findByTestId('mock-history-panel')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('mock-builder-component-pane'),
+    ).not.toBeInTheDocument();
+  } finally {
+    unmount();
+    window.history.replaceState({}, '', originalHref);
+    window.featureFlags = {};
+    jest
+      .mocked(DashboardVersionHistory)
+      .mockImplementation(() => (
+        <aside data-test="mock-dashboard-version-history" />
+      ));
+  }
+});
+
+test('restored dashboard hydration survives entering edit mode', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+  jest
+    .mocked(DashboardVersionHistory)
+    .mockImplementation(
+      jest.requireActual('src/features/versionHistory/DashboardVersionHistory')
+        .default,
+    );
+  jest
+    .mocked(useDashboardVersionPreview)
+    .mockImplementation(
+      jest.requireActual(
+        'src/features/versionHistory/useDashboardVersionPreview',
+      ).useDashboardVersionPreview,
+    );
+  jest.mocked(hydrateDashboard).mockClear();
+  let finishHydration!: (value: DashboardHydrationData) => void;
+  jest.mocked(fetchDashboardHydrationData).mockImplementation(
+    () =>
+      new Promise(resolve => {
+        finishHydration = resolve;
+      }),
+  );
+  jest.mocked(useStoredSidebarWidth).mockReturnValue([100, jest.fn()]);
+  jest.mocked(fetchFaveStar).mockReturnValue(async () => {});
+  jest.mocked(setActiveTab).mockReturnValue(() => ({
+    type: 'SET_ACTIVE_TAB',
+    prevTabId: undefined,
+    activeTabs: [],
+    inactiveTabs: [],
+  }));
+  const store = storeWithState({
+    ...mockState,
+    dashboardInfo: { ...mockState.dashboardInfo, uuid: 'dashboard-uuid' },
+    dashboardLayout: undoableDashboardLayout,
+  });
+  store.dispatch(openVersionHistoryPanel('dashboard'));
+  const { unmount } = render(<DashboardBuilder />, {
+    store,
+    useRedux: true,
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  try {
+    await screen.findByTestId('mock-history-panel');
+    act(() => store.dispatch(versionRestored('dashboard-uuid')));
+    await waitFor(() =>
+      expect(fetchDashboardHydrationData).toHaveBeenCalledWith(1234),
+    );
+    act(() => store.dispatch(setEditMode(true)));
+    await act(async () =>
+      finishHydration({
+        dashboard: {
+          ...mockState.dashboardInfo,
+          url: '/dashboard/1234/',
+          dashboard_title: 'Restored dashboard',
+          thumbnail_url: null,
+          published: true,
+          changed_by_name: 'Editor',
+          changed_on: '2026-10-29',
+          charts: [],
+          is_managed_externally: false,
+          metadata: {},
+          position_data: null,
+        },
+        charts: [],
+      }),
+    );
+    await waitFor(() => expect(hydrateDashboard).toHaveBeenCalledTimes(1));
+  } finally {
+    unmount();
+    window.featureFlags = {};
+    jest.mocked(useDashboardVersionPreview).mockReset();
+    jest.mocked(fetchDashboardHydrationData).mockReset();
+    jest
+      .mocked(DashboardVersionHistory)
+      .mockImplementation(() => (
+        <aside data-test="mock-dashboard-version-history" />
+      ));
+  }
 });

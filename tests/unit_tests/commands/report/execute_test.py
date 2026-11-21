@@ -23,9 +23,11 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 from urllib.error import URLError
+from urllib.parse import parse_qs, urlencode
 from uuid import UUID, uuid4
 
 import pytest
+import rison
 from celery.exceptions import SoftTimeLimitExceeded
 from PIL import Image, ImageDraw
 from pytest_mock import MockerFixture
@@ -799,8 +801,9 @@ def test_data_export_ignores_blank_query_context_image(
     )
     if report_format == ReportDataFormat.TEXT:
         expected = pd.DataFrame({"value": [42]})
+        mocker.patch.object(state, "_post_chart_data", return_value=b"chart data")
         mocker.patch(
-            "superset.commands.report.execute.get_chart_dataframe",
+            "superset.commands.report.execute.chart_data_to_dataframe",
             return_value=expected,
         )
         assert state._get_embedded_data() is expected
@@ -1979,6 +1982,85 @@ def test_get_dashboard_urls_flag_off_preserves_url_params(
     ]
 
 
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@pytest.mark.parametrize("tabs_enabled", [True, False])
+def test_get_dashboard_urls_native_filters_needing_quotes_round_trip(
+    mock_permalink_cls,
+    tabs_enabled: bool,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Filters whose rison needs quoting must reach the permalink state raw, so
+    the redirect's single URL-encoding is decoded exactly once by the browser."""
+    report_schedule = ReportSchedule()
+    report_schedule.chart = None
+    report_schedule.chart_id = None
+    report_schedule.dashboard_id = 123
+    report_schedule.dashboard = mocker.MagicMock(
+        uuid=UUID("12345678-1234-1234-1234-123456789abc")
+    )
+    native_filters: list[dict[str, Any]] = [
+        {
+            "nativeFilterId": "NATIVE_FILTER-text",
+            "filterType": "filter_select",
+            "columnName": "region",
+            "filterValues": ["North America", "O'Brien", "a,b"],
+        },
+        {
+            "nativeFilterId": "NATIVE_FILTER-range",
+            "filterType": "filter_range",
+            "columnName": "num",
+            "filterValues": [3000, 5000],
+        },
+        {
+            "nativeFilterId": "NATIVE_FILTER-time",
+            "filterType": "filter_time",
+            "columnName": "ds",
+            "filterValues": ["2004-01-01 : 2005-01-01"],
+        },
+    ]
+    extra: dict[str, Any] = {"dashboard": {"nativeFilters": native_filters}}
+    report_schedule.extra = extra  # type: ignore[assignment]
+    mock_permalink_cls.return_value.run.return_value = "permalink_key"
+
+    state_obj = BaseReportState(report_schedule, "January 1, 2021", "execution_id")
+    with (
+        app.test_request_context(),
+        mock.patch("superset.commands.report.execute.db"),
+        mock.patch.object(
+            BaseReportState, "_raise_for_executor_dashboard_access", return_value=None
+        ),
+    ):
+        from superset.extensions import feature_flag_manager  # noqa: PLC0415
+
+        with mock.patch.object(
+            feature_flag_manager,
+            "is_feature_enabled",
+            side_effect=lambda flag: tabs_enabled and flag == "ALERT_REPORT_TABS",
+        ):
+            urls = state_obj.get_dashboard_urls()
+
+    assert len(urls) == 1
+    assert state_obj._execution_warnings == []
+    url_params: list[list[str]] = mock_permalink_cls.call_args_list[0].kwargs["state"][
+        "urlParams"
+    ]
+    (key, value) = next(p for p in url_params if p[0] == "native_filters")
+    assert key == "native_filters"
+    assert "%27" not in value
+    query = urlencode([(key, value)])
+    decoded: dict[str, Any] = rison.loads(parse_qs(query)[key][0])
+    assert set(decoded) == {f["nativeFilterId"] for f in native_filters}
+    assert decoded["NATIVE_FILTER-text"]["filterState"]["value"] == [
+        "North America",
+        "O'Brien",
+        "a,b",
+    ]
+    assert decoded["NATIVE_FILTER-time"]["filterState"]["value"] == (
+        "2004-01-01 : 2005-01-01"
+    )
+
+
 def create_report_schedule(
     mocker: MockerFixture,
     custom_width: int | None = None,
@@ -1998,11 +2080,17 @@ def create_report_schedule(
     return schedule
 
 
+@pytest.mark.parametrize("row_limit", [500000, "250000"])
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
 def test_get_chart_data_request_payload_prepares_server_paginated_export(
     mocker: MockerFixture,
+    row_limit: int | str,
+    result_format: ChartDataResultFormat,
 ) -> None:
     """Server-paginated exports should use the configured row limit."""
-    report_state = BaseReportState(
+    report_state: BaseReportState = BaseReportState(
         create_report_schedule(mocker),
         "January 1, 2021",
         "execution_id_example",
@@ -2018,24 +2106,26 @@ def test_get_chart_data_request_payload_prepares_server_paginated_export(
             "form_data": {
                 "server_pagination": True,
                 "server_page_length": 25,
-                "row_limit": 1000,
+                "row_limit": row_limit,
             },
             "result_format": "json",
             "result_type": "full",
         }
     )
 
-    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+    payload: dict[str, Any] = report_state._get_chart_data_request_payload(
+        result_format
+    )
 
-    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_format"] == result_format.value
     assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
     assert payload["force"] is True
-    assert payload["queries"][0]["row_limit"] == 1000
+    assert payload["queries"][0]["row_limit"] == row_limit
     assert payload["queries"][0]["row_offset"] == 0
     assert len(payload["queries"]) == 2
     assert all(not query.get("is_rowcount") for query in payload["queries"])
     assert payload["queries"][1]["metrics"] == ["count"]
-    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["form_data"]["result_format"] == result_format.value
     assert (
         payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
     )
@@ -5053,7 +5143,9 @@ def test_unlimited_alert_data_transport(
                 else ChartDataResultFormat.CSV
             )
             assert state._get_data(result_format) == payload
-        assert requests == ["POST" if route.endswith("post") else "GET"]
+        assert requests == [
+            "POST" if route.endswith("post") or route == "text" else "GET"
+        ]
     finally:
         server.shutdown()
         server.server_close()
@@ -6048,3 +6140,547 @@ def test_chart_data_http_failure_does_not_expose_request(
     opener.open.assert_called_once()
     assert "SECRET" not in caplog.text + str(exc.value)
     assert "SECRET" not in "".join(traceback.format_exception(exc.value))
+
+
+@pytest.mark.parametrize(
+    "row_limit, expected_limit",
+    [
+        (100, 100),
+        (0, 150),
+        (None, 150),
+        (500000, 150),
+        ("15", 15),
+        ("250000", 150),
+        ("0", 150),
+        ("15.0", 15),
+        ("-5", 150),
+        (-5, 150),
+        ("invalid", 150),
+        ("NaN", 150),
+        ("Infinity", 150),
+        ("", 150),
+    ],
+)
+@pytest.mark.parametrize("server_pagination", [True, False])
+@pytest.mark.parametrize(
+    ("stored_form_data", "params"),
+    [
+        ("current", "current"),
+        ("missing", "current"),
+        ("stale", "current"),
+        ("current", None),
+        ("current", "{}"),
+        ("current", "[]"),
+        ("current", "invalid"),
+    ],
+)
+def test_embedded_data_uses_export_pagination(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    row_limit: int | str | None,
+    expected_limit: int,
+    server_pagination: bool,
+    stored_form_data: str,
+    params: str | None,
+) -> None:
+    """Embedded tables request all configured rows, not the saved page."""
+    from urllib.parse import parse_qs
+    from urllib.request import Request
+
+    import pandas as pd
+
+    mocker.patch.dict(app.config, {"SQL_MAX_ROW": 150})
+    schedule: ReportSchedule = create_report_schedule(mocker)
+    schedule.force_screenshot = True
+    schedule.chart.query_context = json.dumps(
+        {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [
+                {"row_limit": 20, "row_offset": 20},
+                {"is_rowcount": True},
+            ],
+            "form_data": {
+                "viz_type": "table",
+                "server_pagination": server_pagination,
+                "row_limit": row_limit,
+            },
+        }
+    )
+    context: dict[str, Any] = json.loads(schedule.chart.query_context)
+    schedule.chart.params = json.dumps(context["form_data"])
+    if params != "current":
+        schedule.chart.params = params
+    if stored_form_data == "missing":
+        context.pop("form_data")
+    elif stored_form_data == "stale":
+        context["form_data"] = {"viz_type": "pie", "server_pagination": False}
+    schedule.chart.query_context = json.dumps(context)
+    saved_context: str = schedule.chart.query_context
+    state: BaseReportState = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    mocker.patch.object(
+        state, "_get_url", return_value="https://example.com/chart/1/data"
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="https://example.com/api/v1/chart/data",
+    )
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    provider: MagicMock = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    provider.instance.get_auth_cookies.return_value = {"session": "executor-cookie"}
+    requested: list[Request | str] = []
+
+    def serve(request: Request | str, timeout: float | None) -> MagicMock:
+        """Model the chart endpoint returning the requested limit and offset."""
+        requested.append(request)
+        query: dict[str, Any] = {"row_limit": 20, "row_offset": 20}
+        if isinstance(request, Request):
+            assert isinstance(request.data, bytes)
+            payload: dict[str, Any] = json.loads(
+                parse_qs(request.data.decode())["form_data"][0]
+            )
+            query = payload["queries"][0]
+        count: int = query["row_limit"] or 50
+        offset: int = query["row_offset"]
+        response: MagicMock = mocker.MagicMock()
+        response.getcode.return_value = 200
+        response.read.return_value = json.dumps(
+            {
+                "result": [
+                    {
+                        "data": [{"value": i} for i in range(offset, offset + count)],
+                        "coltypes": [0],
+                        "colnames": ["value"],
+                        "indexnames": list(range(count)),
+                    }
+                ]
+            }
+        ).encode()
+        assert timeout == app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"]
+        return response
+
+    mocker.patch("urllib.request.build_opener").return_value.open.side_effect = serve
+    frame: pd.DataFrame = state._get_embedded_data()
+    assert len(frame) == (expected_limit if server_pagination else 20)
+    assert frame.iloc[0, 0] == (0 if server_pagination else 20)
+    assert len(requested) == 1
+    request: Request | str = requested[0]
+    assert isinstance(request, Request)
+    assert request.get_method() == "POST"
+    assert request.get_header("Cookie") == "session=executor-cookie"
+    assert isinstance(request.data, bytes)
+    payload: dict[str, Any] = json.loads(
+        parse_qs(request.data.decode())["form_data"][0]
+    )
+    assert payload["queries"] == (
+        [{"row_limit": expected_limit, "row_offset": 0}]
+        if server_pagination
+        else [{"row_limit": 20, "row_offset": 20}, {"is_rowcount": True}]
+    )
+    assert payload["form_data"]["viz_type"] == "table"
+    assert payload["form_data"]["server_pagination"] is server_pagination
+    assert payload["result_format"] == "json"
+    assert payload["result_type"] == "post_processed"
+    assert payload["force"] is True
+    assert payload["datasource"] == {"id": 1, "type": "table"}
+    assert schedule.chart.query_context == saved_context
+
+
+def test_embedded_data_keeps_get_fallback_without_saved_context(
+    mocker: MockerFixture,
+) -> None:
+    """A chart still missing context after bootstrap keeps the legacy GET path."""
+    import pandas as pd
+
+    state: BaseReportState = BaseReportState(
+        create_report_schedule(mocker), datetime.utcnow(), uuid4()
+    )
+    _mock_xlsx_chart_data_dependencies(mocker, state)
+    expected: pd.DataFrame = pd.DataFrame({"value": [42]})
+    get_frame: MagicMock = mocker.patch(
+        "superset.commands.report.execute.get_chart_dataframe", return_value=expected
+    )
+    post: MagicMock = mocker.patch.object(state, "_post_chart_data")
+    assert state._get_embedded_data() is expected
+    get_frame.assert_called_once()
+    post.assert_not_called()
+
+
+@pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
+def test_report_preserves_saved_semantic_chart_type_for_validation(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Old report contexts still identify the semantic visualization being exported."""
+    report_state: BaseReportState = BaseReportState(
+        create_report_schedule(mocker), "January 1, 2021", "test-execution"
+    )
+    report_state._report_schedule.chart.datasource_type = datasource_type
+    report_state._report_schedule.chart.viz_type = "histogram_v2"
+    report_state._report_schedule.chart.query_context = json.dumps({"queries": [{}]})
+    payload: dict[str, Any] = report_state._get_chart_data_request_payload(
+        ChartDataResultFormat.CSV
+    )
+    if datasource_type == "semantic_view":
+        assert payload["form_data"]["viz_type"] == "histogram_v2"
+    else:
+        assert "form_data" not in payload
+
+
+def _multi_tab_position() -> dict[str, Any]:
+    """Root tabs: Sales (charts), Notes (markdown only), Regions (charts)."""
+
+    def node(
+        node_id: str, node_type: str, children: list[str], parents: list[str]
+    ) -> dict[str, Any]:
+        return {
+            "id": node_id,
+            "type": node_type,
+            "children": children,
+            "parents": parents,
+            "meta": (
+                {"text": node_id}
+                if node_type == "TAB"
+                else {"chartId": int(node_id.rsplit("-", 1)[1])}
+                if node_type == "CHART"
+                else {}
+            ),
+        }
+
+    root = ["ROOT_ID", "TABS-root"]
+    nodes = [
+        node("ROOT_ID", "ROOT", ["TABS-root"], []),
+        node(
+            "TABS-root", "TABS", ["TAB-sales", "TAB-notes", "TAB-regions"], ["ROOT_ID"]
+        ),
+        node("TAB-sales", "TAB", ["ROW-s"], root),
+        node("ROW-s", "ROW", ["CHART-1"], [*root, "TAB-sales"]),
+        node("CHART-1", "CHART", [], [*root, "TAB-sales", "ROW-s"]),
+        node("TAB-notes", "TAB", ["ROW-n"], root),
+        node("ROW-n", "ROW", ["MARKDOWN-1"], [*root, "TAB-notes"]),
+        node("MARKDOWN-1", "MARKDOWN", [], [*root, "TAB-notes", "ROW-n"]),
+        node("TAB-regions", "TAB", ["ROW-r"], root),
+        node("ROW-r", "ROW", ["CHART-2"], [*root, "TAB-regions"]),
+        node("CHART-2", "CHART", [], [*root, "TAB-regions", "ROW-r"]),
+    ]
+    position = {item["id"]: item for item in nodes}
+    position["TAB-notes"]["meta"]["text"] = "Notes"
+    return position
+
+
+def _dashboard_capture_state(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    *,
+    anchor: str | None,
+    active_tabs: list[str] | None = None,
+    position: Any = None,
+    urls: list[str] | None = None,
+    slice_ids: list[int] | None = None,
+) -> tuple[BaseReportState, MagicMock]:
+    """Build a dashboard report state; return it with the DashboardScreenshot mock."""
+    from superset.models.dashboard import Dashboard
+
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+        }
+    )
+    schedule = create_report_schedule(mocker)
+    schedule.chart = None
+    dashboard_state: dict[str, Any] = {}
+    if anchor is not None:
+        dashboard_state["anchor"] = anchor
+    if active_tabs is not None:
+        dashboard_state["activeTabs"] = active_tabs
+    schedule.extra_json = json.dumps({"dashboard": dashboard_state})
+    layout = _multi_tab_position() if position is None else position
+    real_dashboard = Dashboard(position_json=json.dumps(layout))
+    dashboard = MagicMock()
+    dashboard.digest = "dashboard-digest"
+    dashboard.tabs = real_dashboard.tabs
+    dashboard.slices = [MagicMock(id=slice_id) for slice_id in (slice_ids or [1, 2])]
+    if position == "malformed":
+        type(dashboard).position = mocker.PropertyMock(
+            side_effect=json.JSONDecodeError("bad", "{", 0)
+        )
+    else:
+        dashboard.position = real_dashboard.position
+    schedule.dashboard = dashboard
+    state = BaseReportState(schedule, datetime.now(), uuid4())
+    state._report_execution_context = _active_report_context()
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.MagicMock(), "executor"),
+    )
+    mocker.patch.object(
+        state,
+        "get_dashboard_urls",
+        return_value=urls or ["/superset/dashboard/p/abc/"],
+    )
+    screenshots = mocker.patch("superset.commands.report.execute.DashboardScreenshot")
+    return state, screenshots
+
+
+def _captured_suffixes(screenshots: MagicMock) -> list[str | None]:
+    return [
+        call.kwargs["report_execution_context"].empty_tab_pane_suffix
+        for call in screenshots.return_value.get_screenshot.call_args_list
+    ]
+
+
+def test_single_empty_tab_anchor_marks_capture_context(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == ["1"]
+
+
+def test_single_tab_with_charts_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_orphan_dashboard_slice_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A chart attached to the dashboard but missing from the layout is rendered
+    by the frontend in the first root tab, so no tab is treated as chart-free."""
+    position = _multi_tab_position()
+    position["ROW-s"]["children"] = ["MARKDOWN-2"]
+    position["MARKDOWN-2"] = {
+        **position["MARKDOWN-1"],
+        "id": "MARKDOWN-2",
+        "parents": position["CHART-1"]["parents"],
+    }
+    del position["CHART-1"]
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-sales", position=position, slice_ids=[2, 99]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_detached_chart_in_tab_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A detached CHART node whose stored parents name the selected tab is
+    reattached there by the frontend, so the tab is not chart-free."""
+    position = _multi_tab_position()
+    position["CHART-3"] = {
+        **position["CHART-2"],
+        "id": "CHART-3",
+        "meta": {"chartId": 3},
+        "parents": ["ROOT_ID", "TABS-root", "TAB-notes", "ROW-gone"],
+    }
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position=position, slice_ids=[1, 2, 3]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_unhashable_layout_chart_id_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    position = _multi_tab_position()
+    position["CHART-1"]["meta"] = {"chartId": [1]}
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position=position
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_unreadable_dashboard_slices_leave_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    type(state._report_schedule.dashboard).slices = mocker.PropertyMock(
+        side_effect=RuntimeError("detached")
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_all_tabs_anchor_list_maps_suffix_per_url(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A text-only middle tab is flagged; the other tabs are still captured."""
+    state, screenshots = _dashboard_capture_state(
+        mocker,
+        app,
+        anchor=json.dumps(["TAB-sales", "TAB-notes", "TAB-regions"]),
+        urls=["/p/1", "/p/2", "/p/3"],
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    images = state._get_screenshots()
+
+    assert len(images) == 3
+    assert _captured_suffixes(screenshots) == [None, "1", None]
+    contexts = [
+        call.kwargs["report_execution_context"]
+        for call in screenshots.return_value.get_screenshot.call_args_list
+    ]
+    assert len({id(c._capture_rejection_reasons) for c in contexts}) == 1
+
+
+def test_first_root_tab_without_charts_uses_grid_id_suffix(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    position = _multi_tab_position()
+    position["ROW-s"]["children"] = ["MARKDOWN-2"]
+    position["MARKDOWN-2"] = {
+        **position["MARKDOWN-1"],
+        "id": "MARKDOWN-2",
+        "parents": position["CHART-1"]["parents"],
+    }
+    del position["CHART-1"]
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-sales", position=position, slice_ids=[2]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == ["GRID_ID"]
+
+
+@pytest.mark.parametrize(
+    ("anchor", "active_tabs", "urls"),
+    [
+        ("TAB-notes", ["TAB-notes"], None),
+        (json.dumps(["TAB-sales", "TAB-notes"]), None, ["/p/1"]),
+        (json.dumps(["TAB-notes"]), None, ["/p/1", "/p/2"]),
+        (None, None, None),
+    ],
+)
+def test_untrusted_anchor_state_leaves_context_unmarked(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    anchor: str | None,
+    active_tabs: list[str] | None,
+    urls: list[str] | None,
+) -> None:
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor=anchor, active_tabs=active_tabs, urls=urls
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert set(_captured_suffixes(screenshots)) == {None}
+
+
+def test_malformed_position_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position="malformed"
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_render_timeout_on_empty_tab_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.webdriver import PlaywrightTimeout
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    screenshots.return_value.get_screenshot.side_effect = PlaywrightTimeout(
+        "Page.wait_for_function: Timeout 26000ms exceeded."
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    message = str(exc_info.value)
+    assert 'dashboard tab "Notes"' in message
+    assert "wait_for_function" not in message
+    assert "Playwright" not in message
+
+
+def test_timeout_without_empty_tab_keeps_playwright_detail(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.webdriver import PlaywrightTimeout
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = PlaywrightTimeout(
+        "Page.wait_for_function: Timeout 26000ms exceeded."
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "Failed taking a screenshot" in str(exc_info.value)
+    assert "wait_for_function" in str(exc_info.value)
+
+
+def test_never_mounted_timeout_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.screenshot_utils import ChartHoldersNeverMountedError
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = ChartHoldersNeverMountedError(
+        "No chart holder mounted within 60s"
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "Timed out waiting for dashboard tab" in str(exc_info.value)
+    assert "Failed taking a screenshot" not in str(exc_info.value)
+
+
+def test_crashed_dashboard_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.screenshot_utils import DashboardRenderCrashedError
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = DashboardRenderCrashedError(
+        "Dashboard render crashed"
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "unexpected error" in str(exc_info.value)
+    assert "Failed taking a screenshot" not in str(exc_info.value)

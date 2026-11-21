@@ -400,3 +400,20 @@ def test_connections_combines_read_grants_from_separate_roles(
     assert {call.args[0] for call in query.call_args_list} == {Database, SemanticLayer}
     assert query.call_count == 2
     session.rollback()
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_database_connection_serialization_includes_oauth2_state(
+    session: Session, mocker: MockerFixture, enabled: bool
+) -> None:
+    """Combined database rows expose the OAuth2 action flag without credentials."""
+    Database.metadata.create_all(session.get_bind())
+    database = Database(database_name="OAuth database", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.flush()
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=enabled)
+    result = SemanticLayerRestApi._serialize_database(database)
+    assert result["source_type"] == "database"
+    assert result["engine_information"]["oauth2_enabled"] is enabled
+    assert "encrypted_extra" not in result
+    session.rollback()

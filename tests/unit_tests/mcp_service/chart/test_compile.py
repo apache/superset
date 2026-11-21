@@ -29,6 +29,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.compile import (
@@ -69,6 +70,8 @@ def _orm_dataset(
         col.column_name = name
         col.type = "TEXT"
         col.is_temporal = name == "ds"
+        col.is_dttm = name == "ds"
+        col.python_date_format = None
         col.is_numeric = name == "num"
         columns.append(col)
 
@@ -1015,6 +1018,49 @@ def test_compile_sample_skips_rolling_and_forecast(
     }
 
 
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_sample_skips_forecast_for_grouped_series_on_one_timestamp(
+    mock_factory: Mock, mock_command: Mock, mock_seed: Mock
+) -> None:
+    """Two grouped sample rows on one day must not reach the Prophet step."""
+    from superset.utils import pandas_postprocessing as pp
+
+    form_data = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+        "time_grain_sqla": "P1D",
+        "forecastEnabled": True,
+        "forecastPeriods": 10,
+        "forecastInterval": 0.8,
+    }
+
+    def run_sample() -> dict[str, Any]:
+        """Execute the real query operators against the bounded sample."""
+        query = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+        assert query["row_limit"] == 2
+        frame = pd.DataFrame(
+            {
+                "ds": [pd.Timestamp("2026-01-01")] * 2,
+                "region": ["East", "West"],
+                "revenue": [1.0, 2.0],
+            }
+        )
+        for step in query["post_processing"]:
+            frame = getattr(pp, step["operation"])(frame, **step.get("options", {}))
+        return chart_data_command_result(frame.to_dict("records"))
+
+    mock_command.return_value.run.side_effect = run_sample
+    result = _compile_chart(form_data, 7)
+
+    assert result.success, result.error
+    sampled = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+    assert "prophet" not in {step["operation"] for step in sampled["post_processing"]}
+
+
 @pytest.mark.parametrize("run_compile_check", [False, True])
 @pytest.mark.parametrize(
     "clause,subject,error_code",
@@ -1064,3 +1110,1241 @@ def test_mixed_secondary_filters_receive_tier_one_validation(
         assert result.error_obj is not None
         assert result.error_obj.error_code == error_code
         compile_chart.assert_not_called()
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_returns_structured_error_for_malformed_gantt_form_data(
+    mock_factory: Mock, mock_cmd_cls: Mock
+) -> None:
+    """Gantt query building raises QueryObjectValidationError, which is not a
+    CommandException; compile must still return CHART_COMPILE_FAILED."""
+    form_data = {
+        "viz_type": "gantt_chart",
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "y_axis": "task",
+        "tooltip_columns": [f"column_{index}" for index in range(51)],
+    }
+
+    result = _compile_chart(form_data, 1)
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert result.tier == "compile"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert "tooltip_columns must contain at most 50 entries" in (result.error or "")
+    mock_cmd_cls.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Error in jinja expression in metric expression: "
+        "Unsafe template value for key time_grain: TimeGrain",
+        "Invalid post-processing operation",
+    ],
+)
+def test_compile_chart_validation_failure_is_not_connection_error(
+    mocker: MockerFixture, message: str
+) -> None:
+    """Typed template/processing failures must bypass generic DB classification."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+
+    context = Mock()
+    context.get_payload.return_value = {
+        "queries": [
+            {"error": QueryObjectValidationMessage(QueryObjectValidationError(message))}
+        ]
+    }
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = BaseEngineSpec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+
+    result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert result.error_obj.error_code == "CHART_COMPILE_FAILED"
+    assert message in result.error_obj.details
+
+
+@pytest.mark.parametrize(
+    ("message", "validation_failure", "expected_error_type"),
+    [
+        (
+            "(psycopg2.OperationalError) connection to server failed: "
+            "Connection refused",
+            False,
+            "database_connection_error",
+        ),
+        (
+            "Unsafe template value for key time_grain: TimeGrain",
+            True,
+            "compile_error",
+        ),
+        ("Invalid post-processing operation", True, "compile_error"),
+    ],
+)
+def test_compile_chart_annotation_failure_preserves_error_classification(
+    mocker: MockerFixture,
+    message: str,
+    validation_failure: bool,
+    expected_error_type: str,
+) -> None:
+    """Annotation failures retain their classification through validation wraps."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+
+    annotation_context = Mock(queries=[])
+    annotation_error = (
+        QueryObjectValidationMessage(QueryObjectValidationError(message))
+        if validation_failure
+        else message
+    )
+    annotation_context.get_payload.return_value = {
+        "queries": [{"error": annotation_error}]
+    }
+    chart = Mock()
+    chart.get_query_context.return_value = annotation_context
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+
+    def get_payload(**kwargs: Any) -> dict[str, Any]:
+        """Record the annotation error like the main query processor."""
+        try:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 2, "name": "annotation"}, force=False
+            )
+        except QueryObjectValidationError as exc:
+            return {"queries": [{"error": QueryObjectValidationMessage(exc)}]}
+        raise AssertionError("Expected the annotation query to fail")
+
+    context = Mock()
+    context.get_payload.side_effect = get_payload
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = BaseEngineSpec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+
+    result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    assert message in result.error_obj.details
+
+
+_POSTGRES_CONNECTION_REFUSED = (
+    "(psycopg2.OperationalError) could not connect to server: Connection refused\n"
+    '\tIs the server running on host "db.example" (10.0.0.1) and accepting\n'
+    "\tTCP/IP connections on port 5432?"
+)
+
+
+def _annotation_compile_result(
+    mocker: MockerFixture,
+    annotation_failure: str | Exception,
+    *,
+    dataset_engine_spec: Any,
+    annotation_engine_spec: Any | None = None,
+    other_annotation_engine_spec: Any | None = None,
+    annotation_key: str = "annotation_layers",
+    other_annotation_key: str = "annotation_layers",
+) -> Any:
+    """Compile a chart whose first line annotation chart fails.
+
+    ``other_annotation_engine_spec`` adds a second, healthy annotation chart on
+    another engine, so the exception alone does not say which engine failed.
+
+    ``annotation_failure`` is either the annotation query's payload error text or
+    an exception raised while the annotation chart builds its payload.
+    """
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+
+    annotation_context = Mock(queries=[])
+    if isinstance(annotation_failure, Exception):
+        annotation_context.get_payload.side_effect = annotation_failure
+    else:
+        annotation_context.get_payload.return_value = {
+            "queries": [{"error": annotation_failure}]
+        }
+    chart = Mock()
+    chart.get_query_context.return_value = annotation_context
+    if annotation_engine_spec is None:
+        chart.datasource = None
+    else:
+        chart.datasource.database.db_engine_spec = annotation_engine_spec
+    other_chart = Mock()
+    other_chart.datasource.database.db_engine_spec = other_annotation_engine_spec
+    mocker.patch(
+        "superset.daos.chart.ChartDAO.find_by_id",
+        side_effect=lambda chart_id: other_chart if chart_id == 3 else chart,
+    )
+    layer = {
+        "annotationType": "TIME_SERIES",
+        "name": "annotation",
+        "sourceType": "line",
+        "value": 2,
+    }
+    form_data: dict[str, Any] = {"metrics": ["count"], annotation_key: [layer]}
+    if annotation_key == "annotation_layers_b":
+        form_data["viz_type"] = "mixed_timeseries"
+    if other_annotation_engine_spec is not None:
+        form_data.setdefault(other_annotation_key, []).append(
+            {**layer, "name": "other annotation", "value": 3}
+        )
+
+    def get_payload(**kwargs: Any) -> dict[str, Any]:
+        """Record the annotation error like the main query processor."""
+        try:
+            QueryContextProcessor.get_viz_annotation_data(layer, force=False)
+        except QueryObjectValidationError as exc:
+            return {"queries": [{"error": QueryObjectValidationMessage(exc)}]}
+        raise AssertionError("Expected the annotation query to fail")
+
+    context = Mock()
+    context.get_payload.side_effect = get_payload
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = dataset_engine_spec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+
+    return _compile_chart(form_data, dataset_id=1)
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_error_type"),
+    [
+        (_POSTGRES_CONNECTION_REFUSED, "database_connection_error"),
+        (
+            '(psycopg2.errors.SyntaxError) syntax error at or near "FROMM"',
+            "compile_error",
+        ),
+    ],
+)
+def test_compile_chart_annotation_failure_uses_engine_error_patterns(
+    mocker: MockerFixture, message: str, expected_error_type: str
+) -> None:
+    """Only the engine's connection patterns make an annotation failure a DB error.
+
+    PostgresEngineSpec recognizes both texts, so a syntax error in the
+    annotation query stays a compile error instead of the generic fallback.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=PostgresEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    assert message in result.error_obj.details
+
+
+def test_compile_chart_annotation_dbapi_error_is_connection_error(
+    mocker: MockerFixture,
+) -> None:
+    """A typed DB-API failure raised outside the annotation query stays a DB error.
+
+    The annotation chart raises it before any payload exists, so the chain holds
+    no chart-data query failure, only the typed engine error.
+    """
+    from superset.db_engine_specs.exceptions import SupersetDBAPIOperationalError
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        SupersetDBAPIOperationalError(_POSTGRES_CONNECTION_REFUSED),
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=PostgresEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "database_connection_error"
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_error_type"),
+    [
+        (
+            "(MySQLdb.OperationalError) (2003, \"Can't connect to MySQL server "
+            "on 'mysql.example' (111)\")",
+            "database_connection_error",
+        ),
+        (
+            "(MySQLdb.ProgrammingError) (1064, 'You have an error in your SQL "
+            "syntax; check the manual that corresponds to your MySQL server "
+            "version for the right syntax to use near 'FROMM x' at line 1')",
+            "compile_error",
+        ),
+    ],
+)
+def test_compile_chart_annotation_failure_uses_annotation_engine_spec(
+    mocker: MockerFixture, message: str, expected_error_type: str
+) -> None:
+    """An annotation chart's failure is classified by its own database's engine.
+
+    The main dataset is on Postgres, whose patterns match neither MySQL text and
+    so fall back to the generic engine error.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=MySQLEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    if expected_error_type == "database_connection_error":
+        assert "annotation layer" in result.error_obj.message
+
+
+def test_classify_as_database_error_stops_on_cyclic_cause_chain() -> None:
+    """A cyclic ``__cause__`` chain ends the walk instead of looping forever."""
+    from superset.commands.chart.exceptions import ChartDataQueryValidationError
+    from superset.exceptions import QueryObjectValidationError
+    from superset.mcp_service.chart.compile import _classify_as_database_error
+
+    outer = ChartDataQueryValidationError("Error: annotation failed")
+    cause_reads = 0
+
+    class BoundedValidationError(QueryObjectValidationError):
+        """Fail synchronously if the cycle guard stops bounding the walk."""
+
+        def __getattribute__(self, name: str) -> Any:
+            nonlocal cause_reads
+            if name == "__cause__":
+                cause_reads += 1
+                assert cause_reads <= 2, "cause-chain walk revisited the cycle"
+            return super().__getattribute__(name)
+
+    inner = BoundedValidationError("annotation failed")
+    outer.__cause__ = inner
+    inner.__cause__ = outer
+    assert _classify_as_database_error(outer, {}, 1) is None
+    assert cause_reads == 1
+
+
+def test_compile_chart_annotation_syntax_error_with_several_engines_is_not_connection(
+    mocker: MockerFixture,
+) -> None:
+    """Which annotation engine failed is unknown, so no generic fallback applies.
+
+    Two annotation charts sit on Postgres and MySQL. A MySQL syntax error matches
+    no specific connection pattern; an engine's generic fallback must not turn it
+    into a database connection error.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    message = (
+        "(MySQLdb.ProgrammingError) (1064, 'You have an error in your SQL "
+        "syntax; check the manual that corresponds to your MySQL server "
+        "version for the right syntax to use near 'FROMM x' at line 1')"
+    )
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=MySQLEngineSpec,
+        other_annotation_engine_spec=PostgresEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert message in result.error_obj.details
+
+
+def test_compile_chart_annotation_connection_error_with_several_engines(
+    mocker: MockerFixture,
+) -> None:
+    """A specific connection pattern still classifies with several engines."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        _POSTGRES_CONNECTION_REFUSED,
+        dataset_engine_spec=MySQLEngineSpec,
+        annotation_engine_spec=PostgresEngineSpec,
+        other_annotation_engine_spec=MySQLEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "database_connection_error"
+    assert "annotation layer's chart" in result.error_obj.message
+
+
+@pytest.mark.parametrize("with_query_a_layer", [False, True])
+@pytest.mark.parametrize(
+    ("message", "expected_error_type"),
+    [
+        (
+            "(MySQLdb.OperationalError) (2003, \"Can't connect to MySQL server "
+            "on 'mysql.example' (111)\")",
+            "database_connection_error",
+        ),
+        (
+            "(MySQLdb.ProgrammingError) (1064, 'You have an error in your SQL "
+            "syntax; check the manual that corresponds to your MySQL server "
+            "version for the right syntax to use near 'FROMM x' at line 1')",
+            "compile_error",
+        ),
+    ],
+)
+def test_compile_chart_mixed_timeseries_query_b_annotation_failure(
+    mocker: MockerFixture,
+    with_query_a_layer: bool,
+    message: str,
+    expected_error_type: str,
+) -> None:
+    """Query B contributes both the annotation source and possible failing engines."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=MySQLEngineSpec,
+        other_annotation_engine_spec=(
+            PostgresEngineSpec if with_query_a_layer else None
+        ),
+        annotation_key="annotation_layers_b",
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    assert message in result.error_obj.details
+    if expected_error_type == "database_connection_error":
+        assert "annotation layer's chart" in result.error_obj.message
+
+
+@pytest.mark.parametrize("source", ["dataset", "annotation"])
+def test_classification_debug_log_identifies_candidate_engine_source(
+    mocker: MockerFixture, source: str
+) -> None:
+    """Engine lookup failures identify the source, not an annotation dataset."""
+    from superset.commands.chart.exceptions import (
+        ChartDataQueryFailedError,
+        ChartDataQueryValidationError,
+    )
+    from superset.mcp_service.chart.compile import _classify_as_database_error
+
+    failure = ChartDataQueryFailedError("query failed")
+    exc: Exception = failure
+    form_data: dict[str, Any] = {}
+    spec = Mock()
+    spec.extract_errors.side_effect = RuntimeError("classification failed")
+    dataset = Mock()
+    dataset.database.db_engine_spec = spec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+    mocker.patch(
+        "superset.mcp_service.chart.compile._annotation_engine_specs",
+        return_value=([spec], True),
+    )
+    if source == "annotation":
+        exc = ChartDataQueryValidationError("annotation failed")
+        exc.__cause__ = failure
+        form_data["annotation_layers"] = [{"sourceType": "line", "value": 2}]
+    debug = mocker.patch("superset.mcp_service.chart.compile.logger.debug")
+
+    assert _classify_as_database_error(exc, form_data, 1) is None
+    debug.assert_called_once_with(
+        "Failed to classify %s error via candidate engine specs (main dataset %s): %s",
+        source,
+        1,
+        exc,
+    )
+
+
+class TestTemporalFilterValues:
+    """A non-date comparator on a temporal column is rejected before any SQL."""
+
+    @staticmethod
+    def _dataset() -> Mock:
+        from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+        ds = _orm_dataset()
+        ds.database.db_engine_spec = SqliteEngineSpec
+        for col in ds.columns:
+            col.is_dttm = col.column_name == "ds"
+            col.type = "DATETIME" if col.column_name == "ds" else "TEXT"
+        return ds
+
+    @staticmethod
+    def _config(op: str, value: Any) -> XYChartConfig:
+        return XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num", aggregate="SUM")],
+            kind="line",
+            filters=[FilterConfig(column="ds", op=op, value=value)],
+        )
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "2000",
+            "not-a-date",
+            "2000-01-01😀12:30:00",
+            "2000-01-01T12:00:00+00:99",
+            float("inf"),
+            float("nan"),
+            10**30,
+        ],
+    )
+    def test_invalid_value_rejected(self, value):
+        result = validate_and_compile(
+            self._config(">=", value), {}, self._dataset(), run_compile_check=False
+        )
+        assert not result.success
+        assert result.tier == "validation"
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+    @pytest.mark.parametrize(
+        ("op", "value"),
+        [(">=", "2000-01-01"), (">=", 946684800000), ("IN", ["2000-01-01"])],
+    )
+    def test_valid_value_accepted(self, op, value):
+        result = validate_and_compile(
+            self._config(op, value), {}, self._dataset(), run_compile_check=False
+        )
+        assert result.success, result.error
+
+
+@pytest.mark.parametrize("native_key", ["adhoc_filters", "adhoc_filters_b"])
+@pytest.mark.parametrize("run_compile_check", [False, True])
+def test_preserved_temporal_comparator_is_validated(
+    native_key: str, run_compile_check: bool
+) -> None:
+    """An update omitting filters must validate the final merged predicates."""
+    from superset.mcp_service.chart.chart_utils import merge_form_data_for_update
+
+    config = MixedTimeseriesChartConfig(
+        chart_type="mixed_timeseries",
+        x=ColumnRef(name="ds"),
+        y=[ColumnRef(name="num", aggregate="SUM")],
+        y_secondary=[ColumnRef(name="num", aggregate="SUM")],
+    )
+    filter_ = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "ds",
+        "operator": ">=",
+        "comparator": "2000",
+    }
+    form_data = merge_form_data_for_update(
+        {"viz_type": "mixed_timeseries", native_key: [filter_]},
+        {"viz_type": "mixed_timeseries"},
+        config,
+    )
+    assert form_data[native_key] == [filter_]
+    with patch("superset.mcp_service.chart.compile._compile_chart") as compile_chart:
+        result = validate_and_compile(
+            config,
+            form_data,
+            TestTemporalFilterValues._dataset(),
+            run_compile_check=run_compile_check,
+        )
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+    compile_chart.assert_not_called()
+
+
+@pytest.mark.parametrize("preserved", [False, True])
+def test_temporal_storage_format_is_preserved(preserved: bool) -> None:
+    """Formatted VARCHAR dates must reach SQL without ISO substitution."""
+    ds = TestTemporalFilterValues._dataset()
+    ds.columns[0].type = "VARCHAR"
+    ds.columns[0].python_date_format = "%Y%m%d"
+    config = TestTemporalFilterValues._config("=", "20000101")
+    form_data = {}
+    if preserved:
+        config = config.model_copy(update={"filters": None})
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                    "subject": "ds",
+                    "operator": "=",
+                    "comparator": "20000101",
+                }
+            ],
+        }
+    with patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    ) as compile_chart:
+        result = validate_and_compile(config, form_data, ds)
+    assert result.success is True, result.error
+    compile_chart.assert_called_once_with(form_data, ds.id)
+
+    import sqlite3
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    comparator = SqlaTable.filter_values_handler(
+        "20000101",
+        "==",
+        GenericDataType.STRING,
+        "VARCHAR",
+        db_engine_spec=SqliteEngineSpec,
+    )
+    assert comparator == "20000101"
+    with sqlite3.connect(":memory:") as connection:
+        connection.execute("CREATE TABLE events (ds VARCHAR)")
+        connection.execute("INSERT INTO events VALUES (?)", ("20000101",))
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM events WHERE ds = ?", (comparator,)
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM events WHERE ds = ?", ("2000-01-01",)
+            ).fetchone()[0]
+            == 0
+        )
+    if preserved:
+        assert form_data["adhoc_filters"][0]["comparator"] == "20000101"
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN"])
+def test_preserved_temporal_null_membership_is_accepted(operator: str) -> None:
+    """The final-form validator must preserve SQL null-membership semantics."""
+    result = validate_and_compile(
+        TableChartConfig(chart_type="table", columns=[ColumnRef(name="ds")]),
+        {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ds",
+                    "operator": operator,
+                    "comparator": ["2000-01-01", None],
+                }
+            ]
+        },
+        TestTemporalFilterValues._dataset(),
+        run_compile_check=False,
+    )
+    assert result.success is True, result.error
+
+
+@pytest.mark.parametrize("value", ["2000-01-01", "2000"])
+def test_native_temporal_ignores_storage_format(value: str) -> None:
+    """A format on a native DATETIME must not override its actual SQL type."""
+    ds = TestTemporalFilterValues._dataset()
+    ds.columns[0].python_date_format = "%Y"
+    result = validate_and_compile(
+        TestTemporalFilterValues._config("=", value), {}, ds, run_compile_check=False
+    )
+    assert result.success is (value == "2000-01-01")
+
+
+@pytest.mark.parametrize("value", ["2000-01-01", 946684800000])
+@pytest.mark.parametrize("preserved", [False, True])
+def test_temporal_storage_format_rejects_wrong_representation(
+    value: str | int, preserved: bool
+) -> None:
+    """ISO and epoch inputs cannot be forwarded unchanged to YYYYMMDD storage."""
+    ds = TestTemporalFilterValues._dataset()
+    ds.columns[0].type = "VARCHAR"
+    ds.columns[0].python_date_format = "%Y%m%d"
+    config = TestTemporalFilterValues._config("=", value)
+    form_data = {}
+    if preserved:
+        config = config.model_copy(update={"filters": None})
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ds",
+                    "operator": "=",
+                    "comparator": value,
+                }
+            ]
+        }
+    result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+    assert "%Y%m%d" in result.error_obj.details
+
+
+@pytest.mark.parametrize("suffix", ["", "_b"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "filters",
+        "extra_filters",
+        "extra_form_data.filters",
+        "extra_form_data.adhoc_filters",
+    ],
+)
+def test_preserved_temporal_predicate_aliases_are_validated(
+    source: str, suffix: str
+) -> None:
+    """Legacy/native filter containers feed the same final query predicates."""
+    filter_ = {"col": "ds", "op": ">=", "val": "2000"}
+    if source.endswith("adhoc_filters"):
+        filter_ = {
+            "expressionType": "SIMPLE",
+            "subject": "ds",
+            "operator": ">=",
+            "comparator": "2000",
+        }
+    root, _, nested = source.partition(".")
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        root + suffix: {nested: [filter_]} if nested else [filter_],
+    }
+    config = MixedTimeseriesChartConfig(
+        chart_type="mixed_timeseries",
+        x=ColumnRef(name="ds"),
+        y=[ColumnRef(name="num", aggregate="SUM")],
+        y_secondary=[ColumnRef(name="num", aggregate="SUM")],
+    )
+    result = validate_and_compile(
+        config, form_data, TestTemporalFilterValues._dataset(), run_compile_check=False
+    )
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+
+@pytest.mark.parametrize("suffix", ["", "_b"])
+def test_preserved_legacy_time_override_is_not_a_point_comparison(suffix: str) -> None:
+    """Legacy time control pseudo-columns are not physical temporal literals."""
+    config = MixedTimeseriesChartConfig(
+        chart_type="mixed_timeseries",
+        x=ColumnRef(name="ds"),
+        y=[ColumnRef(name="num", aggregate="SUM")],
+        y_secondary=[ColumnRef(name="num", aggregate="SUM")],
+    )
+    result = validate_and_compile(
+        config,
+        {
+            "viz_type": "mixed_timeseries",
+            "extra_filters" + suffix: [
+                {"col": "__time_range", "op": "==", "val": "Last year"}
+            ],
+        },
+        TestTemporalFilterValues._dataset(),
+        run_compile_check=False,
+    )
+    assert result.success is True, result.error
+
+
+@pytest.mark.parametrize("suffix", ["", "_b"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "filters",
+        "extra_filters",
+        "extra_form_data.filters",
+        "extra_form_data.adhoc_filters",
+    ],
+)
+def test_semantic_temporal_predicate_aliases_are_validated(
+    source: str, suffix: str
+) -> None:
+    """The semantic-view proxy must not discard native filter containers."""
+    from superset.mcp_service.chart.datasource_resolver import (
+        ChartDatasource,
+        validate_semantic_view_form_data,
+    )
+    from superset.utils.core import DatasourceType
+
+    column = Mock(column_name="ds", type="TIMESTAMP", is_dttm=True)
+    view = Mock(columns=[column], metrics=[])
+    target = ChartDatasource(view, DatasourceType.SEMANTIC_VIEW, 7, "events")
+    filter_ = {"col": "ds", "op": ">=", "val": "2000"}
+    if source.endswith("adhoc_filters"):
+        filter_ = {
+            "expressionType": "SIMPLE",
+            "subject": "ds",
+            "operator": ">=",
+            "comparator": "2000",
+        }
+    root, _, nested = source.partition(".")
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        root + suffix: {nested: [filter_]} if nested else [filter_],
+    }
+    error = validate_semantic_view_form_data(form_data, target)
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>", "\t<NULL>\n"])
+def test_temporal_sentinels_reach_chart_compilation(
+    operator: str, sentinel: str
+) -> None:
+    """Retained Explore filters preserve sentinel comparators through validation."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.utils.core import FilterValues
+
+    value: FilterValues = (
+        [sentinel, "2000-01-01"] if operator in {"IN", "NOT IN"} else sentinel
+    )
+    config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="ds")])
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "ds",
+                "operator": operator,
+                "comparator": value,
+            }
+        ]
+    }
+    with patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    ) as compile_chart:
+        result = validate_and_compile(
+            config, form_data, TestTemporalFilterValues._dataset()
+        )
+    assert result.success is True, result.error
+    compile_chart.assert_called_once_with(form_data, 3)
+    assert form_data["adhoc_filters"][0]["comparator"] == value
+    expected = None if sentinel.strip("\t\n") == "<NULL>" else ""
+    assert SqlaTable.filter_values_handler(
+        value,
+        operator,
+        GenericDataType.TEMPORAL,
+        "DATETIME",
+        is_list_target=operator in {"IN", "NOT IN"},
+        db_engine_spec=SqliteEngineSpec,
+    ) == ([expected, "2000-01-01"] if isinstance(value, list) else expected)
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>"])
+@pytest.mark.parametrize("suffix", ["", "_b"])
+def test_semantic_temporal_sentinels_are_accepted(
+    operator: str, sentinel: str, suffix: str
+) -> None:
+    """Semantic rebind validation shares the retained Explore sentinel rules."""
+    from superset.mcp_service.chart.datasource_resolver import (
+        ChartDatasource,
+        validate_semantic_view_form_data,
+    )
+    from superset.utils.core import DatasourceType
+
+    view = Mock(
+        columns=[Mock(column_name="ds", type="TIMESTAMP", is_dttm=True)], metrics=[]
+    )
+    target = ChartDatasource(view, DatasourceType.SEMANTIC_VIEW, 7, "events")
+    value = [sentinel, "2000-01-01"] if operator in {"IN", "NOT IN"} else sentinel
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "adhoc_filters" + suffix: [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "ds",
+                "operator": operator,
+                "comparator": value,
+            }
+        ],
+    }
+    assert validate_semantic_view_form_data(form_data, target) is None
+
+
+@pytest.mark.parametrize("suffix", ["", "_b"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "filters",
+        "extra_filters",
+        "extra_form_data.filters",
+        "extra_form_data.adhoc_filters",
+    ],
+)
+@pytest.mark.parametrize("semantic", [False, True])
+def test_legacy_filter_unknown_columns_keep_reference_validation_scope(
+    source: str, suffix: str, semantic: bool
+) -> None:
+    """Temporal validation must not add reference checks to legacy containers."""
+    filter_ = {"col": "nope", "op": "in", "val": ["a"]}
+    if source.endswith("adhoc_filters"):
+        filter_ = {
+            "expressionType": "SIMPLE",
+            "subject": "nope",
+            "operator": "IN",
+            "comparator": ["a"],
+        }
+    root, _, nested = source.partition(".")
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        root + suffix: {nested: [filter_]} if nested else [filter_],
+    }
+    if semantic:
+        from superset.mcp_service.chart.datasource_resolver import (
+            ChartDatasource,
+            validate_semantic_view_form_data,
+        )
+        from superset.utils.core import DatasourceType
+
+        view = Mock(
+            columns=[Mock(column_name="ds", type="TIMESTAMP", is_dttm=True)], metrics=[]
+        )
+        target = ChartDatasource(view, DatasourceType.SEMANTIC_VIEW, 7, "events")
+        assert validate_semantic_view_form_data(form_data, target) is None
+    else:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="num", aggregate="SUM")],
+        )
+        with patch(
+            "superset.mcp_service.chart.compile._compile_chart",
+            return_value=CompileResult(success=True),
+        ) as compile_chart:
+            result = validate_and_compile(
+                config, form_data, TestTemporalFilterValues._dataset()
+            )
+        assert result.success is True, result.error
+        compile_chart.assert_called_once_with(form_data, 3)
+
+
+@pytest.mark.parametrize("preserved", [False, True])
+def test_unformatted_temporal_text_reaches_chart_compilation(preserved: bool) -> None:
+    """SIMPLE string comparisons stay valid on is_dttm VARCHAR columns."""
+    dataset = TestTemporalFilterValues._dataset()
+    dataset.columns[0].type = "VARCHAR"
+    dataset.columns[0].python_date_format = None
+    config = TestTemporalFilterValues._config("=", "FY2000")
+    if preserved:
+        config = config.model_copy(update={"filters": None})
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "ds",
+                "operator": "==",
+                "comparator": "FY2000",
+            }
+        ]
+    }
+    with patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    ) as compile_chart:
+        result = validate_and_compile(config, form_data, dataset)
+    assert result.success is True, result.error
+    compile_chart.assert_called_once_with(form_data, dataset.id)
+    assert form_data["adhoc_filters"][0]["comparator"] == "FY2000"
+
+
+@pytest.mark.parametrize("semantic", [False, True])
+@pytest.mark.parametrize("secondary", [False, True])
+@pytest.mark.parametrize("sent", [False, True])
+@pytest.mark.parametrize("preview_mode", [False, True])
+def test_update_validates_only_authored_temporal_values(
+    semantic: bool, secondary: bool, sent: bool, preview_mode: bool
+) -> None:
+    """Untouched saved legacy filters cannot veto a replacement configuration."""
+    from superset.mcp_service.chart.datasource_resolver import ChartDatasource
+    from superset.mcp_service.chart.schemas import UpdateChartRequest
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_preview_form_data,
+        _build_update_payload,
+        _validate_update_against_dataset,
+        _validate_update_against_semantic_view,
+    )
+    from superset.utils import json
+    from superset.utils.core import DatasourceType
+
+    dataset = TestTemporalFilterValues._dataset()
+    bad_value = "2000" if secondary else "946684800000"
+    filter_ = FilterConfig(
+        column="ds",
+        op=">=" if secondary else "IN",
+        value=bad_value if secondary else [bad_value],
+    )
+    saved_filters: dict[str, Any]
+    if secondary:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sum_boys", saved_metric=True)],
+            y_secondary=[ColumnRef(name="sum_girls", saved_metric=True)],
+            **({"filters_secondary": [filter_]} if sent else {}),
+        )
+        saved_filters = {
+            "adhoc_filters_b": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ds",
+                    "operator": ">=",
+                    "comparator": bad_value,
+                }
+            ],
+        }
+        viz_type = "mixed_timeseries"
+    else:
+        config = TableChartConfig(
+            columns=[ColumnRef(name="ds")],
+            **({"filters": [filter_]} if sent else {}),
+        )
+        saved_filters = {
+            "extra_form_data": {
+                "filters": [{"col": "ds", "op": "IN", "val": [bad_value]}]
+            },
+        }
+        viz_type = "table"
+    datasource_type = "semantic_view" if semantic else "table"
+    chart = Mock(
+        id=12,
+        datasource=dataset,
+        datasource_id=3,
+        datasource_type=datasource_type,
+        viz_type=viz_type,
+        params=json.dumps(
+            {
+                "viz_type": viz_type,
+                "datasource": f"3__{datasource_type}",
+                "metrics": ["sum_boys"],
+                "metrics_b": ["sum_girls"],
+                "granularity_sqla": "ds",
+                **saved_filters,
+            }
+        ),
+    )
+    request = UpdateChartRequest(identifier=12, config=config)
+    if preview_mode:
+        form_data = _build_preview_form_data(request, chart, config)
+    else:
+        payload = _build_update_payload(request, chart, config)
+        assert isinstance(payload, dict)
+        form_data = json.loads(payload["params"])
+    assert isinstance(form_data, dict)
+    with (
+        patch(
+            "superset.mcp_service.chart.compile._compile_chart",
+            return_value=CompileResult(success=True),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart._compile_chart",
+            return_value=CompileResult(success=True),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart.resolve_semantic_view",
+            return_value=ChartDatasource(
+                dataset, DatasourceType.SEMANTIC_VIEW, 3, "View"
+            ),
+        ),
+    ):
+        response = (
+            _validate_update_against_semantic_view(config, 3, form_data)
+            if semantic
+            else _validate_update_against_dataset(config, form_data, chart)
+        )
+    if sent:
+        assert response is not None
+        assert response.error is not None
+        assert response.error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+        assert bad_value in response.error.details
+    else:
+        assert response is None
+        key = "adhoc_filters_b" if secondary else "extra_form_data"
+        assert form_data[key] == saved_filters[key]
+
+
+@pytest.mark.parametrize("storage", [None, "%Y%m%d"])
+@pytest.mark.parametrize("operator", ["=", "!=", "IN", "NOT IN"])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>"])
+def test_authored_chart_temporal_sentinels_survive_sanitization(
+    storage: str | None, operator: str, sentinel: str
+) -> None:
+    """Typed authoring must preserve sentinel data before temporal validation."""
+    from superset.mcp_service.chart.chart_utils import map_config_to_form_data
+
+    dataset = TestTemporalFilterValues._dataset()
+    column = next(c for c in dataset.columns if c.column_name == "ds")
+    column.type = "VARCHAR" if storage else "DATE"
+    column.python_date_format = storage
+    value = [sentinel] if operator in {"IN", "NOT IN"} else sentinel
+    config = TestTemporalFilterValues._config(operator, value)
+    assert config.filters is not None
+    assert config.filters[0].value == value
+    form_data = map_config_to_form_data(config, dataset_id=3)
+    result = validate_and_compile(config, form_data, dataset, run_compile_check=False)
+    assert result.success, result.error
+    assert any(f.get("comparator") == value for f in form_data["adhoc_filters"])
+
+
+def test_temporal_whitespace_documented_per_authoring_tool() -> None:
+    """Documentation distinguishes trimming chart inputs from raw dataset inputs."""
+    from pathlib import Path
+
+    from superset.mcp_service.common.temporal_filter_values import (
+        invalid_temporal_filter_value,
+    )
+
+    config = TestTemporalFilterValues._config("=", " 2000-01-01 ")
+    assert config.filters is not None
+    assert config.filters[0].value == "2000-01-01"
+    assert invalid_temporal_filter_value("==", " 2000-01-01 ") is not None
+    docs = (
+        Path(__file__).resolve().parents[4]
+        / "docs/docs/using-superset/using-ai-with-superset.mdx"
+    ).read_text()
+    assert (
+        "Chart configuration filters\ntrim surrounding whitespace before validation"
+        in docs
+    )
+    assert (
+        "`query_dataset` preserves spaces\nand rejects date strings containing them"
+        in docs
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("sent", [False, True])
+async def test_cached_preview_checks_only_authored_temporal_values(
+    mocker: MockerFixture, sent: bool
+) -> None:
+    """Cache-backed updates share the saved-chart comparator provenance rule."""
+    import importlib
+    from contextlib import nullcontext
+
+    from superset.mcp_service.chart.schemas import UpdateChartPreviewRequest
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.update_chart_preview"
+    )
+    dataset = TestTemporalFilterValues._dataset()
+    saved_filters = [{"col": "ds", "op": "IN", "val": ["946684800000"]}]
+    mocker.patch.object(module, "_find_dataset", return_value=dataset)
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+    mocker.patch.object(module, "has_dataset_access", return_value=True)
+    mocker.patch.object(
+        module,
+        "_get_previous_form_data",
+        return_value={
+            "viz_type": "table",
+            "datasource": "3__table",
+            "extra_form_data": {"filters": saved_filters},
+        },
+    )
+    mocker.patch.object(
+        module, "event_logger", Mock(log_context=lambda **kwargs: nullcontext())
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request", return_value=Mock(id=1)
+    )
+    mocker.patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    )
+    link = mocker.patch.object(
+        module,
+        "generate_explore_link",
+        return_value="http://localhost/explore/?form_data_key=new",
+    )
+    config = TableChartConfig(
+        columns=[ColumnRef(name="ds")],
+        **(
+            {"filters": [FilterConfig(column="ds", op="=", value="946684800000")]}
+            if sent
+            else {}
+        ),
+    )
+    response = await module.update_chart_preview(
+        UpdateChartPreviewRequest(
+            form_data_key="old",
+            dataset_id=3,
+            config=config,
+            generate_preview=False,
+            preview_formats=[],
+        ),
+        ctx=Mock(),
+    )
+    assert response["success"] is not sent
+    if sent:
+        assert response["error"]["error_code"] == "INVALID_TEMPORAL_FILTER_VALUE"
+        link.assert_not_called()
+    else:
+        assert link.call_args.args[1]["extra_form_data"]["filters"] == saved_filters
+
+
+@pytest.mark.parametrize("preserved", [False, True])
+def test_temporal_storage_rejects_month_case_mismatch(preserved: bool) -> None:
+    """Typed and Explore predicates share exact stored-name validation."""
+    ds = TestTemporalFilterValues._dataset()
+    ds.columns[0].type = "VARCHAR"
+    ds.columns[0].python_date_format = "%d-%b-%Y"
+    config = TestTemporalFilterValues._config("=", "01-JAN-2000")
+    form_data = {}
+    if preserved:
+        config = config.model_copy(update={"filters": None})
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ds",
+                    "operator": "=",
+                    "comparator": "01-JAN-2000",
+                }
+            ]
+        }
+    with patch("superset.mcp_service.chart.compile._compile_chart") as compile_chart:
+        result = validate_and_compile(config, form_data, ds)
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+    compile_chart.assert_not_called()

@@ -131,16 +131,16 @@ Dashboard Management:
 - get_dashboard_data: Get bounded, filter-aware data across a dashboard's charts in one call (compact per-chart columns, sample rows, and row counts, selected in layout order) for analytical questions about a whole dashboard
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
-- duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
+- duplicate_dashboard: Duplicate an existing dashboard under a new title. By default the copy deep-copies charts so subsequent edits are isolated. Set duplicate_slices=false only to deliberately share the source charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
-- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, filter_timegrain, and filter-bar divider)
+- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, filter_timegrain, filter_timecolumn, and filter-bar divider)
 - manage_dashboard_markdown: Add, update, or remove markdown/header/divider layout components on a dashboard (requires write access)
 - apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
 - manage_dashboard_owners: Add/remove dashboard owners by explicit operation (requires write access; rejects changes that would leave zero owners)
-- manage_dashboard_roles: Add/remove dashboard access roles by explicit operation (requires write access; only affects access when ENABLE_VIEWERS is enabled)
+- manage_dashboard_roles: Add/remove dashboard access roles by explicit operation (requires write access; applies regardless of the ENABLE_VIEWERS flag, but roles can only be removed while it is disabled)
 - manage_dashboard_certification: Set or clear a dashboard's certified_by/certification_details badge (requires write access)
 
 Annotation Layers:
@@ -192,6 +192,9 @@ Dataset Management:
 - create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
 - update_dataset: Update a dataset's name, SQL (virtual datasets), description, default datetime column or cache timeout, re-syncing columns when the SQL changes (requires dataset ownership)
+- create_dataset_column: Add a calculated column (row-level SQL expression) to a dataset (requires dataset editorship)
+- update_dataset_column: Update a dataset column — a calculated column's expression or name, or any column's label, type, temporal/groupby/filterable flags, date format (requires dataset ownership)
+- delete_dataset_column: Delete a calculated column and report referencing charts (requires dataset editorship)
 - create_dataset_metric: Add a saved metric to a dataset (requires dataset editorship)
 - delete_dataset_metric: Delete a saved metric and report referencing charts (requires dataset editorship)
 - update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
@@ -200,6 +203,7 @@ Dataset Management:
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Semantic Layer:
+- list_semantic_views: Search compact permitted semantic source summaries without loading provider schemas
 - list_metrics: Discover metrics across built-in datasets and external semantic views (1-based pagination)
 - get_table: Query a data source (built-in dataset or external semantic view) by metric/dimension names
 - get_compatible_dimensions: Get dimensions compatible with a given metric/dimension selection
@@ -329,13 +333,17 @@ To find all items you have any connection to (created OR edit):
 - list_dashboards(request={{"created_by_me": true, "edited_by_me": true}})
 - list_datasets(request={{"created_by_me": true, "edited_by_me": true}})
 
-Use created_by_me for authorship, edited_by_me for edit access, or both
+edited_by_me means direct USER editor (owner), excluding role/group access. Use created_by_me for authorship, edited_by_me for direct editor membership, or both
 together for the union. These flags can be combined with 'filters' but not
 with 'search'.
 
 To explore metrics across all data sources (built-in datasets + external semantic views):
 1. list_metrics(request={{"search": "<keyword>"}})
    -> returns metrics with dataset_id/view_id; dimensions are not embedded by default
+   - Check incomplete: when true, report that discovery is partial, not that omitted metrics do not exist.
+   - refused_views lists safe view_id values for visible views that refused discovery; no metrics from those views are returned.
+   - Counts and pages cover only the usable metrics. Refusal markers apply to the whole scan, not just the current page.
+   - Continue with returned sources, or retry a known source using dataset_id/view_id. A scoped refusal remains AccessDenied.
 2. get_compatible_dimensions -> discover dimensions for the chosen metrics
 3. get_table(request={{
      "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
@@ -444,6 +452,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="bubble_v2": Bubble scatter plotting three metrics at once
   (entity dimension + x, y and size metrics required; optional series
    dimension colors the bubbles by group)
+- chart_type="bullet": Bullet Chart for comparing one numeric measure per row
+  against qualitative ranges, point markers, and marker lines
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -453,7 +463,7 @@ Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
 (xy, pie, sunburst, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall, gantt, bubble_v2, and interactive_pivot).
+histogram, box_plot, waterfall, gantt, bullet, bubble_v2, and interactive_pivot).
 Availability gates creation and schema discovery, not display names for
 existing charts.
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
@@ -531,6 +541,7 @@ Input format:
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, update_dashboard,
   duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset,
+  create_dataset_column, update_dataset_column, delete_dataset_column,
   create_dataset_metric, delete_dataset_metric, update_dataset_metric,
   save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
   remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
@@ -857,15 +868,18 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     create_dataset,
+    create_dataset_column,
     create_dataset_metric,
     create_virtual_dataset,
     delete_dataset,
+    delete_dataset_column,
     delete_dataset_metric,
     get_dataset_info,
     list_datasets,
     query_dataset,
     restore_dataset,
     update_dataset,
+    update_dataset_column,
     update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
@@ -896,6 +910,7 @@ from superset.mcp_service.semantic_layer.tool import (  # noqa: F401, E402
     get_compatible_metrics,
     get_table,
     list_metrics,
+    list_semantic_views,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
