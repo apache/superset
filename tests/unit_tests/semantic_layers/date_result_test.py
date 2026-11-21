@@ -134,7 +134,7 @@ def test_semantic_date_raw_xlsx_keeps_date_cell_format() -> None:
 @pytest.mark.parametrize("resampling", [False, True])
 @pytest.mark.parametrize(
     "result_format",
-    list(ChartDataResultFormat.table_like()) + [ChartDataResultFormat.JSON],
+    sorted(ChartDataResultFormat.table_like()) + [ChartDataResultFormat.JSON],
 )
 def test_semantic_date_exports_match_unchanged_raw_or_resampled_sql(
     resampling: bool, result_format: ChartDataResultFormat
