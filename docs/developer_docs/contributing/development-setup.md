@@ -37,14 +37,16 @@ the first few sections - ("Fork & Clone", "docker compose" and "Installing Dev T
 ## Fork and Clone
 
 First, [fork the repository on GitHub](https://help.github.com/articles/about-forks/),
-then clone it.
-
-Second, you can clone the main repository directly, but you won't be able to send pull requests.
+then clone your fork and add the official repository as an `upstream` remote so you can stay synced:
 
 ```bash
+# Clone via SSH (or use https://github.com/your-username/superset.git with a Personal Access Token)
 git clone git@github.com:your-username/superset.git
 cd superset
+git remote add upstream https://github.com/apache/superset.git
 ```
+
+Second, you can clone the main repository directly (`https://github.com/apache/superset.git`), but you won't be able to send pull requests without a fork.
 
 ## docker compose (recommended!)
 
@@ -71,7 +73,7 @@ Note that:
   [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
 - The local repository is mounted within the services, meaning updating
   the code on the host will be reflected in the docker images
-- Superset is served at localhost:9000/
+- Superset is served at `http://localhost:8088/` (direct Flask app) or `http://localhost/` (via the `nginx` reverse proxy on port `80`, which routes frontend assets to the webpack dev server on port `9000`)
 - You can login with admin/admin
 
 :::note
@@ -133,12 +135,12 @@ In that case, the easy solution is to nuke the postgres db and start fresh. Note
 state of the database will be gone after doing this, so be cautious.
 
 ```bash
-# first stop docker-compose if it's running
-docker-compose down
+# first stop docker compose if it's running
+docker compose down
 # delete the volume containing the database
 docker volume rm superset_db_home
-# restart docker-compose, which will init a fresh database and load examples
-docker-compose up
+# restart docker compose, which will init a fresh database and load examples
+docker compose up
 ```
 
 ### Running multiple instances
@@ -256,7 +258,7 @@ Your work is preserved and you can restart anytime.
 While `docker compose` simplifies a lot of the setup, there are still
 many things you'll want to set up locally to power your IDE, and things like
 **commit hooks**, **linters**, and **test-runners**. Note that you can do these
-things inside docker images with commands like `docker compose exec superset_app bash` for
+things inside docker images with commands like `docker compose exec superset bash` for
 instance, but many people like to run that tooling from their host.
 :::
 
