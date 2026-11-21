@@ -250,6 +250,158 @@ def test_execute_delete_without_permission(
 
 
 # =============================================================================
+# Validated-vs-executed SQL agreement tests
+# =============================================================================
+
+
+# A single statement that the parser classifies as one non-mutating SELECT,
+# but whose regenerated (round-tripped) text re-parses into several
+# statements, the trailing one mutating. The doubled quote inside the
+# generated interval literal collapses to a single quote on output, which
+# closes the string early and exposes the rest of the text as its own
+# statements.
+_REGENERATION_SPLITS_INTO_MUTATION = "SELECT INTERVAL '1'' ; DROP TABLE users; --' DAY"
+
+
+def test_build_statement_blocks_revalidates_regenerated_sql(
+    app_context: None,
+) -> None:
+    """The statement-type gate must hold on the text that is actually executed.
+
+    The up-front gate validates the parsed script, but execution runs the
+    regenerated blocks. When regeneration turns one validated non-mutating
+    statement into text that executes additional mutating statements, and the
+    database does not allow DML, building the blocks must reject it so
+    validation and execution agree.
+    """
+    from superset.exceptions import SupersetDMLNotAllowedException
+    from superset.sql.execution.executor import build_statement_blocks
+
+    database = Database(
+        database_name="pg_no_dml",
+        sqlalchemy_uri="postgresql://localhost/test",
+        allow_dml=False,
+    )
+    engine = database.db_engine_spec.engine
+    parsed_script = SQLScript(_REGENERATION_SPLITS_INTO_MUTATION, engine=engine)
+
+    # Precondition: the up-front gate sees a single non-mutating statement and
+    # would let this through.
+    assert len(parsed_script.statements) == 1
+    assert parsed_script.has_mutation() is False
+
+    with pytest.raises(SupersetDMLNotAllowedException):
+        build_statement_blocks(parsed_script, database.db_engine_spec, database)
+
+
+def test_build_statement_blocks_allows_benign_regenerated_sql(
+    app_context: None,
+) -> None:
+    """A benign statement whose regeneration stays non-mutating is untouched."""
+    from superset.sql.execution.executor import build_statement_blocks
+
+    database = Database(
+        database_name="pg_no_dml_benign",
+        sqlalchemy_uri="postgresql://localhost/test",
+        allow_dml=False,
+    )
+    engine = database.db_engine_spec.engine
+    parsed_script = SQLScript("SELECT INTERVAL '1' DAY", engine=engine)
+
+    _script, blocks = build_statement_blocks(
+        parsed_script, database.db_engine_spec, database
+    )
+
+    assert blocks
+    assert not SQLScript(blocks[0], engine=engine).has_mutation()
+
+
+def test_build_statement_blocks_revalidation_respects_allow_dml(
+    app_context: None,
+) -> None:
+    """When DML is allowed the regenerated-text re-check does not fire."""
+    from superset.sql.execution.executor import build_statement_blocks
+
+    database = Database(
+        database_name="pg_with_dml",
+        sqlalchemy_uri="postgresql://localhost/test",
+        allow_dml=True,
+    )
+    engine = database.db_engine_spec.engine
+    parsed_script = SQLScript(_REGENERATION_SPLITS_INTO_MUTATION, engine=engine)
+
+    # Does not raise; blocks are returned for execution as before.
+    _script, blocks = build_statement_blocks(
+        parsed_script, database.db_engine_spec, database
+    )
+    assert blocks
+
+
+def test_build_statement_blocks_revalidates_ctas_wrapped_sql(
+    app_context: None,
+) -> None:
+    """The re-check must still fire when the validated script is already mutating.
+
+    SQL Lab rewrites an approved ``SELECT`` into ``CREATE TABLE AS SELECT``
+    before the blocks are built, so the validated script is already mutating by
+    the time it reaches ``build_statement_blocks``. A plain "is anything
+    mutating" check would then skip the re-check entirely. Here the wrapped
+    SELECT regenerates into text that re-parses into an extra statement beyond
+    the single expected CREATE, so building the blocks must still reject it.
+    """
+    from superset.exceptions import SupersetDMLNotAllowedException
+    from superset.sql.execution.executor import build_statement_blocks
+    from superset.sql.parse import CTASMethod, Table
+
+    database = Database(
+        database_name="pg_no_dml_ctas",
+        sqlalchemy_uri="postgresql://localhost/test",
+        allow_dml=False,
+    )
+    engine = database.db_engine_spec.engine
+    parsed_script = SQLScript(_REGENERATION_SPLITS_INTO_MUTATION, engine=engine)
+
+    # Mirror sql_lab.apply_ctas: wrap the last statement in CREATE TABLE AS.
+    parsed_script.statements[-1] = parsed_script.statements[-1].as_create_table(  # type: ignore
+        Table(table="tmp_result", schema="public"),
+        CTASMethod.TABLE,
+    )
+
+    # Precondition: the wrapped script is now already mutating (one CREATE),
+    # so the boolean short-circuit would have let it through.
+    assert sum(s.is_mutating() for s in parsed_script.statements) == 1
+
+    with pytest.raises(SupersetDMLNotAllowedException):
+        build_statement_blocks(parsed_script, database.db_engine_spec, database)
+
+
+def test_build_statement_blocks_allows_benign_ctas_wrapped_sql(
+    app_context: None,
+) -> None:
+    """A benign CTAS whose regeneration keeps one mutation is untouched."""
+    from superset.sql.execution.executor import build_statement_blocks
+    from superset.sql.parse import CTASMethod, Table
+
+    database = Database(
+        database_name="pg_no_dml_ctas_benign",
+        sqlalchemy_uri="postgresql://localhost/test",
+        allow_dml=False,
+    )
+    engine = database.db_engine_spec.engine
+    parsed_script = SQLScript("SELECT 1 AS n", engine=engine)
+    parsed_script.statements[-1] = parsed_script.statements[-1].as_create_table(  # type: ignore
+        Table(table="tmp_result", schema="public"),
+        CTASMethod.TABLE,
+    )
+
+    # One expected mutation (the CREATE); regeneration must not add more.
+    _script, blocks = build_statement_blocks(
+        parsed_script, database.db_engine_spec, database
+    )
+    assert blocks
+
+
+# =============================================================================
 # Client-side file-transfer statement tests
 # =============================================================================
 
