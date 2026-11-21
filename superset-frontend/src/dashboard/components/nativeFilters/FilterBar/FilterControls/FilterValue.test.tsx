@@ -449,6 +449,97 @@ test('guard: does not block fetch for a parent without defaultToFirstItem', asyn
   });
 });
 
+const stateWithRegularParent = {
+  nativeFilters: {
+    filters: {
+      'NATIVE_FILTER-CHILD': guardChildFilter,
+      'NATIVE_FILTER-PARENT': createMockFilter({ id: 'NATIVE_FILTER-PARENT' }),
+    },
+    filterSets: {},
+  },
+};
+
+test('guard: does not fetch while a parent value has no extraFormData yet', () => {
+  // E.g. a restored value whose extraFormData its filter control has not
+  // derived yet: fetching now would load options for the wrong parent value.
+  mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
+  mockUseFilterDependencies.mockReturnValue({});
+
+  renderFilterValue(
+    {
+      filter: guardChildFilter,
+      dataMaskSelected: {
+        'NATIVE_FILTER-PARENT': {
+          filterState: { value: ['Toyota'] },
+          extraFormData: {},
+        },
+      },
+    },
+    stateWithRegularParent,
+  );
+
+  expect(mockRequestChartData).not.toHaveBeenCalled();
+});
+
+test.each([null, [], [null, null]])(
+  'guard: a parent cleared to %j does not block the fetch',
+  async value => {
+    mockRequestChartData.mockResolvedValue([{ data: [] }]);
+    mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
+    mockUseFilterDependencies.mockReturnValue({});
+
+    renderFilterValue(
+      {
+        filter: guardChildFilter,
+        dataMaskSelected: {
+          'NATIVE_FILTER-PARENT': { filterState: { value }, extraFormData: {} },
+        },
+      },
+      stateWithRegularParent,
+    );
+
+    await waitFor(() => {
+      expect(mockRequestChartData).toHaveBeenCalled();
+    });
+  },
+);
+
+test('fetches data when inView is false if its value has no extraFormData yet', () => {
+  // The filter control has to load to derive the extraFormData charts and
+  // dependent filters are waiting on, even when the filter is not visible.
+  mockRequestChartData.mockReturnValue(new Promise(() => {}));
+  const filter = createMockFilter();
+
+  renderFilterValue({
+    filter,
+    inView: false,
+    dataMaskSelected: {
+      [filter.id]: { filterState: { value: ['US'] }, extraFormData: {} },
+    },
+  });
+
+  expect(mockRequestChartData).toHaveBeenCalled();
+});
+
+test('does not fetch data when inView is false if its value already has extraFormData', () => {
+  const filter = createMockFilter();
+
+  renderFilterValue({
+    filter,
+    inView: false,
+    dataMaskSelected: {
+      [filter.id]: {
+        filterState: { value: ['US'] },
+        extraFormData: {
+          filters: [{ col: 'country', op: 'IN', val: ['US'] }],
+        },
+      },
+    },
+  });
+
+  expect(mockRequestChartData).not.toHaveBeenCalled();
+});
+
 test('skips data fetch when cascade parent filters have no values selected', () => {
   // useFilterDependencies returns dependencies with a filter (from parent defaults),
   // but dataMaskSelected has no extraFormData for the parent -- counts disagree, so

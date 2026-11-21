@@ -183,6 +183,24 @@ function fillNativeFilters(
           }
         : {}),
     };
+    // A restored value other than the default, including a cleared one, must
+    // not be paired with the default's extraFormData, whether it was inherited
+    // through the spread above or persisted that way by an earlier load: charts
+    // would be filtered on the default while the filter bar displays the
+    // restored value. Leave extraFormData empty so the filter control derives
+    // it from the value.
+    const merged = mergedDataMask[filter.id];
+    if (
+      loadedValue !== undefined &&
+      defaultHasExtraFormData &&
+      !isEqual(
+        merged.filterState?.value,
+        filter.defaultDataMask?.filterState?.value,
+      ) &&
+      isEqual(merged.extraFormData, filter.defaultDataMask?.extraFormData)
+    ) {
+      mergedDataMask[filter.id] = { ...merged, extraFormData: {} };
+    }
     if (
       currentFilters &&
       !areObjectsEqual(
