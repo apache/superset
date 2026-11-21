@@ -157,20 +157,16 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
           );
         });
 
-        // http-proxy-middleware destroys the client response when its
-        // upstream response closes incomplete, so this can either return
-        // the proxy error body or reject with ECONNRESET.
-        const settled = await Promise.race([
-          get(proxy.address().port)
-            .then(response => ({ response }))
-            .catch(error => ({ error })),
+        // Headers (including the 200 the backend sent before dying) are
+        // already flushed before the drop is detected, so the response
+        // completes with the original status; what matters is that it
+        // completes at all, promptly, with the error surfaced in the body
+        // instead of the connection hanging indefinitely.
+        const { body } = await Promise.race([
+          get(proxy.address().port),
           hangGuard,
         ]);
-        if (settled.error) {
-          expect(settled.error.code).toBe('ECONNRESET');
-        } else {
-          expect(settled.response.body).toContain('Error requesting');
-        }
+        expect(body).toContain('Error requesting');
       } finally {
         clearTimeout(hangGuardTimer);
         await closeAll(proxy, backend);
@@ -211,17 +207,11 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
           );
         });
 
-        const settled = await Promise.race([
-          get(proxy.address().port)
-            .then(response => ({ response }))
-            .catch(error => ({ error })),
+        const { body } = await Promise.race([
+          get(proxy.address().port),
           hangGuard,
         ]);
-        if (settled.error) {
-          expect(settled.error.code).toBe('ECONNRESET');
-        } else {
-          expect(settled.response.body).toContain('Error requesting');
-        }
+        expect(body).toContain('Error requesting');
       } finally {
         clearTimeout(hangGuardTimer);
         await closeAll(proxy, backend);
