@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, useEffect } from 'react';
+import { KeyboardEvent, RefObject, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { MenuProps } from 'antd';
 import { t } from '@apache-superset/core/translation';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu, MenuProps } from '@superset-ui/core/components/Menu';
 import { NoAnimationDropdown } from '@superset-ui/core/components';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
@@ -33,7 +32,6 @@ export interface DetailsPanelProps {
   onHighlightFilterSource: (path: string[]) => void;
   children: JSX.Element;
   popoverVisible: boolean;
-  popoverContentRef: RefObject<HTMLDivElement>;
   popoverTriggerRef: RefObject<HTMLButtonElement>;
   setPopoverVisible: (visible: boolean) => void;
 }
@@ -45,6 +43,7 @@ const DetailsPanelPopover = ({
   onHighlightFilterSource,
   children,
   popoverVisible,
+  popoverTriggerRef,
   setPopoverVisible,
 }: DetailsPanelProps) => {
   const activeTabs = useSelector<RootState>(
@@ -58,6 +57,26 @@ const DetailsPanelPopover = ({
   const indicatorKey = (indicator: Indicator): string =>
     `${indicator.column} - ${indicator.name} - ${indicator.path?.join('>') ?? ''}`;
 
+  const indicatorsByItemKey = new Map<string, Indicator>();
+  const toMenuItem = (prefix: string, indicator: Indicator) => {
+    const key = `${prefix}-${indicatorKey(indicator)}`;
+    indicatorsByItemKey.set(key, indicator);
+    return {
+      key,
+      label: (
+        <FilterIndicator
+          indicator={indicator}
+          onClick={onHighlightFilterSource}
+        />
+      ),
+    };
+  };
+
+  const closeAndFocusTrigger = () => {
+    popoverTriggerRef?.current?.focus();
+    setPopoverVisible(false);
+  };
+
   const menuItems: MenuProps['items'] = [];
 
   if (appliedCrossFilterIndicators.length > 0) {
@@ -68,15 +87,9 @@ const DetailsPanelPopover = ({
         'Applied cross-filters (%d)',
         appliedCrossFilterIndicators.length,
       ),
-      children: appliedCrossFilterIndicators.map(indicator => ({
-        key: `cross-${indicatorKey(indicator)}`,
-        label: (
-          <FilterIndicator
-            indicator={indicator}
-            onClick={onHighlightFilterSource}
-          />
-        ),
-      })),
+      children: appliedCrossFilterIndicators.map(indicator =>
+        toMenuItem('cross', indicator),
+      ),
     });
   }
 
@@ -88,15 +101,9 @@ const DetailsPanelPopover = ({
       key: 'grp-applied',
       type: 'group',
       label: t('Applied filters (%d)', appliedIndicators.length),
-      children: appliedIndicators.map(indicator => ({
-        key: `applied-${indicatorKey(indicator)}`,
-        label: (
-          <FilterIndicator
-            indicator={indicator}
-            onClick={onHighlightFilterSource}
-          />
-        ),
-      })),
+      children: appliedIndicators.map(indicator =>
+        toMenuItem('applied', indicator),
+      ),
     });
   }
 
@@ -111,15 +118,9 @@ const DetailsPanelPopover = ({
       key: 'grp-incompatible',
       type: 'group',
       label: t('Incompatible filters (%d)', incompatibleIndicators.length),
-      children: incompatibleIndicators.map(indicator => ({
-        key: `incompatible-${indicatorKey(indicator)}`,
-        label: (
-          <FilterIndicator
-            indicator={indicator}
-            onClick={onHighlightFilterSource}
-          />
-        ),
-      })),
+      children: incompatibleIndicators.map(indicator =>
+        toMenuItem('incompatible', indicator),
+      ),
     });
   }
 
@@ -129,7 +130,23 @@ const DetailsPanelPopover = ({
         <Menu
           selectable={false}
           items={menuItems}
-          onClick={() => setPopoverVisible(false)}
+          onClick={({ key, domEvent }) => {
+            // Mouse clicks are handled by the FilterIndicator button itself;
+            // keyboard activation lands on the menu item instead.
+            const indicator = indicatorsByItemKey.get(key);
+            if (indicator && 'key' in domEvent) {
+              onHighlightFilterSource([
+                ...(indicator.path ?? []),
+                `LABEL-${indicator.column}`,
+              ]);
+            }
+            closeAndFocusTrigger();
+          }}
+          onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+            if (event.key === 'Escape') {
+              closeAndFocusTrigger();
+            }
+          }}
         />
       )}
       overlayStyle={{ zIndex: 1001, animationDuration: '0s' }}
@@ -138,9 +155,7 @@ const DetailsPanelPopover = ({
       onOpenChange={visible => setPopoverVisible(visible)}
       placement="bottomRight"
     >
-      <span>
-        {children}
-      </span>
+      <span>{children}</span>
     </NoAnimationDropdown>
   );
 };
