@@ -857,3 +857,63 @@ def test_tabular_returns_csv_and_xlsx():
     Test the ``tabular`` method.
     """
     assert ReportDataFormat.tabular() == {ReportDataFormat.CSV, ReportDataFormat.XLSX}
+
+
+def _stale_filter_report(dashboard_metadata: object) -> ReportSchedule:
+    from superset.models.dashboard import Dashboard
+    from superset.utils import json
+
+    report_schedule = ReportSchedule()
+    report_schedule.dashboard = Dashboard(
+        json_metadata=(
+            dashboard_metadata
+            if isinstance(dashboard_metadata, str)
+            else json.dumps(dashboard_metadata)
+        )
+    )
+    report_schedule.extra = {
+        "dashboard": {  # type: ignore[typeddict-unknown-key]
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "NATIVE_FILTER-2",
+                    "columnName": "region",
+                    "filterType": "filter_select",
+                    "filterValues": ["North America", "Latin America"],
+                }
+            ]
+        }
+    }
+    return report_schedule
+
+
+def test_get_native_filters_params_warns_about_a_deleted_filter():
+    """A filter removed from the dashboard is flagged, but the run is not failed."""
+    report_schedule = _stale_filter_report(
+        {"native_filter_configuration": [{"id": "NATIVE_FILTER-1"}]}
+    )
+
+    result, warnings = report_schedule.get_native_filters_params()
+
+    assert "NATIVE_FILTER-2" in result
+    assert len(warnings) == 1
+    assert "NATIVE_FILTER-2" in warnings[0]
+
+
+def test_get_native_filters_params_does_not_warn_about_a_live_filter():
+    report_schedule = _stale_filter_report(
+        {"native_filter_configuration": [{"id": "NATIVE_FILTER-2"}]}
+    )
+
+    _, warnings = report_schedule.get_native_filters_params()
+
+    assert warnings == []
+
+
+def test_get_native_filters_params_tolerates_unreadable_dashboard_metadata():
+    for metadata in ("{not json", "[]", "null", {"native_filter_configuration": 3}):
+        report_schedule = _stale_filter_report(metadata)
+
+        result, warnings = report_schedule.get_native_filters_params()
+
+        assert "NATIVE_FILTER-2" in result
+        assert len(warnings) <= 1

@@ -44,6 +44,7 @@ from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.subjects.models import report_schedule_editors, Subject
 from superset.tasks.cron_util import get_cron_description
+from superset.utils import json
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
 
@@ -282,9 +283,41 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                 if filter_warning:
                     warnings.append(filter_warning)
                 params = {**params, **filter_config}
+            warnings.extend(self._missing_native_filter_warnings(native_filters))
         # The value is URL-encoded exactly once when the permalink redirect
         # builds the dashboard URL, so it must stay raw rison here.
         return rison.dumps(params), warnings
+
+    def _missing_native_filter_warnings(self, native_filters: Any) -> list[str]:
+        """
+        Warn about filters whose id no longer exists on the live dashboard.
+
+        A filter deleted after the report was saved would otherwise be dropped
+        from the rendered dashboard without any trace in the execution log.
+        Anything that cannot be read (no dashboard, malformed metadata) yields
+        no warnings rather than failing the run.
+        """
+        dashboard = getattr(self, "dashboard", None)
+        if dashboard is None or not isinstance(native_filters, list):
+            return []
+        try:
+            metadata = json.loads(dashboard.json_metadata or "{}")
+        except (TypeError, ValueError):
+            return []
+        if not isinstance(metadata, dict):
+            return []
+        configuration = metadata.get("native_filter_configuration") or []
+        if not isinstance(configuration, list):
+            return []
+        live_ids = {f.get("id") for f in configuration if isinstance(f, dict)}
+        return [
+            f"Native filter {native_filter_id} no longer exists on the dashboard; "
+            "the report is sent without it"
+            for native_filter in native_filters
+            if isinstance(native_filter, dict)
+            and (native_filter_id := native_filter.get("nativeFilterId")) is not None
+            and native_filter_id not in live_ids
+        ]
 
     def _generate_native_filter(
         self,
