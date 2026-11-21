@@ -1590,6 +1590,27 @@ class QueryDatasetFilter(BaseModel):
         return self
 
 
+FILTER_APPLIED = "applied"
+FILTER_REJECTED = "rejected"
+FILTER_UNRESOLVED = "unresolved"
+
+
+class QueryDatasetFilterStatus(BaseModel):
+    """What the query engine reported for one requested filter.
+
+    ``applied``: the engine reported the filter in the generated query.
+    ``rejected``: the engine dropped it (for example, the column is not on the
+    datasource or there is no temporal column for a time range).
+    ``unresolved``: the engine did not confirm it, or a dataset Jinja template
+    consumed it, so the tool cannot verify how it constrained the rows.
+    """
+
+    col: str
+    op: str
+    status: Literal["applied", "rejected", "unresolved"] = Field(...)
+    reason: str | None = Field(None, description="Why not applied")
+
+
 class QueryDatasetRequest(QueryCacheControl):
     """Request schema for query_dataset tool."""
 
@@ -1651,6 +1672,13 @@ class QueryDatasetRequest(QueryCacheControl):
         le=50000,
         description="Maximum number of rows to return (default 1000, max 50000).",
     )
+    strict_filters: bool = Field(
+        default=False,
+        description=(
+            "If true, return a FilterNotApplied error instead of rows unless "
+            "the engine applied every filter. Use for reporting."
+        ),
+    )
 
     @field_validator("time_range")
     @classmethod
@@ -1681,7 +1709,15 @@ class QueryDatasetResponse(BaseModel):
     data: JsonSafeRows = Field(default_factory=list, description="Query result rows")
     row_count: RowCount = Field(0, description="Number of rows returned")
     total_rows: OptionalRowCount = Field(
-        None, description="Total row count from the query engine"
+        None, description="Matching rows if known: row_count unless truncated"
+    )
+    row_limit: int | None = Field(None, description="Row limit the query ran with")
+    truncated: bool | None = Field(
+        None,
+        description=(
+            "True: not every matching row is returned. False: all rows "
+            "returned. Null: unknown (server row cap)."
+        ),
     )
     from_dttm: datetime | None = Field(
         None,
@@ -1712,7 +1748,12 @@ class QueryDatasetResponse(BaseModel):
         None, description="Cache hit/miss information"
     )
     applied_filters: List[QueryDatasetFilter] = Field(
-        default_factory=list, description="Filters that were applied to the query"
+        default_factory=list,
+        description="Requested filters, including time_range; see filter_status",
+    )
+    filter_status: List[QueryDatasetFilterStatus] = Field(
+        default_factory=list,
+        description="Engine status of each applied_filters entry, in order",
     )
     warnings: List[str] = Field(
         default_factory=list, description="Any warnings encountered during execution"

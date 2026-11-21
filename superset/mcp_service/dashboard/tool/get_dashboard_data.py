@@ -346,6 +346,7 @@ async def get_dashboard_data(
                     chart_type=slc.viz_type or "unknown",
                     filtered=bool(extra),
                     error=result.message,
+                    error_type=result.error_type,
                 )
             )
 

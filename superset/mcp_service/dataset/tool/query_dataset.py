@@ -24,7 +24,7 @@ dimensions without requiring a saved chart.
 
 import logging
 import time
-from typing import Any
+from typing import Any, cast, Literal
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -58,7 +58,11 @@ from superset.mcp_service.dataset.dataset_utils import (
 )
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
+    FILTER_APPLIED,
+    FILTER_REJECTED,
+    FILTER_UNRESOLVED,
     QueryDatasetFilter,
+    QueryDatasetFilterStatus,
     QueryDatasetRequest,
     QueryDatasetResponse,
 )
@@ -70,6 +74,7 @@ from superset.mcp_service.privacy import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.utils.core import apply_max_row_limit
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +84,109 @@ _NO_SAVED_METRICS_HINT = (
     "metric names only (not ad-hoc expressions). Use execute_sql for "
     "ad-hoc aggregates, or add a saved metric to the dataset."
 )
+
+
+_TEMPLATE_CONSUMED_REASON = (
+    "consumed by the dataset's Jinja template; the engine does not report "
+    "how the template used it"
+)
+_NOT_REPORTED_REASON = "the query engine did not report this filter as applied"
+
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
+def _time_range_status(
+    column: str, dttm_cols: set[str], query_result: dict[str, Any]
+) -> tuple[str, str | None]:
+    """Status of the TEMPORAL_RANGE filter on the query's time column.
+
+    The query context removes that filter and applies the range as the
+    engine's primary time bounds instead, so it never appears in the engine's
+    filter report. The engine also swaps a time column that is not a datetime
+    column for the dataset's main datetime column (``get_sqla_query``).
+    """
+    if column not in dttm_cols:
+        return FILTER_REJECTED, (
+            f"'{column}' is not a datetime column on this dataset, so the "
+            "engine does not apply the time range to it"
+        )
+    if query_result.get("from_dttm") is None and query_result.get("to_dttm") is None:
+        return FILTER_UNRESOLVED, "the engine reported no time bounds for this range"
+    return FILTER_APPLIED, None
+
+
+def _filter_status(
+    filters: list[QueryDatasetFilter],
+    query_result: dict[str, Any],
+    *,
+    time_column: str | None,
+    dttm_cols: set[str],
+) -> list[QueryDatasetFilterStatus]:
+    """Classify each requested filter from the engine's own filter report.
+
+    The engine reports filter columns it put in the query (``applied_filters``),
+    columns it dropped (``rejected_filters``) and columns a Jinja template
+    consumed (``applied_template_filters``). A template-consumed column is not
+    proof the rows were constrained, so it is unresolved, not applied. The time
+    range on ``time_column`` is checked against the engine's time bounds.
+    """
+    applied = {
+        entry["column"]
+        for entry in query_result.get("applied_filters") or []
+        if isinstance(entry, dict) and isinstance(entry.get("column"), str)
+    }
+    rejected = {
+        entry["column"]: str(entry.get("reason") or "rejected")
+        for entry in query_result.get("rejected_filters") or []
+        if isinstance(entry, dict) and isinstance(entry.get("column"), str)
+    }
+    for column in _string_list(query_result.get("rejected_filter_columns")):
+        rejected.setdefault(column, "not_in_datasource")
+    template = set(_string_list(query_result.get("applied_template_filters")))
+
+    statuses = []
+    for filter_ in filters:
+        status, reason = FILTER_APPLIED, None
+        if filter_.op == "TEMPORAL_RANGE" and filter_.col == time_column:
+            status, reason = _time_range_status(filter_.col, dttm_cols, query_result)
+        elif filter_.col in rejected:
+            status, reason = FILTER_REJECTED, rejected[filter_.col]
+        elif filter_.col in template:
+            status, reason = FILTER_UNRESOLVED, _TEMPLATE_CONSUMED_REASON
+        elif filter_.col not in applied:
+            status, reason = FILTER_UNRESOLVED, _NOT_REPORTED_REASON
+        statuses.append(
+            QueryDatasetFilterStatus(
+                col=filter_.col,
+                op=filter_.op,
+                status=cast(Literal["applied", "rejected", "unresolved"], status),
+                reason=reason,
+            )
+        )
+    return statuses
+
+
+def _dttm_cols(dataset: Any) -> set[str]:
+    """Datetime columns the engine accepts as a time column."""
+    dttm_cols = getattr(dataset, "dttm_cols", None)
+    if isinstance(dttm_cols, (list, tuple, set)):
+        return set(dttm_cols)
+    names = {c.column_name for c in dataset.columns if c.is_dttm}
+    if main_dttm_col := getattr(dataset, "main_dttm_col", None):
+        names.add(main_dttm_col)
+    return names
+
+
+def _describe_unapplied(statuses: list[QueryDatasetFilterStatus]) -> list[str]:
+    return [
+        f"Filter {status.col} {status.op} was {status.status}: {status.reason}."
+        for status in statuses
+        if status.status != FILTER_APPLIED
+    ]
 
 
 async def _query_dataset(  # noqa: C901
@@ -326,10 +434,52 @@ async def _query_dataset(  # noqa: C901
                 "Time filter: column=%s, range=%s" % (temporal_col, request.time_range)
             )
 
+        # QueryContext extracts only one TEMPORAL_RANGE per column. Multiple
+        # ranges would silently discard predicates while the column-level
+        # engine report could claim all of them were applied. Refuse ambiguity
+        # before executing, including in non-strict mode.
+        temporal_columns_seen: set[str] = set()
+        for filter_ in effective_filters:
+            if filter_.op != "TEMPORAL_RANGE":
+                continue
+            if filter_.col in temporal_columns_seen:
+                return DatasetError.create(
+                    error=(
+                        f"Multiple temporal ranges for column '{filter_.col}' "
+                        "are not supported. Supply one TEMPORAL_RANGE filter "
+                        "or time_range for that column, not both."
+                    ),
+                    error_type="ValidationError",
+                )
+            temporal_columns_seen.add(filter_.col)
+
+        # QueryContext can promote another column's TEMPORAL_RANGE to the
+        # primary bounds, replacing time_range on granularity. Its filter
+        # report is column-level, so it cannot verify both requested ranges.
+        # Refuse the combination before querying, even in non-strict mode.
+        if request.time_range and len(temporal_columns_seen) > 1:
+            return DatasetError.create(
+                error=(
+                    "time_range cannot be combined with a TEMPORAL_RANGE "
+                    "filter on another column. Supply only one temporal range."
+                ),
+                error_type="ValidationError",
+            )
+
         # ------------------------------------------------------------------
         # Step 4: Build query dict
         # ------------------------------------------------------------------
         await ctx.report_progress(3, 5, "Building query")
+        # Ask for one row more than requested: getting it back proves the
+        # result was cut at row_limit. The server cap can absorb the probe row
+        # (or lower the limit itself), in which case completeness is unknown.
+        probe_limit = apply_max_row_limit(request.row_limit + 1)
+        row_limit = min(request.row_limit, probe_limit)
+        if row_limit < request.row_limit:
+            warnings.append(
+                f"row_limit {request.row_limit} was capped to {row_limit} by the "
+                "server's maximum row limit."
+            )
         # time_range is not passed through: the TEMPORAL_RANGE clause is already
         # in query_filters above, alongside the effective_filters bookkeeping.
         query_dict: dict[str, Any] = build_query_dict(
@@ -337,7 +487,7 @@ async def _query_dataset(  # noqa: C901
             metrics=request.metrics,
             dimensions=request.columns,
             filters=query_filters,
-            limit=request.row_limit,
+            limit=probe_limit,
             order=[(name, request.order_desc) for name in (request.order_by or [])],
             order_desc=request.order_desc,
         )
@@ -374,7 +524,45 @@ async def _query_dataset(  # noqa: C901
         # ------------------------------------------------------------------
         await ctx.report_progress(5, 5, "Formatting results")
         query_result = result["queries"][0]
+
+        filter_status = _filter_status(
+            effective_filters,
+            query_result,
+            time_column=granularity,
+            dttm_cols=_dttm_cols(dataset),
+        )
+        unapplied = _describe_unapplied(filter_status)
+        if unapplied and request.strict_filters:
+            await ctx.warning("Strict filter check failed")
+            return DatasetError.create(
+                error=(
+                    "No rows returned because strict_filters is set and the "
+                    "query engine did not confirm every filter. " + " ".join(unapplied)
+                ),
+                error_type="FilterNotApplied",
+            )
+        warnings.extend(unapplied)
+
         data = query_result.get("data", [])
+        truncated: bool | None = False
+        if len(data) > row_limit:
+            data = data[:row_limit]
+            truncated = True
+        elif probe_limit <= row_limit and len(data) >= row_limit:
+            truncated = None
+        if truncated:
+            warnings.append(
+                f"More rows matched than row_limit={row_limit}; only the first "
+                f"{row_limit} are returned. Raise row_limit or add filters to "
+                "see the rest."
+            )
+        elif truncated is None:
+            warnings.append(
+                f"The result has exactly row_limit={row_limit} rows and the "
+                "server row cap prevented checking for more, so it may be "
+                "incomplete."
+            )
+        total_rows = len(data) if truncated is False else None
         raw_columns = query_result.get("colnames", [])
         coltypes = query_result.get("coltypes", [])
         columns_meta: list[DataColumn] = format_data_columns(
@@ -391,8 +579,11 @@ async def _query_dataset(  # noqa: C901
                 data=[],
                 row_count=0,
                 total_rows=0,
+                row_limit=row_limit,
+                truncated=False,
                 summary=f"Query on '{dataset_name}' returned no data.",
                 performance=PerformanceMetadata(
+                    estimated_cost=None,
                     query_duration_ms=query_duration_ms,
                     cache_status="no_data",
                 ),
@@ -400,6 +591,7 @@ async def _query_dataset(  # noqa: C901
                     query_result, force_refresh=request.force_refresh
                 ),
                 applied_filters=effective_filters,
+                filter_status=filter_status,
                 warnings=warnings,
             )
 
@@ -408,8 +600,11 @@ async def _query_dataset(  # noqa: C901
         )
 
         cache_label = "cached" if cache_status and cache_status.cache_hit else "fresh"
+        completeness = {True: ", truncated", None: ", may be incomplete"}.get(
+            truncated, ""
+        )
         summary = (
-            f"Dataset '{dataset_name}': {len(data)} rows, "
+            f"Dataset '{dataset_name}': {len(data)} rows{completeness}, "
             f"{len(raw_columns)} columns ({cache_label})."
         )
 
@@ -426,14 +621,18 @@ async def _query_dataset(  # noqa: C901
             columns=columns_meta,
             data=data,
             row_count=len(data),
-            total_rows=query_result.get("rowcount"),
+            total_rows=total_rows,
+            row_limit=row_limit,
+            truncated=truncated,
             summary=summary,
             performance=PerformanceMetadata(
+                estimated_cost=None,
                 query_duration_ms=query_duration_ms,
                 cache_status=cache_label,
             ),
             cache_status=cache_status,
             applied_filters=effective_filters,
+            filter_status=filter_status,
             warnings=warnings,
         )
 

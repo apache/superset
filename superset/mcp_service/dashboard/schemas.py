@@ -4036,6 +4036,10 @@ class DashboardChartData(BaseModel):
     error: str | None = Field(
         None, description="Set when this chart's data could not be retrieved"
     )
+    error_type: str | None = Field(
+        None,
+        description="Chart error type; NoData means the query matched no rows",
+    )
 
 
 class DashboardData(BaseModel):

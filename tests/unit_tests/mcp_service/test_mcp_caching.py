@@ -467,3 +467,303 @@ async def test_catalog_cache_exclusion_survives_revocation(
         second = await client.call_tool(proxy_name or "get_catalog", arguments)
         assert second.data == []
     assert calls == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["error_schema", "raised"])
+async def test_failed_tool_result_is_never_replayed_from_cache(failure: str) -> None:
+    """A failure must not be cached and served later as if it were the answer.
+
+    Error schemas (``DatasetError``, ``ChartError``...) are returned, not
+    raised, so a cache that stores every returned result would replay a
+    transient query failure for the whole TTL after the warehouse recovers.
+    """
+    from fastmcp import Client, FastMCP
+    from fastmcp.exceptions import ToolError
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("failure-cache-test", middleware=[middleware])
+    warehouse_up = False
+    calls = 0
+
+    @server.tool
+    def query_dataset() -> dict[str, Any]:
+        """Fail once like a warehouse timeout, then return rows."""
+        nonlocal calls
+        calls += 1
+        if warehouse_up:
+            return {"data": [{"count": 3}], "row_count": 1}
+        if failure == "raised":
+            raise ToolError("warehouse timeout")
+        return {"error": "Query execution failed", "error_type": "QueryError"}
+
+    async with Client(server) as client:
+        first = await client.call_tool("query_dataset", {}, raise_on_error=False)
+        assert first.is_error or "error_type" in first.content[0].text
+        warehouse_up = True
+        second = await client.call_tool("query_dataset", {}, raise_on_error=False)
+        third = await client.call_tool("query_dataset", {}, raise_on_error=False)
+
+    assert json.loads(second.content[0].text)["row_count"] == 1
+    # The successful result is cached as before.
+    assert json.loads(third.content[0].text)["row_count"] == 1
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        {"error": "operation failed"},
+        {"success": False, "error_type": None},
+        {"error": "operation failed", "dataset_id": None, "warnings": []},
+    ],
+)
+async def test_error_only_and_unsuccessful_results_are_not_cached(
+    failure: dict[str, Any], structured: bool
+) -> None:
+    import mcp.types as mt
+    from fastmcp import Client, FastMCP
+    from fastmcp.tools import ToolResult
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("failure-shape-cache-test", middleware=[middleware])
+    calls = 0
+
+    @server.tool
+    def query_dataset() -> ToolResult:
+        """Recover on the second execution, then cache the successful result."""
+        nonlocal calls
+        calls += 1
+        payload = failure if calls == 1 else {"data": [{"count": 3}], "row_count": 1}
+        return ToolResult(
+            content=[
+                mt.TextContent(
+                    type="text",
+                    text="structured result" if structured else json.dumps(payload),
+                )
+            ],
+            structured_content=payload if structured else None,
+        )
+
+    async with Client(server) as client:
+        await client.call_tool("query_dataset", {}, raise_on_error=False)
+        second = await client.call_tool("query_dataset", {}, raise_on_error=False)
+        third = await client.call_tool("query_dataset", {}, raise_on_error=False)
+    assert calls == 2
+    for result in (second, third):
+        payload = (
+            result.structured_content
+            if structured
+            else json.loads(result.content[0].text)
+        )
+        assert payload["row_count"] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("search", [False, True], ids=["direct", "call-tool"])
+async def test_all_errored_dashboard_is_not_cached(
+    structured: bool, search: bool
+) -> None:
+    """Retry the warehouse after every chart failed, on either catalog path."""
+    import mcp.types as mt
+    from fastmcp import Client, FastMCP
+    from fastmcp.tools import ToolResult
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("dashboard-failure-cache", middleware=[middleware])
+    calls = 0
+
+    @server.tool
+    def get_dashboard_data() -> ToolResult:
+        """Recover on the second execution, then cache the healthy result."""
+        nonlocal calls
+        calls += 1
+        payload = {
+            "charts": [
+                {
+                    "chart_id": index,
+                    "error": "warehouse timeout" if calls == 1 else None,
+                }
+                for index in (1, 2)
+            ]
+        }
+        return ToolResult(
+            content=[
+                mt.TextContent(
+                    type="text",
+                    text="structured result" if structured else json.dumps(payload),
+                )
+            ],
+            structured_content=payload if structured else None,
+        )
+
+    if search:
+        from superset.mcp_service.server import _apply_tool_search_transform
+
+        _apply_tool_search_transform(server, {"strategy": "regex"})
+    tool = "call_tool" if search else "get_dashboard_data"
+    arguments = {"name": "get_dashboard_data", "arguments": {}} if search else {}
+    async with Client(server) as client:
+        await client.call_tool(tool, arguments)
+        second = await client.call_tool(tool, arguments)
+        third = await client.call_tool(tool, arguments)
+    assert calls == 2
+    for result in (second, third):
+        payload = (
+            result.structured_content
+            if structured
+            else json.loads(result.content[0].text)
+        )
+        assert all(chart["error"] is None for chart in payload["charts"])
+
+
+@pytest.mark.parametrize(
+    "charts", [[], [{"error": None}], [{"error": "timeout"}, {"error": None}]]
+)
+def test_dashboard_without_total_failure_remains_cacheable(
+    charts: list[dict[str, Any]],
+) -> None:
+    """Do not mistake an empty or partially available dashboard for total failure."""
+    from fastmcp.tools import ToolResult
+
+    from superset.mcp_service.caching import is_failed_tool_result
+
+    assert not is_failed_tool_result(
+        ToolResult(content=[], structured_content={"charts": charts})
+    )
+
+
+@pytest.mark.parametrize(
+    ("charts", "failed"),
+    [
+        ([{"error": "No data", "error_type": "NoData"}], False),
+        (
+            [
+                {"error": "No data", "error_type": "NoData"},
+                {"error": "No preview", "error_type": "NoDataError"},
+            ],
+            False,
+        ),
+        (
+            [
+                {"error": "No data", "error_type": "NoData"},
+                {"error": "warehouse timeout", "error_type": "ExecutionError"},
+            ],
+            True,
+        ),
+        ([{"error": "warehouse timeout"}, {"error": "warehouse timeout"}], True),
+    ],
+    ids=["all-no-data", "all-no-rows-types", "no-data-and-failure", "untyped-errors"],
+)
+def test_dashboard_of_empty_charts_is_not_a_failure(
+    charts: list[dict[str, Any]], failed: bool
+) -> None:
+    """Charts that matched no rows are an empty result, so the dashboard caches."""
+    from fastmcp.tools import ToolResult
+
+    from superset.mcp_service.caching import is_failed_tool_result
+
+    result = ToolResult(content=[], structured_content={"charts": charts})
+    assert is_failed_tool_result(result) is failed
+
+
+@pytest.mark.asyncio
+async def test_all_empty_dashboard_is_cached() -> None:
+    """A dashboard whose charts matched no rows is an answer, not a failure."""
+    from fastmcp import Client, FastMCP
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("dashboard-empty-cache", middleware=[middleware])
+    calls = 0
+
+    @server.tool
+    def get_dashboard_data() -> dict[str, Any]:
+        """Every chart's query ran and matched no rows."""
+        nonlocal calls
+        calls += 1
+        return {
+            "charts": [
+                {"chart_id": index, "error": "No data", "error_type": "NoData"}
+                for index in (1, 2)
+            ]
+        }
+
+    async with Client(server) as client:
+        await client.call_tool("get_dashboard_data", {})
+        await client.call_tool("get_dashboard_data", {})
+    assert calls == 1
