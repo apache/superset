@@ -29,8 +29,8 @@ CGROUP_PATH="${CGROUP_PATH:-/sys/fs/cgroup}"
 
 # Echo the memory available to this container in KiB: the lower of the
 # host's available memory and the remaining cgroup memory limit, when a
-# finite cgroup limit is configured. Falls back to the host value when no
-# cgroup limit applies (not running in a container, unlimited limit, or
+# finite cgroup v2 limit is configured. Falls back to the host value when
+# no cgroup limit applies (not running in a container, unlimited limit, or
 # cgroup files unreadable), so behaviour outside containers is unchanged.
 container_mem_avail_kb() {
   local host_kb="$1"
@@ -47,20 +47,6 @@ container_mem_avail_kb() {
       current_value=$(cat "${CGROUP_PATH}/memory.current")
       if [[ "${current_value}" =~ ^[0-9]+$ ]]; then
         usage_bytes="${current_value}"
-      fi
-    fi
-  elif [[ -f "${CGROUP_PATH}/memory.limit_in_bytes" ]]; then
-    # cgroups v1: a limit of 2^63 (or larger) means no limit
-    local limit_value
-    limit_value=$(cat "${CGROUP_PATH}/memory.limit_in_bytes")
-    if [[ "${limit_value}" =~ ^[0-9]+$ ]] && [[ "${limit_value}" -lt 9223372036854771712 ]]; then
-      limit_bytes="${limit_value}"
-    fi
-    if [[ -f "${CGROUP_PATH}/memory.usage_in_bytes" ]]; then
-      local usage_value
-      usage_value=$(cat "${CGROUP_PATH}/memory.usage_in_bytes")
-      if [[ "${usage_value}" =~ ^[0-9]+$ ]]; then
-        usage_bytes="${usage_value}"
       fi
     fi
   fi

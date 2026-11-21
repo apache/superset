@@ -37,7 +37,7 @@ FAILURES=0
 
 # run_case <name> <meminfo contents> <cgroup setup> <expected patterns...>
 # cgroup setup is one of: none | v2-max | v2-limit:<max>:<current> |
-# v1-limit:<limit>:<usage> | v1-max
+# v1-files:<limit>:<usage>
 run_case() {
   local name="$1" meminfo="$2" cgroup="$3"
   shift 3
@@ -55,13 +55,11 @@ run_case() {
       printf '%s\n' "${cgroup#v2-limit:}" | cut -d: -f1 > "${cgroup_path}/memory.max"
       printf '%s\n' "${cgroup#v2-limit:}" | cut -d: -f2 > "${cgroup_path}/memory.current"
       ;;
-    v1-limit:*)
-      printf '%s\n' "${cgroup#v1-limit:}" | cut -d: -f1 > "${cgroup_path}/memory.limit_in_bytes"
-      printf '%s\n' "${cgroup#v1-limit:}" | cut -d: -f2 > "${cgroup_path}/memory.usage_in_bytes"
-      ;;
-    v1-max)
-      printf '9223372036854771712\n' > "${cgroup_path}/memory.limit_in_bytes"
-      printf '0\n' > "${cgroup_path}/memory.usage_in_bytes"
+    v1-files:*)
+      # cgroups v1 files are no longer read: a v1-only container falls
+      # back to the host value.
+      printf '%s\n' "${cgroup#v1-files:}" | cut -d: -f1 > "${cgroup_path}/memory.limit_in_bytes"
+      printf '%s\n' "${cgroup#v1-files:}" | cut -d: -f2 > "${cgroup_path}/memory.usage_in_bytes"
       ;;
     *) echo "unknown cgroup setup: ${cgroup}" >&2; exit 1 ;;
   esac
@@ -97,11 +95,10 @@ run_case "v2 unlimited" "${HOST_8GB}" "v2-max" \
 # cgroup v2 limit 8 GiB, host 2 GiB -> host value wins, warn with ~1.91 GiB
 run_case "v2 limit above host" "${HOST_2GB}" "v2-limit:8589934592:0" \
   "Memory Insufficient Warning" "1.90735"
-# cgroup v1 limit 1 GiB, usage 0.1 GiB, host 8 GiB -> warn with ~0.90 GiB left
-run_case "v1 limit below host" "${HOST_8GB}" "v1-limit:1073741824:104857600" \
-  "Memory Insufficient Warning" "0.902344"
-# cgroup v1 unlimited (2^63), host 8 GiB -> no warning, host value reported
-run_case "v1 unlimited" "${HOST_8GB}" "v1-max" \
+# cgroup v1 files present, no v2 files: v1 is no longer supported, so the
+# host value is reported and no warning is shown even though the v1 limit
+# (1 GiB) is below the host's available memory
+run_case "v1 files ignored" "${HOST_8GB}" "v1-files:1073741824:104857600" \
   "Memory available: 7.62939" "!Memory Insufficient Warning"
 # no cgroup files at all, host 8 GiB -> no warning, host value reported
 run_case "no cgroup files" "${HOST_8GB}" "none" \
