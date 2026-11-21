@@ -293,7 +293,7 @@ const SaveQuery = ({
         title={
           <ModalTitleWithIcon
             title={t('Save query')}
-            icon={<Icons.SaveOutlined />}
+            icon={<Icons.SaveOutlined aria-hidden />}
             data-test="save-query-modal-title"
           />
         }

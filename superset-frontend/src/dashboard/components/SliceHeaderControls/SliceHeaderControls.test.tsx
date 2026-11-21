@@ -1202,3 +1202,22 @@ test('A Big Number chart offers image exports only, without CSV, Excel or PDF', 
   expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
 });
+
+test('Exit fullscreen is a named button that works from the keyboard', async () => {
+  const props = { ...createProps(), isFullSize: true };
+  renderWrapper(props);
+  const exitButton = screen.getByRole('button', { name: 'Exit fullscreen' });
+  exitButton.focus();
+  expect(exitButton).toHaveFocus();
+  await userEvent.keyboard('{Enter}');
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+});
+
+test('Download menu icons do not add to the menu item names', async () => {
+  renderWrapper(createProps());
+  await openMenu();
+  await userEvent.hover(screen.getByText('Download'));
+  expect(
+    await screen.findByRole('menuitem', { name: 'Export to .CSV' }),
+  ).toBeInTheDocument();
+});

@@ -394,7 +394,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
             disabled={saveDisabled || isVersionPreviewActive}
             data-test="query-save-button"
             css={saveButtonStyles}
-            icon={<Icons.SaveOutlined />}
+            icon={<Icons.SaveOutlined aria-hidden />}
           >
             {t('Save')}
           </Button>

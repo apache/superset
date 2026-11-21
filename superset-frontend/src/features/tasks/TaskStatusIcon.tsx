@@ -140,6 +140,7 @@ export default function TaskStatusIcon({
     <Tooltip title={tooltipContent} placement="top">
       <span>
         <IconComponent
+          aria-label={label}
           iconSize="l"
           iconColor={getStatusColor(status, theme)}
           spin={shouldSpin}

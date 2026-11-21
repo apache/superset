@@ -132,7 +132,7 @@ const NONEXISTENT_DATASET = t(
   'The dataset associated with this chart no longer exists',
 );
 
-const Styles = styled.div<{ height: number; width?: number }>`
+const Styles = styled.section<{ height: number; width?: number }>`
   min-height: ${p => p.height}px;
   position: relative;
 
@@ -503,6 +503,13 @@ function Chart({
     !!dashboardId &&
     !chartFetchesOwnData &&
     canDrawPreviousResponse;
+  // Accessible name of the chart region: the chart's name when the form data
+  // carries it, otherwise the name of its chart type.
+  const chartLabel =
+    (formData.slice_name as string | undefined) ||
+    getChartMetadataRegistry().get(formData.viz_type || vizType)?.name ||
+    formData.viz_type ||
+    vizType;
 
   if (datasource?.metadata_error) {
     return (
@@ -610,6 +617,7 @@ function Chart({
         data-test="chart-container"
         height={height}
         width={width}
+        aria-label={chartLabel}
       >
         {showSpinner && !keepChartOnScreen
           ? renderSpinner(databaseName)

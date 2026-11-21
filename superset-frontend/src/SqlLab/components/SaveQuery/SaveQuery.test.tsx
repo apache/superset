@@ -207,6 +207,19 @@ describe('SavedQuery', () => {
     expect(screen.getByRole('button', { name: /save dataset/i })).toBeEnabled();
   });
 
+  test('the save query modal title is named by its text alone', async () => {
+    render(<SaveQuery {...mockedProps} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    expect(
+      screen.getByRole('heading', { name: 'Save query' }),
+    ).toBeInTheDocument();
+  });
+
   test('renders a save query modal when user clicks save button', async () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,

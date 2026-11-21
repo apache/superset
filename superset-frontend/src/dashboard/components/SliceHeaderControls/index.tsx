@@ -686,7 +686,9 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportCsv,
                 label: t('Export to .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]),
         ...(isPivotTable
@@ -694,12 +696,16 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportPivotCsv,
                 label: t('Export to Pivoted .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
               {
                 key: MenuKeys.ExportPivotXlsx,
                 label: t('Export to Pivoted Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]
           : []),
@@ -709,7 +715,9 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportXlsx,
                 label: t('Export to Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]),
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
@@ -719,25 +727,33 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportFullCsv,
                 label: t('Export to full .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
               {
                 key: MenuKeys.ExportFullXlsx,
                 label: t('Export to full Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]
           : []),
         {
           key: MenuKeys.DownloadAsImage,
           label: t('Export screenshot (jpeg)'),
-          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+          icon: (
+            <Icons.FileImageOutlined css={dropdownIconsStyles} aria-hidden />
+          ),
         },
         {
           type: 'submenu',
           key: 'download_as_png_submenu',
           label: t('Export screenshot (png)'),
-          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+          icon: (
+            <Icons.FileImageOutlined css={dropdownIconsStyles} aria-hidden />
+          ),
           children: [
             {
               key: MenuKeys.DownloadAsPngTransparent,
@@ -755,7 +771,9 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.DownloadAsPdf,
                 label: t('Export as PDF'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]),
       ],
@@ -792,8 +810,9 @@ const SliceHeaderControls = (
   return (
     <>
       {isFullSize && (
-        <Icons.FullscreenExitOutlined
-          style={{ fontSize: 22 }}
+        <Button
+          buttonStyle="link"
+          aria-label={t('Exit fullscreen')}
           onClick={() => {
             if (document.fullscreenElement) {
               exitChartFullscreen();
@@ -802,7 +821,9 @@ const SliceHeaderControls = (
               queueChartResize();
             }
           }}
-        />
+        >
+          <Icons.FullscreenExitOutlined style={{ fontSize: 22 }} aria-hidden />
+        </Button>
       )}
       <NoAnimationDropdown
         popupRender={() => sliceMenu}

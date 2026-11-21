@@ -697,6 +697,13 @@ describe('ExploreChartHeader', () => {
     setSaveChartModalVisibilityMock.mockClear();
   });
 
+  test('the Save button is named by its text alone', async () => {
+    render(<ExploreHeader {...createProps()} />, { useRedux: true });
+    expect(
+      await screen.findByRole('button', { name: 'Save' }),
+    ).toBeInTheDocument();
+  });
+
   test('Save disabled', async () => {
     const triggerManualSave = jest.fn();
 
