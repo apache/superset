@@ -313,6 +313,63 @@ def _mutate_statement(database: Database, statement: str, is_split: bool) -> str
     return stmt_sql
 
 
+def _result_set_for_statement(
+    db_engine_spec: type[BaseEngineSpec],
+    cursor: Any,
+    *,
+    row_limit: int | None,
+) -> SupersetResultSet:
+    """
+    Build the result set for a statement that returned a description.
+
+    ``row_limit`` is the cap for this statement, or None when the statement
+    is not capped (not the last statement, or the query has no limit).
+
+    Arrow ingest runs only when ``maybe_fetch_arrow`` returns a table: the
+    feature flag is on, the engine set ``supports_arrow_result``, and the
+    cursor can produce a Table. A decline leaves the cursor unconsumed and
+    the row path below is the one this function used before. ``_LimitedCursor``
+    only bounds ``fetchall`` / ``fetchmany``; Arrow reads are limited by the
+    ``limit`` argument instead. One extra row stands in for the row path's
+    truncation probe, which cannot run after a streaming reader has stopped.
+    """
+    from superset.result_set import SupersetResultSet
+
+    if row_limit is None:
+        table = db_engine_spec.maybe_fetch_arrow(cursor)
+        if table is not None:
+            return SupersetResultSet.from_arrow(table, db_engine_spec, truncated=False)
+        rows = db_engine_spec.fetch_data(cursor)
+        truncated = isinstance(rows, FetchedRows) and rows.truncated
+        return SupersetResultSet(
+            rows,
+            cursor.description,
+            db_engine_spec,
+            truncated=truncated,
+        )
+
+    table = db_engine_spec.maybe_fetch_arrow(cursor, row_limit + 1)
+    if table is not None:
+        truncated = table.num_rows > row_limit
+        if truncated:
+            table = table.slice(0, row_limit)
+        return SupersetResultSet.from_arrow(table, db_engine_spec, truncated=truncated)
+
+    # Keep each spec's conversion/error handling. Even specs that ignore
+    # a fetch_data limit can only consume the bounded cursor's budget.
+    limited_cursor = _LimitedCursor(cursor, row_limit)
+    rows = db_engine_spec.fetch_data(limited_cursor)
+    truncated = (isinstance(rows, FetchedRows) and rows.truncated) or (
+        limited_cursor.check_truncated(db_engine_spec)
+    )
+    return SupersetResultSet(
+        rows,
+        cursor.description,
+        db_engine_spec,
+        truncated=truncated,
+    )
+
+
 def execute_sql_with_cursor(
     database: Database,
     cursor: Any,
@@ -347,7 +404,6 @@ def execute_sql_with_cursor(
     :returns: List of (statement_sql, result_set, execution_time_ms, rowcount) tuples
         Returns empty list if stopped. Raises exception on error (fail-fast).
     """
-    from superset.result_set import SupersetResultSet
     from superset.sql.execution.cancellation import (
         check_query_deadline,
         query_executed,
@@ -391,34 +447,25 @@ def execute_sql_with_cursor(
         query_executed()
         stmt_execution_time = (time.time() - stmt_start_time) * 1000
 
-        # Fetch results from ALL statements
+        # Fetch results from ALL statements.
+        # Arrow ingest is opt-in inside ``_result_set_for_statement``.
+        # The row path, including ``_LimitedCursor``, stays the default.
         description = cursor.description
         if description:
-            fetch_cursor = cursor
-            limited_cursor = None
+            row_limit = None
             # SQL restrictions cannot always be safely wrapped or replaced.
             # Cap returned rows from the last statement, including RETURNING,
             # not affected rows. Only explicit limits also honor SQL_MAX_ROW.
             if i == total - 1 and query.limit is not None:
-                row_limit: int = query.limit
+                row_limit = query.limit
                 if sql_max_row := app.config.get("SQL_MAX_ROW"):
                     row_limit = min(row_limit, sql_max_row)
-                limited_cursor = _LimitedCursor(cursor, row_limit)
-                fetch_cursor = limited_cursor
-            # Keep each spec's conversion/error handling. Even specs that ignore
-            # a fetch_data limit can only consume the bounded cursor's budget.
-            rows = database.db_engine_spec.fetch_data(fetch_cursor)
-            truncated = (isinstance(rows, FetchedRows) and rows.truncated) or (
-                limited_cursor is not None
-                and limited_cursor.check_truncated(database.db_engine_spec)
+            result_set = _result_set_for_statement(
+                database.db_engine_spec,
+                cursor,
+                row_limit=row_limit,
             )
             check_query_deadline()
-            result_set = SupersetResultSet(
-                rows,
-                description,
-                database.db_engine_spec,
-                truncated=truncated,
-            )
         else:
             # DML statement - no result set
             result_set = None

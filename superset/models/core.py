@@ -1265,8 +1265,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         :param catalog: Optional catalog name
         :param schema: Optional schema name
         :param fetch_last_result: Whether to fetch results from last statement
-        :return: Tuple of (cursor, rows, description) where rows and description
-        are None if not fetching.
+        :return: Tuple of (cursor, rows, description). ``rows`` is a list of
+        tuples, or a ``pyarrow.Table`` when this engine opted into Arrow ingest
+        and the cursor could produce one. Both are None when not fetching.
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
 
@@ -1336,10 +1337,16 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         query_executed()
                         notify_cursor(cursor, self, CursorPhase.SUBMITTED)
 
-                    # Fetch results from last statement if requested
+                    # Fetch results from last statement if requested.
+                    # Arrow ingest is opt-in: ``maybe_fetch_arrow`` returns
+                    # None unless ARROW_NATIVE_RESULT_SET is on, this engine
+                    # set ``supports_arrow_result``, and the cursor can produce
+                    # a Table. Otherwise the row path is unchanged.
                     if fetch_last_result and i == len(script.statements) - 1:
                         with timed(f"database.fetch.{engine_suffix}"):
-                            rows = self.db_engine_spec.fetch_data(cursor)
+                            rows = self.db_engine_spec.maybe_fetch_arrow(cursor)
+                            if rows is None:
+                                rows = self.db_engine_spec.fetch_data(cursor)
                         # Some asynchronous DB-API drivers expose placeholder metadata
                         # until fetching waits for the operation to finish.
                         description = cursor.description
@@ -1388,10 +1395,22 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         df = None
         if rows is not None:
+            # ``maybe_fetch_arrow`` may have returned a Table. The chart path
+            # still materializes a DataFrame afterwards; this only changes how
+            # the result set is built. The wire format is unchanged.
+            import pyarrow as pa
+
+            from superset.result_set import SupersetResultSet
+
             with timed(
                 f"database.dataframe.{metric_suffix(self.db_engine_spec.engine)}"
             ):
-                df = self.load_into_dataframe(description, rows)
+                if isinstance(rows, pa.Table):
+                    df = SupersetResultSet.from_arrow(
+                        rows, self.db_engine_spec
+                    ).to_pandas_df()
+                else:
+                    df = self.load_into_dataframe(description, rows)
 
         if mutator:
             df = mutator(df)

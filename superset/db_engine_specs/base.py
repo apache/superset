@@ -748,6 +748,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # fetched for cursor.description to be populated.
     type_probe_needs_row: bool = False
     requires_column_value_normalization: bool = False
+    # Opt in to building ``SupersetResultSet`` from a ``pyarrow.Table``.
+    # Default False: the row path (``fetch_data`` / ``fetchall``) stays the
+    # default and the fallback. An engine that can already produce Arrow sets
+    # this True. The cursor still has to expose an Arrow fetch
+    # (``fetch_record_batch``, ``to_arrow_reader``, ``fetch_arrow_table``, or
+    # ``to_arrow_table``); a cursor that cannot, such as psycopg2, keeps the
+    # row path. ADBC is one such cursor, not a requirement.
+    # ``maybe_fetch_arrow`` also requires the ``ARROW_NATIVE_RESULT_SET``
+    # feature flag, which is the global rollback and defaults to off.
+    supports_arrow_result: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
@@ -1796,6 +1806,140 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return data
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def maybe_fetch_arrow(cls, cursor: Any, limit: int | None = None) -> Any:
+        """
+        Return an Arrow table only when ingest is allowed for this query.
+
+        The feature flag is a global rollback (default off). The engine spec
+        must also opt in via ``supports_arrow_result``. Otherwise, and when
+        the cursor cannot produce a Table, returns ``None`` and the caller
+        keeps ``fetch_data``. Does not consume the cursor when it returns
+        ``None`` before fetching.
+
+        :param cursor: DB-API cursor positioned on a result
+        :param limit: Maximum number of rows, or None for the whole result
+        :return: ``pyarrow.Table``, or None to use the row path
+        """
+        # Local import: this module is imported while the app package loads.
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("ARROW_NATIVE_RESULT_SET"):
+            return None
+        return cls.fetch_arrow(cursor, limit)
+
+    @classmethod
+    def fetch_arrow(cls, cursor: Any, limit: int | None = None) -> Any:
+        """
+        Fetch the result as an Arrow table, without building Python rows.
+
+        Honors ``supports_arrow_result`` only. Callers that also need the
+        feature-flag rollback use ``maybe_fetch_arrow``. ADBC is not required:
+        any cursor that exposes one of the methods below is accepted, and a
+        cursor that exposes none returns ``None``.
+
+        :param cursor: DB-API cursor positioned on a result
+        :param limit: Maximum number of rows, or None for the whole result
+        :return: ``pyarrow.Table``, or None when this engine or cursor cannot
+        """
+        if not cls.supports_arrow_result:
+            return None
+        reader_method = cls._arrow_reader_method(cursor)
+        table_method = cls._arrow_table_method(cursor)
+        if reader_method is None and table_method is None:
+            return None
+        try:
+            # Drivers that fill ``description`` only while fetching have
+            # nothing to read as Arrow yet; the caller falls back to
+            # ``fetch_data``, which populates the description.
+            if not cursor.description:
+                return None
+            if reader_method is not None:
+                return cls._table_from_arrow_reader(reader_method(), limit)
+            # A table-only fetch materializes the whole result, so a limited
+            # read falls back to ``fetch_data`` and its ``fetchmany``.
+            if limit is not None:
+                return None
+            return table_method()
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @staticmethod
+    def _arrow_reader_method(cursor: Any) -> Any:
+        """
+        Streaming Arrow fetch, if the cursor has one.
+
+        DuckDB's current name is ``to_arrow_reader`` (``fetch_record_batch``
+        is a deprecated alias, so it is not used when the current name
+        exists). ADBC exposes ``fetch_record_batch`` and not ``to_arrow_reader``.
+        """
+        if hasattr(cursor, "to_arrow_reader"):
+            return cursor.to_arrow_reader
+        if hasattr(cursor, "fetch_record_batch"):
+            return cursor.fetch_record_batch
+        return None
+
+    @staticmethod
+    def _arrow_table_method(cursor: Any) -> Any:
+        if hasattr(cursor, "to_arrow_table"):
+            return cursor.to_arrow_table
+        if hasattr(cursor, "fetch_arrow_table"):
+            return cursor.fetch_arrow_table
+        return None
+
+    @staticmethod
+    def _table_from_arrow_reader(reader: Any, limit: int | None) -> Any:
+        # Local import: see ``maybe_fetch_arrow``.
+        import pyarrow as pa
+
+        if isinstance(reader, pa.Table):
+            return reader if limit is None else reader.slice(0, limit)
+        if isinstance(reader, pa.RecordBatch):
+            table = pa.Table.from_batches([reader])
+            return table if limit is None else table.slice(0, limit)
+        if limit is None and hasattr(reader, "read_all"):
+            return reader.read_all()
+        schema = getattr(reader, "schema", None)
+        if limit is not None and limit <= 0 and schema is not None:
+            return pa.Table.from_batches([], schema=schema)
+        batches: list[Any] = []
+        fetched = 0
+        for batch in reader:
+            batches.append(batch)
+            fetched += batch.num_rows
+            if limit is not None and fetched >= limit:
+                break
+        if not batches:
+            if schema is None:
+                return pa.table({})
+            return pa.Table.from_batches([], schema=schema)
+        table = pa.Table.from_batches(batches, schema=schema or batches[0].schema)
+        if limit is not None:
+            return table.slice(0, limit)
+        return table
+
+    @classmethod
+    def get_datatype_from_arrow_field(cls, field: Any) -> str | None:
+        """
+        Database type name for an Arrow field.
+
+        Used where the row path calls ``get_datatype(cursor.description[i][1])``.
+        Drivers that know the native type put it in field metadata under a
+        ``<VENDOR>:type`` key (ADBC does this). Without that metadata the
+        caller infers a type from the Arrow type. Returning None is safe.
+
+        :param field: ``pyarrow.Field``
+        :return: Type string, or None
+        """
+        metadata = getattr(field, "metadata", None) or {}
+        for key, value in metadata.items():
+            key_text = key.decode() if isinstance(key, bytes) else str(key)
+            if key_text.endswith(":type"):
+                if isinstance(value, bytes):
+                    return value.decode().upper()
+                return str(value).upper()
+        return None
 
     @classmethod
     def fetch_data_with_cursor(
