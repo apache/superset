@@ -39,6 +39,7 @@ import {
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
+import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { RoutePaths } from 'src/views/routePaths';
 import {
   StyledBackground,
@@ -178,7 +179,7 @@ export default function Login() {
             <Flex vertical align="start" gap="middle">
               {theme.loginFormBrandLogoUrl && (
                 <StyledBrandLogo
-                  src={theme.loginFormBrandLogoUrl}
+                  src={ensureStaticPrefix(theme.loginFormBrandLogoUrl)}
                   alt={theme.brandLogoAlt || 'Apache Superset'}
                   style={{ marginTop: theme.sizeUnit * 4 }}
                 />

@@ -19,6 +19,7 @@
 
 import { styled, css } from '@apache-superset/core/theme';
 import { Card, Typography } from '@superset-ui/core/components';
+import { ensureStaticPrefix } from 'src/utils/assetUrl';
 
 // Shared by the sign-in page and the password recovery pages so every
 // signed-out auth screen renders the same card.
@@ -43,7 +44,7 @@ export const StyledLabel = styled(Typography.Text)`
 
 export const StyledBackground = styled.div`
   ${({ theme }) => {
-    const bgImageUrl = theme.loginPageBackgroundImageUrl;
+    const bgImageUrl = ensureStaticPrefix(theme.loginPageBackgroundImageUrl);
     const overlayColor =
       theme.loginPageBackgroundOverlayColor || theme.colorBgMask;
     const blurAmount = theme.loginPageBackgroundBlur || '0px';
