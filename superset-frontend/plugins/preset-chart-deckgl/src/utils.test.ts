@@ -21,7 +21,9 @@ import {
   getColorBreakpointsBuckets,
   getBreakPoints,
   getBuckets,
+  getBreakPointColorScaler,
   BucketsWithColorScale,
+  TRANSPARENT_COLOR_ARRAY,
 } from './utils';
 import { ColorBreakpointType } from './types';
 
@@ -532,4 +534,46 @@ describe('getBuckets', () => {
       expect(label).not.toMatch(/^\d+(\.\d+)?\s-\s\d+(\.\d+)?$/);
     });
   });
+});
+
+const zeroScalerFormData = {
+  linear_color_scheme: ['#000000', '#ffffff'],
+  opacity: 100,
+} as unknown as BucketsWithColorScale;
+const valueAccessor = (d: JsonObject) =>
+  typeof d.value === 'number' ? d.value : undefined;
+
+test('getBreakPointColorScaler colors a zero value instead of hiding it', () => {
+  const features = [{ value: 0 }, { value: 10 }];
+  const scaler = getBreakPointColorScaler(
+    zeroScalerFormData,
+    features,
+    valueAccessor,
+  );
+
+  expect(scaler({ value: 0 })).toEqual([0, 0, 0, 255]);
+  expect(scaler({ value: 10 })).toEqual([255, 255, 255, 255]);
+});
+
+test('getBreakPointColorScaler keeps missing values transparent', () => {
+  const scaler = getBreakPointColorScaler(
+    zeroScalerFormData,
+    [{ value: 0 }, { value: 10 }],
+    valueAccessor,
+  );
+
+  expect(scaler({})).toEqual(TRANSPARENT_COLOR_ARRAY);
+});
+
+test('getBreakPointColorScaler colors a zero value inside break point bounds', () => {
+  const scaler = getBreakPointColorScaler(
+    {
+      ...zeroScalerFormData,
+      break_points: ['0', '5', '10'],
+    } as BucketsWithColorScale,
+    [{ value: 0 }, { value: 10 }],
+    valueAccessor,
+  );
+
+  expect(scaler({ value: 0 })[3]).toBe(255);
 });
