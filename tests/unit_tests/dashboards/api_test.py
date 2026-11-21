@@ -311,6 +311,24 @@ def test_export_bundle_is_not_opened_by_the_example_permission(
     assert response.status_code == 403
 
 
+def test_export_bundle_is_allowed_with_can_export(
+    session: Session,
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    """``can_export`` alone still opens the YAML bundle export. The command is
+    stubbed to report a missing dashboard, so the request ends at 404, not 403."""
+    _grant_only_on_dashboard(mocker, "can_export")
+    mocker.patch(
+        "superset.dashboards.api.ExportDashboardsCommand",
+        return_value=MagicMock(run=MagicMock(side_effect=DashboardNotFoundError())),
+    )
+
+    response = client.get("/api/v1/dashboard/export/?q=!(1)")
+
+    assert response.status_code == 404
+
+
 def test_export_bundle_is_not_refused_for_logged_in_users(
     session: Session,
     client: Any,
