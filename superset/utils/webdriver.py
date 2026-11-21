@@ -34,10 +34,12 @@ from superset.utils.report_execution import (
     TERMINAL_CHART_HOLDER_STATES,
 )
 from superset.utils.screenshot_utils import (
+    _stable_readiness_js,
     CHART_CONTAINER_HAS_RENDERED_CONTENT_JS,
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
+    ChartHoldersNeverMountedError,
     DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
     DASHBOARD_LAYOUT_READY_JS,
     EXPAND_CHART_TABLE_CLIP_JS,
@@ -49,16 +51,18 @@ from superset.utils.screenshot_utils import (
     FIND_CHART_HOLDER_STATES_JS,
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
     get_screenshot_blankness_metrics,
-    REPORT_ALL_CHART_HOLDERS_READY_JS,
+    raise_if_dashboard_crashed,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
     REPORT_HAS_RENDERED_CHART_HOLDERS_JS,
+    REPORT_LAYOUT_READY_JS,
+    report_mounted_js,
+    report_ready_js,
     resolve_screenshot_task_budget_seconds,
     ScreenshotBlankCaptureError,
     ScreenshotCaptureReadinessChangedError,
     ScreenshotTaskBudgetExceededError,
     STABLE_CHART_CONTAINER_READY_JS,
     STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
-    STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS,
     take_tiled_screenshot,
     TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
     validate_report_screenshot,
@@ -95,14 +99,15 @@ try:
 except ImportError:
     from typing import Any
 
-    # Define dummy classes when playwright is not available
+    # Define dummy classes when playwright is not available. The exception
+    # types are shared with screenshot_utils so subclasses raised there are
+    # caught by handlers here.
     BrowserContext = Any
 
-    class PlaywrightError(Exception):  # type: ignore[no-redef]
-        """Fallback Playwright error that does not swallow unrelated failures."""
-
-    class PlaywrightTimeout(PlaywrightError):  # type: ignore[no-redef]  # noqa: N818
-        """Fallback matching Playwright's timeout error hierarchy."""
+    from superset.utils.screenshot_utils import (  # noqa: F401
+        PlaywrightError,
+        PlaywrightTimeout,
+    )
 
     Locator = Any
     Page = Any
@@ -336,6 +341,11 @@ class WebDriverPlaywright(WebDriverProxy):
                 stable_timeout = (
                     report_execution_context.deadline.timeout_seconds(
                         "capture_readiness_stability",
+                        requested_seconds=(
+                            load_wait_seconds
+                            if report_execution_context.empty_tab_pane_suffix
+                            else None
+                        ),
                         reserve_seconds=(
                             report_execution_context.readiness_reserve_seconds
                         ),
@@ -354,8 +364,13 @@ class WebDriverPlaywright(WebDriverProxy):
                     capture_readiness_predicate = DASHBOARD_ALL_CHART_HOLDERS_READY_JS
                     stable_predicate = STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS
                 else:
-                    capture_readiness_predicate = REPORT_ALL_CHART_HOLDERS_READY_JS
-                    stable_predicate = STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS
+                    capture_readiness_predicate = report_ready_js(
+                        True,
+                        report_execution_context.empty_tab_pane_suffix
+                        if report_execution_context
+                        else None,
+                    )
+                    stable_predicate = _stable_readiness_js(capture_readiness_predicate)
                 try:
                     waited_for_stability = wait_for_stable_readiness(
                         page,
@@ -703,9 +718,15 @@ class WebDriverPlaywright(WebDriverProxy):
                 context_suffix,
                 initial_unready_chart_holders,
             )
+        empty_tab_suffix = (
+            report_execution_context.empty_tab_pane_suffix
+            if report_execution_context
+            else None
+        )
         if report_execution_context:
             effective_load_wait = report_execution_context.deadline.timeout_seconds(
                 "chart_readiness",
+                requested_seconds=float(load_wait) if empty_tab_suffix else None,
                 reserve_seconds=report_execution_context.readiness_reserve_seconds,
             )
             task_budget = report_execution_context.deadline.total_seconds
@@ -770,8 +791,63 @@ class WebDriverPlaywright(WebDriverProxy):
             # viewport-scoped predicate because it scrolls each region into view
             # before capturing it.
             page.evaluate(FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS)
+            if report_execution_context:
+                # Bootstrap (dashboard/charts APIs, native filters that select
+                # their first value) gates the layout and keeps the remaining
+                # budget. Only "layout rendered, nothing mounted" is bounded,
+                # so a layout we cannot reason about never holds a worker for
+                # the whole budget. Mounted charts keep the full budget below.
+                layout_wait = report_execution_context.deadline.timeout_seconds(
+                    "dashboard_layout",
+                    reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                )
+                try:
+                    layout_state = page.wait_for_function(
+                        REPORT_LAYOUT_READY_JS,
+                        timeout=layout_wait * 1000,
+                    )
+                except PlaywrightTimeout:
+                    logger.warning(
+                        "report_readiness_terminal url=%s terminal_reason="
+                        "layout_timeout effective_wait_seconds=%.2f%s; "
+                        "aborting before capture or delivery",
+                        url,
+                        layout_wait,
+                        context_suffix,
+                    )
+                    raise
+                raise_if_dashboard_crashed(layout_state, url, context_suffix)
+                mount_wait = report_execution_context.deadline.timeout_seconds(
+                    "chart_holder_mount",
+                    requested_seconds=float(load_wait),
+                    reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                )
+                try:
+                    page.wait_for_function(
+                        report_mounted_js(empty_tab_suffix),
+                        timeout=mount_wait * 1000,
+                    )
+                except PlaywrightTimeout:
+                    logger.warning(
+                        "report_readiness_terminal url=%s terminal_reason="
+                        "zero_holders_timeout effective_wait_seconds=%.2f%s; "
+                        "aborting before capture or delivery",
+                        url,
+                        mount_wait,
+                        context_suffix,
+                    )
+                    raise ChartHoldersNeverMountedError(
+                        f"No chart holder mounted within {mount_wait:.0f}s"
+                    ) from None
+                # Re-derive the readiness wait: the stages above consumed part
+                # of the budget it was computed from.
+                effective_load_wait = report_execution_context.deadline.timeout_seconds(
+                    "chart_readiness",
+                    requested_seconds=float(load_wait) if empty_tab_suffix else None,
+                    reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                )
             readiness_predicate = (
-                REPORT_ALL_CHART_HOLDERS_READY_JS
+                report_ready_js(True, empty_tab_suffix)
                 if report_execution_context
                 else DASHBOARD_ALL_CHART_HOLDERS_READY_JS
             )
@@ -1172,6 +1248,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     expected_chart_count = (
                         report_execution_context.expected_chart_count
                         if report_execution_context
+                        and not report_execution_context.empty_tab_pane_suffix
                         else None
                     )
                     chart_count = max(

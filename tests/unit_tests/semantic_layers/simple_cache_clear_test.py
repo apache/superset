@@ -225,7 +225,7 @@ def test_generation_binding_precedes_provider_construction(
         assert view.metadata_generation == layer.metadata_generation
         assert view.get_extra_cache_keys({}) == [
             layer.metadata_generation,
-            "semantic-null-filters-v1",
+            "semantic-null-filters-v2",
         ]
 
 
@@ -242,7 +242,7 @@ def test_host_generation_is_named_apart_from_provider_token(
         assert view.metadata_cache_token == view.metadata_generation
         assert view.get_extra_cache_keys({}) == [
             layer.metadata_generation,
-            "semantic-null-filters-v1",
+            "semantic-null-filters-v2",
         ]
 
 
@@ -735,7 +735,7 @@ def test_cache_keys_compose_metadata_and_producer_versions(
         first_annotation: dict[str, Any] = processor._annotation_cache_context(query)
         assert first_result == [
             first_generation,
-            "semantic-null-filters-v1",
+            "semantic-null-filters-v2",
             ("semantic-result-version", "test", "v1"),
         ]
         assert first_annotation["source_versions"] == {"7": first_generation}
