@@ -25,6 +25,7 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { AsyncSelect } from '.';
 
 const ARIA_LABEL = 'Test';
@@ -2096,3 +2097,11 @@ test('renders the option label directly in the option content without a Space wr
  - Requests the correct page and page size
  - Sets the page to zero when a new search is made
  */
+
+test('AsyncSelect border uses colorTextTertiary for non-text contrast', async () => {
+  const { container } = render(<AsyncSelect {...defaultProps} />);
+  const root = container.querySelector('.ant-select') as Element;
+  expect(getComputedStyle(root).getPropertyValue('--ant-color-border')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
+});

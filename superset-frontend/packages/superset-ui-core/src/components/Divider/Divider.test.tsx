@@ -16,10 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render } from '@superset-ui/core/spec';
 import { Divider } from '.';
 
 test('should render', () => {
   const { container } = render(<Divider />);
   expect(container).toBeInTheDocument();
+});
+
+test('Divider line uses colorTextTertiary for non-text contrast', () => {
+  const { container } = render(<Divider />);
+  const root = container.querySelector('.ant-divider') as Element;
+  expect(getComputedStyle(root).getPropertyValue('--ant-color-split')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
 });

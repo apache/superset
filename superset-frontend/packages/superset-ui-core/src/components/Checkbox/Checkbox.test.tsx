@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
+import { AntdThemeProvider } from '../AntdThemeProvider';
 import { Checkbox } from '.';
 import type { CheckboxProps } from './types';
 
@@ -119,4 +121,60 @@ describe('Checkbox Component', () => {
       expect(mockAction).toHaveBeenCalled();
     });
   });
+});
+
+test('Checkbox border uses colorTextTertiary for non-text contrast', () => {
+  const { container } = render(<Checkbox />);
+  const root = container.querySelector('[class*="-css-var"]') as Element;
+  expect(getComputedStyle(root).getPropertyValue('--ant-color-border')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
+});
+
+// Custom properties inherit; resolve the value the element actually uses.
+const inheritedVar = (el: Element | null, name: string): string => {
+  const value = el ? getComputedStyle(el).getPropertyValue(name) : '';
+  return value || !el?.parentElement
+    ? value
+    : inheritedVar(el.parentElement, name);
+};
+
+test('disabled Checkbox keeps the default disabled border', () => {
+  const { container } = render(<Checkbox disabled />);
+  const box = container.querySelector('.ant-checkbox-disabled');
+  expect(inheritedVar(box, '--ant-color-border')).toBe(
+    supersetTheme.colorBorder,
+  );
+});
+
+test('Checkbox in a disabled form keeps the default disabled border', () => {
+  const { container } = render(
+    <AntdThemeProvider componentDisabled>
+      <Checkbox />
+    </AntdThemeProvider>,
+  );
+  const box = container.querySelector('.ant-checkbox-disabled');
+  expect(inheritedVar(box, '--ant-color-border')).toBe(
+    supersetTheme.colorBorder,
+  );
+});
+
+test('disabled options of an enabled Checkbox.Group keep the default border', () => {
+  const { container } = render(
+    <Checkbox.Group
+      options={[
+        { label: 'A', value: 'a', disabled: true },
+        { label: 'B', value: 'b' },
+      ]}
+    />,
+  );
+  const [disabledBox, enabledBox] = Array.from(
+    container.querySelectorAll('.ant-checkbox'),
+  );
+  expect(inheritedVar(disabledBox, '--ant-color-border')).toBe(
+    supersetTheme.colorBorder,
+  );
+  expect(inheritedVar(enabledBox, '--ant-color-border')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
 });

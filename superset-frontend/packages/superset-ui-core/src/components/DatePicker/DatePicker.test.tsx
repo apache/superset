@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render } from '@superset-ui/core/spec';
 import { DatePicker, RangePicker } from '.';
 
@@ -28,4 +29,15 @@ test('should render date picker', () => {
 test('should render range picker', () => {
   const { container } = render(<RangePicker />);
   expect(container).toBeInTheDocument();
+});
+
+test.each([
+  ['DatePicker', <DatePicker key="date" />],
+  ['RangePicker', <RangePicker key="range" />],
+])('%s border uses colorTextTertiary for non-text contrast', (_, element) => {
+  const { container } = render(element);
+  const root = container.querySelector('.ant-picker') as Element;
+  expect(getComputedStyle(root).getPropertyValue('--ant-color-border')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
 });

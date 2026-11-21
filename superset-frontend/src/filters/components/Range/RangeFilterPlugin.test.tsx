@@ -19,7 +19,9 @@
 import { AppSection, type ChartProps } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import userEvent from '@testing-library/user-event';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { AntdThemeProvider } from '@superset-ui/core/components';
 import RangeFilterPlugin, { calculateStep } from './RangeFilterPlugin';
 import { RangeDisplayMode, type PluginFilterRangeProps } from './types';
 import { SingleValueType } from './SingleValueType';
@@ -115,6 +117,29 @@ describe('RangeFilterPlugin', () => {
     // For a range slider, there are two slider handles
     const sliders = screen.getAllByRole('slider');
     expect(sliders.length).toBeGreaterThan(0);
+  });
+
+  test('should draw the min/max separator with 3:1 non-text contrast', () => {
+    getWrapper();
+
+    expect(screen.getByText('-')).toHaveStyle({
+      color: supersetTheme.colorTextTertiary,
+    });
+  });
+
+  test("should keep a theme's own colorSplit on the min/max separator", () => {
+    render(
+      <AntdThemeProvider theme={{ token: { colorSplit: '#ff0000' } }}>
+        <RangeFilterPlugin
+          {...(transformProps(
+            rangeProps as unknown as ChartProps,
+          ) as PluginFilterRangeProps)}
+          setDataMask={setDataMask}
+        />
+      </AntdThemeProvider>,
+    );
+
+    expect(screen.getByText('-')).toHaveStyle({ color: '#ff0000' });
   });
 
   test('should set the data mask to error when the range is incorrect', async () => {

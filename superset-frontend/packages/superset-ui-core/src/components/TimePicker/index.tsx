@@ -21,13 +21,18 @@ import {
   TimePickerProps,
   TimeRangePickerProps,
 } from 'antd';
+import { NonTextContrastProvider } from '../AntdThemeProvider/NonTextContrastProvider';
 
 const commonCss = { width: '100%' };
 
 export const TimePicker = (props: TimePickerProps) => (
-  <AntdTimePicker css={commonCss} {...props} />
+  <NonTextContrastProvider>
+    <AntdTimePicker css={commonCss} {...props} />
+  </NonTextContrastProvider>
 );
 
 export const TimeRangePicker = (props: TimeRangePickerProps) => (
-  <AntdTimePicker.RangePicker css={commonCss} {...props} />
+  <NonTextContrastProvider>
+    <AntdTimePicker.RangePicker css={commonCss} {...props} />
+  </NonTextContrastProvider>
 );

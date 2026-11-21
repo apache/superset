@@ -16,7 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Input, InputNumber } from 'antd';
+import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd';
+import { withNonTextContrast } from '../AntdThemeProvider/NonTextContrastProvider';
+
+export const Input = Object.assign(withNonTextContrast(AntdInput), {
+  Group: AntdInput.Group,
+  Search: withNonTextContrast(AntdInput.Search),
+  TextArea: withNonTextContrast(AntdInput.TextArea),
+  Password: withNonTextContrast(AntdInput.Password),
+  OTP: withNonTextContrast(AntdInput.OTP),
+});
+
+export const InputNumber = Object.assign(withNonTextContrast(AntdInputNumber), {
+  _InternalPanelDoNotUseOrYouWillBeFired:
+    AntdInputNumber._InternalPanelDoNotUseOrYouWillBeFired,
+});
+
 export type {
   InputProps,
   TextAreaProps,

@@ -20,6 +20,7 @@ import { styled } from '@apache-superset/core/theme';
 import { Select } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Spin } from '../Spin';
+import { withNonTextContrast } from '../AntdThemeProvider/NonTextContrastProvider';
 import { Flex } from '../Flex';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
@@ -42,7 +43,7 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
   `}
 `;
 
-export const StyledSelect = styled(Select, {
+export const StyledSelect = styled(withNonTextContrast(Select), {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => {

@@ -22,6 +22,7 @@ import { forwardRef, MouseEvent, ReactNode, RefObject } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { useNonTextContrastColor } from '@superset-ui/core/components';
 
 export type DateLabelProps = {
   name?: string;
@@ -34,8 +35,9 @@ export type DateLabelProps = {
 const LabelContainer = styled.button<{
   isActive?: boolean;
   isPlaceholder?: boolean;
+  restBorderColor: string;
 }>`
-  ${({ theme, isActive, isPlaceholder }) => css`
+  ${({ theme, isActive, isPlaceholder, restBorderColor }) => css`
     appearance: none;
     font: inherit;
     width: 100%;
@@ -49,7 +51,7 @@ const LabelContainer = styled.button<{
 
     background-color: ${theme.colorBgContainer};
 
-    border: 1px solid ${isActive ? theme.colorPrimary : theme.colorBorder};
+    border: 1px solid ${isActive ? theme.colorPrimary : restBorderColor};
     border-radius: ${theme.borderRadius}px;
 
     cursor: pointer;
@@ -82,16 +84,23 @@ const LabelContainer = styled.button<{
 `;
 
 export const DateLabel = forwardRef(
-  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => (
-    <LabelContainer type="button" {...props}>
-      <span
-        id={`date-label-${props.name}`}
-        className="date-label-content"
-        ref={ref}
+  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => {
+    const restBorderColor = useNonTextContrastColor('colorBorder');
+    return (
+      <LabelContainer
+        type="button"
+        restBorderColor={restBorderColor}
+        {...props}
       >
-        {typeof props.label === 'string' ? t(props.label) : props.label}
-      </span>
-      <Icons.CalendarOutlined iconSize="s" />
-    </LabelContainer>
-  ),
+        <span
+          id={`date-label-${props.name}`}
+          className="date-label-content"
+          ref={ref}
+        >
+          {typeof props.label === 'string' ? t(props.label) : props.label}
+        </span>
+        <Icons.CalendarOutlined iconSize="s" />
+      </LabelContainer>
+    );
+  },
 );

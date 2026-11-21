@@ -16,5 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Checkbox } from 'antd';
+import { Checkbox as AntdCheckbox } from 'antd';
+import { withNonTextContrast } from '../AntdThemeProvider/NonTextContrastProvider';
+
+const keepDisabled = { keepDisabledColors: true };
+
+export const Checkbox = Object.assign(
+  withNonTextContrast(AntdCheckbox, keepDisabled),
+  {
+    Group: withNonTextContrast(AntdCheckbox.Group, keepDisabled),
+  },
+);
+
 export type { CheckboxProps, CheckboxChangeEvent } from './types';

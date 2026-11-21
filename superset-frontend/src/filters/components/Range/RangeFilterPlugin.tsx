@@ -31,7 +31,12 @@ import { FilterBarOrientation } from 'src/dashboard/types';
 import { isNumber } from 'lodash-es';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import Slider from '@superset-ui/core/components/Slider';
-import { FormItem, Tooltip, Icons } from '@superset-ui/core/components';
+import {
+  FormItem,
+  Tooltip,
+  Icons,
+  useNonTextContrastColor,
+} from '@superset-ui/core/components';
 import { PluginFilterRangeProps, RangeDisplayMode } from './types';
 import { StatusMessage, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
@@ -41,9 +46,9 @@ import isSemanticRange from './isSemanticRange';
 type InputValue = number | null;
 type RangeValue = [InputValue, InputValue];
 
-const StyledDivider = styled.span`
+const StyledDivider = styled.span<{ lineColor: string }>`
   margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
-  color: ${({ theme }) => theme.colorSplit};
+  color: ${({ lineColor }) => lineColor};
   font-weight: ${({ theme }) => theme.fontWeightStrong};
   font-size: ${({ theme }) => theme.fontSize}px;
   align-content: center;
@@ -240,6 +245,7 @@ const validateRange = (
 
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const theme = useTheme();
+  const dividerColor = useNonTextContrastColor('colorSplit');
   const {
     data,
     formData,
@@ -724,7 +730,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           min,
         )}
 
-      {enableSingleValue === undefined && <StyledDivider>-</StyledDivider>}
+      {enableSingleValue === undefined && (
+        <StyledDivider lineColor={dividerColor}>-</StyledDivider>
+      )}
 
       {(enableSingleValue === undefined ||
         enableSingleValue === SingleValueType.Maximum) &&
