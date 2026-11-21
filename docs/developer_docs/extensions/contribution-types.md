@@ -57,7 +57,7 @@ block in `extension.json` mirrors it: `sqllab.panels` is declared under
 | `home.section` | A section of the Home page, after Superset's own |
 | `dashboard.header` | Beside the dashboard title |
 | `dashboard.headerActions` | In the dashboard's overflow (`...`) menu |
-| `dashboard.sidebar` | A column down the right of the chart grid |
+| `dashboard.sidebar` | A column down the right of the chart grid, at most `min(400px, 33vw)` wide. Wider content is clipped rather than scrolled, so size contributions fluidly and render popups at the page root |
 | `dashboard.chartActions` | In an individual chart's overflow (`...`) menu |
 | `explore.header` | Beside the chart title in Explore |
 | `explore.panel` | Between the Explore header and the chart, full width |

@@ -93,18 +93,6 @@ export type ExploreLocation =
 /**
  * Valid locations within a list view (charts, dashboards, datasets).
  */
-/**
- * Valid locations within a chart as a dashboard draws it.
- */
-export type DashboardChartLocation =
-  /**
-   * Beside the chart's name in its header, where a list view's `nameCell`
-   * sits for the same asset. For a mark that belongs to the chart rather
-   * than to the actions you can take on it -- the actions menu is
-   * `dashboard.chartActions`, and is a different question.
-   */
-  'nameCell';
-
 export type ListViewLocation =
   /**
    * Beside an item's name, in the name cell. Preferred over a column of its

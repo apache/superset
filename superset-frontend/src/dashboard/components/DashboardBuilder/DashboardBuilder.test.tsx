@@ -963,6 +963,17 @@ describe('DashboardBuilder', () => {
       window.history.replaceState({}, '', originalHref);
     }
   });
+
+  test('keeps the extension sidebar column out of the layout when nothing is contributed', () => {
+    setup();
+    const column = document.getElementById('superset-docked-panel-slot');
+    expect(column).toBeEmptyDOMElement();
+    // An empty column must take no grid track, or it narrows the chart grid
+    // for every dashboard, extensions or not.
+    expect(column).toHaveStyleRule('display', 'none', { target: ':empty' });
+    // A contributed column is capped so it cannot squeeze the 1fr chart area.
+    expect(column).toHaveStyleRule('max-width', 'min(400px, 33vw)');
+  });
 });
 
 test('should render ParentSize wrapper with height 100% for tabs', async () => {
