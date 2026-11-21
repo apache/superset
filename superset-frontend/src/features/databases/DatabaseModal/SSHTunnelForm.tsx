@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { JsonObject } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -68,6 +68,7 @@ const SSHTunnelForm = ({
 }: SSHTunnelFormProps) => {
   const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
   const sshErrors = validationErrors?.ssh_tunnel || {};
+  const privateKeyErrorId = useId();
   const sshSectionError = sshErrors?._error;
 
   return (
@@ -212,7 +213,13 @@ const SSHTunnelForm = ({
                         ? 'error'
                         : 'success'
                   }
-                  help={sshErrors?.private_key}
+                  help={
+                    sshErrors?.private_key ? (
+                      <span id={privateKeyErrorId} role="alert">
+                        {sshErrors.private_key}
+                      </span>
+                    ) : undefined
+                  }
                   hasFeedback={isValidating || !!sshErrors?.private_key}
                 >
                   <Input.TextArea
@@ -222,6 +229,10 @@ const SSHTunnelForm = ({
                     value={db?.ssh_tunnel?.private_key || ''}
                     onChange={onSSHTunnelParametersChange}
                     onBlur={getValidation}
+                    aria-invalid={sshErrors?.private_key ? true : undefined}
+                    aria-describedby={
+                      sshErrors?.private_key ? privateKeyErrorId : undefined
+                    }
                     data-test="ssh-tunnel-private_key-input"
                     rows={4}
                   />

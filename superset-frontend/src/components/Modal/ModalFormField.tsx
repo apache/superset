@@ -20,7 +20,9 @@ import {
   Children,
   ReactElement,
   ReactNode,
+  RefAttributes,
   cloneElement,
+  forwardRef,
   isValidElement,
   useId,
 } from 'react';
@@ -43,6 +45,25 @@ type FieldAriaProps = {
   'aria-describedby'?: string;
   children?: ReactNode;
 };
+
+type DescribedControlProps = {
+  control: ReactElement<FieldAriaProps & RefAttributes<unknown>>;
+  errorId?: string;
+  'aria-invalid'?: boolean;
+};
+
+// A named FormItem gives its child an aria-describedby pointing at its own
+// help element, which it does not render when noStyle is set. Rendering the
+// control through this component receives the FormItem props and re-applies
+// the field error id after them.
+const DescribedControl = forwardRef<unknown, DescribedControlProps>(
+  ({ control, errorId, ...formItemProps }, ref) =>
+    cloneElement(control, {
+      ...formItemProps,
+      ref,
+      ...(errorId ? { 'aria-describedby': errorId } : {}),
+    }),
+);
 
 const StyledFieldContainer = styled.div<{ bottomSpacing: boolean }>`
   ${({ theme, bottomSpacing }) => css`
@@ -153,7 +174,13 @@ export function ModalFormField({
     const wrappedChild = element.props.children;
     return isValidElement<FieldAriaProps>(wrappedChild)
       ? cloneElement(element, {
-          children: cloneElement(wrappedChild, ariaProps),
+          children: (
+            <DescribedControl
+              control={wrappedChild}
+              errorId={ariaProps['aria-describedby']}
+              aria-invalid={ariaProps['aria-invalid']}
+            />
+          ),
         })
       : element;
   };

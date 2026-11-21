@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { Form, FormItem, Input } from '@superset-ui/core/components';
 import { ModalFormField } from './ModalFormField';
 
@@ -179,5 +184,42 @@ test('keeps the same input element when the error appears', () => {
     </ModalFormField>,
   );
   expect(screen.getByLabelText('Name')).toBe(input);
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+});
+
+test('keeps the error associated when a named FormItem rule fails', async () => {
+  const NamedField = () => {
+    const [form] = Form.useForm();
+    return (
+      <Form form={form}>
+        <ModalFormField label="Title" required error="Title is required">
+          <FormItem
+            name="title"
+            noStyle
+            rules={[{ required: true, message: 'Title is required' }]}
+          >
+            <Input aria-label="Title" />
+          </FormItem>
+        </ModalFormField>
+        <button
+          type="button"
+          onClick={() => form.validateFields().catch(() => {})}
+        >
+          validate
+        </button>
+      </Form>
+    );
+  };
+  render(<NamedField />);
+  const input = screen.getByLabelText('Title');
+
+  await userEvent.click(screen.getByRole('button', { name: 'validate' }));
+
+  await waitFor(() => {
+    const describedBy = input.getAttribute('aria-describedby');
+    expect(
+      describedBy && document.getElementById(describedBy),
+    ).toHaveTextContent('Title is required');
+  });
   expect(input).toHaveAttribute('aria-invalid', 'true');
 });
