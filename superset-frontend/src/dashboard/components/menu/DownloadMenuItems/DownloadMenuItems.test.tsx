@@ -243,6 +243,15 @@ test('sessions without a user id get the data export but no bundle exports', () 
   expect(screen.queryByText('Export as Example')).not.toBeInTheDocument();
 });
 
+test('Export as Example does not depend on userCanExport', () => {
+  render(
+    <MenuWrapperWithProps userCanExport={false} canExportAsExample />,
+    { useRedux: true, initialState: loggedInState },
+  );
+
+  expect(screen.getByText('Export as Example')).toBeInTheDocument();
+});
+
 test('Export as Example is hidden without the can_export_as_example permission', () => {
   render(<MenuWrapperWithProps canExportAsExample={false} />, {
     useRedux: true,

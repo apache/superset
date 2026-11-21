@@ -503,7 +503,7 @@ export const useDownloadMenuItems = (
           },
         ]
       : []),
-    ...(userCanExport && canExportAsExample && !isGuestSession
+    ...(canExportAsExample && !isGuestSession
       ? [
           {
             key: 'export-as-example',
