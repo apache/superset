@@ -35,6 +35,7 @@ import { css, useTheme } from '@apache-superset/core/theme';
 import { Flex, Layout, Loading, Splitter } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
+import { SkipLink } from 'src/components/Accessibility';
 import MobileRouteGuard from 'src/components/MobileRouteGuard';
 import MenuWrapper from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
@@ -170,6 +171,16 @@ const pageScrollContentCss = css`
   flex-direction: column;
 `;
 
+// The skip link focuses the main landmark programmatically; that focus has no
+// visible control behind it, so it should not paint an outline. Exported for
+// App.test.tsx, like pageScrollShellCss.
+export const mainContentFocusCss = css`
+  &[tabindex='-1']:focus,
+  &[tabindex='-1']:focus-visible {
+    outline: none;
+  }
+`;
+
 // Renders the app shell and picks the scroll model: in chat panel mode <Layout>
 // sits in a Splitter beside the chat panel; otherwise the page scrolls normally.
 const AppContent = ({
@@ -201,7 +212,13 @@ const AppContent = ({
 
   const layoutContent = (
     <Layout css={isPanelOpen ? layoutCss : undefined}>
-      <Layout.Content css={isPanelOpen ? contentCss : pageScrollContentCss}>
+      <Layout.Content
+        id="main-content"
+        css={[
+          isPanelOpen ? contentCss : pageScrollContentCss,
+          mainContentFocusCss,
+        ]}
+      >
         <OutPortal node={layoutPortalNode} />
       </Layout.Content>
     </Layout>
@@ -254,6 +271,7 @@ const AppContent = ({
 
   return (
     <Flex vertical css={isPanelOpen ? lockedShellCss : pageScrollShellCss}>
+      <SkipLink />
       <MenuWrapper
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
