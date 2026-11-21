@@ -160,6 +160,14 @@ _EMBEDDED_FALLBACK_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
 _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
 
 
+def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
+    """Preserve existing discovery when the backend supports add-if-absent."""
+    try:
+        return bool(cache_manager.cache.add(cache_key, schema, timeout=timeout))
+    except (AttributeError, NotImplementedError):
+        return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
+
+
 def _log_embedded_rejection(
     database_id: int | None,
     database_name: str,
@@ -1212,15 +1220,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         if (
                             engine not in _DEFAULT_SCHEMA_PUBLISHED_ENGINES
                             and discovered_at is not None
-                            and monotonic() - discovered_at
+                            and (age := monotonic() - discovered_at)
                             < _DEFAULT_SCHEMA_CACHE_TIMEOUT
                         ):
                             try:
-                                if cache_manager.cache.set(
-                                    cache_key,
-                                    schema,
-                                    timeout=_DEFAULT_SCHEMA_CACHE_TIMEOUT,
-                                ):
+                                timeout = max(
+                                    1, int(_DEFAULT_SCHEMA_CACHE_TIMEOUT - age)
+                                )
+                                if _publish_default_schema(cache_key, schema, timeout):
                                     _DEFAULT_SCHEMA_PUBLISHED_ENGINES.add(engine)
                             except Exception:  # pylint: disable=broad-except
                                 logger.warning(

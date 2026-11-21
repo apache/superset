@@ -5007,7 +5007,7 @@ def test_default_schema_shared_cache_separates_engine_identity(
     from superset.models.core import _retire_cached_engines
 
     cache = shared_default_schema_cache
-    write = mocker.spy(cache, "set")
+    write = mocker.spy(cache, "add")
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     assert database.get_default_schema_from_engine(None) == "main"
     write.assert_called_once()
@@ -5047,7 +5047,7 @@ def test_default_schema_shared_cache_separates_engine_identity(
     assert write.call_count == 1
 
 
-@pytest.mark.parametrize("operation", ["get", "set"])
+@pytest.mark.parametrize("operation", ["get", "add"])
 def test_default_schema_shared_cache_failure_falls_back(
     shared_default_schema_cache: Cache, mocker: MockerFixture, operation: str
 ) -> None:
@@ -5074,7 +5074,7 @@ def test_default_schema_private_engine_is_not_shared(
 ) -> None:
     """Per-call session SQL is not represented by a reusable engine identity."""
     cache = shared_default_schema_cache
-    write = mocker.spy(cache, "set")
+    write = mocker.spy(cache, "add")
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     mocker.patch.object(
         database.db_engine_spec, "get_prequeries", return_value=["SELECT 1"]
@@ -5096,7 +5096,7 @@ def test_default_schema_warm_engine_publishes_once(
 ) -> None:
     """Repeated warm lookups must not renew stale shared discovery's expiry."""
     cache = shared_default_schema_cache
-    write = mocker.spy(cache, "set")
+    write = mocker.spy(cache, "add")
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     with database.get_sqla_engine() as engine:
         if already_discovered:
@@ -5126,7 +5126,7 @@ def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
     manager.build_sqla_url.side_effect = SSHManager.build_sqla_url.__get__(manager)
     engines = [create_engine("sqlite://"), create_engine("sqlite://")]
     build = mocker.patch("superset.models.core.create_engine", side_effect=engines)
-    write = mocker.spy(shared_default_schema_cache, "set")
+    write = mocker.spy(shared_default_schema_cache, "add")
     read = mocker.spy(shared_default_schema_cache, "get")
     for port in (40001, 40002):
         server = mocker.Mock(
@@ -5140,14 +5140,14 @@ def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
 
 
 @pytest.mark.parametrize("recycle_pool", [False, True])
-@pytest.mark.parametrize("elapsed", [3600, 3 * 24 * 3600])
+@pytest.mark.parametrize("elapsed", [1800, 3600, 3 * 24 * 3600])
 def test_default_schema_old_worker_does_not_overwrite_new_discovery(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     elapsed: int,
     recycle_pool: bool,
 ) -> None:
-    """An engine warmed by ordinary queries cannot publish expired discovery."""
+    """An older engine must not replace another worker's shared discovery."""
     from superset.models.core import _retire_cached_engines
 
     clock = mocker.patch("superset.models.core.monotonic", return_value=0, create=True)
@@ -5163,15 +5163,16 @@ def test_default_schema_old_worker_does_not_overwrite_new_discovery(
     if recycle_pool:
         old_engine.dispose()
         sqlalchemy.inspect(old_engine)
-    write = mocker.spy(shared_default_schema_cache, "set")
+    write = mocker.spy(shared_default_schema_cache, "add")
+    fallback_write = mocker.spy(shared_default_schema_cache, "set")
     assert database.get_default_schema_from_engine(None) == "new"
-    key = write.call_args.args[0]
+    key = (write.call_args or fallback_write.call_args).args[0]
     mocker.patch.object(
         database, "get_sqla_engine", return_value=nullcontext(old_engine)
     )
     assert database.get_default_schema_from_engine(None) == "old"
     assert shared_default_schema_cache.get(key) == "new"
-    write.assert_called_once()
+    assert write.call_count + fallback_write.call_count == (2 if elapsed < 3600 else 1)
 
 
 def test_default_schema_unsuccessful_publication_retries(
@@ -5179,15 +5180,38 @@ def test_default_schema_unsuccessful_publication_retries(
 ) -> None:
     """A false cache write result must not mark the engine as published."""
     cache = shared_default_schema_cache
-    real_set = cache.set
-    write = mocker.patch.object(cache, "set", return_value=False)
+    real_add = cache.add
+    write = mocker.patch.object(cache, "add", return_value=False)
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     assert database.get_default_schema_from_engine(None) == "main"
     key = write.call_args.args[0]
     assert cache.get(key) is None
-    write.side_effect = real_set
+    write.side_effect = real_add
     assert database.get_default_schema_from_engine(None) == "main"
     assert cache.get(key) == "main"
     assert write.call_count == 2
     assert database.get_default_schema_from_engine(None) == "main"
     assert write.call_count == 2
+
+
+@pytest.mark.parametrize("supports_add", [False, True])
+@pytest.mark.parametrize("elapsed", [1800, 3599.5])
+def test_default_schema_publication_uses_remaining_lifetime(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    supports_add: bool,
+    elapsed: float,
+) -> None:
+    """Delayed publication must not extend discovery past its original lifetime."""
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+    if not supports_add:
+        mocker.patch.object(
+            shared_default_schema_cache, "add", side_effect=NotImplementedError
+        )
+    normalize = mocker.spy(shared_default_schema_cache.cache, "_normalize_timeout")
+    clock.return_value = elapsed
+    assert database.get_default_schema_from_engine(None) == "main"
+    normalize.assert_called_once_with(max(1, int(3600 - elapsed)))
