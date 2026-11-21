@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeUrl } from '@braintree/sanitize-url';
 import rison from 'rison';
 import {
   useCallback,
@@ -84,7 +83,6 @@ import {
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
-import { makeUrl, openInNewTab } from 'src/utils/navigationUtils';
 import Subject from 'src/types/Subject';
 import SubjectPicker, {
   normalizeSubjectsToPickerValues,
@@ -1673,23 +1671,18 @@ function DatasourceEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [databaseColumns, calculatedColumns]);
 
-  const getSQLLabUrl = useCallback(() => {
-    const queryParams = new URLSearchParams({
-      dbid: String(datasource.database?.id ?? ''),
-      sql: datasource.sql ?? '',
-      name: datasource.datasource_name ?? '',
-      schema: datasource.schema ?? '',
-      autorun: 'true',
-      isDataset: 'true',
-    });
-    return makeUrl(`/sqllab/?${queryParams.toString()}`);
-  }, [datasource]);
-
   const openOnSqlLab = useCallback(() => {
-    // `getSQLLabUrl()` already runs the path through `makeUrl`; `openInNewTab`
-    // re-applies `ensureAppRoot`, which is idempotent on already-prefixed paths.
-    openInNewTab(getSQLLabUrl());
-  }, [getSQLLabUrl]);
+    SupersetClient.postForm('/sqllab/', {
+      form_data: JSON.stringify({
+        dbid: datasource.database?.id,
+        sql: datasource.sql,
+        name: datasource.datasource_name,
+        schema: datasource.schema,
+        autorun: true,
+        isDataset: true,
+      }),
+    });
+  }, [datasource]);
 
   const onQueryRun = useCallback(async () => {
     const databaseId = datasource.database?.id;
@@ -2169,20 +2162,22 @@ function DatasourceEditor({
 
   const renderOpenInSqlLabLink = useCallback(
     (isError = false) => (
-      <a
-        href={sanitizeUrl(getSQLLabUrl())}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Button
+        buttonStyle="link"
+        onClick={openOnSqlLab}
         css={themeParam => css`
           color: ${isError ? themeParam.colorErrorText : themeParam.colorText};
           font-size: ${themeParam.fontSizeSM}px;
+          font-weight: normal;
+          height: auto;
+          padding: 0;
           text-decoration: underline;
         `}
       >
         {t('Open in SQL lab')}
-      </a>
+      </Button>
     ),
-    [getSQLLabUrl],
+    [openOnSqlLab],
   );
 
   const renderSqlErrorMessage = useCallback(
