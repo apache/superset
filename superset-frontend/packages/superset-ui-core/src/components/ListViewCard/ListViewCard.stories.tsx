@@ -39,7 +39,8 @@ export const InteractiveListViewCard: Story = {
     title: 'Superset Card Title',
     loading: false,
     url: '/superset/dashboard/births/',
-    imgURL: 'https://picsum.photos/seed/superset/300/200',
+    imgURL: '',
+    imgFallbackURL: 'https://picsum.photos/seed/superset/300/200',
     description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
     coverLeft: 'Left Section',
     coverRight: 'Right Section',
@@ -61,7 +62,14 @@ export const InteractiveListViewCard: Story = {
     imgURL: {
       name: 'imgURL',
       control: { type: 'text' },
-      description: 'Primary image URL for the card.',
+      description:
+        'Superset endpoint for the card image, such as a chart or dashboard thumbnail URL. The fallback image shows while it loads or when it is empty.',
+    },
+    imgFallbackURL: {
+      name: 'imgFallbackURL',
+      control: { type: 'text' },
+      description:
+        'Image URL shown while imgURL loads, or when imgURL is empty or fails.',
     },
     description: {
       control: { type: 'text' },
@@ -88,7 +96,7 @@ export const InteractiveListViewCard: Story = {
       title="My Dashboard"
       description="A sample dashboard card"
       url="/dashboard/1"
-      imgURL="https://picsum.photos/seed/demo/300/200"
+      imgFallbackURL="https://picsum.photos/seed/demo/300/200"
       coverLeft="Created: Jan 2024"
       coverRight="Views: 1,234"
     />
@@ -104,7 +112,7 @@ export const SupersetListViewCard: Story = {
     title: 'Superset Card Title',
     loading: false,
     url: '/superset/dashboard/births/',
-    imgURL: 'https://picsum.photos/seed/superset2/300/200',
+    imgFallbackURL: 'https://picsum.photos/seed/superset2/300/200',
     description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
     coverLeft: 'Left Section',
     coverRight: 'Right Section',
