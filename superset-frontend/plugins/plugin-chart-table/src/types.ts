@@ -25,6 +25,7 @@ import {
   QueryMode,
   ChartDataResponseResult,
   QueryFormData,
+  QueryObject,
   SetDataMaskHook,
   ContextMenuFilters,
 } from '@superset-ui/core';
@@ -86,6 +87,10 @@ export interface TableChartProps extends ChartProps {
 }
 
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
+  paginationQuery?: {
+    datasource: TableChartFormData['datasource'];
+    query: QueryObject;
+  };
   timeGrain?: TimeGranularity;
   height: number;
   width: number;

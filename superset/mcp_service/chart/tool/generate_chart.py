@@ -52,6 +52,7 @@ from superset.mcp_service.chart.compile import (
 from superset.mcp_service.chart.datasource_resolver import (
     ChartDatasource,
     resolve_semantic_view,
+    stamp_new_semantic_selections,
     validate_semantic_view_config,
     validate_semantic_view_form_data,
     view_not_found_error,
@@ -138,7 +139,8 @@ async def generate_chart(  # noqa: C901
       The two ID spaces are unrelated. Use saved metrics and named dimensions;
       ad-hoc aggregation and SQL metrics are not supported on semantic views.
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie', 'bullet',
-      'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
+      'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'radar', 'pivot_table',
+      'mixed_timeseries',
       'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
       'gantt', 'country_map', 'world_map', 'deck_scatter', plus host-gated
       types returned by get_chart_type_schema such as 'interactive_pivot')
@@ -166,6 +168,7 @@ async def generate_chart(  # noqa: C901
     - "gauge" / "dial" / "speedometer" -> chart_type='gauge'
     - "treemap" / "hierarchy" -> chart_type='treemap_v2'
     - "bubble" / "bubble chart" -> chart_type='bubble_v2'
+    - "radar" / "spider" / "multi-metric comparison" -> chart_type='radar'
     - "custom HTML template" -> chart_type='handlebars'
     - "histogram" / "distribution" -> chart_type='histogram'
     - "box plot" / "box and whisker" -> chart_type='box_plot'
@@ -324,6 +327,7 @@ async def generate_chart(  # noqa: C901
             datasource_type=datasource_type,
         )
         if target is not None:
+            stamp_new_semantic_selections(form_data, target)
             semantic_error = validate_semantic_view_form_data(form_data, target)
             if semantic_error is not None:
                 return GenerateChartResponse(success=False, error=semantic_error)

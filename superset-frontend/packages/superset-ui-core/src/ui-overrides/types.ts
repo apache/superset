@@ -246,6 +246,10 @@ export interface ExploreChartHeaderProps {
   triggerQuery: boolean;
 }
 
+export interface VersionHistoryFooterProps {
+  entityType: 'chart' | 'dashboard';
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': ComponentType;
   'load.drillby.options': LoadDrillByOptions;
@@ -282,5 +286,6 @@ export type Extensions = Partial<{
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
   'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
+  'versionHistory.panel.footer': ComponentType<VersionHistoryFooterProps>;
   'explore.chart.header': ComponentType<ExploreChartHeaderProps>;
 }>;

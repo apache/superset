@@ -17,6 +17,10 @@
  * under the License.
  */
 import { StyledColumnOption } from '../../optionRenderers';
+import {
+  MemberLabel,
+  SemanticMemberLabel,
+} from 'src/components/SemanticMemberLabel';
 
 interface OptionType {
   saved_metric_name?: string;
@@ -40,11 +44,19 @@ export default function FilterDefinitionOption({
     );
   }
   if (option.column_name) {
-    return (
+    const memberLabel = option.semanticMemberLabel as MemberLabel | undefined;
+    const columnOption = (
       <StyledColumnOption
         column={option as { column_name: string; type?: string }}
         showType
       />
+    );
+    if (!memberLabel?.memberId) return columnOption;
+    return (
+      <div title={memberLabel.fullName}>
+        {columnOption}
+        <SemanticMemberLabel label={memberLabel} showName={false} />
+      </div>
     );
   }
   if (option.label) {
