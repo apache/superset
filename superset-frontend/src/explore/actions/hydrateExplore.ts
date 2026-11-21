@@ -18,9 +18,7 @@
  */
 import {
   ControlStateMapping,
-  Dataset,
   getDatasetDefaultTimeFilter,
-  getTemporalColumns,
 } from '@superset-ui/chart-controls';
 
 import {
@@ -42,10 +40,8 @@ import {
   getColumnLabel,
   getSequentialSchemeRegistry,
   isFeatureEnabled,
-  isSimpleAdhocFilter,
   NO_TIME_RANGE,
   QueryFormColumn,
-  QueryFormData,
   VizType,
 } from '@superset-ui/core';
 import {
@@ -87,24 +83,6 @@ function isNeutralNewChartEntry([key, value]: [string, unknown]): boolean {
         'dashboard_id',
       ].includes(param) && typeof identity === 'string',
   );
-}
-
-/**
- * Returns the dataset's default time filter for a new chart, unless the chart
- * already has a time filter or the dataset has no temporal column.
- */
-function getNewChartTimeRange(
-  dataset: Dataset,
-  formData: QueryFormData,
-): string | undefined {
-  const hasTimeFilter = ensureIsArray(formData.adhoc_filters).some(
-    filter =>
-      isSimpleAdhocFilter(filter) && filter.operator === 'TEMPORAL_RANGE',
-  );
-  if (hasTimeFilter || !getTemporalColumns(dataset).defaultTemporalColumn) {
-    return undefined;
-  }
-  return getDatasetDefaultTimeFilter(dataset);
 }
 
 export const hydrateExplore =
@@ -157,7 +135,7 @@ export const hydrateExplore =
     }
     if (!initialFormData.time_range) {
       initialFormData.time_range =
-        (isNewChart && getNewChartTimeRange(dataset, initialFormData)) ||
+        (isNewChart && getDatasetDefaultTimeFilter(dataset)) ||
         common?.conf?.DEFAULT_TIME_FILTER ||
         NO_TIME_RANGE;
     }
