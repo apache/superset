@@ -380,7 +380,9 @@ class DictCache:
         return True
 
 
-def test_cache_hit_returns_dataframes(mocker: MockerFixture, app_context: None) -> None:
+def test_cache_hit_returns_dataframes(
+    mocker: MockerFixture, app_context: None, enabled_data_cache: MagicMock
+) -> None:
     """
     Results served from the data cache keep the ``StatementResult`` contract:
     SELECT data is a DataFrame (empty ones keep their columns, integer nulls
@@ -393,12 +395,11 @@ def test_cache_hit_returns_dataframes(mocker: MockerFixture, app_context: None) 
         StatementResult,
     )
 
-    from superset.extensions import cache_manager
     from superset.models.core import Database
 
     cache = DictCache()
-    mocker.patch.object(cache_manager.data_cache, "get", side_effect=cache.get)
-    mocker.patch.object(cache_manager.data_cache, "set", side_effect=cache.set)
+    enabled_data_cache.get.side_effect = cache.get
+    enabled_data_cache.set.side_effect = cache.set
     database = Database(id=1, database_name="db", sqlalchemy_uri="sqlite://")
     executor = SQLExecutor(database)
     sql = "SELECT a FROM t; SELECT b FROM t WHERE 1 = 0; UPDATE t SET a = 1"
@@ -510,14 +511,15 @@ def test_async_temporal_results_match_sync(
 
 
 def test_temporal_cache_hit_matches_sync(
-    mocker: MockerFixture, app_context: None, database: Database
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    enabled_data_cache: MagicMock,
 ) -> None:
     """The shared records reader keeps Python temporal values on cache hits."""
     from datetime import date, datetime
 
     from superset_core.queries.types import QueryOptions, QueryResult, StatementResult
-
-    from superset.extensions import cache_manager
 
     sql = "SELECT timestamp_value, date_value FROM t"
     expected = _result_set(
@@ -527,8 +529,8 @@ def test_temporal_cache_hit_matches_sync(
     executor = SQLExecutor(database)
     mocker.patch.object(executor, "_generate_cache_key", return_value="temporal-key")
     cache = DictCache()
-    mocker.patch.object(cache_manager.data_cache, "get", side_effect=cache.get)
-    mocker.patch.object(cache_manager.data_cache, "set", side_effect=cache.set)
+    enabled_data_cache.get.side_effect = cache.get
+    enabled_data_cache.set.side_effect = cache.set
     executor._store_in_cache(
         QueryResult(
             status=QueryStatus.SUCCESS,
@@ -636,13 +638,12 @@ def test_timezone_cache_hit_dtype_matches_sync(
     mocker: MockerFixture,
     app_context: None,
     database: Database,
+    enabled_data_cache: MagicMock,
     tz: Any,
     data_kind: str,
 ) -> None:
     """Sync and async cache hits keep the original timezone and timestamp unit."""
     from superset_core.queries.types import QueryOptions
-
-    from superset.extensions import cache_manager
 
     sql = "SELECT value FROM t"
     rows = [
@@ -658,8 +659,8 @@ def test_timezone_cache_hit_dtype_matches_sync(
     # Cache records carry no DataFrame index.
     sync.statements[0].data = sync.statements[0].data.reset_index(drop=True)
     cache = DictCache()
-    mocker.patch.object(cache_manager.data_cache, "get", side_effect=cache.get)
-    mocker.patch.object(cache_manager.data_cache, "set", side_effect=cache.set)
+    enabled_data_cache.get.side_effect = cache.get
+    enabled_data_cache.set.side_effect = cache.set
     executor = SQLExecutor(database)
     mocker.patch.object(executor, "_generate_cache_key", return_value="tz-key")
     executor._store_in_cache(sync, sql, QueryOptions())
