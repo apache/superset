@@ -243,6 +243,7 @@ def test_database_rename_updates_untouched_chart_permissions(
 
 
 @pytest.mark.parametrize("entry_point", ["import", "sync"])
+@pytest.mark.parametrize("database_permission_exists", [False, True])
 @pytest.mark.parametrize(
     "permission,old_name,new_name,perm_field",
     [
@@ -264,6 +265,7 @@ def test_rename_collision_preserves_role_grants(
     mocker: MockerFixture,
     session: Session,
     entry_point: str,
+    database_permission_exists: bool,
     permission: str,
     old_name: str,
     new_name: str,
@@ -274,6 +276,7 @@ def test_rename_collision_preserves_role_grants(
     from superset.commands.database.importers.v1.utils import import_database
     from superset.commands.database.sync_permissions import SyncPermissionsCommand
     from superset.commands.database.utils import add_pvm
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.slice import Slice
 
@@ -286,6 +289,14 @@ def test_rename_collision_preserves_role_grants(
     )
     db.session.add(dataset)
     db.session.commit()
+    if database_permission_exists:
+        # Exercise the database rename hook's destination-collision branch too.
+        add_pvm(
+            db.session,
+            security_manager,
+            "database_access",
+            security_manager.get_database_perm(database.id, RENAMED_DATABASE_NAME),
+        )
     source = security_manager.find_permission_view_menu(permission, old_name)
     destination = add_pvm(db.session, security_manager, permission, new_name)
     assert source
@@ -301,10 +312,9 @@ def test_rename_collision_preserves_role_grants(
     destination_id = destination.id
 
     if entry_point == "import":
-        config = copy.deepcopy(databases_config[DATABASE_FILE])
-        config["database_name"] = RENAMED_DATABASE_NAME
-        import_database(config, overwrite=True)
+        ImportAssetsCommand._import(_renamed(databases_config))
     else:
+        assert database.database_name == "examples"
         database.database_name = RENAMED_DATABASE_NAME
         db.session.flush()
         command = SyncPermissionsCommand(
