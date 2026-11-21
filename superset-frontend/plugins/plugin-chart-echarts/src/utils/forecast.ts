@@ -81,9 +81,18 @@ export const extractForecastValuesFromTooltipParams = (
 ): Record<string, ForecastValue> => {
   const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
-    const { seriesId, value, color } = param;
+    const { seriesId, value, data, color } = param;
     const context = extractForecastSeriesContext(seriesId);
-    const numericValue = isHorizontal ? value[0] : value[1];
+    // Prefer the pre-clamp source value when the plotted point was truncated
+    // to a Y-axis bound. The plotted tuple stays at the bound so the mark
+    // is not dropped; the tooltip should still name the real observation.
+    const originalValue = data?.originalValue;
+    const numericValue =
+      typeof originalValue === 'number' && Number.isFinite(originalValue)
+        ? originalValue
+        : isHorizontal
+          ? value[0]
+          : value[1];
     if (typeof numericValue === 'number') {
       if (!(context.name in values)) values[context.name] = {};
       const forecastValues = values[context.name];

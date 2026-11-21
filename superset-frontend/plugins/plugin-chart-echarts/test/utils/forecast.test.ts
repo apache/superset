@@ -240,6 +240,22 @@ test('extractForecastValuesFromTooltipParams should extract the proper data from
   });
 });
 
+test('extractForecastValuesFromTooltipParams prefers a pre-clamp originalValue', () => {
+  expect(
+    extractForecastValuesFromTooltipParams([
+      {
+        seriesId: 'abc',
+        value: [new Date(0), 10],
+        data: { value: [new Date(0), 10], originalValue: 33.2 },
+      },
+    ]),
+  ).toEqual({
+    abc: {
+      observation: 33.2,
+    },
+  });
+});
+
 test('extractForecastValuesFromTooltipParams should extract valid values', () => {
   expect(
     extractForecastValuesFromTooltipParams([
