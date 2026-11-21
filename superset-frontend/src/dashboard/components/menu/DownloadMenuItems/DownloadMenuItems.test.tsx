@@ -88,6 +88,7 @@ const createProps = () => ({
   title: 'Download',
   submenuKey: 'download',
   userCanExport: true,
+  canExportAsExample: true,
 });
 
 // The default test store has an empty user; most tests exercise a logged-in
@@ -110,6 +111,7 @@ const MenuWrapper = () => {
 const MenuWrapperWithProps = (
   overrides: Partial<ReturnType<typeof createProps>> & {
     canExportImage?: boolean;
+    canExportAsExample?: boolean;
     editMode?: boolean;
   },
 ) => {
@@ -238,6 +240,25 @@ test('sessions without a user id get the data export but no bundle exports', () 
 
   expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export YAML')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export as Example')).not.toBeInTheDocument();
+});
+
+test('Export as Example does not depend on userCanExport', () => {
+  render(
+    <MenuWrapperWithProps userCanExport={false} canExportAsExample />,
+    { useRedux: true, initialState: loggedInState },
+  );
+
+  expect(screen.getByText('Export as Example')).toBeInTheDocument();
+});
+
+test('Export as Example is hidden without the can_export_as_example permission', () => {
+  render(<MenuWrapperWithProps canExportAsExample={false} />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  expect(screen.getByText('Export YAML')).toBeInTheDocument();
   expect(screen.queryByText('Export as Example')).not.toBeInTheDocument();
 });
 

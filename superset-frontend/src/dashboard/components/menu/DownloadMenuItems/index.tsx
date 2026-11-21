@@ -72,6 +72,7 @@ export interface UseDownloadMenuItemsProps {
   disabled?: boolean;
   userCanExport?: boolean;
   canExportImage?: boolean;
+  canExportAsExample?: boolean;
   editMode?: boolean;
 }
 
@@ -88,6 +89,7 @@ export const useDownloadMenuItems = (
     title,
     userCanExport,
     canExportImage,
+    canExportAsExample,
     editMode,
   } = props;
 
@@ -501,7 +503,7 @@ export const useDownloadMenuItems = (
           },
         ]
       : []),
-    ...(userCanExport && !isGuestSession
+    ...(canExportAsExample && !isGuestSession
       ? [
           {
             key: 'export-as-example',

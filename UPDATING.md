@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard "Export as Example" (`GET /api/v1/dashboard/<pk>/export_as_example/`)
+  is now gated by its own `can_export_as_example on Dashboard` permission
+  instead of `can_export on Dashboard`. The permission is granted only to the
+  `Admin` role by default, so Alpha, Gamma and other roles that could export a
+  dashboard as YAML can no longer export it as an example. Run `superset init`
+  to create the permission, and grant it to additional roles if needed.
+
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard
   as missing. Missing and soft-deleted dashboards still return HTTP 404, as do

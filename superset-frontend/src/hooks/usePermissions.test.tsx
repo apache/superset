@@ -31,6 +31,7 @@ const rolesWithAllPerms = {
     ['can_export_image', 'Superset'],
     ['can_copy_clipboard', 'Superset'],
     ['can_explore', 'Superset'],
+    ['can_export_as_example', 'Dashboard'],
   ],
 };
 
@@ -77,6 +78,18 @@ test('returns canExportImage true when user has can_export_image', () => {
     wrapper: createWrapper(rolesWithAllPerms),
   });
   expect(result.current.canExportImage).toBe(true);
+});
+
+test('returns canExportAsExample based on can_export_as_example', () => {
+  isFeatureEnabled.mockReturnValue(true);
+  const withPerm = renderHook(() => usePermissions(), {
+    wrapper: createWrapper(rolesWithAllPerms),
+  });
+  expect(withPerm.result.current.canExportAsExample).toBe(true);
+  const withoutPerm = renderHook(() => usePermissions(), {
+    wrapper: createWrapper(rolesWithoutExportPerms),
+  });
+  expect(withoutPerm.result.current.canExportAsExample).toBe(false);
 });
 
 test('returns canCopyClipboard true when user has can_copy_clipboard', () => {

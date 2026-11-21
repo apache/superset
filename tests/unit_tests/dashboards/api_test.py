@@ -240,8 +240,8 @@ def test_export_as_example_is_refused_without_a_user_id(
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """``export_as_example`` carries ``@permission_name("export")``, so the same
-    grant reaches it, and it emits dataset YAML plus Parquet rows."""
+    """``export_as_example`` emits dataset YAML plus Parquet rows, so it is
+    refused for callers without a user id."""
     mocker.patch("superset.dashboards.api.get_user_id", return_value=None)
 
     response = client.get("/api/v1/dashboard/1/export_as_example/")
