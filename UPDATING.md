@@ -31,6 +31,15 @@ assists people when migrating to a new version.
   from source) must install the headers they need themselves, for instance with
   `apt-get install`.
 
+- Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
+  Period Pivot, Nightingale Rose, Horizon, and Paired t-test charts instead of
+  returning misleading or empty data. This includes saved charts and their cached
+  chart images. Fresh dashboard images/PDFs include the refusal tile; old cached
+  dashboard images may show the old tile until expiry or regeneration. Use Line/Bar
+  for time series or Table with an explicit time dimension;
+  use an explicit count metric in Bar/Table for frequencies. Ordinary datasets
+  are unaffected.
+
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard
   as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
