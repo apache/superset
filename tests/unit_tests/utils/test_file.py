@@ -188,6 +188,7 @@ def test_get_filename_skip_id_falls_back_when_hash_cannot_fit() -> None:
 @pytest.mark.parametrize(
     "model_name",
     [
+        None,
         "",
         "   ",
         "...",
@@ -203,9 +204,9 @@ def test_get_filename_skip_id_falls_back_when_hash_cannot_fit() -> None:
 )
 @pytest.mark.parametrize("skip_id", [True, False])
 def test_get_filename_falls_back_to_id_for_unusable_names(
-    model_name: str, skip_id: bool
+    model_name: str | None, skip_id: bool
 ) -> None:
-    """Empty, special-character and non-ASCII names degrade to the bare id."""
+    """Missing, empty, special-char and non-ASCII names degrade to the bare id."""
     assert get_filename(model_name, 42, skip_id) == "42"
 
 
