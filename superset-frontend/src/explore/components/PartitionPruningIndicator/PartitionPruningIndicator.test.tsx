@@ -466,9 +466,9 @@ test('a summary with no resolution, or full resolution, is unaffected', () => {
       { ...equalsFilter, comparator: '2024-01-01 10:08:11' },
     ),
   ).toBe(true);
-  // Including the non-ISO text that loses its mirror at day resolution: on a
-  // TIMESTAMP column the engine compares the whole string, so there is nothing
-  // for the server to resolve and nothing for the glyph to withhold.
+  // Including the non-ISO text that loses its mirror at day resolution, where
+  // the summary does not say the column is temporal: a text column compares
+  // the string as typed, so there is nothing for the glyph to withhold.
   expect(
     isMirroredFilter(ACTIVE, {
       ...equalsFilter,
@@ -480,6 +480,52 @@ test('a summary with no resolution, or full resolution, is unaffected', () => {
       { ...ACTIVE, literal_resolution: 'full' as const },
       { ...equalsFilter, comparator: '07/06/2026 10:08:11' },
     ),
+  ).toBe(true);
+});
+
+test('an unreadable value on a timestamp column shows nothing', () => {
+  // A TIMESTAMP and a text column both compare the whole value, so
+  // `literal_resolution` reads `full` for both. On the TIMESTAMP the server
+  // probes the instant a string denotes, and a non-ISO string has none, so it
+  // declines -- the summary says which kind of column it is.
+  const TIMESTAMP = {
+    ...ACTIVE,
+    literal_resolution: 'full' as const,
+    mapped_column_is_temporal: true,
+  };
+  const TEXT = { ...TIMESTAMP, mapped_column_is_temporal: false };
+
+  expect(
+    isMirroredFilter(TIMESTAMP, {
+      ...equalsFilter,
+      comparator: '07/06/2026 10:08:11',
+    }),
+  ).toBe(false);
+  expect(
+    isMirroredFilter(TIMESTAMP, {
+      ...equalsFilter,
+      operator: '>=',
+      comparator: '07/06/2026 10:08:11',
+    }),
+  ).toBe(false);
+  expect(
+    isMirroredFilter(TIMESTAMP, {
+      ...equalsFilter,
+      operator: 'IN',
+      comparator: ['2026-07-06 10:08:11', '07/07/2026 09:00:00'],
+    }),
+  ).toBe(false);
+  expect(
+    isMirroredFilter(TIMESTAMP, {
+      ...equalsFilter,
+      comparator: '2026-07-06 10:08:11',
+    }),
+  ).toBe(true);
+  expect(
+    isMirroredFilter(TEXT, {
+      ...equalsFilter,
+      comparator: '07/06/2026 10:08:11',
+    }),
   ).toBe(true);
 });
 

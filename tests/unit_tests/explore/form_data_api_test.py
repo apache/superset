@@ -33,8 +33,9 @@ class _DictCache:
     def get(self, key: str) -> object | None:
         return self._store.get(key)
 
-    def set(self, key: str, value: object, timeout: int | None = None) -> None:
+    def set(self, key: str, value: object, timeout: int | None = None) -> bool:
         self._store[key] = value
+        return True
 
     def delete(self, key: str) -> bool:
         return self._store.pop(key, None) is not None

@@ -18,7 +18,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -30,7 +30,6 @@ import example2 from './images/example2.png';
 import example2Dark from './images/example2-dark.png';
 import { SankeyChartProps, SankeyFormData } from './types';
 
-// TODO: Implement cross filtering
 export default class EchartsSankeyChartPlugin extends ChartPlugin<
   SankeyFormData,
   SankeyChartProps
@@ -51,6 +50,11 @@ export default class EchartsSankeyChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./Sankey'),
       metadata: new ChartMetadata({
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         credits: ['https://echarts.apache.org'],
         category: t('Flow'),
         description: t(

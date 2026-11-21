@@ -21,6 +21,7 @@ Unified metric discovery across built-in datasets and external semantic views.
 """
 
 import logging
+from dataclasses import dataclass, field
 from typing import Any
 
 from fastmcp import Context
@@ -39,6 +40,7 @@ from superset.mcp_service.privacy import (
 from superset.mcp_service.semantic_layer.schemas import (
     DimensionInfo,
     ListMetricsRequest,
+    MetricDiscoveryRefusal,
     MetricInfo,
     MetricList,
     SemanticLayerError,
@@ -48,7 +50,7 @@ from superset.semantic_layers.access import (
     SemanticLayersDisabledError,
 )
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
-from superset.semantic_layers.models import ColumnMetadata, SemanticView
+from superset.semantic_layers.models import ColumnMetadata, MetricMetadata, SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -142,11 +144,85 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
     return results
 
 
+def _collect_view_metrics(
+    view: SemanticView, request: ListMetricsRequest
+) -> list[MetricInfo]:
+    """Build a complete view result before publishing any of its metrics."""
+    view_metrics: list[MetricInfo] = []
+    raw_metrics: list[MetricMetadata] = view.metrics
+    all_cols: dict[str, ColumnMetadata] = {
+        col.column_name: col
+        for col in (view.columns if request.include_compatible_dimensions else [])
+    }
+    for metric in raw_metrics:
+        name: str = metric.metric_name or ""
+        desc: str = metric.description or ""
+        if request.search and not (
+            _matches_search(name, request.search)
+            or _matches_search(desc, request.search)
+        ):
+            continue
+        compat_dims: list[DimensionInfo] = []
+        if request.include_compatible_dimensions:
+            # Unlike built-in SQL datasets, external views enforce
+            # per-metric compatibility, so dimensions must be resolved
+            # per metric rather than reused across all metrics.
+            compatible_names: list[str] = view.get_compatible_dimensions([name], [])
+            compat_dims = [
+                DimensionInfo(
+                    name=dim_name,
+                    verbose_name=all_cols[dim_name].verbose_name
+                    if dim_name in all_cols
+                    else None,
+                    description=all_cols[dim_name].description
+                    if dim_name in all_cols
+                    else None,
+                    type=all_cols[dim_name].type if dim_name in all_cols else None,
+                    is_dttm=all_cols[dim_name].is_dttm
+                    if dim_name in all_cols
+                    else False,
+                    groupby=all_cols[dim_name].groupby
+                    if dim_name in all_cols
+                    else True,
+                    filterable=all_cols[dim_name].filterable
+                    if dim_name in all_cols
+                    else True,
+                    source="external",
+                )
+                for dim_name in compatible_names
+            ]
+        view_metrics.append(
+            MetricInfo(
+                name=name,
+                verbose_name=metric.verbose_name or None,
+                description=desc or None,
+                expression=metric.expression or None,
+                source="external",
+                view_id=view.id,
+                view_name=view.name,
+                semantic_selection_version=(
+                    view.implementation.selection_identity_version
+                ),
+                compatible_dimensions=compat_dims,
+            )
+        )
+    return view_metrics
+
+
+@dataclass
+class _ExternalMetricCollection:
+    """Usable metrics and source-level discovery outcomes before pagination."""
+
+    metrics: list[MetricInfo] = field(default_factory=list)
+    refused_views: list[MetricDiscoveryRefusal] = field(default_factory=list)
+    incomplete: bool = False
+
+
 async def _collect_external_metrics(
     request: ListMetricsRequest,
     ctx: Context,
-) -> list[MetricInfo]:
-    """Collect metrics from external SemanticView models."""
+) -> _ExternalMetricCollection:
+    """Collect whole usable views and mark failures without exposing private details."""
     with event_logger.log_context(action="mcp.list_metrics.external_query"):
         if request.view_id is not None:
             view: SemanticView | None = SemanticViewDAO.find_by_id(request.view_id)
@@ -163,77 +239,24 @@ async def _collect_external_metrics(
     # access errors are never silently swallowed as "could not load metrics".
     check_access = request.view_id is not None
 
-    results: list[MetricInfo] = []
+    collection: _ExternalMetricCollection = _ExternalMetricCollection()
     for view in views:
         if check_access:
             view.raise_for_access()
         try:
-            raw_metrics = view.metrics
-            all_cols: dict[str, ColumnMetadata] = {
-                col.column_name: col
-                for col in (
-                    view.columns if request.include_compatible_dimensions else []
-                )
-            }
-            for metric in raw_metrics:
-                name = metric.metric_name or ""
-                desc = metric.description or ""
-                if request.search and not (
-                    _matches_search(name, request.search)
-                    or _matches_search(desc, request.search)
-                ):
-                    continue
-                compat_dims: list[DimensionInfo] = []
-                if request.include_compatible_dimensions:
-                    # Unlike built-in SQL datasets, external views enforce
-                    # per-metric compatibility, so dimensions must be resolved
-                    # per metric rather than reused across all metrics.
-                    compatible_names = view.get_compatible_dimensions([name], [])
-                    compat_dims = [
-                        DimensionInfo(
-                            name=dim_name,
-                            verbose_name=all_cols[dim_name].verbose_name
-                            if dim_name in all_cols
-                            else None,
-                            description=all_cols[dim_name].description
-                            if dim_name in all_cols
-                            else None,
-                            type=all_cols[dim_name].type
-                            if dim_name in all_cols
-                            else None,
-                            is_dttm=all_cols[dim_name].is_dttm
-                            if dim_name in all_cols
-                            else False,
-                            groupby=all_cols[dim_name].groupby
-                            if dim_name in all_cols
-                            else True,
-                            filterable=all_cols[dim_name].filterable
-                            if dim_name in all_cols
-                            else True,
-                            source="external",
-                        )
-                        for dim_name in compatible_names
-                    ]
-                results.append(
-                    MetricInfo(
-                        name=name,
-                        verbose_name=metric.verbose_name or None,
-                        description=desc or None,
-                        expression=metric.expression or None,
-                        source="external",
-                        view_id=view.id,
-                        view_name=view.name,
-                        semantic_selection_version=(
-                            view.implementation.selection_identity_version
-                        ),
-                        compatible_dimensions=compat_dims,
-                    )
-                )
+            view_metrics: list[MetricInfo] = _collect_view_metrics(view, request)
+        except SupersetSecurityException:
+            if check_access:
+                raise
+            collection.incomplete = True
+            collection.refused_views.append(MetricDiscoveryRefusal(view_id=view.id))
         except AmbiguousDimensionError as exc:
+            collection.incomplete = True
             await ctx.warning(
                 "Could not load metrics for view id=%s: %s" % (view.id, str(exc))
             )
         except Exception:  # noqa: BLE001
+            collection.incomplete = True
             # External registry may be empty in OSS — degrade gracefully
             logger.warning(
                 "Could not load metrics for view id=%s", view.id, exc_info=True
@@ -241,7 +264,10 @@ async def _collect_external_metrics(
             await ctx.warning(
                 "Unable to retrieve metrics for semantic view id=%s." % view.id
             )
-    return results
+        else:
+            collection.metrics.extend(view_metrics)
+    collection.refused_views.sort(key=lambda refusal: refusal.view_id)
+    return collection
 
 
 @tool(
@@ -310,15 +336,16 @@ async def list_metrics(
 
     try:
         all_metrics: list[MetricInfo] = []
+        external: _ExternalMetricCollection = _ExternalMetricCollection()
 
         if request.view_id is None:
             all_metrics.extend(_collect_builtin_metrics(request))
             await ctx.debug("Collected %d built-in metrics" % len(all_metrics))
 
         if request.dataset_id is None and semantic_layers_enabled:
-            external: list[MetricInfo] = await _collect_external_metrics(request, ctx)
-            all_metrics.extend(external)
-            await ctx.debug("Collected %d external metrics" % len(external))
+            external = await _collect_external_metrics(request, ctx)
+            all_metrics.extend(external.metrics)
+            await ctx.debug("Collected %d external metrics" % len(external.metrics))
 
         # Sort deterministically before paginating so that page boundaries
         # are stable across calls instead of depending on collection order.
@@ -342,6 +369,8 @@ async def list_metrics(
             page=request.page,
             page_size=request.page_size,
             total_pages=total_pages,
+            incomplete=external.incomplete,
+            refused_views=external.refused_views,
         )
 
     except SupersetSecurityException as exc:
