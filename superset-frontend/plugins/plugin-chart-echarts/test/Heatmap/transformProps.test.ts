@@ -61,11 +61,12 @@ describe('Heatmap transformProps', () => {
   const createChartProps = (
     formDataOverrides: Partial<HeatmapFormData> = {},
     data: Record<string, any>[] = sparseData,
+    dimensions: { width: number; height: number } = { width: 800, height: 600 },
   ) =>
     new ChartProps({
       formData: { ...baseFormData, ...formDataOverrides },
-      width: 800,
-      height: 600,
+      width: dimensions.width,
+      height: dimensions.height,
       queriesData: [
         {
           data,
@@ -584,5 +585,45 @@ describe('Heatmap transformProps', () => {
     const tooltipHtml = tooltipFormatter(mockParams);
 
     expect(tooltipHtml).toContain('2021 (2)');
+  });
+
+  test('should enable hideOverlap on both axis labels to prevent collisions', () => {
+    const chartProps = createChartProps({});
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    expect((result.echartOptions.xAxis as any).axisLabel.hideOverlap).toBe(
+      true,
+    );
+    expect((result.echartOptions.yAxis as any).axisLabel.hideOverlap).toBe(
+      true,
+    );
+  });
+
+  test('should shrink value label font to fit the cell without exceeding the max', () => {
+    const chartProps = createChartProps({ showValues: true });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const { label } = (result.echartOptions.series as any)[0];
+    // Roomy 800x600 tile: labels are shown and capped at the max font size.
+    expect(label.show).toBe(true);
+    expect(label.fontSize).toBeGreaterThan(0);
+    expect(label.fontSize).toBeLessThanOrEqual(12);
+  });
+
+  test('should hide value labels when cells are too small to render them legibly', () => {
+    const chartProps = createChartProps({ showValues: true }, sparseData, {
+      width: 20,
+      height: 20,
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    expect((result.echartOptions.series as any)[0].label.show).toBe(false);
+  });
+
+  test('should keep value labels hidden when showValues is false regardless of cell size', () => {
+    const chartProps = createChartProps({ showValues: false });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    expect((result.echartOptions.series as any)[0].label.show).toBe(false);
   });
 });
