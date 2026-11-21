@@ -79,6 +79,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartDataRequest,
     GetChartPreviewRequest,
     HandlebarsChartConfig,
+    HeatmapChartConfig,
     HistogramChartConfig,
     InteractivePivotChartConfig,
     MixedTimeseriesChartConfig,
@@ -396,6 +397,11 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
         ),
         BubbleChartConfig(
             entity=ColumnRef(name="region"), x=metric, y=metric, size=metric
+        ),
+        HeatmapChartConfig(
+            x_axis=ColumnRef(name="region"),
+            y_axis=ColumnRef(name="segment"),
+            metric=metric,
         ),
         *[
             XYChartConfig(
