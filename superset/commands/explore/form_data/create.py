@@ -67,7 +67,10 @@ class CreateFormDataCommand(BaseCommand):
                 timeout = app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"].get(
                     "CACHE_DEFAULT_TIMEOUT"
                 )
-                cache_manager.explore_form_data_cache.set(key, state, timeout=timeout)
+                if not cache_manager.explore_form_data_cache.set(
+                    key, state, timeout=timeout
+                ):
+                    raise TemporaryCacheCreateFailedError()
                 cache_manager.explore_form_data_cache.set(
                     contextual_key, key, timeout=timeout
                 )

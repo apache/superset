@@ -118,7 +118,7 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==7.3.1
+cachetools==8.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -260,7 +260,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==1.5.6
+duckdb==2.0.0
     # via
     #   apache-superset
     #   duckdb-engine
@@ -452,7 +452,7 @@ grpcio==1.85.1
     #   ydb
 grpcio-status==1.60.1
     # via google-api-core
-gunicorn==26.2.0
+gunicorn==27.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

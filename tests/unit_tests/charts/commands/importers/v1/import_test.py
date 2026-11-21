@@ -32,7 +32,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import security_manager
 from superset.commands.chart.importers.v1.utils import import_chart
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError
 from superset.commands.importers.v1.utils import import_tag
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.extensions import feature_flag_manager
@@ -143,7 +143,7 @@ def test_import_chart_without_permission(
     config["datasource_id"] = 1
     config["datasource_type"] = "table"
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_chart(config)
     assert (
         str(excinfo.value)
@@ -274,7 +274,7 @@ def test_import_existing_chart_without_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_chart(chart_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -315,7 +315,7 @@ def test_import_existing_chart_without_owner_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_chart(chart_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -494,7 +494,7 @@ def test_import_soft_deleted_chart_non_overwrite_raises_for_non_editor(
     )
 
     with override_user(non_editor):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_chart(chart_config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)
 
@@ -517,7 +517,7 @@ def test_import_soft_deleted_chart_raises_when_caller_lacks_can_write(
 
     _soft_delete_existing_chart(session_with_data)
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_chart(chart_config, overwrite=False)
     assert "can_write" in str(excinfo.value)
 
