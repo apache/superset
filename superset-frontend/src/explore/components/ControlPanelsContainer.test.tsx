@@ -326,7 +326,9 @@ describe('ControlPanelsContainer', () => {
     props.form_data = explore.form_data;
     props.controls = explore.controls;
     render(<ControlPanelsContainer {...props} />, { useRedux: true });
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Re-pick fields for this chart'),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Query')).toBeInTheDocument();
   });
 
