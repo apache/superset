@@ -4561,7 +4561,7 @@ msgstr ""
 msgid "Cross-filter column"
 msgstr ""
 
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
+msgid "Cross-filter will be applied to the charts in this chart's cross-filtering scope."
 msgstr ""
 
 msgid "Cross-filtering is not enabled for this dashboard."
@@ -15939,6 +15939,9 @@ msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This chart's cross-filtering scope doesn't include any other charts."
 msgstr ""
 
 msgid "This column holds the mapping instead of the default datetime column."
