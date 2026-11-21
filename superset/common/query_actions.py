@@ -34,6 +34,7 @@ from superset.explorables.base import Explorable
 from superset.utils.core import (
     extract_column_dtype,
     extract_dataframe_dtypes,
+    extract_display_labels,
     ExtraFiltersReasonType,
     get_column_name,
     get_time_filter_status,
@@ -234,6 +235,9 @@ def _materialize_full_payload(
         payload["colnames"] = list(df.columns)
         payload["indexnames"] = list(df.index)
         payload["coltypes"] = extract_dataframe_dtypes(df, datasource)
+        payload["collabels"] = extract_display_labels(
+            payload.get("label_map") or {}, payload["colnames"], datasource
+        )
         payload["data"] = query_context.get_data(df, payload["coltypes"])
         payload["result_format"] = query_context.result_format
         payload["detected_currency"] = _detect_currency(
@@ -258,6 +262,7 @@ def _materialize_full_payload(
         return {
             "data": payload.get("data"),
             "colnames": payload.get("colnames"),
+            "collabels": payload.get("collabels"),
             "coltypes": payload.get("coltypes"),
             "rowcount": payload.get("rowcount"),
             "sql_rowcount": payload.get("sql_rowcount"),

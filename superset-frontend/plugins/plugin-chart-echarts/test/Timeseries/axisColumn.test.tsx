@@ -111,6 +111,7 @@ test.each([
     } = {
       data: [{ [column]: value, count: 3 }],
       colnames: [column, 'count'],
+      collabels: [column, 'count'],
       coltypes: [
         temporal ? GenericDataType.Temporal : GenericDataType.String,
         GenericDataType.Numeric,
