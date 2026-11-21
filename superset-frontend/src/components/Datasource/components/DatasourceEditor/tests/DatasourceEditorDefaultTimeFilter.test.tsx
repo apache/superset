@@ -71,6 +71,9 @@ test('resets the default time filter to the instance default and keeps other met
     });
   });
   expect(
-    within(settings).getByText('Use instance default'),
-  ).toBeInTheDocument();
+    within(settings).getByRole('button', { name: 'Default time filter' }),
+  ).toHaveTextContent('Use instance default');
+  expect(
+    within(settings).queryByRole('button', { name: 'Use instance default' }),
+  ).not.toBeInTheDocument();
 });

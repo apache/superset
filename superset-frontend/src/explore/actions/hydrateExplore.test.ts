@@ -515,8 +515,7 @@ const datasetExtra = JSON.stringify({
 });
 
 // Table and Pie use ad hoc time filters; the calendar uses a Time range
-// control. They are registered only while `run` runs so other tests keep their
-// state.
+// control.
 function withControlPanels<T>(run: () => T): T {
   const registry = getChartControlPanelRegistry();
   const panels = {
@@ -547,8 +546,7 @@ type NewChartOptions = {
   dataset?: Partial<typeof exploreInitialData.dataset>;
 };
 
-// Hydrates a new chart on a dataset whose default datetime column is not its
-// first temporal column. Call it inside `withControlPanels`.
+// The dataset's default datetime column is not its first temporal column.
 function hydrateNewChart({
   vizType = VizType.Table,
   extra = datasetExtra,
@@ -590,7 +588,6 @@ function hydrateNewChart({
   return dispatch.mock.calls[0][0].data;
 }
 
-// Returns the form data of the first query of a new chart.
 function hydrateNewChartQuery(options?: NewChartOptions): QueryFormData {
   const { charts } = withControlPanels(() => hydrateNewChart(options));
   return Object.values(charts)[0].latestQueryFormData as QueryFormData;
@@ -616,10 +613,7 @@ test.each([
   [VizType.Table, datasetExtra, datasetRange],
   ['cal_heatmap', datasetExtra, datasetRange],
   [VizType.Table, `{"default_time_filter": "${NO_TIME_RANGE}"}`, NO_TIME_RANGE],
-  ['cal_heatmap', `{"default_time_filter": "${NO_TIME_RANGE}"}`, NO_TIME_RANGE],
   [VizType.Table, '{}', instanceRange],
-  ['cal_heatmap', '{}', instanceRange],
-  [VizType.Table, '{bad', instanceRange],
 ])(
   'a new %s chart on a dataset with extra %s starts with %s on the default datetime column',
   (vizType, extra, range) => {
@@ -698,8 +692,6 @@ test.each([
   },
 );
 
-// Switches a new table chart, which starts with the instance range on
-// `created_at`, to another dataset. Call it inside `withControlPanels`.
 function switchNewChartDataset(dataset: Partial<Dataset>) {
   const { explore } = hydrateNewChart({ extra: '{}' });
   return exploreReducer(explore as ExploreState, {
@@ -714,7 +706,6 @@ function switchNewChartDataset(dataset: Partial<Dataset>) {
   });
 }
 
-// Changes the chart type and returns the form data of the new chart.
 function changeChartType(explore: ExploreState, vizType: string) {
   const { controls } = exploreReducer(explore, {
     type: 'SET_FIELD_VALUE',

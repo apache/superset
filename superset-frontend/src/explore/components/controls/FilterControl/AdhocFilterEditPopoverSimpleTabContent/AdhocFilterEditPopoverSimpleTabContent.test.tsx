@@ -478,9 +478,11 @@ test('editing a dashboard-inherited time range filter clears isExtra so the new 
 
 test('the date picker of a temporal filter without a time range starts with the dataset default time filter', async () => {
   const timeRangeEndpoint = 'glob:*/api/v1/time_range/*';
-  fetchMock.get(timeRangeEndpoint, {
-    result: [{ since: '', until: '', timeRange: 'Last day' }],
-  });
+  fetchMock.get(
+    timeRangeEndpoint,
+    { result: [{ since: '', until: '', timeRange: 'Last day' }] },
+    { name: timeRangeEndpoint },
+  );
   try {
     setup({
       adhocFilter: new AdhocFilter({
