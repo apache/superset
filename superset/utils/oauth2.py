@@ -410,7 +410,7 @@ def execute_with_oauth2_retry(  # noqa: C901
         # back immediately so the session is usable again before we
         # propagate the original exception.
         if not db.session.is_active:
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             raise
         # The guest check comes first, as in `check_for_oauth2`.
         is_oauth2_error = (
