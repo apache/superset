@@ -37,6 +37,7 @@ from superset.commands.importers.exceptions import (
 )
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
+from superset.exceptions import SupersetException
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
@@ -65,13 +66,17 @@ class MetadataSchema(Schema):
     timestamp = fields.DateTime()
 
 
+class ImportFormatValidationError(ValidationError):
+    """The bundle has malformed serialized content."""
+
+
 def load_yaml(file_name: str, content: str) -> dict[str, Any]:
     """Try to load a YAML file"""
     try:
         return yaml.safe_load(content)
     except yaml.YAMLError as ex:
         logger.exception("Invalid YAML in %s", file_name)
-        raise ValidationError({file_name: "Not a valid YAML file"}) from ex
+        raise ImportFormatValidationError({file_name: "Not a valid YAML file"}) from ex
 
 
 def load_metadata(contents: dict[str, str]) -> dict[str, str]:
@@ -214,7 +219,9 @@ def load_configs(
                     # fields to validate against the schema; report it the
                     # same way as unparseable YAML instead of letting the
                     # ``.get()`` calls below raise an unhandled AttributeError.
-                    raise ValidationError({file_name: "Not a valid YAML file"})
+                    raise ImportFormatValidationError(
+                        {file_name: "Not a valid YAML file"}
+                    )
 
                 # Stored secrets are only reusable when the incoming config
                 # still points at the same endpoint as the stored one; a UUID
@@ -294,12 +301,21 @@ def load_configs(
                 if file_name in encrypted_extra_secrets and config.get(
                     "masked_encrypted_extra"
                 ):
+                    file_secrets = encrypted_extra_secrets[file_name]
+                    if not isinstance(file_secrets, dict):
+                        raise ValidationError(
+                            {
+                                "encrypted_extra_secrets": [
+                                    "Must map JSONPath expressions to their values."
+                                ]
+                            }
+                        )
                     # Normalize escape sequences (needed for PEM keys/certs)
                     normalized_secrets = {
                         path: value.replace("\\n", "\n")
                         if isinstance(value, str)
                         else value
-                        for path, value in encrypted_extra_secrets[file_name].items()
+                        for path, value in file_secrets.items()
                     }
                     temp_dict = json.loads(config["masked_encrypted_extra"])
                     temp_dict = json.set_masked_fields(temp_dict, normalized_secrets)
@@ -426,12 +442,23 @@ def open_import_bundle(upload: Union[IO[bytes], FileStorage]) -> Iterator[ZipFil
 
 
 def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
-    check_is_safe_zip(bundle)
-    return {
-        remove_root(file_name): bundle.read(file_name).decode()
-        for file_name in bundle.namelist()
-        if is_valid_config(file_name)
-    }
+    # An unsafe bundle (oversized member, oversized total, or high compress
+    # ratio) is user-fixable bad input, so surface it as a 422, not a 500.
+    try:
+        check_is_safe_zip(bundle)
+    except SupersetException as ex:
+        raise IncorrectFormatError(ex.message) from ex
+    contents: dict[str, str] = {}
+    for file_name in bundle.namelist():
+        if not is_valid_config(file_name):
+            continue
+        try:
+            contents[remove_root(file_name)] = bundle.read(file_name).decode()
+        except UnicodeDecodeError as ex:
+            raise IncorrectFormatError(
+                f"File {remove_root(file_name)} is not valid UTF-8"
+            ) from ex
+    return contents
 
 
 # pylint: disable=consider-using-transaction

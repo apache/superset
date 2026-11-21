@@ -1224,3 +1224,72 @@ def test_handle_query_error_status_refresh_does_not_autoflush_other_state(
         f"expected no write before the targeted status SELECT, but found "
         f"one: {preceding}"
     )
+
+
+def test_execute_with_cursor_refresh_does_not_discard_pending_executed_sql(
+    app: Any, session: Session
+) -> None:
+    """
+    The engine hook preserves pending caller metadata across its full refresh.
+
+    SQL Lab publishes executed_sql before dispatch. This test instead exercises
+    a direct caller that leaves it uncommitted. Load the row before assigning
+    executed_sql so an incidental lazy-load autoflush cannot mask its loss.
+    Verify the persisted value, not just the in-memory attribute.
+    """
+    from unittest.mock import MagicMock
+
+    from superset import db
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    engine = db.session.get_bind()
+    Query.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    query_obj = Query(
+        client_id="pending-executed-sql",
+        database=database,
+        tab_name="test_tab",
+        sql_editor_id="test_editor_id",
+        sql="select * from bar",
+        select_sql="select * from bar",
+        executed_sql="select * from bar",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatus.RUNNING,
+    )
+    db.session.add(database)
+    db.session.add(query_obj)
+    db.session.commit()
+
+    with app.app_context():
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    # Simulates execute_sql_with_cursor()'s own check_stopped_fn() call,
+    # which always runs immediately before execute_fn() in the same loop
+    # iteration -- this is what leaves every attribute already loaded (not
+    # expired) by the time the dirty write below happens, matching the real
+    # sequence instead of a freshly-expired, accidentally-protected object.
+    db.session.refresh(query_obj)
+
+    new_sql = "select * from bar where id = 42"
+    # Stage the attribute, then call execute_with_cursor() with no
+    # flush/commit in between.
+    query_obj.executed_sql = new_sql
+
+    cursor_mock = MagicMock()
+    ClickHouseConnectEngineSpec.execute_with_cursor(cursor_mock, new_sql, query_obj)
+
+    cursor_mock.execute.assert_called_once_with(new_sql, settings=None)
+
+    db.session.expire_all()
+    refreshed = (
+        db.session.query(Query).filter_by(client_id="pending-executed-sql").one()
+    )
+    assert refreshed.executed_sql == new_sql, (
+        f"expected the pending executed_sql set just before "
+        f"execute_with_cursor() to survive its internal refresh(), got "
+        f"{refreshed.executed_sql!r}"
+    )

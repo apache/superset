@@ -57,14 +57,20 @@ import {
   ModifiedInfo,
   ImportModal as ImportModelsModal,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilter,
   type ListViewFilters,
+  ListViewTitleCell,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  ToastContent,
+  archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
@@ -77,6 +83,7 @@ import Dashboard from 'src/dashboard/containers/Dashboard';
 import {
   Dashboard as CRUDDashboard,
   QueryObjectColumns,
+  FileEncryptedExtraFields,
 } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
@@ -93,9 +100,9 @@ const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
     'import them together with the dashboards. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+    '"Certificate" section of the database configuration is not ' +
+    'present in export files, and should be added manually after the ' +
+    'import if it is needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more dashboards that already exist. ' +
@@ -105,7 +112,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -131,24 +138,6 @@ export interface Dashboard {
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
-`;
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  a {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.2;
-    min-width: 0;
-  }
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -243,6 +232,9 @@ function DashboardList(props: DashboardListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -356,11 +348,14 @@ function DashboardList(props: DashboardListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(
-          softDelete
-            ? t('Archived %s item(s)', dashboardsToDelete.length)
-            : json.message,
-        );
+        rememberArchivedType('dashboard');
+        const toast: ToastContent = softDelete
+          ? archiveToastContent(
+              t('Archived %s item(s)', dashboardsToDelete.length),
+              'dashboard',
+            )
+          : { text: json.message };
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -378,7 +373,7 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Dashboard>[]>(
     () => [
       {
         Cell: ({
@@ -396,7 +391,7 @@ function DashboardList(props: DashboardListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        layout: 'icon',
         hidden: !user?.userId,
       },
       {
@@ -411,7 +406,9 @@ function DashboardList(props: DashboardListProps) {
             },
           },
         }: any) => (
-          <FlexRowContainer>
+          <ListViewTitleCell
+            trailing={description && <InfoTooltip tooltip={description} />}
+          >
             <Link to={url} title={dashboardTitle}>
               {certifiedBy && (
                 <>
@@ -423,11 +420,11 @@ function DashboardList(props: DashboardListProps) {
               )}
               {dashboardTitle}
             </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
+          </ListViewTitleCell>
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
+        layout: 'title',
         id: 'dashboard_title',
       },
       {
@@ -440,7 +437,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Status'),
         accessor: 'published',
-        size: 'sm',
+        layout: 'status',
         id: 'published',
         className: 'no-ellipsis',
       },
@@ -470,6 +467,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        layout: 'tags',
         id: 'tags',
       },
       {
@@ -481,6 +479,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
+        layout: 'people',
         id: 'editors',
       },
       ...(isFeatureEnabled(FeatureFlag.EnableViewers)
@@ -494,6 +493,7 @@ function DashboardList(props: DashboardListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
+              layout: 'people' as const,
               id: 'viewers',
             },
           ]
@@ -509,6 +509,7 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -564,14 +565,12 @@ function DashboardList(props: DashboardListProps) {
                   recoverable={softDelete}
                   title={
                     softDelete
-                      ? t('Archive %(name)s?', {
-                          name: original.dashboard_title,
-                        })
+                      ? archiveTitle(original.dashboard_title)
                       : t('Please confirm')
                   }
                   description={
                     softDelete ? (
-                      archiveConfirmDescription(t('dashboard'))
+                      archiveConfirmContent('dashboard', t('dashboard'))
                     ) : (
                       <>
                         {t('Are you sure you want to delete')}{' '}
@@ -614,6 +613,7 @@ function DashboardList(props: DashboardListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
       },
@@ -899,7 +899,7 @@ function DashboardList(props: DashboardListProps) {
         }
         description={
           softDelete
-            ? archiveConfirmDescription(t('dashboards'), true)
+            ? archiveConfirmContent('dashboard', t('dashboards'), true)
             : t('Are you sure you want to delete the selected dashboards?')
         }
         onConfirm={handleBulkDashboardDelete}
@@ -938,7 +938,7 @@ function DashboardList(props: DashboardListProps) {
                   recoverable={softDelete}
                   description={
                     softDelete ? (
-                      archiveConfirmDescription(t('dashboard'))
+                      archiveConfirmContent('dashboard', t('dashboard'))
                     ) : (
                       <>
                         {t('Are you sure you want to delete')}{' '}
@@ -961,9 +961,7 @@ function DashboardList(props: DashboardListProps) {
                   open={!!dashboardToDelete}
                   title={
                     softDelete
-                      ? t('Archive %(name)s?', {
-                          name: dashboardToDelete.dashboard_title,
-                        })
+                      ? archiveTitle(dashboardToDelete.dashboard_title)
                       : t('Please confirm')
                   }
                 />
@@ -1030,6 +1028,8 @@ function DashboardList(props: DashboardListProps) {
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
 
       {preparingExport && <Loading />}

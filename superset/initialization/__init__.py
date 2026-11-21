@@ -209,7 +209,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
-        from superset.databases.api import DatabaseRestApi
+        from superset.databases.api import DatabaseOAuth2TokensRestApi, DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
@@ -304,6 +304,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
+        appbuilder.add_api(DatabaseOAuth2TokensRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
@@ -330,6 +331,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(SubjectRestApi)
         appbuilder.add_api(LogRestApi)
+
+        if self.config.get("WEBSOCKET_ENABLE"):
+            from superset.websocket.api import RealtimeRestApi
+
+            appbuilder.add_api(RealtimeRestApi)
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             from superset.extensions.api import ExtensionsRestApi
@@ -630,11 +636,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             initialize_core_api_dependencies,
         )
         from superset.core.mcp.core_mcp_injection import (
-            initialize_core_mcp_dependencies,
+            initialize_core_mcp_decorators,
+            initialize_core_mcp_host_tools,
         )
 
         initialize_core_api_dependencies()
-        initialize_core_mcp_dependencies()
+
+        # The MCP decorators (@tool/@prompt) must be registered in every process:
+        # extensions can apply them at import time, and the abstract versions raise
+        # NotImplementedError until they are swapped for the concrete ones. This is
+        # cheap and does not import the MCP service app.
+        initialize_core_mcp_decorators()
+
+        # Registering the MCP host tools imports the MCP service app, which has a
+        # real per-process memory cost. Only processes that serve MCP (the web app
+        # and the standalone MCP service) need it, so deployments can disable it for
+        # processes that never serve MCP -- e.g. Celery workers -- to avoid the cost.
+        if self.config.get("CORE_MCP_HOST_TOOLS_ENABLED", True):
+            initialize_core_mcp_host_tools()
 
     def init_all_dependencies_and_extensions(self) -> None:
         """
@@ -650,6 +669,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Conditionally initialize extensions based on feature flag
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             self.init_extensions()
+        else:
+            logger.info("ENABLE_EXTENSIONS is off at startup; extensions not loaded")
 
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
@@ -660,11 +681,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         try:
             extensions = get_extensions()
-        except Exception:  # pylint: disable=broad-except  # noqa: S110
-            # If the db hasn't been initialized yet, an exception will be raised.
-            # It's fine to ignore this, as in this case there are no extensions
-            # present yet.
+        except Exception:  # pylint: disable=broad-except
+            # A discovery failure (for example an unreadable LOCAL_EXTENSIONS
+            # or EXTENSIONS_PATH entry) must not stop the app from starting.
+            logger.warning("Extensions not loaded: discovery failed", exc_info=True)
             return
+
+        failed: int = 0
 
         for extension in extensions.values():
             if backend_files := extension.backend:
@@ -688,6 +711,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         "Failed to initialize extension '%s'",
                         extension.manifest.id,
                     )
+                    failed += 1
+
+        logger.info(
+            "Loaded %d extension(s) at startup; %d failed to initialize",
+            len(extensions) - failed,
+            failed,
+        )
 
     @staticmethod
     def _remove_continuum_write_listeners() -> None:
@@ -1108,7 +1138,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_stats_manager()
         self.configure_semantic_cache()
         self.configure_task_manager()
-        self.configure_websocket()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -1790,13 +1819,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             from superset.tasks.manager import TaskManager
 
             TaskManager.init_app(self.superset_app)
-
-    def configure_websocket(self) -> None:
-        """Mint the websocket channel-token cookie when the transport is enabled."""
-        if self.config.get("WEBSOCKET_ENABLE"):
-            from superset.websocket.channel import register_ws_channel_cookie
-
-            register_ws_channel_cookie(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config

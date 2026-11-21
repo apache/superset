@@ -381,8 +381,11 @@ test('pruning: row subtotals on, everything else off', () => {
     colSubTotals: false,
     rowSubTotals: true,
   });
-  // row prefixes: intermediate [row1] + full [row1,row2]; col prefixes: full only
+  // row prefixes: the fully collapsed level (drawn as each metric group's
+  // Subtotal line, since metrics are on rows) + intermediate [row1] + full
+  // [row1,row2]; col prefixes: full only
   expect(combinations).toEqual([
+    { rows: [], columns: ['col1', 'col2'] },
     { rows: ['row1'], columns: ['col1', 'col2'] },
     { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
   ]);

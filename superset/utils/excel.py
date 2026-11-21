@@ -18,6 +18,7 @@ import io
 from datetime import datetime
 from typing import Any, Optional
 
+import numpy as np
 import pandas as pd
 
 from superset.utils.core import GenericDataType
@@ -48,12 +49,39 @@ FORMULA_PREFIXES = {"=", "+", "-", "@"}
 
 
 def _quote_formula(value: Any) -> Any:
-    """Prefix a string with a quote when it would parse as a formula."""
-    return (
-        f"'{value}"
-        if isinstance(value, str) and len(value) and value[0] in FORMULA_PREFIXES
-        else value
-    )
+    """Prefix a string with a quote when it would parse as a formula.
+
+    A string whose first character is ``=`` is stored as a formula cell by the
+    writer, so quoting it is what keeps a formula out of the workbook. Dropping
+    the quote would put one in.
+
+    Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
+    quoted like ``"=cmd"``. That part is for consistency across the export paths
+    rather than to stop the workbook evaluating it: whitespace in front of the
+    prefix stops XlsxWriter recognising a formula at all, so the value is
+    written as a plain string cell either way. The CSV writer
+    (``_starts_like_spreadsheet_formula``) and the streaming writer both strip
+    before reading the prefix, so without this the same cell exports quoted
+    from two of the three paths and bare from this one. What the quote guards
+    against there is how a downstream viewer or a re-import reads the text, not
+    how XlsxWriter stored it.
+
+    ``FORMULA_PREFIXES`` is not the whole of what the writer stores as a
+    formula. ``_write_token_as_string`` reaches ``_write_formula`` from two
+    branches: a string starting ``=``, which this guard covers, and one wrapped
+    in ``{=`` and ``}``, which it does not, since ``{`` is not a prefix here.
+    That second form is stored as an array formula and goes out unquoted. The
+    quote does stop it, ``'{=1+1}`` being stored as a plain string, where the
+    ``strings_to_formulas`` workbook option is no help. Extending the prefix
+    check is the fix, and that is its own change.
+
+    The value is quoted as it arrived rather than stripped, so the cell keeps
+    whatever spacing came with it.
+    """
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip()
+    return f"'{value}" if stripped and stripped[0] in FORMULA_PREFIXES else value
 
 
 def _drop_timezone(value: Any) -> Any:
@@ -196,6 +224,20 @@ def df_to_excel(
     return output.getvalue()
 
 
+def _large_number_as_text(value: Any) -> Any:
+    """
+    Return numbers Excel cannot hold exactly as text, everything else unchanged.
+
+    NumPy integers are boxed to Python integers first: ``abs`` of the NumPy
+    minimum would overflow and ``str`` of a rounded float would lose digits.
+    """
+    if isinstance(value, np.integer):
+        value = int(value)
+    if isinstance(value, (int, float)) and abs(value) > 10**15:
+        return str(value)
+    return value
+
+
 def apply_column_types(
     df: pd.DataFrame, column_types: list[GenericDataType]
 ) -> pd.DataFrame:
@@ -219,19 +261,23 @@ def apply_column_types(
         series = df.iloc[:, idx]
         if column_type == GenericDataType.NUMERIC:
             try:
-                # Nullable integers retain exact values alongside blank totals.
-                # Convert to object before apply, which would otherwise coerce
-                # nullable integers through float64 during scalar mapping.
-                series = pd.to_numeric(series, dtype_backend="numpy_nullable").astype(
-                    object
-                )
+                # Object columns of integers already hold exact Python (or NumPy)
+                # integers, including values beyond int64 that ``to_numeric``
+                # would round to float64 when the column has nulls: leave them.
+                if not (
+                    series.dtype == object
+                    and pd.api.types.infer_dtype(series, skipna=True) == "integer"
+                ):
+                    # Nullable integers retain exact values alongside blank
+                    # totals. Convert to object before apply, which would
+                    # otherwise coerce nullable integers through float64 during
+                    # scalar mapping.
+                    series = pd.to_numeric(
+                        series, dtype_backend="numpy_nullable"
+                    ).astype(object)
                 # if the number is too large, convert it to a string
                 # Excel does not support numbers larger than 10^15
-                series = series.apply(
-                    lambda x: (
-                        str(x) if isinstance(x, (int, float)) and abs(x) > 10**15 else x
-                    )
-                )
+                series = series.apply(_large_number_as_text)
             except ValueError:
                 series = series.astype(str)
         elif isinstance(series.dtype, pd.DatetimeTZDtype):

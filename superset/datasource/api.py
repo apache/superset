@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import hashlib
 import logging
 from typing import Any, cast
 
@@ -36,7 +35,7 @@ from superset.common.tabular_query import (
     validate_names,
     validate_query_names,
 )
-from superset.connectors.sqla.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
@@ -47,17 +46,21 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, feature_flag_manager
+from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.capabilities import supported_view_features
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
 )
+from superset.semantic_layers.execution import current_host_execution_context
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
@@ -66,6 +69,7 @@ from superset.utils.core import (
     SqlExpressionType,
 )
 from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.hashing import hash_from_dict
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -97,15 +101,41 @@ def _column_values_cache_key(
         discriminator: tuple[str, str] | None = datasource.result_cache_discriminator
         if discriminator is not None:
             material["semantic_result_version"] = discriminator
+        # Semantic views have no database, so the per-user key below never
+        # applies to them; partition by the server principal instead, the
+        # same way the chart result cache does.
+        if feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER"):
+            context = current_host_execution_context()
+            if not context.is_guest:
+                material["semantic_user"] = context.principal_id
+    elif isinstance(datasource, (SqlaTable, Query)) and datasource.database:
+        # An engine that filters rows per user returns different values per
+        # user, so the entry must be partitioned per user when per-user
+        # caching is enabled; without it every user with the same RLS
+        # shares one entry (#45898).
+        add_impersonation_cache_key_if_needed(datasource.database, material)
     material.update(
         uid=datasource.uid,
         rls=security_manager.get_rls_cache_key(datasource),
         changed_on=str(getattr(datasource, "changed_on", "")),
     )
-    return (
-        "col_values:"
-        + hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
-    )
+    # The canonical RLS key contains raw clauses, not their rendered values.
+    if isinstance(datasource, SqlaTable) and (
+        rendered_rls := datasource.get_rendered_rls_cache_key()
+    ):
+        material["rendered_rls"] = rendered_rls
+    # Executing a virtual dataset (or a SQL Lab query) also injects the RLS of
+    # the tables its SQL reads, which ``get_rls_cache_key`` does not cover.
+    # Only added when non-empty, so keys without inner rules keep their bytes.
+    if isinstance(datasource, (SqlaTable, Query)) and (
+        inner_rls := datasource.get_inner_rls_cache_key()
+    ):
+        material["inner_rls"] = inner_rls
+    # The query runs under the caller's connection identity, which an embedded
+    # credential or per-user caching makes part of the result.
+    if isinstance(datasource, (SqlaTable, Query)):
+        add_impersonation_cache_key_if_needed(datasource.database, material)
+    return "col_values:" + hash_from_dict(material)
 
 
 def get_cached_column_values(
@@ -127,9 +157,13 @@ def get_cached_column_values(
     caller (#39342).
 
     Callers must have authorized the datasource (``raise_for_access``) first:
-    the key partitions entries by effective RLS, not by user, so the cache
-    itself is not an access check. ``search`` must already be stripped, with
-    ``None`` for "no search", so equal queries produce equal keys.
+    the key partitions entries by effective RLS (the datasource's own rules and
+    those of the tables its SQL reads) and, when per-user caching is enabled
+    (``CACHE_QUERY_BY_USER``, ``CACHE_IMPERSONATION`` with impersonation, or the
+    database's ``per_user_caching``), by user. Neither partition is an access
+    check; authorization still happens before any lookup. ``search`` must
+    already be stripped, with ``None`` for "no search", so equal queries
+    produce equal keys.
 
     Returns ``(values, cache_hit)``. ``force`` skips the read and refreshes
     the entry.
@@ -361,18 +395,11 @@ class DatasourceRestApi(BaseSupersetApi):
         # the wrapping query per filter (#39342).
         #
         # Key fields:
-        # - ``rls`` — full RLS fingerprint via
-        #   ``security_manager.get_rls_cache_key`` (the canonical helper used
-        #   by viz.py and query_context_processor.py). This is the sole
-        #   security-isolation field — two users with identical effective
-        #   RLS share a cache entry (intentional: they would see identical
-        #   filtered values anyway), while users with different RLS, guest
-        #   sessions with different guest-token RLS, and anonymous sessions
-        #   with no RLS each get their own partition. We deliberately do
-        #   NOT include the raw user id; doing so would defeat the
-        #   intended cross-user cache sharing without adding any real
-        #   security boundary beyond what the RLS fingerprint already
-        #   provides.
+        # - ``rls`` — raw own-RLS clauses and grouping from the canonical
+        #   helper; ``rendered_rls`` adds the effective own predicates when
+        #   supported cache-varying macros occur. ``inner_rls`` binds injected
+        #   predicates to the tables read inside virtual/SQL Lab SQL.
+        #   Equal RLS scopes can share an entry without a blanket user-id key.
         # - ``changed_on`` — auto-busts cached entries when the dataset's
         #   underlying SQL is edited.
         # - ``uid`` / ``col`` / ``limit`` / ``denorm`` — basic query-shape
@@ -721,20 +748,14 @@ class DatasourceRestApi(BaseSupersetApi):
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key = (
-            "compatible:"
-            + hashlib.sha256(
-                json.dumps(
-                    {
-                        "uid": datasource_uid,
-                        "changed_on": str(getattr(datasource, "changed_on", "")),
-                        "metadata_version": metadata_version,
-                        "m": sorted(selected_metrics),
-                        "d": sorted(selected_dimensions),
-                    },
-                    sort_keys=True,
-                ).encode()
-            ).hexdigest()
+        cache_key = "compatible:" + hash_from_dict(
+            {
+                "uid": datasource_uid,
+                "changed_on": str(getattr(datasource, "changed_on", "")),
+                "metadata_version": metadata_version,
+                "m": sorted(selected_metrics),
+                "d": sorted(selected_dimensions),
+            }
         )
 
         timeout: int = datasource.cache_timeout or app.config.get(
@@ -1060,10 +1081,12 @@ class DatasourceRestApi(BaseSupersetApi):
                 if is_semantic_view
                 else {op.value for op in FilterOperator}
             )
-            features = sorted(
+            features: list[str] = sorted(
                 feature.value
-                for feature in getattr(
-                    getattr(datasource, "implementation", None), "features", set()
+                for feature in supported_view_features(
+                    getattr(
+                        getattr(datasource, "implementation", None), "features", None
+                    )
                 )
             )
             result = dict(datasource.data)

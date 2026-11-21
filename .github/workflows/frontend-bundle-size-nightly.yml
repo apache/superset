@@ -92,7 +92,7 @@ jobs:
           -v ${{ github.workspace }}/superset/static/assets:/app/superset/static/assets \
           --rm $TAG \
           bash -c \
-          "npm i && BUNDLE_SIZE_STATS=true BUNDLE_ANALYZER=true npm run build -- --json=bundle-stats/stats.json"
+          "BUNDLE_SIZE_STATS=true BUNDLE_ANALYZER=true npm run build -- --json=bundle-stats/stats.json"
 
       - name: Summarize bundle size
         run: |

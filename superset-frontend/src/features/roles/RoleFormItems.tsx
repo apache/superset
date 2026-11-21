@@ -19,7 +19,11 @@
 import { useCallback } from 'react';
 import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
-import { fetchUserOptions } from '../groups/utils';
+import {
+  fetchUserOptions,
+  USER_OPTION_FILTER_PROPS,
+  userOptionSortComparator,
+} from '../groups/utils';
 import {
   comparePermissionOptions,
   fetchGroupOptions,
@@ -29,11 +33,13 @@ import {
 interface AsyncOptionsFieldProps {
   addDangerToast: (msg: string) => void;
   loading?: boolean;
+  disabled?: boolean;
 }
 
 interface UsersFieldProps {
   addDangerToast: (msg: string) => void;
   loading: boolean;
+  disabled?: boolean;
 }
 
 export const RoleNameField = () => (
@@ -49,6 +55,7 @@ export const RoleNameField = () => (
 export const PermissionsField = ({
   addDangerToast,
   loading = false,
+  disabled = false,
 }: AsyncOptionsFieldProps) => {
   const options = useCallback(
     (filterValue: string, page: number, pageSize: number) =>
@@ -64,8 +71,9 @@ export const PermissionsField = ({
         placeholder={t('Select permissions')}
         options={options}
         loading={loading}
-        // formatPermissionLabel renders the raw permission/view_menu name with
-        // underscores replaced by spaces, so AsyncSelect's default client-side
+        disabled={disabled}
+        // formatPermissionLabel renders underscores as spaces and encoded dots
+        // as periods, so AsyncSelect's default client-side
         // re-filter never matches a raw-name search term (e.g. "stg_silver")
         // against the displayed label ("stg silver") and hides the
         // server-matched option. Normalize both sides so client-side narrowing
@@ -74,7 +82,9 @@ export const PermissionsField = ({
           String(option?.label ?? '')
             .toLowerCase()
             .replace(/_/g, ' ')
-            .includes(input.toLowerCase().replace(/_/g, ' '))
+            .includes(
+              input.toLowerCase().replace(/_/g, ' ').replace(/%2e/g, '.'),
+            )
         }
         // Permission labels are long ("all datasource access on all_datasource_access",
         // "can write on DashboardFilterStateRestApi"), and the dropdown otherwise
@@ -92,7 +102,11 @@ export const PermissionsField = ({
   );
 };
 
-export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
+export const UsersField = ({
+  addDangerToast,
+  loading,
+  disabled = false,
+}: UsersFieldProps) => {
   const options = useCallback(
     (filterValue: string, page: number, pageSize: number) =>
       fetchUserOptions(filterValue, page, pageSize, addDangerToast),
@@ -107,7 +121,12 @@ export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
         placeholder={t('Select users')}
         options={options}
         loading={loading}
+        disabled={disabled}
         data-test="roles-select"
+        // The server matches on username and email too; re-filter on the
+        // option's plain-text name, email and username, not its React label.
+        optionFilterProps={USER_OPTION_FILTER_PROPS}
+        sortComparator={userOptionSortComparator}
       />
     </FormItem>
   );
@@ -116,6 +135,7 @@ export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
 export const GroupsField = ({
   addDangerToast,
   loading = false,
+  disabled = false,
 }: AsyncOptionsFieldProps) => {
   const options = useCallback(
     (filterValue: string, page: number, pageSize: number) =>
@@ -131,6 +151,7 @@ export const GroupsField = ({
         placeholder={t('Select groups')}
         options={options}
         loading={loading}
+        disabled={disabled}
         data-test="groups-select"
       />
     </FormItem>

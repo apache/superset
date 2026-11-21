@@ -173,6 +173,9 @@ npm run test -- --watch
 
 # Run specific test file
 npm run test -- MyComponent.test.tsx
+
+# Cap the worker pool (default is 80% of cores) on a shared or busy machine
+JEST_MAX_WORKERS=2 npm run test -- MyComponent.test.tsx
 ```
 
 ### E2E Integration Testing
@@ -312,6 +315,37 @@ and stamps do-not-translate markers. A bare
 `pybabel extract` does none of these. CI's template drift check
 (`scripts/translations/check_pot_drift.py`) fails when the template's strings
 differ from what the script's extraction finds.
+
+### Keeping a sentence in one string
+
+Keep each sentence in one `t()` call. A sentence split into several calls
+around a link has a fixed word order. Translators then cannot write a
+grammatical sentence in their language.
+
+For a link inside help text or a tooltip, one way to keep the sentence whole
+is a markdown link with a named placeholder for the URL, rendered with
+`SafeMarkdown` from `@superset-ui/core/components`. The dataset editor's
+"Datetime format" help works this way:
+
+```tsx
+<SafeMarkdown
+  // i18n: translate the whole sentence, including the link text; keep the
+  // [text](%(…)s) link syntax and the placeholder unchanged
+  source={t('Read the [ISO 8601](%(iso_url)s) article.', {
+    iso_url: 'https://en.wikipedia.org/wiki/ISO_8601',
+  })}
+/>
+```
+
+The URL stays out of the translated string. `SafeMarkdown` blocks
+`javascript:` links, sanitizes or escapes HTML, and renders backticks as code.
+Check its limits before you use it:
+
+- It wraps the text in a paragraph, so it does not fit inside an inline label
+  or a button.
+- It renders nothing until its markdown libraries load.
+- Its links open in the same tab. A markdown link has no `target` attribute,
+  and the sanitizer removes one written in HTML.
 
 ### Adding context for translators
 
@@ -473,15 +507,21 @@ python scripts/translations/backfill_po.py --lang fr
 
 Options:
 
-| Flag              | Default             | Description                                           |
-| ----------------- | ------------------- | ----------------------------------------------------- |
-| `--lang LANG`     | required            | ISO language code (`fr`, `de`, `ja`, …)               |
-| `--batch-size N`  | 50                  | Strings per Claude request                            |
-| `--limit N`       | unlimited           | Stop after N entries                                  |
-| `--min-context N` | 0                   | Skip entries with fewer than N reference translations |
-| `--model MODEL`   | `claude-sonnet-4-6` | Claude model to use                                   |
-| `--dry-run`       | off                 | Print without writing                                 |
-| `--no-fuzzy`      | off                 | Don't mark entries as fuzzy                           |
+| Flag              | Default   | Description                                                      |
+| ----------------- | --------- | ---------------------------------------------------------------- |
+| `--lang LANG`     | required  | ISO language code (`fr`, `de`, `ja`, …)                          |
+| `--batch-size N`  | 50        | Strings per Claude request                                       |
+| `--limit N`       | unlimited | Stop after N entries                                             |
+| `--min-context N` | 0         | Skip entries with fewer than N reference translations            |
+| `--model MODEL`   | `sonnet`  | Claude model ID, or an alias such as `sonnet` for the latest one |
+| `--dry-run`       | off       | Print without writing                                            |
+| `--no-fuzzy`      | off       | Don't mark entries as fuzzy                                      |
+
+A model alias is resolved to its concrete model ID once per run, and that ID is
+what appears in each entry's `# Machine-translated via backfill_po.py (…)`
+comment. After writing, the script re-serializes the catalog with Babel in the
+same format `babel_update.sh` produces, so the diff contains only the new
+translations.
 
 Use `--min-context 2` to skip strings that have fewer than 2 reference
 translations in other languages. Those strings are more likely to be ambiguous
@@ -510,6 +550,39 @@ npm run translations:build-index
 # Backfill (pass arguments after --)
 npm run translations:backfill -- --lang fr --dry-run
 ```
+
+To backfill several languages at once, eight in parallel, use
+`scripts/translations/backfill_all.sh` (every catalog except `en` when no
+languages are given):
+
+```bash
+scripts/translations/backfill_all.sh fr de ja
+```
+
+It can also run through [Apache LLMAO](https://llm.apache.org), the ASF's
+model gateway, with a personal LLMAO key in `LLMAO_KEY`:
+
+```bash
+LLMAO_KEY=... scripts/translations/backfill_all.sh --provider llmao fr
+```
+
+LLMAO uses `gemma4-26b` by default, in batches of 20 to stay under the
+gateway's 8,192-token output cap. With `LLMAO_KEY` set, a default run on
+Claude also falls back to LLMAO when Claude can't be reached, and retries
+there any language Claude left with failed entries. Pass `--no-fallback` to
+turn that off.
+
+#### Scheduled backfill in CI
+
+The `Backfill Translations` workflow
+(`.github/workflows/backfill-translations.yml`) runs the backfill over every
+catalog each Tuesday, the day after the weekly catalog sync, and opens a PR
+with the result. It skips the run while a previous backfill PR is still open,
+so review it and merge (or close) it to let the next week's run proceed. It
+translates with Claude through the `ANTHROPIC_API_KEY` secret and falls back to
+Apache LLMAO (the `LLMAO_KEY` secret) the same way `backfill_all.sh` does. It
+can also be started by hand from the Actions tab, optionally limited to
+specific languages, or with a different provider or model.
 
 ## Linting
 

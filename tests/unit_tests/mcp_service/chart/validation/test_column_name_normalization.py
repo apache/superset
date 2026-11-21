@@ -319,6 +319,38 @@ class TestNormalizeColumnNames:
             by_alias=True, exclude_unset=True
         ) == {"columnWidth": 120}
 
+    @pytest.mark.parametrize(
+        "chart_name", ["Weekly <img src=x>KPIs", "Q3 <b>revenue</b> &amp; costs"]
+    )
+    def test_pipeline_keeps_single_sanitized_chart_name(
+        self, mock_dataset_context: DatasetContext, chart_name: str
+    ) -> None:
+        """Normalization must not sanitize an already-sanitized name again."""
+        from superset.mcp_service.utils.sanitization import sanitize_user_input
+
+        request = GenerateChartRequest.model_validate(
+            {
+                "dataset_id": 18,
+                "chart_name": chart_name,
+                "config": {"chart_type": "table", "columns": [{"name": "sales"}]},
+            }
+        )
+
+        with patch(
+            "superset.mcp_service.utils.sanitization.sanitize_user_input",
+            wraps=sanitize_user_input,
+        ) as sanitize:
+            normalized = ValidationPipeline._normalize_column_names(
+                request,
+                mock_dataset_context,
+                typed_config=request.config,
+            )
+
+        assert not [c for c in sanitize.call_args_list if c.args[1] == "Chart name"]
+        assert isinstance(normalized.config, TableChartConfig)
+        assert normalized.config.columns[0].name == "Sales"
+        assert normalized.chart_name == request.chart_name
+
     @patch.object(DatasetValidator, "_get_dataset_context")
     def test_table_normalization_canonicalizes_raw_column_config_key(
         self, mock_get_context, mock_dataset_context: DatasetContext

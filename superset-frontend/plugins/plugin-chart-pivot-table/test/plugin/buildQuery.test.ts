@@ -25,7 +25,7 @@ import {
 import { ControlPanelsContainerProps } from '@superset-ui/chart-controls';
 import buildQuery from '../../src/plugin/buildQuery';
 import controlPanel from '../../src/plugin/controlPanel';
-import { PivotTableQueryFormData } from '../../src/types';
+import { MetricsLayoutEnum, PivotTableQueryFormData } from '../../src/types';
 
 // buildQuery attaches `grouping_sets` (one entry per rollup level) to the
 // query object; it is not part of the base QueryObject type, so narrow to a
@@ -79,6 +79,79 @@ test('semantic pivot drops a saved series limit without changing SQL pivots', ()
   expect(semanticQuery.series_limit).toBe(0);
   expect(sqlQuery.series_limit).toBe(2);
 });
+
+test.each([false, true])(
+  'semantic pivot marks a grained date as a column reference (transpose=%s)',
+  transposePivot => {
+    const semanticQuery = buildQuery({
+      ...formData,
+      datasource: '5__semantic_view',
+      transposePivot,
+    }).queries[0];
+    const sqlQuery = buildQuery({ ...formData, transposePivot }).queries[0];
+
+    const semanticDate = semanticQuery.columns?.find(
+      col => typeof col !== 'string' && col.sqlExpression === 'col1',
+    );
+    const sqlDate = sqlQuery.columns?.find(
+      col => typeof col !== 'string' && col.sqlExpression === 'col1',
+    );
+    expect(semanticDate).toMatchObject({
+      sqlExpression: 'col1',
+      timeGrain: TimeGranularity.MONTH,
+      isColumnReference: true,
+    });
+    expect(sqlDate).not.toHaveProperty('isColumnReference');
+  },
+);
+
+test('semantic pivot bounds its main query while SQL pivot keeps its limit', () => {
+  const semanticQuery = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+    row_limit: 0,
+  }).queries[0];
+  const sqlQuery = buildQuery({ ...formData, row_limit: 0 }).queries[0];
+
+  expect(semanticQuery.row_limit).toBeGreaterThan(0);
+  expect(sqlQuery.row_limit).toBe(0);
+});
+
+test.each([
+  { rowOrder: 'value_z_to_a' },
+  { metricsLayout: MetricsLayoutEnum.ROWS },
+  { combineMetric: true },
+])('semantic pivot preserves rollup layout for %p', override => {
+  const semanticQuery = buildQuery({
+    ...formData,
+    ...override,
+    datasource: '5__semantic_view',
+  }).queries[0] as GroupingSetsQuery;
+  const sqlQuery = buildQuery({ ...formData, ...override })
+    .queries[0] as GroupingSetsQuery;
+
+  expect(semanticQuery.row_limit).toBe(10000);
+  expect(semanticQuery.grouping_sets).toEqual(sqlQuery.grouping_sets);
+  expect(semanticQuery.orderby).toEqual(sqlQuery.orderby);
+  if (!override.combineMetric) {
+    expect(semanticQuery.grouping_sets).toHaveLength(9);
+    expect(semanticQuery.grouping_sets).toContainEqual([]);
+  }
+});
+
+test.each(['Sum', 'Average'])(
+  'semantic pivot refuses %s result aggregation instead of truncating totals',
+  aggregateFunction => {
+    expect(() =>
+      buildQuery({
+        ...formData,
+        datasource: '5__semantic_view',
+        aggregateFunction,
+      }),
+    ).toThrow('Set Aggregation function to "Use metric definition".');
+    expect(() => buildQuery({ ...formData, aggregateFunction })).not.toThrow();
+  },
+);
 
 test('pivot hides the Series limit control for semantic views', () => {
   const control = controlPanel.controlPanelSections

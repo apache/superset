@@ -46,8 +46,17 @@ def field_validation_error(field_name: str) -> Iterator[None]:
     """
     try:
         yield
+    except UnicodeDecodeError as ex:
+        raise ValidationError.from_exception_data(
+            "Field validation",
+            [{"type": "string_unicode", "loc": (field_name,), "input": ex.object}],
+        ) from ex
     except ValueError as ex:
-        error = PydanticCustomError("unsafe_text", "{error}", {"error": str(ex)})
+        error = (
+            ex
+            if isinstance(ex, PydanticCustomError)
+            else PydanticCustomError("unsafe_text", "{error}", {"error": str(ex)})
+        )
         raise ValidationError.from_exception_data(
             "Field validation", [{"type": error, "loc": (field_name,)}]
         ) from ex

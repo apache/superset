@@ -18,6 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@superset-ui/core/spec';
+import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import RadioButtonControl, {
   RadioButtonControlProps,
@@ -36,6 +37,24 @@ const defaultProps: RadioButtonControlProps = {
 
 const setup = (props: Partial<RadioButtonControlProps> = {}) =>
   render(<RadioButtonControl {...defaultProps} {...props} />);
+
+const setupStateful = (props: Partial<RadioButtonControlProps> = {}) => {
+  const StatefulWrapper = () => {
+    const [value, setValue] = useState(props.value);
+    return (
+      <RadioButtonControl
+        {...defaultProps}
+        {...props}
+        value={value}
+        onChange={val => {
+          setValue(val);
+          props.onChange?.(val);
+        }}
+      />
+    );
+  };
+  return render(<StatefulWrapper />);
+};
 
 test('renders with array-based options (legacy format)', () => {
   const { container } = setup();
@@ -95,22 +114,32 @@ test('calls onChange when radio button is clicked', () => {
   const secondOption = screen.getByText('Option 2');
   fireEvent.click(secondOption);
 
+  expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith('option2');
-  expect(onChange).toHaveBeenCalled();
+});
+
+test('does not call onChange when clicking an already selected option', () => {
+  const onChange = jest.fn();
+  setup({ value: 'option1', onChange });
+
+  const firstOption = screen.getByText('Option 1');
+  fireEvent.click(firstOption);
+
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('handles multiple clicks correctly', () => {
   const onChange = jest.fn();
-  setup({ onChange });
+  setupStateful({ onChange });
 
   fireEvent.click(screen.getByText('Option 2'));
   fireEvent.click(screen.getByText('Option 3'));
   fireEvent.click(screen.getByText('Option 1'));
 
-  expect(onChange).toHaveBeenCalledWith('option2');
-  expect(onChange).toHaveBeenCalledWith('option3');
-  expect(onChange).toHaveBeenCalledWith('option1');
-  expect(onChange.mock.calls.length).toBeGreaterThanOrEqual(3);
+  expect(onChange).toHaveBeenCalledTimes(3);
+  expect(onChange).toHaveBeenNthCalledWith(1, 'option2');
+  expect(onChange).toHaveBeenNthCalledWith(2, 'option3');
+  expect(onChange).toHaveBeenNthCalledWith(3, 'option1');
 });
 
 test('disables specific options when disabled flag is set', () => {
@@ -273,7 +302,7 @@ test('handles null values in options', () => {
     ['value', 'Value'],
   ];
 
-  setup({ options: nullOptions, onChange });
+  setupStateful({ options: nullOptions, value: 'value', onChange });
 
   fireEvent.click(screen.getByText('None'));
   expect(onChange).toHaveBeenCalledWith(null);
@@ -329,7 +358,7 @@ test('normalizeOption handles array format correctly', () => {
   const arrayOption: RadioButtonOption = ['value', 'Label'];
   const onChange = jest.fn();
 
-  setup({ options: [arrayOption], onChange });
+  setupStateful({ options: [arrayOption], value: 'initial', onChange });
 
   expect(screen.getByText('Label')).toBeInTheDocument();
 
@@ -345,7 +374,7 @@ test('normalizeOption handles object format correctly', () => {
   };
   const onChange = jest.fn();
 
-  setup({ options: [objectOption], onChange });
+  setupStateful({ options: [objectOption], value: 'initial', onChange });
 
   expect(screen.getByText('Label')).toBeInTheDocument();
 
