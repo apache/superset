@@ -1277,3 +1277,22 @@ def test_connect_get_table_names_excludes_views() -> None:
     assert ClickHouseConnectEngineSpec.get_view_names(
         database, inspector, "default"
     ) == {"v1"}
+
+
+def test_clickhouse_connect_resolves_clickhouse_disallowed_defaults() -> None:
+    """
+    The denylist lookups key by ``db_engine_spec.engine``, which is
+    ``"clickhousedb"`` for clickhouse-connect, so the ClickHouse defaults must be
+    mirrored onto it.
+    """
+    from superset.config import DISALLOWED_SQL_FUNCTIONS
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec,
+        ClickHouseEngineSpec,
+    )
+
+    connect = DISALLOWED_SQL_FUNCTIONS[ClickHouseConnectEngineSpec.engine]
+    native = DISALLOWED_SQL_FUNCTIONS[ClickHouseEngineSpec.engine]
+    assert connect == native
+    assert connect is not native
+    assert "remote" in connect
