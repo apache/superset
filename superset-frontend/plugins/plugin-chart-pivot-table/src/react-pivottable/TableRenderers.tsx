@@ -220,7 +220,52 @@ const parseLabel = (value: unknown): string | number => {
   return String(value);
 };
 
+/**
+ * Normalizes a configured default expansion depth. Only a positive integer
+ * applies; 0 or any invalid value means fully expanded and returns 0.
+ */
+function toExpansionDepth(value: unknown): number {
+  const depth = Number(value);
+  return Number.isInteger(depth) && depth > 0 ? depth : 0;
+}
+
+/**
+ * Prefixes that have a subtotal to render: shorter than the full key and
+ * actually produced. A shorter key that was never produced (metric-only
+ * rollups are omitted for metrics-on-rows) must stay expanded.
+ */
+function getCollapsiblePrefixes(
+  keys: string[][],
+  numAttrs: number,
+): ReadonlySet<string> {
+  const prefixes = new Set<string>();
+  keys.forEach(key => {
+    if (key.length > 0 && key.length < numAttrs) {
+      prefixes.add(flatKey(key));
+    }
+  });
+  return prefixes;
+}
+
 const NO_COLLAPSIBLE_PREFIXES: ReadonlySet<string> = new Set();
+
+/**
+ * Prefixes collapsed by default for a depth: those `computeCollapsedMap`
+ * marks that also have a subtotal to render, so hidden children always keep an
+ * arrow to open them. Empty when the depth is inactive.
+ */
+function getDefaultCollapsedPrefixes(
+  keys: string[][],
+  depth: number,
+  numAttrs: number,
+  collapsiblePrefixes: ReadonlySet<string>,
+): ReadonlySet<string> {
+  return new Set(
+    Object.keys(computeCollapsedMap(keys, depth, numAttrs)).filter(key =>
+      collapsiblePrefixes.has(key),
+    ),
+  );
+}
 
 /**
  * Whether a row prefix is collapsed. An explicit toggle wins. Otherwise the
@@ -461,12 +506,19 @@ export function TableRenderer(props: TableRendererProps) {
     tableOptions.collapseRows && tableOptions.rowSubTotals,
   );
 
+  const rowExpansionDepth = toExpansionDepth(defaultRowExpansionDepth);
+  const colExpansionDepth = toExpansionDepth(defaultColExpansionDepth);
+
   // Manual expands live in this state and would otherwise outlive the
-  // checkbox. Resetting on each flip makes the Explore preview match a chart
-  // that opens with the new setting.
+  // checkbox or a depth change. Resetting on each change makes the Explore
+  // preview match a chart that opens with the new setting.
   useEffect(() => {
     setCollapsedRows({});
-  }, [collapseRowsByDefault]);
+  }, [collapseRowsByDefault, rowExpansionDepth]);
+
+  useEffect(() => {
+    setCollapsedCols({});
+  }, [colExpansionDepth]);
 
   const sortCacheRef = useRef(new Map<string, string[][]>());
 
@@ -594,13 +646,16 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleColKey = useCallback(
-    (flatColKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
-      e.stopPropagation();
-      setCollapsedCols(state => ({
-        ...state,
-        [flatColKey]: !state[flatColKey],
-      }));
-    },
+    (flatColKey: string, collapsedByDefault: boolean) =>
+      (e: MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        setCollapsedCols(state => ({
+          ...state,
+          [flatColKey]: !(Object.hasOwn(state, flatColKey)
+            ? state[flatColKey]
+            : collapsedByDefault),
+        }));
+      },
     [],
   );
 
@@ -879,60 +934,6 @@ export function TableRenderer(props: TableRendererProps) {
     [getBasePivotSettings],
   );
 
-  // Seed the initial collapsed state once, on mount, from the configured
-  // default expansion depths. Keeping this in an effect (rather than the render
-  // body or a state initializer) avoids the setState-during-render anti-pattern
-  // while still hiding deeper hierarchy levels on first load. A depth of 0 (or
-  // an invalid value) means "fully expanded" and collapses nothing.
-  const didApplyInitialCollapse = useRef(false);
-  useEffect(() => {
-    if (didApplyInitialCollapse.current) {
-      return;
-    }
-    didApplyInitialCollapse.current = true;
-
-    const rowDepth = Number(defaultRowExpansionDepth);
-    const colDepth = Number(defaultColExpansionDepth);
-    const hasValidRowDepth = Number.isInteger(rowDepth) && rowDepth > 0;
-    const hasValidColDepth = Number.isInteger(colDepth) && colDepth > 0;
-    if (!hasValidRowDepth && !hasValidColDepth) {
-      return;
-    }
-
-    const {
-      rowKeys,
-      colKeys,
-      rowAttrs,
-      colAttrs,
-      rowSubtotalDisplay,
-      colSubtotalDisplay,
-    } = basePivotSettings;
-
-    // Only collapse when subtotals are enabled and the requested depth sits
-    // above the deepest level (otherwise there is nothing to hide).
-    const initialCollapsedRows =
-      hasValidRowDepth &&
-      rowSubtotalDisplay.enabled &&
-      rowAttrs.length > 1 &&
-      rowDepth < rowAttrs.length
-        ? computeCollapsedMap(rowKeys, rowDepth, rowAttrs.length)
-        : {};
-    const initialCollapsedCols =
-      hasValidColDepth &&
-      colSubtotalDisplay.enabled &&
-      colAttrs.length > 1 &&
-      colDepth < colAttrs.length
-        ? computeCollapsedMap(colKeys, colDepth, colAttrs.length)
-        : {};
-
-    if (Object.keys(initialCollapsedRows).length > 0) {
-      setCollapsedRows(initialCollapsedRows);
-    }
-    if (Object.keys(initialCollapsedCols).length > 0) {
-      setCollapsedCols(initialCollapsedCols);
-    }
-  }, [basePivotSettings, defaultRowExpansionDepth, defaultColExpansionDepth]);
-
   // Reset sort state and cache when structural props change. Scoping this to
   // an effect (instead of running inside the memo) prevents the cache from
   // being wiped on unrelated state updates like collapse/expand.
@@ -966,17 +967,68 @@ export function TableRenderer(props: TableRendererProps) {
   const rowKeys = effectiveRowKeys;
 
   // Subtotal rows are the only prefixes default collapse may hide children
-  // under. A shorter key that was never produced (metric-only rollups are
-  // omitted for metrics-on-rows) must stay expanded.
-  const collapsibleRowPrefixes = useMemo(() => {
-    const prefixes = new Set<string>();
-    basePivotSettings.rowKeys.forEach(key => {
-      if (key.length > 0 && key.length < basePivotSettings.rowAttrs.length) {
-        prefixes.add(flatKey(key));
-      }
-    });
-    return prefixes;
-  }, [basePivotSettings]);
+  // under.
+  const collapsibleRowPrefixes = useMemo(
+    () =>
+      getCollapsiblePrefixes(
+        basePivotSettings.rowKeys,
+        basePivotSettings.rowAttrs.length,
+      ),
+    [basePivotSettings],
+  );
+
+  // Row prefixes collapsed by default. `collapseRows` collapses every group
+  // and overrides the depth; otherwise a depth applies only while subtotals
+  // are shown and there are levels below it to hide.
+  const defaultCollapsedRowPrefixes = useMemo(() => {
+    if (collapseRowsByDefault) {
+      return collapsibleRowPrefixes;
+    }
+    if (
+      rowExpansionDepth > 0 &&
+      rowSubtotalDisplay.enabled &&
+      rowAttrs.length > rowExpansionDepth
+    ) {
+      return getDefaultCollapsedPrefixes(
+        basePivotSettings.rowKeys,
+        rowExpansionDepth,
+        rowAttrs.length,
+        collapsibleRowPrefixes,
+      );
+    }
+    return NO_COLLAPSIBLE_PREFIXES;
+  }, [
+    collapseRowsByDefault,
+    collapsibleRowPrefixes,
+    rowExpansionDepth,
+    rowSubtotalDisplay.enabled,
+    rowAttrs.length,
+    basePivotSettings.rowKeys,
+  ]);
+  const collapseRowsInitially = defaultCollapsedRowPrefixes.size > 0;
+
+  // Column prefixes collapsed by default, from the column depth.
+  const defaultCollapsedColPrefixes = useMemo(() => {
+    if (
+      colExpansionDepth > 0 &&
+      colSubtotalDisplay.enabled &&
+      colAttrs.length > colExpansionDepth
+    ) {
+      return getDefaultCollapsedPrefixes(
+        basePivotSettings.colKeys,
+        colExpansionDepth,
+        colAttrs.length,
+        getCollapsiblePrefixes(basePivotSettings.colKeys, colAttrs.length),
+      );
+    }
+    return NO_COLLAPSIBLE_PREFIXES;
+  }, [
+    colExpansionDepth,
+    colSubtotalDisplay.enabled,
+    colAttrs.length,
+    basePivotSettings.colKeys,
+  ]);
+  const collapseColsInitially = defaultCollapsedColPrefixes.size > 0;
 
   // Need to account for exclusions to compute the effective row
   // and column keys.
@@ -985,16 +1037,16 @@ export function TableRenderer(props: TableRendererProps) {
     collapsedRows,
     rowAttrs.length,
     rowSubtotalDisplay,
-    collapseRowsByDefault,
-    collapsibleRowPrefixes,
+    collapseRowsInitially,
+    defaultCollapsedRowPrefixes,
   );
   const visibleColKeys = visibleKeys(
     colKeys,
     collapsedCols,
     colAttrs.length,
     colSubtotalDisplay,
-    false,
-    NO_COLLAPSIBLE_PREFIXES,
+    collapseColsInitially,
+    defaultCollapsedColPrefixes,
   );
 
   const pivotSettings: PivotSettings = {
@@ -1178,7 +1230,13 @@ export function TableRenderer(props: TableRendererProps) {
           const rowSpan =
             1 + (attrIdx === settingsColAttrs.length - 1 ? rowIncrSpan : 0);
           const flatColKey = flatKey(colKey.slice(0, attrIdx + 1));
-          const onArrowClick = needToggle ? toggleColKey(flatColKey) : null;
+          const onArrowClick = needToggle
+            ? toggleColKey(
+                flatColKey,
+                collapseColsInitially &&
+                  defaultCollapsedColPrefixes.has(flatColKey),
+              )
+            : null;
           const getSortIcon = (key: number) => {
             if (activeSortColumn !== key) {
               return (
@@ -1240,7 +1298,14 @@ export function TableRenderer(props: TableRendererProps) {
             >
               {displayHeaderCell(
                 needToggle,
-                collapsedCols[flatColKey] ? arrowCollapsed : arrowExpanded,
+                isEffectivelyCollapsed(
+                  colKey.slice(0, attrIdx + 1),
+                  collapsedCols,
+                  collapseColsInitially,
+                  defaultCollapsedColPrefixes,
+                )
+                  ? arrowCollapsed
+                  : arrowExpanded,
                 onArrowClick,
                 headerCellFormattedValue,
                 namesMapping,
@@ -1326,6 +1391,8 @@ export function TableRenderer(props: TableRendererProps) {
       activeSortColumn,
       sortingOrder,
       collapsedCols,
+      collapseColsInitially,
+      defaultCollapsedColPrefixes,
       sortData,
     ],
   );
@@ -1496,8 +1563,8 @@ export function TableRenderer(props: TableRendererProps) {
           const onArrowClick = needRowToggle
             ? toggleRowKey(
                 flatRowKeySlice,
-                collapseRowsByDefault &&
-                  collapsibleRowPrefixes.has(flatRowKeySlice),
+                collapseRowsInitially &&
+                  defaultCollapsedRowPrefixes.has(flatRowKeySlice),
               )
             : null;
 
@@ -1536,8 +1603,8 @@ export function TableRenderer(props: TableRendererProps) {
                 isEffectivelyCollapsed(
                   rowKey.slice(0, i + 1),
                   collapsedRows,
-                  collapseRowsByDefault,
-                  collapsibleRowPrefixes,
+                  collapseRowsInitially,
+                  defaultCollapsedRowPrefixes,
                 )
                   ? arrowCollapsed
                   : arrowExpanded,
@@ -1645,8 +1712,8 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       collapsedRows,
-      collapseRowsByDefault,
-      collapsibleRowPrefixes,
+      collapseRowsInitially,
+      defaultCollapsedRowPrefixes,
     ],
   );
 

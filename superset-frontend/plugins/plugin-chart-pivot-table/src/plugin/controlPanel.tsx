@@ -272,6 +272,7 @@ const config: ControlPanelConfig = {
               },
               visibility: ({ controls }) =>
                 !!controls?.rowSubTotals?.value &&
+                !controls?.collapseRows?.value &&
                 ensureIsArray(controls?.groupbyRows?.value).length > 1,
             },
           },
