@@ -520,19 +520,12 @@ msgstr[0] "pirms %s dienas"
 msgstr[1] "pirms %s dienām"
 msgstr[2] "pirms %s dienām"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "%s dependent asset is one you can't see. Ask an admin for help."
 msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
-msgstr[0] ""
-"%s atkarīgais resurss ir tāds, kuru jūs nevarat redzēt. Vērsieties pie "
-"administratora pēc palīdzības."
-msgstr[1] ""
-"%s atkarīgie resursi ir tādi, kurus jūs nevarat redzēt. Vērsieties pie "
-"administratora pēc palīdzības."
-msgstr[2] ""
-"%s atkarīgo resursu jūs nevarat redzēt. Vērsieties pie administratora pēc"
-" palīdzības."
+msgstr[0] "%s atkarīgais objekts Jums nav redzams. Lūdziet palīdzību administratoram."
+msgstr[1] "%s atkarīgie objekti Jums nav redzami. Lūdziet palīdzību administratoram."
+msgstr[2] "%s atkarīgo objektu Jums nav redzams. Lūdziet palīdzību administratoram."
 
 #, python-format
 msgid "%s field"
@@ -1306,8 +1299,6 @@ msgstr "Tiks izveidota jauna diagramma."
 msgid "A new dashboard will be created."
 msgstr "Tiks izveidots jauns infopanelis."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "A partition key must be a whole number within the 64-bit range."
 msgstr "Nodalījuma atslēgai jābūt veselam skaitlim 64 bitu diapazonā."
 
@@ -2526,8 +2517,7 @@ msgstr "Radās kļūda, ielādējot infopaneļa informāciju."
 msgid "An error occurred while loading the SQL"
 msgstr "Radās kļūda, ielādējot SQL"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while loading the dataset: %s"
 msgstr "Ielādējot datu kopu, radās kļūda: %s"
 
@@ -4048,10 +4038,8 @@ msgstr "Apskatiet šo diagrammu: "
 msgid "Check out this dashboard: "
 msgstr "Apskatiet šo infopaneli: "
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Check the value transform →"
-msgstr "Pārbaudiet vērtības transformāciju →"
+msgstr "Pārbaudīt vērtības transformāciju →"
 
 msgid "Check to force date partitions to have the same height"
 msgstr "Atzīmēt, lai datuma nodalījumiem piespiedu kārtā būtu vienāds augstums"
@@ -4065,14 +4053,12 @@ msgstr "Notiek to diagrammu un infopaneļu pārbaude, kas izmanto šo datu kopu�
 msgid "Checking for affected charts and dashboards…"
 msgstr "Notiek skarto diagrammu un infopaneļu pārbaude…"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "Checks up to 50 rows per selected partition. Sampling cannot verify every"
 " row or future ingestion."
 msgstr ""
-"Pārbauda līdz 50 rindām katrā atlasītajā nodalījumā. Paraugu ņemšana "
-"nevar pārbaudīt katru rindu vai turpmāko datu ielādi."
+"Pārbauda līdz 50 rindām katrā atlasītajā nodalījumā. Izlases veidā nevar "
+"pārbaudīt katru rindu vai turpmāk ielādētos datus."
 
 msgid "Child label position"
 msgstr "Pakārtotā apzīmējuma pozīcija"
@@ -4102,8 +4088,6 @@ msgstr "Izvēlieties jaunu paroli"
 msgid "Choose a number format"
 msgstr "Izvēlieties skaitļu formātu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Choose a semantic layer type to see its setup information."
 msgstr ""
 "Izvēlieties semantiskā slāņa veidu, lai skatītu tā iestatīšanas "
@@ -5041,15 +5025,11 @@ msgstr "Kopēt ar galvenēm"
 msgid "Corner Radius"
 msgstr "Stūra rādiuss"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Correct the mapping expression before validating data."
-msgstr "Pirms datu validēšanas izlabojiet kartēšanas izteiksmi."
+msgstr "Pirms datu validācijas izlabojiet kartējuma izteiksmi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Correct the value transform before validating against data."
-msgstr "Pirms validēšanas pret datiem izlabojiet vērtības transformāciju."
+msgstr "Pirms validācijas ar datiem izlabojiet vērtības transformāciju."
 
 msgid "Correlation"
 msgstr "Korelācija"
@@ -5248,8 +5228,6 @@ msgstr "Izveidot jaunu diagrammu"
 msgid "Create or select schema..."
 msgstr "Izveidot vai izvēlēties shēmu..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Create semantic layer"
 msgstr "Izveidot semantisko slāni"
 
@@ -5729,17 +5707,13 @@ msgstr "Dati atsvaidzināti"
 msgid "Data type"
 msgstr "Datu tips"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Data validation failed."
-msgstr "Datu validēšana neizdevās."
+msgstr "Datu validācija neizdevās."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Data validation requires physical columns and a numeric partition key."
 msgstr ""
-"Datu validēšanai nepieciešamas fiziskas kolonnas un skaitlisks partīcijas"
-" atslēgas lauks."
+"Datu validācijai nepieciešamas fiziskas kolonnas un skaitliska nodalījuma"
+" atslēga."
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame jāiekļauj vismaz viena sērija"
@@ -6658,13 +6632,9 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 msgid "Discard"
 msgstr "Atmest"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Discard the value transform?"
 msgstr "Vai atmest vērtības transformāciju?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Discard transform"
 msgstr "Atmest transformāciju"
 
@@ -7057,6 +7027,8 @@ msgstr "Dinamisks grupējums pēc"
 
 msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
 msgstr ""
+"Semantiskajos skatos dinamisks grupējums netiek atbalstīts. Noņemiet šo "
+"attēlošanas vadīklu, lai tā vairs netiktu glabāta."
 
 msgid "Dynamic section description"
 msgstr "Dinamiskās sadaļas apraksts"
@@ -7455,10 +7427,8 @@ msgstr "Ievadiet jaunu paroli"
 msgid "Enter a part of the object name"
 msgstr "Ievadiet daļu no objekta nosaukuma"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Enter a value transform before validating against data."
-msgstr "Pirms validēšanas pret datiem ievadiet vērtības transformāciju."
+msgstr "Pirms validācijas ar datiem ievadiet vērtības transformāciju."
 
 msgid "Enter alert name"
 msgstr "Ievadiet brīdinājuma nosaukumu"
@@ -7475,18 +7445,14 @@ msgstr "Ievadiet grupas nosaukumu"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Ievadiet minimālās un maksimālās vērtības diapazona filtram"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Enter one to three existing partition keys."
-msgstr "Ievadiet vienu līdz trīs esošas partīcijas atslēgas."
+msgstr "Ievadiet vienu līdz trīs esošas nodalījumu atslēgas."
 
 msgid "Enter report name"
 msgstr "Ievadiet atskaites nosaukumu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Enter stored epoch partition keys, not timestamps"
-msgstr "Ievadiet saglabātās epohas partīcijas atslēgas, nevis laikspiedolus"
+msgstr "Ievadiet glabātās nodalījumu atslēgas epoch formātā, nevis laikspiedolus"
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7608,12 +7574,11 @@ msgstr "Kļūda jinja izteiksmē RLS filtros: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Kļūda jinja izteiksmē WHERE klauzulā: %(msg)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
 msgstr "Kļūda jinja izteiksmē ad hoc SQL izteiksmē: %(msg)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Kļūda jinja izteiksmē ad hoc kolonnā: %(msg)s"
 
@@ -7773,15 +7738,11 @@ msgstr ""
 "Esošais minimums (sekundēs): %s. Rediģējot tas tiks aizstāts ar veselām "
 "minūtēm."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Existing partition keys"
-msgstr "Esošās partīcijas atslēgas"
+msgstr "Esošās nodalījumu atslēgas"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Existing partition keys (up to three, comma separated)"
-msgstr "Esošās partīcijas atslēgas (līdz trim, atdalītas ar komatiem)"
+msgstr "Esošās nodalījumu atslēgas (līdz trim, atdalītas ar komatu)"
 
 msgid "Exit edit mode"
 msgstr "Iziet no rediģēšanas režīma"
@@ -7980,10 +7941,8 @@ msgstr "Izteiksme"
 msgid "Expression cannot be empty"
 msgstr "Izteiksme nevar būt tukša"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Expression evaluated — data not checked"
-msgstr "Izteiksme novērtēta — dati nav pārbaudīti"
+msgstr "Izteiksme izvērtēta — dati nav pārbaudīti"
 
 #, python-format
 msgid ""
@@ -8463,32 +8422,26 @@ msgstr ""
 "Kartētās kolonnas filtri tiek spoguļoti uz šo kolonnu, lai dzinējs varētu"
 " izlaist nevajadzīgos nodalījumus."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
 msgstr ""
-"Filtri šajā kolonnā tiek piesaistīti partīcijas kolonnai, taču netiek "
-"atspoguļoti."
+"Šīs kolonnas filtri ir kartēti uz nodalījuma kolonnu, taču netiek "
+"spoguļoti."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "Filters on this column are mapped onto the partition column, but "
 "mirroring has not been confirmed."
 msgstr ""
-"Filtri šajā kolonnā tiek piesaistīti partīcijas kolonnai, taču "
-"atspoguļošana nav apstiprināta."
+"Šīs kolonnas filtri ir kartēti uz nodalījuma kolonnu, taču spoguļošana "
+"nav apstiprināta."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "Filters on this column are mapped onto the partition field, but with this"
 " transform they are not mirrored."
 msgstr ""
-"Filtri šajā kolonnā tiek piesaistīti partīcijas laukam, taču ar šo "
-"transformāciju tie netiek atspoguļoti."
+"Šīs kolonnas filtri ir kartēti uz nodalījuma lauku, taču ar šo "
+"transformāciju tie netiek spoguļoti."
 
 msgid "Filters on this column are mirrored onto the partition column."
 msgstr "Šīs kolonnas filtri tiek spoguļoti uz nodalījuma kolonnu."
@@ -8969,10 +8922,8 @@ msgstr ""
 msgid "Guest"
 msgstr "Viesis"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Guest user cannot access this query"
-msgstr "Viesa lietotājs nevar piekļūt šim vaicājumam"
+msgstr "Viesis nevar piekļūt šim vaicājumam"
 
 msgid "Guest user cannot modify chart payload"
 msgstr "Viesis nevar modificēt diagrammas datus"
@@ -9029,9 +8980,12 @@ msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"Slēpt kolonnas, kurās visas metriku vērtības ir NULL. Paturēt kolonnas, "
+"kurās ir nulles vai netukši kopsavilkumi. Tas nemaina kopsummas un "
+"procentus."
 
 msgid "Hide empty columns"
-msgstr ""
+msgstr "Slēpt tukšās kolonnas"
 
 msgid "Hide layer"
 msgstr "Slēpt slāni"
@@ -9059,6 +9013,9 @@ msgstr "Histogramma"
 
 msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
 msgstr ""
+"Hive šai tabulai prasa nodalījuma filtru. Pievienojiet filtru nodalījuma "
+"kolonnai vai laika diapazonu kolonnai ar derīgu nodalījuma kartējumu un "
+"mēģiniet vēlreiz."
 
 msgid "Home"
 msgstr "Sākums"
@@ -9306,7 +9263,7 @@ msgid "Inactive"
 msgstr "Neaktīvs"
 
 msgid "Include :value in the transform to represent the filter value."
-msgstr ""
+msgstr "Iekļaujiet transformācijā :value, kas apzīmē filtra vērtību."
 
 msgid "Include Series"
 msgstr "Iekļaut sērijas"
@@ -9620,8 +9577,7 @@ msgstr "Nederīgs stāvoklis."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Nederīgi cilņu ID: %(tab_ids)s"
 
-# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid temporal filter value for column %(column)s"
 msgstr "Nederīga laika filtra vērtība kolonnai %(column)s"
 
@@ -10290,15 +10246,11 @@ msgstr "Ielādē filtra vērtības"
 msgid "Loading historical version · %s"
 msgstr "Ielādē vēsturisko versiju · %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Loading semantic layer types…"
-msgstr "Notiek semantiskā slāņa veidu ielāde…"
+msgstr "Ielādē semantisko slāņu veidus…"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Loading semantic layers…"
-msgstr "Notiek semantisko slāņu ielāde…"
+msgstr "Ielādē semantiskos slāņus…"
 
 msgid "Loading timezones..."
 msgstr "Ielādē laika zonas..."
@@ -10569,13 +10521,12 @@ msgstr "Saskaņot laika nobīdes krāsu ar sākotnējo sēriju"
 msgid "Match type"
 msgstr "Atbilstības veids"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
 msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr[0] "Atbilst %(rows)s izlases rindas %(partitions)s nodalījumā"
-msgstr[1] "Atbilst %(rows)s izlases rindas %(partitions)s nodalījumos"
-msgstr[2] "Atbilst %(rows)s izlases rindas %(partitions)s nodalījumos"
+msgstr[0] "Atbilstošas izlases rindas: %(rows)s (%(partitions)s nodalījumā)"
+msgstr[1] "Atbilstošas izlases rindas: %(rows)s (%(partitions)s nodalījumos)"
+msgstr[2] "Atbilstošas izlases rindas: %(rows)s (%(partitions)s nodalījumos)"
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -11327,14 +11278,13 @@ msgstr "Nav pieejamu filtru."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr "Neviena diagramma vai infopanelis nav atkarīgs no atlasītā: %s."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "No checkable rows, or the query or transform failed, for partition keys: "
 "%(keys)s."
 msgstr ""
-"Nav pārbaudāmu rindu, vai arī vaicājums vai transformācija neizdevās "
-"šādām partīciju atslēgām: %(keys)s."
+"Šādām nodalījumu atslēgām nav pārbaudāmu rindu vai arī neizdevās "
+"vaicājums vai transformācija: %(keys)s."
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
@@ -11495,34 +11445,28 @@ msgstr "Nav saglabātas versijas, ko priekšskatīt"
 msgid "No selection modes are available for this control."
 msgstr "Šai vadīklai nav pieejams neviens atlases režīms."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "No semantic layer types are available. Ask your administrator to check "
 "the semantic layer setup for this deployment."
 msgstr ""
-"Nav pieejamu semantiskā slāņa tipu. Lūdziet administratoram pārbaudīt "
+"Nav pieejamu semantisko slāņu veidu. Lūdziet administratoram pārbaudīt "
 "semantiskā slāņa iestatījumus šajā izvietojumā."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "No semantic layers are available to you. A semantic layer connects your "
 "data to its business definitions. Create a semantic layer before adding a"
 " semantic view."
 msgstr ""
-"Jums nav pieejamu semantisko slāņu. Semantiskais slānis savieno jūsu "
-"datus ar to biznesa definīcijām. Izveidojiet semantisko slāni, pirms "
-"pievienojat semantisko skatu."
+"Jums nav pieejamu semantisko slāņu. Semantiskais slānis savieno Jūsu "
+"datus ar to biznesa definīcijām. Pirms semantiskā skata pievienošanas "
+"izveidojiet semantisko slāni."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
 msgstr ""
 "Jums nav pieejamu semantisko slāņu. Lūdziet administratoram iestatīt "
-"semantisko slāni vai piešķirt jums piekļuvi tam."
+"semantisko slāni vai piešķirt Jums piekļuvi kādam esošam slānim."
 
 msgid "No sort (original order)"
 msgstr "Bez kārtošanas (sākotnējā secība)"
@@ -12357,26 +12301,21 @@ msgstr "Nodalījuma lauks:"
 msgid "Partition filter mapping"
 msgstr "Nodalījuma filtra kartējums"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
 msgstr ""
-"Partīcijas atslēgām jābūt veseliem skaitļiem 64 bitu diapazonā, ne vairāk"
+"Nodalījumu atslēgām jābūt veseliem skaitļiem 64 bitu diapazonā, ne vairāk"
 " kā trīs."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Partition mismatch found"
-msgstr "Atrasta partīciju neatbilstība"
+msgstr "Atrasta nodalījumu neatbilstība"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "Partition pruning on %(mapped)s has not been confirmed. Preview its value"
 " transform to check it."
 msgstr ""
-"Partīciju atlase ar %(mapped)s nav apstiprināta. Priekšskatiet tās "
-"vērtības transformāciju, lai to pārbaudītu."
+"Nodalījumu atlase kolonnai %(mapped)s nav apstiprināta. Priekšskatiet tās"
+" vērtības transformāciju, lai to pārbaudītu."
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12873,7 +12812,7 @@ msgid "Preview"
 msgstr "Priekšskatīt"
 
 msgid "Preview temporarily unavailable"
-msgstr ""
+msgstr "Priekšskatījums īslaicīgi nav pieejams"
 
 msgid "Preview this version"
 msgstr "Priekšskatīt šo versiju"
@@ -13109,27 +13048,22 @@ msgstr "Ranžēšana"
 msgid "Ratio"
 msgstr "Attiecība"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "Raw epoch conversion does not specify the partition bucket. Use the "
 "expression that populates the partition key, including its hour or day "
 "rounding and timezone. Filters will not be mirrored."
 msgstr ""
-"Neapstrādāta epohas konvertēšana nenorāda partīcijas grozu. Izmantojiet "
-"izteiksmi, kas aizpilda partīcijas atslēgu, ieskaitot tās noapaļošanu uz "
-"stundu vai dienu un laika joslu. Filtri netiks atspoguļoti."
+"Neapstrādāta epoch konvertēšana nenorāda nodalījuma intervālu. "
+"Izmantojiet izteiksmi, ar kuru tiek aizpildīta nodalījuma atslēga, "
+"tostarp tās noapaļošanu līdz stundai vai dienai un laika joslu. Filtri "
+"netiks spoguļoti."
 
 msgid "Raw records"
 msgstr "Neapstrādāti ieraksti"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Re-pick fields"
 msgstr "Atkārtoti izvēlēties laukus"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "Atkārtoti izvēlēties laukus šai diagrammai"
 
@@ -14194,10 +14128,8 @@ msgstr "Saglabājiet vai atmetiet nesaglabātās izmaiņas, lai atjaunotu versij
 msgid "Save query"
 msgstr "Saglabāt vaicājumu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Save the dataset before validating against data."
-msgstr "Saglabājiet datu kopu pirms validēšanas pret datiem."
+msgstr "Pirms validācijas ar datiem saglabājiet datu kopu."
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -14975,12 +14907,9 @@ msgstr "Semantiskais slānis neeksistē"
 msgid "Semantic layer parameters are invalid."
 msgstr "Semantiskā slāņa parametri nav derīgi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Semantic layer setup guide"
 msgstr "Semantiskā slāņa iestatīšanas rokasgrāmata"
 
-#, fuzzy
 msgid "Semantic layer type"
 msgstr "Semantiskā slāņa veids"
 
@@ -15895,12 +15824,9 @@ msgstr "Avota kategorija"
 msgid "Source location"
 msgstr "Avota atrašanās vieta"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
-msgstr ""
-"Avots: %(source)s; saglabātā atslēga: %(stored)s; transformācija: "
-"%(actual)s"
+msgstr "Avots: %(source)s; glabātā atslēga: %(stored)s; transformācija: %(actual)s"
 
 msgid "Sparkline"
 msgstr "Dzirkstlīnija"
@@ -17364,6 +17290,16 @@ msgid ""
 "specified we fall back to using the optional defaults on a per "
 "database/column name level via the extra parameter."
 msgstr ""
+"Laikspiedola formāta šablons. Virknēm izmantojiet [Python datetime "
+"virknes šablona](%(python_url)s) izteiksmi, kurai jāatbilst [ISO "
+"8601](%(iso_url)s) standartam, lai leksikogrāfiskā secība sakristu ar "
+"hronoloģisko secību. Ja laikspiedola formāts neatbilst ISO 8601 "
+"standartam, Jums jādefinē izteiksme un tips, kas pārveido virkni par "
+"datumu vai laikspiedolu. Ņemiet vērā, ka laika joslas pašlaik netiek "
+"atbalstītas. Ja laiks tiek glabāts epoch formātā, norādiet `epoch_s`, "
+"`epoch_ms` vai `epoch_us`. Ja šablons nav norādīts, tiek izmantoti "
+"neobligātie noklusējumi datubāzes/kolonnas nosaukuma līmenī, kas norādīti"
+" extra parametrā."
 
 msgid ""
 "The periodicity over which to pivot time. Each period becomes\n"
@@ -17413,7 +17349,7 @@ msgid "The port number is invalid."
 msgstr "Porta numurs nav derīgs."
 
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "Priekšskatījumu nevarēja ielādēt. Mēģiniet vēlreiz."
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Primārā metrika tiek izmantota loka segmentu izmēru noteikšanai"
@@ -17508,14 +17444,13 @@ msgstr "Pārējie vienumi (%s) tiks pārvietoti uz sadaļu \"Nesen arhivētie\".
 msgid "The report has been created"
 msgstr "Atskaite ir izveidota"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "The report runs as %(username)s, who cannot access its %(kind)s: "
 "%(reason)s"
 msgstr ""
-"Atskaite tiek izpildīta kā %(username)s, kuram nav piekļuves tās "
-"%(kind)s: %(reason)s"
+"Atskaite tiek izpildīta kā lietotājs %(username)s, kuram nav piekļuves "
+"tās objektam (%(kind)s): %(reason)s"
 
 msgid "The report will be sent to your email at"
 msgstr "Atskaite tiks nosūtīta uz Jūsu e-pastu"
@@ -17807,10 +17742,8 @@ msgstr ""
 "spoguļoti. Uzrakstiet transformāciju tā, lai tā nolasītu :value gan kā "
 "laikspiedolu, gan kā tekstu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "The transform does not match the stored partition keys."
-msgstr "Transformācija neatbilst saglabātajām partīciju atslēgām."
+msgstr "Transformācija neatbilst glabātajām nodalījumu atslēgām."
 
 #, python-format
 msgid ""
@@ -17826,14 +17759,16 @@ msgstr ""
 "pareiza abiem; šī kartējuma filtri netiks spoguļoti. Uzrakstiet "
 "transformāciju tā, lai tā :value nolasītu vienādi abās formās."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Transformācija atbilda izlases rindām, nevis visai datu kopai."
 
 #, python-format
 msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
+"Transformācija kolonnai %(column)s atgrieza %(returned)s, kas ir "
+"%(kind)s. Šī kartējuma spoguļotie filtri datubāzē neizdotos. Atgrieziet "
+"vērtību, kas ir saderīga ar %(type)s; ja nepieciešams, izmantojiet "
+"transformācijā skaidri norādītu CAST."
 
 #, python-format
 msgid ""
@@ -17847,6 +17782,8 @@ msgstr ""
 
 msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
 msgstr ""
+"Transformācija vienai vai vairākām priekšskatījuma vērtībām atgrieza "
+"NULL, tāpēc nodalījuma filtrs netika ģenerēts."
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Abas ievadītās paroles nesakrīt!"
@@ -17882,17 +17819,16 @@ msgstr "Lietotājs ir veiksmīgi izveidots."
 msgid "The user has been updated successfully."
 msgstr "Lietotājs ir veiksmīgi atjaunināts."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "The user this report runs as cannot access this %(kind)s. Choose a "
 "%(kind)s that user can access, or ask an admin to change who the report "
 "runs as."
 msgstr ""
-"Lietotājs, kura vārdā šis ziņojums tiek izpildīts, nevar piekļūt šim "
+"Lietotājs, kura vārdā šī atskaite tiek izpildīta, nevar piekļūt šim "
 "objektam (%(kind)s). Izvēlieties objektu (%(kind)s), kuram šis lietotājs "
-"var piekļūt, vai lūdziet administratoram mainīt, kā vārdā ziņojums tiek "
-"izpildīts."
+"var piekļūt, vai lūdziet administratoram mainīt lietotāju, kura vārdā "
+"atskaite tiek izpildīta."
 
 msgid "The user was updated successfully"
 msgstr "Lietotājs veiksmīgi atjaunināts"
@@ -17940,10 +17876,14 @@ msgstr ""
 
 msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Vērtības transformāciju nevarēja parsēt. Izlabojiet izteiksmi, lai to "
+"priekšskatītu. Kamēr tā ir nederīga, filtri netiks spoguļoti."
 
 #, python-format
 msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Vērtības transformāciju nevarēja parsēt: %(detail)s Izlabojiet izteiksmi,"
+" lai to priekšskatītu. Kamēr tā ir nederīga, filtri netiks spoguļoti."
 
 msgid ""
 "The value transform must contain the :value placeholder, which stands for"
@@ -18453,23 +18393,20 @@ msgstr ""
 "Tā var būt IP adrese (piem., 127.0.0.1) vai domēna nosaukums (piem., "
 "mydatabase.com)."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "This cannot be undone."
 msgstr "Šo darbību nevar atsaukt."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This change discards the value transform on %s. Once you save, filters on"
 " %s will no longer be applied to the partition column, so charts on this "
 "dataset can scan every partition and time out. Selecting %s again will "
 "not restore the transform."
 msgstr ""
-"Šīs izmaiņas atmet vērtības transformāciju objektam %s. Pēc saglabāšanas "
-"filtri objektam %s vairs netiks lietoti partīciju kolonnai, tāpēc šīs "
-"datu kopas diagrammas var skenēt katru partīciju un beigties to laikam. "
-"Atkārtota %s atlase transformāciju neatjaunos."
+"Šī izmaiņa atmet vērtības transformāciju kolonnai %s. Pēc saglabāšanas "
+"filtri kolonnai %s vairs netiks piemēroti nodalījuma kolonnai, tāpēc šīs "
+"datu kopas diagrammas var skenēt visus nodalījumus un pārsniegt noildzi. "
+"Atkārtoti atlasot %s, transformācija netiks atjaunota."
 
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
@@ -18518,8 +18455,6 @@ msgstr ""
 "skats ir neatgriezeniski dzēsts. Atjaunojiet versiju, kas izmanto esošu "
 "semantisko skatu vai datu kopu, vai izveidojiet diagrammu no jauna."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "This chart was saved with an older format of field names for this "
 "semantic view, so the fields it refers to can't be confirmed. Re-pick the"
@@ -18754,8 +18689,6 @@ msgstr ""
 "Šis filtrs ātrākiem vaicājumiem tiek piemērots arī nodalījuma kolonnai. "
 "Ģenerēto SQL skatiet sadaļā \"Skatīt vaicājumu\"."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "This filter isn't applied to any charts yet"
 msgstr "Šis filtrs vēl netiek piemērots nevienai diagrammai"
 
@@ -18917,16 +18850,15 @@ msgstr ""
 "Lūdzu, pārbaudiet tās, pēc tam apstipriniet šo paziņojumu vai saglabājiet"
 " diagrammu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
 " a %(kind)s that user can access, or a different user to run the report "
 "as."
 msgstr ""
-"Šis ziņojums tiek palaists kā %(username)s, kuram nav piekļuves šim "
-"%(kind)s. Izvēlieties %(kind)s, kuram šis lietotājs var piekļūt, vai citu"
-" lietotāju, kura vārdā palaist ziņojumu."
+"Šī atskaite tiek izpildīta kā lietotājs %(username)s, kuram nav piekļuves"
+" šim objektam (%(kind)s). Izvēlieties objektu (%(kind)s), kuram šis "
+"lietotājs var piekļūt, vai citu lietotāju, kura vārdā izpildīt atskaiti."
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -19368,6 +19300,8 @@ msgstr ""
 
 msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
+"Pārāk daudz priekšskatījuma pieprasījumu. Uzgaidiet brīdi un mēģiniet "
+"vēlreiz."
 
 msgid "Too many requests. Please wait and try again."
 msgstr "Pārāk daudz pieprasījumu. Lūdzu, uzgaidiet un mēģiniet vēlreiz."
@@ -19559,8 +19493,6 @@ msgstr "Uzticēties šim URL un vairs nejautāt"
 msgid "Try a different search term"
 msgstr "Izmēģiniet citu meklēšanas frāzi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Try again"
 msgstr "Mēģināt vēlreiz"
 
@@ -19771,31 +19703,25 @@ msgstr "Nevar ielādēt atlasītās tabulas kolonnas."
 msgid "Unable to load dashboard"
 msgstr "Nevar ielādēt infopaneli"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "Unable to load semantic layer types. Try again or ask your administrator "
 "for help."
 msgstr ""
-"Neizdevās ielādēt semantisko slāņu veidus. Mēģiniet vēlreiz vai "
-"vērsieties pie sava administratora."
+"Nevar ielādēt semantisko slāņu veidus. Mēģiniet vēlreiz vai lūdziet "
+"palīdzību administratoram."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "Unable to load semantic layers. Try again or ask your administrator for "
 "help."
 msgstr ""
-"Neizdevās ielādēt semantiskos slāņus. Mēģiniet vēlreiz vai vērsieties pie"
-" sava administratora."
+"Nevar ielādēt semantiskos slāņus. Mēģiniet vēlreiz vai lūdziet palīdzību "
+"administratoram."
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr "Nevar ielādēt brīdinājumu un atskaišu konfigurāciju."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Unable to load the selected dataset"
-msgstr "Neizdevās ielādēt izvēlēto datu kopu"
+msgstr "Nevar ielādēt atlasīto datu kopu"
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -20289,10 +20215,8 @@ msgstr "Izmanto pirmās 25 vērtības, ja dimensijai ir vairāk."
 msgid "Valid SQL expression"
 msgstr "Derīga SQL izteiksme"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Validate against data"
-msgstr "Validēt pret datiem"
+msgstr "Validēt ar datiem"
 
 msgid "Validate query"
 msgstr "Pārbaudīt vaicājumu"
@@ -20307,10 +20231,8 @@ msgstr "Pārbauda %s savienojamību"
 msgid "Validating..."
 msgstr "Pārbauda..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "Validation inconclusive"
-msgstr "Validācija nav pārliecinoša"
+msgstr "Validācijas rezultāts nav viennozīmīgs"
 
 msgid "Value"
 msgstr "Vērtība"
@@ -21914,8 +21836,6 @@ msgstr "dažām sekundēm"
 msgid "aggregate"
 msgstr "apkopojums"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "alert"
 msgstr "brīdinājums"
 
@@ -21934,8 +21854,7 @@ msgstr "arī kopēt (dublēt) diagrammas"
 msgid "ancestor"
 msgstr "priekštecis"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "and %s more"
 msgstr "un vēl %s"
 
@@ -21948,10 +21867,9 @@ msgstr "anotāciju slānis"
 msgid "apple"
 msgstr "ābols"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "archived %s"
-msgstr "arhivēts %s"
+msgstr "arhivēts objekts: %s"
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -22618,13 +22536,9 @@ msgstr "vaicājumi"
 msgid "query"
 msgstr "vaicājums"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "query_context must be a JSON object"
 msgstr "query_context jābūt JSON objektam"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "query_context must be valid JSON"
 msgstr "query_context jābūt derīgam JSON"
 
@@ -22810,7 +22724,7 @@ msgstr "nezināma veida ikona"
 
 #, python-format
 msgid "unmatched parenthesis at position %(position)d."
-msgstr ""
+msgstr "neaizvērta iekava pozīcijā %(position)d."
 
 msgid "unset"
 msgstr "nav iestatīts"
@@ -22827,6 +22741,8 @@ msgstr ""
 
 msgid "use a single SQL expression; this transform contains multiple expressions."
 msgstr ""
+"izmantojiet vienu SQL izteiksmi; šī transformācija satur vairākas "
+"izteiksmes."
 
 msgid "use latest_partition template"
 msgstr "izmantot latest_partition veidni"
