@@ -43,6 +43,7 @@ from superset.exceptions import (
 from superset.extensions import (
     security_manager,
 )
+from superset.semantic_layers.chart_types import validate_semantic_chart_type
 from superset.tasks.ambient_context import get_context
 from superset.tasks.decorators import task
 from superset.tasks.query_cancel import (
@@ -452,6 +453,11 @@ def execute_chart_query(
 
     with override_user(_resolve_user(user_id, guest_token), force=False):
         query_context = load_serialized_query(serialized_query)
+        if query_context.datasource.type == "semantic_view":
+            viz_type: object = (query_context.form_data or {}).get("viz_type")
+            if not viz_type and query_context.slice_ is not None:
+                viz_type = query_context.slice_.viz_type
+            validate_semantic_chart_type(query_context.datasource.type, viz_type)
         # Re-establish ``g.form_data`` from the serialized payload. There is no
         # request context in the worker, and Jinja helpers (``filter_values``,
         # ``url_param``, ``get_filters``) resolve form data from ``g`` via
