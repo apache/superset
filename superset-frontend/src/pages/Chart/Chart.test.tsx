@@ -184,9 +184,9 @@ describe('ChartPage', () => {
     expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
       'is_access_denial',
     );
-    // The chart name also renders in a screen-reader-only page heading
-    // (WCAG 2.4.6), so it is expected to appear more than once.
-    expect(getAllByText(expectedChartName).length).toBeGreaterThan(0);
+    // The chart name renders in the editable title and in the
+    // screen-reader-only page heading (WCAG 2.4.6).
+    expect(getAllByText(expectedChartName)).toHaveLength(2);
   });
 
   test('keeps the request-access path for an API that predates is_access_denial', async () => {
@@ -229,9 +229,9 @@ describe('ChartPage', () => {
       () => expect(fetchMock.callHistory.calls(chartApiRoute).length).toBe(1),
       { timeout: 5000 },
     );
-    // The chart name also renders in a screen-reader-only page heading
-    // (WCAG 2.4.6), so it is expected to appear more than once.
-    expect(getAllByText(expectedChartName).length).toBeGreaterThan(0);
+    // The chart name renders in the editable title and in the
+    // screen-reader-only page heading (WCAG 2.4.6).
+    expect(getAllByText(expectedChartName)).toHaveLength(2);
     // the legacy payload still must not name the dataset in Explore's state
     expect(getByTestId('mock-explore-chart-panel')).not.toHaveTextContent(
       'Quarterly Sales',

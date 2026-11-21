@@ -102,8 +102,12 @@ const StyledContainer = styled.div`
     padding-right: ${theme.padding}px;
     padding-bottom: ${theme.padding}px;
 
-    h1 {
+    h1,
+    h3 {
       padding-bottom: ${theme.paddingSM}px;
+    }
+
+    h1 {
       margin: ${theme.marginMD}px 0;
       font-size: ${theme.fontSizeLG}px;
     }
