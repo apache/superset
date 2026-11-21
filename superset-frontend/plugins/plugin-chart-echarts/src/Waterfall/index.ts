@@ -18,7 +18,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -32,7 +32,6 @@ import example2Dark from './images/example2-dark.png';
 import example3Dark from './images/example3-dark.png';
 import { EchartsWaterfallChartProps, EchartsWaterfallFormData } from './types';
 
-// TODO: Implement cross filtering
 export default class EchartsWaterfallChartPlugin extends ChartPlugin<
   EchartsWaterfallFormData,
   EchartsWaterfallChartProps
@@ -64,6 +63,11 @@ export default class EchartsWaterfallChartPlugin extends ChartPlugin<
           { url: example1, urlDark: example1Dark },
           { url: example2, urlDark: example2Dark },
           { url: example3, urlDark: example3Dark },
+        ],
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         name: t('Waterfall Chart'),
         tags: [t('Categorical'), t('Comparison'), t('ECharts'), t('Featured')],

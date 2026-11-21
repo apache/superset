@@ -58,6 +58,52 @@ interface AdhocFilterInput {
   [key: string]: unknown;
 }
 
+/** Display name for an adhoc column that has no dataset `column_name`. */
+export function subjectForPill(
+  subject: AdhocFilterInput['subject'],
+): string | undefined {
+  if (!subject || typeof subject !== 'object' || subject.column_name) {
+    return undefined;
+  }
+  return typeof subject.label === 'string' ? subject.label : undefined;
+}
+
+/**
+ * A drilled time bucket is stored as epoch milliseconds. Show it as a naive
+ * datetime so the pill matches the SQL the bucket actually filters.
+ */
+function formattedBucketComparator(filter: {
+  comparator?: unknown;
+  timeGrain?: string;
+}): string | undefined {
+  const { comparator, timeGrain } = filter;
+  if (
+    timeGrain &&
+    typeof comparator === 'number' &&
+    Number.isFinite(comparator)
+  ) {
+    return new Date(comparator).toISOString().slice(0, 19);
+  }
+  return undefined;
+}
+
+/** Drop the bucket metadata an edit no longer applies to the expression. */
+function subjectWithoutBucket(
+  subject: AdhocFilterInput['subject'],
+): AdhocFilterInput['subject'] {
+  if (
+    !subject ||
+    typeof subject !== 'object' ||
+    (!('timeGrain' in subject) && !('columnType' in subject))
+  ) {
+    return subject;
+  }
+  const next = { ...subject };
+  delete next.timeGrain;
+  delete next.columnType;
+  return next;
+}
+
 export default class AdhocFilter {
   expressionType: string;
   subject?: string | { column_name?: string; [key: string]: unknown } | null;
@@ -138,7 +184,9 @@ export default class AdhocFilter {
 
   duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
     // A changed bucket predicate becomes an ordinary filter. Metadata-only
-    // updates and unchanged duplicates retain the drill's grain.
+    // updates and unchanged duplicates retain the drill's grain. Grain left
+    // on an adhoc subject would keep truncating the expression after the
+    // outer timeGrain is cleared.
     const preservesBucket =
       (!('subject' in nextFields) || nextFields.subject === this.subject) &&
       (!('operator' in nextFields) || nextFields.operator === this.operator) &&
@@ -149,7 +197,9 @@ export default class AdhocFilter {
     // Spread class properties as plain object for constructor input
     const currentFields: AdhocFilterInput = {
       expressionType: this.expressionType,
-      subject: this.subject,
+      subject: preservesBucket
+        ? this.subject
+        : subjectWithoutBucket(this.subject),
       operator: this.operator,
       operatorId: this.operatorId,
       comparator: this.comparator,
@@ -211,7 +261,19 @@ export default class AdhocFilter {
   }
 
   getDefaultLabel(columns?: VerboseColumn[]): string {
-    const label = this.translateToSql({ columns });
+    const pillLabel = subjectForPill(this.subject);
+    const formatted = formattedBucketComparator(this);
+    // The core type says a binary comparator is a string. A drilled bucket is
+    // still an epoch number at runtime, so the formatted value has to be
+    // asserted back onto the filter.
+    const base: CoreAdhocFilter = formatted
+      ? ({
+          ...(this as unknown as CoreAdhocFilter),
+          comparator: formatted,
+        } as unknown as CoreAdhocFilter)
+      : (this as unknown as CoreAdhocFilter);
+    const source = pillLabel ? { ...base, subject: pillLabel } : base;
+    const label = translateToSql(source, { columns });
     const displayLabel = this.timeGrain
       ? `[${this.timeGrain}] ${label}`
       : label;
@@ -226,14 +288,8 @@ export default class AdhocFilter {
   }
 
   translateToSql(params: { columns?: VerboseColumn[] } = {}): string {
-    const { comparator, timeGrain } = this;
-    const filter =
-      timeGrain && typeof comparator === 'number' && Number.isFinite(comparator)
-        ? {
-            ...this,
-            comparator: new Date(comparator).toISOString().slice(0, 19),
-          }
-        : this;
+    const formatted = formattedBucketComparator(this);
+    const filter = formatted ? { ...this, comparator: formatted } : this;
     return translateToSql(filter as unknown as CoreAdhocFilter, params);
   }
 }
