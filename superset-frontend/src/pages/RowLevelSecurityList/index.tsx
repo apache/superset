@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -49,6 +50,34 @@ import {
 } from 'src/views/CRUD/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
+
+/**
+ * The name cell's own row.
+ *
+ * The column carries antd's `ellipsis`, which is `overflow: hidden` and
+ * `text-overflow: ellipsis` on the cell: left inline, a contributed view sits
+ * inside that clipped single line and a long rule name pushes it out of sight.
+ * The name keeps the truncation -- `min-width: 0` is what lets a flex item
+ * shrink below its content -- and the view keeps its own box.
+ */
+const NameCell = styled.div`
+  align-items: center;
+  display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+
+  .rls-name-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .rls-name-extension {
+    flex-shrink: 0;
+  }
+`;
 
 interface RLSProps {
   addDangerToast: (msg: string) => void;
@@ -140,6 +169,20 @@ function RowLevelSecurityList(props: RLSProps) {
     () => [
       {
         accessor: 'name',
+        // The accessor stays, so sorting and filtering are unchanged; the cell
+        // renders the same text and makes room beside it for a contributed
+        // view -- a rule held for review has to say so where it is listed.
+        Cell: ({ row: { original } }: any) => (
+          <NameCell>
+            <span className="rls-name-text">{original.name}</span>
+            <span className="rls-name-extension">
+              <ViewListExtension
+                viewId={ViewLocations.listView.rls.nameCell}
+                viewProps={{ assetId: original.id }}
+              />
+            </span>
+          </NameCell>
+        ),
         Header: t('Name'),
         layout: 'title',
         id: 'name',
@@ -220,6 +263,10 @@ function RowLevelSecurityList(props: RLSProps) {
                     <>
                       {t('Are you sure you want to delete')}{' '}
                       <b>{original.name}</b>
+                      <ViewListExtension
+                        viewId={ViewLocations.listView.rls.deleteConfirmation}
+                        viewProps={{ assetId: original.id }}
+                      />
                     </>
                   }
                   onConfirm={handleDelete}
@@ -240,6 +287,10 @@ function RowLevelSecurityList(props: RLSProps) {
                   )}
                 </ConfirmStatusChange>
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.rls.actions}
+                viewProps={{ assetId: original.id }}
+              />
             </div>
           );
         },

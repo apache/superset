@@ -79,6 +79,19 @@ export const ViewLocations = {
       actions: 'listView.dataset.actions',
       deleteConfirmation: 'listView.dataset.deleteConfirmation',
     },
+    rls: {
+      nameCell: 'listView.rls.nameCell',
+      actions: 'listView.rls.actions',
+      deleteConfirmation: 'listView.rls.deleteConfirmation',
+    },
+  },
+  /**
+   * A row-level security rule is created and edited in a modal rather than on
+   * a page of its own, so the rule form is this surface's own region and not
+   * one of the list's cells.
+   */
+  rls: {
+    ruleForm: 'rls.ruleForm',
   },
   navbar: {
     right: 'navbar.right',

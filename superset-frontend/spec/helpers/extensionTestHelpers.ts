@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ReactElement } from 'react';
+import type { ComponentType } from 'react';
 import { views, menus, commands } from 'src/core';
 import { resetContributions } from 'src/core/commands';
 
@@ -34,14 +34,19 @@ export const cleanupExtensions = () => {
 
 /**
  * Registers a test view at a given location and tracks it for cleanup.
+ *
+ * Generic over the props, like `views.registerView` itself: most locations
+ * render their component with nothing, but the ones that render the same
+ * registration once per row or per rule hand it the asset it is beside, and
+ * a test of those has to be able to register a component that takes it.
  */
-export const registerTestView = (
+export const registerTestView = <Props = Record<string, never>>(
   location: string,
   id: string,
   name: string,
-  provider: () => ReactElement,
+  provider: ComponentType<Props>,
 ) => {
-  const disposable = views.registerView({ id, name }, location, provider);
+  const disposable = views.registerView<Props>({ id, name }, location, provider);
   disposables.push(disposable);
   return disposable;
 };

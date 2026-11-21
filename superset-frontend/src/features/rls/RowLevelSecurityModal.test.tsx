@@ -25,6 +25,11 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import {
+  registerTestView,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+import { ViewLocations } from 'src/core/viewLocations';
 import RowLevelSecurityModal, {
   RowLevelSecurityModalProps,
 } from './RowLevelSecurityModal';
@@ -311,5 +316,52 @@ describe('Rule modal', () => {
       },
       { timeout: 10000 },
     );
+  });
+  describe('contributed views', () => {
+    afterEach(() => {
+      cleanupExtensions();
+    });
+
+    test('renders a contributed view above the form when adding a rule', async () => {
+      registerTestView(
+        ViewLocations.rls.ruleForm,
+        'test.rls.ruleForm.add',
+        'Rule form',
+        ({ assetId }: any) => <span>{`form-${assetId}`}</span>,
+      );
+      await renderAndWait(addNewRuleDefaultProps);
+
+      // A rule being added has no id yet, which is what tells a contributed
+      // view it is looking at a creation rather than an edit.
+      expect(screen.getByText('form-undefined')).toBeInTheDocument();
+    });
+
+    test('hands a contributed view the rule id when editing', async () => {
+      registerTestView(
+        ViewLocations.rls.ruleForm,
+        'test.rls.ruleForm.edit',
+        'Rule form',
+        ({ assetId }: any) => <span>{`form-${assetId}`}</span>,
+      );
+      await renderAndWait({
+        ...addNewRuleDefaultProps,
+        rule: {
+          id: 1,
+          name: 'test rule',
+          filter_type: FilterType.Base,
+          tables: [{ id: 1, table_name: 'birth_names' }],
+          subjects: [],
+        },
+      });
+
+      expect(await screen.findByText('form-1')).toBeInTheDocument();
+    });
+
+    test('renders the form unchanged when nothing is registered', async () => {
+      await renderAndWait(addNewRuleDefaultProps);
+
+      expect(screen.getByText('Add Rule')).toBeInTheDocument();
+      expect(screen.getByTestId('rule-name-test')).toBeInTheDocument();
+    });
   });
 });

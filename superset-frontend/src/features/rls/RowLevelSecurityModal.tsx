@@ -37,6 +37,8 @@ import SubjectPicker, {
   normalizeSubjectsToPickerValues,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import { FILTER_OPTIONS } from './constants';
 import { FilterType, RLSObject, TableObject } from './types';
 
@@ -358,6 +360,18 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       }
     >
       <StyledSectionContainer>
+        {/* Above the form rather than beside a field: what a contributed view
+            has to say here is about the rule as a whole -- that it is held for
+            review, or that saving will hold it -- and the reader needs that
+            before they start editing, not after.
+
+            `assetId` is the only prop, and it is absent while a rule is being
+            added, which is what tells a view it is looking at a creation.
+            Nothing else is passed, because nothing else cannot be derived. */}
+        <ViewListExtension
+          viewId={ViewLocations.rls.ruleForm}
+          viewProps={{ assetId: currentRule?.id }}
+        />
         <div className="main-section">
           <StyledInputContainer>
             <LabeledErrorBoundInput
