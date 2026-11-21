@@ -5137,3 +5137,57 @@ def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
     assert [call.args[0].port for call in build.call_args_list] == [40001, 40002]
     read.assert_not_called()
     write.assert_not_called()
+
+
+@pytest.mark.parametrize("recycle_pool", [False, True])
+@pytest.mark.parametrize("elapsed", [3600, 3 * 24 * 3600])
+def test_default_schema_old_worker_does_not_overwrite_new_discovery(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    elapsed: int,
+    recycle_pool: bool,
+) -> None:
+    """An engine warmed by ordinary queries cannot publish expired discovery."""
+    from superset.models.core import _retire_cached_engines
+
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0, create=True)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as old_engine:
+        sqlalchemy.inspect(old_engine)
+        old_engine.dialect.default_schema_name = "old"
+    _retire_cached_engines(database.id)
+    clock.return_value = elapsed
+    with database.get_sqla_engine() as new_engine:
+        sqlalchemy.inspect(new_engine)
+        new_engine.dialect.default_schema_name = "new"
+    if recycle_pool:
+        old_engine.dispose()
+        sqlalchemy.inspect(old_engine)
+    write = mocker.spy(shared_default_schema_cache, "set")
+    assert database.get_default_schema_from_engine(None) == "new"
+    key = write.call_args.args[0]
+    mocker.patch.object(
+        database, "get_sqla_engine", return_value=nullcontext(old_engine)
+    )
+    assert database.get_default_schema_from_engine(None) == "old"
+    assert shared_default_schema_cache.get(key) == "new"
+    write.assert_called_once()
+
+
+def test_default_schema_unsuccessful_publication_retries(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """A false cache write result must not mark the engine as published."""
+    cache = shared_default_schema_cache
+    real_set = cache.set
+    write = mocker.patch.object(cache, "set", return_value=False)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    assert database.get_default_schema_from_engine(None) == "main"
+    key = write.call_args.args[0]
+    assert cache.get(key) is None
+    write.side_effect = real_set
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert cache.get(key) == "main"
+    assert write.call_count == 2
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert write.call_count == 2

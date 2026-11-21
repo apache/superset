@@ -39,6 +39,7 @@ from contextlib import (
 from copy import deepcopy
 from functools import lru_cache
 from inspect import signature
+from time import monotonic
 from typing import (
     Any,
     Callable,
@@ -145,6 +146,9 @@ _ENGINE_CACHE_LOCK = threading.Lock()
 _DEFAULT_SCHEMA_CACHE_TIMEOUT = 3600
 # Publish once per engine so a long-lived dialect cannot renew stale discovery.
 _DEFAULT_SCHEMA_PUBLISHED_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
+_DEFAULT_SCHEMA_DISCOVERED_AT: weakref.WeakKeyDictionary[Engine, float] = (
+    weakref.WeakKeyDictionary()
+)
 _DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
@@ -1014,6 +1018,19 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     }
                 )
             )
+        engine_ref = weakref.ref(engine)
+
+        def record_first_connect(
+            _dbapi_connection: object, _connection_record: object
+        ) -> None:
+            """Bound shared discovery's age even when normal queries warm the engine."""
+            if connected_engine := engine_ref():
+                with _DEFAULT_SCHEMA_CACHE_LOCK:
+                    _DEFAULT_SCHEMA_DISCOVERED_AT.setdefault(
+                        connected_engine, monotonic()
+                    )
+
+        sqla.event.listen(engine, "first_connect", record_first_connect)
         sqla.event.listen(engine, "handle_error", mark_database_engine_error)
         if embedded_fallback:
             self._log_rejected_embedded_credential(engine)
@@ -1150,9 +1167,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         the engine spec's inspector policy. Shared discovery survives worker
         restarts for one hour, scoped to the database, catalog and effective
         engine identity. Cache failures leave local discovery available.
-        Discovery is published once per engine, without renewing its expiry on
-        warm lookups. SSH tunnels do not share discovery because their local
-        connection URLs contain ephemeral ports.
+        Discovery is published once per engine, only within one hour of its first
+        connection, without renewing its expiry on warm lookups. SSH tunnels do not
+        share discovery because their local connection URLs contain ephemeral ports.
         Cold-engine discovery retains the inspector's OAuth2 retry policy.
         """
 
@@ -1191,7 +1208,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     schema = sqla.inspect(engine).default_schema_name
                 if schema is not None and cache_key is not None:
                     with _DEFAULT_SCHEMA_CACHE_LOCK:
-                        if engine not in _DEFAULT_SCHEMA_PUBLISHED_ENGINES:
+                        discovered_at = _DEFAULT_SCHEMA_DISCOVERED_AT.get(engine)
+                        if (
+                            engine not in _DEFAULT_SCHEMA_PUBLISHED_ENGINES
+                            and discovered_at is not None
+                            and monotonic() - discovered_at
+                            < _DEFAULT_SCHEMA_CACHE_TIMEOUT
+                        ):
                             try:
                                 if cache_manager.cache.set(
                                     cache_key,
