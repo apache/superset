@@ -158,12 +158,6 @@ msgstr " อันใหม่"
 msgid " at line %(line)d"
 msgstr " ที่บรรทัด %(line)d"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid " expression which needs to adhere to the "
-msgstr " นิพจน์ที่จำเป็นต้องสอดคล้องกับ "
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -175,35 +169,6 @@ msgstr " สำหรับรายละเอียด"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " ใกล้ '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" มาตรฐาน เพื่อให้แน่ใจว่าการเรียงลำดับตามพจนานุกรม\n"
-"                      สอดคล้องกับการเรียงลำดับตามเวลา หาก\n"
-"                      รูปแบบการประทับเวลาไม่เป็นไปตามมาตรฐาน ISO 8601\n"
-"                      คุณจะต้องกำหนดนิพจน์และชนิดข้อมูลสำหรับ\n"
-"                      แปลงสตริงเป็นวันที่หรือการประทับเวลา โปรดทราบว่า\n"
-"                      ขณะนี้ยังไม่รองรับเขตเวลา หากเก็บเวลา\n"
-"                      ในรูปแบบ epoch ให้ใส่ `epoch_s`, `epoch_ms` หรือ "
-"`epoch_us` หากไม่ได้ระบุรูปแบบ\n"
-"                      เราจะใช้ค่าเริ่มต้นแบบไม่บังคับในระดับ\n"
-"                      ชื่อฐานข้อมูล/คอลัมน์ผ่านพารามิเตอร์ extra"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -15332,12 +15297,6 @@ msgstr "ISO 3166-2"
 msgid "ISO 3166-2 Codes"
 msgstr "รหัส ISO 3166-2"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "ISO 8601"
-msgstr "ISO 8601"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "ISO suffix / abbreviation"
@@ -22052,12 +22011,6 @@ msgstr "วางป้ายกำกับไว้ด้านนอกแผ
 #, fuzzy
 msgid "Put your code here"
 msgstr "วางโค้ดของคุณที่นี่"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Python datetime string pattern"
-msgstr "รูปแบบสตริงวันที่และเวลาของ Python"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29565,11 +29518,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "ต้องใช้รหัสผ่านสำหรับฐานข้อมูลด้านล่างเพื่อนำเข้า"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "The pattern of timestamp format. For strings use "
-msgstr "รูปแบบของ timestamp สำหรับสตริงใช้ "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
