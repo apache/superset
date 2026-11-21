@@ -765,6 +765,7 @@ const Chart = (props: ChartProps) => {
       chart?.id ?? props.id,
       true,
       props.dashboardId,
+      true,
     );
   }, [
     boundActionCreators.refreshChart,
