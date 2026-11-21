@@ -1007,6 +1007,20 @@ def is_small_number(value: Any) -> bool:
     return abs(float(value)) < 1
 
 
+def configured_small_number_format(
+    config: dict[str, Any], applies: bool
+) -> Optional[str]:
+    """
+    The small-number format a column config sets, or ``None``.
+
+    ``applies`` is false for a chart that ignores the format. A cleared Select
+    leaves a blank string behind, which the browser treats as unset.
+    """
+    if not applies:
+        return None
+    return (config.get("d3SmallNumberFormat") or "").strip() or None
+
+
 def is_strftime_expressible(d3_time_format: str) -> bool:
     """Whether ``strftime`` renders a d3 time format the way the browser does."""
     if LOCAL_TIME_PREFIX in d3_time_format:
@@ -1890,6 +1904,11 @@ def table(
     for column in df.columns:
         if column in derived_columns:
             label, name, parent = derived_columns[column]
+            # ``processComparisonColumns`` gives each derived column only the
+            # config saved against it, and ``formatColumnValue`` builds the
+            # small-number formatter from that config. A small-number format
+            # on the parent metric does not reach the four.
+            own_config = comparison_column_config(label, name, column_config)
             format_column(
                 df,
                 column,
@@ -1905,6 +1924,10 @@ def table(
                 detected_currency,
                 row_currency_context,
                 fallback_to_detected=False,
+                small_d3_format=configured_small_number_format(
+                    own_config, applies_small_number_format
+                ),
+                small_currency=own_config.get("currencyFormat"),
             )
             continue
 
@@ -1949,13 +1972,9 @@ def table(
         )
         # The small-number format has no dataset-level counterpart, and the
         # browser pairs it with the column config's own currency rather than
-        # the resolved one, so both come straight from ``config``. A cleared
-        # Select leaves a blank string behind, which the browser treats as
-        # unset.
-        small_number_format = (
-            (config.get("d3SmallNumberFormat") or "").strip() or None
-            if applies_small_number_format
-            else None
+        # the resolved one, so both come straight from ``config``.
+        small_number_format = configured_small_number_format(
+            config, applies_small_number_format
         )
 
         is_number = pd.api.types.is_numeric_dtype(df[column])
