@@ -36,6 +36,7 @@ import {
   renderDashboardList,
   API_ENDPOINTS,
   getLatestDashboardApiCall,
+  parseQueryFromUrl,
 } from './DashboardList.testHelpers';
 
 jest.setTimeout(30000);
@@ -100,8 +101,55 @@ test('fetches data', async () => {
 
   const calls = fetchMock.callHistory.calls(/dashboard\/\?q/);
   expect(calls[0].url).toMatchInlineSnapshot(
-    `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,published,url,slug,description,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,editors.id,editors.label,editors.img,editors.type,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on))"`,
+    `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,published,url,slug,description,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,editors.id,editors.label,editors.img,editors.type,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on_utc))"`,
   );
+});
+
+test('loads thumbnails from the UTC timestamp selected by the list request', async () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (feature: string) =>
+      feature === 'LISTVIEWS_DEFAULT_CARD_VIEW' || feature === 'THUMBNAILS',
+  );
+  const timestamp = '2024-01-01T00:00:00';
+  const thumbnailUrl = '/api/v1/dashboard/1/thumbnail/2024-01-01T00%3A00%3A00/';
+
+  fetchMock.removeRoute(API_ENDPOINTS.DASHBOARDS);
+  fetchMock.removeRoute(API_ENDPOINTS.CATCH_ALL);
+  fetchMock.get(
+    API_ENDPOINTS.DASHBOARDS,
+    ({ url }) => {
+      const selectedColumns: string[] =
+        parseQueryFromUrl(url)?.select_columns ?? [];
+      return {
+        result: [
+          {
+            ...mockDashboards[0],
+            thumbnail_url: undefined,
+            // The list API omits columns that were not selected.
+            changed_on_utc: selectedColumns.includes('changed_on_utc')
+              ? timestamp
+              : undefined,
+          },
+        ],
+        count: 1,
+      };
+    },
+    { name: API_ENDPOINTS.DASHBOARDS },
+  );
+  fetchMock.get(
+    thumbnailUrl,
+    {
+      body: new Blob(['thumbnail'], { type: 'image/png' }),
+      headers: { 'Content-Type': 'image/png' },
+    },
+    { name: 'dashboard-thumbnail' },
+  );
+
+  renderDashboardList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('dashboard-thumbnail')).toHaveLength(1);
+  });
 });
 
 test('switches between card and table view', async () => {
