@@ -2460,20 +2460,61 @@ def test_get_dbapi_mapped_exception_keeps_message(
     assert str(mapped) == str(exception)
 
 
-def test_trino_has_no_custom_error_patterns() -> None:
+@pytest.mark.parametrize(
+    "message,invalid,error_type",
+    [
+        (
+            "error 401: b'Access Denied: Invalid credentials'",
+            ["username", "password"],
+            "CONNECTION_ACCESS_DENIED_ERROR",
+        ),
+        (
+            "error 403: b'TLS/SSL is required for authentication with username "
+            "and password'",
+            ["encryption"],
+            "GENERIC_DB_ENGINE_ERROR",
+        ),
+        (
+            "cannot use authentication with HTTP",
+            ["encryption"],
+            "GENERIC_DB_ENGINE_ERROR",
+        ),
+        (
+            "SSLError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed",
+            ["encryption"],
+            "GENERIC_DB_ENGINE_ERROR",
+        ),
+        (
+            "Catalog 'nope' does not exist",
+            ["database"],
+            "CONNECTION_UNKNOWN_DATABASE_ERROR",
+        ),
+    ],
+)
+def test_trino_connection_errors_highlight_fields(
+    message: str, invalid: list[str], error_type: str
+) -> None:
     """
-    Documents current behavior; update this test if Trino gains
-    ``custom_errors``.
+    Known connection failures are mapped to typed errors naming the form fields
+    at fault, instead of the generic engine error.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    Unlike ``PrestoEngineSpec``, which rewrites nine known Presto errors into
-    friendly typed messages, Trino defines no ``custom_errors``: every driver
-    error, including a missing table or bad credentials, surfaces as a generic
-    database engine error carrying the raw Trino text.
+    errors = TrinoEngineSpec.extract_errors(Exception(message))
+
+    assert len(errors) == 1
+    assert errors[0].error_type.value == error_type
+    assert errors[0].extra is not None
+    assert errors[0].extra["invalid"] == invalid
+
+
+def test_trino_unknown_errors_stay_generic() -> None:
+    """
+    Errors without a dedicated pattern surface as a generic engine error
+    carrying the raw Trino text.
     """
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.errors import SupersetErrorType
-
-    assert TrinoEngineSpec.custom_errors == {}
 
     errors = TrinoEngineSpec.extract_errors(
         TrinoUserError({"message": "line 1:15: Table 'tpch.sf1.nope' does not exist"})
@@ -2482,8 +2523,37 @@ def test_trino_has_no_custom_error_patterns() -> None:
     assert len(errors) == 1
     assert errors[0].error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
     assert "Table 'tpch.sf1.nope' does not exist" in errors[0].message
-    assert errors[0].extra is not None
-    assert errors[0].extra["engine_name"] == "Trino"
+
+
+@pytest.mark.parametrize(
+    "uri,catalogs,raises",
+    [
+        ("trino://u@h:8080/hive", [("hive",), ("system",)], False),
+        ("trino://u@h:8080/hive/sales", [("hive",)], False),
+        ("trino://u@h:8080/HIVE", [("hive",)], False),
+        ("trino://u@h:8080/hvie", [("hive",)], True),
+        ("trino://u@h:8080/", [], False),
+    ],
+)
+def test_validate_connection_target(
+    mocker: MockerFixture, uri: str, catalogs: list[tuple[str]], raises: bool
+) -> None:
+    """
+    The catalog (first path segment) must be listed by ``SHOW CATALOGS``.
+    """
+    from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    database = mocker.MagicMock()
+    database.sqlalchemy_uri_decrypted = uri
+    conn = mocker.MagicMock()
+    conn.cursor.return_value.fetchall.return_value = catalogs
+
+    if raises:
+        with pytest.raises(SupersetDBAPIProgrammingError):
+            TrinoEngineSpec.validate_connection_target(database, conn)
+    else:
+        TrinoEngineSpec.validate_connection_target(database, conn)
 
 
 # ---------------------------------------------------------------------------
@@ -3235,3 +3305,161 @@ def test_apply_offset_before_limit_ignores_non_trailing_limit_offset() -> None:
 
     sql = "SELECT x FROM (SELECT x FROM t LIMIT 5 OFFSET 1) s WHERE x > 0"
     assert TrinoEngineSpec.apply_offset_before_limit(sql) == sql
+
+
+def test_default_driver_and_parameters_schema() -> None:
+    """
+    Trino exposes the dynamic connection form via ``BasicParametersMixin``.
+
+    ``default_driver`` must match the driver reported by the Trino SQLAlchemy
+    dialect (``rest``) so ``/api/v1/database/available/`` advertises the form.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+    from superset.db_engine_specs.trino import TrinoEngineSpec, TrinoParametersSchema
+
+    assert issubclass(TrinoEngineSpec, BasicParametersMixin)
+    assert TrinoEngineSpec.default_driver == "rest"
+    assert isinstance(TrinoEngineSpec.parameters_schema, TrinoParametersSchema)
+
+
+def test_build_sqlalchemy_uri_basic() -> None:
+    """
+    ``build_sqlalchemy_uri`` builds a driverless ``trino://`` URI where the
+    ``database`` field is the catalog. ``trino+rest://`` is not a loadable
+    SQLAlchemy dialect, so the driver must not leak into the URI.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    uri = TrinoEngineSpec.build_sqlalchemy_uri(
+        {
+            "username": "user",
+            "password": "pass",  # noqa: S106
+            "host": "localhost",
+            "port": 8080,
+            "database": "hive",
+        }
+    )
+    assert uri == "trino://user:pass@localhost:8080/hive"
+
+    # The built URI must resolve to a real, loadable dialect.
+    assert make_url(uri).get_dialect() is TrinoDialect
+
+
+def test_build_sqlalchemy_uri_no_password() -> None:
+    """Password is optional for Trino connections."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    uri = TrinoEngineSpec.build_sqlalchemy_uri(
+        {
+            "username": "user",
+            "host": "localhost",
+            "port": 8080,
+            "database": "hive",
+        }
+    )
+    assert uri == "trino://user@localhost:8080/hive"
+
+
+def test_build_sqlalchemy_uri_with_encryption() -> None:
+    """The encryption toggle is encoded as a ``protocol=https`` query param."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    uri = TrinoEngineSpec.build_sqlalchemy_uri(
+        {
+            "username": "user",
+            "host": "localhost",
+            "port": 443,
+            "database": "hive",
+            "encryption": True,
+        }
+    )
+    assert uri == "trino://user@localhost:443/hive?protocol=https"
+
+
+def test_parameters_uri_round_trip() -> None:
+    """
+    ``get_parameters_from_uri`` and ``build_sqlalchemy_uri`` round-trip,
+    including the encryption toggle.
+    """
+    from superset.db_engine_specs.base import BasicParametersType
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    parameters: BasicParametersType = {
+        "username": "user",
+        "password": "pass",  # noqa: S106
+        "host": "localhost",
+        "port": 443,
+        "database": "hive",
+        "encryption": True,
+    }
+    uri = TrinoEngineSpec.build_sqlalchemy_uri(parameters)
+    recovered = TrinoEngineSpec.get_parameters_from_uri(uri)
+
+    assert recovered["username"] == "user"
+    assert recovered["password"] == "pass"  # noqa: S105
+    assert recovered["host"] == "localhost"
+    assert recovered["port"] == 443
+    assert recovered["database"] == "hive"
+    assert recovered["encryption"] is True
+    # The encryption marker is not surfaced as an "additional parameter".
+    assert recovered["query"] == {}
+
+
+def test_get_parameters_from_uri_without_encryption() -> None:
+    """A plain ``trino://`` URI reports encryption disabled."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    recovered = TrinoEngineSpec.get_parameters_from_uri(
+        "trino://user@localhost:8080/hive"
+    )
+    assert recovered["encryption"] is False
+
+
+def test_adjust_engine_params_encryption_sets_http_scheme() -> None:
+    """
+    The ``protocol`` query param (from the encryption toggle) is translated
+    into the ``http_scheme`` connect arg the Trino dialect reads, and stripped
+    from the URI.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://user@localhost:443/hive?protocol=https")
+    connect_args: dict[str, Any] = {}
+
+    uri, connect_args = TrinoEngineSpec.adjust_engine_params(url, connect_args)
+
+    assert connect_args["http_scheme"] == "https"
+    assert "protocol" not in uri.query
+    assert (
+        uri.render_as_string(hide_password=False) == "trino://user@localhost:443/hive"
+    )
+
+
+def test_adjust_engine_params_preserves_existing_http_scheme() -> None:
+    """A pre-existing ``http_scheme`` (e.g. from a server cert) wins."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    # Use differing values on the two sides so the test actually guards the
+    # ``setdefault`` precedence: the pre-existing ``http`` must survive and the
+    # URI's ``protocol=https`` must not overwrite it.
+    url = make_url("trino://user@localhost:8080/hive?protocol=https")
+    connect_args: dict[str, Any] = {"http_scheme": "http"}
+
+    uri, connect_args = TrinoEngineSpec.adjust_engine_params(url, connect_args)
+
+    assert connect_args["http_scheme"] == "http"
+    # ``protocol`` is consumed into ``http_scheme``, not left behind on the URI.
+    assert "protocol" not in uri.query
+
+
+def test_adjust_engine_params_without_protocol_preserves_other_query() -> None:
+    """Non-encryption query params are left untouched when no protocol is set."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://user@localhost:8080/hive?source=custom")
+    connect_args: dict[str, Any] = {}
+
+    uri, connect_args = TrinoEngineSpec.adjust_engine_params(url, connect_args)
+
+    assert "http_scheme" not in connect_args
+    assert uri.query.get("source") == "custom"

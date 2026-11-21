@@ -19,6 +19,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import math
+import re
 import threading
 import time
 from collections.abc import Sequence
@@ -27,7 +28,8 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
-from flask_babel import gettext as __
+from flask_babel import gettext as __, lazy_gettext as _
+from marshmallow import fields
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -38,6 +40,9 @@ from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
+    BasicParametersMixin,
+    BasicParametersSchema,
+    BasicParametersType,
     convert_inspector_columns,
     DatabaseCategory,
 )
@@ -48,6 +53,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIProgrammingError,
 )
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
+from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
@@ -70,7 +76,39 @@ except ImportError:
     HttpError = Exception
 
 
-class TrinoEngineSpec(PrestoBaseEngineSpec):
+# Trino reports bad credentials as ``error 401: b'Access Denied: ...'`` (or an
+# ``Authentication failed`` message from some authenticators).
+ACCESS_DENIED_REGEX = re.compile(r"error 401|Access Denied|Authentication failed")
+# Password authentication is only accepted over HTTPS. Depending on the trino
+# client version this surfaces from the client or from the coordinator.
+TLS_REQUIRED_REGEX = re.compile(
+    r"cannot use authentication with HTTP"
+    r"|(TLS|SSL|HTTPS)[^\n]{0,40}required"
+    r"|over HTTP is not enabled"
+    r"|insecure communication",
+    re.IGNORECASE,
+)
+CERTIFICATE_VERIFY_REGEX = re.compile(
+    r"CERTIFICATE_VERIFY_FAILED|certificate verify failed|self[- ]signed certificate",
+    re.IGNORECASE,
+)
+CATALOG_NOT_FOUND_REGEX = re.compile(
+    r"Catalog '(?P<catalog>[^']*)' (?:does not exist|not found)" r"|CATALOG_NOT_FOUND",
+    re.IGNORECASE,
+)
+
+
+class TrinoParametersSchema(BasicParametersSchema):
+    # For Trino the "database" component of the SQLAlchemy URI is the catalog:
+    #   trino://user[:password]@host:port/<catalog>[/schema]
+    # so relabel the generic "database" field accordingly for the dynamic form.
+    database = fields.String(
+        required=True,
+        metadata={"description": _("Catalog name")},
+    )
+
+
+class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
@@ -78,6 +116,23 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     # The client sets queryId after its first request, then blocks in
     # execute() until rows arrive or the query ends.
     has_query_id_during_execute = True
+
+    # Dynamic connection ("new") form. Trino's SQLAlchemy dialect registers a
+    # single ``trino`` dialect whose reported ``driver`` is ``rest``, so
+    # ``default_driver`` must be ``rest`` for ``/api/v1/database/available/`` to
+    # advertise the form. The built URI stays driverless (``trino://...``)
+    # because ``trino+rest://`` is not a loadable SQLAlchemy plugin; see
+    # ``build_sqlalchemy_uri`` below.
+    default_driver = "rest"
+    parameters_schema = TrinoParametersSchema()
+    sqlalchemy_uri_placeholder = "trino://user:password@host:port/catalog[/schema]"
+
+    # The form's encryption toggle maps to Trino's http/https scheme. The Trino
+    # dialect ignores the URI scheme and reads ``http_scheme`` from
+    # ``connect_args`` instead, so the toggle is round-tripped through a
+    # ``protocol`` query parameter (via ``encryption_parameters``) and
+    # translated back into ``connect_args`` in ``adjust_engine_params``.
+    encryption_parameters = {"protocol": "https"}
 
     encrypted_extra_sensitive_fields = {
         **PrestoBaseEngineSpec.encrypted_extra_sensitive_fields,
@@ -182,9 +237,125 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         ],
     }
 
+    custom_errors: dict[
+        re.Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
+    ] = {
+        ACCESS_DENIED_REGEX: (
+            _("Trino denied access. Check that the username and password are correct."),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {"invalid": ["username", "password"]},
+        ),
+        TLS_REQUIRED_REGEX: (
+            _(
+                "Trino requires an encrypted connection when a password is used. "
+                "Turn on SSL and check that the port serves HTTPS (usually 443)."
+            ),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {"invalid": ["encryption"]},
+        ),
+        CERTIFICATE_VERIFY_REGEX: (
+            _(
+                "The Trino server's SSL certificate could not be verified. If it "
+                "was issued by a private CA or is self-signed, add the CA "
+                "certificate under Root certificate."
+            ),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {"invalid": ["encryption"]},
+        ),
+        CATALOG_NOT_FOUND_REGEX: (
+            _(
+                "The catalog does not exist on this Trino server. Check the "
+                "Catalog name."
+            ),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {"invalid": ["database"]},
+        ),
+    }
+
+    @classmethod
+    def validate_connection_target(cls, database: Database, conn: Any) -> None:
+        """
+        Check that the catalog named in the URI exists on the server.
+
+        The connection test (``SELECT 1``) never touches the catalog, so a
+        mistyped one would otherwise pass and only fail later in SQL Lab. The
+        catalog is the first path segment; anything after it is the schema.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.databases.utils import make_url_safe
+
+        url = make_url_safe(database.sqlalchemy_uri_decrypted)
+        if not url.database:
+            return
+        catalog = url.database.split("/", 1)[0]
+
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SHOW CATALOGS")
+            catalogs = {str(row[0]).lower() for row in cursor.fetchall()}
+        finally:
+            cursor.close()
+
+        if catalog.lower() not in catalogs:
+            raise SupersetDBAPIProgrammingError(f"Catalog '{catalog}' does not exist")
+
     # OAuth 2.0
     supports_oauth2 = True
     oauth2_token_request_type = "data"  # noqa: S105
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Build the SQLAlchemy URI from the dynamic form parameters.
+
+        Mirrors ``BasicParametersMixin.build_sqlalchemy_uri`` but forces the
+        driverless ``trino`` scheme: ``default_driver`` is ``rest`` only so the
+        connection form is advertised, and ``trino+rest://`` is not a loadable
+        SQLAlchemy dialect.
+        """
+        # make a copy so that we don't update the original
+        query = parameters.get("query", {}).copy()
+        if parameters.get("encryption"):
+            query.update(cls.encryption_parameters)
+
+        return URL.create(
+            cls.engine,
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=parameters["database"],
+            query=query,
+        ).render_as_string(hide_password=False)
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        # The dynamic form's encryption toggle is stored as a ``protocol`` query
+        # parameter (see ``encryption_parameters``). The Trino dialect reads the
+        # scheme from ``connect_args["http_scheme"]``, not from the URI, so
+        # translate it here and drop the parameter from the URI.
+        if protocol := uri.query.get("protocol"):
+            uri = uri.set(
+                query={
+                    key: value for key, value in uri.query.items() if key != "protocol"
+                }
+            )
+            # Deliberate: an explicit ``http_scheme`` already set via
+            # ``engine_params``/``connect_args`` takes precedence over the
+            # SSL/Encrypt toggle, so advanced users can override it.
+            connect_args.setdefault("http_scheme", protocol)
+
+        return super().adjust_engine_params(uri, connect_args, catalog, schema)
 
     @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:

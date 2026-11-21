@@ -41,6 +41,7 @@ import { EncryptedField } from './EncryptedField';
 import { TableCatalog } from './TableCatalog';
 import { DRUID_ENGINE, DRUID_FORM_FIELD_MAP } from './DruidParameters';
 import { MSSQL_ENGINE, MSSQL_FORM_FIELD_MAP } from './MssqlParameters';
+import { TRINO_ENGINE, TRINO_FORM_FIELD_MAP } from './TrinoParameters';
 import SSHTunnelSwitch from '../SSHTunnelSwitch';
 
 export const FormFieldOrder = [
@@ -123,4 +124,5 @@ export const ENGINE_FORM_FIELD_OVERRIDES: Record<
 > = {
   [DRUID_ENGINE]: DRUID_FORM_FIELD_MAP,
   [MSSQL_ENGINE]: MSSQL_FORM_FIELD_MAP,
+  [TRINO_ENGINE]: TRINO_FORM_FIELD_MAP,
 };
