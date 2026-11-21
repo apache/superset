@@ -327,6 +327,9 @@ export const getChartConfigs = (
       geometry: JSON.parse(location),
       properties: {
         ...transformedProps,
+        // Layout-dependent options must use the final overlay size, including zoom changes.
+        getSizedProps: (width: number, height: number) =>
+          chartTransformer({ ...config, width, height }),
       },
     };
 
