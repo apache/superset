@@ -17,6 +17,8 @@
  * under the License.
  */
 import type { FormInstance } from '@superset-ui/core/components';
+import { limitsUnavailableMessage } from '../utils';
+import { t } from '@apache-superset/core/translation';
 import { nanoid } from 'nanoid';
 import {
   FilterConfiguration,
@@ -25,8 +27,17 @@ import {
   ChartCustomizationConfiguration,
   ChartCustomization,
   ChartCustomizationDivider,
+  Divider,
+  Filter,
+  type Level,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
+import {
+  checkTimeRange,
+  describeFirstFailure,
+  type LimitCheck,
+} from 'src/utils/timeRangeLimits';
+import { isValidFilterValue } from './FiltersConfigForm/utils';
 import {
   ChartCustomizationsForm,
   FilterChangesType,
@@ -94,6 +105,48 @@ export const validateForm = async (
     return null;
   }
 };
+
+/** The default value error for a checked time range, as the picker words it. */
+export function timeRangeCheckMessage(check: LimitCheck): string | undefined {
+  if (check.status === 'unavailable') {
+    return t('Time range could not be checked.');
+  }
+  if (check.status === 'error') {
+    return check.message;
+  }
+  return describeFirstFailure(check.failures, true);
+}
+
+/**
+ * The stored default of every Time Range filter checked against the limits:
+ * an error message per filter id, `undefined` when the default is fine.
+ * `levels` is `null` when the limits could not be loaded.
+ */
+export async function checkTimeRangeDefaults(
+  filters: Record<string, Filter | Divider>,
+  levels: Level[] | null,
+): Promise<Record<string, string | undefined>> {
+  const timeFilters = Object.values(filters).filter(
+    (filter): filter is Filter =>
+      filter.type === NativeFilterType.NativeFilter &&
+      filter.filterType === 'filter_time',
+  );
+  const messages = await Promise.all(
+    timeFilters.map(async filter => {
+      if (!levels) {
+        return limitsUnavailableMessage();
+      }
+      const value = filter.defaultDataMask?.filterState?.value;
+      if (!isValidFilterValue(value, false)) {
+        return t('Please choose a valid value');
+      }
+      return timeRangeCheckMessage(await checkTimeRange(value, levels));
+    }),
+  );
+  return Object.fromEntries(
+    timeFilters.map((filter, index) => [filter.id, messages[index]]),
+  );
+}
 
 export const createHandleRemoveItem =
   (

@@ -33,11 +33,12 @@ import { logging } from '@apache-superset/core/utils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ExploreStandaloneMode } from 'src/explore/constants';
+import { Loading } from '@superset-ui/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
 import {
-  convertChartStateToOwnState,
+  createOwnStateWithChartState,
   hasChartStateConverter,
 } from 'src/dashboard/util/chartStateConverter';
 import {
@@ -54,6 +55,7 @@ import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
+import useTimeRangeAlert, { TIME_RANGE_REASON_ID } from './useTimeRangeAlert';
 import { LegacyAggregationAlert } from '../LegacyAggregationAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 import StandaloneDownloadControl from './StandaloneDownloadControl';
@@ -100,6 +102,19 @@ export interface ExploreChartPanelProps {
   triggerRender?: boolean;
   chartAlert?: string;
   exploreState?: JsonObject;
+  // The form data the chart request sends, when it differs from `form_data`.
+  queryFormData?: QueryFormData;
+  // With time range limits on: whether a chart request may run now.
+  isQueryAllowed?: () => boolean;
+  timeRangeBusy?: boolean;
+  timeRangeFailed?: boolean;
+  timeRangeRetrying?: boolean;
+  onTimeRangeRetry?: () => void;
+  // Offered with the reason when the server refused a range the check let through.
+  onTimeRangeReasonRetry?: () => void;
+  // The time range reason a blocked run gets, shown in the chart area.
+  timeRangeReason?: string;
+  samplesDashboardId?: number;
 }
 
 type PanelSizes = [number, number];
@@ -138,26 +153,6 @@ const Styles = styled.div<{ showSplite: boolean }>`
 
 const EMPTY_OBJECT: Record<string, never> = {};
 
-const createOwnStateWithChartState = (
-  baseOwnState: JsonObject,
-  chartState: { state?: JsonObject } | undefined,
-  vizTypeArg: string,
-): JsonObject => {
-  if (!hasChartStateConverter(vizTypeArg)) {
-    return baseOwnState;
-  }
-  const state = chartState?.state;
-  if (!state) {
-    return baseOwnState;
-  }
-  const convertedState = convertChartStateToOwnState(vizTypeArg, state);
-  return {
-    ...baseOwnState,
-    ...convertedState,
-    chartState: state,
-  };
-};
-
 const ExploreChartPanel = ({
   chart,
   slice,
@@ -175,7 +170,17 @@ const ExploreChartPanel = ({
   chartIsStale,
   chartAlert,
   can_download: canDownload,
+  queryFormData: requestFormData,
+  isQueryAllowed,
+  timeRangeBusy,
+  timeRangeFailed,
+  timeRangeRetrying,
+  onTimeRangeRetry,
+  onTimeRangeReasonRetry,
+  timeRangeReason,
+  samplesDashboardId,
 }: ExploreChartPanelProps) => {
+  const chartFormData = requestFormData ?? formData;
   const theme = useTheme();
   const dispatch = useDispatch();
   const showDownload = getUrlParam(URL_PARAMS.showDownload);
@@ -279,17 +284,28 @@ const ExploreChartPanel = ({
   }, []);
 
   const refreshCachedQuery = useCallback(() => {
+    if (isQueryAllowed && !isQueryAllowed()) {
+      return;
+    }
     actions.setForceQuery(true);
     actions.postChartFormData(
-      formData,
+      chartFormData,
       true,
       timeout ?? 0,
       chart.id,
       undefined,
       ownState,
     );
-    actions.updateQueryFormData(formData, chart.id);
-  }, [actions, chart.id, formData, ownState, timeout]);
+    actions.updateQueryFormData(chartFormData, chart.id);
+  }, [actions, chart.id, chartFormData, isQueryAllowed, ownState, timeout]);
+
+  const nothingRendered = ensureIsArray(chart.queriesResponse).length === 0;
+  const chartShown = !(timeRangeFailed && nothingRendered);
+  const withTimeRangeAlert = useTimeRangeAlert({
+    failed: timeRangeFailed,
+    retrying: timeRangeRetrying,
+    onRetry: onTimeRangeRetry,
+  });
 
   const onCollapseChange = useCallback((isOpen: boolean) => {
     let splitSizes: PanelSizes;
@@ -314,8 +330,12 @@ const ExploreChartPanel = ({
           overflow: hidden;
         `}
         ref={chartPanelRef}
+        aria-busy={timeRangeBusy || undefined}
       >
-        {chartPanelWidth && chartPanelHeight && (
+        {timeRangeBusy &&
+          nothingRendered &&
+          chart.chartStatus !== 'loading' && <Loading />}
+        {chartShown && chartPanelWidth && chartPanelHeight && (
           <ChartContainer
             width={Math.floor(chartPanelWidth)}
             height={chartPanelHeight}
@@ -326,7 +346,7 @@ const ExploreChartPanel = ({
             force={force}
             datasource={datasource}
             errorMessage={errorMessage}
-            formData={formData}
+            formData={chartFormData}
             latestQueryFormData={chart.latestQueryFormData}
             onQuery={onQuery}
             queriesResponse={chart.queriesResponse}
@@ -348,6 +368,10 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
+      timeRangeBusy,
+      nothingRendered,
+      chartShown,
+      chartFormData,
       actions.setControlValue,
       chart.annotationData,
       chart.chartAlert,
@@ -387,77 +411,92 @@ const ExploreChartPanel = ({
         {vizType === 'pivot_table_v2' && (
           <LegacyAggregationAlert sliceId={slice?.slice_id} />
         )}
-        {showAlertBanner && (
-          <ExploreAlert
-            title={
-              errorMessage
-                ? t('Required control values have been removed')
-                : t('Your chart is not up to date')
-            }
-            bodyText={
-              errorMessage ? (
-                getChartRequiredFieldsMissingMessage(false)
-              ) : (
-                <span>
-                  {t(
-                    'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
-                  )}{' '}
-                  <button
-                    type="button"
-                    onClick={onQuery}
-                    css={css`
-                      appearance: none;
-                      border: none;
-                      background: none;
-                      padding: 0;
-                      font: inherit;
-                      color: inherit;
-                      cursor: pointer;
-                    `}
-                  >
-                    {t('click here')}
-                  </button>
-                  .
-                </span>
-              )
-            }
-            type="warning"
-            css={theme => css`
-              margin: 0 0 ${theme.sizeUnit * 4}px 0;
-            `}
-          />
+        {withTimeRangeAlert(
+          <>
+            {(timeRangeReason || showAlertBanner) && (
+              <ExploreAlert
+                title={
+                  timeRangeReason
+                    ? t('Time range not allowed')
+                    : errorMessage
+                      ? t('Required control values have been removed')
+                      : t('Your chart is not up to date')
+                }
+                bodyText={
+                  timeRangeReason ? (
+                    <span id={TIME_RANGE_REASON_ID}>{timeRangeReason}</span>
+                  ) : errorMessage ? (
+                    getChartRequiredFieldsMissingMessage(false)
+                  ) : (
+                    <span>
+                      {t(
+                        'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
+                      )}{' '}
+                      <button
+                        type="button"
+                        onClick={onQuery}
+                        css={css`
+                          appearance: none;
+                          border: none;
+                          background: none;
+                          padding: 0;
+                          font: inherit;
+                          color: inherit;
+                          cursor: pointer;
+                        `}
+                      >
+                        {t('click here')}
+                      </button>
+                      .
+                    </span>
+                  )
+                }
+                primaryButtonText={
+                  timeRangeReason && onTimeRangeReasonRetry
+                    ? t('Retry')
+                    : undefined
+                }
+                primaryButtonAction={onTimeRangeReasonRetry}
+                primaryButtonLoading={timeRangeRetrying}
+                type="warning"
+                css={theme => css`
+                  margin: 0 0 ${theme.sizeUnit * 4}px 0;
+                `}
+              />
+            )}
+            <ChartHeaderExtension
+              chartId={chart.id}
+              queriesResponse={chart.queriesResponse}
+              sliceFormData={slice?.form_data ?? null}
+              queryFormData={formData}
+              lastRendered={chart.lastRendered}
+              latestQueryFormData={chart.latestQueryFormData}
+              chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
+              chartUpdateStartTime={chart.chartUpdateStartTime}
+              queryController={chart.queryController}
+              triggerQuery={chart.triggerQuery}
+            >
+              <ChartPills
+                chartUpdateStartTime={chart.chartUpdateStartTime}
+                chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
+                refreshCachedQuery={refreshCachedQuery}
+                rowLimit={formData?.row_limit ?? 0}
+                {...(chart.queriesResponse && {
+                  queriesResponse: chart.queriesResponse,
+                })}
+                {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
+                hideRowCount={
+                  formData?.matrixify_enable === true &&
+                  ((formData?.matrixify_mode_rows !== undefined &&
+                    formData?.matrixify_mode_rows !== 'disabled') ||
+                    (formData?.matrixify_mode_columns !== undefined &&
+                      formData?.matrixify_mode_columns !== 'disabled'))
+                }
+                formData={formData}
+              />
+            </ChartHeaderExtension>
+          </>,
         )}
-        <ChartHeaderExtension
-          chartId={chart.id}
-          queriesResponse={chart.queriesResponse}
-          sliceFormData={slice?.form_data ?? null}
-          queryFormData={formData}
-          lastRendered={chart.lastRendered}
-          latestQueryFormData={chart.latestQueryFormData}
-          chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
-          chartUpdateStartTime={chart.chartUpdateStartTime}
-          queryController={chart.queryController}
-          triggerQuery={chart.triggerQuery}
-        >
-          <ChartPills
-            chartUpdateStartTime={chart.chartUpdateStartTime}
-            chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
-            refreshCachedQuery={refreshCachedQuery}
-            rowLimit={formData?.row_limit ?? 0}
-            {...(chart.queriesResponse && {
-              queriesResponse: chart.queriesResponse,
-            })}
-            {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
-            hideRowCount={
-              formData?.matrixify_enable === true &&
-              ((formData?.matrixify_mode_rows !== undefined &&
-                formData?.matrixify_mode_rows !== 'disabled') ||
-                (formData?.matrixify_mode_columns !== undefined &&
-                  formData?.matrixify_mode_columns !== 'disabled'))
-            }
-            formData={formData}
-          />
-        </ChartHeaderExtension>
         {renderChart()}
         {!chart.chartStatus || chart.chartStatus !== 'loading' ? (
           <div
@@ -490,6 +529,9 @@ const ExploreChartPanel = ({
       formData?.matrixify_mode_columns,
       renderChart,
       theme.sizeUnit,
+      timeRangeReason,
+      onTimeRangeReasonRetry,
+      withTimeRangeAlert,
     ],
   );
 
@@ -545,7 +587,7 @@ const ExploreChartPanel = ({
           />
         )}
 
-        {standaloneChartBody}
+        {withTimeRangeAlert(standaloneChartBody)}
       </div>
     );
   }
@@ -573,6 +615,7 @@ const ExploreChartPanel = ({
           setForceQuery={actions.setForceQuery}
           canDownload={canDownload}
           queriesResponse={chart.queriesResponse}
+          dashboardId={samplesDashboardId}
         />
       </Split>
     </Styles>

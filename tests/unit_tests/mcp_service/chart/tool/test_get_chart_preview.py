@@ -2721,3 +2721,70 @@ async def test_png_budget_counts_metadata_at_exact_boundary(headroom):
             await middleware.on_call_tool(context, call_next)
     else:
         assert await middleware.on_call_tool(context, call_next) is response
+
+
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+def test_saved_preview_returns_time_range_limit_error(
+    app: Any,
+    strategy_class: type[PreviewFormatStrategy],
+    preview_format: str,
+) -> None:
+    """A preview outside the time range limits keeps its own error type."""
+    from superset.common.query_object import QueryObject
+    from superset.time_range_limits.policy import TimeRangeLimitError
+
+    message = "Range can't be longer than 7 days. This one is 30 days."
+    query_context = SimpleNamespace(
+        queries=[QueryObject(columns=["region"], metrics=["count"])],
+        form_data={},
+    )
+
+    class ChartDataCommand:
+        def __init__(self, built_query_context: object) -> None: ...
+
+        def validate(self) -> None:
+            raise TimeRangeLimitError(
+                "MAX_SPAN_EXCEEDED", message, {"rule": "max_span"}
+            )
+
+        def run(self) -> dict[str, Any]:
+            raise AssertionError("the query must not run")
+
+    chart = SimpleNamespace(
+        id=17,
+        slice_name="Guarded chart",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {"viz_type": "table", "groupby": ["region"], "metrics": ["count"]}
+        ),
+    )
+
+    with (
+        app.app_context(),
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            ChartDataCommand,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=17, format=preview_format),
+        ).generate()
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "TIME_RANGE_LIMIT_ERROR"
+    assert result.message == message

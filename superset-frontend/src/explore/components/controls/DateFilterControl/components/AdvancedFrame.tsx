@@ -21,8 +21,9 @@ import { SEPARATOR } from '@superset-ui/core';
 import { Input, Icons, InfoTooltip } from '@superset-ui/core/components';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';
+import { fieldAria, fieldSlot } from './limitFields';
 
-function getAdvancedRange(value: string): string {
+export function getAdvancedRange(value: string): string {
   if (value.includes(SEPARATOR)) {
     return value;
   }
@@ -36,9 +37,10 @@ function getAdvancedRange(value: string): string {
 }
 
 export function AdvancedFrame(props: FrameComponentProps) {
+  const { limits } = props;
   const advancedRange = getAdvancedRange(props.value || '');
   const [since, until] = advancedRange.split(SEPARATOR);
-  if (advancedRange !== props.value) {
+  if (!limits && advancedRange !== props.value) {
     props.onChange(getAdvancedRange(props.value || ''));
   }
 
@@ -65,11 +67,18 @@ export function AdvancedFrame(props: FrameComponentProps) {
           placement="right"
         />
       </div>
-      <Input
-        key="since"
-        value={since}
-        onChange={e => onChange('since', e.target.value)}
-      />
+      {fieldSlot(
+        limits,
+        limits?.start,
+        <Input
+          key="since"
+          id={limits?.startId}
+          aria-label={limits ? t('Start (inclusive)') : undefined}
+          value={since}
+          onChange={e => onChange('since', e.target.value)}
+          {...fieldAria(limits, limits?.start)}
+        />,
+      )}
       <div className="control-label">
         {t('End (exclusive)')}{' '}
         <InfoTooltip
@@ -77,11 +86,18 @@ export function AdvancedFrame(props: FrameComponentProps) {
           placement="right"
         />
       </div>
-      <Input
-        key="until"
-        value={until}
-        onChange={e => onChange('until', e.target.value)}
-      />
+      {fieldSlot(
+        limits,
+        limits?.end,
+        <Input
+          key="until"
+          id={limits?.endId}
+          aria-label={limits ? t('End (exclusive)') : undefined}
+          value={until}
+          onChange={e => onChange('until', e.target.value)}
+          {...fieldAria(limits, limits?.end)}
+        />,
+      )}
     </>
   );
 }

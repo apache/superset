@@ -18,20 +18,37 @@ import logging
 import time
 from copy import copy
 from datetime import datetime
-from typing import Any, Optional
+from functools import partial
+from typing import Any, Callable, Optional
 
 from flask_babel import lazy_gettext as _
+from marshmallow import ValidationError
 from sqlalchemy.orm import make_transient
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
-from superset.commands.dataset.importers.v0 import import_dataset
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.dataset.importers.v0 import (
+    extra_limits_errors,
+    find_sqla_table,
+    import_dataset,
+    table_key,
+)
+from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import DashboardImportException
 from superset.migrations.shared.native_filters import migrate_dashboard
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.time_range_limits.policy import (
+    limits_errors,
+    limits_shape_error,
+    parse_written_policy,
+    stored_limits,
+    stricter_errors,
+    TIME_RANGE_LIMITS_KEY,
+    TimeRangeLimitsInvalidError,
+)
 from superset.utils import json
 from superset.utils.core import get_user
 from superset.utils.dashboard_filter_scopes_converter import (
@@ -81,6 +98,156 @@ def import_chart(
     logger.info("Final slice: %s", str(slc_to_import.to_json()))
     db.session.flush()
     return slc_to_import.id
+
+
+def _find_existing_dashboard(remote_id: Any) -> Optional[Dashboard]:
+    """The dashboard a V0 import overrides: the last one with that ``remote_id``."""
+    existing_dashboard = None
+    for dash in db.session.query(Dashboard).all():
+        if (
+            "remote_id" in dash.params_dict
+            and dash.params_dict["remote_id"] == remote_id
+        ):
+            existing_dashboard = dash
+    return existing_dashboard
+
+
+def _find_existing_datasource(
+    raw: dict[str, Any], database_id: Optional[int]
+) -> Optional[SqlaTable]:
+    """The dataset ``import_dataset`` overrides for a raw ``__SqlaTable__``."""
+    if not database_id:
+        database_name = json.loads(raw.get("params") or "{}").get("database_name")
+        database = (
+            db.session.query(Database)
+            .filter_by(database_name=database_name)
+            .one_or_none()
+            if database_name
+            else None
+        )
+        if database is None:
+            return None
+        database_id = database.id
+    return find_sqla_table(raw["table_name"], raw.get("schema"), database_id)
+
+
+def _datasources_limits_errors(
+    datasources: Any, database_id: Optional[int]
+) -> dict[str, Any]:
+    errors: dict[str, Any] = {}
+    for item in datasources if isinstance(datasources, list) else []:
+        raw = item.get("__SqlaTable__") if isinstance(item, dict) else None
+        if not isinstance(raw, dict):
+            continue
+        if found := extra_limits_errors(
+            raw.get("extra"), partial(_find_existing_datasource, raw, database_id)
+        ):
+            key = table_key(
+                json.loads(raw.get("params") or "{}").get("database_name"),
+                raw.get("schema"),
+                raw.get("table_name"),
+            )
+            errors[key] = {"extra": found}
+    return errors
+
+
+def _json_metadata_limits_errors(
+    json_metadata: str, find_existing: Callable[[], Optional[Dashboard]]
+) -> dict[str, list[str]]:
+    """
+    Shape and stricter-than-global errors of the policy in a dashboard
+    ``json_metadata``, keyed by ``time_range_limits.<path>``. ``find_existing``
+    returns the row the import overrides; it runs only when the policy breaks the
+    global one.
+    """
+    try:
+        data = json.loads(json_metadata)
+    except (TypeError, ValueError, RecursionError):
+        return {}
+    raw = data.get(TIME_RANGE_LIMITS_KEY) if isinstance(data, dict) else None
+    try:
+        policy = parse_written_policy(raw)
+    except TimeRangeLimitsInvalidError as ex:
+        return limits_shape_error(TIME_RANGE_LIMITS_KEY, ex)
+    errors = stricter_errors(
+        policy,
+        "dashboard",
+        lambda: (
+            stored_limits(existing.json_metadata)
+            if (existing := find_existing())
+            else None
+        ),
+    )
+    return limits_errors(TIME_RANGE_LIMITS_KEY, errors)
+
+
+def _remote_ids(dashboard: dict[str, Any]) -> list[Any]:
+    """
+    The ``remote_id`` values whose row an import of ``dashboard`` changes: the row
+    found by its ``id``, and the row that gets its ``json_metadata.remote_id``.
+    """
+    remote_ids = [dashboard.get("id")]
+    json_metadata = dashboard.get("json_metadata")
+    try:
+        metadata = (
+            json.loads(json_metadata)
+            if isinstance(json_metadata, str)
+            else json_metadata
+        )
+    except (TypeError, ValueError, RecursionError):
+        metadata = None
+    if isinstance(metadata, dict) and "remote_id" in metadata:
+        remote_ids.append(metadata["remote_id"])
+    return remote_ids
+
+
+def _find_unchanged_dashboard(
+    remote_id: Any, earlier: list[dict[str, Any]]
+) -> Optional[Dashboard]:
+    """
+    The dashboard an import overrides, or ``None`` when a dashboard imported
+    before it changes that row: the row then has no stored value to keep.
+    Compared with ``==``, as ``_find_existing_dashboard`` does: an ``id`` may be
+    unhashable.
+    """
+    if any(remote_id in _remote_ids(dashboard) for dashboard in earlier):
+        return None
+    return _find_existing_dashboard(remote_id)
+
+
+def _limits_errors(
+    content: str, database_id: Optional[int], earlier: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """
+    The limits errors of a V0 file: dashboards by their index, datasources by
+    ``<schema>.<table_name>``. ``earlier`` holds the dashboards imported before
+    this file's, and gets this file's added.
+    """
+    data = json.loads(content)
+    if not isinstance(data, dict):
+        return {}
+    dashboards = data.get("dashboards")
+    errors: dict[str, Any] = {}
+    dashboard_errors: dict[int, Any] = {}
+    for index, item in enumerate(dashboards if isinstance(dashboards, list) else []):
+        dashboard = item.get("__Dashboard__") if isinstance(item, dict) else None
+        if not isinstance(dashboard, dict):
+            continue
+        if isinstance(json_metadata := dashboard.get("json_metadata"), str) and (
+            found := _json_metadata_limits_errors(
+                json_metadata,
+                partial(_find_unchanged_dashboard, dashboard.get("id"), earlier),
+            )
+        ):
+            dashboard_errors[index] = {"json_metadata": found}
+        earlier.append(dashboard)
+    if dashboard_errors:
+        errors["dashboards"] = dashboard_errors
+    if datasource_errors := _datasources_limits_errors(
+        data.get("datasources"), database_id
+    ):
+        errors["datasources"] = datasource_errors
+    return errors
 
 
 def import_dashboard(  # noqa: C901
@@ -227,13 +394,7 @@ def import_dashboard(  # noqa: C901
         )
 
     # override the dashboard
-    existing_dashboard = None
-    for dash in db.session.query(Dashboard).all():
-        if (
-            "remote_id" in dash.params_dict
-            and dash.params_dict["remote_id"] == dashboard_to_import.id
-        ):
-            existing_dashboard = dash
+    existing_dashboard = _find_existing_dashboard(dashboard_to_import.id)
 
     dashboard_to_import = dashboard_to_import.copy()
     dashboard_to_import.id = None
@@ -359,3 +520,14 @@ class ImportDashboardsCommand(BaseCommand):
             except ValueError:
                 logger.exception("Invalid JSON file")
                 raise
+
+        # One error per file, so normalized_messages() can't drop one. Files in
+        # the order run() imports them.
+        earlier: list[dict[str, Any]] = []
+        exceptions = [
+            ValidationError({file_name: errors})
+            for file_name, content in self.contents.items()
+            if (errors := _limits_errors(content, self.database_id, earlier))
+        ]
+        if exceptions:
+            raise CommandInvalidError(_("Error importing dashboard"), exceptions)

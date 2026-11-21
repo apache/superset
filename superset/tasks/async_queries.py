@@ -57,6 +57,15 @@ from superset.tasks.utils import (
     floored_status_cursor,
     SUBSCRIPTION_PRIVATE_NAMESPACE,
 )
+from superset.time_range_limits.enforcement import (
+    check_query_context_date_ranges,
+    limit_task_key,
+)
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils.core import override_user
 
 if TYPE_CHECKING:
@@ -79,6 +88,10 @@ logger = logging.getLogger(__name__)
 # type is versioned to allow the serialization/execution contract to evolve.
 CHART_QUERY_TASK = "superset.query_object_v1"
 CACHE_KEY_PAYLOAD_KEY = "cache_key"
+# Task payload key holding the closed ``reason_code`` of a time range limit
+# rejection. On it the client re-sends its request, whose synchronous check
+# answers with the full error.
+TIME_RANGE_LIMIT_PAYLOAD_KEY = "time_range_limit_error"
 
 # Key under ``private["task"]`` holding the chart-data consumer list (see
 # ``ChartQueryConsumerPolicy``).
@@ -481,6 +494,7 @@ def execute_chart_query(
         query_obj.force_nonce = str(get_context().task_uuid)
         if requires_totals:
             _inject_contribution_totals(query_obj, _get_dependency_cache_key())
+        _check_time_range_limits(query_context)
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
         try:
             with _capture_query_cancellation(query_context):
@@ -515,6 +529,26 @@ def execute_chart_query(
             )
 
 
+def _check_time_range_limits(query_context: "QueryContext") -> None:
+    """Check the query against the time range limits again before its SQL,
+    as they may have tightened while it was queued. Publishes the rejection's
+    closed reason code in the task payload, then fails the task."""
+    try:
+        with limit_path("async_worker"):
+            check_query_context_date_ranges(query_context)
+            query_context.check_annotation_layers()
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as error:
+        get_context().update_task(
+            payload={
+                TIME_RANGE_LIMIT_PAYLOAD_KEY: (error.error.extra or {}).get(
+                    "reason_code"
+                )
+            },
+            immediate=True,
+        )
+        raise
+
+
 def _query_task_cache_key(query_context: "QueryContext", index: int) -> str | None:
     """Compute a query's cache key exactly as its task will.
 
@@ -526,6 +560,19 @@ def _query_task_cache_key(query_context: "QueryContext", index: int) -> str | No
     query_obj = query_context.queries[index]
     query_obj.validate()
     return query_context.query_cache_key(query_obj)
+
+
+def _query_task_keys(query_context: "QueryContext") -> list[str | None]:
+    """Each query's SHARED task key: its cache key, plus the dashboard whose time
+    range limits apply while they are on (see ``limit_task_key``), so a
+    task's re-check holds for every request that joins it."""
+    keys = [
+        _query_task_cache_key(query_context, index)
+        for index in range(len(query_context.queries))
+    ]
+    if (limit_key := limit_task_key(query_context)) is None:
+        return keys
+    return [f"{key}:{limit_key}" if key is not None else None for key in keys]
 
 
 def submit_chart_data_query_tasks(
@@ -576,9 +623,7 @@ def submit_chart_data_query_tasks(
     # its dependents read).
     needs_totals, totals_idx = query_context.prepare_contribution_totals()
 
-    query_cache_keys = [
-        _query_task_cache_key(query_context, index) for index in range(len(queries))
-    ]
+    query_cache_keys = _query_task_keys(query_context)
     serialized_queries = [
         serialize_query(query_context, index) for index in range(len(queries))
     ]

@@ -93,6 +93,12 @@ import {
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
+import {
+  ExploreTimeRangeCheck,
+  ExploreTimeRangeLimits,
+  timeRangeLimitsActions,
+  TimeRangeRunOnValid,
+} from 'src/explore/actions/timeRangeLimitsActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
@@ -111,6 +117,13 @@ import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
+import {
+  ExploreTimeRangeLimitsProvider,
+  useExploreLimitsRun,
+  useExploreRunOnValid,
+  useExploreTimeRangeStatus,
+  useExploreUserRuns,
+} from './useExploreTimeRangeLimits';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
@@ -345,6 +358,9 @@ interface ExploreRootState {
     force: boolean;
     form_data?: QueryFormData;
     saveAction?: SaveActionType | null;
+    timeRangeLimits?: ExploreTimeRangeLimits;
+    timeRangeCheck?: ExploreTimeRangeCheck;
+    timeRangeRunOnValid?: TimeRangeRunOnValid | null;
   };
   charts: Record<number, ChartState>;
   common: {
@@ -400,6 +416,9 @@ interface StateProps {
   metadata?: ExplorePageInitialData['metadata'];
   saveAction?: SaveActionType | null;
   isSaveModalVisible: boolean;
+  timeRangeLimits?: ExploreTimeRangeLimits;
+  timeRangeCheck?: ExploreTimeRangeCheck;
+  timeRangeRunOnValid?: TimeRangeRunOnValid | null;
 }
 
 // Combined actions from all action modules used in Explore
@@ -410,7 +429,7 @@ interface DispatchProps {
   actions: Record<string, (...args: any[]) => any>;
 }
 
-type ExploreViewContainerProps = StateProps & DispatchProps & OwnProps;
+export type ExploreViewContainerProps = StateProps & DispatchProps & OwnProps;
 
 function ExploreViewContainer(props: ExploreViewContainerProps) {
   const dynamicPluginContext = usePluginContext();
@@ -516,6 +535,8 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     selectedMetrics,
     selectedDimensions,
   ]);
+  const limitsRun = useExploreLimitsRun(props);
+  const { limitsOn, queryFormData, isQueryAllowed } = limitsRun;
 
   const addHistory = useCallback(
     async ({
@@ -570,6 +591,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     if (isChartVersionPreviewActive) {
       return;
     }
+    if (limitsRun.holdRun()) {
+      return;
+    }
     props.actions.setForceQuery(false);
 
     // Skip main query if Matrixify is enabled
@@ -595,6 +619,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.chart.id,
     props.form_data,
     isChartVersionPreviewActive,
+    limitsOn,
+    props.timeRangeLimits,
+    props.timeRangeCheck,
+    props.ownState,
+    props.dashboardId,
   ]);
 
   const handleKeydown = useCallback(
@@ -602,6 +631,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       const controlOrCommand = event.ctrlKey || event.metaKey;
       if (controlOrCommand) {
         const isEnter = event.key === 'Enter' || event.keyCode === 13;
+        if (isEnter) {
+          limitsRun.noteRunShortcut(hasControlErrors, isChartLoading);
+        }
         // Match the Run button, which is disabled while any control has
         // validation errors and swapped for Stop while the chart is loading
         if (isEnter && !hasControlErrors && !isChartLoading) {
@@ -611,8 +643,14 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         // between Slice types. Use the save button instead.
       }
     },
-    [onQuery, hasControlErrors, isChartLoading],
+    [onQuery, hasControlErrors, isChartLoading, limitsOn, props.timeRangeCheck],
   );
+
+  const { onUserQuery, onUserCachedQuery } = useExploreUserRuns({
+    props,
+    run: limitsRun,
+    onQuery,
+  });
 
   function onStop() {
     // Abort the in-flight HTTP request so the UI stops waiting immediately.
@@ -681,10 +719,24 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   }, [isDynamicPluginLoading]);
 
   useEffect(() => {
+    if (limitsOn) {
+      if (!hasControlErrors) {
+        props.actions.setTimeRangeRunOnValid('mount');
+      }
+      return;
+    }
     if (!hasControlErrors) {
       props.actions.triggerQuery(true, props.chart.id);
     }
   }, []);
+
+  const limitsRejection = useExploreRunOnValid({
+    props,
+    run: limitsRun,
+    hasControlErrors,
+    onQuery,
+    setLastQueriedControls,
+  });
 
   const reRenderChart = useCallback(
     (controlsChanged?: string[]) => {
@@ -726,9 +778,15 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         }
         restoringFromHistory.current = true;
         props.actions.setExploreControls(chartState);
+        if (limitsOn) {
+          // The restored controls are checked on the next render; this
+          // closure still holds the previous ones.
+          props.actions.setTimeRangeRunOnValid('mount');
+          return;
+        }
         props.actions.triggerQuery(true, props.chart.id);
       }),
-    [history, restoreTarget, props.actions, props.chart.id],
+    [history, restoreTarget, props.actions, props.chart.id, limitsOn],
   );
 
   // effect to run when controls change
@@ -894,13 +952,14 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     [],
   );
 
-  // A restore queries the controls it just applied, so they are the last
-  // queried ones - otherwise the chart would be reported as stale.
+  // With limits, the held run marks controls as queried only when it runs.
   // Runs after the effect above so that one still sees the restore.
   useEffect(() => {
     if (restoringFromHistory.current) {
       restoringFromHistory.current = false;
-      setLastQueriedControls(props.controls);
+      if (!limitsOn) {
+        setLastQueriedControls(props.controls);
+      }
     }
   }, [props.controls]);
 
@@ -1004,6 +1063,22 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     return errorMessage;
   }, [props.controls]);
 
+  const {
+    buttonErrorMessage,
+    timeRangeBusy,
+    timeRangeFailed,
+    timeRangeReason,
+    checkRetrying,
+    rejectionRetryShown,
+    onTimeRangeRetry,
+    timeRangeDescribedBy,
+  } = useExploreTimeRangeStatus({
+    props,
+    run: limitsRun,
+    rejection: limitsRejection,
+    errorMessage,
+  });
+
   // Error message for Data tab only (excludes matrixify controls)
   const dataTabErrorMessage = useMemo(() => {
     const controlsWithErrors = Object.values(props.controls).filter(
@@ -1061,9 +1136,22 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   function renderChartContainer() {
     return (
       <ExploreChartPanel
+        queryFormData={queryFormData}
+        isQueryAllowed={limitsOn ? isQueryAllowed : undefined}
+        timeRangeBusy={timeRangeBusy && !checkRetrying}
+        timeRangeFailed={timeRangeFailed || checkRetrying}
+        timeRangeRetrying={!!props.timeRangeLimits?.refreshing || checkRetrying}
+        onTimeRangeRetry={onTimeRangeRetry}
+        onTimeRangeReasonRetry={
+          rejectionRetryShown ? onTimeRangeRetry : undefined
+        }
+        timeRangeReason={timeRangeReason}
+        samplesDashboardId={limitsOn ? props.dashboardId : undefined}
         actions={{
           setForceQuery: props.actions.setForceQuery,
-          postChartFormData: props.actions.postChartFormData,
+          postChartFormData: limitsOn
+            ? onUserCachedQuery
+            : props.actions.postChartFormData,
           updateQueryFormData: props.actions.updateQueryFormData,
           setControlValue: (
             controlName: string,
@@ -1091,7 +1179,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         triggerRender={props.triggerRender}
         errorMessage={dataTabErrorMessage}
         chartIsStale={chartIsStale}
-        onQuery={onQuery}
+        onQuery={limitsOn ? onUserQuery : onQuery}
         exploreState={props.exploreState}
       />
     );
@@ -1118,7 +1206,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         chart={props.chart}
         ownState={props.ownState}
         user={props.user}
-        saveDisabled={!!errorMessage || props.chart.chartStatus === 'loading'}
+        saveDisabled={
+          !!buttonErrorMessage || props.chart.chartStatus === 'loading'
+        }
+        saveDescribedBy={timeRangeDescribedBy}
         metadata={props.metadata}
         isSaveModalVisible={props.isSaveModalVisible}
       />
@@ -1276,12 +1367,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               chart={props.chart}
               datasource_type={props.datasource_type}
               isDatasourceMetaLoading={props.isDatasourceMetaLoading}
-              onQuery={onQuery}
+              onQuery={limitsOn ? onUserQuery : onQuery}
               onStop={onStop}
               canStopQuery={props.can_add || props.can_overwrite}
               errorMessage={dataTabErrorMessage}
-              buttonErrorMessage={errorMessage}
+              buttonErrorMessage={buttonErrorMessage}
               chartIsStale={chartIsStale}
+              runQueryDescribedBy={timeRangeDescribedBy}
             />
           </div>
         </Resizable>
@@ -1315,6 +1407,17 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         />
       )}
     </ExploreContainer>
+  );
+}
+
+function ExploreViewContainerWithLimits(props: ExploreViewContainerProps) {
+  return (
+    <ExploreTimeRangeLimitsProvider
+      timeRangeLimits={props.timeRangeLimits}
+      dashboardId={props.dashboardId}
+    >
+      <ExploreViewContainer {...props} />
+    </ExploreTimeRangeLimitsProvider>
   );
 }
 
@@ -1486,6 +1589,9 @@ function mapStateToProps(state: ExploreRootState) {
     metadata,
     saveAction: explore.saveAction,
     isSaveModalVisible: saveModal.isVisible,
+    timeRangeLimits: explore.timeRangeLimits,
+    timeRangeCheck: explore.timeRangeCheck,
+    timeRangeRunOnValid: explore.timeRangeRunOnValid,
   };
 }
 
@@ -1497,6 +1603,7 @@ function mapDispatchToProps(dispatch: Dispatch): DispatchProps {
     ...chartActions,
     ...logActions,
     fetchDatasourceMetadata,
+    ...timeRangeLimitsActions,
   };
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Action modules export mixed types (creators + constants)
@@ -1510,7 +1617,7 @@ export default connect(
   mapStateToProps,
   mapDispatchToProps,
 )(
-  withToasts(memo(ExploreViewContainer)) as ComponentType<
+  withToasts(memo(ExploreViewContainerWithLimits)) as ComponentType<
     Record<string, never>
   >,
 );

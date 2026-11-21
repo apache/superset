@@ -25,6 +25,7 @@ import FiltersConfigForm, {
 import DividerConfigForm from '../DividerConfigForm';
 import { NativeFiltersForm, FilterRemoval } from '../types';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../utils';
+import type { DashboardTimeRangeLimitsState } from '../useDashboardTimeRangeLimits';
 
 export interface FilterContentRendererProps {
   orderedIds: string[];
@@ -47,6 +48,7 @@ export interface FilterContentRendererProps {
   validateDependencies: () => void;
   getDependencySuggestion: (filterId: string) => string;
   handleModifyItem: (id: string) => void;
+  timeRangeLimits?: DashboardTimeRangeLimitsState;
 }
 
 function FilterContentRenderer({
@@ -66,6 +68,7 @@ function FilterContentRenderer({
   validateDependencies,
   getDependencySuggestion,
   handleModifyItem,
+  timeRangeLimits,
 }: FilterContentRendererProps) {
   const formList = useMemo(
     () =>
@@ -105,6 +108,7 @@ function FilterContentRenderer({
                 validateDependencies={validateDependencies}
                 getDependencySuggestion={getDependencySuggestion}
                 onModifyFilter={handleModifyItem}
+                timeRangeLimits={timeRangeLimits}
               />
             )}
           </div>
@@ -127,6 +131,7 @@ function FilterContentRenderer({
       validateDependencies,
       getDependencySuggestion,
       configFormRef,
+      timeRangeLimits,
     ],
   );
 

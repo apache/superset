@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import dataclasses
 from collections.abc import Mapping
 from typing import Any, cast, Optional, Union
 
@@ -27,14 +28,25 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db, security_manager
+from superset.extensions import db, feature_flag_manager, security_manager
 from superset.models.slice import Slice
 from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
+from superset.time_range_limits.enforcement import (
+    chart_query_context,
+    dashboard_time_extras,
+    load_dashboard_by_id,
+)
+from superset.time_range_limits.policy import (
+    FEATURE_FLAG,
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
+from superset.utils.error_sanitization import sanitize_superset_errors
 from superset.views.utils import get_dashboard_extra_filters
 
 
@@ -59,9 +71,26 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         return get_dashboard_extra_filters(chart_id, self._dashboard_id)
 
+    def _dashboard_time_extras(self, chart_id: int) -> dict[str, Any]:
+        """The time parts the dashboard's native filters send for the chart, only
+        while the time range limits are on."""
+        if not self._dashboard_id or not feature_flag_manager.is_feature_enabled(
+            FEATURE_FLAG
+        ):
+            return {}
+        if (dashboard := load_dashboard_by_id(self._dashboard_id)) is None:
+            return {}
+        try:
+            security_manager.raise_for_access(dashboard=dashboard)
+        except SupersetSecurityException:
+            return {}
+        return dashboard_time_extras(dashboard, chart_id)
+
     def _warm_up_non_legacy_cache(self, chart: Slice) -> tuple[Any, Any]:
         """Warm up cache for non-legacy visualizations."""
-        query_context = chart.get_query_context()
+        query_context = chart_query_context(
+            chart, self._dashboard_time_extras(chart.id)
+        )
 
         if not query_context:
             raise ChartInvalidError(
@@ -94,6 +123,9 @@ class ChartWarmUpCacheCommand(BaseCommand):
                 )
 
         query_context.force = True
+        query_context.limit_slice_id = chart.id
+        if self._dashboard_id:
+            query_context.limit_dashboard_id = self._dashboard_id
         command = ChartDataCommand(query_context)
         command.validate()
         payload = command.run()
@@ -122,13 +154,26 @@ class ChartWarmUpCacheCommand(BaseCommand):
             }
         chart: Slice = cast(Slice, self._chart_or_id)
 
+        errors: list[dict[str, Any]] = []
         try:
             error, status = self._warm_up_non_legacy_cache(chart)
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+            (sanitized,) = sanitize_superset_errors([ex.error])
+            error = sanitized.message
+            status = None
+            errors = [dataclasses.asdict(sanitized)]
         except Exception as ex:  # pylint: disable=broad-except
             error = error_msg_from_exception(ex)
             status = None
 
-        return {"chart_id": chart.id, "viz_error": error, "viz_status": status}
+        result: dict[str, Any] = {
+            "chart_id": chart.id,
+            "viz_error": error,
+            "viz_status": status,
+        }
+        if errors:
+            result["errors"] = errors
+        return result
 
     def validate(self) -> None:
         if isinstance(self._chart_or_id, Slice):

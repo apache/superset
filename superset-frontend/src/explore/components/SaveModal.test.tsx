@@ -17,6 +17,7 @@
  * under the License.
  */
 import configureStore from 'redux-mock-store';
+import type { QueryFormData } from '@superset-ui/core';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
 
@@ -33,6 +34,9 @@ import type {
 } from '@superset-ui/core/components/Select';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
+import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
+import { exploreInitialData } from 'src/explore/fixtures';
+import type { ExplorePageState } from 'src/explore/types';
 import SaveModal, {
   createRedirectParams,
   addChartToDashboard,
@@ -962,3 +966,134 @@ test.each([
     }
   },
 );
+
+test.each([
+  ['Save (Overwrite)', 7],
+  ['Save as...', 7],
+  ['Save (Overwrite)', null],
+  ['Save as...', null],
+] as const)(
+  '%s saves report context only with source dashboard %s',
+  async (mode, dashboardId) => {
+    sessionStorage.clear();
+    let formData = {} as QueryFormData;
+    const getState = () => ({ explore: { form_data: formData } });
+    fetchMock.put('glob:*/api/v1/chart/1', { id: 1, result: {} });
+    fetchMock.post('glob:*/api/v1/chart/', { id: 2, result: {} });
+    const { getByRole, getByTestId } = setup(
+      {
+        ...defaultProps,
+        dashboardId,
+        sliceName: 'Source chart',
+        actions: {
+          setFormData: (data: QueryFormData) => {
+            formData = data;
+          },
+          updateSlice: (
+            ...args: Parameters<typeof saveModalActions.updateSlice>
+          ) => saveModalActions.updateSlice(...args)(jest.fn(), getState),
+          createSlice: (
+            ...args: Parameters<typeof saveModalActions.createSlice>
+          ) => saveModalActions.createSlice(...args)(jest.fn(), getState),
+          getSliceDashboards: jest.fn().mockResolvedValue([8]),
+          saveSliceFailed: jest.fn(),
+        },
+      },
+      mockStore({
+        ...initialState,
+        explore: { ...initialState.explore, datasource: { type: 'table' } },
+      }),
+    );
+    fireEvent.click(getByRole('radio', { name: mode }));
+    if (mode === 'Save as...') {
+      fireEvent.change(getByTestId('new-chart-name'), {
+        target: { value: 'Dashboard context copy' },
+      });
+    }
+    fireEvent.click(getByRole('button', { name: 'Save' }));
+    const endpoint =
+      mode === 'Save as...' ? 'glob:*/api/v1/chart/' : 'glob:*/api/v1/chart/1';
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(endpoint)).toHaveLength(1),
+    );
+    const payload = JSON.parse(
+      String(fetchMock.callHistory.calls(endpoint)[0].options.body),
+    );
+    expect(JSON.parse(payload.params)).not.toHaveProperty('dashboardId');
+    const context = JSON.parse(payload.query_context);
+    expect(context.form_data.dashboardId).toBe(dashboardId ?? undefined);
+  },
+);
+
+test('reopening a saved report context without a dashboard does not select or add its source', async () => {
+  sessionStorage.clear();
+  window.history.pushState({}, '', '/explore/?slice_id=1');
+  const saved = await saveModalActions.getSlicePayload(
+    'Copy on another dashboard',
+    { ...exploreInitialData.form_data, dashboardId: 7 },
+    [8],
+    [],
+  );
+  const persisted = JSON.parse(saved.params ?? '{}') as QueryFormData;
+  const dispatch = jest.fn();
+  hydrateExplore({ ...exploreInitialData, form_data: persisted })(
+    dispatch,
+    () =>
+      ({
+        user: {},
+        charts: {},
+        datasources: {},
+        common: { conf: {} },
+        explore: {},
+      }) as ExplorePageState,
+  );
+  const hydrated = dispatch.mock.calls[0][0].data.explore;
+  let formData = persisted;
+  fetchMock.put('glob:*/api/v1/chart/1', { id: 1, result: {} });
+  const { getByRole, getByTestId } = setup(
+    {
+      ...defaultProps,
+      sliceName: 'Copy on another dashboard',
+      form_data: hydrated.form_data,
+      dashboardId: hydrated.form_data.dashboardId ?? null,
+      actions: {
+        setFormData: (data: QueryFormData) => {
+          formData = data;
+        },
+        getSliceDashboards: jest.fn().mockResolvedValue([8]),
+        updateSlice: (
+          ...args: Parameters<typeof saveModalActions.updateSlice>
+        ) =>
+          saveModalActions.updateSlice(...args)(jest.fn(), () => ({
+            explore: { form_data: formData },
+          })),
+        saveSliceFailed: jest.fn(),
+      },
+    },
+    mockStore({
+      ...initialState,
+      explore: { ...initialState.explore, datasource: { type: 'table' } },
+    }),
+  );
+  expect(getByTestId('mock-async-select')).toHaveValue('');
+  expect(hydrated.form_data).not.toHaveProperty('dashboardId');
+  fireEvent.click(getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/1')).toHaveLength(
+      1,
+    ),
+  );
+  const payload = JSON.parse(
+    String(
+      fetchMock.callHistory.calls('glob:*/api/v1/chart/1')[0].options.body,
+    ),
+  );
+  expect(payload.dashboards).toEqual([8]);
+  expect(JSON.parse(payload.params)).not.toHaveProperty('dashboardId');
+  expect(JSON.parse(payload.query_context).form_data).not.toHaveProperty(
+    'dashboardId',
+  );
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/dashboard/7')).toHaveLength(
+    0,
+  );
+});

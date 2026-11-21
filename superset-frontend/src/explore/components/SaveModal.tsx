@@ -492,7 +492,10 @@ const SaveModal = ({
         // as an explicit argument.
         const formData = form_data || {};
         delete formData.url_params;
-        actions.setFormData({ ...formData });
+        actions.setFormData({
+          ...formData,
+          ...(dashboardIdProp ? { dashboardId: dashboardIdProp } : {}),
+        });
 
         if (datasource?.type === DatasourceType.Query) {
           const { schema, sql, database } = datasource;
@@ -621,6 +624,7 @@ const SaveModal = ({
     },
     [
       form_data,
+      dashboardIdProp,
       slice,
       dispatch,
       datasource,

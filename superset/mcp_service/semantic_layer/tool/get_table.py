@@ -69,6 +69,11 @@ from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticView
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
+from superset.time_range_limits.telemetry import limit_path
 
 logger = logging.getLogger(__name__)
 
@@ -679,6 +684,13 @@ async def _get_table(
             error_type="OAuth2Error",
         )
 
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as exc:
+        await ctx.error("Time range limits rejected the query")
+        return SemanticLayerError.create(
+            error=exc.error.message,
+            error_type=exc.error.error_type.value,
+        )
+
     except (CommandException, SupersetException) as exc:
         error_text = bounded_exception_message(exc)
         await ctx.error("Query failed: %s" % error_text)
@@ -718,7 +730,8 @@ async def _finalized_get_table(
 ) -> GetTableResponse | SemanticLayerError:
     """Contain and preflight one semantic-table producer invocation."""
     try:
-        response = await _get_table(request, ctx)
+        with limit_path("mcp"):
+            response = await _get_table(request, ctx)
     except Exception:
         _log_semantic_table_failure(
             "Unhandled exception while querying a semantic table"

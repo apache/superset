@@ -17,6 +17,7 @@
 import logging
 import textwrap
 from collections.abc import Callable
+from datetime import datetime
 from functools import partial
 from typing import Any, Optional
 
@@ -50,10 +51,18 @@ from superset.daos.dashboard import DashboardDAO, reconcile_position_json
 from superset.daos.report import ReportScheduleDAO
 from superset.dashboards.schemas import validate_css
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
 from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType
+from superset.time_range_limits.policy import (
+    FEATURE_FLAG as TIME_RANGE_LIMITS_FLAG,
+    json_text_limits_errors,
+    limits_errors,
+    stored_limits,
+)
+from superset.time_range_limits.save_check import filter_default_errors
 from superset.utils import json
 from superset.utils.core import remove_duplicates, send_email_smtp
 from superset.utils.decorators import on_error, transaction
@@ -210,10 +219,29 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     # of what's set here.
                     exceptions.append(ValidationError(ex.messages, field_name="css"))
 
+        self._validate_limits(exceptions)
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 
         self._validate_layout_chart_nodes()
+
+    def _validate_limits(self, exceptions: list[ValidationError]) -> None:
+        if errors := self._limits_errors():
+            exceptions.append(ValidationError(errors))
+
+    def _limits_errors(self) -> dict[str, list[str]]:
+        # Partial writers (filters, customizations, colours) send no json_metadata.
+        # An omitted or null key has no policy to check: the update merges
+        # json_metadata, so omitted keeps the stored value and null removes it.
+        if not (json_metadata := self._properties.get("json_metadata")):
+            return {}
+        assert self._model is not None
+        return json_text_limits_errors(
+            json_metadata,
+            stored_limits(self._model.json_metadata),
+            "dashboard",
+            "json_metadata.time_range_limits",
+        )
 
     def _validate_layout_chart_nodes(self) -> None:
         """Refuse a malformed layout chart node or a new native-filter target
@@ -359,7 +387,7 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         on_error=partial(on_error, reraise=DashboardNativeFiltersUpdateFailedError)
     )
     def run(self) -> Model:
-        super().validate()
+        self.validate()
         assert self._model
 
         configuration = DashboardDAO.update_native_filters_config(
@@ -367,6 +395,18 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         )
 
         return configuration
+
+    def validate(self) -> None:
+        super().validate()
+        assert self._model
+        if not feature_flag_manager.is_feature_enabled(TIME_RANGE_LIMITS_FLAG):
+            return
+        if errors := filter_default_errors(
+            self._model, self._properties.get("modified") or [], datetime.now()
+        ):
+            raise DashboardInvalidError(
+                exceptions=[ValidationError(limits_errors("modified", errors))]
+            )
 
 
 class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):

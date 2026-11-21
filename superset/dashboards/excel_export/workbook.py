@@ -25,10 +25,12 @@ from typing import Any
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
 
+from superset import is_feature_enabled
 from superset.charts.data.dashboard_filter_context import (
     apply_dashboard_filter_context,
     get_dashboard_filter_context,
 )
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -39,6 +41,7 @@ from superset.common.form_data_query_context import (
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
+from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
 from superset.utils.excel_streaming import StreamingXlsxWriter
 
@@ -226,6 +229,10 @@ def _write_chart_sheets(
     g.form_data = json_body
 
     query_context = ChartDataQueryContextSchema().load(json_body)
+    if is_feature_enabled(FEATURE_FLAG):
+        set_query_context_form_data(
+            query_context, query_context.datasource.id, query_context.datasource.type
+        )
     command = ChartDataCommand(query_context)
     command.validate()
     result = command.run()

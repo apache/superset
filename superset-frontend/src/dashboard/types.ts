@@ -43,6 +43,7 @@ import Subject from 'src/types/Subject';
 import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
 import { AutoRefreshStatus } from './types/autoRefresh';
+import type { TimeRangeLimitsState } from './reducers/timeRangeLimits';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
@@ -275,6 +276,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
+  timeRangeLimits: TimeRangeLimitsState;
   user: UserWithPermissionsAndRoles;
   common?: { conf: JsonObject };
   lastModifiedTime: number;

@@ -73,6 +73,7 @@ from superset.reports.schemas import (
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.tasks.types import FixedExecutor
+from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
 from superset.utils.slack import (
     get_channels_with_search,
     SlackChannelListingClientError,
@@ -83,6 +84,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
+from superset.views.error_handling import json_error_response
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
@@ -676,6 +678,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
+            503:
+              $ref: '#/components/responses/503'
         """
         try:
             item = self.add_model_schema.load(request.json)
@@ -699,6 +703,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=str(ex))
         except ReportScheduleInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response([ex.error], status=ex.status)
         except ReportScheduleCreateFailedError as ex:
             logger.error(
                 "Error creating report schedule %s: %s",
@@ -756,6 +762,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
+            503:
+              $ref: '#/components/responses/503'
         """
         try:
             item = self.edit_model_schema.load(request.json)
@@ -779,6 +787,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ReportScheduleInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response([ex.error], status=ex.status)
         except ReportScheduleForbiddenError:
             return self.response_403()
         except ReportScheduleUpdateFailedError as ex:

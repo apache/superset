@@ -23,7 +23,7 @@ import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { ExplorePageState } from 'src/explore/types';
 import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
-import { triggerQuery } from 'src/components/Chart/chartAction';
+import { retryExploreQuery } from 'src/explore/actions/timeRangeLimitsActions';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
 import { UNSAVED_CHART_ID } from 'src/explore/constants';
 import { api } from 'src/hooks/apiResources/queryApi';
@@ -117,7 +117,7 @@ export function OAuth2RedirectMessage({
       } else if (source === 'sqllab' && query) {
         dispatch(reRunQuery(query));
       } else if (source === 'explore') {
-        dispatch(triggerQuery(true, chartId));
+        dispatch(retryExploreQuery(chartId));
       } else if (source === 'dashboard') {
         dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
       } else if (source === 'crud') {

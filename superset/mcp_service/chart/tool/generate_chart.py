@@ -79,6 +79,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -109,6 +110,7 @@ def _finalize_response(payload: object) -> GenerateChartResponse:
         openWorldHint=False,
     ),
 )
+@limit_path("mcp")
 async def generate_chart(  # noqa: C901
     request: Annotated[
         GenerateChartRequest,

@@ -75,7 +75,10 @@ from superset.mcp_service.chart.query_result import (
     null_data_is_empty,
 )
 from superset.mcp_service.chart.registry import plugin_for_viz_type
-from superset.mcp_service.chart.response_preflight import finalize_chart_response
+from superset.mcp_service.chart.response_preflight import (
+    finalize_chart_response,
+    time_range_limit_error,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -95,6 +98,11 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
@@ -386,6 +394,8 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 height=self.request.ascii_height or 20,
             )
 
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+            return time_range_limit_error(ex)
         except (
             CommandException,
             SupersetException,
@@ -462,6 +472,8 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 row_count=len(data),
             )
 
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+            return time_range_limit_error(ex)
         except (
             CommandException,
             SupersetException,
@@ -615,6 +627,8 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 supports_streaming=False,
             )
 
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+            return time_range_limit_error(ex)
         except (
             CommandException,
             SupersetException,
@@ -1713,6 +1727,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         openWorldHint=False,
     ),
 )
+@limit_path("mcp")
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:

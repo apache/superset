@@ -23,22 +23,35 @@ import {
   CURRENT_RANGE_OPTIONS,
   CURRENT_CALENDAR_RANGE_SET,
 } from 'src/explore/components/controls/DateFilterControl/utils';
+import { defaultPreset, presetGroup, presetOptions } from './limitFields';
 import { CurrentRangeType, CurrentWeek, FrameComponentProps } from '../types';
 
-export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
+export function CurrentCalendarFrame({
+  onChange,
+  value,
+  limits,
+}: FrameComponentProps) {
+  const presets = limits?.presets;
+  const defaultValue = defaultPreset(
+    CURRENT_RANGE_OPTIONS,
+    CurrentWeek,
+    presets,
+  );
   useEffect(() => {
     if (!CURRENT_CALENDAR_RANGE_SET.has(value as CurrentRangeType)) {
-      onChange(CurrentWeek);
+      onChange(defaultValue);
     }
   }, [value]);
 
   if (!CURRENT_CALENDAR_RANGE_SET.has(value as CurrentRangeType)) {
     return null;
   }
+  const options = presetOptions(CURRENT_RANGE_OPTIONS, value, presets, limits);
+  const group = presetGroup(limits, options);
 
   return (
     <>
-      <div className="section-title">
+      <div className="section-title" id={group.titleId}>
         {t('Configure Time Range: Current...')}
       </div>
       <Radio.GroupWrapper
@@ -56,8 +69,10 @@ export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
           if (newValue === '') return;
           onChange(newValue);
         }}
-        options={CURRENT_RANGE_OPTIONS}
+        options={options}
+        {...group.groupProps}
       />
+      {group.note}
     </>
   );
 }

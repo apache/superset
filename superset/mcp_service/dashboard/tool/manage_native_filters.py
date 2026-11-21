@@ -817,6 +817,7 @@ def manage_native_filters(
     )
     from superset.commands.exceptions import TagForbiddenError
     from superset.daos.dashboard import DashboardDAO
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
 
     try:
         with event_logger.log_context(action="mcp.manage_native_filters.validation"):
@@ -895,6 +896,11 @@ def manage_native_filters(
         return ManageNativeFiltersResponse(
             dashboard_id=request.dashboard_id,
             error=f"Failed to update native filters: {exc}",
+        )
+    except TimeRangeLimitsUnavailableError as exc:
+        return ManageNativeFiltersResponse(
+            dashboard_id=request.dashboard_id,
+            error=exc.error.message,
         )
     except Exception as exc:
         logger.exception(

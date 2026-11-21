@@ -84,9 +84,13 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
   onRefresh: jest.fn(),
 }));
 
-// Mock useDispatch
-const mockDispatch = jest.fn();
-jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch);
+// Mock useDispatch; thunks run against the mock store
+const mockDispatch = jest.fn((action: unknown): unknown =>
+  typeof action === 'function'
+    ? action(mockDispatch, mockStore.getState)
+    : action,
+);
+jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch as never);
 
 // Capture the channel instance created by the component so tests can drive its
 // onmessage handler and assert it gets closed on unmount.
@@ -241,6 +245,54 @@ describe('OAuth2RedirectMessage Component', () => {
     await waitFor(() => {
       expect(triggerQuery).toHaveBeenCalledWith(true, 123);
     });
+  });
+
+  test('explore source with time range limits on: no triggerQuery until the check is valid', async () => {
+    const limitsStore = createStore(() => ({
+      ...mockStore.getState(),
+      explore: {
+        slice: { slice_id: 123 },
+        controls: { slice_id: { value: 123 } },
+        form_data: {},
+        timeRangeLimits: {
+          status: 'loaded',
+          levels: [
+            {
+              source: 'global',
+              policy: {
+                max_span: { quantity: 30, time_grain: 'P1D' },
+                max_look_back: null,
+                max_look_forward: null,
+              },
+            },
+          ],
+          datasetId: 1,
+        },
+      },
+    }));
+    const limitsDispatch = jest.fn((action: unknown): unknown =>
+      typeof action === 'function'
+        ? action(limitsDispatch, limitsStore.getState)
+        : action,
+    );
+    jest
+      .spyOn(reduxHooks, 'useDispatch')
+      .mockReturnValue(limitsDispatch as never);
+    (triggerQuery as jest.Mock).mockClear();
+    render(setup({ source: 'explore' }, limitsStore));
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(limitsDispatch).toHaveBeenCalledWith({
+        type: 'SET_TIME_RANGE_RUN_ON_VALID',
+        run: 'mount',
+      });
+    });
+    expect(triggerQuery).not.toHaveBeenCalled();
+    jest
+      .spyOn(reduxHooks, 'useDispatch')
+      .mockReturnValue(mockDispatch as never);
   });
 
   test('dispatches onRefresh action for dashboard source upon receiving a correct message', async () => {

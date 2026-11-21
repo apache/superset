@@ -54,6 +54,11 @@ import { nanoid } from 'nanoid';
 import cloneDeep from 'lodash-es/cloneDeep';
 import { hydrateChartNormalization } from 'src/features/versionHistory/reducer';
 import { automaticNormalizationTransitions } from 'src/features/versionHistory/normalization';
+import {
+  exploreDashboardId,
+  exploreLimitsState,
+  exploreLimitsOn,
+} from './timeRangeLimitsActions';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
@@ -91,6 +96,7 @@ export const hydrateExplore =
     saveAction = null,
     dataMask,
     chartStates,
+    time_range_limits: limitsPayload,
   }: ExplorePageInitialData & {
     dataMask?: DataMaskStateWithId;
     chartStates?: Record<number, JsonObject>;
@@ -207,6 +213,15 @@ export const hydrateExplore =
 
     const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
     const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
+    const timeRangeLimits = exploreLimitsState(
+      limitsPayload,
+      initialDatasource.id ?? null,
+    );
+    const limitsOn = exploreLimitsOn(
+      timeRangeLimits,
+      exploreDashboardId(initialFormData),
+    );
+
     const exploreState = {
       // note this will add `form_data` to state,
       // which will be manipulable by future reducers.
@@ -243,6 +258,7 @@ export const hydrateExplore =
       metadata,
       saveAction,
       common,
+      ...(timeRangeLimits && { timeRangeLimits }),
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER
@@ -274,7 +290,8 @@ export const hydrateExplore =
       sliceFormData,
       queryController: null,
       queriesResponse: null,
-      triggerQuery: !!saveAction,
+      // With limits on, the save effect runs it once the check is valid.
+      triggerQuery: limitsOn ? false : !!saveAction,
       lastRendered: 0,
     };
 

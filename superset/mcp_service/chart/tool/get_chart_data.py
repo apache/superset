@@ -77,6 +77,7 @@ from superset.mcp_service.chart.query_result import (
 from superset.mcp_service.chart.response_preflight import (
     bounded_exception_message,
     finalize_chart_data_response,
+    time_range_limit_error,
 )
 from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
@@ -101,6 +102,11 @@ from superset.semantic_layers.access import (
     SemanticLayersDisabledError,
 )
 from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils.core import DatasourceType, GenericDataType
 from superset.utils.json import JSONDecodeError
 
@@ -495,7 +501,10 @@ def _build_query_results(
 
 
 async def _get_chart_data(  # noqa: C901
-    request: GetChartDataRequest, ctx: Context
+    request: GetChartDataRequest,
+    ctx: Context,
+    *,
+    limit_dashboard_id: int | None = None,
 ) -> ChartData | ChartError:
     """Produce chart data for one request, without containment or preflight.
 
@@ -1038,6 +1047,10 @@ async def _get_chart_data(  # noqa: C901
                 query_datasource_type,
             )
 
+            if limit_dashboard_id is not None:
+                query_context.limit_slice_id = chart_id
+                query_context.limit_dashboard_id = limit_dashboard_id
+
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
                 command = ChartDataCommand(query_context)
@@ -1294,6 +1307,8 @@ async def _get_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+            return time_range_limit_error(ex)
         except _VALIDATION_ERRORS as ex:
             logger.warning(
                 "Chart data validation failed for chart %s: %s", chart_id, ex
@@ -1566,6 +1581,8 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+        return time_range_limit_error(ex)
     except _VALIDATION_ERRORS as ex:
         logger.warning("Unsaved chart data validation failed: %s", ex)
         return _validation_error(ex)
@@ -2009,7 +2026,10 @@ def _log_chart_data_failure(message: str) -> None:
 
 
 async def execute_chart_data(
-    request: GetChartDataRequest, ctx: Context
+    request: GetChartDataRequest,
+    ctx: Context,
+    *,
+    limit_dashboard_id: int | None = None,
 ) -> ChartData | ChartError:
     """Shared core behind get_chart_data.
 
@@ -2019,7 +2039,10 @@ async def execute_chart_data(
     receive a finalized response instead of an unbounded exception.
     """
     try:
-        response = await _get_chart_data(request, ctx)
+        with limit_path("mcp"):
+            response = await _get_chart_data(
+                request, ctx, limit_dashboard_id=limit_dashboard_id
+            )
     except Exception:
         _log_chart_data_failure("Unhandled exception while retrieving chart data")
         response = _chart_data_internal_error()

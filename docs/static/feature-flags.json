@@ -117,6 +117,13 @@
         "default": false,
         "lifecycle": "development",
         "description": "Enable Table V2 time comparison feature"
+      },
+      {
+        "name": "TIME_RANGE_LIMITS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enforce the time range limits (see TIME_RANGE_LIMITS_GLOBAL) on chart data queries",
+        "docs": "https://superset.apache.org/admin-docs/configuration/time-range-limits"
       }
     ],
     "testing": [

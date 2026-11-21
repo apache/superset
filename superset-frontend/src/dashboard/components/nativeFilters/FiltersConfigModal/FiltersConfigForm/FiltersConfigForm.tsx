@@ -40,6 +40,8 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
   selectClientErrorMessage,
+  isFeatureEnabled,
+  FeatureFlag,
   SupersetClient,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
@@ -98,6 +100,8 @@ import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
   getFormData,
+  FILTERS_WITH_ADHOC_FILTERS,
+  limitsUnavailableMessage,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
@@ -111,7 +115,20 @@ import {
   FilterRemoval,
   NativeFiltersForm,
 } from '../types';
+import type { DashboardTimeRangeLimitsState } from '../useDashboardTimeRangeLimits';
 import { CollapsibleControl } from './CollapsibleControl';
+import {
+  isUnboundedRangeError,
+  useDefaultTimeRangeCheck,
+  useFilterLimitsStatus,
+  usePreviewHoldEffects,
+  usePreviewRequests,
+} from './useFilterTimeRangeLimits';
+import {
+  DefaultLimitsAlert,
+  LimitsUnavailableAlert,
+  PreviewAfterSaveAlert,
+} from './TimeRangeLimitsAlerts';
 import { partitionedTimeRangeColumn } from './partitionedTimeRange';
 import { ColumnSelect, getDatasourceKey } from './ColumnSelect';
 import DatasetSelect from './DatasetSelect';
@@ -286,9 +303,8 @@ export interface FiltersConfigFormProps {
   setErroredFilters: (f: (filters: string[]) => string[]) => void;
   validateDependencies: () => void;
   getDependencySuggestion: (filterId: string) => string;
+  timeRangeLimits?: DashboardTimeRangeLimitsState;
 }
-
-const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 const getOptionDataTest = (
   prefix: string,
@@ -344,6 +360,7 @@ const FiltersConfigForm = (
     validateDependencies,
     getDependencySuggestion,
     isActive,
+    timeRangeLimits,
   }: FiltersConfigFormProps,
   ref: RefObject<FiltersConfigFormHandle>,
 ) => {
@@ -365,6 +382,13 @@ const FiltersConfigForm = (
     any
   > | null>(null);
   const forceUpdate = useForceUpdate(isActive);
+  const preview = usePreviewRequests({
+    limitsFlag: isFeatureEnabled(FeatureFlag.TimeRangeLimits),
+    form,
+    filterId,
+    setError,
+    forceUpdate,
+  });
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
   const filters = form.getFieldValue('filters');
@@ -453,6 +477,21 @@ const FiltersConfigForm = (
     (isChartCustomization
       ? customizationToEdit?.filterType
       : filterToEdit?.filterType || 'filter_select');
+
+  const limitsStatus = useFilterLimitsStatus({
+    timeRangeLimits,
+    isChartCustomization,
+    itemTypeField,
+    defaultValue: formFilter?.defaultDataMask?.filterState?.value,
+  });
+  const {
+    limitsFlag,
+    limitsLoading,
+    limitsFailed,
+    optionQueryHeld,
+    optionQueryHeldRef,
+    defaultRequiredByLimits,
+  } = limitsStatus;
 
   const hasDataset =
     // @ts-expect-error
@@ -619,6 +658,11 @@ const FiltersConfigForm = (
         forceUpdate();
         return;
       }
+      if (optionQueryHeldRef.current) {
+        preview.wasHeld.current = true;
+        forceUpdate();
+        return;
+      }
       const formData = getFormData({
         datasetId,
         datasourceType,
@@ -626,8 +670,10 @@ const FiltersConfigForm = (
         groupby: formFilter?.column,
         ...formFilter,
         filterType: itemTypeField,
+        ...(limitsFlag && filterToEdit ? { id: filterId } : {}),
       });
       formData.extra_form_data = dependenciesDefaultValues;
+      const { signal, isStale } = preview.start();
 
       setNativeFilterFieldValuesWrapper({
         defaultValueQueriesData: null,
@@ -636,13 +682,23 @@ const FiltersConfigForm = (
       // Manual semantic ranges need no provider bounds, including defaults.
       const query = isSemanticRange(formData)
         ? Promise.resolve([{ data: [{}] }])
-        : requestChartDataResolved({
-            formData,
-            force,
-            requestParams: { async_mode_override: asyncModeOverride },
-          });
+        : requestChartDataResolved(
+            {
+              formData,
+              force,
+              requestParams: {
+                async_mode_override: asyncModeOverride,
+                ...(signal && { signal }),
+              },
+            },
+            signal,
+          );
       query
         .then(queriesResponse => {
+          if (isStale()) {
+            return;
+          }
+          preview.setNeedsSave(false);
           setNativeFilterFieldValuesWrapper({
             defaultValueQueriesData:
               queriesResponse as ChartDataResponseResult[],
@@ -650,6 +706,17 @@ const FiltersConfigForm = (
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
+            if (isStale()) {
+              return;
+            }
+            if (
+              limitsFlag &&
+              isUnboundedRangeError(clientErrorObject.errors?.[0])
+            ) {
+              preview.needsSaveError(clientErrorObject);
+              return;
+            }
+            preview.setNeedsSave(false);
             setErrorWrapper(clientErrorObject);
           });
         });
@@ -665,12 +732,35 @@ const FiltersConfigForm = (
       formFilter,
       hasDataset,
       dependenciesText,
+      limitsFlag,
+      filterToEdit,
     ],
   );
 
   // TODO: refreshHandler changes itself because of the dependencies. Needs refactor.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => refreshHandler(), [dependenciesText]);
+  useEffect(() => {
+    // With limits, a preview sent before the form has its type is never
+    // exempt, so it waits for the full call below.
+    if (limitsFlag) {
+      if (!formFilter?.filterType) {
+        return;
+      }
+      preview.fullPreviewSent.current = true;
+    }
+    refreshHandler();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dependenciesText]);
+
+  usePreviewHoldEffects({
+    preview,
+    limitsFlag,
+    optionQueryHeld,
+    filterType: formFilter?.filterType,
+    hasDataset,
+    datasetId,
+    refreshHandler,
+    setError,
+  });
 
   const newFormData = getFormData({
     datasetId,
@@ -697,7 +787,25 @@ const FiltersConfigForm = (
       formFilter,
       selectionsReset ? undefined : filterToEdit,
       selectionsReset ? undefined : customizationToEdit,
+      defaultRequiredByLimits,
     );
+
+  const {
+    defaultCheck,
+    defaultValueMessage,
+    defaultValueHelp,
+    pickerLimits,
+    rejectLimitsFailed,
+    validateDefaultTimeRange,
+  } = useDefaultTimeRangeCheck({
+    status: limitsStatus,
+    form,
+    filterId,
+    setErroredFilters,
+  });
+  if (pickerLimits) {
+    newFormData.timeRangeLimits = pickerLimits;
+  }
 
   const showDataset =
     !datasetId || datasetDetails || formFilter?.dataset?.label;
@@ -1212,6 +1320,15 @@ const FiltersConfigForm = (
     }
   }, [formValues, filterId, form, isRemoved, undoFormValues]);
 
+  const showPreviewAlert =
+    preview.needsSave &&
+    (!hasDefaultValue ||
+      isValidFilterValue(
+        formFilter?.defaultDataMask?.filterState?.value,
+        formFilter?.filterType === 'filter_range',
+      ));
+  const slotError = showPreviewAlert ? undefined : error;
+
   if (isRemoved) {
     return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
   }
@@ -1479,6 +1596,9 @@ const FiltersConfigForm = (
                             defaultDataMask: null,
                             column: null,
                           });
+                          if (limitsFlag) {
+                            preview.reset();
+                          }
                           forceUpdate();
                           formChanged();
                         }}
@@ -1491,6 +1611,19 @@ const FiltersConfigForm = (
                     {t(`Dashboard time range filters apply to temporal columns defined in
           the filter section of each chart. Add temporal columns to the chart
           filters to have this dashboard filter impact those charts.`)}
+                  </FilterTypeInfo>
+                )}
+                {formFilter?.filterType === 'filter_time' &&
+                  limitsStatus.checkDefaultTimeRange &&
+                  defaultCheck?.status === 'checked' && (
+                    <StyledRowContainer vertical>
+                      <DefaultLimitsAlert check={defaultCheck} />
+                    </StyledRowContainer>
+                  )}
+                {((formFilter?.filterType === 'filter_time' && limitsFailed) ||
+                  optionQueryHeld) && (
+                  <FilterTypeInfo expanded={expanded}>
+                    <LimitsUnavailableAlert onRetry={timeRangeLimits?.retry} />
                   </FilterTypeInfo>
                 )}
                 {hasDataset && (
@@ -1577,6 +1710,9 @@ const FiltersConfigForm = (
                                     }
                                   : {}),
                               });
+                              if (limitsFlag) {
+                                preview.reset();
+                              }
                             }
                             forceUpdate();
                             formChanged();
@@ -2357,12 +2493,20 @@ const FiltersConfigForm = (
                           >
                             <CollapsibleControl
                               checked={hasDefaultValue}
-                              disabled={isRequired || defaultToFirstItem}
+                              disabled={
+                                isRequired ||
+                                defaultToFirstItem ||
+                                defaultRequiredByLimits
+                              }
                               initialValue={hasDefaultValue}
                               title={
                                 isChartCustomization
                                   ? t('Display control has default value')
-                                  : t('Filter has default value')
+                                  : defaultRequiredByLimits
+                                    ? t(
+                                        'Filter has default value (required while time range limits are on)',
+                                      )
+                                    : t('Filter has default value')
                               }
                               tooltip={defaultValueTooltip}
                               onChange={value => {
@@ -2410,9 +2554,13 @@ const FiltersConfigForm = (
                                     </StyledLabel>
                                   }
                                   required={hasDefaultValue}
+                                  help={defaultValueHelp}
                                   rules={[
                                     {
                                       validator: () => {
+                                        if (limitsFailed) {
+                                          return rejectLimitsFailed();
+                                        }
                                         // For range filters, check if at least one of the values in the array is non-null
                                         const value =
                                           formFilter?.defaultDataMask
@@ -2427,6 +2575,13 @@ const FiltersConfigForm = (
                                             value,
                                             isRangeFilter,
                                           );
+
+                                        if (
+                                          hasValidValue &&
+                                          limitsStatus.checkDefaultTimeRange
+                                        ) {
+                                          return validateDefaultTimeRange();
+                                        }
 
                                         if (hasValidValue) {
                                           const formValidationFields =
@@ -2471,15 +2626,23 @@ const FiltersConfigForm = (
                                     },
                                   ]}
                                 >
-                                  {error || showDefaultValue ? (
+                                  {optionQueryHeld ? (
                                     <DefaultValueContainer>
-                                      {error ? (
+                                      <BasicErrorAlert
+                                        title={t('Cannot load filter')}
+                                        body={limitsUnavailableMessage()}
+                                        level="error"
+                                      />
+                                    </DefaultValueContainer>
+                                  ) : slotError || showDefaultValue ? (
+                                    <DefaultValueContainer>
+                                      {slotError ? (
                                         <ErrorMessageWithStackTrace
-                                          error={error.errors?.[0]}
+                                          error={slotError.errors?.[0]}
                                           fallback={
                                             <BasicErrorAlert
                                               title={t('Cannot load filter')}
-                                              body={error.error}
+                                              body={slotError.error}
                                               level="error"
                                             />
                                           }
@@ -2518,6 +2681,8 @@ const FiltersConfigForm = (
                                           form={form}
                                           formData={newFormData}
                                           enableNoResults={enableNoResults}
+                                          limitsLoading={limitsLoading}
+                                          validateMessage={defaultValueMessage}
                                         />
                                       )}
                                       {hasDataset && datasetId && (
@@ -2551,6 +2716,7 @@ const FiltersConfigForm = (
                               )}
                             </CollapsibleControl>
                           </FormItem>
+                          {showPreviewAlert && <PreviewAfterSaveAlert />}
                           {Object.keys(controlItems)
                             .sort(
                               (a, b) =>

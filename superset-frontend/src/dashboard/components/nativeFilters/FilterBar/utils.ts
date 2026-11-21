@@ -17,20 +17,36 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
+  DataMask,
   DataMaskStateWithId,
   ExtraFormData,
   Filter,
   FilterState,
   NativeFilterTarget,
+  type TimeRangeLimits,
 } from '@superset-ui/core';
-import { isEqual } from 'lodash-es';
+import { isEqual, omit } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { RootState } from 'src/dashboard/types';
 import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
+import {
+  chartHoldMode,
+  type ChartHoldMode,
+} from 'src/dashboard/actions/timeRangeLimits';
+import type { ChartHoldStatus } from 'src/dashboard/reducers/timeRangeLimits';
+import {
+  dashboardLimitLevels,
+  describeFailure,
+  describeLimit,
+  type ChartRangeFailure,
+  type LimitCheck,
+  type LimitFailure,
+} from 'src/utils/timeRangeLimits';
 import { FilterElement } from './FilterControls/types';
 
 export const getOnlyExtraFormData = (
@@ -243,3 +259,160 @@ export const clearedCustomizationTarget = (
   datasetId: target?.datasetId,
   ...(target?.datasourceType ? { datasourceType: target.datasourceType } : {}),
 });
+/** A filter value the time range limits found invalid; never stored in Redux. */
+export type LimitFlags = {
+  limitInvalid?: boolean;
+  validateMessage?: string;
+};
+
+/**
+ * The data mask without the time range limit flags, for Redux and the links
+ * built from it. Without the flags it is returned as is.
+ */
+export const stripLimitFlags = <T extends DataMask>(dataMask: T): T =>
+  dataMask.filterState && 'limitInvalid' in dataMask.filterState
+    ? {
+        ...dataMask,
+        filterState: omit(dataMask.filterState, [
+          'limitInvalid',
+          'validateMessage',
+          'validateStatus',
+        ]),
+      }
+    : dataMask;
+
+/**
+ * A failure as the filter shows it: "Longer than 90 days" style text for the
+ * span, the picker's text for any other rule.
+ */
+export const limitFailureMessage = (failure: LimitFailure): string =>
+  failure.reason === 'MAX_SPAN_EXCEEDED' && failure.limit
+    ? t('Longer than %(limit)s', { limit: describeLimit(failure.limit) })
+    : describeFailure(failure, true);
+
+/** The filter's message for a checked value, `undefined` when it passes. */
+export const limitCheckMessage = (check: LimitCheck): string | undefined => {
+  if (check.status === 'error') {
+    return check.message;
+  }
+  if (check.status === 'unavailable') {
+    return t('Time range could not be checked.');
+  }
+  const [failure] = check.failures;
+  return failure ? limitFailureMessage(failure) : undefined;
+};
+
+export const selectTimeRangeLimitsMode = (state: RootState) =>
+  chartHoldMode(state.timeRangeLimits);
+
+export const useTimeRangeLimitsMode = () =>
+  useSelector<RootState, ChartHoldMode>(selectTimeRangeLimitsMode);
+
+/**
+ * Value and Numerical range filters send no option query while the time range
+ * limits failed, or while a Retry after a failure loads them. The first
+ * load of a page is not held.
+ */
+export const selectOptionQueryHeld = (state: RootState) => {
+  const mode = chartHoldMode(state.timeRangeLimits);
+  return (
+    mode === 'failed' ||
+    (mode === 'loading' && !!state.timeRangeLimits.failedBefore)
+  );
+};
+
+export const useOptionQueryHeld = () =>
+  useSelector<RootState, boolean>(selectOptionQueryHeld);
+
+const datasetIdOfChart = (state: RootState, chartId: number) => {
+  const datasource = state.charts[chartId]?.form_data?.datasource;
+  const id = Number(String(datasource ?? '').split('__')[0]);
+  return Number.isNaN(id) ? null : id;
+};
+
+/**
+ * The limits a Time Range filter's picker checks against: the global policy,
+ * the datasets of the charts in its scope that set a policy, the dashboard
+ * policy. `undefined` unless the limits are on.
+ */
+export const selectFilterTimeRangeLimits = (
+  state: RootState,
+  chartsInScope: number[] | undefined,
+): TimeRangeLimits | undefined => {
+  const { payload, dashboardId } = state.timeRangeLimits ?? {};
+  if (selectTimeRangeLimitsMode(state) !== 'on' || !payload) {
+    return undefined;
+  }
+  const datasetIds = chartsInScope
+    ? new Set(chartsInScope.map(chartId => datasetIdOfChart(state, chartId)))
+    : null;
+  return {
+    levels: dashboardLimitLevels({
+      ...payload,
+      datasets: (payload.datasets ?? []).filter(
+        dataset => !datasetIds || datasetIds.has(dataset.id),
+      ),
+    }),
+    dashboardId: dashboardId ?? undefined,
+    timezone: payload.timezone,
+  };
+};
+
+export const useFilterTimeRangeLimits = (
+  filterType: string,
+  chartsInScope: number[] | undefined,
+) =>
+  useSelector<RootState, TimeRangeLimits | undefined>(
+    state =>
+      filterType === 'filter_time'
+        ? selectFilterTimeRangeLimits(state, chartsInScope)
+        : undefined,
+    isEqual,
+  );
+
+const MARKED_HOLDS: ChartHoldStatus[] = ['invalid', 'unbounded', 'rejected'];
+
+const fromFilter = (failure: ChartRangeFailure) =>
+  !!failure.range.source?.some(
+    ({ kind }) => kind === 'time_range' || kind === 'granularity',
+  );
+
+/** A time range filter a held chart's check found invalid. */
+export type ServerMark = { value: string; failure: ChartRangeFailure };
+
+/**
+ * The Time Range filters the held charts name as the source of a failing
+ * range, for their applied value only.
+ */
+export const selectServerMarks = (
+  state: RootState,
+): Record<string, ServerMark> => {
+  const marks: Record<string, ServerMark> = {};
+  if (selectTimeRangeLimitsMode(state) !== 'on') {
+    return marks;
+  }
+  Object.values(state.timeRangeLimits.charts).forEach(hold => {
+    const filterId = hold.attribution?.filterId;
+    const value = hold.attribution?.filterValue;
+    const failure =
+      hold.failures?.find(fromFilter) ?? hold.failures?.[0] ?? undefined;
+    if (
+      !MARKED_HOLDS.includes(hold.status) ||
+      !filterId ||
+      !value ||
+      !failure ||
+      marks[filterId] ||
+      state.dataMask[filterId]?.extraFormData?.time_range !== value
+    ) {
+      return;
+    }
+    marks[filterId] = { value, failure };
+  });
+  return marks;
+};
+
+export const useServerMarks = () =>
+  useSelector<RootState, Record<string, ServerMark>>(
+    selectServerMarks,
+    isEqual,
+  );

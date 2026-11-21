@@ -93,6 +93,9 @@ from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCom
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dashboard.restore import RestoreDashboardCommand
+from superset.commands.dashboard.time_range_limits import (
+    UpdateDashboardTimeRangeLimitsCommand,
+)
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
     UpdateDashboardChartCustomizationsCommand,
@@ -162,6 +165,7 @@ from superset.dashboards.schemas import (
     DashboardPostSchema,
     DashboardPutSchema,
     DashboardScreenshotPostSchema,
+    DashboardTimeRangeLimitsPutSchema,
     EmbeddedDashboardConfigSchema,
     EmbeddedDashboardResponseSchema,
     get_delete_ids_schema,
@@ -212,6 +216,27 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
+from superset.time_range_limits.policy import (
+    dashboard_limits_payload,
+    FEATURE_FLAG,
+    TimeRangeLimitsUnavailableError,
+    without_stored_value,
+)
+from superset.time_range_limits.save_check import (
+    chart_datasets,
+    dashboard_save_check,
+    DATASET_SAVE_CHECK_MAX_CHARTS,
+    load_stored_levels,
+    proposed_policy,
+    ProposedPolicyError,
+    stored_dashboard_limits,
+)
+from superset.time_range_limits.schemas import (
+    get_time_range_limits_charts_schema,
+    TimeRangeLimitsChartsSchema,
+    TimeRangeLimitsDashboardSchema,
+)
+from superset.time_range_limits.telemetry import limit_scope
 from superset.utils.core import (
     get_user_id,
     parse_boolean_string,
@@ -246,7 +271,7 @@ from superset.views.base_api import (
     validate_feature_flags,
 )
 from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
-from superset.views.error_handling import handle_api_exception
+from superset.views.error_handling import handle_api_exception, json_error_response
 from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedUsers,
@@ -457,6 +482,9 @@ class DashboardRestApi(
         "put_filters",
         "put_chart_customizations",
         "put_colors",
+        "get_time_range_limits",
+        "get_time_range_limits_charts",
+        "put_time_range_limits",
         "export_as_example",
         "export_xlsx",
         "export_xlsx_status",
@@ -718,12 +746,16 @@ class DashboardRestApi(
         DashboardChartCustomizationsConfigUpdateSchema,
         DashboardColorsConfigUpdateSchema,
         DashboardNativeFiltersConfigUpdateSchema,
+        DashboardTimeRangeLimitsPutSchema,
+        TimeRangeLimitsChartsSchema,
+        TimeRangeLimitsDashboardSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
         "thumbnail_query_schema": thumbnail_query_schema,
         "get_fav_star_ids_schema": get_fav_star_ids_schema,
+        "get_time_range_limits_charts_schema": (get_time_range_limits_charts_schema),
     }
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
@@ -1092,6 +1124,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
+            503:
+              $ref: '#/components/responses/503'
         """
         try:
             item = self.add_model_schema.load(request.json)
@@ -1106,6 +1140,8 @@ class DashboardRestApi(
             return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response([ex.error], status=ex.status)
         except DashboardCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
@@ -1209,6 +1245,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
+            503:
+              $ref: '#/components/responses/503'
         """
         try:
             item = self.edit_model_schema.load(request.json)
@@ -1249,6 +1287,8 @@ class DashboardRestApi(
             response = self.response(403, message=str(ex))
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response([ex.error], status=ex.status)
         except DashboardUpdateFailedError as ex:
             logger.error(
                 "Error updating model %s: %s",
@@ -1308,6 +1348,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
+            503:
+              $ref: '#/components/responses/503'
         """
         try:
             item = self.update_filters_model_schema.load(request.json, partial=True)
@@ -1328,6 +1370,10 @@ class DashboardRestApi(
             response = self.response(403, message=str(ex))
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response(
+                [without_stored_value(ex.error)], status=ex.status
+            )
         except DashboardNativeFiltersUpdateFailedError as ex:
             logger.error(
                 "Error changing native filters for dashboard %s: %s",
@@ -1503,6 +1549,247 @@ class DashboardRestApi(
             )
             response = self.response_422(message=str(ex))
         return response
+
+    @expose("/<id_or_slug>/time_range_limits/", methods=("GET",))
+    @validate_feature_flags([FEATURE_FLAG])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_time_range_limits"
+        ),
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def get_time_range_limits(self, dash: Dashboard) -> Response:
+        """Get the time range limits that apply to a dashboard.
+        ---
+        get:
+          summary: Get the time range limits of a dashboard
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          responses:
+            200:
+              description: The global, dashboard and effective time range limits
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/TimeRangeLimitsDashboardSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            503:
+              $ref: '#/components/responses/503'
+        """
+        try:
+            with limit_scope(dashboard_id=dash.id):
+                return self.response(
+                    200, result=dashboard_limits_payload(dash, datetime.now())
+                )
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response(
+                [
+                    without_stored_value(
+                        ex.error, keep_for_level_editor=True, dashboard=dash
+                    )
+                ],
+                status=ex.status,
+            )
+
+    @expose("/<id_or_slug>/time_range_limits/charts/", methods=("GET",))
+    @validate_feature_flags([FEATURE_FLAG])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_time_range_limits_charts"
+        ),
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    @parse_rison(get_time_range_limits_charts_schema)
+    def get_time_range_limits_charts(self, dash: Dashboard, **kwargs: Any) -> Response:
+        """List the charts and filter defaults a dashboard policy would refuse.
+        ---
+        get:
+          summary: List the charts and filter defaults a dashboard policy would refuse
+          description: >-
+            Checks the dashboard's saved charts and time range filter defaults
+            against a proposed dashboard policy, as chart data queries are
+            checked. Writes nothing and runs no data query.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_time_range_limits_charts_schema'
+          responses:
+            200:
+              description: The charts and filter defaults the policy would refuse
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/TimeRangeLimitsChartsSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            503:
+              $ref: '#/components/responses/503'
+        """
+        try:
+            security_manager.raise_for_editorship(dash)
+        except SupersetSecurityException:
+            return self.response_403()
+        try:
+            with limit_scope(dashboard_id=dash.id):
+                slices = dash.slices
+                DashboardDAO.prefetch_chart_access(dash)
+                charts = [
+                    chart
+                    for chart in slices
+                    if security_manager.can_access_chart(chart)
+                ]
+                charts.sort(key=lambda chart: chart.id)
+                truncated = len(charts) > DATASET_SAVE_CHECK_MAX_CHARTS
+                charts = charts[:DATASET_SAVE_CHECK_MAX_CHARTS]
+                levels = load_stored_levels(chart_datasets(charts))
+                policy = proposed_policy(
+                    kwargs["rison"],
+                    dash.json_metadata,
+                    "dashboard",
+                    lambda: stored_dashboard_limits(dash),
+                )
+                result = dashboard_save_check(
+                    dash,
+                    levels,
+                    policy,
+                    datetime.now(),
+                    charts,
+                )
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response(
+                [
+                    without_stored_value(
+                        ex.error, keep_for_level_editor=True, dashboard=dash
+                    )
+                ],
+                status=ex.status,
+            )
+        except ProposedPolicyError as ex:
+            if ex.status == 400:
+                return self.response_400(message=ex.messages)
+            return self.response_422(message=ex.messages)
+        return self.response(200, result={**result, "truncated": truncated})
+
+    @expose("/<id_or_slug>/time_range_limits/", methods=("PUT",))
+    @validate_feature_flags([FEATURE_FLAG])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.put_time_range_limits"
+        ),
+        log_to_statsd=False,
+    )
+    @requires_json
+    @with_dashboard
+    def put_time_range_limits(self, dash: Dashboard) -> Response:
+        """Replace or remove the time range limits of a dashboard.
+        ---
+        put:
+          summary: Replace or remove the time range limits of a dashboard
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          requestBody:
+            description: The dashboard's time range limits
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DashboardTimeRangeLimitsPutSchema'
+          responses:
+            200:
+              description: The global, dashboard and effective time range limits
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/TimeRangeLimitsDashboardSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            503:
+              $ref: '#/components/responses/503'
+        """
+        try:
+            item = DashboardTimeRangeLimitsPutSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            with limit_scope(dashboard_id=dash.id):
+                result = UpdateDashboardTimeRangeLimitsCommand(
+                    dash, item["policy"]
+                ).run()
+        except DashboardForbiddenError:
+            return self.response_403()
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response(
+                [without_stored_value(ex.error)], status=ex.status
+            )
+        except DashboardUpdateFailedError as ex:
+            logger.error(
+                "Error updating time range limits for dashboard %s: %s",
+                dash.id,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        return self.response(200, result=result)
 
     @expose("/<pk>", methods=("DELETE",))
     @protect()
@@ -3544,6 +3831,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
+            503:
+              $ref: '#/components/responses/503'
         """
         try:
             data = DashboardCopySchema().load(request.json)
@@ -3558,6 +3847,8 @@ class DashboardRestApi(
             return self.response_403()
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response([ex.error], status=ex.status)
         except DashboardCopyError:
             logger.error("Error copying dashboard %s", source_id, exc_info=True)
             return self.response_400()
@@ -3844,6 +4135,8 @@ class DashboardRestApi(
                         type: string
             422:
               $ref: '#/components/responses/422'
+            503:
+              $ref: '#/components/responses/503'
         """
         # pylint: disable=import-outside-toplevel
         # Local import: the command module transitively imports the

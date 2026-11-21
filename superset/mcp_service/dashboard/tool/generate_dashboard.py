@@ -46,10 +46,14 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_chart_summary,
     serialize_tag_object,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    time_range_limits_error,
+)
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -198,6 +202,7 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
         openWorldHint=False,
     ),
 )
+@limit_path("mcp")
 def generate_dashboard(  # noqa: C901
     request: Annotated[
         GenerateDashboardRequest,
@@ -359,6 +364,14 @@ def generate_dashboard(  # noqa: C901
                 "chart_configuration": {},
             }
             if request.json_metadata_overrides:
+                if limits_error := time_range_limits_error(
+                    request.json_metadata_overrides, None
+                ):
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error=limits_error[1],
+                    )
                 json_metadata_dict.update(request.json_metadata_overrides)
             json_metadata = json.dumps(json_metadata_dict)
 

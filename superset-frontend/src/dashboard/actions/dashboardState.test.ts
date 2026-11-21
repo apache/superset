@@ -1290,4 +1290,71 @@ describe('dashboardState actions', () => {
       );
     },
   );
+
+  const LIMITS_ENDPOINT = '/api/v1/dashboard/192/time_range_limits/';
+  const SPAN_90 = {
+    max_span: { quantity: 90, time_grain: 'P1D' },
+    max_look_back: null,
+    max_look_forward: null,
+  };
+
+  async function saveWithLimits(saved: Record<string, unknown>) {
+    mockIsFeatureEnabled.mockImplementation(
+      (feature: string) => feature === 'TIME_RANGE_LIMITS',
+    );
+    putStub.mockResolvedValue({
+      json: {
+        result: {
+          ...mockDashboardData,
+          json_metadata: JSON.stringify({ time_range_limits: saved }),
+        },
+      },
+    } as any);
+    const { getState } = setup({
+      timeRangeLimits: {
+        status: 'loaded',
+        dashboardId: 192,
+        request: 0,
+        payload: { global: null, dashboard: SPAN_90, datasets: [] },
+        charts: {},
+      },
+    });
+    const dispatch: jest.Mock = jest.fn(action =>
+      typeof action === 'function' ? action(dispatch, getState) : action,
+    );
+    await saveDashboardRequest(
+      newDashboardData,
+      192,
+      SAVE_TYPE_OVERWRITE_CONFIRMED,
+    )(dispatch, getState);
+    await waitFor(() => expect(putStub).toHaveBeenCalledTimes(1));
+    const limitGets = getStub.mock.calls.filter(
+      ([{ endpoint }]) => endpoint === LIMITS_ENDPOINT,
+    );
+    mockIsFeatureEnabled.mockReset();
+    return limitGets;
+  }
+
+  test('time range limits: a save that changed the dashboard limit loads them again', async () => {
+    const limitGets = await saveWithLimits({
+      schema_version: 1,
+      ...SPAN_90,
+      max_span: { quantity: 30, time_grain: 'P1D' },
+    });
+
+    expect(limitGets).toHaveLength(1);
+    expect(limitGets[0][0]).toMatchObject({
+      timeout: 10000,
+      fetchRetryOptions: { retries: 0 },
+    });
+  });
+
+  test('time range limits: a save with the same dashboard limit loads nothing', async () => {
+    const limitGets = await saveWithLimits({
+      schema_version: 1,
+      ...SPAN_90,
+    });
+
+    expect(limitGets).toHaveLength(0);
+  });
 });

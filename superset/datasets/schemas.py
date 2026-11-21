@@ -27,12 +27,13 @@ from marshmallow import (
     post_load,
     pre_load,
     Schema,
+    validates,
     validates_schema,
     ValidationError,
 )
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.partition_mapping import (
     MAX_TRANSFORM_LENGTH,
     PREVIEWABLE_OPERATORS,
@@ -41,6 +42,15 @@ from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.subjects.schemas import SubjectReferenceField
+from superset.time_range_limits.policy import (
+    limits_errors,
+    limits_shape_error,
+    stored_limits,
+    stricter_errors,
+    TIME_RANGE_LIMITS_KEY,
+    TimeRangeLimitsInvalidError,
+    validate_extra_time_range_limits,
+)
 from superset.utils import json
 from superset.utils.core import FilterOperator
 from superset.utils.number_format import is_valid_d3_format
@@ -549,6 +559,62 @@ class ImportV1DatasetSchema(Schema):
                     field_name=key,
                 )
 
+    @validates("extra")
+    def validate_extra(self, value: Any, **kwargs: Any) -> None:
+        try:
+            validate_extra_time_range_limits(value)
+        except TimeRangeLimitsInvalidError as ex:
+            raise ValidationError(limits_shape_error(TIME_RANGE_LIMITS_KEY, ex)) from ex
+
+    overwrite_existing: bool = True
+
+    @validates_schema(skip_on_field_errors=True)
+    def validate_stricter_than_global(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        from superset.commands.importers.v1.utils import (
+            find_existing_by_import_identity,
+            find_existing_for_import,
+        )
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.core import Database
+
+        policy = validate_extra_time_range_limits(data.get("extra"))
+
+        def find_existing() -> SqlaTable | None:
+            """Resolve the row using the dataset importer's identity rules."""
+            existing = find_existing_for_import(SqlaTable, data["uuid"])
+            if existing is None and (
+                database := db.session.query(Database)
+                .filter_by(uuid=data.get("database_uuid"))
+                .one_or_none()
+            ):
+                existing = find_existing_by_import_identity(
+                    SqlaTable,
+                    {
+                        "database_id": database.id,
+                        "catalog": data.get("catalog"),
+                        "schema": data.get("schema"),
+                        "table_name": data.get("table_name"),
+                    },
+                )
+            return existing
+
+        if policy is not None and not self.overwrite_existing:
+            existing = find_existing()
+            if existing is not None and existing.deleted_at is None:
+                return
+
+        def find_stored() -> dict[str, Any] | None:
+            """Read the policy of the row an import would update."""
+            existing = find_existing()
+            return stored_limits(existing.extra) if existing is not None else None
+
+        if errors := stricter_errors(policy, "dataset", find_stored):
+            raise ValidationError(
+                {"extra": limits_errors(TIME_RANGE_LIMITS_KEY, errors)}
+            )
+
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)
     currency_code_column = fields.String(allow_none=True)
@@ -724,6 +790,12 @@ class DatasetCacheWarmUpResponseSingleSchema(Schema):
     )
     viz_status = fields.String(
         metadata={"description": "Status of the underlying query for the viz"}
+    )
+    errors = fields.List(
+        fields.Dict(),
+        metadata={
+            "description": "SIP-40 errors, when the chart breaks the time range limits"
+        },
     )
 
 

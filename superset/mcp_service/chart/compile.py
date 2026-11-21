@@ -49,6 +49,9 @@ from superset.mcp_service.chart.query_result import (
     query_result_failure,
     temporal_json_numbers,
 )
+from superset.mcp_service.chart.response_preflight import (
+    time_range_limit_generation_error,
+)
 from superset.mcp_service.chart.schemas import ChartError
 from superset.mcp_service.chart.validation.dataset_validator import (
     AmbiguousDatasetReferenceError,
@@ -63,6 +66,10 @@ from superset.mcp_service.common.error_schemas import (
     DatasetContext,
 )
 from superset.mcp_service.constants import CONNECTION_ERROR_TYPES
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
 from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
@@ -216,6 +223,14 @@ def _compile_chart(  # noqa: C901
             row_count += len(query_data)
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as exc:
+        return CompileResult(
+            success=False,
+            error=exc.error.message,
+            error_code=exc.error.error_type.value,
+            tier="compile",
+            error_obj=time_range_limit_generation_error(exc),
+        )
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
         database_failure = (
             _classify_as_database_error(exc, form_data, dataset_id)

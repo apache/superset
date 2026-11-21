@@ -299,6 +299,7 @@ async def get_dashboard_data(
             timestamp=datetime.now(timezone.utc),
         )
 
+    dashboard_id = dashboard.id
     slices = list(dashboard.slices or [])
     applied_filters = request.applied_filters or {}
     selected = _order_by_layout(slices, dashboard.position_json)[: request.max_charts]
@@ -320,7 +321,9 @@ async def get_dashboard_data(
                 limit=request.fetch_row_limit,
             )
             # Reuse get_chart_data's core so guest auth + filter handling match.
-            result = await execute_chart_data(chart_request, ctx)
+            result = await execute_chart_data(
+                chart_request, ctx, limit_dashboard_id=dashboard_id
+            )
         except Exception as exc:  # noqa: BLE001
             await ctx.warning(
                 "Chart data failed: chart_id=%s, error=%s" % (slc.id, str(exc))

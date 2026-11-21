@@ -90,6 +90,7 @@ interface BuildV1ChartDataPayloadParams {
   resultType?: string;
   setDataMask?: SetDataMaskHook;
   ownState?: JsonObject;
+  cachedChanges?: JsonObject;
   // Client-generated id for this query, sent as `client_id` so the backend can
   // register the running query and cancel it if the user hits Stop.
   clientId?: string;
@@ -298,6 +299,7 @@ export const buildV1ChartDataPayload = async ({
   resultType,
   setDataMask,
   ownState,
+  cachedChanges,
   clientId,
 }: BuildV1ChartDataPayloadParams): Promise<
   ReturnType<typeof buildQueryContext>
@@ -326,6 +328,7 @@ export const buildV1ChartDataPayload = async ({
         setDataMask: setDataMask ?? (() => {}),
         setCachedChanges: () => {},
       },
+      ...(cachedChanges && { extras: { cachedChanges } }),
     },
   );
   // Stamp each query with its forced-refresh nonce (its async task's UUID, from

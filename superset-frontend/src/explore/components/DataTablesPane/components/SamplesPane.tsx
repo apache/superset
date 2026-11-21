@@ -63,6 +63,7 @@ export const SamplesPane = ({
   queryForce,
   setForceQuery,
   canDownload,
+  dashboardId,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
   const [rowLimit, setRowLimit] = useState(DEFAULT_ROW_LIMIT);
@@ -106,6 +107,7 @@ export const SamplesPane = ({
         payload,
         rowLimit,
         1,
+        dashboardId,
       )
         .then(response => {
           // A 200 that carries no `result` payload resolves to undefined here.
@@ -142,7 +144,7 @@ export const SamplesPane = ({
           setIsLoading(false);
         });
     }
-  }, [datasource, queryFormData, isRequest, queryForce, rowLimit]);
+  }, [datasource, queryFormData, isRequest, queryForce, rowLimit, dashboardId]);
 
   const columns = useGridColumns(colnames, coltypes, data);
   const keywordFilter = useKeywordFilter(filterText);

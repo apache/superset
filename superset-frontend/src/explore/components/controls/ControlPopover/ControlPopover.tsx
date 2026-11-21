@@ -86,6 +86,7 @@ const ControlPopover: FC<PopoverProps> = ({
   open: visibleProp,
   defaultOpen,
   onOpenChange,
+  afterOpenChange,
   destroyOnHidden = false,
   placement: initialPlacement = 'right',
   autoAdjustOverflow,
@@ -171,8 +172,9 @@ const ControlPopover: FC<PopoverProps> = ({
       if (open) {
         calculatePlacement();
       }
+      afterOpenChange?.(open);
     },
-    [calculatePlacement],
+    [calculatePlacement, afterOpenChange],
   );
 
   useEffect(() => {

@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import {
+  checkTimeRangeDefaults,
+  timeRangeCheckMessage,
   isDivider,
   transformDividerId,
   isNativeFilterDivider,
@@ -29,7 +33,12 @@ import {
   NATIVE_FILTER_PREFIX,
   CHART_CUSTOMIZATION_PREFIX,
 } from './utils';
-import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
+import {
+  NativeFilterType,
+  ChartCustomizationType,
+  type Filter,
+  type Level,
+} from '@superset-ui/core';
 
 test('isDivider returns true for native filter dividers', () => {
   const dividerId = `${NATIVE_FILTER_DIVIDER_PREFIX}abc123`;
@@ -178,4 +187,158 @@ test('hasCircularDependency returns false for a diamond with a shared ancestor',
     ['a', []],
   ]);
   expect(hasCircularDependency(dependencyMap, 'd')).toBe(false);
+});
+
+const SERVER: Record<string, [string, string]> = {
+  'today : now': ['2025-05-31T00:00:00', '2025-05-31T14:30:00'],
+  'Last quarter': ['2025-03-01T00:00:00', '2025-05-31T00:00:00'],
+  'Last year': ['2024-05-31T00:00:00', '2025-05-31T00:00:00'],
+  'previous calendar year': ['2024-01-01T00:00:00', '2025-01-01T00:00:00'],
+  '2025-01-01 : ': ['2025-01-01T00:00:00', ''],
+};
+
+const POLICY_A_LEVELS: Level[] = [
+  { source: 'global', policy: null },
+  {
+    source: 'dashboard',
+    policy: {
+      max_span: { quantity: 3, time_grain: 'P1M' },
+      max_look_back: { quantity: 13, time_grain: 'P1M' },
+      max_look_forward: { quantity: 0, time_grain: 'P1D' },
+    },
+  },
+];
+
+const timeFilter = (id: string, value?: string) =>
+  ({
+    id,
+    type: NativeFilterType.NativeFilter,
+    filterType: 'filter_time',
+    name: id,
+    defaultDataMask: { filterState: { value } },
+  }) as unknown as Filter;
+
+const selectFilter = {
+  id: 'NATIVE_FILTER-S',
+  type: NativeFilterType.NativeFilter,
+  filterType: 'filter_select',
+  name: 'Select',
+  defaultDataMask: { filterState: {} },
+} as unknown as Filter;
+
+const mockTimeRange = (clock = SERVER['today : now']) =>
+  fetchMock.get('glob:*/api/v1/time_range/*', ({ url }: { url: string }) => {
+    const items = rison.decode(new URL(url).searchParams.get('q')!) as {
+      timeRange: string;
+    }[];
+    return {
+      result: items.map(({ timeRange }) => {
+        const [since, until] =
+          timeRange === 'today : now' ? clock : SERVER[timeRange];
+        return { since, until, timeRange, shift: null };
+      }),
+    };
+  });
+
+const timeRangeCalls = () =>
+  fetchMock.callHistory.calls('glob:*/api/v1/time_range/*').length;
+
+const LIMITS_FAILED =
+  'Time range limits could not be loaded. Queries are paused to protect the database.';
+
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+afterEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+});
+
+test('checkTimeRangeDefaults: an empty default needs a value', async () => {
+  mockTimeRange();
+  expect(
+    await checkTimeRangeDefaults(
+      { T: timeFilter('T'), S: selectFilter },
+      POLICY_A_LEVELS,
+    ),
+  ).toEqual({ T: 'Please choose a valid value' });
+  expect(timeRangeCalls()).toBe(0);
+});
+
+test('checkTimeRangeDefaults: a valid default has no message', async () => {
+  mockTimeRange();
+  expect(
+    await checkTimeRangeDefaults(
+      { T: timeFilter('T', 'Last quarter') },
+      POLICY_A_LEVELS,
+    ),
+  ).toEqual({ T: undefined });
+  expect(timeRangeCalls()).toBe(1);
+});
+
+test('checkTimeRangeDefaults: a failing default gets the dashboard span text', async () => {
+  mockTimeRange();
+  expect(
+    await checkTimeRangeDefaults(
+      { T: timeFilter('T', 'Last year'), S: selectFilter },
+      POLICY_A_LEVELS,
+    ),
+  ).toEqual({
+    T: 'Longer than this dashboard allows (3 months)',
+  });
+});
+
+test('checkTimeRangeDefaults: a default breaking the span and the look-back gets one reason', async () => {
+  mockTimeRange();
+  expect(
+    await checkTimeRangeDefaults(
+      { T: timeFilter('T', 'previous calendar year') },
+      POLICY_A_LEVELS,
+    ),
+  ).toEqual({
+    T: 'Longer than this dashboard allows (3 months)',
+  });
+});
+
+test('checkTimeRangeDefaults: a default with a blank end says "End is required on this dashboard"', async () => {
+  mockTimeRange();
+  expect(
+    await checkTimeRangeDefaults(
+      { T: timeFilter('T', '2025-01-01 : ') },
+      POLICY_A_LEVELS,
+    ),
+  ).toEqual({ T: 'End is required on this dashboard' });
+});
+
+test('checkTimeRangeDefaults: an unavailable check with loaded limits fails closed', async () => {
+  mockTimeRange(['', '']);
+  expect(
+    await checkTimeRangeDefaults(
+      { T: timeFilter('T', 'Last quarter') },
+      POLICY_A_LEVELS,
+    ),
+  ).toEqual({ T: 'Time range could not be checked.' });
+});
+
+test('checkTimeRangeDefaults: a failed policy marks every time range filter', async () => {
+  mockTimeRange();
+  expect(
+    await checkTimeRangeDefaults(
+      {
+        T1: timeFilter('T1', 'Last quarter'),
+        T2: timeFilter('T2'),
+        S: selectFilter,
+      },
+      null,
+    ),
+  ).toEqual({ T1: LIMITS_FAILED, T2: LIMITS_FAILED });
+  expect(timeRangeCalls()).toBe(0);
+});
+
+test('timeRangeCheckMessage: an error preserves the server message', () => {
+  expect(
+    timeRangeCheckMessage({
+      status: 'error',
+      timeRange: 'invalid expression',
+      message: 'Unable to parse time range: invalid expression',
+    }),
+  ).toBe('Unable to parse time range: invalid expression');
 });

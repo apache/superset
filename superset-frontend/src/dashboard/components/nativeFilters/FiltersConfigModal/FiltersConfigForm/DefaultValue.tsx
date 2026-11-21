@@ -41,6 +41,8 @@ type DefaultValueProps = {
   form: FormInstance<NativeFiltersForm>;
   formData: ReturnType<typeof getFormData>;
   enableNoResults: boolean;
+  limitsLoading?: boolean;
+  validateMessage?: string;
 };
 
 const DefaultValue: FC<DefaultValueProps> = ({
@@ -51,6 +53,8 @@ const DefaultValue: FC<DefaultValueProps> = ({
   setDataMask,
   formData,
   enableNoResults,
+  limitsLoading = false,
+  validateMessage,
 }) => {
   const formFilter = form.getFieldValue('filters')?.[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
@@ -75,12 +79,21 @@ const DefaultValue: FC<DefaultValueProps> = ({
   const filterState = useMemo(
     () => ({
       ...baseFilterState,
-      validateMessage: isMissingRequiredValue && t('Value is required'),
-      validateStatus: isMissingRequiredValue && 'error',
+      validateMessage:
+        validateMessage || (isMissingRequiredValue && t('Value is required')),
+      validateStatus: (validateMessage || isMissingRequiredValue) && 'error',
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [baseFilterState, isMissingRequiredValue],
+    [baseFilterState, isMissingRequiredValue, validateMessage],
   );
+
+  if (limitsLoading) {
+    return (
+      <div aria-busy="true">
+        <Loading position="inline-centered" />
+      </div>
+    );
+  }
 
   return loading ? (
     <Loading position="inline-centered" />

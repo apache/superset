@@ -26,6 +26,8 @@ import {
 } from '@superset-ui/core';
 import { renderHook } from '@testing-library/react';
 import { createWrapper } from 'spec/helpers/testing-library';
+import type { RootState } from 'src/dashboard/types';
+import type { ChartRange } from 'src/utils/timeRangeLimits';
 import {
   useChartsVerboseMaps,
   checkIsApplyDisabled,
@@ -35,6 +37,10 @@ import {
   getAppliedFilterLogPayload,
   getOnlyExtraFormData,
   getFiltersToApply,
+  limitFailureMessage,
+  selectFilterTimeRangeLimits,
+  selectServerMarks,
+  stripLimitFlags,
 } from './utils';
 
 // Factory functions for test data
@@ -939,4 +945,175 @@ test('cross-filter verbose maps use each chart own labels on a shared datasource
     '14': {},
   });
   expect(datasource.verbose_map).toEqual({ shared_column: 'Dataset label' });
+});
+
+const UNSET = { max_span: null, max_look_back: null, max_look_forward: null };
+const SPAN_90 = { ...UNSET, max_span: { quantity: 90, time_grain: 'P1D' } };
+const STRICT_DATASET = {
+  ...UNSET,
+  max_look_back: { quantity: 1, time_grain: 'P1Y' },
+};
+const FILTER_RANGE: ChartRange = {
+  since: '2025-10-30T00:00:00',
+  until: '2026-10-30T00:00:00',
+  time_offset: null,
+  source: [{ kind: 'time_range', query_index: 0, index: null }],
+};
+const SPAN_FAILURE = {
+  reason: 'MAX_SPAN_EXCEEDED' as const,
+  rule: 'max_span' as const,
+  field: 'range' as const,
+  limit: { source: 'dashboard' as const, quantity: 90, time_grain: 'P1D' },
+  message: "Range can't be longer than 90 days. This one is 365 days.",
+  range: FILTER_RANGE,
+};
+
+const limitsState = (overrides: Record<string, unknown> = {}) =>
+  ({
+    charts: {
+      1: { form_data: { datasource: '7__table' } },
+      2: { form_data: { datasource: '8__table' } },
+    },
+    dataMask: {
+      'NATIVE_FILTER-1': {
+        id: 'NATIVE_FILTER-1',
+        filterState: { value: 'Last year' },
+        extraFormData: { time_range: 'Last year' },
+      },
+    },
+    timeRangeLimits: {
+      status: 'loaded',
+      dashboardId: 9,
+      request: 1,
+      payload: {
+        global: UNSET,
+        dashboard: SPAN_90,
+        datasets: [
+          { id: 7, name: 'calls', policy: STRICT_DATASET },
+          { id: 8, name: 'queues', policy: STRICT_DATASET },
+        ],
+        timezone: 'UTC',
+      },
+      charts: {
+        1: {
+          signature: '{}',
+          status: 'invalid',
+          failures: [SPAN_FAILURE],
+          attribution: {
+            filterId: 'NATIVE_FILTER-1',
+            filterValue: 'Last year',
+            chart: false,
+          },
+        },
+      },
+    },
+    ...overrides,
+  }) as unknown as RootState;
+
+beforeEach(() => {
+  window.featureFlags = { TIME_RANGE_LIMITS: true };
+});
+afterEach(() => {
+  window.featureFlags = {};
+});
+
+test('stripLimitFlags removes the time range limit keys and keeps the rest', () => {
+  expect(
+    stripLimitFlags({
+      extraFormData: { time_range: 'Last year' },
+      filterState: {
+        value: 'Last year',
+        validateStatus: 'error',
+        limitInvalid: true,
+        validateMessage: 'Longer than 90 days',
+      },
+    }),
+  ).toEqual({
+    extraFormData: { time_range: 'Last year' },
+    filterState: { value: 'Last year' },
+  });
+});
+
+test('stripLimitFlags leaves a plain data mask as it is', () => {
+  const dataMask = {
+    filterState: { value: ['a'], validateStatus: 'error' as const },
+    extraFormData: {},
+  };
+  expect(stripLimitFlags(dataMask)).toBe(dataMask);
+});
+
+test('limitFailureMessage: "Longer than" text for the span, the picker text otherwise', () => {
+  expect(limitFailureMessage(SPAN_FAILURE)).toBe('Longer than 90 days');
+  expect(
+    limitFailureMessage({
+      ...SPAN_FAILURE,
+      reason: 'MAX_LOOK_BACK_EXCEEDED',
+      rule: 'max_look_back',
+      field: 'start',
+      message: "Start can't be earlier than Oct 30, 2025 (1 year ago).",
+    }),
+  ).toBe("Start can't be earlier than Oct 30, 2025 (1 year ago).");
+});
+
+test('the filter picker gets the global limits, the datasets of its charts and the dashboard limits', () => {
+  expect(selectFilterTimeRangeLimits(limitsState(), [1])).toEqual({
+    levels: [
+      { source: 'global', policy: UNSET },
+      { source: 'dataset', policy: STRICT_DATASET },
+      { source: 'dashboard', policy: SPAN_90 },
+    ],
+    dashboardId: 9,
+    timezone: 'UTC',
+  });
+});
+
+test('the filter picker gets no limits while they load, or with the flag off', () => {
+  expect(
+    selectFilterTimeRangeLimits(
+      limitsState({
+        timeRangeLimits: {
+          ...limitsState().timeRangeLimits,
+          status: 'loading',
+        },
+      }),
+      [1],
+    ),
+  ).toBeUndefined();
+  window.featureFlags = {};
+  expect(selectFilterTimeRangeLimits(limitsState(), [1])).toBe(undefined);
+});
+
+test('a held chart marks the filter its failing range came from, for the applied value', () => {
+  expect(selectServerMarks(limitsState())).toEqual({
+    'NATIVE_FILTER-1': { value: 'Last year', failure: SPAN_FAILURE },
+  });
+});
+
+test('no mark once the applied value differs from the one the chart was checked with', () => {
+  const state = limitsState({
+    dataMask: {
+      'NATIVE_FILTER-1': {
+        id: 'NATIVE_FILTER-1',
+        filterState: { value: 'Last week' },
+        extraFormData: { time_range: 'Last week' },
+      },
+    },
+  });
+  expect(selectServerMarks(state)).toEqual({});
+});
+
+test('a range from the chart itself marks no filter', () => {
+  const base = limitsState();
+  const state = limitsState({
+    timeRangeLimits: {
+      ...base.timeRangeLimits,
+      charts: {
+        1: {
+          ...base.timeRangeLimits.charts[1],
+          attribution: { filterId: null, filterValue: null, chart: true },
+        },
+      },
+    },
+  });
+  expect(selectServerMarks(state)).toEqual({});
 });
