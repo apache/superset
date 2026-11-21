@@ -45,7 +45,7 @@ export const StyledBackground = styled.div`
   ${({ theme }) => {
     const bgImageUrl = theme.loginPageBackgroundImageUrl;
     const overlayColor =
-      theme.loginPageBackgroundOverlayColor || 'rgba(0, 0, 0, 0.5)';
+      theme.loginPageBackgroundOverlayColor || theme.colorBgMask;
     const blurAmount = theme.loginPageBackgroundBlur || '0px';
     return bgImageUrl
       ? css`
