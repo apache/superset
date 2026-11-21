@@ -263,6 +263,12 @@ test('Arrow key navigation switches focus between indicators', async () => {
     { useRedux: true },
   );
 
+  // jsdom has no layout, so rc-menu's visibility check would skip every item
+  // when moving focus.
+  const offsetParentSpy = jest
+    .spyOn(HTMLElement.prototype, 'offsetParent', 'get')
+    .mockReturnValue(document.body);
+
   // Query the indicators
   const firstMenuItem = screen.queryByText('Clinical Stage')?.closest('li')!;
   const secondMenuItem = screen.queryByText('Age Group')?.closest('li')!;
@@ -290,4 +296,6 @@ test('Arrow key navigation switches focus between indicators', async () => {
     which: 38,
   });
   await waitFor(() => expect(firstMenuItem).toHaveFocus());
+
+  offsetParentSpy.mockRestore();
 });
