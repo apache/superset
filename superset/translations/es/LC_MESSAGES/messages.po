@@ -400,9 +400,9 @@ msgid ""
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
 "execution."
 msgstr ""
-"la frecuencia de %(report_type)s programación excede el límite. Configura"
-" una programación con un intervalo mínimo de %(minimum_interval)d minutos"
-" por ejecución."
+"La frecuencia de programación de %(report_type)s excede el límite. "
+"Configura una programación con un intervalo mínimo de "
+"%(minimum_interval)d minutos por ejecución."
 
 # Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
 # placeholder]
@@ -430,9 +430,9 @@ msgstr ""
 "Vuelve a comprobar tu consulta.\n"
 "Excepción: %(ex)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s %s"
-msgstr "%s%s"
+msgstr "%s %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -441,11 +441,11 @@ msgstr "%s (copia de %s)"
 
 #, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "%s EXTRA CIFRADO"
+msgstr "EXTRA CIFRADO DE %s"
 
 #, python-format
 msgid "%s Error"
-msgstr "%s error"
+msgstr "Error de %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -454,7 +454,7 @@ msgstr "%s ámbitos de MCP"
 
 #, python-format
 msgid "%s PASSWORD"
-msgstr "%s CONTRASEÑA"
+msgstr "CONTRASEÑA DE %s"
 
 #, python-format
 msgid "%s Physical"
@@ -462,15 +462,15 @@ msgstr "%s físicos"
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr "%s CONTRASEÑA DEL TÚNEL SSH"
+msgstr "CONTRASEÑA DEL TÚNEL SSH DE %s"
 
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY"
-msgstr "%s CLAVE PRIVADA DEL TÚNEL SSH"
+msgstr "CLAVE PRIVADA DEL TÚNEL SSH DE %s"
 
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
-msgstr "%s CONTRASEÑA DE LA CLAVE PRIVADA DEL TÚNEL SSH"
+msgstr "CONTRASEÑA DE LA CLAVE PRIVADA DEL TÚNEL SSH DE %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -544,11 +544,11 @@ msgid_plural "%s charts updated"
 msgstr[0] "%s gráfico actualizado"
 msgstr[1] "%s gráficos actualizados"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s column"
 msgid_plural "%s columns"
-msgstr[0] "%s columna(s)"
-msgstr[1] ""
+msgstr[0] "%s columna"
+msgstr[1] "%s columnas"
 
 #, python-format
 msgid "%s column(s)"
@@ -599,21 +599,21 @@ msgid_plural "%s fields"
 msgstr[0] "%s campo"
 msgstr[1] "%s campos"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s hr ago"
 msgid_plural "%s hr ago"
-msgstr[0] "%s fila"
-msgstr[1] "%s filas"
+msgstr[0] "Hace %s h"
+msgstr[1] "Hace %s h"
 
 #, python-format
 msgid "%s imported"
 msgstr "%s importados"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s item"
 msgid_plural "%s items"
-msgstr[0] "%s opción(es)"
-msgstr[1] ""
+msgstr[0] "%s elemento"
+msgstr[1] "%s elementos"
 
 #, fuzzy, python-format
 msgid "%s item(s)"
@@ -2642,9 +2642,9 @@ msgstr "Se ha producido un error al recuperar los datos relacionados de %s"
 msgid "An error occurred while fetching %s values: %s"
 msgstr "Se ha producido un error al recuperar los valores de %s: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s: %s"
-msgstr "Se ha producido un error al recuperar %ss: %s"
+msgstr "Se ha producido un error al recuperar %s: %s"
 
 #, python-format
 msgid "An error occurred while fetching %ss: %s"
@@ -3429,10 +3429,9 @@ msgstr ""
 "Actualización automática en pausa - pestaña inactiva (establecida en %s "
 "segundos)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
-#, fuzzy, python-format
+#, python-format
 msgid "Auto refresh set to %s seconds"
-msgstr "La frecuencia de actualización debe ser de al menos %s segundos"
+msgstr "Actualización automática configurada cada %s segundos"
 
 msgid "Auto-detect"
 msgstr "Detección automática"
@@ -4694,11 +4693,9 @@ msgstr ""
 msgid "Choose notification method and recipients."
 msgstr "Elige el método de notificación y los destinatarios."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Choose numbers between %(min)s and %(max)s"
-msgstr ""
-"La anchura de la captura de pantalla debe estar entre %(min)spx y "
-"%(max)spx"
+msgstr "Elige números entre %(min)s y %(max)s"
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "Elige una de las bases de datos disponibles en el panel de la izquierda."
@@ -5228,7 +5225,7 @@ msgstr ""
 "«Es filtrable» y «Es dimensión» determinan si Explore la ofrece."
 
 msgid "Columnar upload"
-msgstr "Subida de columnas"
+msgstr "Subida de archivos columnares"
 
 msgid "Columns"
 msgstr "Columnas"
@@ -7179,68 +7176,68 @@ msgstr "Eliminado"
 #, python-format
 msgid "Deleted %(num)d annotation"
 msgid_plural "Deleted %(num)d annotations"
-msgstr[0] "Se ha eliminado%(num)d anotación"
-msgstr[1] "Se han eliminado%(num)d anotaciones"
+msgstr[0] "Se ha eliminado %(num)d anotación"
+msgstr[1] "Se han eliminado %(num)d anotaciones"
 
 #, python-format
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
-msgstr[0] "Se ha eliminado%(num)d capa de anotación"
-msgstr[1] "Se han eliminado%(num)d capas de anotación"
+msgstr[0] "Se ha eliminado %(num)d capa de anotación"
+msgstr[1] "Se han eliminado %(num)d capas de anotación"
 
 #, python-format
 msgid "Deleted %(num)d chart"
 msgid_plural "Deleted %(num)d charts"
-msgstr[0] "Se ha eliminado%(num)d gráfico"
-msgstr[1] "Se han eliminado%(num)d gráficos"
+msgstr[0] "Se ha eliminado %(num)d gráfico"
+msgstr[1] "Se han eliminado %(num)d gráficos"
 
 #, python-format
 msgid "Deleted %(num)d css template"
 msgid_plural "Deleted %(num)d css templates"
-msgstr[0] "Se ha eliminado%(num)d plantilla CSS"
-msgstr[1] "Se han eliminado%(num)d plantillas CSS"
+msgstr[0] "Se ha eliminado %(num)d plantilla CSS"
+msgstr[1] "Se han eliminado %(num)d plantillas CSS"
 
 #, python-format
 msgid "Deleted %(num)d dashboard"
 msgid_plural "Deleted %(num)d dashboards"
-msgstr[0] "Se ha eliminado%(num)d panel de control"
-msgstr[1] "Se han eliminado%(num)d paneles de control"
+msgstr[0] "Se ha eliminado %(num)d panel de control"
+msgstr[1] "Se han eliminado %(num)d paneles de control"
 
 #, python-format
 msgid "Deleted %(num)d dataset"
 msgid_plural "Deleted %(num)d datasets"
-msgstr[0] "Se ha eliminado%(num)d conjunto de datos"
-msgstr[1] "Se han eliminado%(num)d conjuntos de datos"
+msgstr[0] "Se ha eliminado %(num)d conjunto de datos"
+msgstr[1] "Se han eliminado %(num)d conjuntos de datos"
 
 #, python-format
 msgid "Deleted %(num)d report schedule"
 msgid_plural "Deleted %(num)d report schedules"
-msgstr[0] "Se ha eliminado%(num)d programación de informe"
-msgstr[1] "Se han eliminado%(num)d programaciones de informe"
+msgstr[0] "Se ha eliminado %(num)d programación de informe"
+msgstr[1] "Se han eliminado %(num)d programaciones de informe"
 
 #, python-format
 msgid "Deleted %(num)d rules"
 msgid_plural "Deleted %(num)d rules"
-msgstr[0] "Se han eliminado%(num)d reglas"
-msgstr[1] "Se han eliminado%(num)d reglas"
+msgstr[0] "Se han eliminado %(num)d reglas"
+msgstr[1] "Se han eliminado %(num)d reglas"
 
 #, python-format
 msgid "Deleted %(num)d saved query"
 msgid_plural "Deleted %(num)d saved queries"
-msgstr[0] "Se ha eliminado%(num)d consulta guardada"
-msgstr[1] "Se han eliminado%(num)d consultas guardadas"
+msgstr[0] "Se ha eliminado %(num)d consulta guardada"
+msgstr[1] "Se han eliminado %(num)d consultas guardadas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d semantic view"
 msgid_plural "Deleted %(num)d semantic views"
-msgstr[0] "Se ha eliminado%(num)d plantilla CSS"
-msgstr[1] "Se han eliminado%(num)d plantillas CSS"
+msgstr[0] "Se ha eliminado %(num)d vista semántica"
+msgstr[1] "Se han eliminado %(num)d vistas semánticas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
-msgstr[0] "Se ha eliminado%(num)d conjunto de datos"
-msgstr[1] "Se han eliminado%(num)d conjuntos de datos"
+msgstr[0] "Se ha eliminado %(num)d tema"
+msgstr[1] "Se han eliminado %(num)d temas"
 
 #, python-format
 msgid "Deleted %s"
@@ -7468,9 +7465,8 @@ msgstr ""
 msgid "Dimension is required"
 msgstr "El nombre es obligatorio"
 
-#, fuzzy
 msgid "Dimension members"
-msgstr "Dimensiones"
+msgstr "Miembros de la dimensión"
 
 #, fuzzy
 msgid "Dimension selection"
@@ -8673,7 +8669,7 @@ msgid "Error reading CSV file"
 msgstr "Error al leer el archivo CSV"
 
 msgid "Error reading Columnar file"
-msgstr "Error al leer el archivo de columnas"
+msgstr "Error al leer el archivo columnar"
 
 msgid "Error reading Excel file"
 msgstr "Error al leer el archivo de Excel"
@@ -12585,7 +12581,7 @@ msgstr "Modificado el %(date)s por %(user)s"
 
 #, python-format
 msgid "Modified %s"
-msgstr "%s modificado"
+msgstr "Modificado %s"
 
 #, fuzzy, python-format
 msgid "Modified 1 column in the dataset"
@@ -13523,11 +13519,9 @@ msgstr "Número de pasos a dar entre las marcas al mostrar la escala Y"
 msgid "Number of top values"
 msgstr "Formato numérico  "
 
-#, fuzzy, python-format
+#, python-format
 msgid "Numbers must be within %(min)s and %(max)s"
-msgstr ""
-"La anchura de la captura de pantalla debe estar entre %(min)spx y "
-"%(max)spx"
+msgstr "Los números deben estar entre %(min)s y %(max)s"
 
 msgid "Numeric column used to calculate the histogram."
 msgstr "Columna numérica utilizada para calcular el histograma."
@@ -23214,10 +23208,10 @@ msgid "Upload CSV to database"
 msgstr "Subir CSV a la base de datos"
 
 msgid "Upload Columnar"
-msgstr "Subir columnas"
+msgstr "Subir archivo columnar"
 
 msgid "Upload Columnar file to database"
-msgstr "Subir archivo de columnas a la base de datos"
+msgstr "Subir archivo columnar a la base de datos"
 
 msgid "Upload Enabled"
 msgstr "Subida habilitada"
@@ -23620,15 +23614,13 @@ msgstr "Valor"
 msgid "Values are dependent on other filters"
 msgstr "Los valores dependen de otros filtros"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "Values cannot be refreshed in All mode for this semantic view. Saved "
 "values are preserved. Switch to Members to enter values manually."
 msgstr ""
-"Los valores no se pueden actualizar en el modo Todos para esta vista "
-"semántica. Los valores guardados se conservan. Cambie a Miembros para "
-"introducir los valores manualmente."
+"No se pueden actualizar los valores de esta vista semántica en el modo "
+"«Todas las dimensiones». Se conservan los valores guardados. Cambia a "
+"«Miembros de la dimensión» para introducirlos manualmente."
 
 msgid "Values dependent on"
 msgstr "Valores dependientes de"
@@ -25852,8 +25844,9 @@ msgid ""
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"La base de datos %s está vinculada a %s gráficos que aparecen en %s "
-"dashboards. ¿Estás seguro de que quieres continuar? Eliminar la base de "
+"está vinculada a %s gráficos que aparecen en %s paneles de control "
+"y los usuarios tienen %s pestañas de SQL Lab abiertas que usan esta"
+" base de datos. ¿Seguro que quieres continuar? Eliminar la base de "
 "datos dejará inutilizables esos objetos."
 
 #, python-format
