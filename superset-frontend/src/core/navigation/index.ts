@@ -25,6 +25,7 @@
  * app shell to keep the page in sync with React Router.
  */
 
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { useEffect, useRef } from 'react';
 import { useLocation, matchPath } from 'react-router-dom';
 import type { navigation as navigationApi } from '@apache-superset/core';
@@ -95,4 +96,5 @@ export const useNavigationTracker = () => {
 export const navigation: typeof navigationApi = {
   getPage,
   onDidChangePage,
+  appRoot: ensureAppRoot,
 };

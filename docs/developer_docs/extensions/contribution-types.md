@@ -129,6 +129,37 @@ chat.registerChat(
 
 See [Chat](./extension-points/chat.md) for implementation details.
 
+### Charts
+
+Draw a chart from its form data with `charts.AssetChart`. The host runs the
+query and draws the result with the plugin the form data names, so what you
+see is what that chart would be, and you never touch the Redux store, the
+chart-data actions or `SuperChart`:
+
+```tsx
+import { useMemo } from 'react';
+import { charts } from '@apache-superset/core';
+
+function Preview() {
+  const formData = useMemo(
+    () => ({ viz_type: 'table', datasource: '12__table', row_limit: 50 }),
+    [],
+  );
+  return <charts.AssetChart formData={formData} height={320} />;
+}
+```
+
+`formData` is the same object Explore holds for a chart; `viz_type` and
+`datasource` (`"<id>__<type>"`) are what it needs. `height` and `width`
+default to `"100%"`, which needs a parent with a size of its own. The
+component shows its own loading state, the query's own error message when
+the query fails, and a plain message when the form data names no `viz_type`;
+a plugin that throws while drawing is contained to the chart's area.
+
+Pass a stable `formData`: the component queries again whenever its identity
+changes. It queries as an unsaved chart and does not save, cache against a
+saved chart, apply any surrounding page's filters, or return the rows.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.
