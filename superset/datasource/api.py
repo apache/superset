@@ -21,6 +21,7 @@ from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from marshmallow import ValidationError
+from sqlalchemy.exc import OperationalError
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.datasource.list import GetCombinedDatasourceListCommand
@@ -435,6 +436,28 @@ class DatasourceRestApi(BaseSupersetApi):
                     "Unable to get column values for "
                     f"datasource type: {datasource_type}"
                 ),
+            )
+        except OperationalError as ex:
+            # The analytics database refused or dropped the connection (e.g.
+            # MySQL 1040 "Too many connections"). That is the customer
+            # database's condition, not a Superset bug: answer with a typed
+            # 503 and a warning instead of an unhandled 500 + ERROR.
+            database = getattr(datasource, "database", None)
+            if database is None:
+                raise
+            logger.warning(
+                "column-values: database unavailable: uid=%s col=%s",
+                datasource.uid,
+                column_name,
+                exc_info=True,
+            )
+            errors = database.db_engine_spec.extract_errors(
+                ex, database_name=database.database_name
+            )
+            return self.response(
+                503,
+                message=sanitize_error_message(errors[0].message),
+                errors=[error.to_dict() for error in errors],
             )
 
         response: Response = self.response(200, result=payload, limit=row_limit)

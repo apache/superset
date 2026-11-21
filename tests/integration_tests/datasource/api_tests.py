@@ -24,6 +24,7 @@ from unittest.mock import ANY, MagicMock, patch, PropertyMock
 
 import pytest
 from flask_appbuilder.security.sqla.models import PermissionView, Role
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
@@ -422,6 +423,23 @@ class TestDatasourceApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         for val in range(10):
             assert val in response["result"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_database_unavailable(self):
+        """A refused DB connection is a typed 503, not an unhandled 500."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        error = OperationalError(
+            "SELECT 1", {}, Exception(1040, "Too many connections")
+        )
+        with patch.object(SqlaTable, "values_for_column", side_effect=error):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col1/values/?force=true"
+            )
+        assert rv.status_code == 503
+        response = json.loads(rv.data.decode("utf-8"))
+        assert "Too many connections" in response["message"]
+        assert response["errors"][0]["error_type"] == "GENERIC_DB_ENGINE_ERROR"
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_strs(self):
