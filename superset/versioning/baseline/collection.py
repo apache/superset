@@ -71,11 +71,47 @@ def collect_parents_to_baseline(session: Session) -> dict[int, Any]:
         entry = child_map.get(type(obj))
         if entry is None:
             continue
-        parent_attr, parent_cls = entry
-        parent = getattr(obj, parent_attr, None)
-        if parent is not None and type(parent) is parent_cls:  # noqa: E721
+        parent = resolve_parent(session, obj, child_map)
+        if parent is not None:
             parents[id(parent)] = parent
     return parents
+
+
+def resolve_parent(
+    session: Session, child: Any, child_map: dict[type, tuple[str, type]]
+) -> Any | None:
+    """Return the versioned parent of *child*, or ``None`` when it can't be
+    resolved to an instance of the registered parent class.
+
+    A child added by foreign key alone (``DatasetDAO`` adds new metrics and
+    columns as ``SqlMetric(table_id=...)``) has nothing on its parent
+    relationship until the flush, so the parent is looked up by that key.
+    Missing it leaves the parent's version, and with it the dataset's ETag,
+    unchanged by a save that added the row.
+    """
+    parent_attr, parent_cls = child_map[type(child)]
+    parent = getattr(child, parent_attr, None)
+    if parent is None:
+        parent = _parent_by_foreign_key(session, child, parent_attr, parent_cls)
+    if parent is None or type(parent) is not parent_cls:  # noqa: E721
+        return None
+    return parent
+
+
+def _parent_by_foreign_key(
+    session: Session, child: Any, parent_attr: str, parent_cls: type
+) -> Any | None:
+    mapper = sa.inspect(type(child))
+    local_columns = list(mapper.relationships[parent_attr].local_columns)
+    if len(local_columns) != 1:
+        return None
+    parent_id = getattr(child, mapper.get_property_by_column(local_columns[0]).key)
+    if parent_id is None:
+        return None
+    # The parent is already in the identity map on the save paths, so ``get``
+    # normally issues no query. No autoflush: this runs during a flush.
+    with session.no_autoflush:
+        return session.get(parent_cls, parent_id)
 
 
 @functools.cache

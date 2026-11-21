@@ -51,7 +51,10 @@ from typing import Any
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import attributes, Session
 
-from superset.versioning.baseline.collection import child_to_parent_registry
+from superset.versioning.baseline.collection import (
+    child_to_parent_registry,
+    resolve_parent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +84,7 @@ def force_parent_dirty_on_child_change(session: Session) -> None:
     child_map = child_to_parent_registry()
     new_set = session.new
     for child in _real_dirty_versioned_children(session, child_map):
-        parent = _resolve_parent(child, child_map)
+        parent = resolve_parent(session, child, child_map)
         if parent is None:
             continue
         if parent in new_set:
@@ -135,17 +138,6 @@ def _real_dirty_versioned_children(
         if obj in dirty_set and not is_modified(obj):
             continue
         yield obj
-
-
-def _resolve_parent(child: Any, child_map: dict[type, Any]) -> Any | None:
-    """Resolve the versioned parent for *child* via the child→parent
-    registry; return ``None`` when the registered parent attribute
-    isn't loaded or has been swapped for an unexpected type."""
-    parent_attr, parent_cls = child_map[type(child)]
-    parent = getattr(child, parent_attr, None)
-    if parent is None or type(parent) is not parent_cls:  # noqa: E721
-        return None
-    return parent
 
 
 def _flag_parent(parent: Any) -> bool:
