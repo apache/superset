@@ -24,7 +24,7 @@ import { Datasource, RootState } from 'src/dashboard/types';
 import {
   provenSemanticDataset,
   updateDashboardSemanticDataset,
-} from './dashboardInfo';
+} from 'src/dashboard/stores';
 
 // update datasources index for Dashboard
 export enum DatasourcesAction {
@@ -65,9 +65,7 @@ export function fetchDatasourceMetadata(key: string, dashboardId?: number) {
     const requestId = dashboardId === undefined ? undefined : nanoid();
 
     if (dashboardId !== undefined) {
-      dispatch(
-        updateDashboardSemanticDataset(dashboardId, key, null, requestId, true),
-      );
+      updateDashboardSemanticDataset(dashboardId, key, null, requestId, true);
     }
 
     if (datasource && dashboardId === undefined) {
@@ -80,9 +78,7 @@ export function fetchDatasourceMetadata(key: string, dashboardId?: number) {
       .then(({ json }) => {
         if (dashboardId !== undefined) {
           const proven = provenSemanticDataset(json, key);
-          dispatch(
-            updateDashboardSemanticDataset(dashboardId, key, proven, requestId),
-          );
+          updateDashboardSemanticDataset(dashboardId, key, proven, requestId);
           if (!proven) {
             logging.error('Semantic datasource metadata did not match', key);
             return undefined;
@@ -93,9 +89,7 @@ export function fetchDatasourceMetadata(key: string, dashboardId?: number) {
       .catch(error => {
         // The metadata is already invalidated; chart validation remains server-side.
         if (dashboardId === undefined) throw error;
-        dispatch(
-          updateDashboardSemanticDataset(dashboardId, key, null, requestId),
-        );
+        updateDashboardSemanticDataset(dashboardId, key, null, requestId);
         logging.error('Error fetching semantic datasource metadata:', error);
         return undefined;
       });

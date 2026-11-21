@@ -17,9 +17,7 @@
  * under the License.
  */
 
-import { DataMaskStateWithId } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
-import { RootState } from 'src/dashboard/types';
+import { useDataMask } from 'src/dataMask/hooks';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import crossFiltersSelector from './selectors';
@@ -31,9 +29,7 @@ const CrossFiltersVertical = ({
 }: {
   hideHeader?: boolean;
 }) => {
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMask();
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();

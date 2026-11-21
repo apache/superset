@@ -18,9 +18,10 @@
  */
 
 import { useCallback, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { saveChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
+import {
+  useSaveFilterConfiguration,
+  useSaveChartCustomization,
+} from 'src/dashboard/queries';
 import { SaveChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
@@ -43,7 +44,8 @@ export const useFilterConfigModal = ({
   dashboardId,
   initialFilterId,
 }: UseFilterConfigModalProps): UseFilterConfigModalReturn => {
-  const dispatch = useDispatch();
+  const { mutateAsync: saveFilterConfiguration } = useSaveFilterConfiguration();
+  const { mutateAsync: saveChartCustomization } = useSaveChartCustomization();
   const [isFilterConfigModalOpen, setIsFilterConfigModalOpen] = useState(false);
 
   const openFilterConfigModal = useCallback(() => {
@@ -60,25 +62,23 @@ export const useFilterConfigModal = ({
         // Both saves rewrite the same dashboard json_metadata, each from the
         // copy it read when its request started, so they have to run one
         // after the other: overlapping them drops one of the two changes.
-        await dispatch(setFilterConfiguration(changes.filterChanges));
+        await saveFilterConfiguration(changes.filterChanges);
       }
       if (changes.customizationChanges) {
         // Await so the delete commits before the modal closes, otherwise a
         // quick "Apply filters" can re-persist the still-present control.
-        await dispatch(
-          saveChartCustomization(
-            changes.customizationChanges.modified,
-            changes.customizationChanges.deleted,
-            changes.customizationChanges.reordered,
-            true,
-          ),
-        );
+        await saveChartCustomization({
+          modifiedCustomizations: changes.customizationChanges.modified,
+          deletedIds: changes.customizationChanges.deleted,
+          reorderedIds: changes.customizationChanges.reordered,
+          resetDataMask: true,
+        });
       }
       closeFilterConfigModal();
       // A failure propagates to the caller, which keeps the modal open and
-      // the unsaved items on screen. Both actions report the error themselves.
+      // the unsaved items on screen. Both mutations report the error themselves.
     },
-    [dispatch, closeFilterConfigModal],
+    [saveFilterConfiguration, saveChartCustomization, closeFilterConfigModal],
   );
 
   const FilterConfigModalComponent = isFilterConfigModalOpen ? (

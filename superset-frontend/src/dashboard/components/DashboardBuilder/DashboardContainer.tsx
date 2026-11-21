@@ -32,6 +32,14 @@ import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { isEqual } from 'lodash-es';
 import {
+  useDashboardLayout,
+  useDirectPathToChild,
+  useDashboardId,
+  useDashboardMetadata,
+  useChartCustomizationConfig,
+  useFilterEntries,
+} from 'src/dashboard/stores';
+import {
   ChartCustomizationConfiguration,
   ChartCustomizationType,
   LabelsColorMapSource,
@@ -41,19 +49,16 @@ import {
 import { useParentSize } from '@visx/responsive';
 import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
-import {
-  DashboardInfo,
-  DashboardLayout,
-  LayoutItem,
-  RootState,
-} from 'src/dashboard/types';
+import { LayoutItem, RootState } from 'src/dashboard/types';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
-import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
-import { setInScopeStatusOfCustomizations } from 'src/dashboard/actions/chartCustomizationActions';
+import {
+  setInScopeStatusOfFilters,
+  setInScopeStatusOfCustomizations,
+} from 'src/dashboard/util/inScopeStatus';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import {
   applyDashboardLabelsColorOnLoad,
@@ -70,7 +75,7 @@ import {
   migrateChartCustomization,
 } from 'src/dashboard/util/migrateChartCustomization';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
-import { selectFilterConfiguration } from '../nativeFilters/state';
+import { useFilterConfiguration } from '../nativeFilters/state';
 import { getRootLevelTabsComponent } from './utils';
 
 type DashboardContainerProps = {
@@ -140,30 +145,20 @@ const useRenderedChartIds = () => {
 
 const TOP_OF_PAGE_RANGE = 220;
 
+// Stable reference so the Zustand selector doesn't return a fresh array.
+const EMPTY_CUSTOMIZATIONS: ChartCustomizationConfiguration = [];
+
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dispatch = useDispatch();
 
-  const dashboardLayout = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
-  );
-  const filterItems = useSelector(selectFilterConfiguration);
-  const nativeFilters = useSelector<
-    RootState,
-    RootState['nativeFilters']['filters']
-  >(state => state.nativeFilters.filters);
-  const chartCustomizations = useSelector<
-    RootState,
-    ChartCustomizationConfiguration
-  >(
-    state => state.dashboardInfo?.metadata?.chart_customization_config || [],
-    shallowEqual,
-  );
-  const directPathToChild = useSelector<RootState, string[]>(
-    state => state.dashboardState.directPathToChild,
-  );
+  const dashboardLayout = useDashboardLayout();
+  const dashboardId = useDashboardId();
+  const dashboardMetadata = useDashboardMetadata();
+  const filterItems = useFilterConfiguration();
+  const nativeFilters = useFilterEntries();
+  const chartCustomizations =
+    useChartCustomizationConfig() || EMPTY_CUSTOMIZATIONS;
+  const directPathToChild = useDirectPathToChild();
   const chartIds = useChartIds();
 
   const renderedChartIds = useRenderedChartIds();
@@ -171,7 +166,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const [colorInitializedDashboardId, setColorInitializedDashboardId] =
     useState<number | null>(null);
   const dashboardLabelsColorInitiated =
-    colorInitializedDashboardId === dashboardInfo?.id;
+    colorInitializedDashboardId === dashboardId;
   const prevRenderedChartIds = useRef<number[]>([]);
   const prevTabIndexRef = useRef<number>();
   const prevFilterScopesRef = useRef<FilterScopeData[]>([]);
@@ -197,9 +192,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   const onBeforeUnload = useCallback(() => {
     dispatch(persistDashboardLabelsColor());
-    resetColors(getColorNamespace(dashboardInfo?.metadata?.color_namespace));
+    resetColors(getColorNamespace(dashboardMetadata?.color_namespace));
     prevRenderedChartIds.current = [];
-  }, [dashboardInfo?.metadata?.color_namespace, dispatch]);
+  }, [dashboardMetadata?.color_namespace, dispatch]);
 
   const chartLayoutItemMap = useMemo(
     () => createChartLayoutItemMap(Object.values(dashboardLayout)),
@@ -242,7 +237,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
     if (storeIsStale || !isEqual(scopes, prevFilterScopesRef.current)) {
       prevFilterScopesRef.current = scopes;
-      dispatch(setInScopeStatusOfFilters(scopes));
+      setInScopeStatusOfFilters(scopes);
     }
   }, [chartIds, filterItems, nativeFilters, chartLayoutItemMap, dispatch]);
 
@@ -283,7 +278,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
     if (storeIsStale || !isEqual(scopes, prevCustomizationScopesRef.current)) {
       prevCustomizationScopesRef.current = scopes;
-      dispatch(setInScopeStatusOfCustomizations(scopes));
+      setInScopeStatusOfCustomizations(scopes);
     }
   }, [
     chartIds,
@@ -303,9 +298,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   useEffect(() => {
     if (shouldForceFreshSharedLabelsColors) {
       // all available charts have rendered, enforce freshest shared label colors
-      dispatch(ensureSyncedSharedLabelsColors(dashboardInfo.metadata, true));
+      dispatch(ensureSyncedSharedLabelsColors(dashboardMetadata, true));
     }
-  }, [dashboardInfo.metadata, dispatch, shouldForceFreshSharedLabelsColors]);
+  }, [dashboardMetadata, dispatch, shouldForceFreshSharedLabelsColors]);
 
   useEffect(() => {
     // verify freshness of color map
@@ -324,17 +319,17 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       dispatch(updateDashboardLabelsColor(newRenderedChartIds));
       // new data may have appeared in the map (data changes)
       // or new slices may have appeared while changing tabs
-      dispatch(ensureSyncedLabelsColorMap(dashboardInfo.metadata));
+      dispatch(ensureSyncedLabelsColorMap(dashboardMetadata));
 
       if (!shouldForceFreshSharedLabelsColors) {
-        dispatch(ensureSyncedSharedLabelsColors(dashboardInfo.metadata));
+        dispatch(ensureSyncedSharedLabelsColors(dashboardMetadata));
       }
     }
   }, [
     renderedChartIds,
     dispatch,
     dashboardLabelsColorInitiated,
-    dashboardInfo.metadata,
+    dashboardMetadata,
     shouldForceFreshSharedLabelsColors,
   ]);
 
@@ -342,10 +337,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     const labelsColorMap = getLabelsColorMap();
     labelsColorMap.source = LabelsColorMapSource.Dashboard;
 
-    if (dashboardInfo?.id && !dashboardLabelsColorInitiated) {
-      dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
+    if (dashboardId && !dashboardLabelsColorInitiated) {
+      dispatch(applyDashboardLabelsColorOnLoad(dashboardMetadata));
       // apply labels color as dictated by stored metadata (if any)
-      setColorInitializedDashboardId(dashboardInfo.id);
+      setColorInitializedDashboardId(dashboardId);
     }
 
     return () => {
@@ -353,7 +348,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboardInfo?.id, dispatch]);
+  }, [dashboardId, dispatch]);
 
   useEffect(() => {
     window.addEventListener('beforeunload', onBeforeUnload);

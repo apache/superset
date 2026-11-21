@@ -24,6 +24,8 @@ import {
   LOG_ACTIONS_SPA_NAVIGATION,
 } from 'src/logger/LogUtils';
 import { Dispatch } from 'redux';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 
 interface LogEventAction {
   type: typeof LOG_EVENT;
@@ -37,12 +39,10 @@ interface LogEventAction {
 describe('logger middleware', () => {
   const dashboardId = 123;
   const next: jest.Mock = jest.fn();
-  // Mock store with minimal state needed for tests
+  // dashboardInfo now lives in Zustand, not Redux; seed it there (see beforeEach)
+  // so the middleware reads it the same way production does.
   const mockStore = {
     getState: () => ({
-      dashboardInfo: {
-        id: dashboardId,
-      },
       impressionId: 'impression_id',
     }),
     dispatch: ((action: unknown) => action) as Dispatch,
@@ -67,6 +67,9 @@ describe('logger middleware', () => {
 
   let postStub: jest.SpyInstance;
   beforeEach(() => {
+    useDashboardInfoStore.setState({
+      dashboardInfo: { id: dashboardId } as DashboardInfo,
+    });
     postStub = jest
       .spyOn(SupersetClient, 'post')
       .mockImplementation(() => undefined as any);
@@ -125,9 +128,9 @@ describe('logger middleware', () => {
         event_name: mockEventname,
         impression_id: mockStore.getState().impressionId,
         source: 'dashboard',
-        source_id: mockStore.getState().dashboardInfo.id,
+        source_id: dashboardId,
         event_type: 'timing',
-        dashboard_id: mockStore.getState().dashboardInfo.id,
+        dashboard_id: dashboardId,
       });
 
       expect(typeof events[0].ts).toBe('number');

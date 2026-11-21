@@ -17,6 +17,7 @@
  * under the License.
  */
 import { updateDataMask } from 'src/dataMask/actions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { getSelectExtraFormData } from 'src/filters/utils';
 import { ReactNode } from 'react';
 import { Store } from 'redux';
@@ -34,6 +35,7 @@ import {
   getMockStoreWithNativeFilters,
   getMockStoreWithNativeFiltersButNoValues,
   stateWithFilters,
+  stateWithNativeFilters,
   storeWithState,
 } from 'spec/fixtures/mockStore';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
@@ -273,23 +275,23 @@ test('manual refresh: clears indicators during loading state', () => {
 test('shows skipped ordinary filters even when the server reports none rejected', () => {
   const initial = getMockStoreWithNativeFilters().getState();
   const nativeFilters = Object.fromEntries(
-    Object.entries<Filters[string]>(initial.nativeFilters.filters).map(
-      ([id, filter]) => [
-        id,
-        {
-          ...filter,
-          filterType: 'filter_select',
-          targets: [
-            {
-              datasetId: 12,
-              datasourceType: DatasourceType.Table,
-              column: { name: 'region' },
-            },
-          ],
-          chartsInScope: [sliceId],
-        },
-      ],
-    ),
+    Object.entries<Filters[string]>(
+      stateWithNativeFilters.nativeFilters.filters,
+    ).map(([id, filter]) => [
+      id,
+      {
+        ...filter,
+        filterType: 'filter_select',
+        targets: [
+          {
+            datasetId: 12,
+            datasourceType: DatasourceType.Table,
+            column: { name: 'region' },
+          },
+        ],
+        chartsInScope: [sliceId],
+      },
+    ]),
   );
   const dataMask = Object.fromEntries(
     Object.keys(nativeFilters).map(id => [
@@ -437,9 +439,13 @@ test.each(['12__table', '9__semantic_view'])(
       ...initial,
       nativeFilters: { ...initial.nativeFilters, filters: {} },
       dashboardInfo: {
-        ...initial.dashboardInfo,
+        ...stateWithNativeFilters.dashboardInfo,
         metadata: {
-          ...initial.dashboardInfo.metadata,
+          ...(
+            stateWithNativeFilters.dashboardInfo as {
+              metadata?: Record<string, unknown>;
+            }
+          ).metadata,
           chart_configuration: {
             999: {
               id: 999,
@@ -484,20 +490,18 @@ test.each(['12__table', '9__semantic_view'])(
     });
     const { getByRole, queryByRole } = setup(store);
     expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
-    const selectedMask = store.getState().dataMask[999];
+    const selectedMask = useDataMaskStore.getState().dataMask[999];
     act(() => {
-      store.dispatch(
-        updateDataMask(999, {
-          extraFormData: {},
-          filterState: { value: null },
-        }),
-      );
+      updateDataMask(999, {
+        extraFormData: {},
+        filterState: { value: null },
+      });
     });
     expect(
       queryByRole('button', { name: 'Filters (1)' }),
     ).not.toBeInTheDocument();
     act(() => {
-      store.dispatch(updateDataMask(999, selectedMask));
+      updateDataMask(999, selectedMask);
     });
     expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
   },

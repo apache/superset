@@ -27,15 +27,12 @@
 import { createMemoryHistory } from 'history';
 import { Router } from 'react-router-dom';
 import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
-import { REMOVE_DATA_MASK, UPDATE_DATA_MASK } from 'src/dataMask/actions';
+import * as dataMaskActions from 'src/dataMask/actions';
 import { RISON_UNMATCHED_DATAMASK_ID } from 'src/dashboard/util/risonFilters';
 import UrlFiltersVertical from './Vertical';
 
-const mockDispatch = jest.fn();
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useDispatch: () => mockDispatch,
-}));
+const updateDataMask = jest.spyOn(dataMaskActions, 'updateDataMask');
+const removeDataMask = jest.spyOn(dataMaskActions, 'removeDataMask');
 
 const seedUrl = (search: string) => {
   // jsdom doesn't navigate, so set both window.location (read by
@@ -58,7 +55,8 @@ const renderAt = (search: string) => {
 };
 
 beforeEach(() => {
-  mockDispatch.mockReset();
+  updateDataMask.mockClear();
+  removeDataMask.mockClear();
   window.history.replaceState({}, '', '/');
 });
 
@@ -86,14 +84,12 @@ test('removing a chip dispatches updateDataMask with the remaining filters', asy
   await userEvent.click(closeButtons[0]);
 
   // The remaining filter must still apply to charts, so updateDataMask
-  // (not removeDataMask) is dispatched with one filter left.
-  const updateCalls = mockDispatch.mock.calls
-    .map(([action]) => action)
-    .filter(action => action?.type === UPDATE_DATA_MASK);
-  expect(updateCalls).toHaveLength(1);
-  expect(updateCalls[0].filterId).toBe(RISON_UNMATCHED_DATAMASK_ID);
-  expect(updateCalls[0].dataMask.extraFormData.filters).toHaveLength(1);
-  expect(updateCalls[0].dataMask.extraFormData.filters[0]).toMatchObject({
+  // (not removeDataMask) is called with one filter left.
+  expect(updateDataMask).toHaveBeenCalledTimes(1);
+  const [filterId, dataMask] = updateDataMask.mock.calls[0];
+  expect(filterId).toBe(RISON_UNMATCHED_DATAMASK_ID);
+  expect(dataMask.extraFormData?.filters).toHaveLength(1);
+  expect(dataMask.extraFormData?.filters?.[0]).toMatchObject({
     col: 'channel',
     val: ['web'],
   });
@@ -102,22 +98,16 @@ test('removing a chip dispatches updateDataMask with the remaining filters', asy
   expect(screen.queryByText('region')).not.toBeInTheDocument();
 });
 
-test('removing the last chip dispatches removeDataMask, not an empty update', async () => {
+test('removing the last chip calls removeDataMask, not an empty update', async () => {
   renderAt('?f=(region:EMEA)');
 
   await userEvent.click(screen.getByRole('button', { name: /close/i }));
 
-  const removeCalls = mockDispatch.mock.calls
-    .map(([action]) => action)
-    .filter(action => action?.type === REMOVE_DATA_MASK);
-  expect(removeCalls).toHaveLength(1);
-  expect(removeCalls[0].filterId).toBe(RISON_UNMATCHED_DATAMASK_ID);
+  expect(removeDataMask).toHaveBeenCalledTimes(1);
+  expect(removeDataMask).toHaveBeenCalledWith(RISON_UNMATCHED_DATAMASK_ID);
 
   // No stray updateDataMask with empty filters.
-  const updateCalls = mockDispatch.mock.calls
-    .map(([action]) => action)
-    .filter(action => action?.type === UPDATE_DATA_MASK);
-  expect(updateCalls).toHaveLength(0);
+  expect(updateDataMask).not.toHaveBeenCalled();
 });
 
 test('chip list re-renders when the URL changes (popstate/programmatic nav)', () => {

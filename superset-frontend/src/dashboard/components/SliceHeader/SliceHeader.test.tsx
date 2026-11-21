@@ -144,7 +144,7 @@ const initialState = {
     },
   },
   dashboardInfo: {
-    crossFiltersEnabled: false,
+    metadata: { cross_filters_enabled: false },
   },
   dataMask: {},
 };

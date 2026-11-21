@@ -16,35 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators, Dispatch } from 'redux';
-import { connect } from 'react-redux';
 import DashboardGrid from '../components/DashboardGrid';
-
+import type { DashboardGridProps } from '../components/DashboardGrid';
 import {
-  handleComponentDrop,
+  useEditMode,
+  useCanEditDashboard,
+  useDashboardId,
+  setEditMode,
+  setDirectPathToChild,
   resizeComponent,
-} from '../actions/dashboardLayout';
-import { setDirectPathToChild, setEditMode } from '../actions/dashboardState';
-import { RootState } from 'src/dashboard/types';
+} from 'src/dashboard/stores';
+import { useHandleComponentDrop } from 'src/dashboard/hooks/useHandleComponentDrop';
 
-function mapStateToProps({ dashboardState, dashboardInfo }: RootState) {
-  return {
-    editMode: dashboardState.editMode,
-    canEdit: dashboardInfo.dash_edit_perm,
-    dashboardId: dashboardInfo.id,
-  };
-}
+type DashboardGridContainerProps = Omit<
+  DashboardGridProps,
+  | 'editMode'
+  | 'setEditMode'
+  | 'canEdit'
+  | 'dashboardId'
+  | 'handleComponentDrop'
+  | 'resizeComponent'
+  | 'setDirectPathToChild'
+  | 'theme'
+>;
 
-function mapDispatchToProps(dispatch: Dispatch) {
-  return bindActionCreators(
-    {
-      handleComponentDrop,
-      resizeComponent,
-      setDirectPathToChild,
-      setEditMode,
-    },
-    dispatch,
+export default function DashboardGridContainer(
+  props: DashboardGridContainerProps,
+) {
+  const editMode = useEditMode();
+  const canEdit = useCanEditDashboard();
+  const dashboardId = useDashboardId();
+
+  const handleComponentDrop = useHandleComponentDrop();
+
+  return (
+    <DashboardGrid
+      {...props}
+      setDirectPathToChild={setDirectPathToChild}
+      handleComponentDrop={handleComponentDrop}
+      resizeComponent={resizeComponent}
+      editMode={editMode}
+      setEditMode={setEditMode}
+      canEdit={canEdit}
+      dashboardId={dashboardId}
+    />
   );
 }
-
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);

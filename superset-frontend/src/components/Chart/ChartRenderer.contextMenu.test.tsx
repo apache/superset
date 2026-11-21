@@ -27,8 +27,9 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import mockState from 'spec/fixtures/mockState';
 import { ChartSource } from 'src/types/ChartSource';
-import dataMaskReducer from 'src/dataMask/reducer';
-import { updateDataMask as updateMaskAction } from 'src/dataMask/actions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import ChartRenderer, { ChartRendererProps } from './ChartRenderer';
 
 jest.mock('@superset-ui/core', () => ({
@@ -123,15 +124,19 @@ test.each(['7__semantic_view', '7__table'])(
         logEvent: jest.fn(),
       },
     };
+    // Cross-filtering is read from the Zustand dashboardInfo metadata.
+    useDashboardInfoStore.setState({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          cross_filters_enabled: true,
+        },
+      } as unknown as DashboardInfo,
+    });
     const { rerender } = render(<ChartRenderer {...props} />, {
       useRedux: true,
-      initialState: {
-        ...mockState,
-        dashboardInfo: {
-          ...mockState.dashboardInfo,
-          crossFiltersEnabled: true,
-        },
-      },
+      initialState: mockState,
     });
     await userEvent.click(screen.getByRole('button', { name: 'Select cell' }));
     const expected: DataMask = datasource.endsWith('__semantic_view')
@@ -176,10 +181,9 @@ test.each(['7__semantic_view', '7__table'])(
     );
     expect(updateDataMask).toHaveBeenCalledTimes(3);
     expect(updateDataMask).toHaveBeenLastCalledWith(1, cleared);
-    const state = dataMaskReducer(
-      { 1: { id: '1', ...expected } },
-      updateMaskAction(1, cleared),
-    );
+    useDataMaskStore.setState({ dataMask: { 1: { id: '1', ...expected } } });
+    useDataMaskStore.getState().updateDataMask(1, cleared);
+    const state = useDataMaskStore.getState().dataMask;
     expect(state[1].filterState?.value).toBeNull();
     expect(state[1].extraFormData).toEqual({ filters: [] });
   },

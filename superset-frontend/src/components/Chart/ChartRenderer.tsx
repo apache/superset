@@ -101,7 +101,7 @@ interface ChartActions {
       error_details?: string;
     },
   ) => Dispatch;
-  updateDataMask?: (chartId: number, dataMask: DataMask) => Dispatch;
+  updateDataMask?: (chartId: number, dataMask: DataMask) => void;
 }
 
 // Types for own state

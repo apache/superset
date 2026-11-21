@@ -20,6 +20,7 @@ import {
   forwardRef,
   ReactNode,
   RefObject,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -47,13 +48,19 @@ import {
   Icons,
   Popover,
 } from '@superset-ui/core/components';
+import {
+  flagTitleUnsavedChanges,
+  resetTitleDirtyFlag,
+} from 'src/dashboard/util/flagTitleUnsavedChanges';
 import { useSelector } from 'react-redux';
+import { useDataMaskValue } from 'src/dataMask/hooks';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { useIsMobile } from 'src/hooks/useIsMobile';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import MemoizedFiltersBadge from 'src/dashboard/components/FiltersBadge';
 import MemoizedCustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
 import { RootState } from 'src/dashboard/types';
+import { useCrossFiltersEnabled } from 'src/dashboard/stores';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import RowCountLabel from 'src/components/RowCountLabel';
@@ -202,13 +209,20 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     const dashboardPageId = useContext(DashboardPageIdContext);
     const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
     const headerRef = useRef<HTMLDivElement>(null);
+    const titleDirtyRef = useRef<boolean | undefined>(undefined);
+    const handleTitleChange = useCallback(
+      (value: string) =>
+        flagTitleUnsavedChanges(sliceName ?? '', value, titleDirtyRef),
+      [sliceName],
+    );
+    const handleTitleEditingChange = useCallback((isEditing: boolean) => {
+      if (!isEditing) {
+        resetTitleDirtyFlag(titleDirtyRef);
+      }
+    }, []);
     // TODO: change to indicator field after it will be implemented
-    const crossFilterValue = useSelector<RootState, any>(
-      state => state.dataMask[slice?.slice_id]?.filterState?.value,
-    );
-    const isCrossFiltersEnabled = useSelector<RootState, boolean>(
-      ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
-    );
+    const crossFilterValue = useDataMaskValue(slice?.slice_id);
+    const isCrossFiltersEnabled = useCrossFiltersEnabled();
 
     const firstQueryResponse = useSelector<RootState, QueryData | undefined>(
       state => state.charts[slice.slice_id].queriesResponse?.[0],
@@ -298,6 +312,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 }
                 canEdit={editMode}
                 onSaveTitle={updateSliceName}
+                onChange={handleTitleChange}
+                onEditingChange={handleTitleEditingChange}
                 showTooltip={false}
                 renderLink={
                   canExplore && exploreUrl ? renderExploreLink : undefined

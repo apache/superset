@@ -16,36 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ComponentProps } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch, AnyAction } from 'redux';
 
-import { selectAsyncModeOverride } from 'src/utils/asyncMode';
-import type { StateWithAsyncModeOverride } from 'src/utils/asyncMode';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import * as actions from './chartAction';
 import { logEvent } from '../../logger/actions';
 import Chart from './Chart';
 import { updateDataMask } from '../../dataMask/actions';
+
+function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
+  return {
+    actions: {
+      ...bindActionCreators({ ...actions, logEvent } as any, dispatch),
+      updateDataMask,
+    },
+  };
+}
+
+const ConnectedChart = connect(null, mapDispatchToProps)(Chart);
 
 // Read the per-dashboard `async_mode` override here (the connected boundary) so
 // the presentational Chart/ChartRenderer stay store-agnostic. Undefined outside a
 // dashboard (e.g. Explore), which resolves to the deployment default. This lets
 // self-contained charts (StatefulChart / the Matrixify path) honor the override
 // the Redux chart path already applies.
-function mapStateToProps(state: StateWithAsyncModeOverride) {
-  return { asyncModeOverride: selectAsyncModeOverride(state) };
+export default function ChartContainer(
+  props: ComponentProps<typeof ConnectedChart>,
+) {
+  const asyncModeOverride = useAsyncModeOverride();
+  return <ConnectedChart {...props} asyncModeOverride={asyncModeOverride} />;
 }
-
-function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
-  return {
-    actions: bindActionCreators(
-      {
-        ...actions,
-        updateDataMask,
-        logEvent,
-      } as any,
-      dispatch,
-    ),
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(Chart);

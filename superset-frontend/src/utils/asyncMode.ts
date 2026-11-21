@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 
 /**
  * Per-dashboard async-mode override, stored in the dashboard's
@@ -27,22 +27,20 @@ import getBootstrapData from 'src/utils/getBootstrapData';
  */
 export type AsyncModeOverride = 'default' | 'force_on' | 'force_off';
 
-/** State shape the override is read from; matches any store holding dashboard info. */
-export type StateWithAsyncModeOverride = {
-  dashboardInfo?: { metadata?: { async_mode?: AsyncModeOverride } };
-};
-
 /**
- * Read the per-dashboard override from Redux. Undefined outside a dashboard (or
- * when the dashboard sets no override), which `resolveAsyncMode` treats as
- * `default`.
+ * Read the per-dashboard override from the dashboard info store. Undefined
+ * outside a dashboard (or when the dashboard sets no override), which
+ * `resolveAsyncMode` treats as `default`.
  */
-export const selectAsyncModeOverride = (
-  state: StateWithAsyncModeOverride,
-): AsyncModeOverride | undefined => state.dashboardInfo?.metadata?.async_mode;
+export const getAsyncModeOverride = (): AsyncModeOverride | undefined =>
+  useDashboardInfoStore.getState().dashboardInfo?.metadata?.async_mode as
+    | AsyncModeOverride
+    | undefined;
 
 export const useAsyncModeOverride = (): AsyncModeOverride | undefined =>
-  useSelector(selectAsyncModeOverride);
+  useDashboardInfoStore(
+    s => s.dashboardInfo?.metadata?.async_mode as AsyncModeOverride | undefined,
+  );
 
 /**
  * Resolve whether the UI should request asynchronous chart-data execution.

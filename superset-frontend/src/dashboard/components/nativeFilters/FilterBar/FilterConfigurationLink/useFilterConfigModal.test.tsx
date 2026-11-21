@@ -21,6 +21,12 @@ import { act, renderHook } from '@testing-library/react';
 import { createStore, createWrapper } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { SaveChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
+import {
+  useDashboardInfoStore,
+  useNativeFiltersStore,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import type { DashboardInfo } from 'src/dashboard/types';
 import { useFilterConfigModal } from './useFilterConfigModal';
 
 const DASHBOARD_ID = 7;
@@ -69,6 +75,13 @@ const initialState = {
 };
 
 const renderUseFilterConfigModal = () => {
+  // The save mutations read dashboardInfo and the filter entries from Zustand;
+  // toasts still land in the Redux store.
+  useDashboardInfoStore.setState({
+    dashboardInfo: initialState.dashboardInfo as unknown as DashboardInfo,
+  });
+  useNativeFiltersStore.setState({ filters: {} });
+  useDataMaskStore.setState({ dataMask: {} });
   const store = createStore(initialState, reducerIndex);
   return {
     store,

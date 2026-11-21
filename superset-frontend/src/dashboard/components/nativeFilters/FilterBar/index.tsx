@@ -29,8 +29,6 @@ import {
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
-import type { AnyAction } from 'redux';
-import type { ThunkDispatch } from 'redux-thunk';
 import {
   DataMaskStateWithId,
   DataMaskWithId,
@@ -48,22 +46,29 @@ import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask, removeDataMask } from 'src/dataMask/actions';
 import {
-  saveChartCustomization,
-  clearAllPendingChartCustomizations,
-  clearAllChartCustomizationsFromMetadata,
-} from 'src/dashboard/actions/chartCustomizationActions';
+  useSaveChartCustomization,
+  createFilterKey,
+  updateFilterKey,
+} from 'src/dashboard/queries';
 
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash-es';
-import { getInitialDataMask } from 'src/dataMask/reducer';
+import { getInitialDataMask } from 'src/dataMask/useDataMaskStore';
 import { URL_PARAMS } from 'src/constants';
 import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
-import { useAppSelector } from 'src/views/store';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import {
+  useDashboardId,
+  useCanEditDashboard,
+  useDashboardInfo,
+  usePendingChartCustomizations,
+  clearAllPendingChartCustomizations,
+  clearAllChartCustomizations,
+} from 'src/dashboard/stores';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   isFilterKeyPublishHeld,
@@ -89,7 +94,6 @@ import {
   useFilterUpdates,
   useInitialization,
 } from './state';
-import { createFilterKey, updateFilterKey } from './keyValue';
 import ActionButtons from './ActionButtons';
 import Horizontal from './Horizontal';
 import Vertical from './Vertical';
@@ -240,7 +244,8 @@ const FilterBar: FC<FiltersBarProps> = ({
       ) as DataMaskStateWithId,
     [dataMaskApplied, hiddenCustomizationIds],
   );
-  const dispatch = useDispatch<ThunkDispatch<RootState, null, AnyAction>>();
+  const dispatch = useDispatch();
+  const { mutate: saveChartCustomization } = useSaveChartCustomization();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
   const filters = useFilters();
@@ -253,16 +258,10 @@ const FilterBar: FC<FiltersBarProps> = ({
     () => filterValues.filter(isNativeFilter),
     [filterValues],
   );
-  const dashboardId = useSelector<any, number>(
-    ({ dashboardInfo }) => dashboardInfo?.id,
-  );
+  const dashboardId = useDashboardId();
   const previousDashboardId = usePrevious(dashboardId);
-  const canEdit = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
-  );
-  const isManagedExternally = useAppSelector(({ dashboardInfo }) =>
-    Boolean(dashboardInfo.is_managed_externally),
-  );
+  const canEdit = useCanEditDashboard();
+  const isManagedExternally = Boolean(useDashboardInfo().is_managed_externally);
   const user: UserWithPermissionsAndRoles = useSelector<
     RootState,
     UserWithPermissionsAndRoles
@@ -338,7 +337,7 @@ const FilterBar: FC<FiltersBarProps> = ({
                 },
               }
             : dataMask;
-          dispatch(updateDataMask(filter.id, dataMaskForRedux));
+          updateDataMask(filter.id, dataMaskForRedux);
         }
 
         // Mark filter as initialized after getting its first value WITH extraFormData
@@ -471,10 +470,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
-  const pendingChartCustomizations = useSelector<
-    RootState,
-    Record<string, ChartCustomization> | undefined
-  >(state => state.dashboardInfo.pendingChartCustomizations);
+  const pendingChartCustomizations = usePendingChartCustomizations();
 
   const handlePendingCustomizationDataMaskChange = useCallback(
     (customizationId: string, dataMask: DataMask) => {
@@ -508,7 +504,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     filtersToApply.forEach(filterId => {
       const dataMask = dataMaskSelected[filterId];
       if (dataMask) {
-        dispatch(updateDataMask(filterId, dataMask));
+        updateDataMask(filterId, dataMask);
       }
     });
 
@@ -520,7 +516,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         ([customizationId, dataMask]) => {
           const customizationFilterId = customizationId;
           if (dataMask) {
-            dispatch(updateDataMask(customizationFilterId, dataMask));
+            updateDataMask(customizationFilterId, dataMask);
           }
         },
       );
@@ -543,10 +539,13 @@ const FilterBar: FC<FiltersBarProps> = ({
       ).filter(item => existingCustomizationIds.has(item.id));
 
       if (canEdit && !isManagedExternally && pendingItems.length > 0) {
-        // The thunk reports save failures; Apply must consume its rejection.
-        dispatch(saveChartCustomization(pendingItems, [])).catch(() => {});
+        // The mutation reports save failures itself.
+        saveChartCustomization({
+          modifiedCustomizations: pendingItems,
+          deletedIds: [],
+        });
       }
-      dispatch(clearAllPendingChartCustomizations());
+      clearAllPendingChartCustomizations();
       setPendingCustomizationDataMasks({});
     } else if (hasClearedChartCustomizations) {
       const clearedChartCustomizations = chartCustomizationValues.map(item =>
@@ -561,16 +560,17 @@ const FilterBar: FC<FiltersBarProps> = ({
       );
 
       visibleChartCustomizationValues.forEach(item => {
-        dispatch(removeDataMask(item.id));
+        removeDataMask(item.id);
       });
 
-      dispatch(clearAllChartCustomizationsFromMetadata());
+      clearAllChartCustomizations();
 
       if (canEdit && !isManagedExternally) {
-        // The thunk reports save failures; Clear must consume its rejection.
-        dispatch(saveChartCustomization(clearedChartCustomizations, [])).catch(
-          () => {},
-        );
+        // The mutation reports save failures itself.
+        saveChartCustomization({
+          modifiedCustomizations: clearedChartCustomizations,
+          deletedIds: [],
+        });
       }
     }
 
@@ -588,6 +588,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     visibleChartCustomizationValues,
     canEdit,
     isManagedExternally,
+    saveChartCustomization,
   ]);
 
   const handleClearAll = useCallback(() => {
@@ -620,6 +621,10 @@ const FilterBar: FC<FiltersBarProps> = ({
           const { filterState } = draft[id];
           if (filterState) {
             filterState.value = clearedValue;
+            // Drop the display label too — the filter indicator derives its
+            // "applied" state from `label`, so leaving it set would keep a
+            // stale filter badge after Clear All.
+            filterState.label = undefined;
             filterState.validateStatus = isRequired ? 'error' : undefined;
           }
         });
@@ -651,7 +656,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         });
       });
 
-      dispatch(clearAllPendingChartCustomizations());
+      clearAllPendingChartCustomizations();
       setPendingCustomizationDataMasks({});
       setHasClearedChartCustomizations(true);
     }

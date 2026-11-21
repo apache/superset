@@ -67,15 +67,13 @@ const UrlFiltersVertical = () => {
       );
 
       if (remaining.length === 0) {
-        dispatch(removeDataMask(RISON_UNMATCHED_DATAMASK_ID));
+        removeDataMask(RISON_UNMATCHED_DATAMASK_ID);
       } else {
         const extraFormDataFilters: QueryObjectFilterClause[] =
           risonFiltersToExtraFormDataFilters(remaining);
-        dispatch(
-          updateDataMask(RISON_UNMATCHED_DATAMASK_ID, {
-            extraFormData: { filters: extraFormDataFilters },
-          }),
-        );
+        updateDataMask(RISON_UNMATCHED_DATAMASK_ID, {
+          extraFormData: { filters: extraFormDataFilters },
+        });
       }
     },
     [dispatch, history],

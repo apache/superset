@@ -49,13 +49,16 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { useSelector, useDispatch } from 'react-redux';
 import {
   useDashboardHasTabs,
   useSelectFiltersInScope,
   useSelectCustomizationsInScope,
 } from 'src/dashboard/components/nativeFilters/state';
-import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { FilterBarOrientation } from 'src/dashboard/types';
+import {
+  useFilterBarOrientation,
+  setPendingChartCustomization,
+} from 'src/dashboard/stores';
 import {
   DropdownContainer,
   type DropdownItem,
@@ -65,8 +68,8 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
-import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
-import { getInitialDataMask } from 'src/dataMask/reducer';
+import { getInitialDataMask } from 'src/dataMask/useDataMaskStore';
+import { useDataMask } from 'src/dataMask/hooks';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { CustomizationsOutOfScopeCollapsible } from '../CustomizationsOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
@@ -158,19 +161,14 @@ const FilterControls: FC<FilterControlsProps> = ({
   hideHeader = false,
 }) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
-  const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
-  );
+  const filterBarOrientation = useFilterBarOrientation();
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
 
   const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
   const popoverRef = useRef<DropdownContainerRef>(null);
 
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMask();
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
@@ -247,26 +245,24 @@ const FilterControls: FC<FilterControlsProps> = ({
       const columnValue = dataMask.ownState?.column;
       const existingTarget = customizationItem.targets?.[0] || {};
 
-      dispatch(
-        setPendingChartCustomization({
-          ...customizationItem,
-          targets: [
-            {
-              ...existingTarget,
-              ...(columnValue && {
-                column: {
-                  ...existingTarget.column,
-                  name: columnValue,
-                },
-              }),
-            },
-          ] as [Partial<NativeFilterTarget>],
-        }),
-      );
+      setPendingChartCustomization({
+        ...customizationItem,
+        targets: [
+          {
+            ...existingTarget,
+            ...(columnValue && {
+              column: {
+                ...existingTarget.column,
+                name: columnValue,
+              },
+            }),
+          },
+        ] as [Partial<NativeFilterTarget>],
+      });
 
       onPendingCustomizationDataMaskChange(customizationItem.id, dataMask);
     },
-    [dispatch, onPendingCustomizationDataMaskChange],
+    [onPendingCustomizationDataMaskChange],
   );
 
   const renderer = useCallback(

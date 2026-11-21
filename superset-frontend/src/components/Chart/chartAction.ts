@@ -55,9 +55,11 @@ import { AsyncJob, waitForAsyncData } from 'src/middleware/asyncEvent';
 import { getTabId } from 'src/hooks/useTabId';
 import {
   resolveAsyncMode,
-  selectAsyncModeOverride,
+  getAsyncModeOverride,
   AsyncModeOverride,
 } from 'src/utils/asyncMode';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -78,26 +80,17 @@ export interface CommonState {
   };
 }
 
-export interface DashboardInfoState {
-  common: CommonState;
-  // Parsed dashboard json_metadata (when rendering within a dashboard); its
-  // `async_mode` is the per-dashboard async override.
-  metadata?: { async_mode?: AsyncModeOverride } & JsonObject;
-}
-
 export interface DataMaskState {
   [key: number]: {
     ownState?: JsonObject;
   };
 }
 
-// RootState uses flexible types to accommodate various state shapes
-// across dashboard and explore views
+// RootState is a flexible shape across dashboard and explore views. dataMask
+// and dashboardInfo live in Zustand; chart actions read them from the stores.
 export interface RootState {
   charts: ChartsState;
   common: CommonState;
-  dashboardInfo: DashboardInfoState;
-  dataMask: DataMaskState;
   explore: {
     form_data: QueryFormData;
     datasource?: { type: string };
@@ -844,7 +837,7 @@ export function exploreJSON(
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
     // Honor the per-dashboard async override when rendering within a dashboard.
-    const asyncModeOverride = selectAsyncModeOverride(state);
+    const asyncModeOverride = getAsyncModeOverride();
     if (asyncModeOverride)
       requestParams.async_mode_override = asyncModeOverride;
 
@@ -857,7 +850,7 @@ export function exploreJSON(
       ) {
         releaseFilterKeyPublish();
       }
-      dispatch(updateDataMask(formData.slice_id, dataMask));
+      updateDataMask(formData.slice_id, dataMask);
     };
     // Identifies this run to the backend so Stop can cancel the database query
     // itself, not just abort the in-flight HTTP request. Matches SQL Lab's
@@ -1115,7 +1108,8 @@ export function refreshChart(
       return Promise.resolve();
     }
     const timeout =
-      getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+      useDashboardInfoStore.getState().dashboardInfo.common.conf
+        .SUPERSET_WEBSERVER_TIMEOUT;
 
     if (
       !chart.latestQueryFormData ||
@@ -1130,7 +1124,7 @@ export function refreshChart(
         timeout,
         chart.id,
         dashboardId,
-        getState().dataMask[chart.id]?.ownState,
+        useDataMaskStore.getState().dataMask[chart.id]?.ownState,
       ),
     ) as unknown as Promise<void>;
   };

@@ -31,18 +31,24 @@ import type {
 } from '@superset-ui/core/components/DropdownContainer';
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import { updateDataMask } from 'src/dataMask/actions';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
+import {
+  useDashboardInfoStore,
+  useDashboardLayoutStore,
+  useDashboardStateStore,
+  useNativeFiltersStore,
+  setDirectPathToChild,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import {
   act,
-  createStore,
   render,
   screen,
   userEvent,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import reducerIndex from 'spec/helpers/reducerIndex';
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import FilterControls from './FilterControls';
 
@@ -179,9 +185,9 @@ const buildHorizontalState = (
   dashboardInfo: {
     id: 1,
     dash_edit_perm: true,
-    filterBarOrientation: FilterBarOrientation.Horizontal,
     metadata: {
       native_filter_configuration: filters,
+      filter_bar_orientation: FilterBarOrientation.Horizontal,
     },
   },
   dashboardLayout: {
@@ -226,11 +232,42 @@ const buildDataMaskSelected = (
     {} as DataMaskStateWithId,
   );
 
+// FilterControls reads dashboardInfo, sliceIds, layout, native filters and
+// dataMask from Zustand rather than the Redux initialState, so mirror the
+// built state into those stores before rendering. Any test that drives
+// FilterControls through a raw render() must seed the stores this way.
+const seedZustandStores = (state: {
+  dashboardInfo: unknown;
+  dashboardState: { sliceIds: number[]; activeTabs: string[] };
+  dashboardLayout: { present: unknown };
+  nativeFilters: { filters: unknown };
+  dataMask: unknown;
+}) => {
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as DashboardInfo,
+  });
+  useDashboardStateStore.setState({
+    sliceIds: state.dashboardState.sliceIds,
+    activeTabs: state.dashboardState.activeTabs,
+  });
+  useDashboardLayoutStore.setState({
+    layout: state.dashboardLayout.present as DashboardLayout,
+  });
+  useNativeFiltersStore.setState({
+    filters: state.nativeFilters.filters as Record<string, FilterEntry>,
+  });
+  useDataMaskStore.setState({
+    dataMask: state.dataMask as DataMaskStateWithId,
+  });
+};
+
 const renderHorizontal = (
   filters: ReturnType<typeof createSelectNativeFilter>[],
   dataMaskSelected: DataMaskStateWithId,
-) =>
-  render(
+) => {
+  const state = buildHorizontalState(filters);
+  seedZustandStores(state);
+  return render(
     <FilterControls
       dataMaskSelected={dataMaskSelected}
       onFilterSelectionChange={jest.fn()}
@@ -240,9 +277,10 @@ const renderHorizontal = (
     {
       useRedux: true,
       useRouter: true,
-      initialState: buildHorizontalState(filters),
+      initialState: state,
     },
   );
+};
 
 const latestProps = () =>
   dropdownContainerProps[dropdownContainerProps.length - 1];
@@ -259,6 +297,8 @@ test('hidden semantic Dynamic group by leaves no horizontal divider', async () =
     controlValues: {},
     defaultDataMask: {},
   };
+  const state = buildHorizontalState([filter]);
+  seedZustandStores(state);
   render(
     <FilterControls
       dataMaskSelected={buildDataMaskSelected([filter])}
@@ -269,7 +309,7 @@ test('hidden semantic Dynamic group by leaves no horizontal divider', async () =
     {
       useRedux: true,
       useRouter: true,
-      initialState: buildHorizontalState([filter]),
+      initialState: state,
     },
   );
   await waitFor(() => expect(latestProps()).toBeDefined());
@@ -490,10 +530,12 @@ test('a cross-filter chip DropdownContainer has already stopped overflowing does
   // callback via `fireOverflow`). Moving one without the other reproduces
   // the one-render lag that exists in production between DropdownContainer's
   // useLayoutEffect (immediate) and its useEffect (runs one commit later).
+  const state = buildStateWithOneCrossFilter();
+  seedZustandStores(state);
   const { rerender } = render(crossFilterControlsElement, {
     useRedux: true,
     useRouter: true,
-    initialState: buildStateWithOneCrossFilter(),
+    initialState: state,
   });
 
   await waitFor(() => expect(callbackRef.current).toBeTruthy());
@@ -584,20 +626,10 @@ test('focusing an overflowed filter opens the More filters dropdown', async () =
     createSelectNativeFilter('NATIVE_FILTER-3', 'city'),
   ];
 
-  // A real store (not just a props object) so `setDirectPathToChild` can be
-  // dispatched after mount to simulate the dashboard focusing a filter,
-  // exactly like clicking a "jump to filter" link or navigating by anchor.
-  const store = createStore(buildHorizontalState(filters), reducerIndex);
-
-  render(
-    <FilterControls
-      dataMaskSelected={buildDataMaskSelected(filters)}
-      onFilterSelectionChange={jest.fn()}
-      onPendingCustomizationDataMaskChange={jest.fn()}
-      chartCustomizationValues={[]}
-    />,
-    { store, useRouter: true },
-  );
+  // directPathToChild lives in the Zustand dashboard-state store now, so the
+  // focus is driven by calling the store action after mount — the same thing a
+  // "jump to filter" link or an anchor navigation does.
+  renderHorizontal(filters, buildDataMaskSelected(filters));
 
   await waitFor(() => expect(callbackRef.current).toBeTruthy());
 
@@ -610,7 +642,7 @@ test('focusing an overflowed filter opens the More filters dropdown', async () =
   // Focusing the overflowed filter (e.g. via a direct link into the
   // dashboard) updates `directPathToChild` to point at it.
   act(() => {
-    store.dispatch(setDirectPathToChild(['NATIVE_FILTER-3']));
+    setDirectPathToChild(['NATIVE_FILTER-3']);
   });
 
   await waitFor(() => expect(mockDropdownOpen).toHaveBeenCalledTimes(1));
@@ -622,17 +654,7 @@ test('focusing a filter that has not overflowed does not open the dropdown', asy
     createSelectNativeFilter('NATIVE_FILTER-2', 'region'),
   ];
 
-  const store = createStore(buildHorizontalState(filters), reducerIndex);
-
-  render(
-    <FilterControls
-      dataMaskSelected={buildDataMaskSelected(filters)}
-      onFilterSelectionChange={jest.fn()}
-      onPendingCustomizationDataMaskChange={jest.fn()}
-      chartCustomizationValues={[]}
-    />,
-    { store, useRouter: true },
-  );
+  renderHorizontal(filters, buildDataMaskSelected(filters));
 
   await waitFor(() => expect(callbackRef.current).toBeTruthy());
 
@@ -642,7 +664,7 @@ test('focusing a filter that has not overflowed does not open the dropdown', asy
   await waitFor(() => expect(latestProps().dropdownContent).toBeDefined());
 
   act(() => {
-    store.dispatch(setDirectPathToChild(['NATIVE_FILTER-1']));
+    setDirectPathToChild(['NATIVE_FILTER-1']);
   });
 
   expect(mockDropdownOpen).not.toHaveBeenCalled();
@@ -812,9 +834,9 @@ test('keeps native controls reachable in row or More popover with real DropdownC
     dashboardInfo: {
       id: 1,
       dash_edit_perm: true,
-      filterBarOrientation: FilterBarOrientation.Horizontal,
       metadata: {
         native_filter_configuration: filters,
+        filter_bar_orientation: FilterBarOrientation.Horizontal,
       },
     },
     nativeFilters: {
@@ -827,7 +849,7 @@ test('keeps native controls reachable in row or More popover with real DropdownC
     dataMask: {},
   };
 
-  const store = createStore(initialStateWithoutCrossFilter, reducerIndex);
+  seedZustandStores(initialStateWithoutCrossFilter);
 
   try {
     const { rerender } = render(
@@ -838,8 +860,9 @@ test('keeps native controls reachable in row or More popover with real DropdownC
         chartCustomizationValues={[]}
       />,
       {
-        store,
+        useRedux: true,
         useRouter: true,
+        initialState: initialStateWithoutCrossFilter,
       },
     );
 
@@ -868,15 +891,13 @@ test('keeps native controls reachable in row or More popover with real DropdownC
 
     // Add the cross-filter chip while the More filters popover is closed
     act(() => {
-      store.dispatch(
-        updateDataMask(CROSS_FILTER_CHART_ID, {
-          filterState: {
-            value: 'Classic Cars',
-            filters: { product_line: 'Classic Cars' },
-          },
-          extraFormData: {},
-        }),
-      );
+      useDataMaskStore.getState().updateDataMask(CROSS_FILTER_CHART_ID, {
+        filterState: {
+          value: 'Classic Cars',
+          filters: { product_line: 'Classic Cars' },
+        },
+        extraFormData: {},
+      });
     });
 
     // The cross-filter chip and the first native filter stay reachable in the main row
@@ -910,6 +931,8 @@ test('an overflowed chart customization renders in the More filters popover', as
   };
   // Everything overflows, so the popover receives the customization item.
   mockOverflowingIndex = 0;
+  const state = buildHorizontalState([]);
+  seedZustandStores(state);
 
   render(
     <FilterControls
@@ -921,7 +944,7 @@ test('an overflowed chart customization renders in the More filters popover', as
     {
       useRedux: true,
       useRouter: true,
-      initialState: buildHorizontalState([]),
+      initialState: state,
     },
   );
 

@@ -17,12 +17,8 @@
  * under the License.
  */
 
-import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
-import thunk from 'redux-thunk';
-import mockState from 'spec/fixtures/mockState';
-import reducerIndex from 'spec/helpers/reducerIndex';
 import { screen, render } from 'spec/helpers/testing-library';
-import { initialState } from 'src/SqlLab/fixtures';
+import { useNativeFiltersStore, type FilterEntry } from 'src/dashboard/stores';
 import useFilterFocusHighlightStyles from './useFilterFocusHighlightStyles';
 import { getRelatedCharts } from './getRelatedCharts';
 
@@ -34,116 +30,133 @@ const TestComponent = ({ chartId }: { chartId: number }) => {
   return <div data-test="test-component" style={styles} />;
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('useFilterFocusHighlightStyles', () => {
-  const createMockStore = (customState: any = {}) =>
-    createStore(
-      combineReducers(reducerIndex),
-      { ...mockState, ...(initialState as any), ...customState },
-      compose(applyMiddleware(thunk)),
-    );
-  const mockGetRelatedCharts = getRelatedCharts as jest.Mock;
+const mockGetRelatedCharts = getRelatedCharts as jest.Mock;
 
-  const renderWrapper = (chartId: number, store = createMockStore()) =>
-    render(<TestComponent chartId={chartId} />, {
-      useRouter: true,
-      useDnd: true,
-      useRedux: true,
-      store,
-    });
+const seedNativeFilters = (state: {
+  focusedFilterId?: string;
+  hoveredFilterId?: string;
+  filters?: Record<string, FilterEntry>;
+}) => {
+  useNativeFiltersStore.setState({
+    filters: {},
+    focusedFilterId: undefined,
+    hoveredFilterId: undefined,
+    hoveredChartCustomizationId: undefined,
+    ...state,
+  });
+};
 
-  test('should return no style if filter not in scope', async () => {
-    renderWrapper(10);
-
-    const container = screen.getByTestId('test-component');
-
-    const styles = getComputedStyle(container);
-    expect(styles.opacity).toBeFalsy();
+const renderWrapper = (chartId: number) =>
+  render(<TestComponent chartId={chartId} />, {
+    useRouter: true,
+    useDnd: true,
+    useRedux: true,
   });
 
-  test('should return unfocused styles if chart is not in scope of focused native filter', async () => {
-    mockGetRelatedCharts.mockReturnValue([]);
-    const store = createMockStore({
-      nativeFilters: {
-        focusedFilterId: 'test-filter',
-        filters: {
-          otherId: {
-            id: 'NATIVE_FILTER-otherId',
-            chartsInScope: [],
-          },
-        },
-      },
-    });
-    renderWrapper(10, store);
+beforeEach(() => {
+  seedNativeFilters({});
+});
 
-    const container = screen.getByTestId('test-component');
+test('should return no style if filter not in scope', async () => {
+  renderWrapper(10);
 
-    const styles = getComputedStyle(container);
-    expect(parseFloat(styles.opacity)).toBe(0.3);
+  const container = screen.getByTestId('test-component');
+
+  const styles = getComputedStyle(container);
+  expect(styles.opacity).toBeFalsy();
+});
+
+test('should return unfocused styles if chart is not in scope of focused native filter', async () => {
+  mockGetRelatedCharts.mockReturnValue([]);
+  seedNativeFilters({
+    focusedFilterId: 'test-filter',
+    filters: {
+      otherId: {
+        id: 'NATIVE_FILTER-otherId',
+        chartsInScope: [],
+      } as unknown as FilterEntry,
+    },
   });
+  renderWrapper(10);
 
-  test('should return unfocused styles if chart is not in scope of hovered native filter', async () => {
-    mockGetRelatedCharts.mockReturnValue([]);
-    const store = createMockStore({
-      nativeFilters: {
-        hoveredFilterId: 'test-filter',
-        filters: {
-          otherId: {
-            id: 'NATIVE_FILTER-otherId',
-            chartsInScope: [],
-          },
-        },
-      },
-    });
-    renderWrapper(10, store);
+  const container = screen.getByTestId('test-component');
 
-    const container = screen.getByTestId('test-component');
+  const styles = getComputedStyle(container);
+  expect(parseFloat(styles.opacity)).toBe(0.3);
+});
 
-    const styles = getComputedStyle(container);
-    expect(parseFloat(styles.opacity)).toBe(0.3);
+test('should return unfocused styles if chart is not in scope of hovered native filter', async () => {
+  mockGetRelatedCharts.mockReturnValue([]);
+  seedNativeFilters({
+    hoveredFilterId: 'test-filter',
+    filters: {
+      otherId: {
+        id: 'NATIVE_FILTER-otherId',
+        chartsInScope: [],
+      } as unknown as FilterEntry,
+    },
   });
+  renderWrapper(10);
 
-  test('should return focused styles if chart is in scope of focused native filter', async () => {
-    const chartId = 18;
-    mockGetRelatedCharts.mockReturnValue([chartId]);
-    const store = createMockStore({
-      nativeFilters: {
-        focusedFilterId: 'testFilter',
-        filters: {
-          testFilter: {
-            id: 'NATIVE_FILTER-testFilter',
-            chartsInScope: [chartId],
-          },
-        },
-      },
-    });
-    renderWrapper(chartId, store);
+  const container = screen.getByTestId('test-component');
 
-    const container = screen.getByTestId('test-component');
+  const styles = getComputedStyle(container);
+  expect(parseFloat(styles.opacity)).toBe(0.3);
+});
 
-    const styles = getComputedStyle(container);
-    expect(parseFloat(styles.opacity)).toBe(1);
+test('should return focused styles if chart is in scope of focused native filter', async () => {
+  const chartId = 18;
+  mockGetRelatedCharts.mockReturnValue([chartId]);
+  seedNativeFilters({
+    focusedFilterId: 'testFilter',
+    filters: {
+      testFilter: {
+        id: 'NATIVE_FILTER-testFilter',
+        chartsInScope: [chartId],
+      } as unknown as FilterEntry,
+    },
   });
+  renderWrapper(chartId);
 
-  test('should return focused styles if chart is in scope of hovered native filter', async () => {
-    const chartId = 18;
-    mockGetRelatedCharts.mockReturnValue([chartId]);
-    const store = createMockStore({
-      nativeFilters: {
-        hoveredFilterId: 'testFilter',
-        filters: {
-          testFilter: {
-            id: 'NATIVE_FILTER-testFilter',
-            chartsInScope: [chartId],
-          },
-        },
-      },
-    });
-    renderWrapper(chartId, store);
+  const container = screen.getByTestId('test-component');
 
-    const container = screen.getByTestId('test-component');
+  const styles = getComputedStyle(container);
+  expect(parseFloat(styles.opacity)).toBe(1);
+});
 
-    const styles = getComputedStyle(container);
-    expect(parseFloat(styles.opacity)).toBe(1);
+test('should return focused styles if chart is in scope of hovered native filter', async () => {
+  const chartId = 18;
+  mockGetRelatedCharts.mockReturnValue([chartId]);
+  seedNativeFilters({
+    hoveredFilterId: 'testFilter',
+    filters: {
+      testFilter: {
+        id: 'NATIVE_FILTER-testFilter',
+        chartsInScope: [chartId],
+      } as unknown as FilterEntry,
+    },
   });
+  renderWrapper(chartId);
+
+  const container = screen.getByTestId('test-component');
+
+  const styles = getComputedStyle(container);
+  expect(parseFloat(styles.opacity)).toBe(1);
+});
+
+test('does not crash when the focused filter id is stale (filter missing)', () => {
+  // A focused filter can be deleted while its id is still focused; the filter
+  // entry is gone from the store. The hook must skip related-chart computation
+  // rather than dereferencing the missing filter (regression: TypeError on
+  // reading 'scope' of undefined, crashing the whole dashboard tree).
+  mockGetRelatedCharts.mockClear();
+  seedNativeFilters({
+    focusedFilterId: 'deleted-filter',
+    filters: {},
+  });
+  renderWrapper(10);
+
+  const container = screen.getByTestId('test-component');
+  expect(parseFloat(getComputedStyle(container).opacity)).toBe(0.3);
+  expect(mockGetRelatedCharts).not.toHaveBeenCalled();
 });
