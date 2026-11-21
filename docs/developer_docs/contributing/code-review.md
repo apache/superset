@@ -35,6 +35,7 @@ Code review is a critical part of maintaining code quality and sharing knowledge
 ### Preparing for Review
 
 #### Before Requesting Review
+
 - [ ] Self-review your changes
 - [ ] Ensure CI checks pass
 - [ ] Add comprehensive tests
@@ -43,6 +44,7 @@ Code review is a critical part of maintaining code quality and sharing knowledge
 - [ ] Add screenshots for UI changes
 
 #### Self-Review Checklist
+
 ```bash
 # View your changes
 git diff upstream/master
@@ -59,18 +61,23 @@ git diff upstream/master
 ### Requesting Review
 
 #### Auto-Assignment
+
 GitHub will automatically request reviews based on CODEOWNERS file.
 
 #### Manual Assignment
+
 For specific expertise, request additional reviewers:
+
 - Frontend changes: Tag frontend experts
 - Backend changes: Tag backend experts
 - Security changes: Tag security team
 - Database changes: Tag database experts
 
 #### Review Request Message
+
 ```markdown
 @reviewer This PR implements [feature]. Could you please review:
+
 1. The approach taken in [file]
 2. Performance implications of [change]
 3. Security considerations for [feature]
@@ -81,23 +88,29 @@ Thanks!
 ### Responding to Feedback
 
 #### Best Practices
+
 - **Be receptive**: Reviews improve code quality
 - **Ask questions**: Clarify if feedback is unclear
 - **Explain decisions**: Share context for your choices
 - **Update promptly**: Address feedback in timely manner
 
 #### Comment Responses
+
 ```markdown
 # Acknowledging
+
 "Good catch! Fixed in [commit hash]"
 
 # Explaining
+
 "I chose this approach because [reason]. Would you prefer [alternative]?"
 
 # Questioning
+
 "Could you elaborate on [concern]? I'm not sure I understand the issue."
 
 # Disagreeing respectfully
+
 "I see your point, but I think [current approach] because [reason]. What do you think?"
 ```
 
@@ -106,6 +119,7 @@ Thanks!
 ### Review Responsibilities
 
 #### What to Review
+
 1. **Correctness**: Does the code do what it claims?
 2. **Design**: Is the approach appropriate?
 3. **Clarity**: Is the code readable and maintainable?
@@ -117,12 +131,14 @@ Thanks!
 ### Review Checklist
 
 #### Functionality
+
 - [ ] Feature works as described
 - [ ] Edge cases are handled
 - [ ] Error handling is appropriate
 - [ ] Backwards compatibility maintained
 
 #### Code Quality
+
 - [ ] Follows project conventions
 - [ ] No code duplication
 - [ ] Clear variable/function names
@@ -130,6 +146,7 @@ Thanks!
 - [ ] SOLID principles followed
 
 #### Testing
+
 - [ ] Unit tests for business logic
 - [ ] Integration tests for APIs
 - [ ] E2E tests for critical paths
@@ -137,6 +154,7 @@ Thanks!
 - [ ] Good test coverage
 
 #### Security
+
 - [ ] Input validation
 - [ ] SQL injection prevention
 - [ ] XSS prevention
@@ -145,6 +163,7 @@ Thanks!
 - [ ] No sensitive data in logs
 
 #### Performance
+
 - [ ] Database queries optimized
 - [ ] No N+1 queries
 - [ ] Appropriate caching
@@ -176,11 +195,13 @@ re-renders when dependencies haven't changed."
 #### Comment Types
 
 **Use GitHub's comment types:**
+
 - **Comment**: General feedback or questions
 - **Approve**: Changes look good
 - **Request Changes**: Must be addressed before merge
 
 **Prefix conventions:**
+
 - `nit:` Minor issue (non-blocking)
 - `suggestion:` Recommended improvement
 - `question:` Seeking clarification
@@ -206,12 +227,15 @@ praise: Excellent test coverage! 👍
 ### Timeline
 
 #### Expected Response Times
+
 - **Initial review**: Within 2-3 business days
 - **Follow-up review**: Within 1-2 business days
 - **Critical fixes**: ASAP (tag in Slack)
 
 #### Escalation
+
 If no response after 3 days:
+
 1. Ping reviewer in PR comments
 2. Ask in #development Slack channel
 3. Tag @apache/superset-committers
@@ -219,11 +243,13 @@ If no response after 3 days:
 ### Approval Requirements
 
 #### Minimum Requirements
+
 - **1 approval** from a committer for minor changes
 - **2 approvals** for significant features
 - **3 approvals** for breaking changes
 
 #### Special Cases
+
 - **Security changes**: Require security team review
 - **API changes**: Require API team review
 - **Database migrations**: Require database expert review
@@ -232,16 +258,19 @@ If no response after 3 days:
 ### Merge Process
 
 #### Who Can Merge
+
 - Committers with write access
 - After all requirements met
 - CI checks must pass
 
 #### Merge Methods
+
 - **Squash and merge**: Default for feature PRs
 - **Rebase and merge**: For clean history
 - **Create merge commit**: Rarely used
 
 #### Merge Checklist
+
 - [ ] All CI checks green
 - [ ] Required approvals obtained
 - [ ] No unresolved conversations
@@ -251,6 +280,7 @@ If no response after 3 days:
 ## Review Etiquette
 
 ### Do's
+
 - ✅ Be kind and constructive
 - ✅ Acknowledge time and effort
 - ✅ Provide specific examples
@@ -260,6 +290,7 @@ If no response after 3 days:
 - ✅ Focus on the code, not the person
 
 ### Don'ts
+
 - ❌ Use harsh or dismissive language
 - ❌ Bikeshed on minor preferences
 - ❌ Review when tired or frustrated
@@ -270,6 +301,7 @@ If no response after 3 days:
 ## Becoming a Reviewer
 
 ### Path to Reviewer
+
 1. **Contribute regularly**: Submit quality PRs
 2. **Participate in discussions**: Share knowledge
 3. **Review others' code**: Start with comments
@@ -277,6 +309,7 @@ If no response after 3 days:
 5. **Get nominated**: By existing committers
 
 ### Reviewer Expectations
+
 - Review PRs in your area of expertise
 - Respond within reasonable time
 - Mentor new contributors
@@ -288,6 +321,7 @@ If no response after 3 days:
 ### Reviewing Large PRs
 
 #### Strategy
+
 1. **Request splitting**: Ask to break into smaller PRs
 2. **Review in phases**:
    - Architecture/approach first
@@ -298,6 +332,7 @@ If no response after 3 days:
 ### Cross-Team Reviews
 
 #### When Needed
+
 - Changes affecting multiple teams
 - Shared components/libraries
 - API contract changes
@@ -306,6 +341,7 @@ If no response after 3 days:
 ### Performance Reviews
 
 #### Tools
+
 ```python
 # Backend performance
 import cProfile
@@ -327,11 +363,13 @@ stats.sort_stats('cumulative').print_stats(10)
 ## Resources
 
 ### Internal
+
 - [Coding Guidelines](../guidelines/design-guidelines.md)
 - [Testing Guide](../testing/overview.md)
 - [Extension Architecture](../extensions/architecture.md)
 
 ### External
+
 - [Google's Code Review Guide](https://google.github.io/eng-practices/review/)
 - [Best Practices for Code Review](https://smartbear.com/learn/code-review/best-practices-for-peer-code-review/)
 - [The Art of Readable Code](https://www.oreilly.com/library/view/the-art-of/9781449318482/)

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   AxisType,
   BinaryQueryObjectFilterClause,
@@ -26,10 +26,18 @@ import {
   getNumberFormatter,
   getTimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { EventHandlers } from '../types';
+import { EchartsHandler, EventHandlers } from '../types';
 import { formatSeriesName } from '../utils/series';
+import {
+  getCategoryAxisValues,
+  getTemporalBucketDrillByFilter,
+  getTimeAxisDrillByValue,
+  parseTemporalValue,
+} from '../utils/xAxisDrillByFilter';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 export default function EchartsMixedTimeseries({
   height,
@@ -48,9 +56,16 @@ export default function EchartsMixedTimeseries({
   onFocusedSeries,
   xValueFormatter,
   xAxis,
+  resolvedTimeGrain,
   refs,
   coltypeMapping,
+  onLegendStateChanged,
+  onLegendScroll,
 }: EchartsMixedTimeseriesChartTransformedProps) {
+  const filterColumn = xAxis.column ?? xAxis.label;
+  const echartRef = useRef<EchartsHandler | null>(null);
+  // eslint-disable-next-line no-param-reassign
+  refs.echartRef = echartRef;
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
     [seriesBreakdown],
@@ -75,14 +90,19 @@ export default function EchartsMixedTimeseries({
       return {
         dataMask: {
           extraFormData: {
+            // An empty lookup result means the clicked series could not be
+            // resolved through the label map; emitting column filters anyway
+            // would produce bogus `IS NULL` clauses (an empty array makes the
+            // `every` below vacuously true), so clear the filters instead.
             filters:
-              values.length === 0
+              values.length === 0 || groupbyValues.length === 0
                 ? []
                 : currentGroupBy.map((col, idx) => {
-                    const val: DataRecordValue[] = groupbyValues.map(
-                      v => v[idx],
-                    );
-                    if (val === null || val === undefined)
+                    const val: DataRecordValue[] = groupbyValues.map(v => {
+                      const metricsCount = v.length - currentGroupBy.length;
+                      return v[metricsCount + idx];
+                    });
+                    if (val.every(vv => vv == null))
                       return {
                         col,
                         op: 'IS NULL' as const,
@@ -128,7 +148,13 @@ export default function EchartsMixedTimeseries({
     ],
   );
 
+  const legendEventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
+
   const eventHandlers: EventHandlers = {
+    ...legendEventHandlers,
     click: props => {
       const { seriesName, seriesIndex } = props;
       handleChange(seriesName, seriesIndex);
@@ -147,47 +173,141 @@ export default function EchartsMixedTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const isFirst = isFirstQuery(seriesIndex);
-        const values = [
-          ...(eventParams.name ? [eventParams.name] : []),
-          ...((isFirst ? labelMap : labelMapB)[eventParams.seriesName] || []),
-        ];
+        const currentGroupBy = isFirst ? formData.groupby : formData.groupbyB;
+        const seriesValues = (isFirst ? labelMap : labelMapB)[seriesName] || [];
+        // Label map values may carry metric/offset labels ahead of the
+        // dimension values — anchor from the tail, like getCrossFilterDataMask.
+        const metricsCount = seriesValues.length - currentGroupBy.length;
         if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
             col:
-              xAxis.label === DTTM_ALIAS
+              filterColumn === DTTM_ALIAS
                 ? formData.granularitySqla
-                : xAxis.label,
+                : filterColumn,
             grain: formData.timeGrainSqla,
             op: '==',
             val: data[0],
             formattedVal: xValueFormatter(data[0]),
           });
         }
-        [
-          ...(data && xAxis.type === AxisType.Category ? [xAxis.label] : []),
-          ...(isFirst ? formData.groupby : formData.groupbyB),
-        ].forEach((dimension, i) =>
+        if (
+          data &&
+          xAxis.type === AxisType.Category &&
+          eventParams.name != null
+        ) {
           drillToDetailFilters.push({
-            col: dimension,
+            col: filterColumn,
             op: '==',
-            val: values[i],
-            formattedVal: String(values[i]),
-          }),
-        );
-
-        [...(isFirst ? formData.groupby : formData.groupbyB)].forEach(
-          (dimension, i) =>
+            val: eventParams.name,
+            formattedVal: String(eventParams.name),
+          });
+        }
+        if (metricsCount >= 0) {
+          currentGroupBy.forEach((dimension, i) => {
+            const value = seriesValues[metricsCount + i];
+            drillToDetailFilters.push({
+              col: dimension,
+              op: '==',
+              val: value,
+              formattedVal: String(value),
+            });
             drillByFilters.push({
               col: dimension,
               op: '==',
-              val: values[i],
-              formattedVal: formatSeriesName(values[i], {
+              val: value,
+              formattedVal: formatSeriesName(value, {
                 timeFormatter: getTimeFormatter(formData.dateFormat),
                 numberFormatter: getNumberFormatter(formData.numberFormat),
                 coltype: coltypeMapping?.[getColumnLabel(dimension)],
               }),
-            }),
-        );
+            });
+          });
+        }
+        const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
+        const xAxisColumn =
+          filterColumn === DTTM_ALIAS
+            ? (formData.extraFormData?.granularity_sqla ??
+              formData.granularitySqla)
+            : filterColumn;
+        const isTemporalCategory =
+          xAxis.type === AxisType.Category &&
+          coltypeMapping?.[getColumnLabel(filterColumn)] ===
+            GenericDataType.Temporal;
+        if (
+          (xAxis.type === AxisType.Time || isTemporalCategory) &&
+          xAxisColumn
+        ) {
+          const xValue = getTimeAxisDrillByValue(
+            data,
+            Array.isArray(echartOptions.series)
+              ? echartOptions.series[seriesIndex]
+              : echartOptions.series,
+            data
+              ? undefined
+              : echartRef.current
+                  ?.getEchartInstance()
+                  ?.convertFromPixel({ seriesIndex }, [
+                    eventParams.event.offsetX,
+                    eventParams.event.offsetY,
+                  ]),
+            0,
+            isTemporalCategory,
+            isTemporalCategory && data === undefined
+              ? getCategoryAxisValues(echartRef.current?.getEchartInstance(), 0)
+              : undefined,
+          );
+          const filter = getTemporalBucketDrillByFilter(
+            // Persist a real column for legacy charts: Explore populates
+            // x_axis on edit, so '__timestamp' would stop resolving there.
+            xAxisColumn,
+            xValue,
+            resolvedTimeGrain,
+            getTimeFormatter(
+              undefined,
+              resolvedTimeGrain,
+            )(parseTemporalValue(xValue)),
+          );
+          if (filter?.grain) {
+            xAxisFilters.push(filter);
+          }
+        } else if (xAxis.type === AxisType.Category && xAxisColumn) {
+          // Line/area events carry only the series identity. Resolve their
+          // pixel position through the shared category axis, not a data index.
+          const rawValue = getTimeAxisDrillByValue(
+            data,
+            Array.isArray(echartOptions.series)
+              ? echartOptions.series[seriesIndex]
+              : echartOptions.series,
+            data === undefined
+              ? echartRef.current
+                  ?.getEchartInstance()
+                  ?.convertFromPixel({ seriesIndex }, [
+                    eventParams.event.offsetX,
+                    eventParams.event.offsetY,
+                  ])
+              : undefined,
+            0,
+            true,
+            data === undefined
+              ? getCategoryAxisValues(echartRef.current?.getEchartInstance(), 0)
+              : undefined,
+          );
+          const categoryValue =
+            rawValue === undefined ? eventParams.name : rawValue;
+          if (
+            categoryValue === null ||
+            typeof categoryValue === 'string' ||
+            typeof categoryValue === 'number' ||
+            typeof categoryValue === 'boolean'
+          ) {
+            xAxisFilters.push({
+              col: xAxisColumn,
+              op: '==',
+              val: categoryValue,
+              formattedVal: String(categoryValue),
+            });
+          }
+        }
         const hasCrossFilter =
           (isFirst && groupby.length > 0) || (!isFirst && groupbyB.length > 0);
 
@@ -200,6 +320,7 @@ export default function EchartsMixedTimeseries({
             filters: drillByFilters,
             groupbyFieldName: isFirst ? 'groupby' : 'groupby_b',
             adhocFilterFieldName: isFirst ? 'adhoc_filters' : 'adhoc_filters_b',
+            ...(xAxisFilters.length > 0 && { xAxisFilters }),
           },
         });
       }
@@ -209,6 +330,7 @@ export default function EchartsMixedTimeseries({
   return (
     <Echart
       refs={refs}
+      ref={echartRef}
       height={height}
       width={width}
       echartOptions={echartOptions}

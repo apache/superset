@@ -28,6 +28,10 @@ import {
   NO_TIME_RANGE,
   QueryFormColumn,
 } from '@superset-ui/core';
+import {
+  getIgnoredDashboardFilterIds,
+  ChartDatasources,
+} from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration, LayoutItem } from 'src/dashboard/types';
@@ -141,9 +145,20 @@ const selectIndicatorsForChartFromFilter = (
     }));
 };
 
+const getQueryFilterMetadata = (
+  chart: any,
+  metadataKey: 'applied_filters' | 'rejected_filters',
+) =>
+  ensureIsArray(chart?.queriesResponse).flatMap(
+    queryResponse =>
+      (metadataKey === 'applied_filters'
+        ? queryResponse?.applied_filters
+        : queryResponse?.rejected_filters) || [],
+  );
+
 const getAppliedColumns = (chart: any): Set<string> =>
   new Set(
-    (chart?.queriesResponse?.[0]?.applied_filters || []).map(
+    getQueryFilterMetadata(chart, 'applied_filters').map(
       (filter: any) => filter.column,
     ),
   );
@@ -161,8 +176,7 @@ export const getAppliedColumnsWithFallback = (
   chartId?: number,
 ): Set<string> => {
   // First try to get from query response (preferred source of truth)
-  const queryAppliedFilters =
-    chart?.queriesResponse?.[0]?.applied_filters || [];
+  const queryAppliedFilters = getQueryFilterMetadata(chart, 'applied_filters');
   if (queryAppliedFilters.length > 0) {
     return new Set(queryAppliedFilters.map((filter: any) => filter.column));
   }
@@ -191,7 +205,7 @@ export const getAppliedColumnsWithFallback = (
 
 const getRejectedColumns = (chart: any): Set<string> =>
   new Set(
-    (chart?.queriesResponse?.[0]?.rejected_filters || []).map((filter: any) =>
+    getQueryFilterMetadata(chart, 'rejected_filters').map((filter: any) =>
       getColumnLabel(filter.column),
     ),
   );
@@ -324,7 +338,7 @@ const getStatus = ({
     // Filter without datasource
     return APPLIED_STATUS;
   }
-  if (column && rejectedColumns?.has(column))
+  if (column && hasValue && rejectedColumns?.has(column))
     return IndicatorStatus.Incompatible;
   if (column && appliedColumns?.has(column) && hasValue) return APPLIED_STATUS;
   return IndicatorStatus.Unset;
@@ -339,6 +353,7 @@ export const selectChartCrossFilters = (
   appliedColumns: Set<string>,
   rejectedColumns: Set<string>,
   filterEmitter = false,
+  ignoredFilterIds: string[] = [],
 ): Indicator[] | CrossFilterIndicator[] => {
   let crossFilterIndicators: Indicator[] | CrossFilterIndicator[] = [];
   crossFilterIndicators = Object.values(chartConfiguration)
@@ -359,19 +374,27 @@ export const selectChartCrossFilters = (
         dataMask[chartConfig.id],
         chartLayoutItems,
       );
-      const filterStatus = getStatus({
-        label: filterIndicator.value,
-        column: filterIndicator.column
-          ? getColumnLabel(filterIndicator.column)
-          : undefined,
-        type: DataMaskType.CrossFilters,
-        rejectedColumns,
-        appliedColumns,
-      });
+      const filterStatus =
+        filterIndicator.value !== null &&
+        ignoredFilterIds.includes(String(chartConfig.id))
+          ? IndicatorStatus.Incompatible
+          : getStatus({
+              label: filterIndicator.value,
+              column: filterIndicator.column
+                ? getColumnLabel(filterIndicator.column)
+                : undefined,
+              type: DataMaskType.CrossFilters,
+              rejectedColumns,
+              appliedColumns,
+            });
 
       return { ...filterIndicator, status: filterStatus };
     })
-    .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
+    .filter(
+      filter =>
+        filter.status === IndicatorStatus.CrossFilterApplied ||
+        filter.status === IndicatorStatus.Incompatible,
+    );
 
   return crossFilterIndicators;
 };
@@ -386,6 +409,7 @@ const cachedNativeFilterDataForChart: Record<
     dataMask: DataMaskStateWithId;
     appliedColumns: Set<string>;
     rejectedColumns: Set<string>;
+    ignoredFilterIds: string[];
   }
 > = {};
 
@@ -396,7 +420,14 @@ export const selectNativeIndicatorsForChart = (
   chart: any,
   chartLayoutItems: LayoutItem[],
   chartConfiguration: ChartConfiguration = defaultChartConfig,
+  sourceDatasources?: ChartDatasources,
 ): Indicator[] => {
+  const ignoredFilterIds = getIgnoredDashboardFilterIds(
+    chart?.form_data ?? {},
+    nativeFilters,
+    dataMask,
+    sourceDatasources,
+  );
   const appliedColumns = getAppliedColumnsWithFallback(
     chart,
     nativeFilters,
@@ -408,6 +439,7 @@ export const selectNativeIndicatorsForChart = (
   const cachedFilterData = cachedNativeFilterDataForChart[chartId];
   if (
     cachedNativeIndicatorsForChart[chartId]?.length &&
+    areObjectsEqual(cachedFilterData.ignoredFilterIds, ignoredFilterIds) &&
     areObjectsEqual(cachedFilterData.appliedColumns, appliedColumns) &&
     areObjectsEqual(cachedFilterData.rejectedColumns, rejectedColumns) &&
     areObjectsEqual(cachedFilterData.nativeFilters, nativeFilters) &&
@@ -429,16 +461,25 @@ export const selectNativeIndicatorsForChart = (
         const column = nativeFilter.targets?.[0]?.column?.name;
         const filterState = dataMask[nativeFilter.id]?.filterState;
         const label = extractLabel(filterState);
+        // An ignored required-empty Value filter still carries a match-nothing
+        // predicate. Unlike a cleared mask, it has an effect to report.
+        const hasRequiredEmptyPredicate = Boolean(
+          dataMask[nativeFilter.id]?.extraFormData?.adhoc_filters?.length,
+        );
         return {
           column,
           name: nativeFilter.name,
           path: [nativeFilter.id],
-          status: getStatus({
-            label,
-            column,
-            rejectedColumns,
-            appliedColumns,
-          }),
+          status:
+            (label !== null || hasRequiredEmptyPredicate) &&
+            ignoredFilterIds.includes(nativeFilter.id)
+              ? IndicatorStatus.Incompatible
+              : getStatus({
+                  label,
+                  column,
+                  rejectedColumns,
+                  appliedColumns,
+                }),
           value: label,
         };
       });
@@ -448,15 +489,31 @@ export const selectNativeIndicatorsForChart = (
     dataMask,
     chartId,
     chartLayoutItems,
-    chartConfiguration,
+    {
+      ...Object.fromEntries(
+        ignoredFilterIds
+          .filter(id => !nativeFilters?.[id])
+          .map(id => [
+            id,
+            {
+              id: Number(id),
+              crossFilters: { scope: 'global', chartsInScope: [chartId] },
+            },
+          ]),
+      ),
+      ...chartConfiguration,
+    },
     appliedColumns,
     rejectedColumns,
+    false,
+    ignoredFilterIds,
   );
   const indicators = crossFilterIndicators.concat(
     nativeFilterIndicators as Indicator[],
   );
   cachedNativeIndicatorsForChart[chartId] = indicators;
   cachedNativeFilterDataForChart[chartId] = {
+    ignoredFilterIds,
     nativeFilters,
     chartLayoutItems,
     chartConfiguration,

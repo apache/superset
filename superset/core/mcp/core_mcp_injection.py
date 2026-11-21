@@ -22,8 +22,12 @@ This module provides the concrete implementation of MCP abstractions
 that replaces the abstract functions in superset-core during initialization.
 """
 
+import inspect
 import logging
-from typing import Any, Callable, Optional, TypeVar
+import sys
+from typing import Any, Callable, get_type_hints, Optional, TypeVar
+
+from pydantic import TypeAdapter
 
 try:
     from mcp.types import ToolAnnotations
@@ -37,6 +41,139 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
 
+# The concrete ``@tool``/``@prompt`` decorators register with the FastMCP instance
+# that lives in ``superset.mcp_service.app``. That module is the memory-heavy part
+# of MCP setup and is imported by ``initialize_core_mcp_host_tools`` before any
+# extension applies a decorator. Processes that never serve MCP (e.g. Celery
+# workers with ``CORE_MCP_HOST_TOOLS_ENABLED = False``) only swap the decorators
+# and never import it. In those processes a decoration must stay a no-op rather
+# than importing the service app on demand -- otherwise applying ``@tool`` in an
+# extension would still load the host-tool stack and defeat the memory savings.
+_MCP_SERVICE_APP_MODULE = "superset.mcp_service.app"
+
+
+def _mcp_host_tools_loaded() -> bool:
+    """Whether the MCP service app (and thus the host tools) is loaded here."""
+    return _MCP_SERVICE_APP_MODULE in sys.modules
+
+
+# Registrations already reported as skipped, so each one is logged only once.
+_skipped_registrations: set[str] = set()
+
+
+def _warn_skipped_registration(kind: str, base_id: str) -> None:
+    """
+    Log (once per registration) that an ``@tool``/``@prompt`` decoration was
+    skipped because the MCP service app is not loaded in this process.
+
+    This is the intended behavior in processes that never serve MCP, but if
+    ``CORE_MCP_HOST_TOOLS_ENABLED = False`` reaches a process that does serve
+    MCP, the registration would otherwise vanish without any trace.
+    """
+    registration_id, _ = _get_prefixed_id_with_context(base_id)
+    key = f"{kind}:{registration_id}"
+    if key in _skipped_registrations:
+        return
+    _skipped_registrations.add(key)
+    logger.warning(
+        "Skipping MCP %s registration for %s: the MCP service app is not loaded "
+        "in this process. This is expected in processes that do not serve MCP "
+        "(CORE_MCP_HOST_TOOLS_ENABLED = False). If this process serves MCP, check "
+        "that the setting is enabled and that initialize_core_mcp_host_tools() did "
+        "not fail to import the service app, so the %s is registered.",
+        kind,
+        registration_id,
+        kind,
+    )
+
+
+def _fastmcp_available() -> bool:
+    """Whether the optional ``fastmcp`` dependency is installed."""
+    try:
+        from fastmcp.tools import Tool  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _strip_schema_titles(value: Any) -> Any:
+    """Remove generated JSON Schema titles while preserving useful metadata."""
+    if isinstance(value, list):
+        return [_strip_schema_titles(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    return {
+        key: _strip_schema_titles(item)
+        for key, item in value.items()
+        if not (key == "title" and isinstance(item, str))
+    }
+
+
+def _is_object_schema(schema: dict[str, Any], root_schema: dict[str, Any]) -> bool:
+    """Return whether a schema, including a local reference, is an object."""
+    if schema.get("type") == "object" or "properties" in schema:
+        return True
+
+    reference = schema.get("$ref")
+    if not isinstance(reference, str) or not reference.startswith("#/$defs/"):
+        return False
+    definition = root_schema.get("$defs", {}).get(reference.removeprefix("#/$defs/"))
+    return isinstance(definition, dict) and (
+        definition.get("type") == "object" or "properties" in definition
+    )
+
+
+def _native_tool_output_schema(func: Callable[..., Any]) -> dict[str, Any] | None:
+    """Build an output schema from the callable's validation shape.
+
+    FastMCP normally derives schemas in Pydantic's serialization mode. A model
+    serializer annotated as returning ``dict[str, Any]`` then collapses an
+    otherwise typed model to an unconstrained object. Superset uses such
+    serializers to omit unrequested columns and normalize aliases, but the
+    model's validation schema remains an accurate superset of every field the
+    serializer can emit.
+
+    MCP requires an object at the output-schema root, so non-object return
+    types are wrapped the same way FastMCP wraps them at execution time.
+    """
+    try:
+        return_type = get_type_hints(func, include_extras=True).get("return")
+        if return_type in (None, Any, inspect.Signature.empty):
+            return None
+
+        schema = TypeAdapter(return_type).json_schema(mode="validation")
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not derive MCP output schema", exc_info=True)
+        return None
+
+    # A union of object response models is still an object on the wire. Marking
+    # that fact at the root satisfies MCP's object-schema requirement without
+    # introducing an artificial {"result": ...} envelope around every
+    # success/error union.
+    alternatives = schema.get("anyOf")
+    if (
+        isinstance(alternatives, list)
+        and alternatives
+        and all(
+            isinstance(alternative, dict) and _is_object_schema(alternative, schema)
+            for alternative in alternatives
+        )
+    ):
+        schema["type"] = "object"
+
+    if not _is_object_schema(schema, schema):
+        definitions = schema.pop("$defs", None)
+        schema = {
+            "properties": {"result": schema},
+            "required": ["result"],
+            "type": "object",
+            "x-fastmcp-wrap-result": True,
+        }
+        if definitions:
+            schema["$defs"] = definitions
+
+    return _strip_schema_titles(schema)
+
 
 def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     """
@@ -47,8 +184,10 @@ def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     """
     if context := get_current_extension_context():
         # Extension context: prefix ID to prevent collisions
-        manifest = context.manifest
-        prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{base_id}"
+        prefixed_id = (
+            f"extensions.{context.extension.publisher}."
+            f"{context.extension.name}.{base_id}"
+        )
         context_type = "extension"
     else:
         # Host context: use original ID
@@ -58,7 +197,7 @@ def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     return prefixed_id, context_type
 
 
-def create_tool_decorator(
+def create_tool_decorator(  # noqa: C901
     func_or_name: str | Callable[..., Any] | None = None,
     *,
     name: Optional[str] = None,
@@ -68,7 +207,7 @@ def create_tool_decorator(
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
-) -> Callable[[F], F] | F:
+) -> Callable[..., Any]:
     """
     Create the concrete MCP tool decorator implementation.
 
@@ -92,10 +231,18 @@ def create_tool_decorator(
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
-        or the wrapped function when used without parentheses
+        or the wrapped function when used without parentheses. Protected handlers
+        are async even when the original function is synchronous.
     """
 
-    def decorator(func: F) -> F:
+    def decorator(func: F) -> Callable[..., Any]:
+        # Skip registration when the MCP service app is not loaded in this
+        # process, so applying @tool never imports the heavy host-tool stack
+        # (see the module-level note on _MCP_SERVICE_APP_MODULE).
+        if not _mcp_host_tools_loaded():
+            _warn_skipped_registration("tool", name or func.__name__)
+            return func
+
         try:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
@@ -126,19 +273,30 @@ def create_tool_decorator(
             if protect:
                 from superset.mcp_service.auth import mcp_auth_hook
 
-                wrapped_func = mcp_auth_hook(func)
+                # Pass the registered (extension-prefixed) name so call-time
+                # checks keyed on tool identity cannot be confused by an
+                # extension tool that shares a base name with a host tool.
+                wrapped_func = mcp_auth_hook(func, tool_name=tool_name)
             else:
                 wrapped_func = func
 
             from fastmcp.tools import Tool
 
-            tool = Tool.from_function(
-                wrapped_func,
-                name=tool_name,
-                description=tool_description,
-                tags=tool_tags,
-                annotations=annotations,
-            )
+            tool_options: dict[str, Any] = {
+                "name": tool_name,
+                "description": tool_description,
+                "tags": tool_tags,
+                "annotations": annotations,
+            }
+            # Extension tools keep FastMCP's schema behavior because their
+            # serializers are extension-owned and cannot be assumed to follow
+            # Superset's validation-schema-as-output-superset convention.
+            if context_type == "host" and (
+                output_schema := _native_tool_output_schema(wrapped_func)
+            ):
+                tool_options["output_schema"] = output_schema
+
+            tool = Tool.from_function(wrapped_func, **tool_options)
             mcp.add_tool(tool)
 
             protected_status = "protected" if protect else "public"
@@ -151,20 +309,21 @@ def create_tool_decorator(
             return wrapped_func
 
         except Exception as e:
+            # Fail-fast: don't silently serve unprotected tools. Returning the
+            # unwrapped function here would bypass mcp_auth_hook, leaving the
+            # tool exposed without auth or context isolation (see #39395).
             logger.error("Failed to register MCP tool %s: %s", name or func.__name__, e)
-            # Return the original function so extension doesn't break
-            return func
+            raise
 
     # If called as @tool (without parentheses)
     if callable(func_or_name):
-        # Type cast is safe here since we've confirmed it's callable
-        return decorator(func_or_name)  # type: ignore[arg-type]
+        return decorator(func_or_name)
 
     # If called as @tool() or @tool(name="...")
     # func_or_name would be the name parameter or None
     actual_name = func_or_name if isinstance(func_or_name, str) else name
 
-    def parameterized_decorator(func: F) -> F:
+    def parameterized_decorator(func: F) -> Callable[..., Any]:
         # Use the actual_name if provided via func_or_name
         nonlocal name
         if actual_name is not None:
@@ -182,7 +341,7 @@ def create_prompt_decorator(
     description: Optional[str] = None,
     tags: Optional[set[str]] = None,
     protect: bool = True,
-) -> Callable[[F], F] | F:
+) -> Callable[..., Any]:
     """
     Create the concrete MCP prompt decorator implementation.
 
@@ -202,10 +361,18 @@ def create_prompt_decorator(
 
     Returns:
         Decorator that registers and wraps the prompt with optional authentication,
-        or the wrapped function when used without parentheses
+        or the wrapped function when used without parentheses. Protected handlers
+        are async even when the original function is synchronous.
     """
 
-    def decorator(func: F) -> F:
+    def decorator(func: F) -> Callable[..., Any]:
+        # Skip registration when the MCP service app is not loaded in this
+        # process, so applying @prompt never imports the heavy host-tool stack
+        # (see the module-level note on _MCP_SERVICE_APP_MODULE).
+        if not _mcp_host_tools_loaded():
+            _warn_skipped_registration("prompt", name or func.__name__)
+            return func
+
         try:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
@@ -247,22 +414,24 @@ def create_prompt_decorator(
             return wrapped_func
 
         except Exception as e:
+            # Fail-fast: don't silently serve unprotected prompts. Returning
+            # the unwrapped function here would bypass mcp_auth_hook, leaving
+            # the prompt exposed without auth or context isolation (see
+            # #39395 — same invariant as create_tool_decorator).
             logger.error(
                 "Failed to register MCP prompt %s: %s", name or func.__name__, e
             )
-            # Return the original function so extension doesn't break
-            return func
+            raise
 
     # If called as @prompt (without parentheses)
     if callable(func_or_name):
-        # Type cast is safe here since we've confirmed it's callable
-        return decorator(func_or_name)  # type: ignore[arg-type]
+        return decorator(func_or_name)
 
     # If called as @prompt() or @prompt(name="...")
     # func_or_name would be the name parameter or None
     actual_name = func_or_name if isinstance(func_or_name, str) else name
 
-    def parameterized_decorator(func: F) -> F:
+    def parameterized_decorator(func: F) -> Callable[..., Any]:
         # Use the actual_name if provided via name_or_fn
         nonlocal name
         if actual_name is not None:
@@ -272,18 +441,25 @@ def create_prompt_decorator(
     return parameterized_decorator
 
 
-def initialize_core_mcp_dependencies() -> None:
+def initialize_core_mcp_decorators() -> None:
     """
-    Initialize MCP dependency injection by replacing abstract functions
-    in superset_core.api.mcp with concrete implementations.
+    Replace the abstract MCP decorators in ``superset_core.mcp.decorators`` with
+    concrete host implementations.
 
-    Also imports MCP service app to register all host tools BEFORE extension loading.
+    This must run in *every* process that may import extensions -- not only those
+    that serve MCP. Extensions can apply ``@tool``/``@prompt`` at import time, and
+    the abstract decorators raise ``NotImplementedError`` until they are replaced
+    here, so skipping this step would break such extensions at import. It is
+    comparatively cheap: it does not import the MCP service app or register any
+    host tools (see ``initialize_core_mcp_host_tools`` for that). The concrete
+    decorators it installs are also lazy -- applying ``@tool``/``@prompt`` only
+    registers (and imports the service app) in processes where the host tools are
+    already loaded, so extensions stay import-safe without pulling in the
+    host-tool stack when it is disabled.
     """
     import superset_core.mcp.decorators
 
-    try:
-        from fastmcp.tools import Tool  # noqa: F401
-    except ImportError:
+    if not _fastmcp_available():
         logger.info(
             "fastmcp is not installed, skipping MCP initialization. "
             "Install it with: pip install 'apache-superset[fastmcp]'"
@@ -296,6 +472,26 @@ def initialize_core_mcp_dependencies() -> None:
 
     logger.info("MCP dependency injection initialized successfully")
 
+
+def initialize_core_mcp_host_tools() -> None:
+    """
+    Import the MCP service app so that all host tools are registered BEFORE
+    extension loading.
+
+    This carries a real per-process memory cost -- it imports the MCP service app
+    and every host tool module -- and is only needed in processes that actually
+    serve MCP (the web app and the standalone MCP service). Deployments gate it
+    off (``CORE_MCP_HOST_TOOLS_ENABLED = False``) for processes that never serve
+    MCP, e.g. Celery workers.
+
+    Like ``initialize_core_mcp_decorators``, this is a quiet no-op when the
+    optional ``fastmcp`` dependency is not installed, since the service app
+    cannot be imported without it.
+    """
+    if not _fastmcp_available():
+        logger.debug("fastmcp is not installed, skipping MCP host tool registration")
+        return
+
     try:
         # Import MCP service app to register host tools BEFORE extension loading
         # This prevents host tools from being registered during extension context
@@ -304,3 +500,19 @@ def initialize_core_mcp_dependencies() -> None:
         logger.info("MCP service app imported - host tools registered")
     except Exception as e:
         logger.error("Failed to register MCP host tools: %s", e)
+
+
+def initialize_core_mcp_dependencies() -> None:
+    """
+    Initialize MCP dependency injection by replacing abstract functions
+    in superset_core.mcp.decorators with concrete implementations, then registering the
+    host tools.
+
+    Kept for backwards compatibility and callers that want the full MCP setup in a
+    single call. Processes that must avoid the host-tool import cost should instead
+    call ``initialize_core_mcp_decorators`` unconditionally and gate
+    ``initialize_core_mcp_host_tools`` on ``CORE_MCP_HOST_TOOLS_ENABLED`` (see
+    ``SupersetAppInitializer.init_core_dependencies``).
+    """
+    initialize_core_mcp_decorators()
+    initialize_core_mcp_host_tools()

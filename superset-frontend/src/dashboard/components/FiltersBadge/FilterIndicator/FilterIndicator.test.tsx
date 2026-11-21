@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from '.';
@@ -46,12 +48,12 @@ test('Should render', () => {
   expect(screen.getByRole('img')).toBeInTheDocument();
 });
 
-test('Should call "onClick"', () => {
+test('Should call "onClick"', async () => {
   const props = createProps();
   render(<FilterIndicator {...props} />);
 
   expect(props.onClick).toHaveBeenCalledTimes(0);
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('button', { name: 'search Vaccine Approach' }),
   );
   expect(props.onClick).toHaveBeenCalledTimes(1);
@@ -69,7 +71,7 @@ test('Should render "value"', () => {
   ).toBeInTheDocument();
 });
 
-test('Should render with default props', () => {
+test('Should render with default props', async () => {
   const props = createProps();
   delete props.indicator.path;
   render(<FilterIndicator indicator={props.indicator} />);
@@ -77,5 +79,18 @@ test('Should render with default props', () => {
   expect(
     screen.getByRole('button', { name: 'Vaccine Approach' }),
   ).toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Vaccine Approach' }));
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Vaccine Approach' }),
+  );
+});
+
+test('Shows a visible focus ring when focused with the keyboard', () => {
+  const props = createProps();
+  render(<FilterIndicator {...props} />);
+
+  expect(
+    screen.getByRole('button', { name: 'search Vaccine Approach' }),
+  ).toHaveStyleRule('outline', `2px solid ${supersetTheme.colorPrimary}`, {
+    target: ':focus-visible',
+  });
 });

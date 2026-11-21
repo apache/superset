@@ -23,8 +23,14 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { Column, JsonObject, getClientErrorObject } from '@superset-ui/core';
-import { ColumnSelect } from './ColumnSelect';
+import {
+  Column,
+  DatasourceType,
+  JsonObject,
+  getClientErrorObject,
+} from '@superset-ui/core';
+import { semanticViewDimensionsToColumns } from 'src/utils/semanticViewStructure';
+import { ColumnSelect, getColumnOptions } from './ColumnSelect';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -67,6 +73,58 @@ const createProps = (extraProps: JsonObject = {}) => ({
   ...extraProps,
 });
 
+test('semantic column labels remain readable and distinct without changing IDs', () => {
+  const columns = [
+    { column_name: 'CUSTOMERS.SEGMENT', verbose_name: 'Segment' },
+    { column_name: 'ORDERS.SEGMENT', verbose_name: 'Segment' },
+    { column_name: 'ORDERS.STATUS', verbose_name: 'Status' },
+    { column_name: 'ORDERS.DATE' },
+  ] as Column[];
+
+  expect(
+    getColumnOptions(columns, () => true, false, DatasourceType.SemanticView),
+  ).toEqual([
+    { label: 'Segment (CUSTOMERS.SEGMENT)', value: 'CUSTOMERS.SEGMENT' },
+    { label: 'Segment (ORDERS.SEGMENT)', value: 'ORDERS.SEGMENT' },
+    { label: 'Status', value: 'ORDERS.STATUS' },
+    { label: 'ORDERS.DATE', value: 'ORDERS.DATE' },
+  ]);
+});
+
+test('semantic picker options use mapped labels and keep member IDs', () => {
+  const columns = semanticViewDimensionsToColumns([
+    { name: 'CUSTOMERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
+    { name: 'ORDERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
+    { name: 'ORDERS.STATUS', type: 'string', verbose_name: 'Status' },
+    { name: 'ORDERS.DATE', type: 'date32[day]', verbose_name: null },
+    {
+      name: 'ORDERS.CREATED_AT',
+      type: 'timestamp[us]',
+      grain: 'Day',
+      verbose_name: 'Created day',
+    },
+    {
+      name: 'ORDERS.CREATED_AT',
+      type: 'timestamp[us]',
+      grain: null,
+      verbose_name: 'Created at',
+    },
+  ]);
+
+  expect(
+    getColumnOptions(columns, () => true, false, DatasourceType.SemanticView),
+  ).toEqual([
+    { label: 'Segment (CUSTOMERS.SEGMENT)', value: 'CUSTOMERS.SEGMENT' },
+    { label: 'Segment (ORDERS.SEGMENT)', value: 'ORDERS.SEGMENT' },
+    { label: 'Status', value: 'ORDERS.STATUS' },
+    { label: 'ORDERS.DATE', value: 'ORDERS.DATE' },
+    { label: 'Created at', value: 'ORDERS.CREATED_AT' },
+  ]);
+  expect(
+    columns.find(column => column.column_name === 'ORDERS.DATE')?.verbose_name,
+  ).toBeUndefined();
+});
+
 afterAll(() => {
   fetchMock.clearHistory().removeRoutes();
 });
@@ -77,7 +135,7 @@ test('Should render', async () => {
     useRedux: true,
   });
   expect(container.children).toHaveLength(1);
-  userEvent.type(screen.getByRole('combobox'), 'column_name');
+  await userEvent.type(screen.getByRole('combobox'), 'column_name');
   await waitFor(() => {
     expect(
       screen.getByRole('option', {
@@ -128,7 +186,7 @@ test('Should filter results', async () => {
     useRedux: true,
   });
   expect(container.children).toHaveLength(1);
-  userEvent.type(screen.getByRole('combobox'), 'column_name');
+  await userEvent.type(screen.getByRole('combobox'), 'column_name');
   await waitFor(() => {
     expect(
       screen.getByRole('option', {
@@ -142,4 +200,43 @@ test('Should filter results', async () => {
   await waitFor(() => {
     expect(screen.queryByTitle('column_name_03')).not.toBeInTheDocument();
   });
+});
+
+test('ignores a slower response for a datasource the user already switched away from', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/dataset/901?*',
+    { result: { columns: [{ column_name: 'stale_col', filterable: true }] } },
+    { delay: 150 },
+  );
+  fetchMock.get('glob:*/api/v1/dataset/902?*', {
+    result: { columns: [{ column_name: 'current_col', filterable: true }] },
+  });
+  const onColumnsLoaded = jest.fn();
+  const props = createProps({
+    datasetId: 901,
+    value: [],
+    mode: 'multiple',
+    onColumnsLoaded,
+  });
+  const { rerender } = render(<ColumnSelect {...(props as any)} />, {
+    useRedux: true,
+  });
+
+  props.datasetId = 902;
+  rerender(<ColumnSelect {...(props as any)} />);
+
+  await waitFor(() =>
+    expect(onColumnsLoaded).toHaveBeenCalledWith(['current_col'], '902__table'),
+  );
+  // Let the slow 901 response arrive; it must be dropped.
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/dataset/901?*'),
+    ).toHaveLength(1),
+  );
+  await new Promise(resolve => setTimeout(resolve, 250));
+  expect(onColumnsLoaded).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByRole('combobox'));
+  expect(await screen.findByTitle('current_col')).toBeInTheDocument();
+  expect(screen.queryByTitle('stale_col')).not.toBeInTheDocument();
 });

@@ -29,8 +29,10 @@ under the License.
 [![Last Commit](https://img.shields.io/github/last-commit/apache/superset)](https://github.com/apache/superset/commits/master)
 [![Open Issues](https://img.shields.io/github/issues/apache/superset)](https://github.com/apache/superset/issues)
 [![Open PRs](https://img.shields.io/github/issues-pr/apache/superset)](https://github.com/apache/superset/pulls)
-[![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](http://bit.ly/join-superset-slack)
+[![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://bit.ly/join-superset-slack)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.apache.org)
+[![Storybook](https://img.shields.io/badge/storybook-live-ff4785.svg)](https://superset-storybook.netlify.app)
+[![Bundle Analyzer](https://img.shields.io/badge/bundle%20analyzer-nightly-8dd6f9.svg)](https://superset-bundle-analyzer.netlify.app)
 
 <picture width="500">
   <source
@@ -56,7 +58,7 @@ A modern, enterprise-ready business intelligence web application.
 
 [**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
-[**Release Notes**](https://github.com/apache/superset/blob/master/RELEASING/README.md#release-notes-for-recent-releases) |
+[**Release Notes**](https://github.com/apache/superset/releases) |
 [**Get Involved**](#get-involved) |
 [**Resources**](#resources) |
 [**Organizations Using Superset**](https://superset.apache.org/inTheWild)
@@ -185,10 +187,10 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 
 ## Get Involved
 
-- Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
-- [Join our community's Slack](http://bit.ly/join-superset-slack)
+- Ask and answer questions on [Stack Overflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
+- [Join our community's Slack](https://bit.ly/join-superset-slack)
   and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
-- [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
+- [Join our dev@superset.apache.org mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
 - Follow us on social media:
   [X](https://x.com/apachesuperset) |
   [LinkedIn](https://www.linkedin.com/company/apache-superset) |
@@ -199,10 +201,7 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 
 ## Contributor Guide
 
-Interested in contributing? Check out our
-[Developer Guide](https://superset.apache.org/developer-docs/)
-to find resources around contributing along with a detailed guide on
-how to set up a development environment.
+Interested in contributing? Check out our [Developer Guide](https://superset.apache.org/developer-docs/) for resources and a detailed setup guide.
 
 ## Resources
 
@@ -218,8 +217,8 @@ Understanding the Superset Points of View
 - [Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
 
 - Getting Started with Superset
-  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/docker-compose#installing-superset-locally-using-docker-compose)
-  - [Installing Database Drivers](https://superset.apache.org/docs/configuration/databases#installing-database-drivers)
+  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/admin-docs/installation/docker-compose)
+  - [Installing Database Drivers](https://superset.apache.org/user-docs/databases#installing-database-drivers)
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
   - [Create Your First Dashboard](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard/)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset
@@ -247,16 +246,13 @@ Understanding the Superset Points of View
 
 - [Superset API](https://superset.apache.org/docs/rest-api)
 
-## Repo Activity
-
-<a href="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats?repo_id=39464018" target="_blank" align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=dark" width="655" height="auto" />
-    <img alt="Performance Stats of apache/superset - Last 28 days" src="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=light" width="655" height="auto" />
-  </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
+<!--
+  The OSS Insight "Repo Activity" widget (https://next.ossinsight.io/) was
+  intentionally removed. This README is rendered on the ASF-hosted website
+  (superset.apache.org), so its contents are subject to ASF's third-party
+  content and CSP rules. OSS Insight has no Data Processing Agreement (DPA)
+  with the ASF, so we cannot embed its images/widgets here. Do not re-add it.
+-->
 
 <!-- telemetry/analytics pixel: -->
 <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492" />

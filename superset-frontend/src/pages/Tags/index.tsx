@@ -18,6 +18,7 @@
  */
 import { useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   Actions,
@@ -26,15 +27,17 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
+  ActionButton,
   ConfirmStatusChange,
-  Tooltip,
   FaveStar,
 } from '@superset-ui/core/components';
 import {
   Tag as AntdTag,
   ListView,
+  type ListViewColumn,
   ModifiedInfo,
   ListViewFilterOperator as FilterOperator,
+  type ListViewFilter,
   type ListViewFilters,
   type ListViewProps,
 } from 'src/components';
@@ -48,6 +51,15 @@ import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 
 const PAGE_SIZE = 25;
+
+// A long tag name ellipsizes inside its pill instead of clipping the pill.
+const TitleTag = styled(AntdTag)`
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+`;
 
 interface TagListProps {
   addDangerToast: (msg: string) => void;
@@ -133,14 +145,15 @@ function TagList(props: TagListProps) {
   const emptyState = {
     title: t('No Tags created'),
     image: 'dashboard.svg',
-    description:
+    description: t(
       'Create a new tag and assign it to existing entities like charts or dashboards',
+    ),
     buttonAction: () => setShowTagModal(true),
     buttonIcon: <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />,
     buttonText: t('Create a new Tag'),
   };
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Tag>[]>(
     () => [
       {
         Cell: ({
@@ -158,7 +171,7 @@ function TagList(props: TagListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        layout: 'icon',
         hidden: !userId,
       },
       {
@@ -167,13 +180,13 @@ function TagList(props: TagListProps) {
             original: { id, name: tagName },
           },
         }: any) => (
-          <AntdTag>
-            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
-          </AntdTag>
+          <TitleTag>
+            <Link to={`/all_entities/?id=${id}`}>{tagName}</Link>
+          </TitleTag>
         ),
         Header: t('Name'),
         accessor: 'name',
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
@@ -187,7 +200,7 @@ function TagList(props: TagListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -207,47 +220,38 @@ function TagList(props: TagListProps) {
                   onConfirm={() => handleTagsDelete([original])}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={t('Delete')}
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={t('Delete')}
                       placement="bottom"
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
-                      >
+                      icon={
                         <Icons.DeleteOutlined
                           data-test="dashboard-list-trash-icon"
                           iconSize="l"
                         />
-                      </span>
-                    </Tooltip>
+                      }
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  onClick={handleEdit}
+                />
               )}
             </Actions>
           );
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canDelete,
         disableSortBy: true,
       },
@@ -257,7 +261,32 @@ function TagList(props: TagListProps) {
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
+    [
+      userId,
+      canDelete,
+      refreshData,
+      addSuccessToast,
+      addDangerToast,
+      saveFavoriteStatus,
+      favoriteStatus,
+    ],
+  );
+
+  const favoritesFilter: ListViewFilter = useMemo(
+    () => ({
+      Header: t('Favorite'),
+      key: 'favorite',
+      id: 'id',
+      urlDisplay: 'favorite',
+      input: 'select',
+      operator: FilterOperator.TagIsFav,
+      unfilteredLabel: t('Any'),
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    }),
+    [],
   );
 
   const filters: ListViewFilters = useMemo(() => {
@@ -269,6 +298,7 @@ function TagList(props: TagListProps) {
         operator: FilterOperator.Contains,
         inputName: 'tag_list_search',
       },
+      ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Modified by'),
         key: 'changed_by',
@@ -291,7 +321,7 @@ function TagList(props: TagListProps) {
       },
     ] as ListViewFilters;
     return filters_list;
-  }, [addDangerToast, props.user]);
+  }, [addDangerToast, props.user, userId, favoritesFilter]);
 
   const sortTypes = [
     {

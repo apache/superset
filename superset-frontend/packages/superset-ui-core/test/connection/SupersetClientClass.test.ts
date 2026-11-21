@@ -595,7 +595,10 @@ describe('SupersetClientClass', () => {
         error = err;
       } finally {
         const redirectURL = window.location.href;
-        expect(redirectURL).toBe(`/login?next=${mockHref}`);
+        expect(redirectURL).toBe(`/login?next=${encodeURIComponent(mockHref)}`);
+        expect(
+          new URL(redirectURL, 'https://host').searchParams.get('next'),
+        ).toBe(mockHref);
         expect(error.status).toBe(401);
       }
     });
@@ -735,6 +738,33 @@ describe('SupersetClientClass', () => {
       },
     );
 
+    test('makes postForm request to an absolute url without adding the app root', async () => {
+      client = new SupersetClientClass({ protocol, host, appRoot: '/prefix' });
+      await client.init();
+      await client.postForm({ url: 'http://localhost/explore/' }, {});
+
+      const hiddenForm = createElement.mock.results[0].value;
+      expect(hiddenForm.action).toBe('http://localhost/explore/');
+    });
+
+    test('makes postForm request to an absolute url on the configured client host', async () => {
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      await client.postForm({ url: 'https://host/explore/' }, {});
+
+      const hiddenForm = createElement.mock.results[0].value;
+      expect(hiddenForm.action).toBe('https://host/explore/');
+    });
+
+    test('rejects postForm to a cross-origin url', async () => {
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      await expect(
+        client.postForm({ url: 'https://evil.example.com/steal' }, {}),
+      ).rejects.toThrow('same-origin');
+      expect(createElement).not.toHaveBeenCalled();
+    });
+
     test('makes postForm request with guest token', async () => {
       client = new SupersetClientClass({ protocol, host, guestToken });
       await client.init();
@@ -778,6 +808,77 @@ describe('SupersetClientClass', () => {
       expect(appendChild.mock.calls).toHaveLength(0);
       expect(removeChild.mock.calls).toHaveLength(0);
       expect(authSpy).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('.postBlob()', () => {
+    const protocol = 'https:';
+    const host = 'host';
+    const mockPostBlobEndpoint = '/api/v1/chart/data';
+    const mockPostBlobUrl = `${protocol}//${host}${mockPostBlobEndpoint}`;
+    const postBlobPayload = { form_data: '{"viz_type":"table"}' };
+
+    let authSpy: jest.SpyInstance;
+    let client: SupersetClientClass;
+
+    beforeEach(async () => {
+      fetchMock.removeRoute(LOGIN_GLOB);
+      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { name: LOGIN_GLOB });
+
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test('calls ensureAuth and delegates to post with raw parseMethod', async () => {
+      const mockResponse = new Response('csv data', { status: 200 });
+      const postSpy = jest
+        .spyOn(client, 'post')
+        .mockResolvedValue(mockResponse);
+
+      const response = await client.postBlob(
+        mockPostBlobEndpoint,
+        postBlobPayload,
+      );
+
+      expect(authSpy).toHaveBeenCalledTimes(1);
+      expect(postSpy).toHaveBeenCalledWith({
+        endpoint: mockPostBlobEndpoint,
+        postPayload: postBlobPayload,
+        parseMethod: 'raw',
+        stringify: false,
+      });
+      expect(response).toBe(mockResponse);
+    });
+
+    test('passes payload in request body', async () => {
+      fetchMock.post(mockPostBlobUrl, {
+        status: 200,
+        body: 'csv data',
+      });
+
+      await client.postBlob(mockPostBlobEndpoint, postBlobPayload);
+
+      const fetchRequest = fetchMock.callHistory.calls(mockPostBlobUrl)[0]
+        .options as CallApi;
+      const formData = fetchRequest.body as FormData;
+
+      expect(formData.get('form_data')).toBe(postBlobPayload.form_data);
+    });
+
+    test('rejects when response is not ok', async () => {
+      fetchMock.post(mockPostBlobUrl, {
+        status: 413,
+        body: 'Payload Too Large',
+      });
+
+      await expect(
+        client.postBlob(mockPostBlobEndpoint, postBlobPayload),
+      ).rejects.toMatchObject({ status: 413 });
     });
   });
 });

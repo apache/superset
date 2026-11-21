@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -34,9 +34,9 @@ import {
   LastUpdated,
 } from '@superset-ui/core/components';
 import {
-  FacePile,
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewActionProps,
@@ -56,16 +56,19 @@ import {
 import {
   createErrorHandler,
   createFetchRelated,
-  createFetchOwners,
+  createFetchEditors,
 } from 'src/views/CRUD/utils';
-import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
+import ReportConfigurationModal from 'src/features/alerts/ReportConfigurationModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
+import { useExecuteReportSchedule } from 'src/features/alerts/hooks/useExecuteReportSchedule';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -77,6 +80,7 @@ const AlertStateLabel: Record<AlertState, string> = {
   [AlertState.Error]: t('Error'),
   [AlertState.Noop]: t('Not triggered'),
   [AlertState.Grace]: t('On Grace'),
+  [AlertState.Retrying]: t('Retrying'),
 };
 
 interface AlertListProps {
@@ -123,6 +127,10 @@ function AlertList({
   const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
+  const userSubjects = useMemo(
+    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
+    [],
+  );
   const initialFilters = useMemo(
     () => [
       {
@@ -162,11 +170,68 @@ function AlertList({
   );
 
   const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
+  const [configurationModalOpen, setConfigurationModalOpen] =
+    useState<boolean>(false);
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
   const [currentAlertDeleting, setCurrentAlertDeleting] =
     useState<AlertObject | null>(null);
+
+  // Track in-flight execute requests with a ref for race-condition-safe double-click prevention
+  const executingIdsRef = useRef<Set<number>>(new Set());
+  const { executeReport } = useExecuteReportSchedule();
+
+  const handleExecuteReport = useCallback(
+    (alert: AlertObject) => {
+      const alertId = alert.id;
+      if (!alertId) {
+        return;
+      }
+      // Atomically check-and-set before any async work to prevent duplicate requests
+      // from rapid double-clicks that occur before a re-render can update state.
+      if (executingIdsRef.current.has(alertId)) {
+        return;
+      }
+      executingIdsRef.current.add(alertId);
+
+      const isReport = alert.type === 'Report';
+      executeReport(
+        alertId,
+        () => {
+          addSuccessToast(
+            isReport
+              ? t('Report "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                })
+              : t('Alert "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                }),
+          );
+        },
+        error => {
+          addDangerToast(
+            isReport
+              ? t('Failed to trigger report "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                })
+              : t('Failed to trigger alert "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                }),
+          );
+        },
+      )
+        .catch(() => {
+          // Error already surfaced to the user via the onError callback above.
+        })
+        .finally(() => {
+          executingIdsRef.current.delete(alertId);
+        });
+    },
+    [executeReport, addSuccessToast, addDangerToast],
+  );
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
@@ -179,6 +244,7 @@ function AlertList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
+  const canConfigure = canEdit && isUserAdmin(user);
 
   useEffect(() => {
     if (bulkSelectEnabled && canDelete) {
@@ -254,7 +320,7 @@ function AlertList({
     [alerts, setResourceCollection, updateResource],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<AlertObject>[]>(
     () => [
       {
         Cell: ({
@@ -268,7 +334,7 @@ function AlertList({
           />
         ),
         accessor: 'last_state',
-        size: 'xs',
+        layout: 'statusIcon',
         disableSortBy: true,
         id: 'last_state',
       },
@@ -286,19 +352,19 @@ function AlertList({
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
-        size: 'lg',
+        layout: 'timestamp',
         id: 'last_eval_dttm',
       },
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
         Header: t('Schedule'),
         accessor: 'crontab_humanized',
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { crontab_humanized = '', timezone },
@@ -325,19 +391,19 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification method'),
         disableSortBy: true,
-        size: 'lg',
+        layout: 'iconList',
         id: 'recipients',
       },
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        id: 'owners',
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        id: 'editors',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'people',
       },
       {
         Cell: ({
@@ -350,14 +416,15 @@ function AlertList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
           const allowEdit =
-            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
-            isUserAdmin(user);
+            original.editors
+              ?.map((e: any) => e.value || e.id)
+              .some((id: number) => userSubjects.has(id)) || isUserAdmin(user);
 
           return (
             <Switch
@@ -372,7 +439,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
-        size: 'sm',
+        layout: 'flag',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -383,8 +450,9 @@ function AlertList({
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
           const allowEdit =
-            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
-            isUserAdmin(user);
+            original.editors
+              ?.map((e: any) => e.value || e.id)
+              .some((id: number) => userSubjects.has(id)) || isUserAdmin(user);
 
           const actions = [
             canEdit
@@ -403,6 +471,15 @@ function AlertList({
                   placement: 'bottom',
                   icon: allowEdit ? 'EditOutlined' : 'Binoculars',
                   onClick: handleEdit,
+                }
+              : null,
+            allowEdit
+              ? {
+                  label: 'trigger-now-action',
+                  tooltip: t('Trigger now'),
+                  placement: 'bottom',
+                  icon: 'ThunderboltOutlined',
+                  onClick: () => handleExecuteReport(original),
                 }
               : null,
             allowEdit && canDelete
@@ -424,7 +501,7 @@ function AlertList({
         id: 'actions',
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
-        size: 'lg',
+        layout: 'actions',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
@@ -432,10 +509,27 @@ function AlertList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canEdit, isReportEnabled, toggleActive],
+    [
+      canDelete,
+      canEdit,
+      isReportEnabled,
+      toggleActive,
+      handleExecuteReport,
+      userSubjects,
+    ],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
+
+  if (canConfigure) {
+    subMenuButtons.push({
+      icon: <Icons.SettingOutlined iconSize="m" />,
+      name: t('Configuration'),
+      buttonStyle: 'secondary',
+      'data-test': 'report-configuration-button',
+      onClick: () => setConfigurationModalOpen(true),
+    });
+  }
 
   if (canDelete) {
     subMenuButtons.push({
@@ -483,20 +577,20 @@ function AlertList({
         inputName: 'alert_report_list_search',
       },
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Editor'),
+        key: 'editor',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchOwners(
+        fetchSelects: createFetchEditors(
           'report',
           createErrorHandler(errMsg =>
-            t('An error occurred while fetching owners values: %s', errMsg),
+            t('An error occurred while fetching editor values: %s', errMsg),
           ),
           user,
         ),
-        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
         popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
@@ -599,6 +693,14 @@ function AlertList({
         isReport={isReportEnabled}
         key={currentAlert?.id || generateKey()}
       />
+      {canConfigure && (
+        <ReportConfigurationModal
+          show={configurationModalOpen}
+          onHide={() => setConfigurationModalOpen(false)}
+          addSuccessToast={addSuccessToast}
+          addDangerToast={addDangerToast}
+        />
+      )}
       {currentAlertDeleting && (
         <DeleteModal
           description={t(

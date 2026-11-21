@@ -22,7 +22,8 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, cast, Optional, TYPE_CHECKING
+from functools import cache
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app
@@ -65,6 +66,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
+    SqlExpressionContext,
 )
 from superset.sql.parse import (
     CTASMethod,
@@ -82,10 +84,15 @@ from superset.utils.core import (
     QueryStatus,
     user_label,
 )
+from superset.utils.dates import naive_utcnow
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.base import Connection
+    from sqlalchemy.orm.mapper import Mapper
+
     from superset.connectors.sqla.models import TableColumn
     from superset.db_engine_specs import BaseEngineSpec
+    from superset.utils.rls import RLSSchema
 
 
 logger = logging.getLogger(__name__)
@@ -126,6 +133,12 @@ class Query(
 
     __tablename__ = "query"
     type = "query"
+
+    # Query results are raw rows, so samples are meaningful. Declared
+    # explicitly (rather than relying on a fail-open ``getattr`` default)
+    # so every member of ``DatasourceDAO.sources`` carries the capability.
+    supports_samples: bool = True
+
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
     query_language = "sql"
@@ -170,7 +183,7 @@ class Query(
     tracking_url_raw = Column(Text, name="tracking_url")
 
     changed_on = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+        DateTime, default=naive_utcnow, onupdate=naive_utcnow, nullable=True
     )
 
     @hybrid_property
@@ -190,7 +203,14 @@ class Query(
     database = relationship(
         "Database",
         foreign_keys=[database_id],
-        backref=backref("queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `query.database` no longer
+            # cascades the Query into the Database's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
     )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
@@ -294,7 +314,6 @@ class Query(
             "id": self.id,
             "type": self.type,
             "sql": self.sql,
-            "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
             "catalog": self.catalog,
@@ -324,10 +343,6 @@ class Query(
         self,
     ) -> builtins.type["BaseEngineSpec"]:  # pylint: disable=unsubscriptable-object
         return self.database.db_engine_spec
-
-    @property
-    def owners_data(self) -> list[dict[str, Any]]:
-        return []
 
     @property
     def uid(self) -> str:
@@ -362,7 +377,16 @@ class Query(
 
     @property
     def schema_perm(self) -> str:
-        return f"{self.database.database_name}.{self.schema}"
+        if not self.database:
+            return ""
+        return (
+            security_manager.get_schema_perm(
+                self.database.database_name,
+                self.catalog or self.database.get_default_catalog(),
+                self.schema,
+            )
+            or ""
+        )
 
     @property
     def perm(self) -> str:
@@ -373,7 +397,56 @@ class Query(
         return ""
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+        """
+        Include the RLS predicates that apply to this ad-hoc query's
+        underlying tables in the cache key, mirroring what
+        ``SqlaTable.get_extra_cache_keys`` already does for virtual datasets.
+
+        ``is_rls_supported`` is ``False`` for a SQL Lab query (it has no RLS
+        rules of its own to look up via ``get_rls_cache_key``), which left
+        ``security_manager.get_rls_cache_key()`` contributing nothing here.
+        Without this, two viewers of the same not-yet-saved query-backed
+        chart (e.g. via a shared Explore permalink) with different RLS on
+        the tables the query references would collide on the same cache
+        entry, regardless of their own access.
+        """
+        if not self.sql:
+            return []
+        resolve_catalog = cache(self.database.get_default_catalog)
+        resolve_schema = cache(self._get_rls_schema)
+        predicates = self.get_inner_rls_cache_key(
+            resolve_catalog=resolve_catalog, resolve_schema=resolve_schema
+        )
+        predicates.extend(
+            self._get_query_rls_cache_keys(
+                query_obj,
+                resolve_catalog=resolve_catalog,
+                resolve_schema=resolve_schema,
+            )
+        )
+        return list(dict.fromkeys(predicates))
+
+    def get_inner_rls_cache_key(
+        self,
+        *,
+        resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], "RLSSchema"] | None = None,
+    ) -> list[str]:
+        """Key query-backed caches on the RLS execution injects into inner tables."""
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
+        if not self.sql:
+            return []
+        return collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            self.schema,
+            # Match ``get_from_clause``: a Query has no outer RLS application.
+            include_global_guest_rls=True,
+            resolve_catalog=resolve_catalog,
+            resolve_schema=resolve_schema or self._get_rls_schema,
+        )
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """
@@ -422,7 +495,7 @@ class Query(
     def tracking_url(self, value: str) -> None:
         self.tracking_url_raw = value
 
-    def get_column(self, column_name: Optional[str]) -> Optional[dict[str, Any]]:
+    def get_column(self, column_name: Optional[str]) -> Optional["TableColumn"]:
         if not column_name:
             return None
         for col in self.columns:
@@ -435,6 +508,8 @@ class Query(
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         """
         Turn an adhoc column into a sqlalchemy column.
@@ -446,14 +521,33 @@ class Query(
         :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = get_column_name(col)
+        sql_expression = col["sqlExpression"]
+        time_grain = col.get("timeGrain")
+        has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
+        is_dttm = False
+        pdf = None
+
+        if col_in_metadata := self.get_column(sql_expression):
+            is_dttm = col_in_metadata.is_temporal
+            pdf = col_in_metadata.python_date_format
+
         expression = self._process_sql_expression(
-            expression=col["sqlExpression"],
-            database_id=self.database_id,
-            engine=self.database.backend,
-            schema=self.schema,
-            template_processor=template_processor,
+            sql_expression,
+            SqlExpressionContext(
+                self.database.backend,
+                self.schema,
+                template_processor,
+            ),
         )
         sqla_column = literal_column(expression)
+
+        if is_dttm and has_timegrain:
+            sqla_column = self.db_engine_spec.get_timestamp_expr(
+                col=sqla_column,
+                pdf=pdf,
+                time_grain=time_grain,
+            )
+
         col_meta = next((c for c in self.columns if c.column_name == label), None)
         generic_type = col_meta.type_generic if col_meta else None
         return self.make_sqla_column_compatible(sqla_column, label), generic_type
@@ -469,6 +563,13 @@ class SavedQuery(
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
+
+    # Saved queries are backed by raw rows, so samples are meaningful.
+    # Declared explicitly (rather than relying on a fail-open ``getattr``
+    # default) so every member of ``DatasourceDAO.sources`` carries the
+    # capability.
+    supports_samples: bool = True
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
@@ -480,13 +581,25 @@ class SavedQuery(
     template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
-        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "saved_queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `saved_query.user` no longer
+            # cascades the SavedQuery into the User's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[user_id],
     )
     database = relationship(
         "Database",
         foreign_keys=[db_id],
-        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "saved_queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: see `user` above.
+            cascade_backrefs=False,
+        ),
     )
     rows = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)
@@ -516,6 +629,87 @@ class SavedQuery(
         return {
             "id": self.id,
         }
+
+    @property
+    def type(self) -> str:
+        """Datasource type discriminator, mirroring ``Query.type``."""
+        return "saved_query"
+
+    @property
+    def name(self) -> str:
+        """
+        Expose ``label`` as ``name`` so callers that treat a ``SavedQuery`` as
+        a generic datasource (e.g. chart create/update commands) can rely on
+        a uniform ``name`` attribute across all datasource types.
+
+        ``label`` is a nullable column, so fall back to an id-based name
+        rather than returning ``None`` from a property typed as ``str``.
+        """
+        return self.label or f"Saved query {self.id}"
+
+    @property
+    def schema_perm(self) -> Optional[str]:
+        """
+        Schema-level permission string, mirroring ``Query.schema_perm``.
+
+        Required so that ``SecurityManager.raise_for_access(datasource=...)``
+        and the ``Slice`` ``before_insert``/``before_update`` listener (which
+        copies ``perm``/``catalog_perm``/``schema_perm`` onto the chart) can
+        treat a ``SavedQuery`` like any other datasource instead of raising
+        ``AttributeError``.
+
+        ``catalog`` is nullable, same as on ``Query``: a saved query against a
+        database that has a default catalog can leave it unset, so fall back
+        to ``self.database.get_default_catalog()`` the same way
+        ``Query.schema_perm`` does -- otherwise this builds a ``[db].[schema]``
+        permission string that never matches the ``[db].[catalog].[schema]``
+        grant a schema-authorized user actually holds.
+        """
+        if not self.database:
+            return None
+        return security_manager.get_schema_perm(
+            self.database.database_name,
+            self.catalog or self.database.get_default_catalog(),
+            self.schema,
+        )
+
+    @property
+    def catalog_perm(self) -> Optional[str]:
+        """Catalog-level permission string; see ``schema_perm`` above."""
+        if not self.database:
+            return None
+        return security_manager.get_catalog_perm(
+            self.database.database_name,
+            self.catalog or self.database.get_default_catalog(),
+        )
+
+    @property
+    def perm(self) -> str:
+        """Object-level permission string; see ``schema_perm`` above."""
+        return f"[{self.database.database_name}].[{self.name}](id:{self.id})"
+
+    @property
+    def data(self) -> ExplorableData:
+        """
+        Minimal explorable payload.
+
+        ``SecurityManager`` builds access-denied error messages (and a few
+        dashboard-RBAC lookups) off ``datasource.data["id"]``/``["name"]``
+        for *every* datasource type it can be asked to authorize, not just
+        ones that are actually explorable; without this a denied saved-query
+        chart request fails with ``AttributeError`` instead of the intended
+        403.
+        """
+        result: ExplorableData = {
+            "id": self.id,
+            "name": self.name,
+            "type": "saved_query",
+            "schema": self.schema,
+            "catalog": self.catalog,
+        }
+        if self.database:
+            result["database"] = {"id": self.db_id, "backend": self.database.backend}
+        return result
 
     @property
     def pop_tab_link(self) -> Markup:
@@ -549,6 +743,41 @@ class SavedQuery(
     @renders("changed_on")
     def last_run_delta_humanized(self) -> str:
         return self._last_run_delta_humanized
+
+    def load_database(self) -> None:
+        """Reload ``self.database`` from ``db_id`` if it's out of sync.
+
+        Mirrors ``SqlaTable.load_database``: needed in ``before_update``
+        because ``db_id`` may have just changed in-memory while the
+        ``database`` relationship still points at the previously loaded row.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.core import Database
+
+        if self.db_id and (not self.database or self.database.id != self.db_id):
+            session = sqla.inspect(self).session  # pylint: disable=disallowed-name
+            self.database = session.query(Database).filter_by(id=self.db_id).one()
+
+    @staticmethod
+    def before_update(
+        mapper: "Mapper",
+        connection: "Connection",
+        target: "SavedQuery",
+    ) -> None:
+        target.load_database()
+        security_manager.saved_query_before_update(mapper, connection, target)
+
+    @staticmethod
+    def after_delete(
+        mapper: "Mapper",
+        connection: "Connection",
+        target: "SavedQuery",
+    ) -> None:
+        security_manager.saved_query_after_delete(mapper, connection, target)
+
+
+sqla.event.listen(SavedQuery, "before_update", SavedQuery.before_update)
+sqla.event.listen(SavedQuery, "after_delete", SavedQuery.after_delete)
 
 
 class TabState(AuditMixinNullable, ExtraJSONMixin, Model):

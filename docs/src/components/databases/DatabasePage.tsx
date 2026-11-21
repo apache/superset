@@ -18,6 +18,8 @@
  */
 
 import React from 'react';
+import { useColorMode } from '@docusaurus/theme-common';
+import DatabaseLogo from './DatabaseLogo';
 import {
   Card,
   Collapse,
@@ -28,6 +30,8 @@ import {
   Space,
   Divider,
   Tabs,
+  ConfigProvider,
+  theme,
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -41,7 +45,7 @@ import {
   GithubOutlined,
   BugOutlined,
 } from '@ant-design/icons';
-import type { DatabaseInfo } from './types';
+import type { DatabaseInfo, KnownIncompatibility } from './types';
 
 // Simple code block component for connection strings
 const CodeBlock: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -253,6 +257,53 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
     );
   };
 
+  // Render known incompatibilities with a Superset dependency (e.g. a driver
+  // that doesn't yet support SQLAlchemy 2.0). Shared between the top-level
+  // documentation and each compatible-database entry.
+  const renderKnownIncompatibilities = (
+    incompatibilities?: KnownIncompatibility[],
+  ) => {
+    if (!incompatibilities?.length) return null;
+
+    return (
+      <Space direction="vertical" style={{ width: '100%' }}>
+        {incompatibilities.map((incompat, idx) => (
+          <Alert
+            key={idx}
+            type="warning"
+            showIcon
+            message={incompat.dependency}
+            description={
+              <>
+                {incompat.reason && (
+                  <Paragraph style={{ marginBottom: 4 }}>
+                    {incompat.reason}
+                  </Paragraph>
+                )}
+                <Space size="middle">
+                  {incompat.tracking_url && (
+                    <a
+                      href={incompat.tracking_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <LinkOutlined /> Tracking issue
+                    </a>
+                  )}
+                  {incompat.since && (
+                    <Text type="secondary">
+                      Last confirmed: {incompat.since}
+                    </Text>
+                  )}
+                </Space>
+              </>
+            }
+          />
+        ))}
+      </Space>
+    );
+  };
+
   // Render compatible databases (for PostgreSQL, etc.)
   const renderCompatibleDatabases = () => {
     if (!docs?.compatible_databases?.length) return null;
@@ -272,8 +323,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
             label: (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {compat.logo && (
-                  <img
-                    src={`/img/databases/${compat.logo}`}
+                  <DatabaseLogo
+                    logo={compat.logo}
+                    logoDark={compat.logo_dark}
                     alt={compat.name}
                     style={{
                       width: 28,
@@ -318,6 +370,16 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
                       pagination={false}
                       size="small"
                     />
+                  </div>
+                )}
+                {compat.known_incompatibilities?.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <Text strong>Known Incompatibilities:</Text>
+                    <div style={{ marginTop: 8 }}>
+                      {renderKnownIncompatibilities(
+                        compat.known_incompatibilities,
+                      )}
+                    </div>
                   </div>
                 )}
                 {compat.notes && (
@@ -431,6 +493,30 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
             </div>
           </div>
         )}
+      </Card>
+    );
+  };
+
+  // Render extended aggregate function support (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+  const renderExtendedAggregations = () => {
+    const aggregations = database.extended_aggregations;
+    if (!aggregations || Object.keys(aggregations).length === 0) return null;
+
+    return (
+      <Card title="Extended Aggregate Functions" style={{ marginBottom: 16 }}>
+        <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+          The base aggregates (SUM, COUNT, AVG, MIN, MAX, COUNT DISTINCT) are
+          supported everywhere; these are opt-in per engine.
+        </Text>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {Object.entries(aggregations).map(([aggregate, supported]) => (
+            <FeatureBadge
+              key={aggregate}
+              supported={supported}
+              label={aggregate}
+            />
+          ))}
+        </div>
       </Card>
     );
   };
@@ -570,11 +656,13 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
     <div className="database-page" id={name.toLowerCase().replace(/\s+/g, '-')}>
       <div style={{ marginBottom: 16 }}>
         {docs?.logo && (
-          <img
-            src={`/img/databases/${docs.logo}`}
+          <DatabaseLogo
+            logo={docs.logo}
+            logoDark={docs.logo_dark}
             alt={name}
             style={{
               height: 120,
+              maxWidth: '100%',
               objectFit: 'contain',
               marginBottom: 12,
             }}
@@ -621,6 +709,17 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
               <li key={idx}>{limitation}</li>
             ))}
           </ul>
+        </Card>
+      )}
+
+      {/* Known Incompatibilities */}
+      {docs?.known_incompatibilities?.length > 0 && (
+        <Card
+          title="Known Incompatibilities"
+          style={{ marginBottom: 16 }}
+          type="inner"
+        >
+          {renderKnownIncompatibilities(docs.known_incompatibilities)}
         </Card>
       )}
 
@@ -707,6 +806,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
       {/* Time Grains */}
       {renderTimeGrains()}
 
+      {/* Extended Aggregate Functions */}
+      {renderExtendedAggregations()}
+
       {/* Troubleshooting / Custom Errors */}
       {renderTroubleshooting()}
 
@@ -789,4 +891,19 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
   );
 };
 
-export default DatabasePage;
+export default function ThemedDatabasePage(
+  props: DatabasePageProps,
+): React.JSX.Element {
+  const { colorMode } = useColorMode();
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm:
+          colorMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      }}
+    >
+      <DatabasePage {...props} />
+    </ConfigProvider>
+  );
+}

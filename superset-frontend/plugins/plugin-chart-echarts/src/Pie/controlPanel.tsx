@@ -28,8 +28,9 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
   sharedControls,
+  DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA, EchartsPieLabelOverflow } from './types';
 import { legendSection } from '../controls';
 
 const {
@@ -38,6 +39,8 @@ const {
   labelsOutside,
   labelType,
   labelLine,
+  labelMaxWidth,
+  labelOverflow,
   outerRadius,
   numberFormat,
   showLabels,
@@ -188,7 +191,7 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
             },
           },
@@ -232,6 +235,49 @@ const config: ControlPanelConfig = {
               ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.show_labels?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_max_width',
+            config: {
+              type: 'NumberControl',
+              label: t('Label Max Width'),
+              renderTrigger: true,
+              min: 0,
+              step: 10,
+              default: labelMaxWidth,
+              description: t(
+                'Maximum width (in pixels) of each line of a slice label. ' +
+                  'Set to 0 for no limit.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_labels?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_overflow',
+            config: {
+              type: 'SelectControl',
+              label: t('Label Overflow'),
+              renderTrigger: true,
+              default: labelOverflow,
+              clearable: false,
+              choices: [
+                [EchartsPieLabelOverflow.Truncate, t('Truncate')],
+                [EchartsPieLabelOverflow.Break, t('Break')],
+              ],
+              description: t(
+                'How labels wider than the max width are shortened. ' +
+                  '"Truncate" cuts the label and adds an ellipsis. ' +
+                  '"Break" wraps the label onto additional lines.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_labels?.value) &&
+                Number(controls?.label_max_width?.value) > 0,
             },
           },
         ],
@@ -290,6 +336,45 @@ const config: ControlPanelConfig = {
               description: t('Inner radius of donut hole'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.donut?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'startAngle',
+            config: {
+              type: 'NumberControl',
+              min: 0,
+              max: 360,
+              step: 10,
+              label: t('Start angle'),
+              description: t(
+                'Angle at which the first slice begins, in degrees. ' +
+                  '90° starts at the top, 0°/360° at the right, ' +
+                  '270° at the bottom, and 180° at the left.',
+              ),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.startAngle,
+            },
+          },
+        ],
+        [
+          {
+            name: 'sweptAngle',
+            config: {
+              type: 'NumberControl',
+              min: 10,
+              max: 360,
+              step: 10,
+              label: t('Sweep angle'),
+              description: t(
+                'Total angle covered by the chart, in degrees. ' +
+                  '360° draws a full circle and 180° draws a half donut. ' +
+                  'Partial arcs are automatically re-centered and scaled ' +
+                  'to make use of the available space.',
+              ),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.sweptAngle,
             },
           },
         ],

@@ -64,9 +64,7 @@ const Root = styled.div<{ $variant: 'hero' | 'navbar' }>`
     text-decoration: none;
     min-width: 0;
     ${({ $variant }) =>
-      $variant === 'hero'
-        ? `padding: 10px 10px;`
-        : `padding: 7px 8px;`}
+      $variant === 'hero' ? `padding: 10px 10px;` : `padding: 7px 8px;`}
   }
 
   .split-main:hover {
@@ -79,9 +77,7 @@ const Root = styled.div<{ $variant: 'hero' | 'navbar' }>`
     align-self: stretch;
     background: rgba(255, 255, 255, 0.38);
     ${({ $variant }) =>
-      $variant === 'hero'
-        ? `margin: 8px 0;`
-        : `margin: 6px 0;`}
+      $variant === 'hero' ? `margin: 8px 0;` : `margin: 6px 0;`}
   }
 
   .split-dropdown-trigger {

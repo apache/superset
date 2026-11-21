@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import uuid as uuid_module
-from datetime import datetime, timezone
 from typing import Any, cast
 
 from flask_appbuilder import Model
@@ -36,11 +35,15 @@ from superset_core.tasks.models import Task as CoreTask
 from superset_core.tasks.types import TaskProperties, TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
+from superset.models.task_dependencies import TaskDependency
 from superset.models.task_subscribers import TaskSubscriber
 from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.utils import (
     error_update,
     get_finished_dedup_key,
+    merge_properties,
+    naive_utcnow,
+    parse_payload,
     parse_properties,
     serialize_properties,
 )
@@ -85,6 +88,13 @@ class Task(CoreTask, AuditMixinNullable, Model):
     started_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
 
+    # Liveness marker bumped by the executing worker's heartbeat thread while it
+    # holds the task. The reap_orphaned_tasks beat job reaps ACTIVE tasks whose
+    # heartbeat has gone stale (a dead/orphaned worker). Written out-of-band via a
+    # raw UPDATE (see TaskDAO.touch_heartbeat) so a heartbeat never advances
+    # changed_on and thus never resurfaces the task in the status-change poll.
+    last_heartbeat = Column(DateTime, nullable=True, index=True)
+
     # User context for execution
     user_id = Column(Integer, nullable=True)
 
@@ -96,10 +106,12 @@ class Task(CoreTask, AuditMixinNullable, Model):
     # - progress_percent: float - progress 0.0-1.0
     # - progress_current: int - current iteration count
     # - progress_total: int - total iterations
-    # - error_message: str - human-readable error message
-    # - exception_type: str - exception class name
-    # - stack_trace: str - full formatted traceback
+    # - error_message: str - human-readable error message (public)
+    # - dedupe_count: int - times this task was reused by a later submit
     # - timeout: int - timeout in seconds
+    # - private: dict - internal, debug-only; two isolated namespaces:
+    #     - framework: celery_task_id, exception_type, stack_trace (framework-owned)
+    #     - task: freeform task-type handles, e.g. cancel_query_id/cancel_database_id
     properties = Column(Text, nullable=True, default="{}")
 
     # Relationships
@@ -109,6 +121,37 @@ class Task(CoreTask, AuditMixinNullable, Model):
         back_populates="task",
         cascade="all, delete-orphan",
         lazy="selectin",
+    )
+
+    # Upstream prerequisite tasks (self-referential many-to-many over
+    # task_dependencies). `depends_on` is the list of Task entities this task
+    # depends on, loaded in a single selectin fetch alongside the task (no
+    # per-edge round trips). It is viewonly: edges are written through
+    # TaskDAO.add_dependencies, not by mutating this collection. Cleanup on task
+    # deletion relies on the DB-level FK ON DELETE CASCADE (see the migration),
+    # since TaskPruneCommand bulk-deletes via core DELETE, not the ORM.
+    depends_on = relationship(
+        "Task",
+        secondary=TaskDependency.__table__,
+        primaryjoin=id == TaskDependency.task_id,
+        secondaryjoin=id == TaskDependency.depends_on_task_id,
+        order_by=TaskDependency.id,
+        lazy="selectin",
+        viewonly=True,
+    )
+
+    # Downstream tasks that depend on this task: the reverse of `depends_on`
+    # (same viewonly selectin pattern, joins swapped). Exposing both DAG
+    # directions on the entity means callers read them directly rather than
+    # issuing a separate reverse-edge query.
+    required_by = relationship(
+        "Task",
+        secondary=TaskDependency.__table__,
+        primaryjoin=id == TaskDependency.depends_on_task_id,
+        secondaryjoin=id == TaskDependency.task_id,
+        order_by=TaskDependency.id,
+        lazy="selectin",
+        viewonly=True,
     )
 
     def __repr__(self) -> str:
@@ -135,7 +178,13 @@ class Task(CoreTask, AuditMixinNullable, Model):
         """
         Update specific properties fields (merge semantics).
 
-        Only updates fields present in the updates dict.
+        Only updates fields present in the updates dict. Top-level keys are
+        shallow-merged, but the ``private`` subtree is merged *recursively* — its
+        ``framework``, ``task`` and ``subscription`` namespaces (and the keys
+        within each) merge independently, so a write to one namespace never
+        clobbers the others or drops earlier keys. The ``subscription`` namespace
+        is written through ``TaskDAO.merge_subscription_state`` (a row-locked
+        merge) rather than directly, see that method for why.
 
         :param updates: TaskProperties dict with fields to update
 
@@ -143,9 +192,27 @@ class Task(CoreTask, AuditMixinNullable, Model):
             task.update_properties({"is_abortable": True})
             task.update_properties(progress_update((50, 100)))
         """
-        current = cast(TaskProperties, dict(self.properties_dict))
-        current.update(updates)  # Merge updates
+        current = merge_properties(self.properties_dict, updates)
         self.properties = serialize_properties(current)
+
+    def update_framework_private(self, updates: dict[str, Any]) -> None:
+        """Merge keys into ``private["framework"]`` (framework-owned internal state).
+
+        Named orchestration/error-debug handles the framework writes (e.g.
+        ``celery_task_id``); never surfaced to users except in debug mode.
+        """
+        self.update_properties(
+            cast(TaskProperties, {"private": {"framework": updates}})
+        )
+
+    def update_task_private(self, updates: dict[str, Any]) -> None:
+        """Merge keys into ``private["task"]`` (freeform task-type internal state).
+
+        Task-execution handles written by task/framework-on-behalf-of-task code
+        (e.g. the engine cancel handle). Isolated from the ``framework`` namespace
+        so a task key can never collide with a framework key.
+        """
+        self.update_properties(cast(TaskProperties, {"private": {"task": updates}}))
 
     # -------------------------------------------------------------------------
     # Payload accessor (for task-specific output data)
@@ -161,10 +228,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
         :returns: Dictionary containing payload data
         """
-        try:
-            return json.loads(self.payload or "{}")
-        except (json.JSONDecodeError, TypeError):
-            return {}
+        return parse_payload(self.payload)
 
     def set_payload(self, data: dict[str, Any]) -> None:
         """
@@ -211,8 +275,11 @@ class Task(CoreTask, AuditMixinNullable, Model):
             status = status.value
         self.status = status
 
-        # Update timestamps and is_abortable based on status
-        now = datetime.now(timezone.utc)
+        # Update timestamps and is_abortable based on status. started_at/ended_at
+        # are stored as naive UTC (created_on/changed_on from FAB remain naive
+        # local, but nothing computes a delta across the two conventions); see
+        # ``naive_utcnow``.
+        now = naive_utcnow()
         if status == TaskStatus.IN_PROGRESS.value and not self.started_at:
             self.started_at = now
             # Set is_abortable to False when task starts executing
@@ -250,43 +317,34 @@ class Task(CoreTask, AuditMixinNullable, Model):
     @property
     def duration_seconds(self) -> float | None:
         """
-        Get task duration in seconds.
+        Get task duration in seconds (execution time), or ``None`` before a task
+        has started.
 
         - Finished tasks: Time from started_at to ended_at (None if never started)
         - Running/aborting tasks: Time from started_at to now
-        - Pending tasks: Time from created_on to now (queue time)
+        - Pending tasks: None — a task that hasn't started has no duration to show
+          (queue time is not execution time)
 
-        Note: started_at/ended_at are stored in UTC, but created_on from
-        AuditMixinNullable is stored as naive local time. We handle both cases.
+        started_at/ended_at are stored as naive UTC; a value read back from the
+        DB is treated as naive UTC (any tzinfo is stripped defensively) for the
+        "still running" delta.
         """
         if self.is_finished:
             # Task has completed - use fixed timestamps, never increment
             if self.started_at and self.ended_at:
-                # Finished task - both timestamps use the same timezone (UTC)
-                # Just compute the difference directly
                 return (self.ended_at - self.started_at).total_seconds()
             # Never started (e.g., aborted while pending) - no duration
             return None
-        elif self.started_at:
-            # Running or aborting - started_at is UTC (set by set_status)
-            # Use UTC now for comparison
-            now = datetime.now(timezone.utc)
+        if self.started_at:
+            # Running or aborting - elapsed since it started (both naive UTC)
+            now = naive_utcnow()
             started = (
-                self.started_at.replace(tzinfo=timezone.utc)
-                if self.started_at.tzinfo is None
+                self.started_at.replace(tzinfo=None)
+                if self.started_at.tzinfo is not None
                 else self.started_at
             )
             return (now - started).total_seconds()
-        elif self.created_on:
-            # Pending - created_on is naive LOCAL time (from AuditMixinNullable)
-            # Use naive local time for comparison
-            now = datetime.now()  # Local time, no timezone
-            created = (
-                self.created_on.replace(tzinfo=None)
-                if self.created_on.tzinfo is not None
-                else self.created_on
-            )
-            return (now - created).total_seconds()
+        # Pending (not yet started) - no duration.
         return None
 
     # Scope-related properties
@@ -320,13 +378,22 @@ class Task(CoreTask, AuditMixinNullable, Model):
         """
         return any(sub.user_id == user_id for sub in self.subscribers)
 
+    def has_guest_subscriber(self, guest_key: str) -> bool:
+        """
+        Check if an embedded guest (by token-derived key) is subscribed.
+
+        :param guest_key: Guest identity to check (see superset.tasks.guest)
+        :returns: True if the guest is subscribed
+        """
+        return any(sub.guest_key == guest_key for sub in self.subscribers)
+
     def get_subscriber_ids(self) -> list[int]:
         """
         Get list of all subscriber user IDs.
 
         :returns: List of user IDs subscribed to this task
         """
-        return [sub.user_id for sub in self.subscribers]
+        return [sub.user_id for sub in self.subscribers if sub.user_id is not None]
 
     def to_dict(self) -> dict[str, Any]:
         """

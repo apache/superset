@@ -19,7 +19,16 @@
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { getExtensionsRegistry, VizType } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import {
+  enableMobileConsumptionFlag,
+  mockMobileMatchMedia,
+} from 'spec/helpers/mobileTestUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import SliceHeader from '.';
@@ -35,7 +44,7 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
       data-cached-dttm={props.cachedDttm}
       data-updated-dttm={props.updatedDttm}
       data-superset-can-explore={props.supersetCanExplore}
-      data-superset-can-csv={props.supersetCanCSV}
+      data-superset-can-download={props.supersetCanDownload}
       data-component-id={props.componentId}
       data-dashboard-id={props.dashboardId}
       data-is-full-size={props.isFullSize}
@@ -102,6 +111,13 @@ jest.mock('src/dashboard/components/FiltersBadge', () => ({
   ),
 }));
 
+jest.mock('./SliceInfo', () => ({
+  __esModule: true,
+  default: ({ slice }: { slice: { description: string } }) => (
+    <div data-test="slice-info">{slice.description}</div>
+  ),
+}));
+
 jest.mock('src/dashboard/util/isEmbedded', () => ({
   isEmbedded: jest.fn().mockReturnValue(false),
 }));
@@ -144,7 +160,7 @@ const createProps = (overrides: any = {}) => ({
   isExpanded: false,
   sliceName: 'Vaccine Candidates per Phase',
   supersetCanExplore: true,
-  supersetCanCSV: true,
+  supersetCanDownload: true,
   slice: {
     slice_id: MOCKED_CHART_ID,
     slice_url: `/explore/?form_data=%7B%22slice_id%22%3A%20${MOCKED_CHART_ID}%7D`,
@@ -170,9 +186,9 @@ const createProps = (overrides: any = {}) => ({
     datasource: '58__table',
     description: '',
     description_markeddown: '',
-    owners: [],
     modified: '<span class="no-wrap">20 hours ago</span>',
     changed_on: 1617143411366,
+    editors: [],
     slice_description: '',
   },
   componentId: 'CHART-aGfmWtliqA',
@@ -204,6 +220,18 @@ test('Should render', () => {
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
+test('Should expose a class hook, not just data-test, for fullscreen styling', () => {
+  const props = createProps();
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  // The production build strips data-test attributes, so CSS that targets the
+  // header must hang off a class instead.
+  expect(screen.getByTestId('slice-header')).toHaveClass('slice-header');
+});
+
 test('Should render - default props', () => {
   const props = createProps();
 
@@ -222,7 +250,7 @@ test('Should render - default props', () => {
   delete props.isExpanded;
   delete props.sliceName;
   delete props.supersetCanExplore;
-  delete props.supersetCanCSV;
+  delete props.supersetCanDownload;
 
   render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -232,7 +260,7 @@ test('Should render - default props', () => {
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
-test('Should render default props and "call" actions', () => {
+test('Should render default props and "call" actions', async () => {
   const props = createProps();
 
   delete props.forceRefresh;
@@ -250,20 +278,20 @@ test('Should render default props and "call" actions', () => {
   delete props.isExpanded;
   delete props.sliceName;
   delete props.supersetCanExplore;
-  delete props.supersetCanCSV;
+  delete props.supersetCanDownload;
 
   render(<SliceHeader {...props} />, {
     useRedux: true,
     useRouter: true,
     initialState,
   });
-  userEvent.click(screen.getByTestId('toggleExpandSlice'));
-  userEvent.click(screen.getByTestId('forceRefresh'));
-  userEvent.click(screen.getByTestId('exploreChart'));
-  userEvent.click(screen.getByTestId('exportCSV'));
-  userEvent.click(screen.getByTestId('addSuccessToast'));
-  userEvent.click(screen.getByTestId('addDangerToast'));
-  userEvent.click(screen.getByTestId('handleToggleFullSize'));
+  await userEvent.click(screen.getByTestId('toggleExpandSlice'));
+  await userEvent.click(screen.getByTestId('forceRefresh'));
+  await userEvent.click(screen.getByTestId('exploreChart'));
+  await userEvent.click(screen.getByTestId('exportCSV'));
+  await userEvent.click(screen.getByTestId('addSuccessToast'));
+  await userEvent.click(screen.getByTestId('addDangerToast'));
+  await userEvent.click(screen.getByTestId('handleToggleFullSize'));
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
@@ -288,7 +316,7 @@ test('Should render click to edit prompt and run onExploreChart on click', async
     </Router>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
   ).toBeInTheDocument();
@@ -296,7 +324,7 @@ test('Should render click to edit prompt and run onExploreChart on click', async
     await screen.findByText('Use ctrl + click to open in a new tab.'),
   ).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
   expect(history.location.pathname).toMatch('/explore');
 });
 
@@ -308,7 +336,7 @@ test('Display cmd button in tooltip if running on MacOS', async () => {
     useRouter: true,
     initialState,
   });
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
   ).toBeInTheDocument();
@@ -317,7 +345,7 @@ test('Display cmd button in tooltip if running on MacOS', async () => {
   ).toBeInTheDocument();
 });
 
-test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', () => {
+test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', async () => {
   const props = createProps({ supersetCanExplore: false });
   const history = createMemoryHistory({
     initialEntries: ['/superset/dashboard/1/'],
@@ -328,18 +356,18 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
     </Router>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     screen.queryByText(
       'Click to edit Vaccine Candidates per Phase in a new tab',
     ),
   ).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
   expect(history.location.pathname).toMatch('/superset/dashboard');
 });
 
-test('Should not render click to edit prompt and run onExploreChart on click if in edit mode', () => {
+test('Should not render click to edit prompt and run onExploreChart on click if in edit mode', async () => {
   const props = createProps({ editMode: true });
   const history = createMemoryHistory({
     initialEntries: ['/superset/dashboard/1/'],
@@ -350,15 +378,53 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
     </Router>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     screen.queryByText(
       'Click to edit Vaccine Candidates per Phase in a new tab',
     ),
   ).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
   expect(history.location.pathname).toMatch('/superset/dashboard');
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('mobile consumption mode', () => {
+  let restoreMatchMedia: () => void;
+  let restoreFlag: () => void;
+
+  beforeEach(() => {
+    restoreMatchMedia = mockMobileMatchMedia();
+    restoreFlag = enableMobileConsumptionFlag();
+  });
+
+  afterEach(() => {
+    restoreMatchMedia();
+    restoreFlag();
+  });
+
+  test('Should not render click to edit prompt or SliceHeaderControls on mobile', async () => {
+    const props = createProps();
+    const history = createMemoryHistory({
+      initialEntries: ['/superset/dashboard/1/'],
+    });
+    render(
+      <Router history={history}>
+        <SliceHeader {...props} />
+      </Router>,
+      { useRedux: true, initialState },
+    );
+    await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+    expect(
+      screen.queryByText('Click to edit Vaccine Candidates per Phase.'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+    expect(history.location.pathname).toMatch('/superset/dashboard');
+
+    expect(screen.queryByTestId('SliceHeaderControls')).not.toBeInTheDocument();
+  });
 });
 
 test('Should render "annotationsLoading"', () => {
@@ -459,7 +525,7 @@ test('Correct props to "SliceHeaderControls"', () => {
     'false',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
-    'data-superset-can-csv',
+    'data-superset-can-download',
     'true',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
@@ -480,7 +546,7 @@ test('Correct props to "SliceHeaderControls"', () => {
   );
 });
 
-test('Correct actions to "SliceHeaderControls"', () => {
+test('Correct actions to "SliceHeaderControls"', async () => {
   const props = createProps();
   render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -489,32 +555,198 @@ test('Correct actions to "SliceHeaderControls"', () => {
   });
 
   expect(props.toggleExpandSlice).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('toggleExpandSlice'));
+  await userEvent.click(screen.getByTestId('toggleExpandSlice'));
   expect(props.toggleExpandSlice).toHaveBeenCalledTimes(1);
 
   expect(props.forceRefresh).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('forceRefresh'));
+  await userEvent.click(screen.getByTestId('forceRefresh'));
   expect(props.forceRefresh).toHaveBeenCalledTimes(1);
 
   expect(props.logExploreChart).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('exploreChart'));
+  await userEvent.click(screen.getByTestId('exploreChart'));
   expect(props.logExploreChart).toHaveBeenCalledTimes(1);
 
   expect(props.exportCSV).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('exportCSV'));
+  await userEvent.click(screen.getByTestId('exportCSV'));
   expect(props.exportCSV).toHaveBeenCalledTimes(1);
 
   expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('addSuccessToast'));
+  await userEvent.click(screen.getByTestId('addSuccessToast'));
   expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 
   expect(props.addDangerToast).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('addDangerToast'));
+  await userEvent.click(screen.getByTestId('addDangerToast'));
   expect(props.addDangerToast).toHaveBeenCalledTimes(1);
 
   expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('handleToggleFullSize'));
+  await userEvent.click(screen.getByTestId('handleToggleFullSize'));
   expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+});
+
+test('Should show chart description info icon when description exists and is collapsed', () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(screen.getByTestId('chart-description-info-icon')).toBeInTheDocument();
+});
+
+test('Should hide chart description info icon when description is expanded', () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: true,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(
+    screen.queryByTestId('chart-description-info-icon'),
+  ).not.toBeInTheDocument();
+});
+
+test('Should hide chart description info icon when chart has no description', () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: '',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(
+    screen.queryByTestId('chart-description-info-icon'),
+  ).not.toBeInTheDocument();
+});
+
+test('Chart description icon is a keyboard-focusable button', () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  const icon = screen.getByRole('button', { name: 'Chart description' });
+  icon.focus();
+  expect(icon).toHaveFocus();
+});
+
+test('Should show chart description in popover on hover', async () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+
+  expect(screen.queryByTestId('slice-info')).not.toBeInTheDocument();
+
+  await userEvent.hover(screen.getByTestId('chart-description-info-icon'));
+
+  expect(await screen.findByTestId('slice-info')).toHaveTextContent(
+    'Test chart description',
+  );
+});
+
+test('Should show chart description in popover on click', async () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+
+  expect(screen.queryByTestId('slice-info')).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByTestId('chart-description-info-icon'));
+
+  expect(await screen.findByTestId('slice-info')).toHaveTextContent(
+    'Test chart description',
+  );
+});
+
+test('Should open chart description popover with Enter', async () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+
+  const icon = screen.getByRole('button', { name: 'Chart description' });
+  expect(screen.queryByTestId('slice-info')).not.toBeInTheDocument();
+
+  // user-event v12 (pinned in this repo) doesn't expose .keyboard(); use
+  // fireEvent to dispatch keydown directly to the focused icon.
+  icon.focus();
+  fireEvent.keyDown(icon, { key: 'Enter' });
+  expect(await screen.findByTestId('slice-info')).toHaveTextContent(
+    'Test chart description',
+  );
+});
+
+test('Should open chart description popover with Space', async () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+
+  const icon = screen.getByRole('button', { name: 'Chart description' });
+  expect(screen.queryByTestId('slice-info')).not.toBeInTheDocument();
+
+  icon.focus();
+  fireEvent.keyDown(icon, { key: ' ' });
+  expect(await screen.findByTestId('slice-info')).toHaveTextContent(
+    'Test chart description',
+  );
 });
 
 test('Add extension to SliceHeader', () => {

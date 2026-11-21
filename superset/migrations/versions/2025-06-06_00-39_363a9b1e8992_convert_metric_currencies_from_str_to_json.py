@@ -27,7 +27,7 @@ import logging
 
 from alembic import op
 from sqlalchemy import Column, Integer, JSON, String
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.migrations.shared.utils import paginated_update

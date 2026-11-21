@@ -16,25 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from './Owner';
-import Role from './Role';
+import User from './User';
+import Subject from './Subject';
 
 export interface Dashboard {
   id: number;
   slug?: string | null;
   url: string;
   dashboard_title: string;
+  description?: string | null;
   thumbnail_url: string | null;
   published: boolean;
   css?: string | null;
   json_metadata?: string | null;
   position_json?: string | null;
   changed_by_name: string;
-  changed_by: Owner;
+  changed_by: User;
   changed_on: string;
   charts: string[]; // just chart names, unfortunately...
-  owners: Owner[];
-  roles: Role[];
+  editors?: Subject[];
+  // Subject ids resolved by a deployment's EXTRA_EDITORS_RESOLVER; the API
+  // attaches them after the response schema is dumped, so they survive the
+  // `columns` projection. Bare ids, not Subjects.
+  extra_editors?: number[];
+  viewers?: Subject[];
+  is_managed_externally: boolean;
   theme?: {
     id: number;
     theme_name: string;

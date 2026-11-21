@@ -16,15 +16,21 @@
 # under the License.
 
 
+from typing import Any
+from unittest import mock
+
+import numpy as np
 import pandas as pd
 import pyarrow as pa
-import pytest  # noqa: F401
+import pytest
 from pandas.api.types import is_datetime64_any_dtype
+from pytest_mock import MockerFixture
 
 from superset.utils import csv, json
 from superset.utils.core import GenericDataType
 from superset.utils.csv import (
     df_to_escaped_csv,
+    get_chart_csv_data,
     get_chart_dataframe,
 )
 
@@ -63,6 +69,9 @@ def test_escape_value():
     result = csv.escape_value(" =10+2")
     assert result == "' =10+2"
 
+    result = csv.escape_value('  ""=10+2')
+    assert result == '\'  ""=10+2'
+
     # A leading tab or carriage return followed by a dangerous char was already
     # handled by \s{1,} in the pre-existing regex. The cases below test the
     # new behavior: tab/CR alone (not followed by a dangerous char) are now
@@ -75,20 +84,33 @@ def test_escape_value():
     assert result == "'\rfoo"
 
 
-def fake_get_chart_csv_data_none(chart_url, auth_cookies=None):
+def fake_get_chart_csv_data_none(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
+    """Return ``None`` to mock a fetch that yields no payload."""
     return None
 
 
-def fake_get_chart_csv_data_empty(chart_url, auth_cookies=None):
-    # Return JSON with empty data so that the resulting DataFrame is empty
-    fake_result = {
+def fake_get_chart_csv_data_empty(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
+    """Return an encoded empty-result payload for dataframe-empty scenarios."""
+    fake_result: dict[str, Any] = {
         "result": [{"data": {}, "coltypes": [], "colnames": [], "indexnames": []}]
     }
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_valid(chart_url, auth_cookies=None):
-    # Return JSON with non-temporal data and valid indexnames so that they are used.
+def fake_get_chart_csv_data_valid(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
+    """Return a non-temporal payload used to verify dataframe construction."""
     fake_result = {
         "result": [
             {
@@ -103,7 +125,11 @@ def fake_get_chart_csv_data_valid(chart_url, auth_cookies=None):
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_temporal(chart_url, auth_cookies=None):
+def fake_get_chart_csv_data_temporal(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
     """
     Return JSON with a temporal column and valid indexnames
     so that a MultiIndex is built.
@@ -122,8 +148,12 @@ def fake_get_chart_csv_data_temporal(chart_url, auth_cookies=None):
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_hierarchical(chart_url, auth_cookies=None):
-    # Return JSON with hierarchical column (list-based) and matching index names.
+def fake_get_chart_csv_data_hierarchical(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
+    """Return hierarchical-column mock data for MultiIndex assertions."""
     fake_result = {
         "result": [
             {
@@ -138,7 +168,11 @@ def fake_get_chart_csv_data_hierarchical(chart_url, auth_cookies=None):
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_with_na_values(chart_url, auth_cookies=None):
+def fake_get_chart_csv_data_with_na_values(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
     # Return JSON with data containing "NA" string value that will be treated as null
     fake_result = {
         "result": [
@@ -222,6 +256,19 @@ def test_df_to_escaped_csv_preserves_numeric_columns():
     assert rows[2] == ["safe", "-20"]
 
 
+@pytest.mark.parametrize("scalar", [int, np.int64], ids=["python-int", "numpy-int64"])
+def test_df_to_escaped_csv_object_big_integers(scalar: type) -> None:
+    """Nullable big integers keep every digit; null and NaN rows are blank."""
+    values = [scalar(2**53 + 1), None, scalar(7), float("nan"), scalar(-(2**63))]
+    df = pd.DataFrame(
+        {"value": pd.Series(values, dtype=object), "label": list("abcde")}
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=False) == (
+        "value,label\n9007199254740993,a\n,b\n7,c\n,d\n-9223372036854775808,e\n"
+    )
+
+
 def test_df_to_escaped_csv_non_default_index():
     """
     String cells are escaped against the correct rows even when the DataFrame
@@ -243,6 +290,302 @@ def test_df_to_escaped_csv_non_default_index():
     # The index labels are preserved and the dangerous cell is escaped in place.
     assert rows[1] == ["boy Edward", "'=SUM(1+1)"]
     assert rows[2] == ["girl Mary", "safe"]
+
+
+def test_df_to_escaped_csv_escapes_index_labels():
+    """
+    Formulas in row labels are escaped too, not just cells and headers.
+
+    Pivot post-processing promotes the row dimension's values into the index,
+    and both export paths write the index out once it is no longer a
+    RangeIndex, so a hostile warehouse string can reach the first column of
+    the file.
+    """
+    df = pd.DataFrame(
+        data={"SUM(num)": [10.0, 20.0]},
+        index=pd.Index(['=cmd|" /C calc"!A0', "safe"], name="dim"),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    assert rows[1].startswith("\"'=cmd")
+    assert rows[2].startswith("safe,")
+    # The caller's frame is left alone.
+    assert df.index.tolist() == ['=cmd|" /C calc"!A0', "safe"]
+
+
+def test_df_to_escaped_csv_escapes_multiindex_labels_and_axis_names():
+    """
+    Every level of a MultiIndex is escaped, and so are the axis *names*.
+
+    Axis names are a separate attribute from the labels, so ``rename`` alone
+    leaves them untouched while pandas still writes them out as header cells.
+    A pivoted group-by puts a warehouse-controlled column name there.
+
+    Both levels carry a hostile label, since a pivot on two dimensions can put
+    one in either. Escaping only the innermost would leave the outer one in the
+    first column of the file.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=SUM(1+1)", '=cmd|" /C calc"!A0'), ("b", "safe")],
+            names=["level", "+name"],
+        ),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    # Header row carries the escaped axis name.
+    assert rows[0] == "level,'+name,v"
+    # The outer level label is escaped in the first field.
+    assert rows[1].split(",")[0] == "'=SUM(1+1)"
+    # The inner level label is escaped, pipes included.
+    assert "'=cmd" in rows[1]
+    assert rows[2] == "b,safe,2"
+
+
+def test_df_to_escaped_csv_escapes_column_axis_names():
+    """
+    The *column* axis names are escaped too.
+
+    A pivot with grouped columns writes both column axis names out as their own
+    header lines, ahead of the row labels, so a hostile warehouse column name
+    lands in the first cell of the file.
+    """
+    df = pd.DataFrame(
+        data=[[1]],
+        index=pd.Index(["row"], name="dim"),
+        columns=pd.MultiIndex.from_tuples([("outer", "v")], names=["=axis", "+inner"]),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    assert rows[0] == "'=axis,outer"
+    assert rows[1] == "'+inner,v"
+
+
+def test_df_to_escaped_csv_escapes_colliding_index_labels():
+    """
+    Two labels can escape to the same text, and the export still works.
+
+    ``escape_value`` is not injective: it prepends a quote, so a warehouse
+    returning both ``=a`` and ``'=a`` in one row dimension has them both land
+    on ``'=a``. Escaping ``levels`` in place rejects that with
+    ``ValueError: Level values must be unique``, which would turn a CSV export
+    into a 500, so the level is rebuilt by factorizing its row values, where a
+    repeated label is ordinary. This is the case that separates reading the row
+    values from escaping ``levels``, the sort order not being the reason.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=a", "x"), ("'=a", "y")], names=["dim", "other"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,other,v\n'=a,x,1\n'=a,y,2\n"
+    )
+
+
+def test_df_to_escaped_csv_escapes_a_label_that_is_not_first_in_row_order():
+    """
+    A hostile label is escaped on its own row wherever it falls in row order.
+
+    This pins the placement, not the choice of source for the escaped level.
+    Mapping ``levels`` in place passes it too: the mapping runs position for
+    position, so the original codes go on pointing at the right entries even
+    when the hostile label sorts last. The case that separates the two is
+    ``test_df_to_escaped_csv_escapes_colliding_index_labels``, where two
+    labels escape to the same text and the level is no longer unique.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("safe", "x"), ("=cmd()", "y")], names=["dim", "other"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,other,v\nsafe,x,1\n'=cmd(),y,2\n"
+    )
+
+
+def test_df_to_escaped_csv_escapes_a_flat_index_mixing_a_formula_and_non_strings():
+    """
+    A flat index holding a formula label beside non-strings exports intact.
+
+    The level is rebuilt through ``Index.map``, which hands the callable every
+    label, not just the ones needing a quote, so it has to pass a non-string
+    through untouched. ``escape_value`` on its own does not: it subscripts its
+    argument and raises ``TypeError`` on the integer. The id past 2**53 has to
+    survive the rebuild as well, and does, because the formula string keeps the
+    re-inferred dtype at ``object``.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2, 3]},
+        index=pd.Index(["=cmd()", 9007199254740993, None], name="dim"),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,v\n'=cmd(),1\n9007199254740993,2\n,3\n"
+    )
+
+
+def test_df_to_escaped_csv_keeps_a_numeric_index_dtype():
+    """
+    Escaping row labels does not widen a numeric row dimension.
+
+    Rebuilding the index promotes ``float32`` to ``float64``, and the wider
+    dtype prints the binary expansion of the stored value, so a label that
+    read ``1.1`` would export as ``1.100000023841858``.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.Index(np.array([1.1, 2.2], dtype="float32"), name="dim"),
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=True) == "dim,v\n1.1,1\n2.2,2\n"
+
+
+def test_df_to_escaped_csv_keeps_a_temporal_index_dtype():
+    """
+    Escaping row labels leaves ``date_format`` working.
+
+    Rebuilding a ``datetime64`` index turns it into object dtype, and
+    ``to_csv`` only applies ``date_format`` to a datetime index, so the
+    configured ``CSV_EXPORT["date_format"]`` would quietly stop being honored.
+    """
+    df = pd.DataFrame(
+        data={"v": [1]},
+        index=pd.DatetimeIndex(
+            np.array(["1500-01-01"], dtype="datetime64[s]"), name="dim"
+        ),
+    )
+
+    escaped_csv_str = df_to_escaped_csv(
+        df, encoding="utf8", index=True, date_format="%d/%m/%Y"
+    )
+
+    assert escaped_csv_str == "dim,v\n01/01/1500,1\n"
+
+
+def test_df_to_escaped_csv_keeps_a_sibling_level_dtype():
+    """
+    A level that needs escaping is rebuilt without disturbing its siblings.
+
+    A pivot on a dimension and a time grain puts both in the index, and the
+    temporal level has to keep its dtype for ``date_format`` to reach it.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Index(["=cmd()", "safe"]),
+                pd.DatetimeIndex(
+                    np.array(["1500-01-01", "1600-01-01"], dtype="datetime64[s]")
+                ),
+            ],
+            names=["dim", "when"],
+        ),
+    )
+
+    escaped_csv_str = df_to_escaped_csv(
+        df, encoding="utf8", index=True, date_format="%d/%m/%Y"
+    )
+
+    rows = escaped_csv_str.strip().split("\n")
+
+    assert rows[1] == "'=cmd(),01/01/1500,1"
+    assert rows[2] == "safe,01/01/1600,2"
+
+
+def test_df_to_escaped_csv_keeps_a_sibling_level_dtype_with_a_missing_value():
+    """
+    A sibling level holding a missing value keeps its integer dtype.
+
+    Reading a level back row by row codes the missing value as ``-1`` and
+    widens the level to ``float64``, which writes an id past 2**53 as a
+    different number. Only the level that needs escaping is rebuilt, so the
+    others keep their own values and codes.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=cmd()", 9007199254740993), ("safe", None)], names=["dim", "id"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,id,v\n'=cmd(),9007199254740993,1\nsafe,,2\n"
+    )
+
+
+def test_df_to_escaped_csv_escapes_a_rebuilt_level_holding_a_missing_label():
+    """
+    A rebuilt level writes its missing label as an empty field.
+
+    The level carrying the formula label is the one holding the null here, so
+    the null goes through the rebuild rather than past it, which is what the
+    other missing-value cases do. ``escape_values`` hands a non-string back
+    untouched and the null stays missing; coercing the level to text before
+    escaping would write the second row as ``nan,y,2``, and every other test
+    in this file passes either way.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=cmd()", "x"), (None, "y")], names=["dim", "other"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,other,v\n'=cmd(),x,1\n,y,2\n"
+    )
+
+
+def test_df_to_escaped_csv_keeps_the_dtype_of_a_level_whose_label_was_sliced_out():
+    """
+    A level keeps its dtype when the only label needing escaping is not exported.
+
+    ``levels`` holds a level's distinct values and a filter or a slice leaves
+    behind the ones no row uses any more, so a formula label can sit in
+    ``levels`` while no exported row carries it. Rebuilding on that puts the
+    level through ``Index.map``, which re-infers the dtype: a level of integers
+    and nulls comes back ``float64`` and the id past 2**53 is written as
+    ``9007199254740992.0``. Nothing in the output needed escaping.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2, 3]},
+        index=pd.MultiIndex.from_tuples(
+            [("=cmd()", "x"), (9007199254740993, "y"), (None, "z")],
+            names=["dim", "other"],
+        ),
+    )
+    sliced = df.iloc[1:]
+    assert "=cmd()" in sliced.index.levels[0]
+    assert "=cmd()" not in sliced.index.get_level_values(0)
+
+    assert (
+        df_to_escaped_csv(sliced, encoding="utf8", index=True)
+        == "dim,other,v\n9007199254740993,y,2\n,z,3\n"
+    )
+
+
+def test_df_to_escaped_csv_leaves_safe_index_alone():
+    """
+    A numeric index and a negative numeric label are not escaped, so ordinary
+    exports are unchanged.
+    """
+    df = pd.DataFrame(data={"a": [1, 2]}, index=[-1, -2])
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=True) == ",a\n-1,1\n-2,2\n"
 
 
 def test_get_chart_dataframe_returns_none_when_no_content(
@@ -380,3 +723,65 @@ def test_get_chart_dataframe_preserves_na_string_values(
     last_name_values = df[("last_name",)].values
     assert last_name_values[0] == "Smith"
     assert last_name_values[1] == "NA"
+
+
+def test_get_chart_csv_data_passes_timeout_to_opener(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The timeout argument must reach the urllib opener's open() call."""
+    # Without a timeout the request blocks forever when the webserver is
+    # unreachable, wedging the report schedule in WORKING (issue #40047).
+    mock_response = mock.Mock()
+    mock_response.read.return_value = b"data"
+    mock_response.getcode.return_value = 200
+    mock_opener = mock.Mock()
+    mock_opener.open.return_value = mock_response
+    mock_opener.addheaders = []
+    monkeypatch.setattr(
+        "urllib.request.build_opener", mock.Mock(return_value=mock_opener)
+    )
+
+    get_chart_csv_data("http://dummy-url", auth_cookies={"session": "x"}, timeout=42)
+
+    mock_opener.open.assert_called_once_with("http://dummy-url", timeout=42)
+
+
+def test_get_chart_dataframe_forwards_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_chart_dataframe must forward its timeout down to get_chart_csv_data."""
+    captured: dict[str, float | None] = {}
+
+    def fake(
+        chart_url: str,
+        auth_cookies: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> bytes | None:
+        captured["timeout"] = timeout
+        return None
+
+    monkeypatch.setattr(csv, "get_chart_csv_data", fake)
+    get_chart_dataframe("http://dummy-url", timeout=99)
+    assert captured["timeout"] == 99
+
+
+@pytest.mark.parametrize("fail_read", [False, True])
+def test_get_chart_csv_data_closes_response(
+    mocker: MockerFixture, fail_read: bool
+) -> None:
+    """Release the legacy export connection on success and before retrying a read."""
+    from superset.utils.csv import get_chart_csv_data
+
+    response = mocker.patch(
+        "urllib.request.build_opener"
+    ).return_value.open.return_value
+    response.getcode.return_value = 200
+    response.read.return_value = b"csv"
+    if fail_read:
+        response.read.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            get_chart_csv_data("https://localhost/chart", {"session": "cookie"}, 10)
+    else:
+        assert (
+            get_chart_csv_data("https://localhost/chart", {"session": "cookie"}, 10)
+            == b"csv"
+        )
+    response.close.assert_called_once()

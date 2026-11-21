@@ -42,7 +42,9 @@ import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/Boole
 import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
 import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
 import { EmptyState, Loading } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
+import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
 import Table, {
   ColumnsType,
   TableSize,
@@ -141,6 +143,13 @@ export default function DrillDetailPane({
 
     return resultsPages.get(lastPageIndex.current);
   }, [pageIndex, resultsPages]);
+
+  // A lower-bound total only covers the rows up to the current page, so count
+  // one row past it to keep the next page reachable.
+  const recordCount =
+    resultsPage && resultsPage.totalIsLowerBound
+      ? resultsPage.total + 1
+      : resultsPage?.total;
 
   const mappedColumns: ColumnsType<DataType> = useMemo(
     () =>
@@ -245,9 +254,10 @@ export default function DrillDetailPane({
         result_type: 'drill_detail',
         result_format: exportType,
         force: false,
+        form_data: { viz_type: formData.viz_type },
       };
       if (dashboardId) {
-        payload.form_data = { dashboardId };
+        payload.form_data = { viz_type: formData.viz_type, dashboardId };
       }
       SupersetClient.postForm('/api/v1/chart/data', {
         form_data: safeStringify(payload),
@@ -325,6 +335,9 @@ export default function DrillDetailPane({
                 pageIndex,
                 {
                   total: response.total_count,
+                  totalIsLowerBound: Boolean(
+                    response.total_count_is_lower_bound,
+                  ),
                   data: response.data,
                   colNames: ensureIsArray(response.colnames),
                   colTypes: ensureIsArray(response.coltypes),
@@ -362,13 +375,22 @@ export default function DrillDetailPane({
   if (responseError) {
     // Render error if page download failed
     tableContent = (
-      <pre
+      <div
         css={css`
           margin-top: ${theme.sizeUnit * 4}px;
         `}
       >
-        {responseError}
-      </pre>
+        <Alert
+          type="error"
+          showIcon
+          message={t('Failed to load drill-to-detail rows')}
+          description={
+            <PreformattedErrorDescription>
+              {responseError}
+            </PreformattedErrorDescription>
+          }
+        />
+      </div>
     );
   } else if (bootstrapping) {
     // Render loading if first page hasn't loaded
@@ -386,7 +408,7 @@ export default function DrillDetailPane({
           columns={mappedColumns}
           size={TableSize.Small}
           defaultPageSize={DEFAULT_PAGE_SIZE}
-          recordCount={resultsPage?.total}
+          recordCount={recordCount}
           usePagination
           loading={isLoading}
           onChange={pagination => {
@@ -415,6 +437,7 @@ export default function DrillDetailPane({
           filters={filters}
           setFilters={setFilters}
           totalCount={resultsPage?.total}
+          totalCountIsLowerBound={resultsPage?.totalIsLowerBound}
           loading={isLoading}
           onReload={handleReload}
           canDownload={canDownload}

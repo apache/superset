@@ -18,7 +18,7 @@
  */
 import { KeyboardEvent, useMemo } from 'react';
 import { SerializedStyles, CSSObject } from '@emotion/react';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme, getFontSize } from '@apache-superset/core/theme';
 import {
@@ -97,7 +97,6 @@ export const InfoTooltip = ({
           &&&:active {
             box-shadow: none;
             background: none;
-            outline: none;
             color: ${theme.colorTextTertiary};
           }
           ${onClick ? 'cursor: pointer;' : ''}

@@ -52,7 +52,7 @@ const ComponentIndex: React.FC<ComponentIndexProps> = ({ data }) => {
 
   const filteredComponents = useMemo(() => {
     return components
-      .filter((comp) => {
+      .filter(comp => {
         const matchesSearch =
           !searchText ||
           comp.name.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -67,7 +67,7 @@ const ComponentIndex: React.FC<ComponentIndexProps> = ({ data }) => {
 
   const { categories, categoryCounts } = useMemo(() => {
     const counts: Record<string, number> = {};
-    components.forEach((comp) => {
+    components.forEach(comp => {
       counts[comp.category] = (counts[comp.category] || 0) + 1;
     });
     return {
@@ -103,7 +103,7 @@ const ComponentIndex: React.FC<ComponentIndexProps> = ({ data }) => {
       dataIndex: 'category',
       key: 'category',
       width: 120,
-      filters: categories.map((cat) => ({
+      filters: categories.map(cat => ({
         text: CATEGORY_LABELS[cat] || cat,
         value: cat,
       })),
@@ -120,9 +120,7 @@ const ComponentIndex: React.FC<ComponentIndexProps> = ({ data }) => {
       dataIndex: 'package',
       key: 'package',
       width: 220,
-      render: (pkg: string) => (
-        <code style={{ fontSize: '12px' }}>{pkg}</code>
-      ),
+      render: (pkg: string) => <code style={{ fontSize: '12px' }}>{pkg}</code>,
     },
     {
       title: 'Tags',
@@ -215,7 +213,7 @@ const ComponentIndex: React.FC<ComponentIndexProps> = ({ data }) => {
             placeholder="Search components..."
             prefix={<SearchOutlined />}
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={e => setSearchText(e.target.value)}
             allowClear
           />
         </Col>
@@ -226,7 +224,7 @@ const ComponentIndex: React.FC<ComponentIndexProps> = ({ data }) => {
             value={categoryFilter}
             onChange={setCategoryFilter}
             allowClear
-            options={categories.map((cat) => ({
+            options={categories.map(cat => ({
               label: (
                 <span>
                   <Tag
@@ -251,7 +249,7 @@ const ComponentIndex: React.FC<ComponentIndexProps> = ({ data }) => {
         pagination={{
           defaultPageSize: 20,
           showSizeChanger: true,
-          showTotal: (total) => `${total} components`,
+          showTotal: total => `${total} components`,
         }}
         size="middle"
       />

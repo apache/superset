@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -27,8 +27,15 @@ import {
   Input,
   Button,
   Modal,
+  Select,
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import copyTextToClipboard from 'src/utils/copy';
+import {
+  API_KEY_SCOPE_OPTIONS,
+  getApiKeyScopesHelpText,
+  serializeApiKeyScopes,
+} from './apiKeyScopes';
 
 interface ApiKeyCreateModalProps {
   show: boolean;
@@ -38,6 +45,7 @@ interface ApiKeyCreateModalProps {
 
 interface FormValues {
   name: string;
+  scopes?: string[];
 }
 
 export function ApiKeyCreateModal({
@@ -50,6 +58,22 @@ export function ApiKeyCreateModal({
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Scopes the current user may self-issue: undefined while the lookup is in
+  // flight (nothing is offered yet), null when it failed (the full catalog is
+  // offered as before), otherwise the allowed subset.
+  const [allowedScopes, setAllowedScopes] = useState<
+    string[] | null | undefined
+  >(undefined);
+
+  useEffect(() => {
+    if (!show) {
+      return;
+    }
+    setAllowedScopes(undefined);
+    SupersetClient.get({ endpoint: '/api/v1/me/api_key_scopes/' })
+      .then(({ json }) => setAllowedScopes(json?.result ?? null))
+      .catch(() => setAllowedScopes(null));
+  }, [show]);
 
   useEffect(
     () => () => {
@@ -62,9 +86,13 @@ export function ApiKeyCreateModal({
 
   const handleFormSubmit = async (values: FormValues) => {
     try {
+      const scopes = serializeApiKeyScopes(values.scopes);
       const response = await SupersetClient.post({
         endpoint: '/api/v1/security/api_keys/',
-        jsonPayload: values,
+        jsonPayload: {
+          name: values.name,
+          ...(scopes && { scopes }),
+        },
       });
       const key = response.json?.result?.key;
       if (!key) {
@@ -73,7 +101,14 @@ export function ApiKeyCreateModal({
       setCreatedKey(key);
       addSuccessToast(t('API key created successfully'));
     } catch (error) {
-      addDangerToast(t('Failed to create API key'));
+      // `error` is always a string: getClientErrorObject flattens FAB's
+      // `message` (including schema-validation dicts) into it
+      const { error: reason } = await getClientErrorObject(error);
+      addDangerToast(
+        reason
+          ? t('Failed to create API key: %s', reason)
+          : t('Failed to create API key'),
+      );
       throw error;
     }
   };
@@ -83,7 +118,7 @@ export function ApiKeyCreateModal({
       return;
     }
     try {
-      await navigator.clipboard.writeText(createdKey);
+      await copyTextToClipboard(() => Promise.resolve(createdKey));
       setCopied(true);
       if (copyTimerRef.current) {
         clearTimeout(copyTimerRef.current);
@@ -168,6 +203,33 @@ export function ApiKeyCreateModal({
         <Input
           name="name"
           placeholder={t('e.g., CI/CD Pipeline, Analytics Script')}
+        />
+      </FormItem>
+      <FormItem
+        name="scopes"
+        label={t('MCP scopes')}
+        help={getApiKeyScopesHelpText()}
+      >
+        <Select
+          name="scopes"
+          mode="multiple"
+          allowClear
+          showSearch
+          loading={allowedScopes === undefined}
+          options={
+            allowedScopes === undefined
+              ? []
+              : allowedScopes
+                ? API_KEY_SCOPE_OPTIONS.filter(option =>
+                    allowedScopes.includes(option.value),
+                  )
+                : API_KEY_SCOPE_OPTIONS
+          }
+          placeholder={t('Select MCP resource scopes (optional)')}
+          data-test="api-key-scopes-select"
+          getPopupContainer={(trigger: HTMLElement) =>
+            trigger.closest<HTMLElement>('.ant-modal-container') ?? trigger
+          }
         />
       </FormItem>
     </FormModal>

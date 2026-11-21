@@ -24,7 +24,6 @@ export const Pill = styled.div`
     color: ${theme.colorBgBase};
     background: ${theme.colorText};
     border-radius: 1em;
-    vertical-align: text-top;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};
@@ -88,6 +87,11 @@ export const FilterItem = styled.button`
       border: 0;
     }
 
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: -2px;
+    }
+
     & i svg {
       opacity: 35%;
       margin-right: ${theme.sizeUnit}px;
@@ -118,6 +122,18 @@ export const FiltersDetailsContainer = styled.div`
     overflow-x: hidden;
 
     color: ${theme.colorText};
+
+    /*
+     * The container is a non-interactive wrapper that receives focus
+     * programmatically only to capture keyboard navigation events. Suppress the
+     * default browser focus outline so the popover does not show a blue ring.
+     * Focusable items inside (FilterItem) provide their own :focus-visible
+     * styles for keyboard accessibility.
+     */
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
   `}
 `;
 

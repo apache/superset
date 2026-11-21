@@ -18,7 +18,7 @@
  */
 import { FC, useEffect } from 'react';
 
-import { pick, pickBy } from 'lodash';
+import { pick, pickBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';

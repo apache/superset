@@ -28,6 +28,7 @@ import rison from 'rison';
 import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
 import {
   ListView,
+  type ListViewColumn,
   ListViewActionsBar,
   type ListViewProps,
   type ListViewActionProps,
@@ -41,6 +42,7 @@ import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 
@@ -156,18 +158,19 @@ function AnnotationList({
   }, [fetchAnnotationLayer]);
 
   const initialSort = [{ id: 'short_descr', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<AnnotationObject>[]>(
     () => [
       {
         accessor: 'short_descr',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'short_descr',
       },
       {
         accessor: 'long_descr',
         Header: t('Description'),
         id: 'long_descr',
+        layout: 'longtext',
       },
       {
         Cell: ({
@@ -180,6 +183,7 @@ function AnnotationList({
         Header: t('Start'),
         accessor: 'start_dttm',
         id: 'start_dttm',
+        layout: 'dateRelative',
       },
       {
         Cell: ({
@@ -192,6 +196,7 @@ function AnnotationList({
         Header: t('End'),
         accessor: 'end_dttm',
         id: 'end_dttm',
+        layout: 'dateRelative',
       },
       {
         Cell: ({
@@ -223,6 +228,7 @@ function AnnotationList({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         disableSortBy: true,
       },
     ],
@@ -280,7 +286,7 @@ function AnnotationList({
               {hasHistory ? (
                 <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
               ) : (
-                <Typography.Link href="/annotationlayer/list/">
+                <Typography.Link href={ensureAppRoot('/annotationlayer/list/')}>
                   {t('Back to all')}
                 </Typography.Link>
               )}

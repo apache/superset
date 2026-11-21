@@ -31,7 +31,7 @@ export const InteractiveCopyToClipboard = ({ copyNode, ...rest }: any) => {
   if (copyNode === 'Icon') {
     node = <Icons.CopyOutlined />;
   } else if (copyNode === 'Text') {
-    node = <span role="button">Copy</span>;
+    node = <button type="button">Copy</button>;
   }
   return (
     <>

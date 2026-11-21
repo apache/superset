@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 import backoff
 import requests
 from flask import current_app
+from flask_babel import gettext as __
 
 from superset import feature_flag_manager
 from superset.reports.models import ReportRecipientType
@@ -32,8 +33,30 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.utils import json
 from superset.utils.decorators import statsd_gauge
+from superset.utils.network import get_ssrf_safe_requester, is_safe_host
 
 logger = logging.getLogger(__name__)
+
+# Number of characters of a failing response body kept in the server-side log
+# line. Response bodies are never folded into the exception message raised
+# back to the caller -- that message is persisted verbatim as
+# ``ReportExecutionLog.error_message`` and readable via the execution log
+# API, which would otherwise turn the webhook target into a readback oracle
+# for whatever it chooses to return (including an internal host reached via
+# DNS rebinding).
+_LOGGED_RESPONSE_BODY_LIMIT = 500
+
+
+def _sanitize_for_log(text: str) -> str:
+    """
+    Escape newlines and other control characters in text that gets embedded
+    in a log line. The webhook target controls the response body verbatim,
+    so logging it unescaped would let it forge additional log records or
+    corrupt line-oriented log ingestion.
+    """
+    return text.translate(
+        {c: f"\\x{c:02x}" for c in [*range(0x20), 0x7F] if c not in (0x09,)}
+    )
 
 
 class WebhookNotification(BaseNotification):
@@ -69,7 +92,13 @@ class WebhookNotification(BaseNotification):
         content = {
             "name": self._content.name,
             "header": header_content,
-            "text": self._content.text,
+            # NotificationContent.text carries failure diagnostics; successful
+            # tabular output uses embedded_data rather than this field.
+            "text": (
+                __("Contact the report owner for error details.")
+                if self._content.text
+                else self._content.text
+            ),
             "description": self._content.description,
             "url": self._content.url,
         }
@@ -79,6 +108,18 @@ class WebhookNotification(BaseNotification):
         files = []
         if self._content.csv:
             files.append(("files", ("report.csv", self._content.csv, "text/csv")))
+        if self._content.xlsx:
+            files.append(
+                (
+                    "files",
+                    (
+                        "report.xlsx",
+                        self._content.xlsx,
+                        "application/vnd.openxmlformats-officedocument."
+                        "spreadsheetml.sheet",
+                    ),
+                )
+            )
         if self._content.pdf:
             files.append(
                 ("files", ("report.pdf", self._content.pdf, "application/pdf"))
@@ -93,8 +134,61 @@ class WebhookNotification(BaseNotification):
                 )
         return files
 
+    def _validate_webhook_url(self, url: str) -> None:
+        """
+        Validate the webhook target URL before dispatch.
+
+        Checks that the scheme is HTTP(S) (and HTTPS when required by config),
+        that a hostname is present, and, unless the operator opts out via
+        ``ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS``, that the host does not
+        resolve to a private/internal address.
+
+        :raises NotificationParamException: if any of the above checks fail.
+        """
+        parsed = urlparse(url)
+        scheme = parsed.scheme.lower()
+        if scheme not in ("http", "https"):
+            raise NotificationParamException(
+                "Webhook failed: only HTTP and HTTPS webhook URLs are supported."
+            )
+        if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"] and scheme != "https":
+            raise NotificationParamException(
+                "Webhook failed: HTTPS is required by config for webhook URLs."
+            )
+        if not parsed.hostname:
+            raise NotificationParamException(
+                "Webhook failed: URL must include a valid hostname."
+            )
+        # Operators with internal webhook targets (chatops bridges, internal
+        # automation, etc.) can opt out of the private-IP block via
+        # ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS.
+        if current_app.config["ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS"]:
+            return
+        if not is_safe_host(parsed.hostname):
+            raise NotificationParamException("Webhook URL target host is not allowed.")
+
     @backoff.on_exception(
-        backoff.expo, NotificationUnprocessableException, factor=10, base=2, max_tries=5
+        backoff.expo,
+        NotificationUnprocessableException,
+        factor=10,
+        base=2,
+        max_tries=5,
+        # Bound total wall-clock retry time. Without max_time, a hanging or
+        # persistently-failing target can stall a worker for minutes per bad
+        # URL, starving sequential report dispatch.
+        #
+        # backoff (see backoff._sync.retry_exception) samples elapsed at the
+        # start of each attempt and checks it against max_time only after that
+        # attempt fails -- so the giveup decision uses the time measured before
+        # the attempt ran, ignoring the attempt's own duration. With each
+        # request carrying the ALERT_REPORTS_WEBHOOK_TIMEOUT (default 60s), a
+        # third attempt can begin past the 120s mark (its start gated by the
+        # prior check, which still saw ~60-70s) and then run its full request
+        # timeout before the check trips. The loop therefore makes 3 attempts:
+        # total wall-clock can exceed 120s by up to one request timeout plus
+        # jitter sleeps (<=10s then <=20s). factor is kept at 10 so
+        # legitimately-transient 5xx targets are not abandoned early.
+        max_time=120,
     )
     @statsd_gauge("reports.webhook.send")
     def send(self) -> None:
@@ -104,13 +198,15 @@ class WebhookNotification(BaseNotification):
                 is not enabled."
             )
         wh_url = self._get_webhook_url()
-        if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"]:
-            if urlparse(wh_url).scheme.lower() != "https":
-                raise NotificationParamException(
-                    "Webhook failed: HTTPS is required by config for webhook URLs."
-                )
+        self._validate_webhook_url(wh_url)
         payload = self._get_req_payload()
         files = self._get_files()
+        timeout = current_app.config["ALERT_REPORTS_WEBHOOK_TIMEOUT"]
+        requester = get_ssrf_safe_requester(
+            allow_unsafe_hosts=current_app.config[
+                "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS"
+            ]
+        )
 
         try:
             if files:
@@ -121,23 +217,54 @@ class WebhookNotification(BaseNotification):
                     else:
                         data[key] = value
 
-                response = requests.post(wh_url, data=data, files=files, timeout=60)
+                response = requester.post(
+                    wh_url,
+                    data=data,
+                    files=files,
+                    timeout=timeout,
+                    allow_redirects=False,
+                )
             else:
-                response = requests.post(wh_url, json=payload, timeout=60)
+                response = requester.post(
+                    wh_url, json=payload, timeout=timeout, allow_redirects=False
+                )
 
             logger.info(
                 "Webhook sent to %s, status code: %s", wh_url, response.status_code
             )
 
             if response.status_code >= 500 or response.status_code == 429:
+                # The response body is logged server-side only (and
+                # truncated) -- it must not be folded into the exception
+                # message, which is persisted as the report execution log's
+                # error message and surfaced back to whoever can read that
+                # log, turning the webhook target into a readback oracle.
+                logger.warning(
+                    "Webhook to %s failed with status code %s: %s",
+                    wh_url,
+                    response.status_code,
+                    _sanitize_for_log(response.text[:_LOGGED_RESPONSE_BODY_LIMIT]),
+                )
                 raise NotificationUnprocessableException(
-                    f"Webhook failed with status code {response.status_code}: \
-                     {response.text}"
+                    f"Webhook failed with status code {response.status_code}"
                 )
             if response.status_code >= 400:
+                logger.warning(
+                    "Webhook to %s failed with status code %s: %s",
+                    wh_url,
+                    response.status_code,
+                    _sanitize_for_log(response.text[:_LOGGED_RESPONSE_BODY_LIMIT]),
+                )
                 raise NotificationParamException(
-                    f"Webhook failed with status code {response.status_code}: \
-                    {response.text}"
+                    f"Webhook failed with status code {response.status_code}"
+                )
+            if response.status_code >= 300:
+                # Redirects are intentionally not followed (allow_redirects=False),
+                # so a 3xx means the request never reached the final target. Treat
+                # it as a failure rather than silently reporting success.
+                raise NotificationParamException(
+                    f"Webhook returned an unfollowed redirect "
+                    f"(status code {response.status_code})"
                 )
 
         except requests.exceptions.RequestException as ex:

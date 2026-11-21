@@ -32,6 +32,7 @@ import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewActionProps,
@@ -42,7 +43,7 @@ import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerM
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { navigateTo } from 'src/utils/navigationUtils';
+import { ensureAppRoot, navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
@@ -130,7 +131,7 @@ function AnnotationLayersList({
   }
 
   const initialSort = [{ id: 'name', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<AnnotationLayerObject>[]>(
     () => [
       {
         accessor: 'name',
@@ -154,18 +155,20 @@ function AnnotationLayersList({
           }
 
           return (
-            <Typography.Link href={`/annotationlayer/${id}/annotation`}>
+            <Typography.Link
+              href={ensureAppRoot(`/annotationlayer/${id}/annotation`)}
+            >
               {name}
             </Typography.Link>
           );
         },
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
         accessor: 'descr',
         Header: t('Description'),
-        size: 'xl',
+        layout: 'longtext',
         id: 'descr',
       },
       {
@@ -179,7 +182,7 @@ function AnnotationLayersList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on',
       },
       {
@@ -216,7 +219,7 @@ function AnnotationLayersList({
         id: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
-        size: 'xl',
+        layout: 'actions',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

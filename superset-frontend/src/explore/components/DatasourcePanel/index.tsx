@@ -23,7 +23,7 @@ import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 
 import { matchSorter, rankings } from 'match-sorter';
 import { Input } from '@superset-ui/core/components';
@@ -286,29 +286,36 @@ export default function DataSourcePanel({
                 message=""
                 description={
                   <>
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       onClick={() => setShowSaveDatasetModal(true)}
                       className="add-dataset-alert-description"
+                      css={css`
+                        appearance: none;
+                        border: none;
+                        background: none;
+                        padding: 0;
+                        font: inherit;
+                        cursor: pointer;
+                      `}
                     >
                       {t('Create a dataset')}
-                    </span>
+                    </button>
                     {t(' to edit or add columns and metrics.')}
                   </>
                 }
               />
             </StyledInfoboxWrapper>
           )}
-          <AutoSizer>
-            {({ height }: { height: number }) => (
+          <AutoSizer
+            renderProp={({ height }) => (
               <DatasourceItems
                 width={width - BORDER_WIDTH}
-                height={height}
+                height={height ?? 0}
                 folders={folders}
               />
             )}
-          </AutoSizer>
+          />
         </div>
       </>
     ),

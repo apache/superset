@@ -168,6 +168,11 @@ export const SelectLabel = ({
 const EMPTY_CATALOG_OPTIONS: CatalogOption[] = [];
 const EMPTY_SCHEMA_OPTIONS: SchemaOption[] = [];
 
+function displayHierarchyOption(option: CatalogOption | SchemaOption) {
+  const label = option.value.replace(/%2e/gi, '.');
+  return { ...option, label, title: label };
+}
+
 interface AntdLabeledValueWithOrder extends AntdLabeledValue {
   order: number;
 }
@@ -186,7 +191,9 @@ export function DatabaseSelector({
   onSchemaChange,
   schema,
   readOnly = false,
+  compactMode = false,
   sqlLabMode = false,
+  filterBySqlLab = false,
   onOpenModal,
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
@@ -227,7 +234,7 @@ export function DatabaseSelector({
           order_direction: 'asc',
           page,
           page_size: pageSize,
-          ...(formMode || !sqlLabMode
+          ...(formMode || !(sqlLabMode || filterBySqlLab)
             ? { filters: [{ col: 'database_name', opr: 'ct', value: search }] }
             : {
                 filters: [
@@ -277,7 +284,7 @@ export function DatabaseSelector({
           };
         });
       },
-    [formMode, getDbList, sqlLabMode, onEmptyResults],
+    [formMode, getDbList, sqlLabMode, filterBySqlLab, onEmptyResults],
   );
 
   useEffect(() => {
@@ -336,7 +343,10 @@ export function DatabaseSelector({
     },
   });
 
-  const schemaOptions = schemaData || EMPTY_SCHEMA_OPTIONS;
+  const schemaOptions = (schemaData || EMPTY_SCHEMA_OPTIONS).map(
+    displayHierarchyOption,
+  );
+  const selectedSchema = currentSchema && displayHierarchyOption(currentSchema);
 
   function changeCatalog(catalog: CatalogOption | null | undefined) {
     setCurrentCatalog(catalog);
@@ -381,7 +391,13 @@ export function DatabaseSelector({
     },
   });
 
-  const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
+  const catalogOptions = (catalogData || EMPTY_CATALOG_OPTIONS).map(
+    displayHierarchyOption,
+  );
+  const selectedCatalog = currentCatalog
+    ? displayHierarchyOption(currentCatalog)
+    : currentCatalog;
+  const sqlLabCompactMode = sqlLabMode && compactMode;
 
   function changeDatabase(
     value: { label: string; value: number },
@@ -501,7 +517,7 @@ export function DatabaseSelector({
         null,
         null,
         {
-          displayValue: currentCatalog?.label,
+          displayValue: selectedCatalog?.label,
           disabled: !currentDb || readOnly,
           loading: loadingCatalogs,
           icon: <Icons.RightOutlined />,
@@ -530,7 +546,7 @@ export function DatabaseSelector({
             onChange={item => changeCatalog(item as CatalogOption)}
             options={catalogOptions}
             showSearch
-            value={currentCatalog || undefined}
+            value={selectedCatalog || undefined}
             allowClear
           />,
           refreshIcon,
@@ -542,7 +558,7 @@ export function DatabaseSelector({
   function renderSchemaSelect() {
     if (sqlLabMode) {
       return renderSelectRow(t('Select schema'), null, null, {
-        displayValue: currentSchema?.label,
+        displayValue: selectedSchema?.label,
         disabled: !currentDb || readOnly,
         loading: loadingSchemas,
         icon: <Icons.RightOutlined />,
@@ -570,7 +586,7 @@ export function DatabaseSelector({
             onChange={item => changeSchema(item as SchemaOption)}
             options={schemaOptions}
             showSearch
-            value={currentSchema}
+            value={selectedSchema}
             allowClear
           />,
           refreshIcon,
@@ -604,8 +620,8 @@ export function DatabaseSelector({
     >
       {renderDatabaseSelect()}
       {renderError()}
-      {showCatalogSelector && renderCatalogSelect()}
-      {showSchemaSelector && renderSchemaSelect()}
+      {!sqlLabCompactMode && showCatalogSelector && renderCatalogSelect()}
+      {!sqlLabCompactMode && showSchemaSelector && renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );
 }

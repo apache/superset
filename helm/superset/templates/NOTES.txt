@@ -35,3 +35,9 @@
   echo "Visit http://127.0.0.1:8088 to use your application"
   kubectl port-forward service/superset 8088:8088 --namespace {{ .Release.Namespace }}
 {{- end }}
+{{- $warnings := include "superset.deprecationWarnings" . }}
+{{- if trim $warnings }}
+
+⚠️  DEPRECATION WARNINGS
+{{ $warnings }}
+{{- end }}

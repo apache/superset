@@ -58,7 +58,7 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["singlestoredb"],
+        "pypi_packages": ["singlestoredb[sqlalchemy]"],
         "connection_string": (
             "singlestoredb://{username}:{password}@{host}:{port}/{database}"
         ),
@@ -73,7 +73,7 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
         "drivers": [
             {
                 "name": "singlestoredb",
-                "pypi_package": "singlestoredb",
+                "pypi_package": "singlestoredb[sqlalchemy]",
                 "connection_string": (
                     "singlestoredb://{username}:{password}@{host}:{port}/{database}"
                 ),
@@ -551,6 +551,9 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
 
         A MySQL database is a SQLAlchemy schema.
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         return parse.unquote(sqlalchemy_uri.database)
 
     @classmethod
@@ -577,6 +580,11 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
         :param cancel_query_id: SingleStore connection ID and aggregator ID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # SingleStore: "CONNECTION_ID AGGREGATOR_ID" (two space-separated ints)
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+(\s+\d+)?$"):
+            return False
+
         try:
             cursor.execute(f"KILL CONNECTION {cancel_query_id}")
         except Exception:  # pylint: disable=broad-except

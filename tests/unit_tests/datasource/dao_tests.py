@@ -16,6 +16,7 @@
 # under the License.
 
 from collections.abc import Iterator
+from typing import Any
 
 import pytest
 from sqlalchemy import literal, select
@@ -62,8 +63,14 @@ def session_with_data(session: Session) -> Iterator[Session]:
     )
 
     saved_query = SavedQuery(database=database, sql="select * from foo")
+    # `db_id` is nullable, so a saved query can be persisted without an
+    # associated database; DatasourceDAO.get_datasource must reject it
+    # rather than hand callers a datasource whose perm/schema_perm/data
+    # properties all dereference `self.database`.
+    saved_query_no_database = SavedQuery(sql="select * from foo")
 
     session.add(saved_query)
+    session.add(saved_query_no_database)
     session.add(query_obj)
     session.add(database)
     session.add(sqla_table)
@@ -110,6 +117,19 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
     assert isinstance(result, SavedQuery)
 
 
+def test_get_datasource_saved_query_without_database(
+    session_with_data: Session,
+) -> None:
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceNotFound
+
+    with pytest.raises(DatasourceNotFound):
+        DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType.SAVEDQUERY,
+            database_id_or_uuid=2,
+        )
+
+
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.datasource import DatasourceDAO
@@ -141,10 +161,68 @@ def test_not_found_datasource(session_with_data: Session) -> None:
         )
 
 
+def test_get_datasource_non_decimal_digit_raises_value_incorrect(
+    session_with_data: Session,
+) -> None:
+    """ "²" (superscript 2) is str.isdigit() but not str.isdecimal(), so
+    it must be routed to the uuid branch (and fail as an invalid uuid) rather
+    than crash on int(database_id_or_uuid)."""
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceValueIsIncorrect
+
+    with pytest.raises(DatasourceValueIsIncorrect):
+        DatasourceDAO.get_datasource(
+            datasource_type="table",
+            database_id_or_uuid="²",
+        )
+
+
 def test_escape_ilike_fragment() -> None:
     from superset.daos.datasource import _escape_ilike_fragment
 
     assert _escape_ilike_fragment("foo%bar_baz\\") == "foo\\%bar\\_baz\\\\"
+
+
+def test_paginate_combined_query_orders_equal_names_deterministically(
+    session: Session,
+) -> None:
+    """Rows that tie on the sort column must not shuffle between pages."""
+    from sqlalchemy import union_all
+    from sqlalchemy.sql.selectable import Select
+
+    from superset.daos.datasource import DatasourceDAO
+
+    def row(item_id: int, source_type: str, table_name: str) -> Select[Any]:
+        return select(
+            literal(item_id).label("item_id"),
+            literal(source_type).label("source_type"),
+            literal("2026-01-01").label("changed_on"),
+            literal(table_name).label("table_name"),
+        )
+
+    combined = union_all(
+        row(2, "semantic_layer", "orders"),
+        row(3, "database", "orders"),
+        row(1, "semantic_layer", "orders"),
+        row(1, "database", "orders"),
+    ).subquery()
+
+    def page(index: int) -> list[tuple[int, str]]:
+        _, rows = DatasourceDAO.paginate_combined_query(
+            combined=combined,
+            order_column="table_name",
+            order_direction="asc",
+            page=index,
+            page_size=2,
+        )
+        return [(r.item_id, r.source_type) for r in rows]
+
+    assert page(0) + page(1) == [
+        (1, "database"),
+        (3, "database"),
+        (1, "semantic_layer"),
+        (2, "semantic_layer"),
+    ]
 
 
 def test_paginate_combined_query_invalid_sort_column() -> None:

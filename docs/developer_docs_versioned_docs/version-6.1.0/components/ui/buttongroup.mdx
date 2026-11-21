@@ -33,23 +33,36 @@ ButtonGroup is a container that groups multiple Button components together with 
 <StoryWithControls
   component="ButtonGroup"
   props={{
-  expand: false
-}}
+    expand: false,
+  }}
   controls={[
-  {
-    name: "expand",
-    label: "Expand",
-    type: "boolean",
-    description: "When true, buttons expand to fill available width."
-  },
-  {
-    name: "className",
-    label: "Class Name",
-    type: "text",
-    description: "CSS class name for custom styling."
-  }
-]}
-  sampleChildren={[{"component":"Button","props":{"buttonStyle":"tertiary","children":"Button 1"}},{"component":"Button","props":{"buttonStyle":"tertiary","children":"Button 2"}},{"component":"Button","props":{"buttonStyle":"tertiary","children":"Button 3"}}]}
+    {
+      name: 'expand',
+      label: 'Expand',
+      type: 'boolean',
+      description: 'When true, buttons expand to fill available width.',
+    },
+    {
+      name: 'className',
+      label: 'Class Name',
+      type: 'text',
+      description: 'CSS class name for custom styling.',
+    },
+  ]}
+  sampleChildren={[
+    {
+      component: 'Button',
+      props: { buttonStyle: 'tertiary', children: 'Button 1' },
+    },
+    {
+      component: 'Button',
+      props: { buttonStyle: 'tertiary', children: 'Button 2' },
+    },
+    {
+      component: 'Button',
+      props: { buttonStyle: 'tertiary', children: 'Button 3' },
+    },
+  ]}
 />
 
 ## Try It
@@ -70,8 +83,8 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
+| Prop     | Type      | Default | Description                                        |
+| -------- | --------- | ------- | -------------------------------------------------- |
 | `expand` | `boolean` | `false` | When true, buttons expand to fill available width. |
 
 ## Import

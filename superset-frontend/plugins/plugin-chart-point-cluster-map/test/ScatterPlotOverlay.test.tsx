@@ -18,8 +18,8 @@
  */
 
 import { render } from '@testing-library/react';
-import ScatterPlotOverlay from '../src/components/ScatterPlotOverlay';
-import {
+import ScatterPlotOverlay, {
+  isValidCanvasRadius,
   MIN_CLUSTER_RADIUS_RATIO,
   MAX_POINT_RADIUS_RATIO,
 } from '../src/components/ScatterPlotOverlay';
@@ -157,6 +157,18 @@ const MIN_VISIBLE_POINT_RADIUS =
   defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
 const MAX_VISIBLE_POINT_RADIUS =
   defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
+
+test.each([
+  [1, true],
+  [0.1, true],
+  [0, false],
+  [-1, false],
+  [NaN, false],
+  [Infinity, false],
+  [-Infinity, false],
+])('validates canvas radius value %p', (value, expected) => {
+  expect(isValidCanvasRadius(value)).toBe(expected);
+});
 
 test('renders map with varying radius values in Pixels mode', () => {
   const locations = [
@@ -372,6 +384,42 @@ test('renders map with Miles mode', () => {
     triggerRedraw();
   }).not.toThrow();
 });
+
+test.each(['Kilometers', 'Miles'])(
+  'falls back to default radius for non-positive %s values',
+  pointRadiusUnit => {
+    const locations = [
+      createLocation([100, 50], { radius: -5, cluster: false }),
+      createLocation([200, 50], { radius: 0, cluster: false }),
+      createLocation([300, 50], { radius: 10, cluster: false }),
+    ];
+
+    render(
+      <ScatterPlotOverlay
+        {...defaultProps}
+        locations={locations}
+        pointRadiusUnit={pointRadiusUnit}
+        zoom={10}
+      />,
+    );
+    const redrawParams = triggerRedraw();
+
+    const arcCalls = redrawParams.ctx.arc.mock.calls;
+
+    arcCalls.forEach(call => {
+      expect(Number.isFinite(call[2])).toBe(true);
+      expect(call[2]).toBeGreaterThan(0);
+    });
+    expect(arcCalls[0][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
+    expect(arcCalls[1][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
+    expect(arcCalls[2][2]).toBeGreaterThan(MIN_VISIBLE_POINT_RADIUS);
+
+    const expectedLabel = pointRadiusUnit === 'Miles' ? '10mi' : '10km';
+    expect(redrawParams.ctx.fillText.mock.calls.map(call => call[0])).toEqual([
+      expectedLabel,
+    ]);
+  },
+);
 
 test('displays metric property labels on points', () => {
   const locations = [

@@ -58,6 +58,7 @@ export default function OptionWrapper(
     canDelete = true,
     tooltipOverlay,
     multiValueWarningMessage,
+    partitionMapping,
     ...rest
   } = props;
   const labelRef = useRef<HTMLDivElement>(null);
@@ -74,6 +75,9 @@ export default function OptionWrapper(
     isDragging,
   } = useSortable({
     id: sortableId,
+    // Disable @dnd-kit's default FLIP layout animation: on drop it plays a
+    // springy settle that reads as a confusing "bounce" for reordered pills.
+    animateLayoutChanges: () => false,
     data: {
       type,
       dragIndex: index,
@@ -82,7 +86,9 @@ export default function OptionWrapper(
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    // Translate only (no scaleX/scaleY) so variable-width pills slide into
+    // place without morphing into their neighbor's size during reorder.
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
@@ -161,6 +167,7 @@ export default function OptionWrapper(
         datasourceWarningMessage={datasourceWarningMessage}
         canDelete={canDelete}
         multiValueWarningMessage={multiValueWarningMessage}
+        partitionMapping={partitionMapping}
       >
         <Label />
       </Option>

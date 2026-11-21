@@ -167,7 +167,7 @@ describe('loadTags', () => {
 
     // Verify all calls include the custom tag filter
     calls.forEach(call => {
-      const { url } = calls[0];
+      const { url } = call;
       const urlObj = new URL(url);
       const queryParam = urlObj.searchParams.get('q');
       expect(queryParam).not.toBeNull();

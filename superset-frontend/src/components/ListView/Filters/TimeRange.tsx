@@ -25,6 +25,7 @@ import {
   type RefObject,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   NO_TIME_RANGE,
   SupersetClient,
@@ -144,6 +145,8 @@ function TimeRangeFilter(
   const [evalResponse, setEvalResponse] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState(false);
   const [lastFetched, setLastFetched] = useState(value);
+  // The last evaluated range whose start and end resolved to the same instant.
+  const [emptyTimeRange, setEmptyTimeRange] = useState<string | null>(null);
 
   // Evaluate the committed value shown in "Actual time range".
   useEffect(() => {
@@ -152,7 +155,10 @@ function TimeRangeFilter(
       setValidTimeRange(true);
       return;
     }
-    fetchTimeRange(value).then(({ value: actual, error }) => {
+    fetchTimeRange(value).then(({ value: actual, error, isEmpty }) => {
+      setEmptyTimeRange(prev =>
+        !error && isEmpty ? value : prev === value ? null : prev,
+      );
       if (error) {
         setEvalResponse(error ?? '');
         setValidTimeRange(false);
@@ -174,16 +180,25 @@ function TimeRangeFilter(
         return;
       }
       if (lastFetched !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue).then(({ value: actual, error }) => {
-          if (error) {
-            setEvalResponse(error ?? '');
-            setValidTimeRange(false);
-          } else {
-            setEvalResponse(actual ?? '');
-            setValidTimeRange(true);
-          }
-          setLastFetched(timeRangeValue);
-        });
+        fetchTimeRange(timeRangeValue).then(
+          ({ value: actual, error, isEmpty }) => {
+            setEmptyTimeRange(prev =>
+              !error && isEmpty
+                ? timeRangeValue
+                : prev === timeRangeValue
+                  ? null
+                  : prev,
+            );
+            if (error) {
+              setEvalResponse(error ?? '');
+              setValidTimeRange(false);
+            } else {
+              setEvalResponse(actual ?? '');
+              setValidTimeRange(true);
+            }
+            setLastFetched(timeRangeValue);
+          },
+        );
       }
     },
     Constants.SLOW_DEBOUNCE,
@@ -245,11 +260,18 @@ function TimeRangeFilter(
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}
+        {validTimeRange && emptyTimeRange === timeRangeValue && (
+          <Alert type="warning" closable={false}>
+            {t(
+              'This time range is empty. Choose an end time later than the start time.',
+            )}
+          </Alert>
+        )}
       </div>
       <Divider />
       <div className="footer">
         <Button buttonStyle="secondary" cta key="cancel" onClick={onClose}>
-          {t('CANCEL')}
+          {t('Cancel')}
         </Button>
         <Button
           buttonStyle="primary"
@@ -281,7 +303,7 @@ function TimeRangeFilter(
             onClose();
           }}
         >
-          {t('APPLY')}
+          {t('Apply')}
         </Button>
       </div>
     </ContentWrapper>

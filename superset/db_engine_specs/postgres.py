@@ -19,27 +19,38 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection
 from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
+import sqlalchemy as sa
 from flask_babel import gettext as __
-from sqlalchemy import types
+from marshmallow import fields, pre_load
+from marshmallow.validate import Range
+from sqlalchemy import text, types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
-from superset.constants import TimeGrain
+from superset.constants import EPOCH_FORMATS, TimeGrain
 from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
+    BasicParametersSchema,
+    BasicParametersType,
     DatabaseCategory,
+    TimestampExpression,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
+from superset.sql.dialects.postgres import normalize_date_trunc_units
 from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
@@ -48,7 +59,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 logger = logging.getLogger()
-
 
 # Regular expressions to catch custom errors
 CONNECTION_INVALID_USERNAME_REGEX = re.compile(
@@ -164,12 +174,86 @@ def _normalize_interval(v: Any) -> Optional[float]:
     return None
 
 
+def _quote_identifier(name: str) -> str:
+    """
+    Quote a Postgres identifier, so it's read exactly as written.
+    """
+    return '"' + name.replace('"', '""') + '"'
+
+
+_ASCII_UPPER_TO_LOWER = {code: code + 32 for code in range(ord("A"), ord("Z") + 1)}
+# an identifier ``to_regclass`` reads as one name, folded the way a query's is
+_PLAIN_IDENTIFIER = re.compile(r"[^\W\d][\w$]*")
+
+
+def _table_spellings(name: str) -> list[str]:
+    """
+    The spellings of a table name to look up, each as ``to_regclass`` reads it.
+
+    A parsed reference no longer says whether its name was quoted, which decides
+    whether Postgres folds it. Folding an unquoted name lower-cases ASCII letters
+    only in a UTF-8 database, so ``str.lower`` would name a table (``venté``) the
+    query never reads (``ventÉ``). A name with other letters is also passed
+    unquoted, for Postgres to fold the way its encoding does.
+    """
+    spellings = [
+        _quote_identifier(name),
+        _quote_identifier(name.translate(_ASCII_UPPER_TO_LOWER)),
+    ]
+    if not name.isascii() and _PLAIN_IDENTIFIER.fullmatch(name):
+        spellings.append(name)
+    return utils.remove_duplicates(spellings)
+
+
+def _named_schemas(search_path: str, user: str) -> list[str]:
+    """
+    The schemas a ``search_path`` setting names, in order, as Postgres reads them.
+
+    Unlike ``current_schemas``, this includes the ones that don't exist, which a
+    script can create before reading a table from one. ``$user`` names the
+    current user's schema, an unquoted name is folded the way Postgres folds it
+    (see ``_table_spellings``), and ``pg_temp``, the session's own temporary
+    schema, is left out.
+    """
+    schemas = []
+    for name, quoted in re.findall(
+        r'\s*(?:"((?:[^"]|"")*)"|([^,]*?))\s*(?:,|$)', search_path
+    ):
+        schema = (
+            name.replace('""', '"')
+            if name
+            else quoted.strip().translate(_ASCII_UPPER_TO_LOWER)
+        )
+        if schema == "$user":
+            schema = user
+        if schema and schema != "pg_temp":
+            schemas.append(schema)
+    return utils.remove_duplicates(schemas)
+
+
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """Abstract class for Postgres 'like' databases"""
 
     engine = ""
     engine_name = "PostgreSQL"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     supports_multivalues_insert = True
+
+    # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.
+    # PostgreSQL-like engines compare a metric's ``DATE_TRUNC`` call against
+    # the ``GROUP BY`` expression structurally, so a custom metric using a
+    # different unit spelling fails with a grouping error. Every spec that
+    # inherits these templates therefore also inherits the normalization that
+    # keeps custom metric units aligned with them; specs that replace the
+    # templates (e.g. Snowflake) replace the normalization as well.
+    preserves_custom_sql_metric_source = True
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Canonicalize DATE_TRUNC units to match generated time grains."""
+        return normalize_date_trunc_units(expression)
 
     _time_grain_expressions = {
         None: "{col}",
@@ -187,6 +271,25 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         TimeGrain.MONTH: "DATE_TRUNC('month', {col})",
         TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
         TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
+    }
+
+    # Verified against a live postgres:16 instance, including under GROUPING
+    # SETS (the pivot table's non-additive-total rollup pattern): the grand
+    # total correctly reflects every row, not an aggregate-of-aggregates.
+    # STDDEV_SAMP/VAR_SAMP (not MEDIAN -- see its override) are inherited by
+    # Redshift (a Postgres fork); its SQL function reference documents the
+    # same support, but that has not been separately verified against a live
+    # Redshift instance.
+    # Also inherited by TimescaleDB (a Postgres extension, not a forked query
+    # engine -- it runs unmodified Postgres aggregate execution) and by
+    # Aurora PostgreSQL / its Data API variant (AWS's wire- and
+    # SQL-compatible managed Postgres). Engines that share the SQL dialect
+    # but run a materially different query engine (CockroachDB, Greenplum,
+    # SAP HANA) reset this to `{}` instead -- see those engine specs.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": lambda col: sa.func.percentile_cont(0.5).within_group(col),
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
     }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
@@ -247,14 +350,44 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        if not cursor.description:
-            return []
-        return super().fetch_data(cursor, limit)
-
-    @classmethod
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
+
+    @classmethod
+    def get_timestamp_expr(
+        cls,
+        col: ColumnClause,
+        pdf: str | None,
+        time_grain: str | None,
+    ) -> TimestampExpression:
+        """
+        Construct a timestamp expression for Postgres temporal columns.
+
+        Applying ``DATE_TRUNC`` to a ``DATE`` column implicitly casts the value to
+        ``TIMESTAMP``, which can trigger unwanted timezone conversion on the client
+        and shift the displayed date by a day. To avoid this, the truncated value is
+        cast back to ``DATE`` when the source column is a pure ``DATE`` type.
+
+        String columns explicitly marked as temporal are cast to ``TIMESTAMP`` before
+        applying a time grain because Postgres does not implicitly cast strings for
+        ``DATE_TRUNC`` or ``EXTRACT``.
+
+        See https://github.com/apache/superset/issues/42254.
+        See https://github.com/apache/superset/issues/42386.
+        """
+        expr = super().get_timestamp_expr(col, pdf, time_grain)
+        col_type = getattr(col, "type", None)
+        if time_grain and isinstance(col_type, String) and pdf not in EPOCH_FORMATS:
+            expr = TimestampExpression(
+                expr.name.replace("{col}", "CAST({col} AS TIMESTAMP)"),
+                col,
+                type_=DateTime(),
+            )
+        # ``DateTime``/``TIMESTAMP`` are distinct SQLAlchemy types (not subclasses
+        # of ``Date``), so this only matches pure ``DATE`` columns.
+        if time_grain and isinstance(col_type, Date):
+            return TimestampExpression(f"CAST({expr.name} AS DATE)", col, type_=Date())
+        return expr
 
     @classmethod
     def convert_dttm(
@@ -270,16 +403,73 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return None
 
 
+class PostgresParametersSchema(BasicParametersSchema):
+    """
+    Same as ``BasicParametersSchema``, except ``port`` is optional: a blank
+    port falls back to Postgres's own default (5432) in
+    ``PostgresEngineSpec.build_sqlalchemy_uri``.
+    """
+
+    port = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={"description": __("Database port")},
+        validate=Range(min=0, max=2**16, max_inclusive=False),
+    )
+
+    @pre_load
+    def blank_port_to_none(self, data: Any, **kwargs: Any) -> Any:
+        """
+        A cleared number input in the Connect Database form submits ``""``
+        for ``port`` (HTML input values are always strings) rather than
+        omitting the key or sending ``null``. Normalize it to ``None`` so it
+        deserializes cleanly instead of failing with "Not a valid integer.",
+        and is treated as blank -- same as an omitted port -- downstream.
+        """
+        if isinstance(data, dict) and data.get("port") == "":
+            data = {**data, "port": None}
+        return data
+
+
+#: The text forms PostgreSQL's date/time input reads, which `RedshiftEngineSpec`
+#: shares. Both the ISO spellings and the unseparated ones --
+#: ``'20260115'::date`` is 2026-01-15 -- so a ``YYYYMMDD`` bucketing key
+#: mirrors on either.
+#:
+#: Declared on the concrete specs rather than on `PostgresBaseEngineSpec`,
+#: which Snowflake, Vertica, HANA, Netezza and Hologres also inherit.
+#: Snowflake's AUTO date input does not take ``YYYYMMDD`` and reads an
+#: all-digit string as epoch seconds, so inheriting this misread the mirror.
+POSTGRES_TEMPORAL_LITERAL_FORMATS = (
+    "%Y-%m-%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%d %H:%M:%S.%f",
+    "%Y-%m-%dT%H:%M:%S.%f",
+    "%Y%m%d",
+    "%Y%m%d%H%M%S",
+)
+
+
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_name = "PostgreSQL"
     engine_aliases = {"postgres"}
 
+    temporal_literal_formats = POSTGRES_TEMPORAL_LITERAL_FORMATS
+
     supports_dynamic_schema = True
     supports_catalog = True
     supports_dynamic_catalog = True
+    supports_grouping_sets = True
+    supports_temporal_column_shift = True
 
     default_driver = "psycopg2"
+    parameters_schema = PostgresParametersSchema()
+    # ``port`` is intentionally not required: a blank port falls back to
+    # Postgres's own default (``metadata["default_port"]``) in
+    # ``BasicParametersMixin.build_sqlalchemy_uri`` (overridden below).
+    required_parameters = {"host", "username", "database"}
     sqlalchemy_uri_placeholder = (
         "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
@@ -517,6 +707,42 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     DatabaseCategory.CLOUD_AWS,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
+                "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+            },
+            {
+                "name": "ClickHouse Managed Postgres",
+                "description": "Managed PostgreSQL from ClickHouse.",
+                "logo": "clickhouse-mark.svg",
+                "logo_dark": "clickhouse-mark-dark.svg",
+                "homepage_url": "https://clickhouse.com/cloud/postgres",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql+psycopg2://{username}:{password}"
+                    "@{host}:{port}/{database}?sslmode=verify-full"
+                    "&sslrootcert={ca_certificate_path}"
+                ),
+                "parameters": {
+                    "username": "Database user",
+                    "password": "URL-encoded database password",
+                    "host": "Direct PostgreSQL hostname from the Connect dialog",
+                    "port": "Port from the Connect dialog (default: 5432)",
+                    "database": "Database name",
+                    "ca_certificate_path": (
+                        "URL-encoded absolute path to the instance CA certificate "
+                        "on the Superset server"
+                    ),
+                },
+                "notes": (
+                    "In ClickHouse Cloud, open the Connect menu and use the "
+                    "Directly option. Download the instance-specific CA certificate "
+                    "from Settings and make it available to each Superset process "
+                    "that connects to the database. Use verify-full to verify "
+                    "the certificate and hostname."
+                ),
+                "docs_url": (
+                    "https://clickhouse.com/docs/products/managed-postgres/connection"
+                ),
+                "categories": [DatabaseCategory.HOSTED_OPEN_SOURCE],
             },
         ],
     }
@@ -602,6 +828,66 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return None
 
     @classmethod
+    def get_search_path(
+        cls,
+        database: Database,
+        catalog: str | None,
+        tables: Collection[str] = (),
+    ) -> tuple[list[str], dict[str, list[str]]]:
+        """
+        Resolve tables referenced without a schema the way the connection does.
+
+        The default schema Postgres reports is the first schema of the
+        ``search_path`` that exists (``current_schema()``), which needn't hold the
+        table: under the default ``"$user", public`` an unqualified ``sales`` in
+        ``public`` is still read when a schema named after the user exists, and a
+        ``sales`` in that schema shadows it. ``current_schemas(true)`` lists the
+        schemas Postgres searches, in order, including the ``pg_catalog`` it
+        searches first when the path doesn't name it, and ``to_regclass`` resolves
+        a table name the way a query does. A parsed reference no longer says
+        whether its name was quoted, which decides whether Postgres folds it, so
+        both spellings are looked up (see ``_table_spellings``) and every schema
+        holding either is returned. ``current_schemas`` leaves out a schema the path
+        names that doesn't exist, which a script can create before reading a table
+        from it, so those are listed after the ones searched.
+        """
+        spellings = {table: _table_spellings(table) for table in tables}
+        with database.get_raw_connection(catalog=catalog) as connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                "SELECT pg_catalog.current_schemas(true)::text[], "
+                "pg_catalog.current_setting('search_path'), current_user::text"
+            )
+            row = cursor.fetchone()
+            if not row or not isinstance(row[0], list):
+                # reported as an empty path, it would match no table's rules
+                raise ValueError(f"Unexpected search path: {row!r}")
+            schemas: list[str] = utils.remove_duplicates(
+                row[0] + _named_schemas(row[1], row[2])
+            )
+            found: dict[str, str] = {}
+            if spellings:
+                cursor.execute(
+                    "SELECT spelling, n.nspname::text "
+                    "FROM unnest(%s::text[]) AS s(spelling) "
+                    "JOIN pg_catalog.pg_class AS c "
+                    "ON c.oid = pg_catalog.to_regclass(spelling) "
+                    "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace",
+                    ([name for names in spellings.values() for name in names],),
+                )
+                found = dict(cursor.fetchall())
+
+        order = {schema: position for position, schema in enumerate(schemas)}
+        resolved = {
+            table: sorted(
+                {found[name] for name in names if name in found},
+                key=lambda schema: order.get(schema, len(order)),
+            )
+            for table, names in spellings.items()
+        }
+        return schemas, {table: found for table, found in resolved.items() if found}
+
+    @classmethod
     def get_default_schema_for_query(
         cls,
         database: Database,
@@ -611,12 +897,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         """
         Return the default schema for a given query.
 
-        This method simply uses the parent method after checking that there are no
-        malicious path setting in the query.
+        This method simply uses the parent method after checking that the query
+        cannot rebind the schema used to resolve unqualified table names.
         """
         script = process_jinja_sql(query.sql, database, template_params).script
-        settings = script.get_settings()
-        if "search_path" in settings:
+        if script.changes_default_schema():
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -644,6 +929,34 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             uri = uri.set(database=catalog)
 
         return uri, connect_args
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Default a missing/blank port to Postgres's own default (5432) so the
+        dynamic form can connect without requiring the port to be filled in.
+
+        Only an absent key, ``None``, or ``""`` (what a cleared number input
+        submits, since this may be called directly with raw, non-schema-
+        loaded parameters -- see ``ValidateDatabaseParametersCommand``) are
+        treated as blank; an explicitly supplied port -- including ``0`` --
+        is preserved as-is rather than overwritten by a truthiness check.
+        """
+        port = parameters.get("port")
+        resolved_port: int = (
+            cls.metadata["default_port"] if port is None or port == "" else port
+        )
+        parameters_with_default_port: BasicParametersType = {
+            **parameters,
+            "port": resolved_port,
+        }
+        return super().build_sqlalchemy_uri(
+            parameters_with_default_port, encrypted_extra
+        )
 
     @staticmethod
     def mutate_db_for_connection_test(database: Database) -> None:
@@ -782,15 +1095,42 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
         In Postgres, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                """
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("""
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
-            """
-            )
-        }
+                    """)
+                )
+            }
+
+    @classmethod
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        """
+        Return all schema names, excluding the ``pg_``-prefixed Postgres
+        system schemas (e.g. ``pg_catalog``, ``pg_toast``).
+
+        SQLAlchemy's Postgres dialect filters out system schemas with the
+        query ``nspname NOT LIKE 'pg_%'``. Since ``_`` is a single-character
+        wildcard in SQL ``LIKE`` patterns, this unintentionally excludes any
+        user-defined schema that merely starts with ``pg`` followed by any
+        other character (e.g. ``pgsql``, ``pgstats``), not only the
+        ``pg_``-prefixed system schemas. Matching on the literal ``pg_``
+        prefix instead keeps those user-defined schemas.
+
+        TODO: drop this override once sqlalchemy/sqlalchemy#13471 is merged
+        and released, and SQLAlchemy is bumped past that version.
+        """
+        with inspector.engine.connect() as conn:
+            return {
+                name
+                for (name,) in conn.execute(
+                    text("SELECT nspname FROM pg_namespace ORDER BY nspname")
+                )
+                if not name.startswith("pg_")
+            }
 
     @classmethod
     def get_table_names(
@@ -800,6 +1140,15 @@ WHERE datistemplate = false;
         return set(inspector.get_table_names(schema)) | set(
             inspector.get_foreign_table_names(schema)
         )
+
+    @classmethod
+    def get_materialized_view_names(
+        cls, database: Database, inspector: PGInspector, schema: str | None
+    ) -> set[str]:
+        """
+        Materialized views are not returned by ``get_view_names`` in SQLAlchemy 2.0
+        """
+        return set(inspector.get_materialized_view_names(schema))
 
     @staticmethod
     def get_extra_params(
@@ -862,6 +1211,11 @@ WHERE datistemplate = false;
         :param cancel_query_id: Postgres PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # PostgreSQL pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             cursor.execute(
                 "SELECT pg_terminate_backend(pid) "  # noqa: S608

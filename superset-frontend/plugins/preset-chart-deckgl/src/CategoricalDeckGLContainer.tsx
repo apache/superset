@@ -25,6 +25,7 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { isEqual } from 'lodash-es';
 import {
   CategoricalColorNamespace,
   Datasource,
@@ -40,22 +41,22 @@ import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import { getMapboxApiKey } from './utils/mapbox';
-import sandboxedEval from './utils/sandbox';
 import fitViewport, { Viewport } from './utils/fitViewport';
+import computeBoundsFromPoints from './utils/computeBoundsFromPoints';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from './DeckGLContainer';
 import { GetLayerType } from './factory';
-import { ColorBreakpointType, ColorType, Point } from './types';
+import { Point } from './types';
 import { TooltipProps } from './components/Tooltip';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from './utilities/utils';
 import { getColorBreakpointsBuckets } from './utils';
-import { DEFAULT_DECKGL_COLOR } from './utilities/Shared_DeckGL';
+import { addColorToFeatures } from './utils/addColor';
 
 const { getScale } = CategoricalColorNamespace;
 
-function getCategories(fd: QueryFormData, data: JsonObject[]) {
+export function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const appliedScheme = fd.color_scheme;
@@ -70,7 +71,7 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
       if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
         let color;
         if (fd.dimension) {
-          color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+          color = hexToRGB(colorFn(d.cat_color, fd.slice_id), c.a * 255);
         } else {
           color = fixedColor;
         }
@@ -80,6 +81,42 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
   }
 
   return categories;
+}
+
+type Categories = Record<string, { color: JsonValue; enabled: boolean }>;
+
+/**
+ * Rebuilds the legend categories for a new response while keeping the
+ * enabled state the viewer chose for categories that are still present.
+ * Returns `previous` unchanged when the set of categories is the same, so
+ * callers can skip the state update.
+ */
+export function reconcileCategories(
+  previous: Categories,
+  next: Categories,
+): Categories {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+  if (
+    previousKeys.length === nextKeys.length &&
+    nextKeys.every(key => key in previous)
+  ) {
+    return previous;
+  }
+  const reconciled: Categories = {};
+  nextKeys.forEach(key => {
+    reconciled[key] = {
+      ...next[key],
+      enabled: previous[key]?.enabled ?? true,
+    };
+  });
+  // Same rule as toggling the legend: never leave every category hidden.
+  if (Object.values(reconciled).every(category => !category.enabled)) {
+    Object.values(reconciled).forEach(category => {
+      category.enabled = true;
+    });
+  }
+  return reconciled;
 }
 
 export type CategoricalDeckGLContainerProps = {
@@ -125,16 +162,49 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     props.payload.form_data,
   );
   const [viewport, setViewport] = useState(getAdjustedViewport());
+  const featuresRef = useRef(props.payload.data.features);
+  // The area autozoom last fitted. The transform builds a new features array
+  // on every run, including the one Explore triggers when it saves the
+  // viewer's pan, zoom or tilt, so a refit keys on these bounds by value.
+  const autozoomBoundsRef = useRef(
+    props.formData.autozoom
+      ? computeBoundsFromPoints(
+          props.getPoints(props.payload.data.features || []),
+        )
+      : undefined,
+  );
 
   useEffect(() => {
+    const features = props.payload.data.features || [];
+    const autozoomBounds = props.formData.autozoom
+      ? computeBoundsFromPoints(props.getPoints(features))
+      : undefined;
     if (props.payload.form_data !== stateFormData) {
-      const features = props.payload.data.features || [];
       const categories = getCategories(props.formData, features);
 
       setViewport(getAdjustedViewport());
       setStateFormData(props.payload.form_data);
       setCategories(categories);
+    } else if (props.payload.data.features !== featuresRef.current) {
+      // A dashboard auto-refresh keeps the chart mounted and swaps in new
+      // data without a new form_data, so new categories are merged into the
+      // legend here instead of being filtered out as unknown, and autozoom
+      // refits the map when the new rows cover another area.
+      setCategories(previous =>
+        reconcileCategories(
+          previous as Categories,
+          getCategories(props.formData, features),
+        ),
+      );
+      if (
+        autozoomBounds &&
+        !isEqual(autozoomBounds, autozoomBoundsRef.current)
+      ) {
+        setViewport(getAdjustedViewport());
+      }
     }
+    featuresRef.current = props.payload.data.features;
+    autozoomBoundsRef.current = autozoomBounds;
   }, [getAdjustedViewport, props, stateFormData]);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
@@ -150,80 +220,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       data: JsonObject[],
       fd: QueryFormData,
       selectedColorScheme: ColorSchemeType,
-    ) => {
-      const appliedScheme = fd.color_scheme;
-      const colorFn = getScale(appliedScheme);
-      let color: ColorType;
-
-      switch (selectedColorScheme) {
-        case COLOR_SCHEME_TYPES.fixed_color: {
-          color = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-          const colorArray = [color.r, color.g, color.b, color.a * 255];
-
-          return data.map(d => ({ ...d, color: colorArray }));
-        }
-        case COLOR_SCHEME_TYPES.categorical_palette: {
-          if (!fd.dimension) {
-            const fallbackColor = fd.color_picker || {
-              r: 0,
-              g: 0,
-              b: 0,
-              a: 1,
-            };
-            const colorArray = [
-              fallbackColor.r,
-              fallbackColor.g,
-              fallbackColor.b,
-              fallbackColor.a * 255,
-            ];
-            return data.map(d => ({ ...d, color: colorArray }));
-          }
-
-          return data.map(d => ({
-            ...d,
-            color: hexToRGB(colorFn(d.cat_color, fd.slice_id)),
-          }));
-        }
-        case COLOR_SCHEME_TYPES.color_breakpoints: {
-          const defaultBreakpointColor = fd.default_breakpoint_color
-            ? [
-                fd.default_breakpoint_color.r,
-                fd.default_breakpoint_color.g,
-                fd.default_breakpoint_color.b,
-                fd.default_breakpoint_color.a * 255,
-              ]
-            : [
-                DEFAULT_DECKGL_COLOR.r,
-                DEFAULT_DECKGL_COLOR.g,
-                DEFAULT_DECKGL_COLOR.b,
-                DEFAULT_DECKGL_COLOR.a * 255,
-              ];
-          return data.map(d => {
-            const breakpointForPoint: ColorBreakpointType =
-              fd.color_breakpoints?.find(
-                (breakpoint: ColorBreakpointType) =>
-                  d.metric >= breakpoint.minValue &&
-                  d.metric <= breakpoint.maxValue,
-              );
-
-            if (breakpointForPoint) {
-              const pointColor = [
-                breakpointForPoint.color.r,
-                breakpointForPoint.color.g,
-                breakpointForPoint.color.b,
-                breakpointForPoint.color.a * 255,
-              ];
-              return { ...d, color: pointColor };
-            }
-
-            return { ...d, color: defaultBreakpointColor };
-          });
-        }
-        default: {
-          return [];
-        }
-      }
-    },
+    ) => addColorToFeatures(data, fd, selectedColorScheme),
     [],
   );
 
@@ -245,12 +242,6 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
 
     // Add colors from categories or fixed color
     features = addColor(features, fd, selectedColorScheme);
-
-    // Apply user defined data mutator if defined
-    if (fd.js_data_mutator) {
-      const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-      features = jsFnMutator(features);
-    }
 
     // Show only categories selected in the legend
     if (fd.dimension) {

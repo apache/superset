@@ -19,14 +19,19 @@
 import logging
 from typing import Any, Optional
 
+from flask_babel import gettext as _
+from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
+
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import RLSRuleNotFoundError
 from superset.commands.security.utils import raise_for_datasource_access
-from superset.commands.utils import populate_roles
+from superset.commands.utils import populate_subject_list
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.daos.security import RLSDAO
 from superset.extensions import db
+from superset.utils.core import RowLevelSecurityFilterType
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -37,27 +42,75 @@ class UpdateRLSRuleCommand(BaseCommand):
         self._model_id = model_id
         self._properties = data.copy()
         self._tables = self._properties.get("tables", [])
-        self._roles = self._properties.get("roles", [])
+        self._subjects = self._properties.get("subjects", [])
         self._model: Optional[RowLevelSecurityFilter] = None
 
     @transaction()
     def run(self) -> Any:
         self.validate()
         assert self._model
-        return RLSDAO.update(self._model, self._properties)
+        try:
+            updated_model = RLSDAO.update(self._model, self._properties)
+            db.session.flush()
+        except IntegrityError as ex:
+            # The preflight uniqueness check in ``validate`` isn't atomic with
+            # this update, so fall back to the database's unique constraint
+            # and translate it into the same descriptive validation error.
+            raise ValidationError(
+                {"name": [_("A rule with this name already exists.")]}
+            ) from ex
+        return updated_model
 
     def validate(self) -> None:
         self._model = RLSDAO.find_by_id(int(self._model_id))
         if not self._model:
             raise RLSRuleNotFoundError()
-        roles = populate_roles(self._roles)
-        tables = (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
-            .all()
-        )
-        if len(tables) != len(self._tables):
-            raise DatasourceNotFoundValidationError()
-        raise_for_datasource_access(tables)
-        self._properties["roles"] = roles
-        self._properties["tables"] = tables
+
+        # Datasource access is validated before revealing whether the
+        # requested name is already in use, so an unauthorized caller can't
+        # use the duplicate-name response to enumerate rule names.
+        if "tables" in self._properties:
+            tables = (
+                db.session.query(SqlaTable)
+                .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
+                .all()
+            )
+            if len(tables) != len(self._tables):
+                raise DatasourceNotFoundValidationError()
+            raise_for_datasource_access(tables)
+            self._properties["tables"] = tables
+        else:
+            # A partial update that omits ``tables`` still mutates the rule, so
+            # enforce datasource access against the rule's existing tables to
+            # avoid letting a caller edit a rule bound to datasources they
+            # cannot access.
+            raise_for_datasource_access(self._model.tables)
+
+        name = self._properties.get("name")
+        if name and not RLSDAO.validate_uniqueness(name, self._model.id):
+            raise ValidationError(
+                {"name": [_("A rule with this name already exists.")]}
+            )
+
+        # Only resolve and overwrite the relationships that are actually present
+        # in the request body. A partial update (e.g. changing only the name)
+        # must leave the rule's existing tables/subjects bindings untouched
+        # rather than replacing them with empty lists.
+        if "subjects" in self._properties:
+            subjects = populate_subject_list(
+                self._subjects,
+                default_to_user=False,
+            )
+            self._properties["subjects"] = subjects
+        else:
+            subjects = list(self._model.subjects)
+
+        filter_type = self._properties.get("filter_type", self._model.filter_type)
+        filter_type_value = getattr(filter_type, "value", filter_type)
+        if (
+            filter_type_value == RowLevelSecurityFilterType.REGULAR.value
+            and not subjects
+        ):
+            raise ValidationError(
+                {"subjects": ["Regular RLS filters require at least one subject."]}
+            )

@@ -108,12 +108,30 @@ def random_str():
 
 
 def grant_access_to_dashboard(dashboard, role_name):
+    from superset.subjects.models import Subject
+    from superset.subjects.types import SubjectType
+
     role = security_manager.find_role(role_name)
-    dashboard.roles.append(role)
+    subject = (
+        db.session.query(Subject)
+        .filter_by(role_id=role.id, type=SubjectType.ROLE)
+        .first()
+    )
+    if subject and subject not in dashboard.viewers:
+        dashboard.viewers.append(subject)
     db.session.commit()
 
 
 def revoke_access_to_dashboard(dashboard, role_name):
+    from superset.subjects.models import Subject
+    from superset.subjects.types import SubjectType
+
     role = security_manager.find_role(role_name)
-    dashboard.roles.remove(role)
+    subject = (
+        db.session.query(Subject)
+        .filter_by(role_id=role.id, type=SubjectType.ROLE)
+        .first()
+    )
+    if subject and subject in dashboard.viewers:
+        dashboard.viewers.remove(subject)
     db.session.commit()

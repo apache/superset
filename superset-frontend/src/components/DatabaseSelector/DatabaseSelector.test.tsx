@@ -184,8 +184,12 @@ function setupFetchMock() {
   fetchMock.get(databaseApiRoute, fakeDatabaseApiResult, {
     name: databaseApiRoute,
   });
-  fetchMock.get(catalogApiRoute, fakeCatalogApiResult);
-  fetchMock.get(schemaApiRoute, fakeSchemaApiResult);
+  fetchMock.get(catalogApiRoute, fakeCatalogApiResult, {
+    name: catalogApiRoute,
+  });
+  fetchMock.get(schemaApiRoute, fakeSchemaApiResult, {
+    name: schemaApiRoute,
+  });
   fetchMock.get(tablesApiRoute, fakeFunctionNamesApiResult);
 }
 
@@ -246,7 +250,7 @@ test('Should database select display options', async () => {
     name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
-  userEvent.click(select);
+  await userEvent.click(select);
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
 });
 
@@ -264,7 +268,7 @@ test('should display options in order of the api response', async () => {
     name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
-  userEvent.click(select);
+  await userEvent.click(select);
   const options = await screen.findAllByRole('option');
 
   expect(options[0]).toHaveTextContent(
@@ -347,6 +351,71 @@ test('Should schema select display options', async () => {
   expect(infoSchemaOption).toBeInTheDocument();
 });
 
+test('shows decoded catalog dots while selecting the encoded value', async () => {
+  fetchMock.removeRoute(catalogApiRoute);
+  fetchMock.get(catalogApiRoute, {
+    result: ['demo%2Emetrics', 'shared'],
+  });
+  const props = createProps();
+  const onCatalogChange = jest.fn();
+  render(
+    <DatabaseSelector
+      {...props}
+      db={{
+        id: 1,
+        database_name: 'postgres',
+        backend: 'postgresql',
+        allow_multi_catalog: true,
+      }}
+      onCatalogChange={onCatalogChange}
+    />,
+    { useRedux: true, store },
+  );
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(catalogApiRoute)).toHaveLength(1),
+  );
+  await userEvent.click(
+    screen.getByRole('combobox', {
+      name: 'Select catalog or type to search catalogs',
+    }),
+  );
+  await userEvent.click(
+    await screen.findByRole('option', { name: 'demo.metrics' }),
+  );
+  expect(onCatalogChange).toHaveBeenCalledWith('demo%2Emetrics');
+});
+
+test('shows decoded schema dots for a preselected and newly selected value', async () => {
+  fetchMock.removeRoute(schemaApiRoute);
+  fetchMock.get(schemaApiRoute, {
+    result: ['feature%2Ffoo%2Emain', 'other%2Ebranch'],
+  });
+  const props = createProps();
+  const onSchemaChange = jest.fn();
+  render(
+    <DatabaseSelector
+      {...props}
+      schema="feature%2Ffoo%2Emain"
+      onSchemaChange={onSchemaChange}
+    />,
+    { useRedux: true, store },
+  );
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(schemaApiRoute)).toHaveLength(1),
+  );
+  await userEvent.click(
+    screen.getByRole('combobox', {
+      name: 'Select schema: feature%2Ffoo.main',
+    }),
+  );
+  await userEvent.click(
+    await screen.findByRole('option', { name: 'other.branch' }),
+  );
+  expect(onSchemaChange).toHaveBeenCalledWith('other%2Ebranch');
+});
+
 test('Sends the correct db when changing the database', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />, { useRedux: true, store });
@@ -364,6 +433,58 @@ test('Sends the correct db when changing the database', async () => {
         backend: 'mysql',
       }),
     ),
+  );
+});
+
+test('clears the schema error banner after an invalidateTags-driven refetch', async () => {
+  // Regression test for the OAuth2 crud symptom (follow-up to PR #41101).
+  // The schema fetch fails and shows an error banner held in DatabaseSelector's
+  // local `errorPayload` state. After the OAuth2 redirect completes,
+  // OAuth2RedirectMessage dispatches invalidateTags, which refetches the
+  // subscribed schemas query. The banner must disappear once the refetch
+  // succeeds — previously it lingered because useSchemas only fired onSuccess
+  // through its lazy trigger, not on the subscribed refetch.
+  fetchMock.removeRoutes().clearHistory();
+  fetchMock.get(databaseApiRoute, fakeDatabaseApiResult, {
+    name: databaseApiRoute,
+  });
+  fetchMock.get(catalogApiRoute, fakeCatalogApiResult);
+  fetchMock.get(tablesApiRoute, fakeFunctionNamesApiResult);
+  let failSchemas = true;
+  fetchMock.get(schemaApiRoute, () =>
+    failSchemas
+      ? {
+          status: 500,
+          body: {
+            errors: [
+              {
+                error_type: 'GENERIC_DB_ENGINE_ERROR',
+                level: 'error',
+                message: 'Schemas could not be loaded',
+                extra: {},
+              },
+            ],
+          },
+        }
+      : fakeSchemaApiResult,
+  );
+
+  const props = createProps();
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+
+  // The error banner appears once the initial schemas fetch fails.
+  expect(await screen.findByText('Unexpected error')).toBeInTheDocument();
+
+  // Simulate the OAuth2 redirect completing: the stored token makes the next
+  // fetch succeed, and the redirect handler invalidates the Schemas tag.
+  failSchemas = false;
+  act(() => {
+    store.dispatch(api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]));
+  });
+
+  // The subscribed query refetches successfully and the banner is cleared.
+  await waitFor(() =>
+    expect(screen.queryByText('Unexpected error')).not.toBeInTheDocument(),
   );
 });
 
@@ -389,4 +510,22 @@ test('Sends the correct schema when changing the schema', async () => {
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
   expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
+});
+
+test('should include expose_in_sqllab filter when filterBySqlLab is true', async () => {
+  const props = createProps();
+  render(<DatabaseSelector {...props} sqlLabMode={false} filterBySqlLab />, {
+    useRedux: true,
+    store,
+  });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  await userEvent.click(select);
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(databaseApiRoute);
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall.url).toContain('expose_in_sqllab');
+  });
 });

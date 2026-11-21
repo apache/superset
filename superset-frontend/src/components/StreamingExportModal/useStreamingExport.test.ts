@@ -48,11 +48,11 @@ global.URL.revokeObjectURL = jest.fn();
 
 global.fetch = jest.fn();
 
-const { SupersetClient } = jest.requireMock('@superset-ui/core');
-
 beforeEach(() => {
   jest.clearAllMocks();
   global.fetch = jest.fn();
+  const { SupersetClient } = jest.requireMock('@superset-ui/core');
+  SupersetClient.getCSRFToken.mockResolvedValue('mock-csrf-token');
   SupersetClient.getGuestToken.mockReturnValue(undefined);
 });
 
@@ -228,6 +228,7 @@ test('sets ERROR status and calls onError when fetch rejects', async () => {
 // URL prefix guard tests - prevent regression of missing app root prefix
 const { applicationRoot } = jest.requireMock('src/utils/getBootstrapData');
 const { makeUrl } = jest.requireMock('src/utils/pathUtils');
+const { SupersetClient } = jest.requireMock('@superset-ui/core');
 
 const createPrefixTestMockFetch = () =>
   jest.fn().mockResolvedValue({
@@ -242,6 +243,107 @@ const createPrefixTestMockFetch = () =>
     },
   });
 
+test('guest-token chart exports skip CSRF fetch and include guest_token form field', async () => {
+  applicationRoot.mockReturnValue('');
+  SupersetClient.getGuestToken.mockReturnValue('guest-token');
+  SupersetClient.getCSRFToken.mockRejectedValue(new Error('CSRF forbidden'));
+
+  const csvData = new TextEncoder().encode('id,name\n1,Alice\n');
+  let readCount = 0;
+  const mockFetch = jest.fn().mockResolvedValue({
+    ok: true,
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename="embedded.csv"',
+    }),
+    body: {
+      getReader: () => ({
+        read: jest.fn().mockImplementation(() => {
+          readCount += 1;
+          if (readCount === 1) {
+            return Promise.resolve({ done: false, value: csvData });
+          }
+          return Promise.resolve({ done: true, value: undefined });
+        }),
+      }),
+    },
+  });
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/chart/data',
+      payload: { datasource: '1__table', viz_type: 'table' },
+      exportType: 'csv',
+      exportSource: 'chart',
+      expectedRows: 100000,
+    });
+  });
+
+  await waitFor(() => {
+    expect(result.current.progress.status).toBe(ExportStatus.COMPLETED);
+  });
+
+  expect(SupersetClient.getCSRFToken).not.toHaveBeenCalled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  const [, requestInit] = mockFetch.mock.calls[0];
+  const body = requestInit.body as URLSearchParams;
+
+  expect(body.get('guest_token')).toBe('guest-token');
+  expect(body.get('expected_rows')).toBe('100000');
+  expect(body.get('form_data')).toBe(
+    JSON.stringify({ datasource: '1__table', viz_type: 'table' }),
+  );
+});
+
+test('non-guest chart exports fetch CSRF and include X-CSRFToken header', async () => {
+  applicationRoot.mockReturnValue('');
+
+  const csvData = new TextEncoder().encode('id,name\n1,Alice\n');
+  let readCount = 0;
+  const mockFetch = jest.fn().mockResolvedValue({
+    ok: true,
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename="chart.csv"',
+    }),
+    body: {
+      getReader: () => ({
+        read: jest.fn().mockImplementation(() => {
+          readCount += 1;
+          if (readCount === 1) {
+            return Promise.resolve({ done: false, value: csvData });
+          }
+          return Promise.resolve({ done: true, value: undefined });
+        }),
+      }),
+    },
+  });
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/chart/data',
+      payload: { datasource: '1__table', viz_type: 'table' },
+      exportType: 'csv',
+      exportSource: 'chart',
+    });
+  });
+
+  await waitFor(() => {
+    expect(result.current.progress.status).toBe(ExportStatus.COMPLETED);
+  });
+
+  expect(SupersetClient.getCSRFToken).toHaveBeenCalledTimes(1);
+  const [, requestInit] = mockFetch.mock.calls[0];
+  expect(requestInit.headers).toMatchObject({
+    'X-CSRFToken': 'mock-csrf-token',
+  });
+  expect((requestInit.body as URLSearchParams).has('guest_token')).toBe(false);
+});
+
 test('chart streaming export includes guest token in form body when configured', async () => {
   SupersetClient.getGuestToken.mockReturnValue('guest-token');
   const mockFetch = createPrefixTestMockFetch();
@@ -254,6 +356,7 @@ test('chart streaming export includes guest token in form body when configured',
       url: '/api/v1/chart/data',
       payload: { datasource: '1__table', viz_type: 'table' },
       exportType: 'csv',
+      exportSource: 'chart',
     });
   });
 
@@ -266,6 +369,70 @@ test('chart streaming export includes guest token in form body when configured',
   expect(request.body.get('form_data')).toBe(
     JSON.stringify({ datasource: '1__table', viz_type: 'table' }),
   );
+});
+
+test('SQL Lab exports fetch CSRF and omit guest_token even when guest token exists', async () => {
+  applicationRoot.mockReturnValue('');
+  SupersetClient.getGuestToken.mockReturnValue('guest-token');
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/sqllab/export_streaming/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+      exportSource: 'sqllab',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  expect(SupersetClient.getCSRFToken).toHaveBeenCalledTimes(1);
+  const [, requestInit] = mockFetch.mock.calls[0];
+  const body = requestInit.body as URLSearchParams;
+
+  expect(requestInit.headers).toMatchObject({
+    'X-CSRFToken': 'mock-csrf-token',
+  });
+  expect(body.get('client_id')).toBe('test-id');
+  expect(body.has('guest_token')).toBe(false);
+});
+
+test('guest tokens do not bypass CSRF for unclassified non-client exports', async () => {
+  applicationRoot.mockReturnValue('');
+  SupersetClient.getGuestToken.mockReturnValue('guest-token');
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/other/export_streaming/',
+      payload: { export_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  expect(SupersetClient.getCSRFToken).toHaveBeenCalledTimes(1);
+  const [, requestInit] = mockFetch.mock.calls[0];
+  const body = requestInit.body as URLSearchParams;
+
+  expect(requestInit.headers).toMatchObject({
+    'X-CSRFToken': 'mock-csrf-token',
+  });
+  expect(body.has('guest_token')).toBe(false);
 });
 
 test('URL prefix guard applies prefix to unprefixed relative URL when app root is configured', async () => {

@@ -27,7 +27,7 @@ from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
-from superset.utils.dates import datetime_to_epoch
+from superset.utils.dates import datetime_to_epoch, naive_utcnow
 
 
 class LogDAO(BaseDAO[Log]):
@@ -142,7 +142,7 @@ class LogDAO(BaseDAO[Log]):
                     "item_title": item_title,
                     "time": datetime_to_epoch(log.dttm),
                     "time_delta_humanized": humanize.naturaltime(
-                        datetime.utcnow() - log.dttm
+                        naive_utcnow() - log.dttm
                     ),
                 }
             )

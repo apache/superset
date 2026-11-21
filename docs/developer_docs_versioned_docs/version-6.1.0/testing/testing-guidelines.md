@@ -61,7 +61,7 @@ One of the most important points of RTL is accessibility and this is also a very
 By using the `name` option we can point to the items by their accessible name. For example:
 
 ```jsx
-screen.getByRole('button', { name: /hello world/i })
+screen.getByRole('button', { name: /hello world/i });
 ```
 
 Using the `name` property also avoids breaking the tests in the future if other components with the same role are added.
@@ -108,10 +108,12 @@ Cleaning the state of the application, such as resetting the DB, or in general, 
 - Unnecessary when using `cy.get()`. When the selector should wait for a request to happen, aliases would come in handy:
 
 ```js
-cy.intercept('GET', '/users', [{ name: 'Maggy' }, { name: 'Joan' }]).as('getUsers')
-cy.get('#fetch').click()
-cy.wait('@getUsers') // <--- wait explicitly for this route to finish
-cy.get('table tr').should('have.length', 2)
+cy.intercept('GET', '/users', [{ name: 'Maggy' }, { name: 'Joan' }]).as(
+  'getUsers',
+);
+cy.get('#fetch').click();
+cy.wait('@getUsers'); // <--- wait explicitly for this route to finish
+cy.get('table tr').should('have.length', 2);
 ```
 
 ### Accessibility and Resilience

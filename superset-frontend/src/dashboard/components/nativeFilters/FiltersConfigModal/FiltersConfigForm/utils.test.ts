@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column } from '@superset-ui/core';
+import { Column, DatasourceType } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ChartsState,
@@ -31,6 +31,8 @@ import {
   mostUsedDataset,
   doesColumnMatchFilterType,
   getTimeGrainOptions,
+  mapSemanticTypeToGenericDataType,
+  doesChartMatchFilterDatasource,
 } from './utils';
 
 // Test hasTemporalColumns - validates time range pre-filter visibility logic
@@ -45,10 +47,13 @@ const createDataset = (
 
 // Typed fixture helpers for mostUsedDataset tests
 const createDatasourcesState = (
-  entries: Array<{ key: string; id: number }>,
+  entries: Array<{ key: string; id: number; type?: DatasourceType }>,
 ): DatasourcesState =>
   Object.fromEntries(
-    entries.map(({ key, id }) => [key, { id } as Partial<Datasource>]),
+    entries.map(({ key, id, type }) => [
+      key,
+      (type ? { id, type } : { id }) as Partial<Datasource>,
+    ]),
   ) as DatasourcesState;
 
 const createChartsState = (
@@ -150,7 +155,7 @@ test('shouldShowTimeRangePicker returns false when dataset has no temporal colum
 // Test mostUsedDataset - finds the dataset used by the most charts
 // Used to pre-select dataset when creating new filters
 
-test('mostUsedDataset returns the dataset ID used by most charts', () => {
+test('mostUsedDataset returns the binding of the datasource used by most charts', () => {
   const datasets = createDatasourcesState([
     { key: '7__table', id: 7 },
     { key: '8__table', id: 8 },
@@ -160,7 +165,10 @@ test('mostUsedDataset returns the dataset ID used by most charts', () => {
     { key: '2', datasource: '7__table' },
     { key: '3', datasource: '8__table' },
   ]);
-  expect(mostUsedDataset(datasets, charts)).toBe(7);
+  expect(mostUsedDataset(datasets, charts)).toEqual({
+    id: 7,
+    type: DatasourceType.Table,
+  });
 });
 
 test('mostUsedDataset returns undefined when charts is empty', () => {
@@ -183,13 +191,74 @@ test('mostUsedDataset skips charts without form_data', () => {
     { key: '2' }, // No form_data
     { key: '3' }, // No form_data
   ]);
-  expect(mostUsedDataset(datasets, charts)).toBe(7);
+  expect(mostUsedDataset(datasets, charts)).toEqual({
+    id: 7,
+    type: DatasourceType.Table,
+  });
 });
 
 test('mostUsedDataset handles single chart correctly', () => {
   const datasets = createDatasourcesState([{ key: '8__table', id: 8 }]);
   const charts = createChartsState([{ key: '1', datasource: '8__table' }]);
-  expect(mostUsedDataset(datasets, charts)).toBe(8);
+  expect(mostUsedDataset(datasets, charts)).toEqual({
+    id: 8,
+    type: DatasourceType.Table,
+  });
+});
+
+test('mostUsedDataset types a semantic view from its dashboard datasource entry', () => {
+  const datasets = createDatasourcesState([
+    { key: '2__semantic_view', id: 2, type: DatasourceType.SemanticView },
+  ]);
+  const charts = createChartsState([
+    { key: '1', datasource: '2__semantic_view' },
+    { key: '2', datasource: '2__semantic_view' },
+  ]);
+  expect(mostUsedDataset(datasets, charts)).toEqual({
+    id: 2,
+    type: DatasourceType.SemanticView,
+  });
+});
+
+test('mostUsedDataset keeps each type when a dataset and a semantic view share an id', () => {
+  const datasets = createDatasourcesState([
+    { key: '2__table', id: 2, type: DatasourceType.Table },
+    { key: '2__semantic_view', id: 2, type: DatasourceType.SemanticView },
+  ]);
+  const semanticMostUsed = createChartsState([
+    { key: '1', datasource: '2__table' },
+    { key: '2', datasource: '2__semantic_view' },
+    { key: '3', datasource: '2__semantic_view' },
+  ]);
+  const datasetMostUsed = createChartsState([
+    { key: '1', datasource: '2__table' },
+    { key: '2', datasource: '2__table' },
+    { key: '3', datasource: '2__semantic_view' },
+  ]);
+  expect(mostUsedDataset(datasets, semanticMostUsed)).toEqual({
+    id: 2,
+    type: DatasourceType.SemanticView,
+  });
+  expect(mostUsedDataset(datasets, datasetMostUsed)).toEqual({
+    id: 2,
+    type: DatasourceType.Table,
+  });
+});
+
+test('mostUsedDataset prefers a SQL dataset that is used more on a mixed dashboard', () => {
+  const datasets = createDatasourcesState([
+    { key: '7__table', id: 7, type: DatasourceType.Table },
+    { key: '2__semantic_view', id: 2, type: DatasourceType.SemanticView },
+  ]);
+  const charts = createChartsState([
+    { key: '1', datasource: '7__table' },
+    { key: '2', datasource: '7__table' },
+    { key: '3', datasource: '2__semantic_view' },
+  ]);
+  expect(mostUsedDataset(datasets, charts)).toEqual({
+    id: 7,
+    type: DatasourceType.Table,
+  });
 });
 
 // Test doesColumnMatchFilterType - validates column compatibility with filter types
@@ -222,6 +291,47 @@ test('doesColumnMatchFilterType returns true when column type matches filter_ran
 test('doesColumnMatchFilterType returns false when column type does not match filter_range', () => {
   const stringColumn = createColumn('name', GenericDataType.String);
   expect(doesColumnMatchFilterType('filter_range', stringColumn)).toBe(false);
+});
+
+test('doesColumnMatchFilterType offers only numeric semantic dimensions to filter_range', () => {
+  const numeric = createColumn('revenue', GenericDataType.Numeric);
+  const untyped = createColumn('payload');
+  const string = createColumn('region', GenericDataType.String);
+  const temporal = createColumn('ordered_at', GenericDataType.Temporal);
+  const semantic = DatasourceType.SemanticView;
+  expect(doesColumnMatchFilterType('filter_range', numeric, semantic)).toBe(
+    true,
+  );
+  // A semantic range filter has no runtime non-numeric check, so an
+  // unrecognised type must not be offered for >= / <= comparisons.
+  expect(doesColumnMatchFilterType('filter_range', untyped, semantic)).toBe(
+    false,
+  );
+  expect(doesColumnMatchFilterType('filter_range', string, semantic)).toBe(
+    false,
+  );
+  expect(doesColumnMatchFilterType('filter_range', temporal, semantic)).toBe(
+    false,
+  );
+});
+
+test('doesColumnMatchFilterType keeps untyped dataset columns for filter_range', () => {
+  const untyped = createColumn('payload');
+  expect(
+    doesColumnMatchFilterType('filter_range', untyped, DatasourceType.Table),
+  ).toBe(true);
+  expect(doesColumnMatchFilterType('filter_range', untyped)).toBe(true);
+});
+
+test('doesColumnMatchFilterType keeps untyped semantic dimensions for other filters', () => {
+  const untyped = createColumn('payload');
+  expect(
+    doesColumnMatchFilterType(
+      'filter_select',
+      untyped,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(true);
 });
 
 test('doesColumnMatchFilterType returns true when column type matches filter_time', () => {
@@ -302,4 +412,154 @@ test('getTimeGrainOptions falls back to value when tuple label is empty', () => 
     { value: 'P1D', label: 'P1D' },
     { value: 'P1W', label: 'Week' },
   ]);
+});
+
+test('mapSemanticTypeToGenericDataType maps numeric semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('int64')).toBe(
+    GenericDataType.Numeric,
+  );
+  expect(mapSemanticTypeToGenericDataType('decimal128(10,2)')).toBe(
+    GenericDataType.Numeric,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType maps temporal semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('timestamp[ms]')).toBe(
+    GenericDataType.Temporal,
+  );
+  expect(mapSemanticTypeToGenericDataType('date32[day]')).toBe(
+    GenericDataType.Temporal,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType maps string and boolean semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('string')).toBe(
+    GenericDataType.String,
+  );
+  expect(mapSemanticTypeToGenericDataType('bool')).toBe(
+    GenericDataType.Boolean,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType returns undefined for unknown types', () => {
+  expect(mapSemanticTypeToGenericDataType('struct<a:int64>')).toBeUndefined();
+  expect(mapSemanticTypeToGenericDataType(undefined)).toBeUndefined();
+});
+
+test('doesChartMatchFilterDatasource requires matching datasource type for equal IDs', () => {
+  const loadedDatasets = {
+    '7__table': { id: 7, datasource_type: DatasourceType.Table },
+    '7__semantic_view': { id: 7, datasource_type: DatasourceType.SemanticView },
+  } as unknown as DatasourcesState;
+
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__table',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(false);
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__semantic_view',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(true);
+});
+
+test('doesChartMatchFilterDatasource falls back to datasource UID parsing', () => {
+  const loadedDatasets = {} as DatasourcesState;
+
+  expect(
+    doesChartMatchFilterDatasource('7__semantic_view', loadedDatasets, 7),
+  ).toBe(false);
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__semantic_view',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(true);
+});
+
+test('fetchSemanticViewStructure returns name, dimensions, and metrics from the structure payload', async () => {
+  const fetchMock = require('fetch-mock').default;
+  const { fetchSemanticViewStructure: fetchStructure } = require('./utils');
+  fetchMock.get('glob:*/api/v1/semantic_view/9101/structure', {
+    result: {
+      name: 'orders',
+      dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+      metrics: [{ name: 'order_count', definition: 'COUNT(*)' }],
+    },
+  });
+
+  const structure = await fetchStructure(9101);
+
+  expect(structure.name).toBe('orders');
+  expect(structure.dimensions).toEqual([
+    { name: 'Orders Status', type: 'VARCHAR' },
+  ]);
+  expect(structure.metrics).toEqual([
+    { name: 'order_count', definition: 'COUNT(*)' },
+  ]);
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+});
+
+test('fetchSemanticViewStructure defaults missing arrays to empty', async () => {
+  const fetchMock = require('fetch-mock').default;
+  const { fetchSemanticViewStructure: fetchStructure } = require('./utils');
+  fetchMock.get('glob:*/api/v1/semantic_view/9102/structure', {
+    result: { name: 'sparse' },
+  });
+
+  const structure = await fetchStructure(9102);
+
+  expect(structure.dimensions).toEqual([]);
+  expect(structure.metrics).toEqual([]);
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+});
+
+test('semanticViewDimensionsToColumns maps dimension fields incl. temporal detection', () => {
+  const { semanticViewDimensionsToColumns: toColumns } = require('./utils');
+  // Wire-shaped types: /structure serialises pyarrow types
+  // (timestamp[us], string, double), not SQL type names.
+  const columns = toColumns([
+    { name: 'ordered_at', type: 'timestamp[us]' },
+    { name: 'status', type: 'string' },
+    { name: 'amount', type: 'double' },
+  ]);
+
+  // type_generic is asserted explicitly: downstream filter-type logic (e.g.
+  // the Numerical range column filter) selects on it, so a regression in
+  // mapSemanticTypeToGenericDataType must fail here, not pass silently.
+  expect(columns[0]).toMatchObject({
+    column_name: 'ordered_at',
+    type: 'timestamp[us]',
+    is_dttm: true,
+    filterable: true,
+    type_generic: GenericDataType.Temporal,
+  });
+  expect(columns[1]).toMatchObject({
+    column_name: 'status',
+    is_dttm: false,
+    filterable: true,
+    type_generic: GenericDataType.String,
+  });
+  expect(columns[2]).toMatchObject({
+    column_name: 'amount',
+    is_dttm: false,
+    filterable: true,
+    type_generic: GenericDataType.Numeric,
+  });
+});
+
+test('semanticViewDimensionsToColumns returns empty for empty dimensions', () => {
+  const { semanticViewDimensionsToColumns: toColumns } = require('./utils');
+  expect(toColumns([])).toEqual([]);
 });

@@ -102,8 +102,9 @@ storybook/stories/<package>/index.js
    ```
 
    Use the `|` separator for nested stories:
+
    ```javascript
-   storyPath: '@superset-ui/package|Category|Subcategory'
+   storyPath: '@superset-ui/package|Category|Subcategory';
    ```
 
 ## Best Practices

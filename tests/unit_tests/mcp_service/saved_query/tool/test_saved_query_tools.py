@@ -70,7 +70,7 @@ class TestSavedQueryFilterSchema:
         assert f.col == "catalog"
 
     def test_valid_created_by_fk_filter_accepted(self):
-        """created_by_fk enables filtering by the owner user ID."""
+        """created_by_fk enables filtering by the creator user ID."""
         f = SavedQueryFilter(col="created_by_fk", opr="eq", value=42)
         assert f.col == "created_by_fk"
 
@@ -232,7 +232,7 @@ async def test_get_saved_query_info_not_found(mock_find, mcp_server):
         result = await client.call_tool(
             "get_saved_query_info", {"request": {"identifier": 999}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert result.structured_content["error_type"] == "not_found"
 
 
 @patch("superset.daos.query.SavedQueryDAO.list")

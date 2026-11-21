@@ -33,115 +33,107 @@ TreeSelect is a select component that allows users to select from a tree structu
 <StoryWithControls
   component="TreeSelect"
   props={{
-  allowClear: true,
-  disabled: false,
-  multiple: false,
-  placeholder: "Please select",
-  showSearch: true,
-  size: "middle",
-  treeCheckable: false,
-  treeDefaultExpandAll: true,
-  treeLine: false,
-  variant: "outlined",
-  treeData: [
+    allowClear: true,
+    disabled: false,
+    multiple: false,
+    placeholder: 'Please select',
+    showSearch: true,
+    size: 'middle',
+    treeCheckable: false,
+    treeDefaultExpandAll: true,
+    treeLine: false,
+    variant: 'outlined',
+    treeData: [
+      {
+        title: 'Node1',
+        value: '0-0',
+        children: [
+          {
+            title: 'Child Node1',
+            value: '0-0-0',
+          },
+          {
+            title: 'Child Node2',
+            value: '0-0-1',
+          },
+        ],
+      },
+      {
+        title: 'Node2',
+        value: '0-1',
+        children: [
+          {
+            title: 'Child Node3',
+            value: '0-1-0',
+          },
+        ],
+      },
+    ],
+  }}
+  controls={[
     {
-      title: "Node1",
-      value: "0-0",
-      children: [
-        {
-          title: "Child Node1",
-          value: "0-0-0"
-        },
-        {
-          title: "Child Node2",
-          value: "0-0-1"
-        }
-      ]
+      name: 'allowClear',
+      label: 'Allow Clear',
+      type: 'boolean',
+      description: 'Whether to allow clearing the selected value.',
     },
     {
-      title: "Node2",
-      value: "0-1",
-      children: [
-        {
-          title: "Child Node3",
-          value: "0-1-0"
-        }
-      ]
-    }
-  ]
-}}
-  controls={[
-  {
-    name: "allowClear",
-    label: "Allow Clear",
-    type: "boolean",
-    description: "Whether to allow clearing the selected value."
-  },
-  {
-    name: "disabled",
-    label: "Disabled",
-    type: "boolean",
-    description: "Whether the component is disabled."
-  },
-  {
-    name: "multiple",
-    label: "Multiple",
-    type: "boolean",
-    description: "Whether to allow multiple selections."
-  },
-  {
-    name: "placeholder",
-    label: "Placeholder",
-    type: "text",
-    description: "Placeholder text for the input field."
-  },
-  {
-    name: "showSearch",
-    label: "Show Search",
-    type: "boolean",
-    description: "Whether to show the search input."
-  },
-  {
-    name: "size",
-    label: "Size",
-    type: "select",
-    options: [
-      "large",
-      "middle",
-      "small"
-    ],
-    description: "Size of the component."
-  },
-  {
-    name: "treeCheckable",
-    label: "Tree Checkable",
-    type: "boolean",
-    description: "Whether to show checkable tree nodes."
-  },
-  {
-    name: "treeDefaultExpandAll",
-    label: "Tree Default Expand All",
-    type: "boolean",
-    description: "Whether to expand all tree nodes by default."
-  },
-  {
-    name: "treeLine",
-    label: "Tree Line",
-    type: "boolean",
-    description: "Whether to show tree lines."
-  },
-  {
-    name: "variant",
-    label: "Variant",
-    type: "select",
-    options: [
-      "outlined",
-      "borderless",
-      "filled"
-    ],
-    description: "Variant of the component."
-  }
-]}
+      name: 'disabled',
+      label: 'Disabled',
+      type: 'boolean',
+      description: 'Whether the component is disabled.',
+    },
+    {
+      name: 'multiple',
+      label: 'Multiple',
+      type: 'boolean',
+      description: 'Whether to allow multiple selections.',
+    },
+    {
+      name: 'placeholder',
+      label: 'Placeholder',
+      type: 'text',
+      description: 'Placeholder text for the input field.',
+    },
+    {
+      name: 'showSearch',
+      label: 'Show Search',
+      type: 'boolean',
+      description: 'Whether to show the search input.',
+    },
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'select',
+      options: ['large', 'middle', 'small'],
+      description: 'Size of the component.',
+    },
+    {
+      name: 'treeCheckable',
+      label: 'Tree Checkable',
+      type: 'boolean',
+      description: 'Whether to show checkable tree nodes.',
+    },
+    {
+      name: 'treeDefaultExpandAll',
+      label: 'Tree Default Expand All',
+      type: 'boolean',
+      description: 'Whether to expand all tree nodes by default.',
+    },
+    {
+      name: 'treeLine',
+      label: 'Tree Line',
+      type: 'boolean',
+      description: 'Whether to show tree lines.',
+    },
+    {
+      name: 'variant',
+      label: 'Variant',
+      type: 'select',
+      options: ['outlined', 'borderless', 'filled'],
+      description: 'Variant of the component.',
+    },
+  ]}
 />
 
 ## Try It
@@ -258,19 +250,19 @@ function TreeLinesDemo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `allowClear` | `boolean` | `true` | Whether to allow clearing the selected value. |
-| `disabled` | `boolean` | `false` | Whether the component is disabled. |
-| `multiple` | `boolean` | `false` | Whether to allow multiple selections. |
-| `placeholder` | `string` | `"Please select"` | Placeholder text for the input field. |
-| `showSearch` | `boolean` | `true` | Whether to show the search input. |
-| `size` | `string` | `"middle"` | Size of the component. |
-| `treeCheckable` | `boolean` | `false` | Whether to show checkable tree nodes. |
-| `treeDefaultExpandAll` | `boolean` | `true` | Whether to expand all tree nodes by default. |
-| `treeLine` | `boolean` | `false` | Whether to show tree lines. |
-| `variant` | `string` | `"outlined"` | Variant of the component. |
-| `treeData` | `any` | `[{"title":"Node1","value":"0-0","children":[{"title":"Child Node1","value":"0-0-0"},{"title":"Child Node2","value":"0-0-1"}]},{"title":"Node2","value":"0-1","children":[{"title":"Child Node3","value":"0-1-0"}]}]` | - |
+| Prop                   | Type      | Default                                                                                                                                                                                                               | Description                                   |
+| ---------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `allowClear`           | `boolean` | `true`                                                                                                                                                                                                                | Whether to allow clearing the selected value. |
+| `disabled`             | `boolean` | `false`                                                                                                                                                                                                               | Whether the component is disabled.            |
+| `multiple`             | `boolean` | `false`                                                                                                                                                                                                               | Whether to allow multiple selections.         |
+| `placeholder`          | `string`  | `"Please select"`                                                                                                                                                                                                     | Placeholder text for the input field.         |
+| `showSearch`           | `boolean` | `true`                                                                                                                                                                                                                | Whether to show the search input.             |
+| `size`                 | `string`  | `"middle"`                                                                                                                                                                                                            | Size of the component.                        |
+| `treeCheckable`        | `boolean` | `false`                                                                                                                                                                                                               | Whether to show checkable tree nodes.         |
+| `treeDefaultExpandAll` | `boolean` | `true`                                                                                                                                                                                                                | Whether to expand all tree nodes by default.  |
+| `treeLine`             | `boolean` | `false`                                                                                                                                                                                                               | Whether to show tree lines.                   |
+| `variant`              | `string`  | `"outlined"`                                                                                                                                                                                                          | Variant of the component.                     |
+| `treeData`             | `any`     | `[{"title":"Node1","value":"0-0","children":[{"title":"Child Node1","value":"0-0-0"},{"title":"Child Node2","value":"0-0-1"}]},{"title":"Node2","value":"0-1","children":[{"title":"Child Node3","value":"0-1-0"}]}]` | -                                             |
 
 ## Import
 

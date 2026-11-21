@@ -1,0 +1,392 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""MCP tool: list_metrics
+
+Unified metric discovery across built-in datasets and external semantic views.
+"""
+
+import logging
+from dataclasses import dataclass, field
+from typing import Any
+
+from fastmcp import Context
+from sqlalchemy.orm import Query
+from superset_core.mcp.decorators import tool, ToolAnnotations
+
+from superset.daos.dataset import DatasetDAO
+from superset.daos.semantic_layer import SemanticViewDAO
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, event_logger
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
+from superset.mcp_service.semantic_layer.schemas import (
+    DimensionInfo,
+    ListMetricsRequest,
+    MetricDiscoveryRefusal,
+    MetricInfo,
+    MetricList,
+    SemanticLayerError,
+)
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.models import ColumnMetadata, MetricMetadata, SemanticView
+
+logger = logging.getLogger(__name__)
+
+
+def _matches_search(text: str | None, search: str) -> bool:
+    if not text:
+        return False
+    return search.lower() in text.lower()
+
+
+def _builtin_compatible_dims(dataset: Any) -> list[DimensionInfo]:
+    """Return groupby-enabled columns as compatible dimensions for a built-in metric."""
+    return [
+        DimensionInfo(
+            name=col.column_name,
+            verbose_name=col.verbose_name or None,
+            description=col.description or None,
+            type=col.type or None,
+            is_dttm=bool(col.is_dttm),
+            groupby=bool(col.groupby),
+            filterable=bool(col.filterable),
+            source="builtin",
+        )
+        for col in dataset.columns
+        if col.groupby
+    ]
+
+
+def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
+    """Collect metrics from built-in SqlaTable datasets."""
+    from sqlalchemy.orm import subqueryload
+
+    from superset.connectors.sqla.models import SqlaTable
+
+    with event_logger.log_context(action="mcp.list_metrics.builtin_query"):
+        if request.dataset_id is not None:
+            from sqlalchemy.orm import subqueryload
+
+            from superset.connectors.sqla.models import SqlaTable
+
+            dataset: SqlaTable | None = DatasetDAO.find_by_id(
+                request.dataset_id,
+                query_options=[
+                    subqueryload(SqlaTable.columns),
+                    subqueryload(SqlaTable.metrics),
+                ],
+            )
+            datasets: list[SqlaTable] = [dataset] if dataset else []
+        else:
+            from sqlalchemy.orm import subqueryload
+
+            from superset.connectors.sqla.models import SqlaTable
+
+            # Use _apply_base_filter with explicit eager loading to avoid
+            # N+1 queries when iterating dataset.metrics / dataset.columns.
+            query: Query = db.session.query(SqlaTable).options(
+                subqueryload(SqlaTable.columns),
+                subqueryload(SqlaTable.metrics),
+            )
+            datasets = DatasetDAO._apply_base_filter(query).all()
+
+    results: list[MetricInfo] = []
+    for dataset in datasets:
+        compat_dims = (
+            _builtin_compatible_dims(dataset)
+            if request.include_compatible_dimensions
+            else []
+        )
+        for metric in dataset.metrics:
+            name = metric.metric_name or ""
+            desc = metric.description or ""
+            if request.search and not (
+                _matches_search(name, request.search)
+                or _matches_search(desc, request.search)
+            ):
+                continue
+            results.append(
+                MetricInfo(
+                    name=name,
+                    verbose_name=metric.verbose_name or None,
+                    description=desc or None,
+                    expression=metric.expression or None,
+                    d3format=metric.d3format or None,
+                    warning_text=metric.warning_text or None,
+                    source="builtin",
+                    dataset_id=dataset.id,
+                    dataset_name=dataset.table_name,
+                    compatible_dimensions=compat_dims,
+                )
+            )
+    return results
+
+
+def _collect_view_metrics(
+    view: SemanticView, request: ListMetricsRequest
+) -> list[MetricInfo]:
+    """Build a complete view result before publishing any of its metrics."""
+    view_metrics: list[MetricInfo] = []
+    raw_metrics: list[MetricMetadata] = view.metrics
+    all_cols: dict[str, ColumnMetadata] = {
+        col.column_name: col
+        for col in (view.columns if request.include_compatible_dimensions else [])
+    }
+    for metric in raw_metrics:
+        name: str = metric.metric_name or ""
+        desc: str = metric.description or ""
+        if request.search and not (
+            _matches_search(name, request.search)
+            or _matches_search(desc, request.search)
+        ):
+            continue
+        compat_dims: list[DimensionInfo] = []
+        if request.include_compatible_dimensions:
+            # Unlike built-in SQL datasets, external views enforce
+            # per-metric compatibility, so dimensions must be resolved
+            # per metric rather than reused across all metrics.
+            compatible_names: list[str] = view.get_compatible_dimensions([name], [])
+            compat_dims = [
+                DimensionInfo(
+                    name=dim_name,
+                    verbose_name=all_cols[dim_name].verbose_name
+                    if dim_name in all_cols
+                    else None,
+                    description=all_cols[dim_name].description
+                    if dim_name in all_cols
+                    else None,
+                    type=all_cols[dim_name].type if dim_name in all_cols else None,
+                    is_dttm=all_cols[dim_name].is_dttm
+                    if dim_name in all_cols
+                    else False,
+                    groupby=all_cols[dim_name].groupby
+                    if dim_name in all_cols
+                    else True,
+                    filterable=all_cols[dim_name].filterable
+                    if dim_name in all_cols
+                    else True,
+                    source="external",
+                )
+                for dim_name in compatible_names
+            ]
+        view_metrics.append(
+            MetricInfo(
+                name=name,
+                verbose_name=metric.verbose_name or None,
+                description=desc or None,
+                expression=metric.expression or None,
+                source="external",
+                view_id=view.id,
+                view_name=view.name,
+                semantic_selection_version=(
+                    view.implementation.selection_identity_version
+                ),
+                compatible_dimensions=compat_dims,
+            )
+        )
+    return view_metrics
+
+
+@dataclass
+class _ExternalMetricCollection:
+    """Usable metrics and source-level discovery outcomes before pagination."""
+
+    metrics: list[MetricInfo] = field(default_factory=list)
+    refused_views: list[MetricDiscoveryRefusal] = field(default_factory=list)
+    incomplete: bool = False
+
+
+async def _collect_external_metrics(
+    request: ListMetricsRequest,
+    ctx: Context,
+) -> _ExternalMetricCollection:
+    """Collect whole usable views and mark failures without exposing private details."""
+    with event_logger.log_context(action="mcp.list_metrics.external_query"):
+        if request.view_id is not None:
+            view: SemanticView | None = SemanticViewDAO.find_by_id(request.view_id)
+            views: list[SemanticView] = [view] if view else []
+        else:
+            # find_accessible filters at SQL level, avoiding a per-row
+            # Python permission check and the audit noise of raise_for_access.
+            views = SemanticViewDAO.find_accessible()
+
+    await ctx.debug("Found %d semantic views to scan for metrics" % len(views))
+
+    # Explicit single-view lookups aren't pre-filtered like find_accessible(),
+    # so raise_for_access must run outside the broad except block below so
+    # access errors are never silently swallowed as "could not load metrics".
+    check_access = request.view_id is not None
+
+    collection: _ExternalMetricCollection = _ExternalMetricCollection()
+    for view in views:
+        if check_access:
+            view.raise_for_access()
+        try:
+            view_metrics: list[MetricInfo] = _collect_view_metrics(view, request)
+        except SupersetSecurityException:
+            if check_access:
+                raise
+            collection.incomplete = True
+            collection.refused_views.append(MetricDiscoveryRefusal(view_id=view.id))
+        except AmbiguousDimensionError as exc:
+            collection.incomplete = True
+            await ctx.warning(
+                "Could not load metrics for view id=%s: %s" % (view.id, str(exc))
+            )
+        except Exception:  # noqa: BLE001
+            collection.incomplete = True
+            # External registry may be empty in OSS — degrade gracefully
+            logger.warning(
+                "Could not load metrics for view id=%s", view.id, exc_info=True
+            )
+            await ctx.warning(
+                "Unable to retrieve metrics for semantic view id=%s." % view.id
+            )
+        else:
+            collection.metrics.extend(view_metrics)
+    collection.refused_views.sort(key=lambda refusal: refusal.view_id)
+    return collection
+
+
+@tool(
+    tags=["data", "semantic"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="List metrics",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+@requires_data_model_metadata_access
+async def list_metrics(
+    request: ListMetricsRequest | None = None,
+    ctx: Context | None = None,
+) -> MetricList | SemanticLayerError:
+    """List available metrics across built-in datasets and external semantic views.
+
+    This is the primary entry point for semantic layer exploration. Returns a
+    unified list of metrics from all data sources the current user can access,
+    with compatible dimensions embedded only on request.
+
+    Workflow:
+    1. list_metrics -> discover available metrics
+    2. get_compatible_dimensions -> discover dimensions for the chosen metric
+    3. get_table -> query data using chosen metrics and dimensions
+
+    Use ``search`` to filter by metric name or description. Use ``dataset_id``
+    or ``view_id`` to scope to a specific data source.
+
+    Example:
+    ```json
+    {"search": "revenue", "page": 1}
+    ```
+    """
+    if ctx is None:
+        raise RuntimeError("FastMCP context is required for list_metrics")
+
+    request = request or ListMetricsRequest()
+
+    await ctx.info(
+        "Listing metrics: search=%s, dataset_id=%s, view_id=%s, page=%s"
+        % (request.search, request.dataset_id, request.view_id, request.page)
+    )
+
+    semantic_layers_enabled: bool = is_semantic_layers_enabled()
+    if request.view_id is not None and not semantic_layers_enabled:
+        return SemanticLayerError.create(
+            error=SemanticLayersDisabledError.message,
+            error_type="SemanticLayersDisabledError",
+        )
+
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Metric listing blocked by data-model privacy controls")
+        return SemanticLayerError.create(
+            error="You don't have permission to access dataset details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
+
+    if request.dataset_id is not None and request.view_id is not None:
+        return SemanticLayerError.create(
+            error="Provide only one of dataset_id or view_id to scope the search, not both.",
+            error_type="ValidationError",
+        )
+
+    try:
+        all_metrics: list[MetricInfo] = []
+        external: _ExternalMetricCollection = _ExternalMetricCollection()
+
+        if request.view_id is None:
+            all_metrics.extend(_collect_builtin_metrics(request))
+            await ctx.debug("Collected %d built-in metrics" % len(all_metrics))
+
+        if request.dataset_id is None and semantic_layers_enabled:
+            external = await _collect_external_metrics(request, ctx)
+            all_metrics.extend(external.metrics)
+            await ctx.debug("Collected %d external metrics" % len(external.metrics))
+
+        # Sort deterministically before paginating so that page boundaries
+        # are stable across calls instead of depending on collection order.
+        all_metrics.sort(
+            key=lambda m: (m.source, m.dataset_id or m.view_id or 0, m.name)
+        )
+
+        total_count = len(all_metrics)
+        total_pages = max(1, (total_count + request.page_size - 1) // request.page_size)
+        start = (request.page - 1) * request.page_size
+        page_metrics = all_metrics[start : start + request.page_size]
+
+        await ctx.info(
+            "Metrics listed: total=%d, page=%d/%d, returned=%d"
+            % (total_count, request.page, total_pages, len(page_metrics))
+        )
+
+        return MetricList(
+            metrics=page_metrics,
+            total_count=total_count,
+            page=request.page,
+            page_size=request.page_size,
+            total_pages=total_pages,
+            incomplete=external.incomplete,
+            refused_views=external.refused_views,
+        )
+
+    except SupersetSecurityException as exc:
+        await ctx.error("Access denied: %s" % str(exc))
+        return SemanticLayerError.create(
+            error=str(exc.error.message),
+            error_type="AccessDenied",
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Unexpected error in list_metrics: %s: %s", type(exc).__name__, str(exc)
+        )
+        message: str = "Unable to retrieve metrics."
+        await ctx.error(message)
+        return SemanticLayerError.create(
+            error=message,
+            error_type="InternalError",
+        )

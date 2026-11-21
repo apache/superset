@@ -163,10 +163,10 @@ do
     # Iterate through the components of the version strings
     for (( j=0; j<${#THIS_TAG_NAME_ARRAY[@]}; j++ )); do
         echo "Comparing ${THIS_TAG_NAME_ARRAY[$j]} to ${LATEST_RELEASE_TAG_ARRAY[$j]}"
-        if [[ $((THIS_TAG_NAME_ARRAY[$j])) > $((LATEST_RELEASE_TAG_ARRAY[$j])) ]]; then
+        if [[ $((THIS_TAG_NAME_ARRAY[$j])) -gt $((LATEST_RELEASE_TAG_ARRAY[$j])) ]]; then
             compare_result="greater"
             break
-        elif [[ $((THIS_TAG_NAME_ARRAY[$j])) < $((LATEST_RELEASE_TAG_ARRAY[$j])) ]]; then
+        elif [[ $((THIS_TAG_NAME_ARRAY[$j])) -lt $((LATEST_RELEASE_TAG_ARRAY[$j])) ]]; then
             compare_result="lesser"
             break
         fi

@@ -80,6 +80,7 @@ dataset-references/
 ```
 
 **Note**: With publisher `my-org` and name `dataset-references`, the technical names are:
+
 - Directory name: `dataset-references` (kebab-case)
 - Backend Python namespace: `my_org.dataset_references`
 - Backend distribution package: `my_org-dataset_references`

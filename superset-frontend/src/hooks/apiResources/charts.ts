@@ -21,19 +21,19 @@ import rison from 'rison';
 import Chart from 'src/types/Chart';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
-function extractOwnerNames({ owners }: Chart) {
-  if (!owners) return null;
-  return owners.map(owner => `${owner.first_name} ${owner.last_name}`);
+function extractEditorNames({ editors }: Chart) {
+  if (!editors) return null;
+  return editors.map(editor => editor.label ?? '').filter(Boolean);
 }
 
-const ownerNamesQuery = rison.encode({
-  columns: ['owners.first_name', 'owners.last_name'],
+const editorNamesQuery = rison.encode({
+  columns: ['editors.label'],
   keys: ['none'],
 });
 
-export function useChartOwnerNames(chartId: number) {
+export function useChartEditorNames(chartId: number) {
   return useTransformedResource(
-    useApiV1Resource<Chart>(`/api/v1/chart/${chartId}?q=${ownerNamesQuery}`),
-    extractOwnerNames,
+    useApiV1Resource<Chart>(`/api/v1/chart/${chartId}?q=${editorNamesQuery}`),
+    extractEditorNames,
   );
 }

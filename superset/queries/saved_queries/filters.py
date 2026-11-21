@@ -16,12 +16,19 @@
 # under the License.
 from typing import Any
 
-from flask import g
+from flask import g, has_request_context, request
 from flask_babel import lazy_gettext as _
-from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
+try:
+    # Flask-SQLAlchemy 3.x (required by SQLAlchemy 2.0)
+    from flask_sqlalchemy.query import Query as BaseQuery
+except ImportError:  # pragma: no cover
+    # Flask-SQLAlchemy 2.x
+    from flask_sqlalchemy import BaseQuery
+
+from superset import security_manager
 from superset.models.sql_lab import SavedQuery
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.views.base import BaseFilter
@@ -82,10 +89,16 @@ class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
-        Filter saved queries to only those created by current user.
+        Filter saved queries to current user's queries unless this is a read
+        request and the user can access all queries.
 
         :returns: flask-sqlalchemy query
         """
-        return query.filter(
-            SavedQuery.created_by == g.user  # pylint: disable=comparison-with-callable
+        can_access_all_queries = security_manager.can_access_all_queries() and (
+            not has_request_context() or request.method == "GET"
         )
+        if not can_access_all_queries:
+            query = query.filter(
+                SavedQuery.created_by == g.user  # pylint: disable=comparison-with-callable
+            )
+        return query

@@ -47,6 +47,8 @@ app.db
 *.egg-info/
 changelog.sh
 dist
+# The E2E semantic stub is a LOCAL_EXTENSIONS bundle, which must sit in dist/.
+!tests/e2e_extensions/semantic_stub/dist/
 dump.rdb
 env
 venv*
@@ -57,6 +59,7 @@ local_config.py
 /superset_text.yml
 superset.egg-info/
 superset/bin/supersetc
+superset/extensions/.reload_trigger
 tmp
 rat-results.txt
 superset/app/
@@ -137,6 +140,7 @@ PROJECT.md
 .aider*
 .claude_rc*
 .claude/settings.local.json
+.claude/worktrees/
 .env.local
 oxc-custom-build/
 *.code-workspace

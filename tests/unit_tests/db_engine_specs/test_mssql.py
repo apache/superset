@@ -81,7 +81,7 @@ def test_where_clause_n_prefix() -> None:
 
     tbl = table("tbl")
     sel = (
-        select([str_col, unicode_col])
+        select(str_col, unicode_col)
         .select_from(tbl)
         .where(str_col == "abc")
         .where(unicode_col == "abc")
@@ -278,6 +278,7 @@ Unable to connect: Adaptive Server is unavailable or does not exist (localhost_)
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["host"],
                 "issue_codes": [
                     {
                         "code": 1007,
@@ -308,6 +309,7 @@ Net-Lib error during Connection refused (61)
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["host", "port"],
                 "issue_codes": [
                     {"code": 1008, "message": "Issue 1008 - The port is closed."}
                 ],
@@ -338,6 +340,7 @@ Net-Lib error during Operation timed out (60)
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["host", "port"],
                 "issue_codes": [
                     {
                         "code": 1009,
@@ -371,6 +374,7 @@ Net-Lib error during Operation timed out (60)
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["host", "port"],
                 "issue_codes": [
                     {
                         "code": 1009,
@@ -396,11 +400,12 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
     )
     assert result == [
         SupersetError(
-            message='Either the username "testuser", password, or database name "testdb" is incorrect.',  # noqa: E501
+            message='Either the username "testuser" or the password is incorrect.',
             error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["username", "password"],
                 "issue_codes": [
                     {
                         "code": 1014,
@@ -430,3 +435,872 @@ def test_denormalize_name(name: str, expected_result: str):
     from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(mssql.dialect(), name) == expected_result
+
+
+def test_identifier_quote_uses_square_brackets() -> None:
+    """SQL Server quotes identifiers with square brackets."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert MssqlEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "[",
+        "end": "]",
+        "escape_by_doubling": True,
+    }
+
+
+def test_get_catalog_from_engine_params_url_path() -> None:
+    """
+    The database is resolved from the URL's own path segment when present --
+    this is the form used by ``MssqlEngineSpec``'s own recommended connection
+    string (``mssql+pymssql://...@host:port/{database}``).
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url("mssql+pymssql://user:pw@host:1433/abcm")
+    assert url.database == "abcm"
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "abcm"
+
+
+def test_get_catalog_from_engine_params_connect_args() -> None:
+    """
+    The database is resolved from an explicit ``connect_args["database"]``
+    when the URL itself has no path segment (e.g. a host/DSN-only URI where
+    the admin configured the database separately, via the "Extra" field).
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url("mssql+pyodbc://user:pw@host")
+    assert url.database is None
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(url, {"database": "abcm"})
+        == "abcm"
+    )
+
+
+def test_get_catalog_from_engine_params_odbc_connect() -> None:
+    """
+    The non-default pyodbc driver bundles the entire ODBC connection string
+    -- including ``Database=...`` -- into a single opaque ``odbc_connect``
+    query parameter that SQLAlchemy's URL parser doesn't decompose. Note this
+    is also the case where ``url.database`` comes back as an empty string,
+    not ``None`` -- the hook must treat both as "not statically present" and
+    keep looking rather than short-circuiting on the empty string.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Database%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw%3BEncrypt%3Dyes"
+    )
+    assert url.database == ""
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "abcm"
+
+
+def test_get_catalog_from_engine_params_odbc_connect_no_database() -> None:
+    """
+    An ``odbc_connect`` string with no ``Database=`` entry resolves to None,
+    same as if the parameter weren't present at all.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw%3BEncrypt%3Dyes"
+    )
+    assert url.database == ""
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) is None
+
+
+def test_get_catalog_from_engine_params_reporter_uri_returns_none() -> None:
+    """
+    Regression test for GH #31406: the literal reporter connection string --
+    a bare host/DSN with no path, no connect_args, and no odbc_connect -- has
+    no statically-determinable database anywhere in it. The actual database
+    is only known to SQL Server itself, via the login's server-side default,
+    at connect time. This method deliberately does not perform a live query
+    to resolve it, so it must return None here, not guess.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url("mssql+pyodbc://SuperSet:pw@abcm")
+    assert url.host == "abcm"
+    assert url.database is None
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) is None
+
+
+def test_get_catalog_from_engine_params_odbc_connect_braced_semicolon() -> None:
+    """
+    A brace-quoted Database value may itself contain a literal ';' -- the
+    parser must not split on it.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Database%3D%7Bmy%3Bdb%7D%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "my;db"
+
+
+def test_get_catalog_from_engine_params_odbc_connect_duplicate_database_keeps_first() -> (  # noqa: E501
+    None
+):
+    """
+    Per the ODBC specification, a driver resolves a repeated keyword to its
+    first occurrence -- verified empirically against a real SQL Server and
+    the actual Microsoft ODBC Driver 18 for SQL Server. A literal duplicate
+    Database= inside a single odbc_connect string must resolve to the first
+    value, not the last.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Database%3DA%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw%3B"
+        "Database%3DB%3B"
+    )
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "A"
+
+
+def test_get_catalog_from_engine_params_initial_catalog_not_recognized() -> None:
+    """
+    "Initial Catalog=" is an OLEDB/ADO.NET connection-string keyword, not an
+    ODBC one -- the Microsoft ODBC Driver for SQL Server's own keyword
+    reference does not list it, and empirically (verified against a real
+    SQL Server + msodbcsql18) it is silently ignored, falling back to the
+    login's default database. Treating it as equivalent to Database= would
+    report a catalog the real connection never actually uses, so the parser
+    must not recognize it.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Initial+Catalog%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) is None
+
+
+def test_get_catalog_from_engine_params_database_wins_regardless_of_initial_catalog() -> (  # noqa: E501
+    None
+):
+    """
+    Database= is the only keyword the driver actually recognizes, so its
+    value is used regardless of whether an (inert) Initial Catalog= entry
+    is also present, and regardless of the order the two appear in --
+    verified empirically for both orderings against the real driver.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    # Database= before Initial Catalog=
+    url_database_first = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Database%3Dabcm%3B"
+        "Initial+Catalog%3Dother%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(url_database_first, {}) == "abcm"
+    )
+
+    # Initial Catalog= before Database=
+    url_initial_catalog_first = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Initial+Catalog%3Dother%3B"
+        "Database%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(url_initial_catalog_first, {})
+        == "abcm"
+    )
+
+
+def test_get_catalog_from_engine_params_odbc_connect_wins_over_connect_args() -> None:
+    """
+    Verified against a real SQL Server + the actual Microsoft ODBC Driver 18
+    for SQL Server: pyodbc appends connect_args onto whatever connection
+    string SQLAlchemy already built, and per the ODBC specification a driver
+    resolves a repeated keyword to its *first* occurrence -- so
+    odbc_connect's own embedded Database= (baked into the string first)
+    wins over a conflicting connect_args["database"] (appended after), not
+    the other way around.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Database%3Dodbc_connect_db%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(
+            url, {"database": "connect_args_db"}
+        )
+        == "odbc_connect_db"
+    )
+
+
+def test_get_catalog_from_engine_params_odbc_connect_and_connect_args_agree() -> None:
+    """
+    When odbc_connect's Database= and connect_args["database"] agree, the
+    result is unambiguous regardless of which one "wins".
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Database%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(url, {"database": "abcm"})
+        == "abcm"
+    )
+
+
+def test_get_catalog_from_engine_params_connect_args_fallback_when_odbc_connect_has_no_database() -> (  # noqa: E501
+    None
+):
+    """
+    Verified empirically: when odbc_connect has no Database= entry at all,
+    the built connection string has no such keyword for pyodbc's appended
+    connect_args to conflict with -- so connect_args["database"] is
+    genuinely what the driver connects to.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(url, {"database": "abcm"})
+        == "abcm"
+    )
+
+
+def test_get_catalog_from_engine_params_odbc_connect_empty_database_fails_closed() -> (  # noqa: E501
+    None
+):
+    """
+    Verified empirically: an odbc_connect string with an explicit but empty
+    Database=; still counts as the driver's first occurrence of the
+    keyword, so it connects to the login's default database and silently
+    ignores connect_args entirely -- the hook must not fall back to
+    connect_args["database"] here, since that would report a database the
+    real connection doesn't use. Fails closed to None instead.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Database%3D%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(url, {"database": "abcm"})
+        is None
+    )
+
+
+def test_get_catalog_from_engine_params_odbc_connect_wins_over_url_path() -> None:
+    """
+    When odbc_connect is present, SQLAlchemy's pyodbc dialect uses it as the
+    *entire* connection string and never looks at the URL's own host/database
+    segments at all -- so odbc_connect's Database= must take precedence over
+    a (structurally unusual, but possible) database also present in the
+    URL's path.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc://user:pw@host/path_db"
+        "?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Database%3Dodbc_connect_db%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert url.database == "path_db"
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "odbc_connect_db"
+
+
+def test_get_catalog_from_engine_params_url_path_wins_over_connect_args() -> None:
+    """
+    The plain (non-odbc_connect) host path bakes the URL's own database into
+    the positional connection string the same way odbc_connect does --
+    SQLAlchemy's PyODBCConnector.create_connect_args always emits
+    "Database=<url.database>" there -- so it wins over connect_args for the
+    identical structural reason, verified against the real driver.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url("mssql+pyodbc://user:pw@host/url_db")
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(
+            url, {"database": "connect_args_db"}
+        )
+        == "url_db"
+    )
+
+
+def test_get_catalog_from_engine_params_database_query_param_only() -> None:
+    """
+    SQLAlchemy also accepts "database" as a URL query parameter, not just as
+    the path segment. Verified against SQLAlchemy 2.0.52:
+    mssql+pyodbc://u:p@host?database=realdb&driver=... builds
+    "Database=realdb" into the positional connection string even though
+    url.database itself is None -- so the query parameter must be checked,
+    not just the path segment.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc://user:pw@host"
+        "?database=realdb&driver=ODBC+Driver+18+for+SQL+Server"
+    )
+    assert url.database is None
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "realdb"
+
+
+def test_get_catalog_from_engine_params_database_query_param_wins_over_connect_args() -> (  # noqa: E501
+    None
+):
+    """
+    A "database" query parameter is baked into the positional connection
+    string the same way odbc_connect's Database= is, so it wins over a
+    conflicting connect_args["database"] for the identical structural
+    reason (pyodbc appends connect_args after, and the driver resolves a
+    repeated keyword to its first occurrence).
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc://user:pw@host"
+        "?database=realdb&driver=ODBC+Driver+18+for+SQL+Server"
+    )
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(url, {"database": "otherdb"})
+        == "realdb"
+    )
+
+
+def test_get_catalog_from_engine_params_database_query_param_wins_over_url_path() -> (  # noqa: E501
+    None
+):
+    """
+    Verified against SQLAlchemy 2.0.52: when both a path-segment database
+    and a "database" query parameter are present with different values,
+    PyODBCConnector.create_connect_args merges the query parameter into its
+    working options *after* the path segment, so the query parameter -- not
+    url.database -- is what actually ends up in the built connection
+    string. This holds even with no connect_args involved at all.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc://user:pw@host/path_db"
+        "?database=query_db&driver=ODBC+Driver+18+for+SQL+Server"
+    )
+    assert url.database == "path_db"
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "query_db"
+
+
+def test_get_catalog_from_engine_params_empty_database_query_param_falls_back_to_url_path() -> (  # noqa: E501
+    None
+):
+    """
+    Verified against SQLAlchemy 2.0.52: unlike an explicit but empty
+    Database= inside odbc_connect (which is "present" and fails closed), an
+    empty "database" query parameter (?database=) is dropped entirely by
+    SQLAlchemy's URL parser -- it never even appears in url.query -- so this
+    is NOT equivalent to an explicit empty value. The path-segment database
+    is used, matching what SQLAlchemy actually builds.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc://user:pw@host/path_db"
+        "?database=&driver=ODBC+Driver+18+for+SQL+Server"
+    )
+    assert "database" not in url.query
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "path_db"
+
+
+@pytest.mark.parametrize(
+    "handle", ["73", "", "73; DROP TABLE t", "-1", "1.0", "73\n", "７３"]
+)
+def test_sql_server_does_not_cancel_reusable_session_ids(handle: str) -> None:
+    """A delayed numeric handle must never target another connection."""
+    from unittest.mock import Mock
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    cursor, query = Mock(), Mock()
+    assert not MssqlEngineSpec.cancel_query(cursor, query, handle)
+    assert MssqlEngineSpec.get_cancel_query_id(cursor, query) is None
+    assert not MssqlEngineSpec.has_implicit_cancel()
+    cursor.execute.assert_not_called()
+
+
+def test_other_tsql_engines_do_not_inherit_sql_server_cancellation() -> None:
+    from unittest.mock import Mock
+
+    from superset.db_engine_specs.mssql import AzureSynapseSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+
+    for spec in (AzureSynapseSpec, SybaseEngineSpec):
+        cursor, query = Mock(), Mock()
+        assert not spec.supports_cancel_on_live_cursor
+        assert not spec.can_cancel_live_cursor("pyodbc", cursor)
+        assert spec.get_cancel_query_id(cursor, query) is None
+        assert not spec.cancel_query(cursor, query, "73")
+        cursor.execute.assert_not_called()
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that MSSQL (and Sybase, by inheritance) use equality operators for
+    boolean filters instead of IS, since T-SQL's IS keyword only supports
+    NULL checks.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+
+    assert MssqlEngineSpec.use_equality_for_boolean_filters is True
+    assert SybaseEngineSpec.use_equality_for_boolean_filters is True
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that MSSQL uses equality operators for boolean filters instead of
+    IS. Compiling with SQLAlchemy's default IS true/false against the real
+    mssql dialect produces invalid T-SQL (`col IS 1` / `col IS 0`), since
+    IS is a NULL-check-only predicate in T-SQL.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = MssqlEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(
+            result_true.compile(
+                dialect=mssql.dialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        == "test_col = 1"
+    )
+
+    result_false = MssqlEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(
+            result_false.compile(
+                dialect=mssql.dialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        == "test_col = 0"
+    )
+
+
+def _basic_parameters(**overrides: Any) -> dict[str, Any]:
+    """Build basic connection parameters, overridable per test."""
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "password",
+        "host": "localhost",
+        "port": 1433,
+        "database": "db",
+        "query": {},
+    }
+    parameters.update(overrides)
+    return parameters
+
+
+def test_mssql_supports_dynamic_form() -> None:
+    """
+    DB Eng Specs (mssql): ``MssqlEngineSpec`` opts into the dynamic connection
+    form via ``BasicParametersMixin``, exposing a parameters schema and the
+    recommended pymssql driver.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert issubclass(MssqlEngineSpec, BasicParametersMixin)
+    assert MssqlEngineSpec.default_driver == "pymssql"
+    assert MssqlEngineSpec.parameters_json_schema() is not None
+
+
+def test_build_sqlalchemy_uri_uses_pymssql_driver() -> None:
+    """
+    DB Eng Specs (mssql): ``build_sqlalchemy_uri`` produces a
+    ``mssql+pymssql://user:pass@host:port/db`` URI from the dynamic form
+    parameters.
+    """
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    uri = MssqlEngineSpec.build_sqlalchemy_uri(_basic_parameters())  # type: ignore[arg-type]
+
+    assert uri == "mssql+pymssql://user:password@localhost:1433/db"
+    url = make_url(uri)
+    assert url.drivername == "mssql+pymssql"
+    assert url.username == "user"
+    assert url.password == "password"  # noqa: S105
+    assert url.host == "localhost"
+    assert url.port == 1433
+    assert url.database == "db"
+
+
+def test_get_parameters_from_uri_roundtrip() -> None:
+    """
+    DB Eng Specs (mssql): ``get_parameters_from_uri`` is the inverse of
+    ``build_sqlalchemy_uri`` for the standard host/port/user/password/database
+    parameters.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    parameters = MssqlEngineSpec.get_parameters_from_uri(
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+    assert parameters == {
+        "username": "user",
+        "password": "password",
+        "host": "localhost",
+        "port": 1433,
+        "database": "db",
+        "query": {},
+    }
+
+
+def test_parameters_schema_has_no_encryption_toggle() -> None:
+    """
+    DB Eng Specs (mssql): pymssql has no URI-level encryption parameter, so the
+    parameters schema omits ``encryption`` and the dynamic form shows no SSL
+    toggle. Parameters read back from a URI load cleanly into the schema.
+    """
+    from marshmallow import ValidationError
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    schema = MssqlEngineSpec.parameters_json_schema()
+    assert "encryption" not in schema["properties"]
+    assert {"host", "port", "username", "password", "database"} <= set(
+        schema["properties"]
+    )
+
+    parameters = MssqlEngineSpec.get_parameters_from_uri(
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+    loaded = MssqlEngineSpec.parameters_schema.load(parameters)
+    assert MssqlEngineSpec.build_sqlalchemy_uri(loaded) == (
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+
+    with pytest.raises(ValidationError):
+        MssqlEngineSpec.parameters_schema.load(_basic_parameters(encryption=True))
+
+
+def test_validate_parameters_reports_missing() -> None:
+    """
+    DB Eng Specs (mssql): ``validate_parameters`` flags missing mandatory
+    fields so the dynamic form can validate progressively.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    errors = MssqlEngineSpec.validate_parameters({"parameters": {}})
+    assert len(errors) == 1
+    error = errors[0]
+    assert error.error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    assert error.extra is not None
+    assert set(error.extra["missing"]) == {"host", "port", "username", "database"}
+
+
+def test_azure_synapse_keeps_pyodbc_driver() -> None:
+    """
+    DB Eng Specs (mssql): ``AzureSynapseSpec`` keeps its own recommended pyodbc
+    driver and URI placeholder.
+    """
+    from superset.db_engine_specs.mssql import AzureSynapseSpec
+
+    assert AzureSynapseSpec.default_driver == "pyodbc"
+    assert AzureSynapseSpec.sqlalchemy_uri_placeholder.startswith("mssql+pyodbc://")
+
+
+@pytest.mark.parametrize(
+    "spec_path",
+    [
+        "superset.db_engine_specs.mssql.AzureSynapseSpec",
+        "superset.db_engine_specs.sybase.SybaseEngineSpec",
+    ],
+)
+def test_mssql_subclasses_stay_on_uri_form(spec_path: str) -> None:
+    """
+    DB Eng Specs (mssql): Azure Synapse and SAP ASE inherit from
+    ``MssqlEngineSpec`` but connect through ODBC, so they expose no parameters
+    schema and keep the SQLAlchemy URI form. A dynamic-form submission for the
+    ``mssql`` engine would otherwise build a pymssql URI for Synapse.
+    """
+    from importlib import import_module
+
+    module_name, class_name = spec_path.rsplit(".", 1)
+    spec = getattr(import_module(module_name), class_name)
+
+    assert spec.parameters_json_schema() is None
+
+
+def test_validate_parameters_rejects_named_instance_host() -> None:
+    """
+    DB Eng Specs (mssql): a ``host\\INSTANCE`` host gets an explanatory error on
+    the host field instead of an unresolvable-hostname error.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    errors = MssqlEngineSpec.validate_parameters(
+        {
+            "parameters": {
+                "host": "sqlserver.example.com\\SQLEXPRESS",
+                "port": 1433,
+                "username": "user",
+                "database": "db",
+            }
+        }
+    )
+
+    assert len(errors) == 1
+    error = errors[0]
+    assert error.error_type == SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR
+    assert error.extra is not None
+    assert error.extra["invalid"] == ["host"]
+    assert "Named instances" in error.message
+
+
+def test_connection_tuning_query_params_cannot_redirect() -> None:
+    """
+    DB Eng Specs (mssql): none of the query parameters that keep a stored
+    password reusable can change the destination or the login.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert "login_timeout" in MssqlEngineSpec.connection_tuning_query_params
+    assert not MssqlEngineSpec.connection_tuning_query_params & {
+        "host",
+        "server",
+        "port",
+        "user",
+        "password",
+        "database",
+        "odbc_connect",
+        "driver",
+        "encrypt",
+        "trustservercertificate",
+    }
+
+
+# Messages raised by pymssql 2.4.1 (bundled FreeTDS) against SQL Server 2022, as
+# rendered by ``str()`` on the SQLAlchemy exception (followed by its
+# ``SQLALCHEMY_BACKGROUND`` suffix in the test).
+SQLALCHEMY_BACKGROUND = "\n(Background on this error at: https://sqlalche.me/e/20/e3q8)"
+PYMSSQL_LOGIN_FAILED = (
+    '(pymssql.exceptions.OperationalError) (18456, b"Login failed for user '
+    "'sa'.DB-Lib error message 20018, severity 14:\\nGeneral SQL Server error: "
+    "Check messages from the SQL Server\\nDB-Lib error message 20002, severity "
+    "9:\\nTDS server connection failed (localhost)\\nDB-Lib error message 20002, "
+    'severity 9:\\nTDS server connection failed (localhost)\\n")'
+)
+PYMSSQL_UNKNOWN_USER = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20018, "
+    "severity 14:\\nGeneral SQL Server error: Check messages from the SQL Server"
+    "\\nDB-Lib error message 20002, severity 9:\\nTDS server connection failed "
+    "(localhost)\\nDB-Lib error message 20002, severity 9:\\nTDS server "
+    "connection failed (localhost)\\n')"
+)
+PYMSSQL_UNKNOWN_DATABASE = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20018, "
+    "severity 11:\\nGeneral SQL Server error: Check messages from the SQL Server"
+    "\\nDB-Lib error message 20018, severity 14:\\nGeneral SQL Server error: "
+    "Check messages from the SQL Server\\nDB-Lib error message 20002, severity "
+    "9:\\nTDS server connection failed (localhost)\\nDB-Lib error message 20002, "
+    "severity 9:\\nTDS server connection failed (localhost)\\n')"
+)
+PYMSSQL_PORT_CLOSED = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20009, "
+    "severity 9:\\nUnable to connect: TDS server is unavailable or does not "
+    "exist (localhost)\\nNet-Lib error during Connection refused (111)\\nDB-Lib "
+    "error message 20009, severity 9:\\nUnable to connect: TDS server is "
+    "unavailable or does not exist (localhost)\\nNet-Lib error during "
+    "Connection refused (111)\\n')"
+)
+PYMSSQL_INVALID_HOSTNAME = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20009, "
+    "severity 9:\\nUnable to connect: TDS server is unavailable or does not "
+    "exist (nonexistent.invalid)\\n')"
+)
+PYMSSQL_HOST_DOWN = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20009, "
+    "severity 9:\\nUnable to connect: TDS server is unavailable or does not "
+    "exist (10.255.255.1)\\nNet-Lib error during Connection timed out (110)\\n"
+    "DB-Lib error message 20009, severity 9:\\nUnable to connect: TDS server is "
+    "unavailable or does not exist (10.255.255.1)\\nNet-Lib error during "
+    "Connection timed out (110)\\n')"
+)
+PYODBC_UNKNOWN_DATABASE = (
+    "(pyodbc.InterfaceError) ('28000', '[28000] [Microsoft][ODBC Driver 18 for "
+    'SQL Server][SQL Server]Cannot open database "nodb" requested by the '
+    "login. The login failed. (4060) (SQLDriverConnect); [28000] [Microsoft]"
+    "[ODBC Driver 18 for SQL Server][SQL Server]Login failed for user 'sa'. "
+    "(18456)')"
+)
+PYODBC_LOGIN_FAILED = (
+    "(pyodbc.InterfaceError) ('28000', \"[28000] [Microsoft][ODBC Driver 18 for "
+    "SQL Server][SQL Server]Login failed for user 'sa'. (18456) "
+    '(SQLDriverConnect)")'
+)
+
+
+@pytest.mark.parametrize(
+    "raw_message, error_type, message, invalid",
+    [
+        (
+            PYMSSQL_LOGIN_FAILED,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            'Either the username "sa" or the password is incorrect.',
+            ["username", "password"],
+        ),
+        (
+            PYMSSQL_UNKNOWN_USER,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            'Either the username "sa" or the password is incorrect.',
+            ["username", "password"],
+        ),
+        (
+            PYMSSQL_UNKNOWN_DATABASE,
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            'Unable to connect to database "nodb".',
+            ["database"],
+        ),
+        (
+            PYMSSQL_PORT_CLOSED,
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            'Port 1433 on hostname "localhost" refused the connection.',
+            ["host", "port"],
+        ),
+        (
+            PYMSSQL_INVALID_HOSTNAME,
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            'The hostname "nonexistent.invalid" cannot be resolved.',
+            ["host"],
+        ),
+        (
+            PYMSSQL_HOST_DOWN,
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            'The host "localhost" might be down, and can\'t be reached on port 1433.',
+            ["host", "port"],
+        ),
+        (
+            PYODBC_UNKNOWN_DATABASE,
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            'Unable to connect to database "nodb".',
+            ["database"],
+        ),
+        (
+            PYODBC_LOGIN_FAILED,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            'Either the username "sa" or the password is incorrect.',
+            ["username", "password"],
+        ),
+    ],
+)
+def test_extract_errors_pymssql_2_4(
+    raw_message: str,
+    error_type: SupersetErrorType,
+    message: str,
+    invalid: list[str],
+) -> None:
+    """
+    Connection errors from current pymssql/FreeTDS (and pyodbc) builds are
+    mapped to field-level errors that the connection form can highlight.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    context = {
+        "username": "sa",
+        "database": "nodb",
+        "hostname": "localhost",
+        "port": 1433,
+    }
+    (error,) = MssqlEngineSpec.extract_errors(
+        Exception(raw_message + SQLALCHEMY_BACKGROUND), context
+    )
+
+    assert error.error_type == error_type
+    assert error.message == message
+    assert error.extra is not None
+    assert error.extra["invalid"] == invalid
