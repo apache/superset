@@ -71,7 +71,7 @@ dependencies = [
     "gunicorn>=27.0.0, <28; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
-    "holidays>=0.106, <1",
+    "holidays>=0.108, <1",
     "humanize",
     "isodate",
     "jsonpath-ng>=1.11.0, <2",
