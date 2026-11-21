@@ -15,9 +15,34 @@
 # specific language governing permissions and limitations
 # under the License.
 import numpy as np
+import pandas as pd
+import pytest
 
 from superset.utils import pandas_postprocessing as pp
 from tests.unit_tests.fixtures.dataframes import categories_df
+
+
+@pytest.mark.parametrize(
+    "group_by,expected",
+    [
+        ("", [0.5, 1.0, 0.5, 1.0]),
+        ("dept", [0.5, 1.0, 0.5, 1.0]),
+        (None, [0.25, 0.75, 0.5, 1.0]),
+    ],
+)
+def test_rank_group_column(group_by: str | None, expected: list[float]) -> None:
+    """Distinguish an explicit group column from ungrouped ranking."""
+    df = pd.DataFrame(
+        {
+            "": ["A", "A", "B", "B"],
+            "dept": ["A", "A", "B", "B"],
+            "value": [1, 3, 2, 4],
+        }
+    )
+
+    result = pp.rank(df, "value", group_by=group_by)
+
+    pd.testing.assert_series_equal(result["rank"], pd.Series(expected, name="rank"))
 
 
 def test_rank_should_rank():
