@@ -45,6 +45,10 @@ from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
+# These datasets sit on SQLite, which the engine gate does not admit; the tests
+# are about verdict identity, not about which engines offer the mapping.
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
 EPOCH_INPUT = 1790850600
 TEXT_INPUT = "2026-10-21 10:30:00"
 ALL_OPERATORS = ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"]
