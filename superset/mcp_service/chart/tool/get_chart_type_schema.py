@@ -46,6 +46,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    RadarChartConfig,
     SunburstChartConfig,
     TableChartConfig,
     TreemapChartConfig,
@@ -79,6 +80,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "sunburst": TypeAdapter(SunburstChartConfig),
     "gauge": TypeAdapter(GaugeChartConfig),
     "treemap_v2": TypeAdapter(TreemapChartConfig),
+    "radar": TypeAdapter(RadarChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -294,6 +296,16 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "size": {"name": "population", "aggregate": "SUM"},
         },
     ],
+    "radar": [
+        {
+            "chart_type": "radar",
+            "metrics": [
+                {"name": "speed", "aggregate": "AVG"},
+                {"name": "power", "aggregate": "AVG"},
+                {"name": "range", "aggregate": "AVG"},
+            ],
+        },
+    ],
     "waterfall": [
         {
             "chart_type": "waterfall",
@@ -440,7 +452,8 @@ def get_chart_type_schema(
     Valid chart_type values depend on the host deployment. Core types are xy,
     country_map, world_map, deck_scatter, table, pie, sunburst, bullet, gauge,
     treemap_v2,
-    bubble_v2, pivot_table, mixed_timeseries, handlebars, big_number, histogram,
+    bubble_v2, radar, pivot_table, mixed_timeseries, handlebars, big_number,
+    histogram,
     box_plot, waterfall, and gantt. Deployments that enable an AG Grid pivot
     extension also expose interactive_pivot.
 
