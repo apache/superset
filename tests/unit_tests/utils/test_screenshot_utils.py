@@ -2872,9 +2872,9 @@ def _assert_markers_painted(png: bytes, markers: dict[str, tuple[int, int]]) -> 
         # Pillow pads a crop that falls outside the image with black, which
         # would satisfy the dark-pixel check below, so a row cropped away
         # (e.g. above the top of the capture) has to be rejected here.
-        assert 0 <= y0 < y1 <= image.height, (
-            f"the {name} row (y={y0}..{y1}) lies outside the {image.height}px capture"
-        )
+        assert (
+            0 <= y0 < y1 <= image.height
+        ), f"the {name} row (y={y0}..{y1}) lies outside the {image.height}px capture"
         dark = image.crop((0, y0, 200, y1)).point(lambda v: 255 if v < 80 else 0)
         painted = sum(1 for v in dark.getdata() if v) / (200 * (y1 - y0))
         assert painted > 0.5, (
@@ -3335,6 +3335,128 @@ def _chart_report_context() -> ReportExecutionContext:
         expected_chart_count=1,
         deadline=ReportExecutionDeadline(
             total_seconds=240,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+        capture_reserve_seconds=60,
+        delivery_reserve_seconds=120,
+        cleanup_reserve_seconds=30,
+    )
+
+
+def _capture_through_get_screenshot(
+    html: str,
+    page_file: Path,
+    *,
+    require_complete_capture: bool = False,
+    report_execution_context: ReportExecutionContext | None = None,
+) -> tuple[bytes | None, dict[str, tuple[int, int]], MagicMock]:
+    """Drive the production `get_screenshot` decision against a local HTML file
+    in real Chromium, with the app config and the browser manager standing in
+    for the Flask app and the worker's long-lived browser.
+
+    Returns the capture, the marker rows measured on a separately expanded copy
+    of the same page, and the patched `take_tiled_screenshot` so a test can
+    assert which capture path ran.
+    """
+    pytest.importorskip("playwright.sync_api")
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
+
+    from superset.utils import webdriver
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    page_file.write_text(html)
+    with sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch()
+        except PlaywrightError as ex:
+            if "Executable doesn't exist" in str(ex):
+                pytest.skip(f"Chromium is not installed for Playwright: {ex}")
+            raise
+        try:
+            measuring_page = browser.new_page(viewport={"width": 800, "height": 600})
+            measuring_page.set_content(html)
+            WebDriverPlaywright._expand_scrollable_content(
+                measuring_page, element_name="chart-container"
+            )
+            markers = _measure_markers(measuring_page)
+
+            browser_manager = MagicMock()
+            browser_manager.get_browser.return_value = browser
+            with (
+                patch.object(
+                    webdriver, "app", MagicMock(config=_PRODUCTION_CAPTURE_CONFIG)
+                ),
+                patch.object(
+                    webdriver,
+                    "take_tiled_screenshot",
+                    wraps=webdriver.take_tiled_screenshot,
+                ) as tiled,
+            ):
+                png = WebDriverPlaywright(
+                    "chrome",
+                    (800, 600),
+                    browser_manager=browser_manager,
+                    require_complete_capture=require_complete_capture,
+                ).get_screenshot(
+                    page_file.as_uri(),
+                    "chart-container",
+                    report_execution_context=report_execution_context,
+                )
+        finally:
+            browser.close()
+    return png, markers, tiled
+
+
+def test_tiled_capture_of_tall_chart_paints_whole_content(tmp_path: Path) -> None:
+    """The production `get_screenshot` decision, with the tiling thresholds
+    lowered so a modest fixture takes the tiled branch: once the pivot is
+    un-clipped the chart is tall enough for `take_tiled_screenshot`, and the
+    combined image must still reach and paint the first, middle and last row.
+
+    This is the thumbnail regime -- no report context, no complete-capture
+    requirement -- whose tiling decision must stay as it is."""
+    png, markers, tiled = _capture_through_get_screenshot(
+        _wrap_chart_capture(_pivot_chart_body(120), "bare"),
+        tmp_path / "chart.html",
+    )
+
+    tiled.assert_called_once()
+    assert png is not None
+    _assert_markers_painted(png, markers)
+
+
+@pytest.mark.parametrize(
+    ("require_complete_capture", "report_execution_context"),
+    [
+        pytest.param(True, None, id="api-or-ui-export"),
+        pytest.param(False, _chart_report_context(), id="scheduled-report"),
+    ],
+)
+def test_strict_tall_chart_capture_does_not_take_the_tiled_path(
+    tmp_path: Path,
+    require_complete_capture: bool,
+    report_execution_context: ReportExecutionContext | None,
+) -> None:
+    """A strict single-chart capture must stay on the standard path.
+
+    Un-clipping a long pivot makes the chart taller than the tiling threshold,
+    and a report context or a complete-capture requirement would then route it
+    to `take_tiled_screenshot`. That path's strict mode waits for dashboard
+    chart holders and the dashboard grid, neither of which a chart-only page
+    ever renders, so the capture times out and the report is never delivered.
+    The standard path has its own `.chart-container` readiness wait, and
+    re-expands the content once readiness confirms the chart rendered."""
+    png, markers, tiled = _capture_through_get_screenshot(
+        _wrap_chart_capture(_pivot_chart_body(120), "bare"),
+        tmp_path / "chart.html",
+        require_complete_capture=require_complete_capture,
+        report_execution_context=report_execution_context,
+    )
+
+    tiled.assert_not_called()
+    assert png is not None
+    _assert_markers_painted(png, markers)
 
 
 _FAKE_DOM_SCRIPT = r"""
@@ -3528,121 +3650,6 @@ def _roomy_report_context() -> ReportExecutionContext:
         delivery_reserve_seconds=120,
         cleanup_reserve_seconds=30,
     )
-
-
-def _capture_through_get_screenshot(
-    html: str,
-    page_file: Path,
-    *,
-    require_complete_capture: bool = False,
-    report_execution_context: ReportExecutionContext | None = None,
-) -> tuple[bytes | None, dict[str, tuple[int, int]], MagicMock]:
-    """Drive the production `get_screenshot` decision against a local HTML file
-    in real Chromium, with the app config and the browser manager standing in
-    for the Flask app and the worker's long-lived browser.
-
-    Returns the capture, the marker rows measured on a separately expanded copy
-    of the same page, and the patched `take_tiled_screenshot` so a test can
-    assert which capture path ran.
-    """
-    pytest.importorskip("playwright.sync_api")
-    from playwright.sync_api import Error as PlaywrightError, sync_playwright
-
-    from superset.utils import webdriver
-    from superset.utils.webdriver import WebDriverPlaywright
-
-    page_file.write_text(html)
-    with sync_playwright() as playwright:
-        try:
-            browser = playwright.chromium.launch()
-        except PlaywrightError as ex:
-            if "Executable doesn't exist" in str(ex):
-                pytest.skip(f"Chromium is not installed for Playwright: {ex}")
-            raise
-        try:
-            measuring_page = browser.new_page(viewport={"width": 800, "height": 600})
-            measuring_page.set_content(html)
-            WebDriverPlaywright._expand_scrollable_content(
-                measuring_page, element_name="chart-container"
-            )
-            markers = _measure_markers(measuring_page)
-
-            browser_manager = MagicMock()
-            browser_manager.get_browser.return_value = browser
-            with (
-                patch.object(
-                    webdriver, "app", MagicMock(config=_PRODUCTION_CAPTURE_CONFIG)
-                ),
-                patch.object(
-                    webdriver,
-                    "take_tiled_screenshot",
-                    wraps=webdriver.take_tiled_screenshot,
-                ) as tiled,
-            ):
-                png = WebDriverPlaywright(
-                    "chrome",
-                    (800, 600),
-                    browser_manager=browser_manager,
-                    require_complete_capture=require_complete_capture,
-                ).get_screenshot(
-                    page_file.as_uri(),
-                    "chart-container",
-                    report_execution_context=report_execution_context,
-                )
-        finally:
-            browser.close()
-    return png, markers, tiled
-
-
-def test_tiled_capture_of_tall_chart_paints_whole_content(tmp_path: Path) -> None:
-    """The production `get_screenshot` decision, with the tiling thresholds
-    lowered so a modest fixture takes the tiled branch: once the pivot is
-    un-clipped the chart is tall enough for `take_tiled_screenshot`, and the
-    combined image must still reach and paint the first, middle and last row.
-
-    This is the thumbnail regime -- no report context, no complete-capture
-    requirement -- whose tiling decision must stay as it is."""
-    png, markers, tiled = _capture_through_get_screenshot(
-        _wrap_chart_capture(_pivot_chart_body(120), "bare"),
-        tmp_path / "chart.html",
-    )
-
-    tiled.assert_called_once()
-    assert png is not None
-    _assert_markers_painted(png, markers)
-
-
-@pytest.mark.parametrize(
-    ("require_complete_capture", "report_execution_context"),
-    [
-        pytest.param(True, None, id="api-or-ui-export"),
-        pytest.param(False, _chart_report_context(), id="scheduled-report"),
-    ],
-)
-def test_strict_tall_chart_capture_does_not_take_the_tiled_path(
-    tmp_path: Path,
-    require_complete_capture: bool,
-    report_execution_context: ReportExecutionContext | None,
-) -> None:
-    """A strict single-chart capture must stay on the standard path.
-
-    Un-clipping a long pivot makes the chart taller than the tiling threshold,
-    and a report context or a complete-capture requirement would then route it
-    to `take_tiled_screenshot`. That path's strict mode waits for dashboard
-    chart holders and the dashboard grid, neither of which a chart-only page
-    ever renders, so the capture times out and the report is never delivered.
-    The standard path has its own `.chart-container` readiness wait, and
-    re-expands the content once readiness confirms the chart rendered."""
-    png, markers, tiled = _capture_through_get_screenshot(
-        _wrap_chart_capture(_pivot_chart_body(120), "bare"),
-        tmp_path / "chart.html",
-        require_complete_capture=require_complete_capture,
-        report_execution_context=report_execution_context,
-    )
-
-    tiled.assert_not_called()
-    assert png is not None
-    _assert_markers_painted(png, markers)
 
 
 class TestTiledEmptyTab:
