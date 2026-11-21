@@ -69,6 +69,34 @@ export const getDatasourceKey = (
   datasourceType: DatasourceType | undefined,
 ) => `${datasetId}__${datasourceType || DatasourceType.Table}`;
 
+export const getColumnOptions = (
+  columns: Column[],
+  filterValues: (column: Column) => boolean,
+  showVerboseNames: boolean,
+  datasourceType?: DatasourceType,
+): { label: string; value: string }[] => {
+  const filtered = uniqBy(
+    ensureIsArray(columns).filter(filterValues),
+    'column_name',
+  );
+  const semantic = datasourceType === DatasourceType.SemanticView;
+  const names = filtered.map(column =>
+    (semantic || showVerboseNames) && column.verbose_name
+      ? column.verbose_name
+      : column.column_name,
+  );
+  const counts = new Map<string, number>();
+  if (semantic)
+    names.forEach(name => counts.set(name, (counts.get(name) ?? 0) + 1));
+  return filtered.map((column, index) => ({
+    label:
+      semantic && (counts.get(names[index]) ?? 0) > 1
+        ? `${names[index]} (${column.column_name})`
+        : names[index],
+    value: column.column_name,
+  }));
+};
+
 /** Special purpose AsyncSelect that selects a column from a dataset */
 export function ColumnSelect({
   allowClear = false,
@@ -109,16 +137,13 @@ export function ColumnSelect({
 
   const options = useMemo(
     () =>
-      uniqBy(
-        ensureIsArray(columns)
-          .filter(filterValues)
-          .map((col: Column) => ({
-            label: (showVerboseNames && col.verbose_name) || col.column_name,
-            value: col.column_name,
-          })),
-        'value',
+      getColumnOptions(
+        ensureIsArray(columns),
+        filterValues,
+        showVerboseNames,
+        datasourceType,
       ),
-    [columns, filterValues, showVerboseNames],
+    [columns, filterValues, showVerboseNames, datasourceType],
   );
 
   // Whether the current selection still matches a loaded column. An empty

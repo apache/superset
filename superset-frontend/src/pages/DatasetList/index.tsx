@@ -71,8 +71,10 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
+  type ListViewColumn,
   type ListViewFilters,
   type ListViewFetchDataConfig,
+  ListViewTitleCell,
 } from 'src/components';
 import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -151,16 +153,6 @@ const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
   'dataset.delete.related',
 );
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
 
 const Actions = styled.div`
   ${({ theme }) => css`
@@ -948,7 +940,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     }
   };
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Dataset>[]>(
     () => [
       {
         accessor: 'id',
@@ -1004,30 +996,45 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 ? JSON.parse(extra)
                 : (extra as DatasetExtra | null);
             return (
-              <FlexRowContainer>
-                {parsedExtra?.certification && (
-                  <CertifiedBadge
-                    certifiedBy={parsedExtra.certification.certified_by}
-                    details={parsedExtra.certification.details}
-                    size="l"
-                  />
-                )}
-                {parsedExtra?.warning_markdown && (
-                  <WarningIconWithTooltip
-                    warningMarkdown={parsedExtra.warning_markdown}
-                    size="l"
-                  />
-                )}
-                {rlsFilters && rlsFilters.length > 0 && (
-                  <RlsBadge rlsFilters={rlsFilters} size="l" />
-                )}
+              <ListViewTitleCell
+                leading={
+                  <>
+                    {parsedExtra?.certification && (
+                      <CertifiedBadge
+                        certifiedBy={parsedExtra.certification.certified_by}
+                        details={parsedExtra.certification.details}
+                        size="l"
+                      />
+                    )}
+                    {parsedExtra?.warning_markdown && (
+                      <WarningIconWithTooltip
+                        warningMarkdown={parsedExtra.warning_markdown}
+                        size="l"
+                      />
+                    )}
+                    {rlsFilters && rlsFilters.length > 0 && (
+                      <RlsBadge rlsFilters={rlsFilters} size="l" />
+                    )}
+                  </>
+                }
+                trailing={
+                  <>
+                    {description && <InfoTooltip tooltip={description} />}
+                    {/* Beside the name rather than in a column of its own:
+                        anything an extension shows here is absent for most
+                        rows most of the time, and an always-empty column
+                        costs every reader width. `trailing` keeps it clear
+                        of the title's ellipsis, which is what the wrapper
+                        used to do. */}
+                    <ViewListExtension
+                      viewId={ViewLocations.listView.dataset.nameCell}
+                      viewProps={{ assetId: id }}
+                    />
+                  </>
+                }
+              >
                 {titleLink}
-                {description && <InfoTooltip tooltip={description} />}
-                <ViewListExtension
-                  viewId={ViewLocations.listView.dataset.nameCell}
-                  viewProps={{ assetId: id }}
-                />
-              </FlexRowContainer>
+              </ListViewTitleCell>
             );
           } catch {
             return titleLink;
@@ -1035,7 +1042,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
-        size: 'xxxl',
+        layout: 'title',
         id: 'table_name',
       },
       {
@@ -1052,7 +1059,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'status',
         id: 'kind',
       },
       {
@@ -1063,7 +1070,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => database?.database_name || '-',
         Header: databaseLabel(),
         accessor: 'database.database_name',
-        size: 'xl',
+        layout: 'identifier',
         id: 'database.database_name',
       },
       {
@@ -1074,7 +1081,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => schema || '-',
         Header: t('Schema'),
         accessor: 'schema',
-        size: 'lg',
+        layout: 'identifier',
         id: 'schema',
       },
       {
@@ -1092,7 +1099,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Editors'),
         id: 'editors',
         disableSortBy: true,
-        size: 'lg',
+        layout: 'people',
       },
       {
         Cell: ({
@@ -1107,7 +1114,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -1137,9 +1144,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tooltip={
                       allowEdit
                         ? t('Delete')
-                        : t(
-                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
-                          )
+                        : t('Only admins can delete semantic views.')
                     }
                     placement="bottom"
                     icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -1154,9 +1159,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tooltip={
                       allowEdit
                         ? t('Edit')
-                        : t(
-                            'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
-                          )
+                        : t('Only admins can edit semantic views.')
                     }
                     placement="bottom"
                     icon={<Icons.EditOutlined iconSize="l" />}
@@ -1250,6 +1253,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canEdit && !canDelete && !canDuplicate,
         disableSortBy: true,
       },

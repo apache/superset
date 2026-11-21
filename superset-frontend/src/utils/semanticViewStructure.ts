@@ -75,7 +75,12 @@ export const mapSemanticTypeToGenericDataType = (
 export interface SemanticViewStructure {
   name?: string;
   semantic_selection_version?: string;
-  dimensions: { name: string; type: string }[];
+  dimensions: {
+    name: string;
+    type: string;
+    grain?: string | null;
+    verbose_name?: string | null;
+  }[];
   metrics: { name: string; definition: string }[];
 }
 
@@ -114,11 +119,20 @@ export const fetchSemanticViewStructure = async (
  */
 export const semanticViewDimensionsToColumns = (
   dimensions: SemanticViewStructure['dimensions'],
-): Column[] =>
-  dimensions.map(dim => {
+): Column[] => {
+  type Dimension = SemanticViewStructure['dimensions'][number];
+  const byName = new Map<string, Dimension>();
+  dimensions.forEach(dimension => {
+    const existing = byName.get(dimension.name);
+    if (!existing || (!dimension.grain && existing.grain)) {
+      byName.set(dimension.name, dimension);
+    }
+  });
+  return Array.from(byName.values(), dim => {
     const mappedType = mapSemanticTypeToGenericDataType(dim.type);
     return {
       column_name: dim.name,
+      verbose_name: dim.verbose_name ?? undefined,
       type: dim.type,
       is_dttm: mappedType === GenericDataType.Temporal,
       type_generic: mappedType,
@@ -126,3 +140,4 @@ export const semanticViewDimensionsToColumns = (
       groupby: true,
     };
   });
+};

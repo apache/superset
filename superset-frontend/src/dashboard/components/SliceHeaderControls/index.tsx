@@ -803,6 +803,16 @@ const SliceHeaderControls = (
     };
   }, [isFullSize, props.chartHolderRef, props.handleToggleFullSize]);
 
+  const sliceMenu = (
+    <Menu
+      onClick={handleMenuClick}
+      data-test={`slice_${slice.slice_id}-menu`}
+      id={`slice_${slice.slice_id}-menu`}
+      selectable={false}
+      items={newMenuItems}
+    />
+  );
+
   return (
     <>
       {isFullSize && (
@@ -819,15 +829,7 @@ const SliceHeaderControls = (
         />
       )}
       <NoAnimationDropdown
-        popupRender={() => (
-          <Menu
-            onClick={handleMenuClick}
-            data-test={`slice_${slice.slice_id}-menu`}
-            id={`slice_${slice.slice_id}-menu`}
-            selectable={false}
-            items={newMenuItems}
-          />
-        )}
+        popupRender={() => sliceMenu}
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
