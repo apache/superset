@@ -66,6 +66,7 @@ def _mock_view(view_id: int = 1) -> Mock:
     view: Mock = Mock()
     view.id = view_id
     view.name = "Jaffle Shop"
+    view.implementation.selection_identity_version = "snowflake-table-qualified-v1"
     time_col: Mock = Mock()
     time_col.column_name = "metric_time"
     time_col.type = "TIMESTAMP"
@@ -116,6 +117,7 @@ async def test_view_id_builds_a_semantic_view_explore_link() -> None:
     assert form_data["datasource"] == "1__semantic_view"
     assert form_data["viz_type"] == "echarts_timeseries_line"
     assert form_data["metrics"] == ["revenue"]
+    assert form_data["semantic_selection_version"] == "snowflake-table-qualified-v1"
     get_datasource.assert_called_once()
     # The view id must never be looked up as a table dataset.
     find_dataset.assert_not_called()

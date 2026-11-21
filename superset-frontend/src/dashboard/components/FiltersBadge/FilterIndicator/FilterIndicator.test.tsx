@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from '.';
@@ -80,4 +82,15 @@ test('Should render with default props', async () => {
   await userEvent.click(
     screen.getByRole('button', { name: 'Vaccine Approach' }),
   );
+});
+
+test('Shows a visible focus ring when focused with the keyboard', () => {
+  const props = createProps();
+  render(<FilterIndicator {...props} />);
+
+  expect(
+    screen.getByRole('button', { name: 'search Vaccine Approach' }),
+  ).toHaveStyleRule('outline', `2px solid ${supersetTheme.colorPrimary}`, {
+    target: ':focus-visible',
+  });
 });

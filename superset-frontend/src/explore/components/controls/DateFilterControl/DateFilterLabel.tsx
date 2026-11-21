@@ -18,6 +18,7 @@
  */
 import { ReactNode, useState, useEffect, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   NO_TIME_RANGE,
   useCSSTextTruncation,
@@ -163,6 +164,8 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
+  // The last evaluated range whose start and end resolved to the same instant.
+  const [emptyTimeRange, setEmptyTimeRange] = useState<string | null>(null);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(t(value));
   const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
@@ -192,8 +195,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     latestValueRequestId.current += 1;
     const requestId = latestValueRequestId.current;
     fetchTimeRange(value, 'col', undefined, displayFormat).then(
-      ({ value: actualRange, error }) => {
+      ({ value: actualRange, error, isEmpty }) => {
         if (requestId !== latestValueRequestId.current) return;
+        setEmptyTimeRange(prev =>
+          !error && isEmpty ? value : prev === value ? null : prev,
+        );
         if (error) {
           setEvalResponse(error || '');
           setValidTimeRange(false);
@@ -246,8 +252,15 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         latestDraftRequestId.current += 1;
         const requestId = latestDraftRequestId.current;
         fetchTimeRange(timeRangeValue, 'col', undefined, displayFormat).then(
-          ({ value: actualRange, error }) => {
+          ({ value: actualRange, error, isEmpty }) => {
             if (requestId !== latestDraftRequestId.current) return;
+            setEmptyTimeRange(prev =>
+              !error && isEmpty
+                ? timeRangeValue
+                : prev === timeRangeValue
+                  ? null
+                  : prev,
+            );
             if (error) {
               setEvalResponse(error || '');
               setValidTimeRange(false);
@@ -345,6 +358,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
+        )}
+        {validTimeRange && emptyTimeRange === timeRangeValue && (
+          <Alert type="warning" closable={false}>
+            {t(
+              'This time range is empty. Choose an end time later than the start time.',
+            )}
+          </Alert>
         )}
       </div>
       <Divider />

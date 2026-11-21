@@ -18,12 +18,14 @@
  */
 
 import {
+  createStore,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -89,6 +91,7 @@ const combinedDatasourceFixtures = [
 ];
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/chart/add');
   mockIsFeatureEnabled.mockReturnValue(false);
   fetchMock.clearHistory().removeRoutes();
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
@@ -136,13 +139,10 @@ jest.mock('react-router-dom', () => ({
 
 async function renderComponent(user = mockUser) {
   mockHistoryPush.mockClear();
-  const rendered = render(
-    <ChartCreation user={user} addSuccessToast={() => null} />,
-    {
-      useRedux: true,
-      useRouter: true,
-    },
-  );
+  const rendered = render(<ChartCreation user={user} />, {
+    useRedux: true,
+    useRouter: true,
+  });
   await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
   return rendered;
 }
@@ -179,6 +179,15 @@ test('renders dataset help text when user has dataset write permissions', async 
   expect(screen.queryByText('view instructions')).toBeInTheDocument();
 });
 
+test('offers dataset creation only when semantic layers are disabled', async () => {
+  await renderComponent(mockUserWithDatasetWrite);
+  expect(screen.getByTestId('add-chart-new-dataset')).toHaveAttribute(
+    'href',
+    '/dataset/add/',
+  );
+  expect(screen.queryByTestId('add-chart-new-semantic-view')).toBeNull();
+});
+
 test('renders create chart button', async () => {
   await renderComponent();
   expect(
@@ -198,6 +207,9 @@ test('renders an enabled button if datasource and viz type are selected', async 
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
   await userEvent.click(datasourceSelect);
+  expect(
+    await screen.findByRole('option', { name: 'table - test_db - public' }),
+  ).toBeInTheDocument();
   await userEvent.click(await screen.findByText(/test_db/i));
 
   await userEvent.click(
@@ -287,58 +299,25 @@ test('dropdown displays matching datasets when user types a search term', async 
   expect(screen.getByText('flights_delayed')).toBeInTheDocument();
 });
 
-test('handles special characters in dataset name from URL parameter', async () => {
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
-    body: {
-      result: [
-        {
-          id: 'special_1',
-          table_name: 'flightsÆ test',
-          datasource_type: 'table',
-          database: { database_name: 'test_db' },
-          schema: 'public',
-        },
-      ],
-      count: 1,
-    },
-    status: 200,
-  });
+const flightsDataset = {
+  id: 42,
+  table_name: 'flights',
+  datasource_type: 'table',
+  database: { database_name: 'examples' },
+  schema: 'public',
+};
 
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+const datasetByIdUrl = /\/api\/v1\/dataset\/42\?q=.*/;
+
+const mockSearchLocation = (search: string) =>
+  jest.spyOn(window, 'location', 'get').mockReturnValue({
     ...window.location,
-    search: '?dataset=flights%C3%86%20test',
+    search,
   } as Location);
 
-  await renderComponent();
-
-  expect(await screen.findByText('flightsÆ test')).toBeInTheDocument();
-
-  locationSpy.mockRestore();
-});
-
-test('pre-selects the dataset from URL parameter and shows it in dropdown', async () => {
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
-    body: {
-      result: [
-        {
-          id: 'flights_123',
-          table_name: 'flights',
-          datasource_type: 'table',
-          database: { database_name: 'examples' },
-          schema: 'public',
-        },
-      ],
-      count: 1,
-    },
-    status: 200,
-  });
-
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=flights',
-  } as Location);
+test('pre-selects the dataset from dataset_id and shows it in dropdown', async () => {
+  fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
+  const locationSpy = mockSearchLocation('?dataset_id=42');
 
   await renderComponent();
 
@@ -347,37 +326,74 @@ test('pre-selects the dataset from URL parameter and shows it in dropdown', asyn
   locationSpy.mockRestore();
 });
 
-test('shows loading spinner when dataset parameter is present in URL', async () => {
-  fetchMock.clearHistory().removeRoutes();
+test('fetches the dataset directly by ID with a column selection', async () => {
+  fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
+  const locationSpy = mockSearchLocation('?dataset_id=42');
+
+  await renderComponent();
+  await screen.findByText('flights');
+
+  const urls = fetchMock.callHistory
+    .calls()
+    .map(call => decodeURIComponent(call.url));
+  expect(urls).toHaveLength(1);
+  expect(urls[0]).toContain('/api/v1/dataset/42?q=');
+  expect(urls[0]).toContain(
+    'columns:!(id,table_name,datasource_type,database.database_name,schema)',
+  );
+
+  locationSpy.mockRestore();
+});
+
+test('ignores the removed dataset name parameter', async () => {
+  const locationSpy = mockSearchLocation('?dataset=flights');
+
+  await renderComponent();
+
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+  expect(screen.queryByText('flights')).not.toBeInTheDocument();
+
+  locationSpy.mockRestore();
+});
+
+test('renders the picker without a spinner when dataset_id is empty', async () => {
+  const locationSpy = mockSearchLocation('?dataset_id=');
+
+  await renderComponent();
+
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+
+  locationSpy.mockRestore();
+});
+
+test('does not toast on load, so hand-built dataset_id links stay quiet', async () => {
+  fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
+  const store = createStore({}, reducerIndex);
+  const locationSpy = mockSearchLocation('?dataset_id=42');
+
+  render(<ChartCreation user={mockUser} />, { store, useRouter: true });
+  await screen.findByText('flights');
+
+  expect(
+    (store.getState() as unknown as { messageToasts: unknown }).messageToasts,
+  ).toEqual([]);
+
+  locationSpy.mockRestore();
+});
+
+test('shows loading spinner while the dataset_id lookup is pending', async () => {
   let resolveRequest: (value: unknown) => void;
   const requestPromise = new Promise(resolve => {
     resolveRequest = resolve;
   });
-
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, () =>
-    requestPromise.then(() => ({
-      body: {
-        result: [
-          {
-            id: 'flights_1',
-            table_name: 'flights',
-            datasource_type: 'table',
-            database: { database_name: 'examples' },
-            schema: 'public',
-          },
-        ],
-        count: 1,
-      },
-      status: 200,
-    })),
+  fetchMock.get(datasetByIdUrl, () =>
+    requestPromise.then(() => ({ body: { result: flightsDataset } })),
   );
+  const locationSpy = mockSearchLocation('?dataset_id=42');
 
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=flights',
-  } as Location);
-
-  render(<ChartCreation user={mockUser} addSuccessToast={() => null} />, {
+  render(<ChartCreation user={mockUser} />, {
     useRedux: true,
     useRouter: true,
   });
@@ -452,63 +468,6 @@ test('dataset dropdown sorts options alphabetically by table name regardless of 
   ).toBeTruthy();
 });
 
-test('shows only exact match when loading dataset from URL, not partial matches', async () => {
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, ({ url }) => {
-    if (url.includes('opr:eq')) {
-      return {
-        body: {
-          result: [
-            {
-              id: 'flights_1',
-              table_name: 'flights',
-              datasource_type: 'table',
-              database: { database_name: 'examples' },
-              schema: 'public',
-            },
-          ],
-          count: 1,
-        },
-        status: 200,
-      };
-    }
-    return {
-      body: {
-        result: [
-          {
-            id: 'flights_1',
-            table_name: 'flights',
-            datasource_type: 'table',
-            database: { database_name: 'examples' },
-            schema: 'public',
-          },
-          {
-            id: 'flights_delayed_2',
-            table_name: 'flights_delayed',
-            datasource_type: 'table',
-            database: { database_name: 'examples' },
-            schema: 'public',
-          },
-        ],
-        count: 2,
-      },
-      status: 200,
-    };
-  });
-
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=flights',
-  } as Location);
-
-  await renderComponent();
-
-  await screen.findByText('flights');
-  expect(screen.queryByText('flights_delayed')).not.toBeInTheDocument();
-
-  locationSpy.mockRestore();
-});
-
 test('lists a same-named dataset and semantic view as distinct, typed options', async () => {
   enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
@@ -520,6 +479,16 @@ test('lists a same-named dataset and semantic view as distinct, typed options', 
   await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
 
   expect(await screen.findAllByText('shared_source')).toHaveLength(2);
+  expect(
+    screen.getByRole('option', {
+      name: 'shared_source - examples - public Dataset',
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('option', {
+      name: 'shared_source - Sales semantics Semantic View',
+    }),
+  ).toBeInTheDocument();
   // The type label is plain text inside each option rather than colour or an
   // icon, so it is read out along with the name.
   const optionTexts = Array.from(
@@ -539,6 +508,111 @@ test('lists a same-named dataset and semantic view as distinct, typed options', 
     'true',
   );
 });
+
+test.each(
+  [false, true].flatMap(enabled =>
+    ['schema', 'database'].map(distinction => ({ enabled, distinction })),
+  ),
+)(
+  'dataset accessible names distinguish $distinction with semantic layers=$enabled',
+  async ({ enabled, distinction }) => {
+    if (enabled) enableSemanticLayers();
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.get(/\/api\/v1\/(dataset|datasource)\/\?q=.*/, {
+      body: {
+        result: [
+          {
+            id: 1,
+            table_name: 'orders',
+            schema: 'sales',
+            database: { database_name: 'warehouse' },
+          },
+          {
+            id: 2,
+            table_name: 'orders',
+            schema: distinction === 'schema' ? 'finance' : 'sales',
+            database: {
+              database_name:
+                distinction === 'database' ? 'archive' : 'warehouse',
+            },
+          },
+        ],
+        count: 2,
+      },
+    });
+    await renderComponent();
+    await userEvent.click(
+      screen.getByRole('combobox', {
+        name: enabled ? 'Datasource' : 'Dataset',
+      }),
+    );
+    for (const label of [
+      'orders - warehouse - sales',
+      distinction === 'schema'
+        ? 'orders - warehouse - finance'
+        : 'orders - archive - sales',
+    ]) {
+      expect(
+        await screen.findByRole('option', {
+          name: enabled ? `${label} Dataset` : label,
+        }),
+      ).toBeInTheDocument();
+    }
+  },
+);
+
+test.each(['', 'null', 'none'])(
+  'dataset accessible name shares the visible fallback for %s',
+  async tableName => {
+    enableSemanticLayers();
+    fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
+      body: {
+        result: [
+          {
+            id: 1,
+            table_name: tableName,
+            database: { database_name: 'warehouse' },
+            schema: 'null',
+          },
+        ],
+        count: 1,
+      },
+    });
+    await renderComponent();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
+    expect(
+      await screen.findByRole('option', {
+        name: 'warehouse - warehouse Dataset',
+      }),
+    ).toBeInTheDocument();
+  },
+);
+
+test.each(['Dataset', 'Semantic View', 'examples', 'public'])(
+  'picker search does not match display-only label text %s',
+  async term => {
+    enableSemanticLayers();
+    fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
+      body: { result: combinedDatasourceFixtures, count: 2 },
+    });
+    await renderComponent();
+    const select = screen.getByRole('combobox', { name: 'Datasource' });
+    await userEvent.click(select);
+    expect(await screen.findAllByText('shared_source')).toHaveLength(2);
+    await userEvent.type(select, term);
+    expect(
+      await screen.findByText('No data', {
+        selector: '.ant-empty-description',
+      }),
+    ).toBeInTheDocument();
+    await userEvent.clear(select);
+    await userEvent.type(select, 'shared');
+    expect(await screen.findAllByText('shared_source')).toHaveLength(2);
+    await userEvent.clear(select);
+    await userEvent.type(select, '42');
+    expect(await screen.findAllByText('shared_source')).toHaveLength(2);
+  },
+);
 
 test('requests unified server ordering by table name', async () => {
   enableSemanticLayers();
@@ -613,7 +687,8 @@ test('searches semantic views through the combined datasource endpoint', async (
   );
 });
 
-test('navigates to Explore with the semantic view composite identity', async () => {
+test('dashboard chart creation preserves semantic identity with a named option', async () => {
+  window.history.replaceState({}, '', '/chart/add?dashboard_id=17');
   enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
     body: { result: [combinedDatasourceFixtures[1]], count: 1 },
@@ -622,12 +697,17 @@ test('navigates to Explore with the semantic view composite identity', async () 
 
   await renderComponent();
   await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
+  expect(
+    await screen.findByRole('option', {
+      name: 'shared_source - Sales semantics Semantic View',
+    }),
+  ).toBeInTheDocument();
   await userEvent.click(await screen.findByText('shared_source'));
   await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
   await userEvent.dblClick(await screen.findByText('Table'));
 
   expect(mockHistoryPush).toHaveBeenCalledWith(
-    '/explore/?viz_type=table&datasource=42__semantic_view',
+    '/explore/?viz_type=table&datasource=42__semantic_view&dashboard_id=17',
   );
 });
 
@@ -692,7 +772,7 @@ test('shows a failed datasource load as an error, then recovers on the next sear
   );
 });
 
-test('uses generic picker terminology without changing the dataset action', async () => {
+test('uses datasource terminology and offers both creation paths', async () => {
   enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
     body: { result: combinedDatasourceFixtures, count: 2 },
@@ -705,8 +785,12 @@ test('uses generic picker terminology without changing the dataset action', asyn
     screen.getByRole('combobox', { name: 'Datasource' }),
   ).toBeInTheDocument();
   expect(screen.getAllByText('Choose a datasource')).toHaveLength(2);
-  const addDatasetLink = screen.getByRole('link', { name: 'Add a dataset' });
-  expect(addDatasetLink).toHaveAttribute('href', '/dataset/add/');
+  expect(
+    screen.getByRole('link', { name: 'Add a datasource' }),
+  ).toHaveAttribute('href', '/tablemodelview/list/');
+  expect(
+    screen.getByRole('link', { name: 'create a semantic view' }),
+  ).toHaveAttribute('href', '/tablemodelview/list/?create=semantic_view');
 });
 
 test('keeps the legacy dataset-only picker when semantic layers are disabled', async () => {
@@ -752,18 +836,12 @@ test('keeps the legacy no-options state when semantic layers are disabled', asyn
   expect(screen.queryByText('Semantic View')).not.toBeInTheDocument();
 });
 
-test('uses the exact dataset endpoint for URL preload with semantic layers enabled', async () => {
+test('preloads dataset_id from the dataset endpoint with semantic layers enabled', async () => {
   enableSemanticLayers();
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
-    body: { result: legacyDatasetFixtures, count: 1 },
-    status: 200,
+  fetchMock.get(datasetByIdUrl, {
+    body: { result: legacyDatasetFixtures[0] },
   });
-
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=shared_source',
-  } as Location);
+  const locationSpy = mockSearchLocation('?dataset_id=42');
 
   await renderComponent();
 
@@ -773,20 +851,96 @@ test('uses the exact dataset endpoint for URL preload with semantic layers enabl
     screen.getByText('Dataset', { selector: '.ant-tag' }),
   ).toBeInTheDocument();
   expect(
-    fetchMock.callHistory.calls().some(call => {
-      const decodedUrl = decodeURIComponent(call.url);
-      return (
-        decodedUrl.includes('/api/v1/dataset/') &&
-        decodedUrl.includes('opr:eq') &&
-        decodedUrl.includes('shared_source')
-      );
-    }),
-  ).toBe(true);
-  expect(
     fetchMock.callHistory
       .calls()
       .some(call => call.url.includes('/api/v1/datasource/')),
   ).toBe(false);
+
+  locationSpy.mockRestore();
+});
+
+// Opens the chart with the preselected dataset and returns the explore URL.
+const openChartWithPreselectedDataset = async () => {
+  await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
+  await userEvent.dblClick(await screen.findByText('Table'));
+  await waitFor(() => expect(mockHistoryPush).toHaveBeenCalled());
+  return mockHistoryPush.mock.calls[0][0] as string;
+};
+
+test('builds the Explore URL from the dataset_id selection', async () => {
+  fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
+  const locationSpy = mockSearchLocation('?dataset_id=42');
+
+  await renderComponent();
+
+  expect(await openChartWithPreselectedDataset()).toContain(
+    'datasource=42__table',
+  );
+
+  locationSpy.mockRestore();
+});
+
+type ToastState = { toastType: string; text: string }[];
+const getToasts = (store: ReturnType<typeof createStore>) =>
+  (store.getState() as unknown as { messageToasts: ToastState }).messageToasts;
+
+const renderWithFailedDatasetLookup = async (
+  response: Parameters<typeof fetchMock.get>[1],
+) => {
+  fetchMock.get(/\/api\/v1\/dataset\/999\?q=.*/, response);
+  mockHistoryPush.mockClear();
+  const store = createStore({}, reducerIndex);
+  render(<ChartCreation user={mockUser} />, {
+    store,
+    useRouter: true,
+  });
+  await waitFor(() =>
+    expect(screen.queryByRole('status')).not.toBeInTheDocument(),
+  );
+  await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
+  await userEvent.dblClick(await screen.findByText('Table'));
+  expect(mockHistoryPush).not.toHaveBeenCalled();
+  return store;
+};
+
+test('leaves the selection empty without a toast when the dataset is missing', async () => {
+  const locationSpy = mockSearchLocation('?dataset_id=999');
+
+  const store = await renderWithFailedDatasetLookup({
+    status: 404,
+    body: { message: 'nope' },
+  });
+
+  expect(getToasts(store)).toEqual([]);
+
+  locationSpy.mockRestore();
+});
+
+test('shows a danger toast and leaves the selection empty on a server error', async () => {
+  const locationSpy = mockSearchLocation('?dataset_id=999');
+
+  const store = await renderWithFailedDatasetLookup({
+    status: 500,
+    body: { message: 'database exploded' },
+  });
+
+  await waitFor(() => expect(getToasts(store)).toHaveLength(1));
+  expect(getToasts(store)[0].toastType).toBe('DANGER_TOAST');
+  expect(getToasts(store)[0].text).toContain('database exploded');
+
+  locationSpy.mockRestore();
+});
+
+test('shows a danger toast and leaves the selection empty on a forbidden response', async () => {
+  const locationSpy = mockSearchLocation('?dataset_id=999');
+
+  const store = await renderWithFailedDatasetLookup({
+    status: 403,
+    body: { message: 'Forbidden' },
+  });
+
+  await waitFor(() => expect(getToasts(store)).toHaveLength(1));
+  expect(getToasts(store)[0].toastType).toBe('DANGER_TOAST');
 
   locationSpy.mockRestore();
 });

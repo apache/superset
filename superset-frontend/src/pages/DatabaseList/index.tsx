@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert } from '@apache-superset/core/components';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
@@ -52,6 +51,7 @@ import {
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
   type ListViewFetchDataConfig,
@@ -75,6 +75,9 @@ import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import SemanticDeleteBlockers, {
+  SemanticDeleteError,
+} from 'src/features/semanticLayers/SemanticDeleteBlockers';
 import type User from 'src/types/User';
 import {
   databaseLabel,
@@ -433,11 +436,8 @@ function DatabaseList({
   const [slCurrentlyEditing, setSlCurrentlyEditing] = useState<string | null>(
     null,
   );
-  const [slDeleteError, setSLDeleteError] = useState<{
-    error: string;
-    total?: number;
-    archived_count?: number;
-  } | null>(null);
+  const [slDeleteError, setSLDeleteError] =
+    useState<SemanticDeleteError | null>(null);
   const [slDeleting, setSLDeleting] = useState(false);
   const slDeleteRequest = useRef(0);
   const [slDeletePreview, setSlDeletePreview] =
@@ -837,12 +837,12 @@ function DatabaseList({
     }
   }
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<DatabaseObject>[]>(
     () => [
       {
         accessor: 'database_name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'database_name',
       },
       {
@@ -850,7 +850,7 @@ function DatabaseList({
         // i18n: the kind of system behind a connection: a database engine
         // (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
         Header: t('Backend'),
-        size: 'xl',
+        layout: 'identifier',
         disableSortBy: true,
         id: 'backend',
       },
@@ -871,7 +871,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_run_async)} />
           ),
-        size: 'sm',
+        layout: 'flag',
         id: 'allow_run_async',
       },
       {
@@ -891,7 +891,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_dml)} />
           ),
-        size: 'sm',
+        layout: 'flag',
         id: 'allow_dml',
       },
       {
@@ -903,7 +903,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_file_upload)} />
           ),
-        size: 'md',
+        layout: 'flag',
         id: 'allow_file_upload',
       },
       {
@@ -915,7 +915,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.expose_in_sqllab)} />
           ),
-        size: 'md',
+        layout: 'flag',
         id: 'expose_in_sqllab',
       },
       {
@@ -931,7 +931,7 @@ function DatabaseList({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -1042,6 +1042,7 @@ function DatabaseList({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actionsWide',
         hidden:
           !canEdit &&
           !canDelete &&
@@ -1221,6 +1222,7 @@ function DatabaseList({
       />
       <SemanticLayerModal
         show={semanticLayerModalOpen}
+        onCreated={refreshData}
         onHide={() => {
           setSemanticLayerModalOpen(false);
           refreshData();
@@ -1230,6 +1232,7 @@ function DatabaseList({
       />
       <SemanticLayerModal
         show={!!slCurrentlyEditing}
+        onUpdated={refreshData}
         onHide={() => {
           setSlCurrentlyEditing(null);
           refreshData();
@@ -1250,25 +1253,7 @@ function DatabaseList({
               </p>
               <SemanticLayerCascadeWarning preview={slDeletePreview} />
               {slDeleteError && (
-                <Alert
-                  type="error"
-                  showIcon
-                  message={
-                    <>
-                      {typeof slDeleteError.total === 'number' &&
-                      typeof slDeleteError.archived_count === 'number'
-                        ? t(
-                            'Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting.',
-                            slDeleteError.total,
-                            slDeleteError.archived_count,
-                          )
-                        : slDeleteError.error}{' '}
-                      <a href={ensureAppRoot('/archived/')}>
-                        {t('Recently Archived')}
-                      </a>
-                    </>
-                  }
-                />
+                <SemanticDeleteBlockers error={slDeleteError} />
               )}
             </>
           }
@@ -1308,7 +1293,7 @@ function DatabaseList({
                     databaseCurrentlyDeleting.datasets.count,
                   )}{' '}
                   {t(
-                    'Delete or move active datasets. To remove archived datasets, open Recently archived and select Delete permanently.',
+                    'Delete or move active datasets. To remove archived datasets, open Recently Archived and select Delete permanently.',
                   )}
                 </p>
               ) : (

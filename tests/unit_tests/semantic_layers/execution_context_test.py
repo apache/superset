@@ -102,9 +102,9 @@ def test_connection_credentials_keys_unchanged(
         "col_values:eb5d43a7322c2a03556fc53bc62d54fbbe0b3d26d561d18a0e385c7457abd822",
         # Compatibility identity includes changed_on="None" for this view.
         "compatible:a2e526c4cd1db4f68fd34cc7dffe06cc4fbd029975f2147b4b11bb55179795b8",
-        # Recorded on master ffee0a843f: #45133 adds semantic-null-filters-v1
-        # to chart keys; the execution-context contract adds no discriminator.
-        "80b906df8cf7f4837b95d21c32c6f71bd6c810fcf7c1896dbeca74a5023ea961",
+        # NULL-preserving exclusions use semantic-null-filters-v2 in chart keys;
+        # the execution-context contract adds no discriminator.
+        "0b34147df459869c54682b7f1c9f65ea642ee8b746193352ed2322e75c318575",
     ]
 
 
