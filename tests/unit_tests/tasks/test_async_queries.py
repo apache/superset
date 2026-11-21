@@ -184,6 +184,7 @@ def test_failed_non_totals_sql_query_preserves_readback(
     task_context.update_task.assert_called_once_with(
         payload={"cache_key": "failed-sql-key"}, immediate=True
     )
+    query_context.raise_for_access.assert_not_called()
     assert (
         query_context.get_df_payload_result.return_value.payload["errors"][0]["message"]
         == "Friendly engine error"
