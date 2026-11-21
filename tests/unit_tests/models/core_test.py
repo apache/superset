@@ -5175,6 +5175,37 @@ def test_default_schema_old_worker_does_not_overwrite_new_discovery(
     assert write.call_count + fallback_write.call_count == (2 if elapsed < 3600 else 1)
 
 
+@pytest.mark.parametrize("cached_schema", ["other", ""])
+def test_default_schema_existing_publication_is_not_retried(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    cached_schema: str,
+) -> None:
+    """A worker finding another worker's publication must stop trying to add."""
+    cache = shared_default_schema_cache
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+    real_add = cache.add
+
+    def publish_from_other_worker(key: str, schema: str, timeout: int) -> bool:
+        """Populate the shared key before this worker's first add attempt."""
+        if cache.get(key) is None:
+            assert real_add(key, cached_schema, timeout=timeout)
+        return real_add(key, schema, timeout=timeout)
+
+    write = mocker.patch.object(cache, "add", side_effect=publish_from_other_worker)
+    for _ in range(50):
+        assert database.get_default_schema_from_engine(None) == "main"
+    write.assert_called_once()
+    key = write.call_args.args[0]
+    assert cache.get(key) == cached_schema
+    cache.delete(key)
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert cache.get(key) is None
+    write.assert_called_once()
+
+
 def test_default_schema_unsuccessful_publication_retries(
     shared_default_schema_cache: Cache, mocker: MockerFixture
 ) -> None:

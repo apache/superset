@@ -161,9 +161,11 @@ _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
 
 
 def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
-    """Preserve existing discovery when the backend supports add-if-absent."""
+    """Publish discovery or confirm another worker has already published it."""
     try:
-        return bool(cache_manager.cache.add(cache_key, schema, timeout=timeout))
+        if cache_manager.cache.add(cache_key, schema, timeout=timeout):
+            return True
+        return cache_manager.cache.get(cache_key) is not None
     except (AttributeError, NotImplementedError):
         return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
 
