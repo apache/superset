@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
@@ -30,7 +30,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.superset_typing import Column
 from superset.utils.core import (
     FilterOperator,
-    get_x_axis_label,
+    get_base_axis_columns,
 )
 from superset.utils.date_parser import get_since_until
 
@@ -39,8 +39,14 @@ def get_time_range_from_filters(
     time_range: str | None,
     filters: Sequence[Mapping[str, object]] | None,
     columns: list[Column] | None,
+    temporal_columns: Collection[str] | None = None,
 ) -> str:
-    """Select the original range expression without evaluating relative dates."""
+    """Select the original range expression without evaluating relative dates.
+
+    A temporal x-axis only takes a range that targets it, by label first and
+    then by expression. Without an x-axis, or with an x-axis whose expression
+    is not one of ``temporal_columns``, the first temporal range is used.
+    """
     if time_range is not None:
         return time_range
     temporal_filters: list[Mapping[str, object]] = [
@@ -51,12 +57,31 @@ def get_time_range_from_filters(
     ]
     if not temporal_filters:
         return NO_TIME_RANGE
-    x_axis_label: str | None = get_x_axis_label(columns)
-    selected: Mapping[str, object] = next(
-        (filter_ for filter_ in temporal_filters if filter_.get("col") == x_axis_label),
-        temporal_filters[0],
-    )
-    return cast(str, selected.get("val"))
+    base_axes: list[Column] = get_base_axis_columns(columns)
+    if not base_axes or (
+        temporal_columns is not None
+        and cast(Mapping[str, object], base_axes[0]).get("sqlExpression")
+        not in temporal_columns
+    ):
+        return cast(str, temporal_filters[0].get("val"))
+    for identifier in get_column_identifiers(base_axes[0]):
+        for filter_ in temporal_filters:
+            if identifier in get_column_identifiers(filter_.get("col")):
+                return cast(str, filter_.get("val"))
+    return NO_TIME_RANGE
+
+
+def get_column_identifiers(column: object) -> tuple[str, ...]:
+    """Return the names a column is referenced by: its label, then expression."""
+    if isinstance(column, str):
+        return (column,)
+    if isinstance(column, Mapping):
+        return tuple(
+            value
+            for key in ("label", "sqlExpression")
+            if isinstance(value := column.get(key), str) and value
+        )
+    return ()
 
 
 def get_since_until_from_time_range(

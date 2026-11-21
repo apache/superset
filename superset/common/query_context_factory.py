@@ -24,6 +24,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
+from superset.common.utils.time_range_utils import get_column_identifiers
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
@@ -31,7 +32,13 @@ from superset.extensions import security_manager
 from superset.models.slice import Slice
 from superset.security.manager import STOCK_RAISE_FOR_ACCESS
 from superset.superset_typing import Column
-from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+from superset.utils.core import (
+    DatasourceDict,
+    DatasourceType,
+    get_base_axis_columns,
+    is_adhoc_column,
+    QueryObjectFilterClause,
+)
 from superset.utils.date_parser import is_no_time_range
 
 if TYPE_CHECKING:
@@ -175,7 +182,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         query_object: QueryObject,
     ) -> QueryObject:
         self._apply_granularity(query_object, form_data, datasource)
-        self._apply_filters(query_object, form_data)
+        self._apply_filters(query_object, form_data, datasource)
         self._add_tooltip_columns(query_object, form_data)
         self._add_currency_column(query_object, form_data, datasource)
         return query_object
@@ -464,22 +471,72 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                 ]
 
     def _apply_filters(
-        self, query_object: QueryObject, form_data: dict[str, Any] | None = None
+        self,
+        query_object: QueryObject,
+        form_data: dict[str, Any] | None = None,
+        datasource: Explorable | None = None,
     ) -> None:
-        """Apply the time range, retaining the source of dashboard overrides."""
+        """Apply the time range, retaining the source of dashboard overrides.
+
+        The range replaces the ``TEMPORAL_RANGE`` filters on the time column
+        (granularity) or the x-axis, so other datetime columns keep their own
+        ranges. A temporal x-axis without such a filter gets one, unless a time
+        column already carries the range. When neither column is known, every
+        ``TEMPORAL_RANGE`` filter takes the range.
+        """
         extra_form_data: object = (form_data or {}).get("extra_form_data")
         dashboard_time_override: bool = (
             isinstance(extra_form_data, dict)
             and "time_range" in extra_form_data
             and extra_form_data["time_range"] == query_object.time_range
         )
-        if query_object.time_range:
-            for filter_object in query_object.filter:
-                if filter_object["op"] == "TEMPORAL_RANGE":
-                    saved: object = filter_object.get("val")
-                    was_unbounded: bool = saved is None or (
-                        isinstance(saved, str) and is_no_time_range(saved)
-                    )
-                    filter_object["val"] = query_object.time_range
-                    if dashboard_time_override and was_unbounded:
-                        filter_object["isExtra"] = True
+        if not query_object.time_range:
+            return
+        granularity: object = getattr(query_object, "granularity", None)
+        base_axes: list[Column] = get_base_axis_columns(
+            getattr(query_object, "columns", None)
+        )
+        time_columns: set[str] = {
+            *get_column_identifiers(granularity),
+            *(get_column_identifiers(base_axes[0]) if base_axes else ()),
+        }
+        temporal_filters: list[QueryObjectFilterClause] = [
+            filter_object
+            for filter_object in query_object.filter
+            if filter_object["op"] == "TEMPORAL_RANGE"
+        ]
+        targets: list[QueryObjectFilterClause] = [
+            filter_object
+            for filter_object in temporal_filters
+            if time_columns.intersection(get_column_identifiers(filter_object["col"]))
+        ]
+        if not targets and not isinstance(granularity, str):
+            axis_column: object = (
+                cast(dict[str, object], base_axes[0]).get("sqlExpression")
+                if base_axes
+                else None
+            )
+            if datasource is not None and axis_column in {
+                column["column_name"]
+                if isinstance(column, dict)
+                else column.column_name
+                for column in datasource.columns
+                if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
+            }:
+                axis_filter: QueryObjectFilterClause = {
+                    "col": cast(str, axis_column),
+                    "op": "TEMPORAL_RANGE",
+                    "val": None,
+                }
+                query_object.filter.append(axis_filter)
+                targets = [axis_filter]
+            else:
+                targets = temporal_filters
+        for filter_object in targets:
+            saved: object = filter_object.get("val")
+            was_unbounded: bool = saved is None or (
+                isinstance(saved, str) and is_no_time_range(saved)
+            )
+            filter_object["val"] = query_object.time_range
+            if dashboard_time_override and was_unbounded:
+                filter_object["isExtra"] = True
