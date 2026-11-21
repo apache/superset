@@ -1598,3 +1598,23 @@ def test_expand_nested_columns_keeps_user_alias() -> None:
         "calendar.day",
     ]
     assert result[2] is columns[1]
+
+
+def test_get_dbapi_mapped_exception_refresh_error() -> None:
+    """
+    A rejected service-account key (``invalid_grant``) is a client error, not a 500.
+    """
+    from google.auth.exceptions import RefreshError
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.exceptions import (
+        SupersetDBAPIConnectionError,
+        SupersetDBAPICredentialsError,
+    )
+
+    ex = BigQueryEngineSpec.get_dbapi_mapped_exception(
+        RefreshError("invalid_grant: Invalid JWT Signature.")
+    )
+    assert isinstance(ex, SupersetDBAPICredentialsError)
+    assert isinstance(ex, SupersetDBAPIConnectionError)
+    assert ex.status == 400
