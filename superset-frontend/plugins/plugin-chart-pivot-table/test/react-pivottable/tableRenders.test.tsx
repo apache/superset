@@ -1610,12 +1610,15 @@ test('TableRenderer re-applies the default row expansion depth when it changes',
 
 test('TableRenderer resets manual toggles when the default row expansion depth changes', () => {
   const { rerender } = renderWithTheme(
-    <TableRenderer {...buildDepthProps({ rowSubTotals: true }, 1)} />,
+    <TableRenderer {...buildDepthProps({ rowSubTotals: true }, 2)} />,
   );
-  clickRowGroupToggle('US');
-  expect(screen.getByText('West')).toBeInTheDocument();
+  clickRowGroupToggle('West');
+  expect(screen.getByText('LA')).toBeInTheDocument();
 
-  rerenderWithTheme(rerender, buildDepthProps({ rowSubTotals: true }, 2));
+  // Depth 1 collapses West by default. A surviving manual expand of West
+  // would keep LA visible once US is expanded.
+  rerenderWithTheme(rerender, buildDepthProps({ rowSubTotals: true }, 1));
+  clickRowGroupToggle('US');
   expect(screen.getByText('West')).toBeInTheDocument();
   expect(screen.queryByText('LA')).not.toBeInTheDocument();
 });
