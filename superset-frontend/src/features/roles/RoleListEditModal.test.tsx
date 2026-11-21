@@ -32,7 +32,6 @@ import RoleListEditModalComponent, {
   RoleListEditModalProps,
 } from './RoleListEditModal';
 import {
-  formatPermissionLabel,
   updateRoleName,
   updateRoleGroups,
   updateRolePermissions,
@@ -252,9 +251,6 @@ describe('RoleListEditModal', () => {
   });
 
   test('shows decoded dots for an assigned permission and submits its ID', async () => {
-    jest
-      .mocked(formatPermissionLabel)
-      .mockImplementation(jest.requireActual('./utils').formatPermissionLabel);
     (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
       if (endpoint === '/api/v1/security/roles/1/permissions/') {
         return Promise.resolve({
@@ -999,7 +995,7 @@ describe('RoleListEditModal', () => {
           1,
           first === 'permissions' && outcome === 'failure'
             ? [10, 20]
-            : [5, 10, 20],
+            : [10, 20, 5],
         );
         expect(mockUpdateRoleGroups).toHaveBeenCalledWith(
           1,
@@ -1117,7 +1113,7 @@ describe('RoleListEditModal', () => {
       );
       expect(mockUpdateRolePermissions).toHaveBeenCalledWith(
         currentRole.id,
-        [20, 10],
+        [10, 20],
       );
       expect(mockUpdateRoleGroups).toHaveBeenCalledWith(currentRole.id, [2, 1]);
     },
