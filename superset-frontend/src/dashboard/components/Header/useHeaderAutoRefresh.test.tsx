@@ -21,7 +21,16 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import { ReactNode } from 'react';
 import { LOG_ACTIONS_FORCE_REFRESH_DASHBOARD } from 'src/logger/LogUtils';
+import {
+  onRefresh,
+  onFiltersRefresh,
+} from 'src/dashboard/actions/dashboardState';
+import { refreshChart } from 'src/components/Chart/chartAction';
 import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
+
+jest.mock('src/components/Chart/chartAction', () => ({
+  refreshChart: jest.fn(() => () => Promise.resolve()),
+}));
 
 const mockStartAutoRefresh = jest.fn();
 const mockEndAutoRefresh = jest.fn();
@@ -201,4 +210,58 @@ test('a silent refresh excludes charts with no previous query data from both sta
   expect(props.onRefresh).toHaveBeenCalledTimes(1);
   const [refreshedChartIds] = props.onRefresh.mock.calls[0];
   expect(refreshedChartIds).toEqual([1]);
+});
+
+test.each([
+  ['force', true],
+  ['fetch', false],
+])(
+  'auto-refresh refreshes native filter options in %s mode',
+  async (autoRefreshMode, force) => {
+    jest.useFakeTimers();
+    const dispatch: jest.Mock = jest.fn(action =>
+      typeof action === 'function'
+        ? action(dispatch, () => ({
+            dashboardInfo: { metadata: { stagger_refresh: false } },
+          }))
+        : action,
+    );
+    renderHeaderAutoRefresh(
+      {},
+      {
+        refreshFrequency: 10,
+        autoRefreshMode,
+        timedRefreshImmuneSlices: [2],
+        onRefresh: (...args: Parameters<typeof onRefresh>) =>
+          onRefresh(...args)(dispatch),
+      },
+    );
+
+    try {
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(10000);
+        await jest.advanceTimersByTimeAsync(1);
+      });
+
+      expect(refreshChart).toHaveBeenCalledWith(1, force, 100);
+      expect(dispatch).toHaveBeenCalledWith(onFiltersRefresh());
+    } finally {
+      jest.useRealTimers();
+    }
+  },
+);
+
+test('does not refresh charts or native filter options when auto-refresh is off', async () => {
+  jest.useFakeTimers();
+  const { props } = renderHeaderAutoRefresh();
+
+  try {
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60000);
+    });
+
+    expect(props.onRefresh).not.toHaveBeenCalled();
+  } finally {
+    jest.useRealTimers();
+  }
 });

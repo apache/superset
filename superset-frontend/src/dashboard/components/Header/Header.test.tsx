@@ -845,7 +845,7 @@ test('shows Excel export progress after the header menu closes', async () => {
   post.mockRestore();
 });
 
-test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
+test('auto-refresh uses onRefresh with filters and toggles refresh state', async () => {
   jest.useFakeTimers({ advanceTimers: true });
   onRefresh.mockResolvedValue(undefined);
 
@@ -870,7 +870,7 @@ test('auto-refresh uses onRefresh with skipped filters and toggles refresh state
 
     jest.advanceTimersByTime(10000);
     await waitFor(() =>
-      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 2000, 1, true),
+      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 2000, 1),
     );
 
     expect(fetchCharts).not.toHaveBeenCalled();
