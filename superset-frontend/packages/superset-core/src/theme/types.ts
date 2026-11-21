@@ -268,7 +268,13 @@ export interface SupersetSpecificTokens {
   resultsGridHeaderFontSize?: number;
   resultsGridBorderRadius?: number;
   resultsGridNoStriping?: boolean;
-  // Login page customization
+
+  /**
+   * Login page customization tokens.
+   * `loginPageBackgroundOverlayColor` accepts any CSS color and defaults to
+   * the theme's `colorBgMask`; `loginPageBackgroundBlur` accepts any CSS
+   * length (e.g. '4px') and defaults to no blur.
+   */
   loginPageBackgroundImageUrl?: string;
   loginFormBrandLogoUrl?: string;
   loginPageBackgroundOverlayColor?: string;
