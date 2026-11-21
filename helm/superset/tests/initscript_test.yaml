@@ -60,4 +60,46 @@ tests:
           pattern: 'superset fab list-users'
       - notMatchRegex:
           path: 'stringData["superset_init.sh"]'
-          pattern: 'create-admin.*\|\| true'
+          pattern: 'grep -qF ''username:\$\{ADMIN_USERNAME\}'''
+      - notMatchRegex:
+          path: 'stringData["superset_init.sh"]'
+          pattern: 'create-admin.*[|][|] true'
+  - it: uses literal values from values when secretKeys.secretName is not set
+    set:
+      init:
+        createAdmin: true
+        adminUser:
+          username: admin
+          firstname: Superset
+          lastname: Admin
+          email: admin@superset.com
+          password: adminpass
+    asserts:
+      - matchRegex:
+          path: 'stringData["superset_init.sh"]'
+          pattern: "ADMIN_USERNAME='admin'"
+      - matchRegex:
+          path: 'stringData["superset_init.sh"]'
+          pattern: "ADMIN_PASSWORD='adminpass'"
+  - it: uses environment variables when secretKeys.secretName is set
+    set:
+      init:
+        createAdmin: true
+        adminUser:
+          secretKeys:
+            secretName: admin-creds
+            username: user
+            firstname: firstname
+            lastname: lastname
+            email: email
+            password: password
+    asserts:
+      - matchRegex:
+          path: 'stringData["superset_init.sh"]'
+          pattern: 'ADMIN_USERNAME="[$]SUPERSET_ADMIN_USERNAME"'
+      - matchRegex:
+          path: 'stringData["superset_init.sh"]'
+          pattern: 'ADMIN_PASSWORD="[$]SUPERSET_ADMIN_PASSWORD"'
+      - notMatchRegex:
+          path: 'stringData["superset_init.sh"]'
+          pattern: 'ADMIN_USERNAME="admin"'
