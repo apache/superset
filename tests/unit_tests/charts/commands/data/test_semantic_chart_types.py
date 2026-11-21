@@ -218,6 +218,7 @@ def test_cached_image_refused_before_read(full_api_access: None, surface: str) -
     api._base_filters = []
     response: Response
     screenshot: Mock
+    metrics: Mock
     with (
         current_app.test_request_context("/thumbnail/"),
         patch("superset.views.base_api.is_feature_enabled", return_value=True),
@@ -226,6 +227,7 @@ def test_cached_image_refused_before_read(full_api_access: None, surface: str) -
             return_value=True,
         ),
         patch("superset.charts.api.ChartScreenshot") as screenshot,
+        patch.object(api, "incr_stats") as metrics,
     ):
         cached_image: Mock = screenshot.return_value.get_from_cache_key.return_value
         cached_image.should_trigger_task.return_value = False
@@ -240,6 +242,7 @@ def test_cached_image_refused_before_read(full_api_access: None, surface: str) -
         "Use a Bar or Table chart with an explicit count metric."
     )
     screenshot.assert_not_called()
+    metrics.assert_called_once_with("warning", surface)
 
 
 def test_ordinary_saved_get_preserves_context(full_api_access: None) -> None:

@@ -39,6 +39,8 @@ class SemanticLayersDisabledError(SupersetException):
 class SemanticChartImageError(BadRequest):
     """Expose the chart refusal unchanged through FAB's safe error handler."""
 
+    status: int = 400
+
     def __str__(self) -> str:
         """Return the user message without Werkzeug's HTTP status prefix."""
         return str(self.description)
