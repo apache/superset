@@ -382,6 +382,7 @@ test('bulk delete confirm never claims a semantic view has no dependents', async
     id: 99,
     table_name: 'orders_semantic',
     kind: 'semantic_view',
+    can_modify: true,
   };
   fetchMock.get(
     API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
@@ -468,7 +469,7 @@ async function expectMixedBulkArchiveKeepsDangerTreatment(semanticView: {
   try {
     setupBulkDeleteMocks();
     mockDatasetListEndpoints({
-      result: [mockDatasets[0], semanticView],
+      result: [mockDatasets[0], { ...semanticView, can_modify: true }],
       count: 2,
     });
 
