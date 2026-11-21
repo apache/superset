@@ -20,7 +20,7 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 from sqlalchemy import types
 
 from superset import db
@@ -185,7 +185,7 @@ class OpteryxEngineSpec(BaseEngineSpec):
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
-            __(
+            _(
                 "Opteryx rejected the client credentials: %(detail)s. Check the "
                 "client ID and secret."
             ),
@@ -193,7 +193,7 @@ class OpteryxEngineSpec(BaseEngineSpec):
             {"invalid": ["username", "password"]},
         ),
         TABLE_DOES_NOT_EXIST_REGEX: (
-            __(
+            _(
                 'The dataset "%(table)s" does not exist or is not visible to this '
                 "client. Datasets are named workspace.collection.dataset."
             ),
@@ -201,7 +201,7 @@ class OpteryxEngineSpec(BaseEngineSpec):
             {},
         ),
         COLUMN_DOES_NOT_EXIST_REGEX: (
-            __('The column "%(column)s" does not exist.'),
+            _('The column "%(column)s" does not exist.'),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
             {},
         ),
