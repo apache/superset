@@ -74,6 +74,7 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
+from superset.utils.download_reason import check_download_reason
 from superset.utils.error_sanitization import (
     redact_sensitive_query_fields,
     sanitize_error_message,
@@ -167,6 +168,14 @@ class ChartDataRestApi(ChartRestApi):
               reported in the dashboard_filters response metadata.
             schema:
               type: integer
+          - in: query
+            name: download_reason
+            description: >-
+              Why the data is being downloaded. Required when the
+              REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the
+              event log.
+            schema:
+              type: string
           responses:
             200:
               description: Query result
@@ -213,6 +222,8 @@ class ChartDataRestApi(ChartRestApi):
             "format", ChartDataResultFormat.JSON
         )
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
+        if json_body["result_format"] in ChartDataResultFormat.table_like():
+            check_download_reason()  # 400 via the SupersetErrorException handler
         json_body["force"] = request.args.get("force")
 
         # Apply dashboard filter context when filters_dashboard_id is provided
@@ -324,6 +335,15 @@ class ChartDataRestApi(ChartRestApi):
           description: >-
             Takes a query context constructed in the client and returns payload data
             response for the given query.
+          parameters:
+          - in: query
+            name: download_reason
+            description: >-
+              Why the data is being downloaded. Required when the
+              REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the
+              event log.
+            schema:
+              type: string
           requestBody:
             description: >-
               A query context consists of a datasource from which to fetch data
@@ -364,6 +384,9 @@ class ChartDataRestApi(ChartRestApi):
                 json_body = json.loads(request.form["form_data"])
         if json_body is None:
             return self.response_400(message=_("Request is not JSON"))
+
+        if json_body.get("result_format") in ChartDataResultFormat.table_like():
+            check_download_reason()  # 400 via the SupersetErrorException handler
 
         try:
             with timed("chart_data.query_context.build"):
