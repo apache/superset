@@ -14613,6 +14613,9 @@ msgstr ""
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr ""
 
+msgid "The X-axis is a SQL expression, so time range filtering is not applied automatically. Without a time filter, queries may scan the entire table. Add a filter on your dataset's time column in the Filters section to limit the rows read."
+msgstr ""
+
 msgid "The X-axis is not on the filters list"
 msgstr ""
 
