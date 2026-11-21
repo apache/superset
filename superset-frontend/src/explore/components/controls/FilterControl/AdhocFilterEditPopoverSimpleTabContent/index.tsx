@@ -388,6 +388,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
     isOperatorRelevant,
     clearOperator,
     onDatePickerChange,
+    defaultTimeFilter,
   };
 };
 
@@ -398,6 +399,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     isOperatorRelevant,
     onComparatorChange,
     onDatePickerChange,
+    defaultTimeFilter,
   } = useSimpleTabFilterProps(props);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const comparatorInputRef = useRef<InputRef | null>(null);
@@ -592,9 +594,9 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         ? props.adhocFilter.subject
         : undefined,
     timeRange:
-      props.adhocFilter.operator === Operators.TemporalRange
+      (props.adhocFilter.operator === Operators.TemporalRange
         ? (props.adhocFilter.comparator as string | undefined)
-        : undefined,
+        : undefined) ?? defaultTimeFilter,
     datasource: props.datasource,
     onChange: onDatePickerChange,
   });

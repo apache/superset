@@ -430,7 +430,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       config.comparator = defaultTimeFilter;
     }
     return new AdhocFilter(config);
-  }, [droppedItem]);
+  }, [droppedItem, defaultTimeFilter]);
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
