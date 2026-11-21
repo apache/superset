@@ -362,6 +362,7 @@
     "core-js": "^3.38.1",
     "fast-xml-parser": "^5.8.0",
     "jspdf": "^4.2.0",
+    "minimatch": "^11.0.1",
     "nwsapi": "^2.2.24",
     "puppeteer": "^22.4.1",
     "texture-compressor": {
