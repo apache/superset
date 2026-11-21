@@ -429,3 +429,140 @@ test('preserves order_desc and series_limit_metric for both queries', () => {
     }),
   );
 });
+
+/* ----------------------------------------------------------------------------
+ * Multi-dataset mode (target-stamped requests)
+ *
+ * A chart-data request carries exactly one datasource, so a chart with a
+ * secondary dataset sends two requests — one per target — each stamped with
+ * `_mixed_target`. Each request must contain exactly its own half, bound to
+ * its own datasource, with its own x-axis.
+ * ------------------------------------------------------------------------- */
+
+const formDataMultiDataset = {
+  ...formDataMixedChart,
+  datasource: '25__table',
+  x_axis: 'ds',
+  use_secondary_dataset: true,
+  datasource_b: '42__table',
+  x_axis_b: 'order_date',
+};
+
+test('target A emits a single-query context bound to the chart datasource', () => {
+  const context = buildQuery({ ...formDataMultiDataset, _mixed_target: 'A' });
+
+  expect(context.datasource).toEqual({ id: 25, type: 'table' });
+  expect(context.queries).toHaveLength(1);
+
+  const query = context.queries[0];
+  // Query A's own fields survive; no _b field may leak into the request.
+  // With x_axis set, normalizeTimeColumn promotes it to the BASE_AXIS
+  // adhoc-column form carrying the shared time grain.
+  expect(query.columns).toEqual([
+    {
+      columnType: 'BASE_AXIS',
+      expressionType: 'SQL',
+      isColumnReference: true,
+      label: 'ds',
+      sqlExpression: 'ds',
+      timeGrain: 'P1W',
+    },
+    'foo',
+  ]);
+  expect(query.series_columns).toEqual(['foo']);
+  expect(query.metrics).toEqual(['sum(sales)']);
+  expect(query.extras?.where).toBe("(foo in ('a', 'b'))");
+  expect(query.row_limit).toBe(10);
+  expect(query.series_limit).toBe(5);
+});
+
+test('target B emits a single-query context bound to the secondary datasource', () => {
+  const context = buildQuery({ ...formDataMultiDataset, _mixed_target: 'B' });
+
+  expect(context.datasource).toEqual({ id: 42, type: 'table' });
+  expect(context.queries).toHaveLength(1);
+
+  const query = context.queries[0];
+  // _b fields are promoted to their base names for the request.
+  expect(query.metrics).toEqual(['count']);
+  expect(query.extras?.where).toBe("(name in ('c', 'd'))");
+  expect(query.row_limit).toBe(100);
+  // The x-axis is B's own column, not the shared one — normalized to the
+  // BASE_AXIS adhoc-column form with the shared time grain stamped on it
+  // (the grain must reach Dataset B's own database for bucket alignment).
+  expect(query.columns).toEqual([
+    {
+      columnType: 'BASE_AXIS',
+      expressionType: 'SQL',
+      isColumnReference: true,
+      label: 'order_date',
+      sqlExpression: 'order_date',
+      timeGrain: 'P1W',
+    },
+  ]);
+  // No groupby_b leakage: groupby_b was [], and it is now the base `groupby`.
+  expect(query.series_columns).toEqual([]);
+});
+
+test('target B applies its own x-axis to the pivot index', () => {
+  const formData = {
+    ...formDataMultiDataset,
+    groupby_b: ['region'],
+    metrics_b: ['sum(spend)'],
+  };
+  const context = buildQuery({ ...formData, _mixed_target: 'B' });
+
+  const pivot = context.queries[0].post_processing?.find(
+    operator => operator?.operation === 'pivot',
+  );
+  expect(pivot).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['order_date'],
+      columns: ['region'],
+      drop_missing_columns: false,
+      aggregates: { 'sum(spend)': { operator: 'mean' } },
+    },
+  });
+});
+
+test('target B carries B-side advanced-analytics operators', () => {
+  const formData = {
+    ...formDataMultiDataset,
+    ...formDataMixedChartWithAA,
+  };
+  const context = buildQuery({ ...formData, _mixed_target: 'B' });
+  const query = context.queries[0];
+
+  // B's time compare and resample settings (not A's) reach B's request.
+  expect(query.time_offsets).toEqual(['3 years ago']);
+  expect(
+    query.post_processing?.find(operator => operator?.operation === 'resample'),
+  ).toEqual({
+    operation: 'resample',
+    options: { method: 'asfreq', rule: '1A', fill_value: null },
+  });
+});
+
+test('a target stamp without a secondary datasource falls back to the merged context', () => {
+  // Defensive: a stale `_mixed_target` on a chart that no longer configures
+  // Dataset B must produce the original single-request behavior, not a
+  // single-target one bound to a missing datasource.
+  const { datasource, queries } = buildQuery({
+    ...formDataMixedChart,
+    _mixed_target: 'B',
+  });
+
+  expect(datasource).toEqual({ id: NaN, type: 'table' }); // 'dummy' datasource, as the legacy tests use
+  expect(queries).toHaveLength(2);
+});
+
+test('multi-dataset form data without a target stamp keeps the merged context', () => {
+  // The feature's own form data flows through shared callers (dashboards,
+  // exports, SQL Lab redirect) that do not stamp a target; those must see the
+  // unchanged two-query merged context bound to the chart datasource.
+  const { datasource, queries } = buildQuery(formDataMultiDataset);
+
+  expect(datasource).toEqual({ id: 25, type: 'table' });
+  expect(queries).toHaveLength(2);
+});

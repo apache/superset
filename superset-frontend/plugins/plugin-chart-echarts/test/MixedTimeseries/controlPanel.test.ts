@@ -23,7 +23,10 @@ import controlPanel from '../../src/MixedTimeseries/controlPanel';
 // without reaching for `any`.
 type VisibilityControl = {
   name: string;
-  config: { visibility: (props: ControlPanelsContainerProps) => boolean };
+  config: {
+    disableStash?: boolean;
+    visibility: (props: ControlPanelsContainerProps) => boolean;
+  };
 };
 
 const config = controlPanel;
@@ -106,6 +109,36 @@ test('should have correct visibility for label_positionB', () => {
       },
     } as unknown as ControlPanelsContainerProps),
   ).toBe(false);
+});
+
+test('hides Query B data controls while Dataset B metadata is loading', () => {
+  const metricsBCtrl = getControl('metrics_b') as unknown as VisibilityControl;
+  const loadingCtrl = getControl(
+    'secondary_dataset_loading',
+  ) as unknown as VisibilityControl;
+  const props = {
+    controls: {
+      use_secondary_dataset: { value: true },
+      datasource_b: { value: '42__table' },
+    },
+    form_data: {},
+  } as unknown as ControlPanelsContainerProps;
+
+  expect(metricsBCtrl.config.visibility(props)).toBe(false);
+  expect(metricsBCtrl.config.disableStash).toBe(true);
+  expect(loadingCtrl.config.visibility(props)).toBe(true);
+});
+
+test('keeps Query B data controls visible when Dataset B is disabled', () => {
+  const metricsBCtrl = getControl('metrics_b') as unknown as VisibilityControl;
+  const props = {
+    controls: {
+      use_secondary_dataset: { value: false },
+    },
+    form_data: {},
+  } as unknown as ControlPanelsContainerProps;
+
+  expect(metricsBCtrl.config.visibility(props)).toBe(true);
 });
 
 test('should show only_totalB based on the Query B value and stack controls', () => {
