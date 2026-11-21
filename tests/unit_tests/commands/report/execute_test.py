@@ -6308,3 +6308,23 @@ def test_embedded_data_keeps_get_fallback_without_saved_context(
     assert state._get_embedded_data() is expected
     get_frame.assert_called_once()
     post.assert_not_called()
+
+
+@pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
+def test_report_preserves_saved_semantic_chart_type_for_validation(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Old report contexts still identify the semantic visualization being exported."""
+    report_state: BaseReportState = BaseReportState(
+        create_report_schedule(mocker), "January 1, 2021", "test-execution"
+    )
+    report_state._report_schedule.chart.datasource_type = datasource_type
+    report_state._report_schedule.chart.viz_type = "histogram_v2"
+    report_state._report_schedule.chart.query_context = json.dumps({"queries": [{}]})
+    payload: dict[str, Any] = report_state._get_chart_data_request_payload(
+        ChartDataResultFormat.CSV
+    )
+    if datasource_type == "semantic_view":
+        assert payload["form_data"]["viz_type"] == "histogram_v2"
+    else:
+        assert "form_data" not in payload
