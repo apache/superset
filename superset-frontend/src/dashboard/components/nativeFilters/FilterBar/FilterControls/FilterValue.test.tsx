@@ -28,6 +28,7 @@ import thunk from 'redux-thunk';
 import {
   NativeFilterType,
   DatasourceType,
+  SupersetClient,
   buildQueryObject,
 } from '@superset-ui/core';
 import type { DataMask, Filter } from '@superset-ui/core';
@@ -225,6 +226,73 @@ test('forwards the dashboard async override to the request', async () => {
       requestParams: { async_mode_override: 'force_off' },
     }),
   );
+});
+
+test('a time_range parent cascade falls back to the cached main_dttm_col', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get');
+  mockUseTransitiveParentIds.mockReturnValue([]);
+  mockUseFilterDependencies.mockReturnValue({ time_range: 'Last week' });
+  mockRequestChartData.mockResolvedValue([{ data: [{ country: 'US' }] }]);
+
+  renderFilterValue(
+    {},
+    { datasources: { '1__table': { uid: '1__table', main_dttm_col: 'ds' } } },
+  );
+
+  await waitFor(() => {
+    expect(mockRequestChartData).toHaveBeenCalled();
+  });
+  expect(mockRequestChartData).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        granularity_sqla: 'ds',
+        extra_form_data: { time_range: 'Last week' },
+      }),
+    }),
+  );
+  // The datasource is already cached, so no metadata request is made.
+  expect(getSpy).not.toHaveBeenCalled();
+  getSpy.mockRestore();
+  mockUseFilterDependencies.mockReturnValue({});
+});
+
+test('a time_range parent cascade fetches metadata for an uncached filter dataset', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { uid: '1__table', main_dttm_col: 'ds' },
+  } as unknown as Awaited<ReturnType<typeof SupersetClient.get>>);
+  mockUseTransitiveParentIds.mockReturnValue([]);
+  mockUseFilterDependencies.mockReturnValue({ time_range: 'Last week' });
+  mockRequestChartData.mockResolvedValue([{ data: [{ country: 'US' }] }]);
+
+  renderFilterValue({}, { datasources: {} });
+
+  await waitFor(() => {
+    expect(getSpy).toHaveBeenCalledWith({
+      endpoint: '/fetch_datasource_metadata?datasourceKey=1__table',
+    });
+  });
+  getSpy.mockRestore();
+  mockUseFilterDependencies.mockReturnValue({});
+});
+
+test('filters without a time_range parent do not fetch datasource metadata', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get');
+  mockUseTransitiveParentIds.mockReturnValue([]);
+  mockUseFilterDependencies.mockReturnValue({});
+  mockRequestChartData.mockResolvedValue([{ data: [{ country: 'US' }] }]);
+
+  renderFilterValue({}, { datasources: {} });
+
+  await waitFor(() => {
+    expect(mockRequestChartData).toHaveBeenCalled();
+  });
+  expect(getSpy).not.toHaveBeenCalled();
+  expect(mockRequestChartData).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      formData: expect.not.objectContaining({ granularity_sqla: 'ds' }),
+    }),
+  );
+  getSpy.mockRestore();
 });
 
 const FRIENDLY_MESSAGE = 'Sorry, something went wrong. Try again later.';

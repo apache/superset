@@ -58,10 +58,12 @@ export function setDatasource(datasource: Datasource, key: string) {
   };
 }
 
+const inFlightDatasourceRequests = new Map<string, Promise<unknown>>();
+
 export function fetchDatasourceMetadata(key: string, dashboardId?: number) {
   return (dispatch: Dispatch, getState: () => RootState) => {
     const { datasources } = getState();
-    const datasource = datasources[key];
+    const datasource = datasources?.[key];
     const requestId = dashboardId === undefined ? undefined : nanoid();
 
     if (dashboardId !== undefined) {
@@ -74,7 +76,19 @@ export function fetchDatasourceMetadata(key: string, dashboardId?: number) {
       return dispatch(setDatasource(datasource, key));
     }
 
-    return SupersetClient.get({
+    // Plain metadata loads share a single in-flight promise per key across
+    // concurrent callers, so request deduplication preserves the thunk
+    // contract: every awaiter (e.g. a Promise.all over multiple dispatches)
+    // observes the same completion or rejection. Semantic refreshes
+    // (dashboardId set) track their own request ids and are not shared.
+    if (dashboardId === undefined) {
+      const inFlight = inFlightDatasourceRequests.get(key);
+      if (inFlight) {
+        return inFlight;
+      }
+    }
+
+    const request = SupersetClient.get({
       endpoint: `/fetch_datasource_metadata?datasourceKey=${key}`,
     })
       .then(({ json }) => {
@@ -99,5 +113,15 @@ export function fetchDatasourceMetadata(key: string, dashboardId?: number) {
         logging.error('Error fetching semantic datasource metadata:', error);
         return undefined;
       });
+
+    if (dashboardId !== undefined) {
+      return request;
+    }
+
+    const sharedRequest = request.finally(() => {
+      inFlightDatasourceRequests.delete(key);
+    });
+    inFlightDatasourceRequests.set(key, sharedRequest);
+    return sharedRequest;
   };
 }
