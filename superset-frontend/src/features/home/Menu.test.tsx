@@ -649,7 +649,7 @@ test('should render the Bug Report link when available', async () => {
   expect(bugReport).toHaveAttribute('href', bug_report_url);
 });
 
-test('should render the Login link when user is anonymous', async () => {
+test('should render the Sign in link when user is anonymous', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
@@ -663,7 +663,7 @@ test('should render the Login link when user is anonymous', async () => {
     useRouter: true,
     useTheme: true,
   });
-  const login = await screen.findByText('Login');
+  const login = await screen.findByText('Sign in');
   expect(login).toHaveAttribute('href', user_login_url);
 });
 

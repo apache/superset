@@ -18233,9 +18233,8 @@ msgstr ""
 msgid "Shows or hides markers for the time series"
 msgstr "Mostra o amaga marcadors per les sèries temporals"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "No en"
+msgstr "Iniciar sessió"
 
 #, fuzzy
 msgid "Sign in with"

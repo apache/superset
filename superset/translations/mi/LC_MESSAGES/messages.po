@@ -18131,9 +18131,8 @@ msgstr "Ka whakaatu i tētahi rārangi o ngā raupapa katoa e wātea ana i taua 
 msgid "Shows or hides markers for the time series"
 msgstr "Ka whakaatu, ka huna rānei i ngā tohu mō te raupapa wā"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "Kāore i roto i"
+msgstr "Takiuru"
 
 #, fuzzy
 msgid "Sign in with"

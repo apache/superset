@@ -21465,6 +21465,9 @@ msgstr "データセットを変更しました。新しいデータセットと
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "アカウントが有効化されました。ログイン情報でログインできます。"
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "アカウントが有効化されました。ログイン情報でログインできます。"
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr "保存せずに離れると、変更内容が失われます。"
 

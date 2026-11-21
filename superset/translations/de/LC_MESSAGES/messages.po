@@ -22440,6 +22440,9 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Ihr Konto ist aktiviert. Sie können sich mit Ihren Zugangsdaten anmelden."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "Ihr Konto ist aktiviert. Sie können sich mit Ihren Zugangsdaten anmelden."
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr ""
 "Ihre Änderungen gehen verloren, wenn Sie die Seite verlassen, ohne zu "
