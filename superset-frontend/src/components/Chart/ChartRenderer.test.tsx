@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, fireEvent, screen } from 'spec/helpers/testing-library';
+import { render, act, fireEvent, screen } from 'spec/helpers/testing-library';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
@@ -29,6 +29,7 @@ import {
 } from '@superset-ui/core';
 import ChartRenderer, {
   ChartRendererProps,
+  LegendState,
 } from 'src/components/Chart/ChartRenderer';
 import { ChartSource } from 'src/types/ChartSource';
 import {
@@ -47,53 +48,61 @@ interface MockSuperChartProps {
   [key: string]: unknown;
 }
 
+// Captures the props SuperChart was rendered with so the legend-state tests
+// can drive the `hooks` handlers and assert on the persisted values. Must be
+// `mock`-prefixed to satisfy jest's out-of-scope reference rule for factories.
+let mockCapturedSuperChartProps: MockSuperChartProps | null = null;
+
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SuperChart: ({
     postTransformProps = (x: JsonObject) => x,
     isRefreshing = false,
     ...props
-  }: MockSuperChartProps & { isRefreshing?: boolean }) => (
-    <div
-      data-test="mock-super-chart"
-      data-is-refreshing={isRefreshing ? 'true' : 'false'}
-      data-queries-data={JSON.stringify(props.queriesData ?? null)}
-      data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
-      data-async-mode={String(
-        (props.hooks as { resolveAsyncMode?: () => boolean } | undefined)?.[
-          'resolveAsyncMode'
-        ]?.(),
-      )}
-    >
-      <button
-        type="button"
-        onClick={() =>
-          (
-            props.hooks as { setDataMask: (mask: DataMask) => void }
-          ).setDataMask({
-            extraFormData: {
-              semantic_selection_sources: [
-                { datasource: 'foreign__semantic_view', version: null },
-              ],
-            },
-          })
-        }
+  }: MockSuperChartProps & { isRefreshing?: boolean }) => {
+    mockCapturedSuperChartProps = props;
+    return (
+      <div
+        data-test="mock-super-chart"
+        data-is-refreshing={isRefreshing ? 'true' : 'false'}
+        data-queries-data={JSON.stringify(props.queriesData ?? null)}
+        data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
+        data-async-mode={String(
+          (props.hooks as { resolveAsyncMode?: () => boolean } | undefined)?.[
+            'resolveAsyncMode'
+          ]?.(),
+        )}
       >
-        Emit semantic mask
-      </button>
-      <button
-        type="button"
-        onClick={() =>
-          (
-            props.hooks as { setDataMask: (mask: DataMask) => void }
-          ).setDataMask(props.formData?.testDataMask as DataMask)
-        }
-      >
-        Emit test mask
-      </button>
-      {JSON.stringify(postTransformProps(props).formData)}
-    </div>
-  ),
+        <button
+          type="button"
+          onClick={() =>
+            (
+              props.hooks as { setDataMask: (mask: DataMask) => void }
+            ).setDataMask({
+              extraFormData: {
+                semantic_selection_sources: [
+                  { datasource: 'foreign__semantic_view', version: null },
+                ],
+              },
+            })
+          }
+        >
+          Emit semantic mask
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            (
+              props.hooks as { setDataMask: (mask: DataMask) => void }
+            ).setDataMask(props.formData?.testDataMask as DataMask)
+          }
+        >
+          Emit test mask
+        </button>
+        {JSON.stringify(postTransformProps(props).formData)}
+      </div>
+    );
+  },
 }));
 
 jest.mock(
@@ -598,6 +607,131 @@ test('does not render chart during loading when last data has errors', () => {
 
   const { queryByTestId } = render(<ChartRenderer {...props} />);
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+});
+
+// Legend state persistence (sessionStorage) — issue #31741
+type LegendHooks = {
+  onLegendStateChanged: (legendState: LegendState) => void;
+  onLegendScroll: (legendIndex: number) => void;
+};
+
+beforeEach(() => {
+  sessionStorage.clear();
+  mockCapturedSuperChartProps = null;
+});
+
+test('saves legend state to sessionStorage when the legend state changes', () => {
+  const mockLegendState = { series1: true, series2: false };
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  expect(sessionStorage.getItem(legendStateKey)).toBeNull();
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  expect(mockCapturedSuperChartProps).not.toBeNull();
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+  expect(hooks.onLegendStateChanged).toBeDefined();
+
+  act(() => {
+    hooks.onLegendStateChanged(mockLegendState);
+  });
+
+  expect(JSON.parse(sessionStorage.getItem(legendStateKey) as string)).toEqual(
+    mockLegendState,
+  );
+});
+
+test('saves legend index to sessionStorage when the legend is scrolled', () => {
+  const mockLegendIndex = 5;
+  const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
+  expect(sessionStorage.getItem(legendIndexKey)).toBeNull();
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  expect(mockCapturedSuperChartProps).not.toBeNull();
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+  expect(hooks.onLegendScroll).toBeDefined();
+
+  act(() => {
+    hooks.onLegendScroll(mockLegendIndex);
+  });
+
+  expect(JSON.parse(sessionStorage.getItem(legendIndexKey) as string)).toBe(
+    mockLegendIndex,
+  );
+});
+
+test('loads legend state from sessionStorage on mount', () => {
+  const mockLegendState = { series1: true, series2: false };
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  sessionStorage.setItem(legendStateKey, JSON.stringify(mockLegendState));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  expect(mockCapturedSuperChartProps).not.toBeNull();
+  expect(mockCapturedSuperChartProps?.legendState).toEqual(mockLegendState);
+});
+
+test('loads legend index from sessionStorage on mount', () => {
+  const mockLegendIndex = 10;
+  const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
+  sessionStorage.setItem(legendIndexKey, JSON.stringify(mockLegendIndex));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  expect(mockCapturedSuperChartProps).not.toBeNull();
+  expect(mockCapturedSuperChartProps?.legendIndex).toBe(mockLegendIndex);
+});
+
+test('tracks the chart in the legend LRU list when its legend state changes', () => {
+  render(<ChartRenderer {...requiredProps} />);
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+
+  act(() => {
+    hooks.onLegendStateChanged({ series1: true });
+  });
+
+  expect(
+    JSON.parse(sessionStorage.getItem('chart_legend_lru') as string),
+  ).toEqual([requiredProps.chartId]);
+});
+
+test('evicts the least recently touched chart legend entries beyond the cap', () => {
+  const evictedId = 201;
+  const lru = Array.from({ length: 200 }, (_, i) => i + 2);
+  sessionStorage.setItem('chart_legend_lru', JSON.stringify(lru));
+  sessionStorage.setItem(`chart_legend_state_${evictedId}`, '{"a":true}');
+  sessionStorage.setItem(`chart_legend_index_${evictedId}`, '3');
+
+  render(<ChartRenderer {...requiredProps} />);
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+
+  act(() => {
+    hooks.onLegendStateChanged({ series1: true });
+  });
+
+  expect(sessionStorage.getItem(`chart_legend_state_${evictedId}`)).toBeNull();
+  expect(sessionStorage.getItem(`chart_legend_index_${evictedId}`)).toBeNull();
+  const next = JSON.parse(sessionStorage.getItem('chart_legend_lru') as string);
+  expect(next).toHaveLength(200);
+  expect(next[0]).toBe(requiredProps.chartId);
+});
+
+test('moves an already tracked chart to the front of the legend LRU list without duplicating it', () => {
+  sessionStorage.setItem(
+    'chart_legend_lru',
+    JSON.stringify([5, 6, requiredProps.chartId, 7]),
+  );
+
+  render(<ChartRenderer {...requiredProps} />);
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+
+  act(() => {
+    hooks.onLegendScroll(2);
+  });
+
+  expect(
+    JSON.parse(sessionStorage.getItem('chart_legend_lru') as string),
+  ).toEqual([requiredProps.chartId, 5, 6, 7]);
 });
 
 test('chart mask updates carry the selection sources of the latest query', () => {
