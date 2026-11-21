@@ -28,6 +28,7 @@ import example2Dark from './images/example2-dark.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Ranking'),
   credits: ['https://syntagmatic.github.io/parallel-coordinates'],
   description: t(

@@ -55,6 +55,7 @@ export default class EchartsSankeyChartPlugin extends ChartPlugin<
           Behavior.DrillToDetail,
           Behavior.DrillBy,
         ],
+        supportsArrowFormat: true,
         credits: ['https://echarts.apache.org'],
         category: t('Flow'),
         description: t(
