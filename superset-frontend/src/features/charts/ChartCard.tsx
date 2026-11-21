@@ -29,7 +29,7 @@ import {
   MenuItem,
   Tooltip,
 } from '@superset-ui/core/components';
-import Chart from 'src/types/Chart';
+import { Chart } from 'src/types/Chart';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
 import {
