@@ -143,6 +143,9 @@ T = TypeVar("T")
 _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
 _DEFAULT_SCHEMA_CACHE_TIMEOUT = 3600
+# Publish once per engine so a long-lived dialect cannot renew stale discovery.
+_DEFAULT_SCHEMA_PUBLISHED_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
+_DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
 # sign-in on them is logged for administrators (see
@@ -1147,6 +1150,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         the engine spec's inspector policy. Shared discovery survives worker
         restarts for one hour, scoped to the database, catalog and effective
         engine identity. Cache failures leave local discovery available.
+        Discovery is published once per engine, without renewing its expiry on
+        warm lookups. SSH tunnels do not share discovery because their local
+        connection URLs contain ephemeral ports.
         Cold-engine discovery retains the inspector's OAuth2 retry policy.
         """
 
@@ -1166,7 +1172,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         },
                         key_prefix="database_default_schema:",
                     )
-                    if self.id is not None and isinstance(identity, str)
+                    if self.id is not None
+                    and isinstance(identity, str)
+                    and not self.ssh_tunnel
                     else None
                 )
                 schema = engine.dialect.default_schema_name
@@ -1182,12 +1190,19 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if schema is None:
                     schema = sqla.inspect(engine).default_schema_name
                 if schema is not None and cache_key is not None:
-                    try:
-                        cache_manager.cache.set(
-                            cache_key, schema, timeout=_DEFAULT_SCHEMA_CACHE_TIMEOUT
-                        )
-                    except Exception:  # pylint: disable=broad-except
-                        logger.warning("Unable to write the default schema cache")
+                    with _DEFAULT_SCHEMA_CACHE_LOCK:
+                        if engine not in _DEFAULT_SCHEMA_PUBLISHED_ENGINES:
+                            try:
+                                if cache_manager.cache.set(
+                                    cache_key,
+                                    schema,
+                                    timeout=_DEFAULT_SCHEMA_CACHE_TIMEOUT,
+                                ):
+                                    _DEFAULT_SCHEMA_PUBLISHED_ENGINES.add(engine)
+                            except Exception:  # pylint: disable=broad-except
+                                logger.warning(
+                                    "Unable to write the default schema cache"
+                                )
                 yield schema
 
         with self._open_with_oauth2_retry(open_schema) as schema:

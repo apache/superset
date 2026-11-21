@@ -5086,3 +5086,54 @@ def test_default_schema_private_engine_is_not_shared(
     with pytest.raises(ConnectionError) as raised:
         database.get_default_schema_from_engine(None)
     assert raised.value is error
+
+
+@pytest.mark.parametrize("already_discovered", [False, True])
+def test_default_schema_warm_engine_publishes_once(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    already_discovered: bool,
+) -> None:
+    """Repeated warm lookups must not renew stale shared discovery's expiry."""
+    cache = shared_default_schema_cache
+    write = mocker.spy(cache, "set")
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        if already_discovered:
+            assert sqlalchemy.inspect(engine).default_schema_name == "main"
+    for _ in range(5):
+        assert database.get_default_schema_from_engine(None) == "main"
+    write.assert_called_once()
+    key = write.call_args.args[0]
+    # Expiry must not make a long-lived dialect re-publish its old discovery.
+    cache.delete(key)
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert cache.get(key) is None
+    write.assert_called_once()
+
+
+def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """Random local tunnel ports must not leave one shared key per lookup."""
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.extensions.ssh import SSHManager
+
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    database.ssh_tunnel = SSHTunnel(server_address="gateway", server_port=22)
+    manager = mocker.patch("superset.models.core.ssh_manager_factory").instance
+    # Use the real URL rewriter, but SQLite engines to avoid a live SSH/DB service.
+    manager.build_sqla_url.side_effect = SSHManager.build_sqla_url.__get__(manager)
+    engines = [create_engine("sqlite://"), create_engine("sqlite://")]
+    build = mocker.patch("superset.models.core.create_engine", side_effect=engines)
+    write = mocker.spy(shared_default_schema_cache, "set")
+    read = mocker.spy(shared_default_schema_cache, "get")
+    for port in (40001, 40002):
+        server = mocker.Mock(
+            local_bind_address=("127.0.0.1", port), local_bind_port=port
+        )
+        manager.create_tunnel.return_value = nullcontext(server)
+        assert database.get_default_schema_from_engine(None) == "main"
+    assert [call.args[0].port for call in build.call_args_list] == [40001, 40002]
+    read.assert_not_called()
+    write.assert_not_called()

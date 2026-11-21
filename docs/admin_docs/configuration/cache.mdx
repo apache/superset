@@ -83,7 +83,8 @@ instead of looking up a result using an incomplete macro cache key.
 While collecting chart cache keys for virtual datasets without a schema,
 Superset reuses the default schema that
 SQLAlchemy has already discovered on the selected engine, without opening an
-inspector connection. It also stores that discovery for one hour in `CACHE_CONFIG`,
+inspector connection. It publishes that discovery once per engine for one hour in
+`CACHE_CONFIG`, without extending the expiry on subsequent warm lookups,
 keyed by the database, catalog, and a hash of the effective connection URL and
 engine parameters. Configure a shared cache backend (such as Redis) so a restarted
 or previously unused worker can reuse the discovery during an outage. Cache
@@ -97,7 +98,9 @@ discovery behavior.
 A warm chart cache alone does not guarantee availability during a database
 outage. A cold engine with no unexpired shared discovery, including one selected
 for a different connection identity, still needs to discover its default schema.
-Engines with per-call pre-session SQL do not share schema discovery. Those
+Engines with per-call pre-session SQL and databases behind SSH tunnels do not
+share schema discovery. Tunnel connection URLs contain ephemeral local ports, so
+publishing them would create a different shared-cache key for each tunnel. Those
 session-specific lookups, query-specific search paths, database-backed macros, and
 other operations needed to build the complete key can require a live connection.
 If collecting template macro keys fails, Superset raises rather than using a
