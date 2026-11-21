@@ -551,7 +551,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             )
 
     def _validate_no_have_duplicate_labels(self) -> None:
-        all_labels = self.metric_names + self.column_names
+        try:
+            all_labels = self.metric_names + self.column_names
+        except ValueError as ex:
+            raise QueryObjectValidationError(
+                _("Invalid metric or column: %(error)s", error=str(ex))
+            ) from ex
         if len(set(all_labels)) < len(all_labels):
             dup_labels = find_duplicates(all_labels)
             raise QueryObjectValidationError(
