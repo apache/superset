@@ -453,6 +453,8 @@ python3 -m pip install -r requirements/development.txt
 ./scripts/uv-pip-compile.sh
 ```
 
+The compiled lock is universal across the supported Python versions and is compiled from the `requires-python` floor in `pyproject.toml`, so the output does not depend on the Python version you run the command with.
+
 When upgrading the version number of a single package, you should run `./scripts/uv-pip-compile.sh` with the `-P` flag:
 
 ```bash
