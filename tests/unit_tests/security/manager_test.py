@@ -5612,6 +5612,26 @@ def test_gamma_receives_no_semantic_write_pvm() -> None:
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))
 
 
+def test_export_as_example_is_admin_only() -> None:
+    """``can_export_as_example on Dashboard`` stays off Alpha and Gamma.
+
+    ``sync_role_definitions`` builds those roles from ``_is_alpha_pvm`` and
+    ``_is_gamma_pvm``, which are denylists: a Dashboard permission that is not
+    classified admin-only reaches both. The plain dashboard export is
+    unaffected.
+    """
+    sm = _classifier()
+    as_example = _pvm("can_export_as_example", "Dashboard")
+    assert sm._is_admin_only(as_example)
+    assert not sm._is_alpha_pvm(as_example)
+    assert not sm._is_gamma_pvm(as_example)
+
+    plain_export = _pvm("can_export", "Dashboard")
+    assert not sm._is_admin_only(plain_export)
+    assert sm._is_alpha_pvm(plain_export)
+    assert sm._is_gamma_pvm(plain_export)
+
+
 def test_skip_legacy_fab_password_view_registration_refuses_reset_views(
     app_context: None,
 ) -> None:
