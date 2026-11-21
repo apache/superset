@@ -32,6 +32,7 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import text, types
+from sqlalchemy.dialects import registry
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -56,10 +57,12 @@ from superset.utils.oauth2 import is_oauth2_retry_active
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.sql.parse import Table
     from superset.superset_typing import (
         OAuth2ClientConfig,
         OAuth2State,
         OAuth2TokenResponse,
+        ResultSetColumnType,
     )
 
 
@@ -67,6 +70,13 @@ logger = logging.getLogger(__name__)
 
 INSUFFICIENT_PERMISSIONS_REGEX: Pattern[str] = re.compile(
     r"\[INSUFFICIENT_PERMISSIONS\]|\bSQLSTATE:\s*42501\b"
+)
+
+# Alias databricks+connector dialect to DatabricksDialect for backwards compatibility
+registry.register(
+    "databricks.connector",
+    "databricks.sqlalchemy",
+    "DatabricksDialect",
 )
 
 
@@ -1408,6 +1418,82 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         ).render_as_string(hide_password=False)
 
     @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        adjusted_connect_args = connect_args.copy()
+
+        original_catalog = adjusted_connect_args.get("catalog") or uri.query.get(
+            "catalog"
+        )
+        server_default_catalog = (
+            adjusted_connect_args.get("default_catalog")
+            or uri.query.get("default_catalog")
+            or getattr(cls, "default_catalog", None)
+        )
+
+        # Distinguish the workspace default catalog from a genuine catalog switch:
+        # If an explicit catalog is configured on the connection, any change from it
+        # invalidates the saved schema. If no catalog is configured on the connection,
+        # caller's catalog matches the server default when it equals the resolved
+        # `server_default_catalog` (retaining the saved schema). If no default catalog
+        # is configured, supplying any catalog is treated as an explicit catalog switch.
+        if original_catalog is not None:
+            is_catalog_changing = catalog is not None and catalog != original_catalog
+        elif server_default_catalog is not None:
+            is_catalog_changing = (
+                catalog is not None and catalog != server_default_catalog
+            )
+        else:
+            is_catalog_changing = catalog is not None
+
+        if schema:
+            effective_schema = schema
+        elif not is_catalog_changing:
+            effective_schema = (
+                adjusted_connect_args.get("schema")
+                or uri.query.get("schema")
+                or uri.database
+                or "default"
+            )
+        else:
+            # Catalog is overridden to a different catalog without an explicit
+            # schema. Resolve the catalog's default schema ("default") to prevent
+            # reflection from generating invalid queries like
+            # `catalog`.`None`.`table`.
+            effective_schema = "default"
+        effective_http_path = adjusted_connect_args.get("http_path") or uri.query.get(
+            "http_path"
+        )
+
+        query_dict = dict(uri.query)
+        if effective_catalog := catalog or original_catalog:
+            query_dict["catalog"] = effective_catalog
+            adjusted_connect_args["catalog"] = effective_catalog
+        else:
+            query_dict.pop("catalog", None)
+            adjusted_connect_args.pop("catalog", None)
+
+        if effective_schema:
+            query_dict["schema"] = effective_schema
+            adjusted_connect_args["schema"] = effective_schema
+        else:
+            query_dict.pop("schema", None)
+            adjusted_connect_args.pop("schema", None)
+
+        if effective_http_path:
+            query_dict["http_path"] = effective_http_path
+            adjusted_connect_args["http_path"] = effective_http_path
+
+        uri = uri.set(query=query_dict)
+
+        return uri, adjusted_connect_args
+
+    @classmethod
     def get_parameters_from_uri(  # type: ignore
         cls, uri: str, *_, **__
     ) -> DatabricksNativeParametersType:
@@ -1459,7 +1545,9 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         single catalog is returned.
         """
         connect_args = cls.get_extra_params(database)["engine_params"]["connect_args"]
-        if default_catalog := connect_args.get("catalog"):
+        if default_catalog := (
+            connect_args.get("catalog") or database.url_object.query.get("catalog")
+        ):
             return default_catalog
 
         with database.get_sqla_engine() as engine:
@@ -1471,6 +1559,85 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
                     return catalogs.pop()
 
                 return conn.execute(text("SELECT current_catalog()")).scalar()
+
+    @classmethod
+    def get_columns(
+        cls,
+        inspector: Inspector,
+        table: Table,
+        options: dict[str, Any] | None = None,
+    ) -> list[ResultSetColumnType]:
+        """
+        Get all columns from a given schema and table.
+
+        Resolves the server's actual default catalog dynamically if no catalog
+        is set on the connection/dialect, preventing reflection from generating
+        invalid queries like `DESCRIBE TABLE EXTENDED `None`.`default`.`orders``
+        while leaving the connection handshake unforced.
+        """
+        dialect = getattr(inspector, "bind", None) and inspector.bind.dialect
+        if dialect is None and hasattr(inspector, "engine"):
+            dialect = inspector.engine.dialect
+
+        if dialect is not None and getattr(dialect, "catalog", None) is None:
+            engine = getattr(inspector, "bind", None) or getattr(
+                inspector, "engine", None
+            )
+            if engine is not None:
+                try:
+                    with engine.connect() as conn:
+                        catalogs = {
+                            cat for (cat,) in conn.execute(text("SHOW CATALOGS"))
+                        }
+                        if len(catalogs) == 1:
+                            dialect.catalog = catalogs.pop()
+                        else:
+                            dialect.catalog = conn.execute(
+                                text("SELECT current_catalog()")
+                            ).scalar()
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Unable to resolve default catalog from server "
+                        "during reflection",
+                        exc_info=True,
+                    )
+
+        return super().get_columns(inspector, table, options)
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        dialect = getattr(inspector, "bind", None) and inspector.bind.dialect
+        if dialect is None and hasattr(inspector, "engine"):
+            dialect = inspector.engine.dialect
+
+        if dialect is not None and getattr(dialect, "catalog", None) is None:
+            engine = getattr(inspector, "bind", None) or getattr(
+                inspector, "engine", None
+            )
+            if engine is not None:
+                try:
+                    with engine.connect() as conn:
+                        catalogs = {
+                            cat for (cat,) in conn.execute(text("SHOW CATALOGS"))
+                        }
+                        if len(catalogs) == 1:
+                            dialect.catalog = catalogs.pop()
+                        else:
+                            dialect.catalog = conn.execute(
+                                text("SELECT current_catalog()")
+                            ).scalar()
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Unable to resolve default catalog from server for table names",
+                        exc_info=True,
+                    )
+
+        return super().get_table_names(database, inspector, schema)
 
     @classmethod
     def get_prequeries(
@@ -1516,7 +1683,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["pyodbc"],
+        "pypi_packages": ["databricks-dbapi[odbc]", "pyodbc"],
         "connection_string": (
             "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1528,6 +1695,17 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             "database": "Database name",
             "http_path": "HTTP path from SQL endpoint settings",
         },
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "databricks-dbapi pins sqlalchemy>=1.3,<2.0; no SQLAlchemy 2.0 "
+                    "support is planned for the legacy driver. Use the Databricks "
+                    "Python Connector (databricks-sql-connector) instead."
+                ),
+                "tracking_url": "https://github.com/crflynn/databricks-dbapi",
+            }
+        ],
     }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
@@ -1560,7 +1738,7 @@ class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
-        "pypi_packages": ["pyhive"],
+        "pypi_packages": ["databricks-dbapi[hive]", "pyhive", "thrift"],
         "connection_string": (
             "databricks+pyhive://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1572,6 +1750,17 @@ class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
             "database": "Database name",
             "http_path": "HTTP path from cluster settings",
         },
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "databricks-dbapi pins sqlalchemy>=1.3,<2.0; no SQLAlchemy 2.0 "
+                    "support is planned for the legacy driver. Use the Databricks "
+                    "Python Connector (databricks-sql-connector) instead."
+                ),
+                "tracking_url": "https://github.com/crflynn/databricks-dbapi",
+            }
+        ],
     }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
