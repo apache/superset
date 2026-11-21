@@ -1993,8 +1993,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             tbl = CreateDatasetCommand(body).run()
             return self.response(200, result={"table_id": tbl.id})
         except DatasetSoftDeletedTwinExistsError as ex:
-            # Targeted hidden-twin 422 (single-sourced in the exception):
-            # names the twin's uuid and the restore endpoint.
+            # Share the archived dataset's recovery guidance with POST /dataset/.
             return self.response_422(message=str(ex))
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
