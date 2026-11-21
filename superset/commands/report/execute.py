@@ -108,6 +108,7 @@ from superset.reports.notifications.slack_transport import (
     get_slack_send_retry_deadline,
 )
 from superset.reports.utils import get_dynamic_executor, get_email_addresses
+from superset.semantic_layers.chart_types import UNSUPPORTED_SEMANTIC_CHART_TYPES
 from superset.subjects.types import SubjectType
 from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
@@ -1269,6 +1270,17 @@ class BaseReportState:
 
         return pdf
 
+    def _include_semantic_chart_type(self, query_context: dict[str, Any]) -> None:
+        """Identify refused charts without activating supported export processors."""
+        if (
+            self._report_schedule.chart.datasource_type == "semantic_view"
+            and self._report_schedule.chart.viz_type in UNSUPPORTED_SEMANTIC_CHART_TYPES
+        ):
+            query_context["form_data"] = dict(
+                query_context.get("form_data") or {},
+                viz_type=self._report_schedule.chart.viz_type,
+            )
+
     def _get_chart_data_request_payload(
         self,
         result_format: ChartDataResultFormat,
@@ -1298,6 +1310,8 @@ class BaseReportState:
 
         if form_data is not None:
             query_context["form_data"] = dict(form_data)
+
+        self._include_semantic_chart_type(query_context)
 
         result_type = ChartDataResultType.POST_PROCESSED.value
         force = bool(self._report_schedule.force_screenshot)

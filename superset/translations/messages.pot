@@ -2991,6 +2991,9 @@ msgstr ""
 msgid "Calendar Heatmap"
 msgstr ""
 
+msgid "Calendar Heatmap is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
+
 msgid "Can not move top level tab into nested tabs"
 msgstr ""
 
@@ -3407,6 +3410,9 @@ msgid "Chart title"
 msgstr ""
 
 msgid "Chart type"
+msgstr ""
+
+msgid "Chart type must be a string."
 msgstr ""
 
 #, python-format
@@ -7856,6 +7862,9 @@ msgstr ""
 msgid "Histogram"
 msgstr ""
 
+msgid "Histogram is not yet supported on semantic views. Use a Bar or Table chart with an explicit count metric."
+msgstr ""
+
 msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
 msgstr ""
 
@@ -7863,6 +7872,9 @@ msgid "Home"
 msgstr ""
 
 msgid "Horizon Chart"
+msgstr ""
+
+msgid "Horizon is not yet supported on semantic views. Use a Line or Bar chart."
 msgstr ""
 
 msgid "Horizontal"
@@ -9864,6 +9876,9 @@ msgstr ""
 msgid "Nightingale Rose Chart"
 msgstr ""
 
+msgid "Nightingale Rose is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
+
 msgid "No"
 msgstr ""
 
@@ -10735,6 +10750,9 @@ msgid "Page not found"
 msgstr ""
 
 msgid "Paired t-test Table"
+msgstr ""
+
+msgid "Paired t-test is not yet supported on semantic views. Use a Table chart to inspect the metric by time."
 msgstr ""
 
 msgid "Pandas resample method"
@@ -16425,7 +16443,13 @@ msgstr ""
 msgid "Time-series Period Pivot"
 msgstr ""
 
+msgid "Time-series Period Pivot is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
+
 msgid "Time-series Table"
+msgstr ""
+
+msgid "Time-series Table is not yet supported on semantic views. Use a Table chart with an explicit time dimension."
 msgstr ""
 
 msgid "Timed Out"
