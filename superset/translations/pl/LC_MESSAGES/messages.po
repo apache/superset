@@ -285,6 +285,16 @@ msgstr ""
 "%(dialect)s nie może być użyty jako źródło danych ze względów "
 "bezpieczeństwa."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s lub %(lastSuggestion)s zamiast "
+"„%(undefinedParameter)s”?"
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
 #, fuzzy, python-format
@@ -392,15 +402,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d wierszy zwróconych"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s zamiast „%(undefinedParameter)s?”"
-msgstr[1] ""
-"%(firstSuggestions)s lub %(lastSuggestion)s zamiast "
-"„%(undefinedParameter)s”?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s zamiast „%(undefinedParameter)s”?"
 
 #, python-format
 msgid ""
@@ -6594,7 +6599,7 @@ msgstr "GRU"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "USUŃ"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10600,9 +10605,8 @@ msgid "Further customize how to display each metric"
 msgstr "Dalsze dostosowanie wyświetlania każdej miary"
 
 #. do-not-translate
-#, fuzzy
 msgid "GROUP BY"
-msgstr "GRUPUJ WEDŁUG"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10830,9 +10834,9 @@ msgstr "Gość nie może modyfikować zawartości wykresu"
 msgid "HTTP Path"
 msgstr "Ścieżka HTTP"
 
-#, fuzzy
+#. do-not-translate
 msgid "Handlebars"
-msgstr "Uchwyty"
+msgstr ""
 
 #, fuzzy
 msgid "Handlebars Template"
@@ -13452,9 +13456,8 @@ msgid "N/A"
 msgstr "N/D"
 
 #. do-not-translate
-#, fuzzy
 msgid "NOT GROUPED BY"
-msgstr "NIE GRUPOWANO PRZEZ"
+msgstr ""
 
 msgid "NOV"
 msgstr "Lis."
@@ -14291,7 +14294,7 @@ msgstr "lub"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "NADPISZ"
+msgstr ""
 
 msgid "October"
 msgstr "Październik"
@@ -19876,9 +19879,8 @@ msgid "TABLES"
 msgstr "TABEL"
 
 #. do-not-translate
-#, fuzzy
 msgid "TEMPORAL_RANGE"
-msgstr "ZAKRES_CZASOWY"
+msgstr ""
 
 msgid "THU"
 msgstr "CZW"
@@ -26671,7 +26673,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "śruba"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26774,9 +26776,8 @@ msgid "create dataset from SQL query"
 msgstr "utwórz zestaw danych z zapytania SQL"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "harmonogram"
+msgstr ""
 
 msgid "css"
 msgstr "CSS"
@@ -26990,9 +26991,8 @@ msgid "entries"
 msgstr "wpisy"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "wiadomość błędu"
+msgstr ""
 
 msgid "every"
 msgstr "każdy"
@@ -27415,9 +27415,8 @@ msgid "permalink state not found"
 msgstr "stan bezpośredniego łącza nie znaleziony"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Przestawione"
+msgstr ""
 
 msgid "pixels"
 msgstr "piksele"

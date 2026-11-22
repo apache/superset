@@ -266,6 +266,16 @@ msgstr[1] "%(count)s دارایی وابسته بایگانی شده‌اند."
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s به دلایل امنیتی نمی‌تواند به عنوان منبع داده استفاده شود."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s یا %(lastSuggestion)s به جای "
+"\"%(undefinedParameter)s\"?"
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
 #, fuzzy, python-format
@@ -369,17 +379,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d سطر برگشت داده شد"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
-# mi, ro, ru, sl, sr, sr_Latn, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s به جای \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s یا %(lastSuggestion)s به جای "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s به جای \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -6346,7 +6349,7 @@ msgstr "دسامبر"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "حذف"
+msgstr ""
 
 msgid "DML"
 msgstr "دی‌ام‌ال"
@@ -8093,7 +8096,7 @@ msgstr "انتخاب پویای ستون‌های گروه‌بندی از یک 
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "ای چارتس"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -8103,7 +8106,7 @@ msgstr "گزینه‌های ECharts (لیترال‌های شیء JS)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "ایمیل گزارشات"
+msgstr ""
 
 msgid "ERROR"
 msgstr "خطا"
@@ -10187,7 +10190,7 @@ msgstr "نحوه نمایش هر معیار را بیشتر سفارشی‌سا�
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "گروه‌بندی"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10400,8 +10403,9 @@ msgstr "کاربر مهمان نمی‌تواند بارگذاری نمودار 
 msgid "HTTP Path"
 msgstr "مسیر HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
-msgstr "هندلBars"
+msgstr ""
 
 msgid "Handlebars Template"
 msgstr "قالب هندل‌بارز"
@@ -12983,7 +12987,7 @@ msgstr "غیرقابل انتشار"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "غیر گروه‌بندی شده توسط"
+msgstr ""
 
 msgid "NOV"
 msgstr "نوامبر"
@@ -13795,7 +13799,7 @@ msgstr "یا"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "بازنویسی"
+msgstr ""
 
 msgid "October"
 msgstr "اکتبر"
@@ -19104,7 +19108,7 @@ msgstr "جدول‌ها"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "محدوده_زمانی"
+msgstr ""
 
 msgid "THU"
 msgstr "پنج‌شنبه"
@@ -25643,7 +25647,7 @@ msgstr "پس‌پرکنید"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "بولت"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25738,7 +25742,7 @@ msgstr "ایجاد مجموعه داده از کوئریی SQL"
 
 #. do-not-translate
 msgid "crontab"
-msgstr "کرون‌تب"
+msgstr ""
 
 msgid "css"
 msgstr "سی‌اس‌اس"
@@ -26341,9 +26345,8 @@ msgid "permalink state not found"
 msgstr "وضعیت پیوند دائمی پیدا نشد"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "محور بندی شده"
+msgstr ""
 
 msgid "pixels"
 msgstr "پیکسل‌ها"
