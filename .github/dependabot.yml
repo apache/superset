@@ -55,6 +55,21 @@ updates:
       # hold comments). Remove this once the proxy code is updated to await
       # the async decompress() API.
       - dependency-name: "simple-zstd"
+      # Below entries are dependencies that are significantly difficult to upgrade to next major versions
+      # so we ignore them to avoid auto-opening of PRs and consume excessive CI resources
+      # If you manage to upgrade any of them, please remove the corresponding item
+      - dependency-name: "@reduxjs/toolkit"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-redux"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "d3"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dnd-html5-backend"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dnd"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-router-dom"
+        update-types: ["version-update:semver-major"]
     directories:
       - "/superset-frontend"
       - "/superset-embedded-sdk"

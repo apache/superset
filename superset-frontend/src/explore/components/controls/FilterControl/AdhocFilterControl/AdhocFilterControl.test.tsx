@@ -18,6 +18,7 @@
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Operators } from 'src/explore/constants';
+import { semanticViewDimensionsToColumns } from 'src/utils/semanticViewStructure';
 import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
@@ -102,6 +103,54 @@ const renderComponent = (props: Partial<TestProps> = {}) =>
       useRedux: true,
     },
   );
+
+test('dashboard Pre-filter subjects distinguish duplicate semantic labels by member ID', async () => {
+  const onChange = jest.fn();
+  const columns = semanticViewDimensionsToColumns([
+    { name: 'CUSTOMERS.REGION', type: 'string', verbose_name: 'Region' },
+    { name: 'ORDERS.REGION', type: 'string', verbose_name: 'Region' },
+  ]);
+  renderComponent({
+    onChange,
+    datasource: { ...createProps().datasource, type: 'semantic_view' },
+    columns: columns.map(column => ({ ...column })),
+    semanticSelectionVersion: 'v1',
+    operators: [Operators.Equals, Operators.GreaterThan],
+  });
+  await userEvent.click(screen.getByTestId('add-filter-button'));
+  await userEvent.click(await screen.findByTestId('select-element'));
+  expect(screen.getAllByTestId('semantic-member-id')).toHaveLength(2);
+  const search = screen.getByRole('combobox', { name: 'Select subject' });
+  await userEvent.type(search, 'ORDERS.REGION');
+  expect(screen.getAllByTestId('semantic-member-id')).toHaveLength(1);
+  await userEvent.click(screen.getByText('ORDERS.REGION'));
+  expect(
+    screen
+      .getAllByTestId('semantic-member-id')
+      .find(element => element.closest('.ant-select-content-has-value')),
+  ).toHaveTextContent('ORDERS.REGION');
+  await userEvent.click(screen.getByLabelText('Select operator'));
+  await userEvent.click(screen.getByRole('option', { name: /Equal to/ }));
+  await userEvent.type(screen.getByTestId('adhoc-filter-simple-value'), 'West');
+  await userEvent.click(
+    screen.getByTestId('adhoc-filter-edit-popover-save-button'),
+  );
+  expect(onChange.mock.calls[0][0][0].subject).toBe('ORDERS.REGION');
+});
+
+test('ordinary pre-filter subjects keep their existing labels', async () => {
+  renderComponent({
+    columns: [
+      { column_name: 'first', verbose_name: 'Region', type: 'STRING' },
+      { column_name: 'second', verbose_name: 'Region', type: 'STRING' },
+    ],
+    operators: [Operators.Equals],
+  });
+  await userEvent.click(screen.getByTestId('add-filter-button'));
+  await userEvent.click(await screen.findByTestId('select-element'));
+  expect(screen.queryByTestId('semantic-member-id')).not.toBeInTheDocument();
+  expect(screen.getAllByText('Region')).toHaveLength(2);
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterControl', () => {
