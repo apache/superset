@@ -359,8 +359,12 @@
     "@luma.gl/gltf": "~9.4.0",
     "@luma.gl/shadertools": "~9.4.0",
     "@luma.gl/webgl": "~9.4.0",
+    "cheerio": {
+      "undici": "^7.30.2"
+    },
     "core-js": "^3.38.1",
     "fast-xml-parser": "^5.8.0",
+    "glob": "^14.0.2",
     "jspdf": "^4.2.0",
     "minimatch": "^11.0.1",
     "nwsapi": "^2.2.24",
@@ -368,7 +372,8 @@
     "texture-compressor": {
       "image-size": "^2.0.3"
     },
-    "typescript-json-schema": "^0.68.0"
+    "undici": "^8.12.4",
+    "webpack-dev-middleware": "^7.4.6"
   },
   "browserslist": [
     "last 3 chrome versions",
