@@ -399,6 +399,14 @@ def rename_permission_view_menu(pvm: PermissionView, new_name: str | None) -> No
     if not new_name or old_view_menu.name == new_name:
         return
 
+    existing_view_menu = security_manager.find_view_menu(new_name)
+    if existing_view_menu and existing_view_menu.id == old_view_menu.id:
+        # A case-insensitive collation can resolve a case-only rename to the
+        # source row. Rename it in place instead of merging it into itself.
+        old_view_menu.name = new_name
+        db.session.flush()
+        return
+
     destination = security_manager.find_permission_view_menu(
         pvm.permission.name, new_name
     )
@@ -467,7 +475,19 @@ def rename_database_in_permissions(database: Database, old_database_name: str) -
         )
         .all()
     )
+    # Other database names can extend the same bracket-delimited prefix.
+    foreign_prefixes = [
+        f"[{name}]."
+        for (name,) in db.session.query(Database.database_name).filter(
+            Database.id != database.id,
+            Database.database_name.startswith(
+                f"{old_database_name}].", autoescape=True
+            ),
+        )
+    ]
     for pvm in permissions:
+        if any(pvm.view_menu.name.startswith(prefix) for prefix in foreign_prefixes):
+            continue
         new_name = new_prefix + pvm.view_menu.name[len(old_prefix) :]
         rename_permission_view_menu(pvm, new_name)
 

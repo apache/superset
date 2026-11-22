@@ -4195,7 +4195,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         new_updated_pvm = self.find_permission_view_menu(
             "database_access", new_view_menu_name
         )
-        if new_updated_pvm:
+        if new_updated_pvm and new_updated_pvm.id != db_pvm.id:
             logger.info(
                 "New permission [%s] already exists, deleting the previous",
                 new_view_menu_name,
