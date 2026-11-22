@@ -258,6 +258,16 @@ msgstr[2] "%(count)s závislých assetov je archivovaných."
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nemožno z bezpečnostných dôvodov použiť ako zdroj dát."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s alebo %(lastSuggestion)s namiesto "
+"„%(undefinedParameter)s?”"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "súbor %(label)s"
@@ -365,18 +375,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Vrátené %(rows)d riadkov"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s namiesto „%(undefinedParameter)s?”"
-msgstr[1] ""
-"%(firstSuggestions)s alebo %(lastSuggestion)s namiesto "
-"„%(undefinedParameter)s?”"
-msgstr[2] ""
-"%(firstSuggestions)s alebo %(lastSuggestion)s namiesto "
-"„%(undefinedParameter)s?”"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s namiesto „%(undefinedParameter)s?”"
 
 #, python-format
 msgid ""
@@ -6195,7 +6197,7 @@ msgstr "PRO"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "SMAZAT"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10125,7 +10127,7 @@ msgstr "Dále prispôsobiť, ako zobraziť každou metriku"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "SESKUPIT PODLE"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, lv, pt, ro, ru, sl, sr, sr_Latn, ta, tr, uk, zh]
@@ -10350,6 +10352,7 @@ msgstr "Hostující používateľ nemôže upravovať data grafu"
 msgid "HTTP Path"
 msgstr "HTTP cesta"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -13010,7 +13013,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NESESKUPENO PODLE"
+msgstr ""
 
 msgid "NOV"
 msgstr "LIS"
@@ -19414,7 +19417,7 @@ msgstr "TABULKY"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "ČASOVÝ_ROZSAH"
+msgstr ""
 
 msgid "THU"
 msgstr "ČT"
@@ -26146,7 +26149,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "šroub"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26488,7 +26491,7 @@ msgstr "položky"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "chybová_zpráva"
+msgstr ""
 
 msgid "every"
 msgstr "každý"
