@@ -5661,7 +5661,7 @@
         "homepage_url": "https://materialize.com/",
         "categories": ["Cloud - AWS", "Traditional RDBMS", "Open Source"],
         "pypi_packages": ["psycopg2", "sqlalchemy-materialize"],
-        "connection_string": "materialize+psycopg2://{username}:{password}@{host}:{port}/{database}?options=--cluster%3Dquickstart",
+        "connection_string": "materialize+psycopg2://{username}:{password}@{host}:{port}/{database}?options=--cluster%3D{cluster}",
         "default_port": 6875,
         "category": "Cloud - AWS"
       },

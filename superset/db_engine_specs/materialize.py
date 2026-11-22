@@ -60,7 +60,6 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             parameters = {**parameters, "query": query}
         return super().build_sqlalchemy_uri(parameters, encrypted_extra)
     
-    # TODO: Fix the URI after making the dialect, also for connection_string
     sqlalchemy_uri_placeholder = (
         "materialize+psycopg2://username:password@host:port/database"
         "?options=--cluster%3Dquickstart"
@@ -74,11 +73,11 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        # TODO: Add connecting string builder after integrated 'cluster' in input form
+        
         "pypi_packages": ["psycopg2", "sqlalchemy-materialize"],
         "connection_string": (
             "materialize+psycopg2://{username}:{password}@{host}:{port}/{database}"
-            "?options=--cluster%3Dquickstart"
+            "?options=--cluster%3D{cluster}"
         ),
 
         # Recommended fields
