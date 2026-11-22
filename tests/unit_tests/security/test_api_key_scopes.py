@@ -26,6 +26,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from werkzeug.exceptions import BadRequest
 
 from superset.extensions import appbuilder
 from superset.security.api_key_scopes import (
@@ -221,13 +222,22 @@ def test_create_api_key_rejects_before_delegating_to_fab(
     with patch(
         "flask_appbuilder.security.sqla.manager.SecurityManager.create_api_key"
     ) as fab_create:
-        with pytest.raises(ValueError, match="exceeds the issuing user's own"):
+        # A BadRequest: FAB's ``@safe`` turns it into a 400 that carries the
+        # reason, instead of a generic 500.
+        with pytest.raises(BadRequest, match="exceeds the issuing user's own") as exc:
             sm.create_api_key(
                 user=_make_user("Gamma"),
                 name="my key",
                 scopes="superset:dashboard:write",
             )
         fab_create.assert_not_called()
+    # ``@safe`` returns ``str(exc)`` as the message: no werkzeug status prefix.
+    assert str(exc.value) == (
+        "Requested scope 'superset:dashboard:write' exceeds the issuing user's "
+        "own permissions"
+    )
+    # Still a ValueError for callers outside a request (CLI, MCP, Celery).
+    assert isinstance(exc.value, ValueError)
 
 
 def test_create_api_key_delegates_to_fab_on_success(
@@ -249,3 +259,40 @@ def test_create_api_key_delegates_to_fab_on_success(
             user=user, name="my key", scopes="superset:dashboard:read", expires_on=None
         )
     assert result == {"key": "sst_secret"}
+
+
+def test_allowed_scopes_are_exactly_what_create_api_key_accepts(
+    sm: SupersetSecurityManager,
+) -> None:
+    """``get_allowed_api_key_scopes`` keeps a scope iff the user holds a FAB
+    permission that maps to it, and never includes flat scopes."""
+    granted = {("can_read", "Dashboard"), ("can_write", "Chart"), ("can_get", "User")}
+    sm._has_view_access = MagicMock(
+        side_effect=lambda _user, permission, view: (permission, view) in granted
+    )
+    sm.get_user_permissions = MagicMock(return_value=granted)
+
+    allowed = sm.get_allowed_api_key_scopes(_make_user("Gamma"))
+
+    assert allowed == [
+        "superset:chart:write",
+        "superset:dashboard:read",
+        "superset:user:read",
+    ]
+    # The user's permissions are loaded once, not queried per catalog scope.
+    sm.get_user_permissions.assert_called_once()
+    sm._has_view_access.assert_not_called()
+    for scope in allowed:
+        sm._validate_requested_api_key_scopes(_make_user("Gamma"), scope)
+    with pytest.raises(ValueError, match="exceeds the issuing user's own"):
+        sm._validate_requested_api_key_scopes(
+            _make_user("Gamma"), "superset:dashboard:write"
+        )
+
+
+def test_allowed_scopes_empty_without_any_permission(
+    sm: SupersetSecurityManager,
+) -> None:
+    """A user with no matching RBAC grant can self-issue no scope at all."""
+    sm.get_user_permissions = MagicMock(return_value=set())
+    assert sm.get_allowed_api_key_scopes(_make_user("Gamma")) == []
