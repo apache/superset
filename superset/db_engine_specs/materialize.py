@@ -17,6 +17,27 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+from marshmallow import fields
+
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersType,
+    DatabaseCategory,
+)
+from superset.db_engine_specs.postgres import (
+    PostgresEngineSpec,
+    PostgresParametersSchema,
+)
+
+
+class MaterializeParametersSchema(PostgresParametersSchema):
+    """Postgres connection parameters plus the Materialize cluster."""
+
+    materializedb_cluster = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Materialize cluster to run queries on"},
+    )
 
 
 class MaterializeEngineSpec(PostgresEngineSpec):
@@ -24,6 +45,20 @@ class MaterializeEngineSpec(PostgresEngineSpec):
     engine_name = "Materialize"
     
     default_driver = "psycopg2"
+    
+    parameters_schema = MaterializeParametersSchema()
+    
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """Pass the form's cluster to Materialize as ``options=--cluster=<name>``."""
+        if cluster := parameters.get("materializedb_cluster"):
+            query = {**parameters.get("query", {}), "options": f"--cluster={cluster}"}
+            parameters = {**parameters, "query": query}
+        return super().build_sqlalchemy_uri(parameters, encrypted_extra)
     
     # TODO: Fix the URI after making the dialect, also for connection_string
     sqlalchemy_uri_placeholder = (
