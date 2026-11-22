@@ -5089,12 +5089,13 @@ def test_default_schema_private_engine_is_not_shared(
 
 
 @pytest.mark.parametrize("already_discovered", [False, True])
-def test_default_schema_warm_engine_publishes_once(
+def test_default_schema_warm_engine_rate_limits_publication(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     already_discovered: bool,
 ) -> None:
-    """Repeated warm lookups must not renew stale shared discovery's expiry."""
+    """Warm lookups publish at most once per engine per renewal interval."""
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0)
     cache = shared_default_schema_cache
     write = mocker.spy(cache, "add")
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
@@ -5105,11 +5106,15 @@ def test_default_schema_warm_engine_publishes_once(
         assert database.get_default_schema_from_engine(None) == "main"
     write.assert_called_once()
     key = write.call_args.args[0]
-    # Expiry must not make a long-lived dialect re-publish its old discovery.
+    # A missing entry must not bypass the per-engine rate limit.
     cache.delete(key)
     assert database.get_default_schema_from_engine(None) == "main"
     assert cache.get(key) is None
     write.assert_called_once()
+    clock.return_value = 1800
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert cache.get(key) == "main"
+    assert write.call_count == 2
 
 
 def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
@@ -5172,16 +5177,20 @@ def test_default_schema_old_worker_does_not_overwrite_new_discovery(
     )
     assert database.get_default_schema_from_engine(None) == "old"
     assert shared_default_schema_cache.get(key) == "new"
-    assert write.call_count + fallback_write.call_count == (2 if elapsed < 3600 else 1)
+    assert write.call_count == 2
+    fallback_write.assert_called_once_with(key, "new", timeout=3600)
 
 
+@pytest.mark.parametrize("supports_add", [False, True])
 @pytest.mark.parametrize("cached_schema", ["other", ""])
 def test_default_schema_existing_publication_is_not_retried(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     cached_schema: str,
+    supports_add: bool,
 ) -> None:
-    """A worker finding another worker's publication must stop trying to add."""
+    """Renew another worker's value, then rate-limit repeated publication."""
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0)
     cache = shared_default_schema_cache
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     with database.get_sqla_engine() as engine:
@@ -5192,6 +5201,8 @@ def test_default_schema_existing_publication_is_not_retried(
         """Populate the shared key before this worker's first add attempt."""
         if cache.get(key) is None:
             assert real_add(key, cached_schema, timeout=timeout)
+        if not supports_add:
+            raise NotImplementedError
         return real_add(key, schema, timeout=timeout)
 
     write = mocker.patch.object(cache, "add", side_effect=publish_from_other_worker)
@@ -5200,10 +5211,14 @@ def test_default_schema_existing_publication_is_not_retried(
     write.assert_called_once()
     key = write.call_args.args[0]
     assert cache.get(key) == cached_schema
+    clock.return_value = 1800
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert cache.get(key) == cached_schema
+    assert write.call_count == 2
     cache.delete(key)
     assert database.get_default_schema_from_engine(None) == "main"
     assert cache.get(key) is None
-    write.assert_called_once()
+    assert write.call_count == 2
 
 
 def test_default_schema_unsuccessful_publication_retries(
@@ -5227,13 +5242,13 @@ def test_default_schema_unsuccessful_publication_retries(
 
 @pytest.mark.parametrize("supports_add", [False, True])
 @pytest.mark.parametrize("elapsed", [1800, 3599.5])
-def test_default_schema_publication_uses_remaining_lifetime(
+def test_default_schema_delayed_publication_uses_full_lifetime(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     supports_add: bool,
     elapsed: float,
 ) -> None:
-    """Delayed publication must not extend discovery past its original lifetime."""
+    """Discovery is useful even when an engine predates the shared entry's TTL."""
     clock = mocker.patch("superset.models.core.monotonic", return_value=0)
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     with database.get_sqla_engine() as engine:
@@ -5245,4 +5260,75 @@ def test_default_schema_publication_uses_remaining_lifetime(
     normalize = mocker.spy(shared_default_schema_cache.cache, "_normalize_timeout")
     clock.return_value = elapsed
     assert database.get_default_schema_from_engine(None) == "main"
-    normalize.assert_called_once_with(max(1, int(3600 - elapsed)))
+    normalize.assert_called_once_with(3600)
+
+
+@pytest.mark.parametrize("supports_add", [False, True])
+def test_default_schema_long_lived_engine_renews_shared_discovery(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    supports_add: bool,
+) -> None:
+    """Active engines keep discovery available to workers restarted in an outage."""
+    from superset.models.core import _retire_cached_engines
+
+    cache = shared_default_schema_cache
+    mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_TIMEOUT", 60)
+    clock = mocker.patch("superset.models.core.monotonic", return_value=1000)
+    cache_clock = mocker.patch("cachelib.simple.time", return_value=1000)
+    if not supports_add:
+        mocker.patch.object(cache, "add", side_effect=NotImplementedError)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    # Discovery can precede the first cache-key request by more than the TTL.
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+    for elapsed in (61, 91, 121):
+        clock.return_value = cache_clock.return_value = 1000 + elapsed
+        assert database.get_default_schema_from_engine(None) == "main"
+    # No healthy lookup in the restarted worker may mask an expired shared entry.
+    _retire_cached_engines(database.id)
+    clock.return_value = cache_clock.return_value = 1152
+    connect = mocker.patch(
+        "sqlalchemy.engine.Engine.raw_connection",
+        side_effect=ConnectionError("database unreachable"),
+    )
+    assert database.get_default_schema_from_engine(None) == "main"
+    connect.assert_not_called()
+    # Without further publication, discovery must still expire and fail closed.
+    clock.return_value = cache_clock.return_value = 1182
+    with pytest.raises(ConnectionError, match="database unreachable"):
+        database.get_default_schema_from_engine(None)
+
+
+@pytest.mark.parametrize("operation", ["get", "add"])
+def test_default_schema_cache_outage_does_not_flood_warning_log(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    operation: str,
+) -> None:
+    """Repeated cache-key collection during a cache outage stays below warning."""
+    failed = mocker.patch.object(
+        shared_default_schema_cache,
+        operation,
+        side_effect=ConnectionError("cache unreachable"),
+    )
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+        engine.dialect.default_schema_name = None
+    mocker.patch(
+        "superset.models.core.sqla.inspect",
+        return_value=mocker.Mock(default_schema_name="main"),
+    )
+    with caplog.at_level("DEBUG", logger="superset.models.core"):
+        for _ in range(40):
+            assert database.get_default_schema_from_engine(None) == "main"
+    assert failed.call_count == 40
+    messages = [
+        record
+        for record in caplog.records
+        if "the default schema cache" in record.message
+    ]
+    assert len(messages) == 40
+    assert all(record.levelname == "DEBUG" for record in messages)

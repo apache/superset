@@ -144,9 +144,8 @@ T = TypeVar("T")
 _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
 _DEFAULT_SCHEMA_CACHE_TIMEOUT = 3600
-# Publish once per engine so a long-lived dialect cannot renew stale discovery.
-_DEFAULT_SCHEMA_PUBLISHED_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
-_DEFAULT_SCHEMA_DISCOVERED_AT: weakref.WeakKeyDictionary[Engine, float] = (
+# Renew shared discovery without writing on every warm cache-key lookup.
+_DEFAULT_SCHEMA_PUBLISHED_AT: weakref.WeakKeyDictionary[Engine, float] = (
     weakref.WeakKeyDictionary()
 )
 _DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
@@ -161,13 +160,24 @@ _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
 
 
 def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
-    """Publish discovery or confirm another worker has already published it."""
+    """Publish discovery or renew the value already published by another worker."""
     try:
         if cache_manager.cache.add(cache_key, schema, timeout=timeout):
             return True
-        return cache_manager.cache.get(cache_key) is not None
     except (AttributeError, NotImplementedError):
-        return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
+        # Backends without add support use a best-effort read before writing.
+        cached_schema = cache_manager.cache.get(cache_key)
+        return bool(
+            cache_manager.cache.set(
+                cache_key,
+                cached_schema if cached_schema is not None else schema,
+                timeout=timeout,
+            )
+        )
+    cached_schema = cache_manager.cache.get(cache_key)
+    if cached_schema is None:
+        return False
+    return bool(cache_manager.cache.set(cache_key, cached_schema, timeout=timeout))
 
 
 def _log_embedded_rejection(
@@ -1028,19 +1038,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     }
                 )
             )
-        engine_ref = weakref.ref(engine)
-
-        def record_first_connect(
-            _dbapi_connection: object, _connection_record: object
-        ) -> None:
-            """Bound shared discovery's age even when normal queries warm the engine."""
-            if connected_engine := engine_ref():
-                with _DEFAULT_SCHEMA_CACHE_LOCK:
-                    _DEFAULT_SCHEMA_DISCOVERED_AT.setdefault(
-                        connected_engine, monotonic()
-                    )
-
-        sqla.event.listen(engine, "first_connect", record_first_connect)
         sqla.event.listen(engine, "handle_error", mark_database_engine_error)
         if embedded_fallback:
             self._log_rejected_embedded_credential(engine)
@@ -1177,8 +1174,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         the engine spec's inspector policy. Shared discovery survives worker
         restarts for one hour, scoped to the database, catalog and effective
         engine identity. Cache failures leave local discovery available.
-        Discovery is published once per engine, only within one hour of its first
-        connection, without renewing its expiry on warm lookups. SSH tunnels do not
+        Warm lookups renew shared discovery at most once per half-hour per engine,
+        preserving an existing worker's value. SSH tunnels do not
         share discovery because their local connection URLs contain ephemeral ports.
         Cold-engine discovery retains the inspector's OAuth2 retry policy.
         """
@@ -1210,7 +1207,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     try:
                         cached_schema = cache_manager.cache.get(cache_key)
                     except Exception:  # pylint: disable=broad-except
-                        logger.warning("Unable to read the default schema cache")
+                        logger.debug("Unable to read the default schema cache")
                     if isinstance(cached_schema, str):
                         yield cached_schema
                         return
@@ -1218,23 +1215,20 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     schema = sqla.inspect(engine).default_schema_name
                 if schema is not None and cache_key is not None:
                     with _DEFAULT_SCHEMA_CACHE_LOCK:
-                        discovered_at = _DEFAULT_SCHEMA_DISCOVERED_AT.get(engine)
+                        published_at = _DEFAULT_SCHEMA_PUBLISHED_AT.get(engine)
+                        timestamp = monotonic()
                         if (
-                            engine not in _DEFAULT_SCHEMA_PUBLISHED_ENGINES
-                            and discovered_at is not None
-                            and (age := monotonic() - discovered_at)
-                            < _DEFAULT_SCHEMA_CACHE_TIMEOUT
+                            published_at is None
+                            or timestamp - published_at
+                            >= _DEFAULT_SCHEMA_CACHE_TIMEOUT / 2
                         ):
                             try:
-                                timeout = max(
-                                    1, int(_DEFAULT_SCHEMA_CACHE_TIMEOUT - age)
-                                )
-                                if _publish_default_schema(cache_key, schema, timeout):
-                                    _DEFAULT_SCHEMA_PUBLISHED_ENGINES.add(engine)
+                                if _publish_default_schema(
+                                    cache_key, schema, _DEFAULT_SCHEMA_CACHE_TIMEOUT
+                                ):
+                                    _DEFAULT_SCHEMA_PUBLISHED_AT[engine] = timestamp
                             except Exception:  # pylint: disable=broad-except
-                                logger.warning(
-                                    "Unable to write the default schema cache"
-                                )
+                                logger.debug("Unable to write the default schema cache")
                 yield schema
 
         with self._open_with_oauth2_retry(open_schema) as schema:

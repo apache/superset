@@ -83,16 +83,19 @@ instead of looking up a result using an incomplete macro cache key.
 While collecting chart cache keys for virtual datasets without a schema,
 Superset reuses the default schema that
 SQLAlchemy has already discovered on the selected engine, without opening an
-inspector connection. It publishes that discovery once per engine in
-`CACHE_CONFIG` for the time remaining within one hour of its first connection,
-without extending the expiry on subsequent warm lookups. Backends supporting
-add-if-absent preserve an existing worker's published discovery; other backends
-use a best-effort write with the same remaining lifetime. Discovery is
+inspector connection. It publishes that discovery in `CACHE_CONFIG` with a
+one-hour expiry. Warm cache-key lookups renew the entry at most once per
+half-hour per engine, so long-lived engines can keep discovery available to
+restarted workers. Renewal retains an existing worker's published value rather
+than replacing it with the local dialect's value. Backends supporting
+add-if-absent use it for missing entries; other backends use a best-effort read
+before writing. Discovery is
 keyed by the database, catalog, and a hash of the effective connection URL and
 engine parameters. Configure a shared cache backend (such as Redis) so a restarted
 or previously unused worker can reuse the discovery during an outage. Cache
 backend failures fall back to the selected engine's local discovery or an inspector
-lookup; they do not themselves prevent cache-key construction. Cached results remain
+lookup and are logged at debug level; they do not themselves prevent cache-key
+construction. Cached results remain
 available under the same security and template context when that schema (or the
 connection configuration) is sufficient to build the complete key.
 Query execution and metadata inspection retain their engine-specific schema
