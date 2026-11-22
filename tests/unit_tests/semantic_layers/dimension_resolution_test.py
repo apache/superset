@@ -95,6 +95,7 @@ def test_conflicting_catalog_definitions_reject_for_every_usage(
         "allows_default_grain": replace(first, allows_default_grain=False),
     }
     second: Dimension = changed[field]
+    ordering: tuple[Dimension, ...]
     for ordering in permutations([first, second]):
         with pytest.raises(QueryObjectValidationError, match="ambiguous"):
             resolve_dimensions(ordering, usage=usage, names=[])

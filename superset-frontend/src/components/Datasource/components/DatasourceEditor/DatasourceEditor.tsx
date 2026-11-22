@@ -36,7 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
-  formatSpecifier,
+  isPercentD3Format,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -70,6 +70,7 @@ import {
   Input,
   Loading,
   Row,
+  SafeMarkdown,
   Select,
   Tooltip,
   Typography,
@@ -580,6 +581,10 @@ const checkboxGenerator = (
     }}
   />
 );
+const PYTHON_DATETIME_FORMAT_URL =
+  'https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior';
+const ISO_8601_URL = 'https://en.wikipedia.org/wiki/ISO_8601';
+
 const DATA_TYPES = [
   { value: 'STRING', label: t('STRING') },
   { value: 'NUMERIC', label: t('NUMERIC') },
@@ -827,26 +832,31 @@ function ColumnCollectionTable({
                 fieldKey="python_date_format"
                 label={t('Datetime format')}
                 description={
-                  /* Note the fragmented translations may not work. */
-                  <div>
-                    {t('The pattern of timestamp format. For strings use ')}
-                    <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
-                      {t('Python datetime string pattern')}
-                    </Typography.Link>
-                    {t(' expression which needs to adhere to the ')}
-                    <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
-                      {t('ISO 8601')}
-                    </Typography.Link>
-                    {t(` standard to ensure that the lexicographical ordering
-                      coincides with the chronological ordering. If the
-                      timestamp format does not adhere to the ISO 8601 standard
-                      you will need to define an expression and type for
-                      transforming the string into a date or timestamp. Note
-                      currently time zones are not supported. If time is stored
-                      in epoch format, put \`epoch_s\`, \`epoch_ms\` or \`epoch_us\`. If no pattern
-                      is specified we fall back to using the optional defaults on a per
-                      database/column name level via the extra parameter.`)}
-                  </div>
+                  <SafeMarkdown
+                    // i18n: translate the whole sentence, including the link
+                    // text; keep the [text](%(…)s) link syntax, the backticks
+                    // and both placeholders unchanged
+                    source={t(
+                      'The pattern of timestamp format. For strings use ' +
+                        '[Python datetime string pattern](%(python_url)s) ' +
+                        'expression which needs to adhere to the ' +
+                        '[ISO 8601](%(iso_url)s) standard to ensure that the ' +
+                        'lexicographical ordering coincides with the ' +
+                        'chronological ordering. If the timestamp format does ' +
+                        'not adhere to the ISO 8601 standard you will need to ' +
+                        'define an expression and type for transforming the ' +
+                        'string into a date or timestamp. Note currently time ' +
+                        'zones are not supported. If time is stored in epoch ' +
+                        'format, put `epoch_s`, `epoch_ms` or `epoch_us`. If ' +
+                        'no pattern is specified we fall back to using the ' +
+                        'optional defaults on a per database/column name ' +
+                        'level via the extra parameter.',
+                      {
+                        python_url: PYTHON_DATETIME_FORMAT_URL,
+                        iso_url: ISO_8601_URL,
+                      },
+                    )}
+                  />
                 }
                 control={
                   <TextControl
@@ -981,23 +991,6 @@ function EditorsSelector({
 }
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
-
-// D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
-// grammar so garbage like "foo%" is rejected rather than matched by suffix.
-// The stored value is trimmed before parsing because
-// NumberFormatterRegistry.get() trims it the same way before rendering, so
-// this check agrees with what the renderer actually sees.
-export const isPercentD3Format = (d3format?: string): boolean => {
-  if (!d3format) {
-    return false;
-  }
-  try {
-    const { type } = formatSpecifier(d3format.trim());
-    return type === '%' || type === 'p';
-  } catch {
-    return false;
-  }
-};
 
 // Matches the outermost COUNT(...) call's parens by depth, so a ratio like
 // `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
@@ -3210,6 +3203,20 @@ function DatasourceEditor({
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
+              columnLabelTooltips={{
+                is_dttm: t(
+                  'Marks the column as a time column for time range filters ' +
+                    'and time grains. If the column type in the database is ' +
+                    'not a date or timestamp, set a Datetime format below: ' +
+                    'for strings it sets how time range filter values are ' +
+                    'written, and for epoch numbers (epoch_s, epoch_ms, ' +
+                    'epoch_us) it converts them to timestamps. A Datetime ' +
+                    'format does not convert a string column, so on some ' +
+                    'databases a time grain on it can fail or return wrong ' +
+                    'results; a calculated column that casts the value to a ' +
+                    'timestamp avoids this.',
+                ),
+              }}
               datasource={datasource}
               onMoveMappingHere={handleMoveMappingHere}
               onRemoveMapping={handleRemoveMapping}

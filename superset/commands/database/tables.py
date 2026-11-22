@@ -158,7 +158,7 @@ class TablesDatabaseCommand(BaseCommand):
                     }
                     for mv in materialized_views
                 ],
-                key=lambda item: item["value"],
+                key=lambda item: (item["value"].casefold(), item["value"].swapcase()),
             )
 
             payload = {

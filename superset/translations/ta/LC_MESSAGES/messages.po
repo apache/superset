@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-18 09:11-0700\n"
+"POT-Creation-Date: 2026-11-22 14:08-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -146,47 +146,12 @@ msgstr " புதிய ஒன்று"
 msgid " at line %(line)d"
 msgstr " வரிசை %(line)d இல்"
 
-msgid " expression which needs to adhere to the "
-msgstr " இதனுடன் இணங்க வேண்டிய எக்ஸ்பிரஷன் (expression) "
-
 msgid " for details."
 msgstr " விவரங்களுக்கு."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " '%(highlight)s' அருகில்"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" தரநிலையைப் பயன்படுத்தி, அகரவரிசை வரிசைமுறை காலவரிசை வரிசைமுறையுடன் "
-"ஒத்துப்போவதை உறுதிசெய்யவும். நேர முத்திரை வடிவம்\n"
-"                      ISO 8601 தரநிலைக்கு இணங்கவில்லை என்றால், சரத்தை "
-"தேதி அல்லது நேர முத்திரையாக\n"
-"                      மாற்றுவதற்கான ஒரு கோவையையும் வகையையும் நீங்கள் "
-"வரையறுக்க வேண்டும். குறிப்பு:\n"
-"                      தற்போது நேர மண்டலங்கள் ஆதரிக்கப்படவில்லை. நேரம் "
-"epoch வடிவத்தில் சேமிக்கப்பட்டிருந்தால், `epoch_s`, `epoch_ms` அல்லது "
-"`epoch_us` என்று உள்ளிடவும். எந்த வடிவமும்\n"
-"                      குறிப்பிடப்படவில்லை என்றால், extra அளவுரு வழியாக "
-"ஒவ்வொரு\n"
-"                      தரவுத்தளம்/நெடுவரிசை பெயர் மட்டத்திலும் உள்ள "
-"விருப்ப இயல்புநிலைகளைப் பயன்படுத்துவோம்."
 
 msgid " to add calculated columns"
 msgstr " கணக்கிடப்பட்ட நெடுவரிசைகளைச் சேர்க்க"
@@ -259,12 +224,6 @@ msgstr "வரிசை மொத்தத்தின் %"
 msgid "% of total"
 msgstr "மொத்தத்தில் %"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "%(alertType)s \"%(alertName)s\" வெற்றிகரமாகத் தூண்டப்பட்டது"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -299,6 +258,20 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "பாதுகாப்பு காரணங்களுக்காக %(dialect)s-ஐ ஒரு தரவு மூலமாகப் பயன்படுத்த "
 "முடியாது."
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"\"%(undefinedParameter)s\" என்பதற்குப் பதிலாக %(firstSuggestions)s அல்லது"
+" %(lastSuggestion)s"
 
 #, python-format
 msgid "%(label)s file"
@@ -393,6 +366,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
+
+#, python-format
+msgid ""
 "%(report_type)s schedule frequency exceeding limit. Please configure a "
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
 "execution."
@@ -405,15 +384,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d வரிசைகள் கிடைத்தன"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "\"%(undefinedParameter)s?\" என்பதற்குப் பதிலாக %(suggestion)s"
-msgstr[1] ""
-"\"%(undefinedParameter)s\" என்பதற்குப் பதிலாக %(firstSuggestions)s அல்லது"
-" %(lastSuggestion)s"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "\"%(undefinedParameter)s?\" என்பதற்குப் பதிலாக %(suggestion)s"
 
 #, python-format
 msgid ""
@@ -430,6 +404,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s %s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1317,6 +1295,12 @@ msgstr ""
 "தேர்ந்தெடுக்கவும். இது வேறொரு சொற்பொருள் காட்சியை இலக்காகக் "
 "கொண்டிருந்தால், இந்த விளக்கப்படத்தை அதன் வரம்பிலிருந்து நீக்கவும்."
 
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "SSH டன்னல் (Tunnel) வழியாக இணைக்கும்போது தரவுத்தள போர்ட் (port) தேவை."
 
@@ -1557,6 +1541,12 @@ msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr ""
 "நுட்பத்தை (granularity) கருத்தில் கொண்டு, [நேரம்] உள்ளமைவுக்கான ஒரு "
 "குறிப்பு"
+
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
 
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
@@ -1804,6 +1794,12 @@ msgstr "செயல்கள்"
 
 msgid "Active"
 msgstr "செயலில் உள்ளது"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "உண்மையான மதிப்புகள்"
@@ -2295,6 +2291,10 @@ msgstr ""
 
 msgid "Alert"
 msgstr "எச்சரிக்கை"
+
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 msgid "Alert Triggered, In Grace Period"
 msgstr "எச்சரிக்கை தூண்டப்பட்டது, கருணைக் காலத்தில் (Grace Period) உள்ளது"
@@ -2963,6 +2963,11 @@ msgstr "இந்த டாஷ்போர்டுக்கான ஏற்ற�
 
 msgid "An unexpected error occurred"
 msgstr "எதிர்பாராத பிழை ஏற்பட்டது"
+
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
 
 msgid "Anchor to"
 msgstr "இணைக்கப்பட வேண்டிய இடம் (Anchor to)"
@@ -3771,6 +3776,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "பாக்ஸ் பிளாட் (Box Plot)"
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr "விரிவான பகுப்பாய்வுகள் (Breakdowns)"
 
@@ -3995,6 +4003,11 @@ msgstr "கணக்கீட்டு வகை"
 
 msgid "Calendar Heatmap"
 msgstr "காலண்டர் ஹீட்மேப் (Calendar Heatmap)"
+
+msgid ""
+"Calendar Heatmap is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
 msgstr ""
@@ -4514,6 +4527,9 @@ msgstr "சார்ட் தலைப்பு"
 msgid "Chart type"
 msgstr "சார்ட் வகை"
 
+msgid "Chart type must be a string."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Chart updated: %s"
@@ -4566,6 +4582,12 @@ msgstr "இந்தச் சார்ட்டைப் பாருங்க�
 
 msgid "Check out this dashboard: "
 msgstr "இந்தத் டேஷ்போர்டைப் பாருங்கள்: "
+
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -5267,6 +5289,10 @@ msgid "Columns folder can only contain column items"
 msgstr "நெடுவரிசை கோப்புறையில் நெடுவரிசை உருப்படிகள் மட்டுமே இருக்க முடியும்"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "தரவுத்தொகுப்பில் விடுபட்ட நெடுவரிசைகள்: %(invalid_columns)s"
 
@@ -5799,6 +5825,10 @@ msgstr "சேமிக்கப்பட்ட அனைத்து சார�
 msgid "Could not find %s"
 msgstr "%s ஐ கண்டுபிடிக்க முடியவில்லை"
 
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
+
 #, fuzzy
 msgid "Could not load SQL Lab"
 msgstr "தரவுத்தள டிரைவரை (driver) ஏற்ற முடியவில்லை"
@@ -5818,6 +5848,10 @@ msgid ""
 msgstr ""
 "இந்த உள்ளமைவுக்கான மெட்டாடேட்டாவை ஏற்ற முடியவில்லை; இயல்புநிலை படிவம் "
 "காட்டப்படுகிறது. விவரங்களுக்கு சேவையக பதிவுகளைப் பார்க்கவும்."
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -5851,6 +5885,9 @@ msgstr ""
 "தரவுத்தள இணைப்பில் ஆள்மாறாட்டம் செய்ய வேண்டிய பயனரைக் கண்டறிய "
 "முடியவில்லை. வினவல் இயக்கப்படவில்லை, ஏனெனில் அதை இயக்கினால் தவறான பயனராக "
 "இணைக்கப்பட்டிருக்கும்."
+
+msgid "Could not save this schedule"
+msgstr ""
 
 msgid "Could not validate the user in the current session."
 msgstr "தற்போதைய அமர்வில் (session) பயனரைச் சரிபார்க்க முடியவில்லை."
@@ -6022,10 +6059,10 @@ msgstr "கிரிம்சன் (சிவப்பு வகை)"
 msgid "Cross-filter column"
 msgstr "கிராஸ்-ஃபில்டரிங் வரம்பு (scoping)"
 
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
+msgid ""
+"Cross-filter will be applied to the charts in this chart's cross-"
+"filtering scope."
 msgstr ""
-"இந்தத் தரவுத்தொகுப்பைப் பயன்படுத்தும் அனைத்து சார்ட்டுகளுக்கும் "
-"கிராஸ்-ஃபில்டர் (cross-filter) பயன்படுத்தப்படும்."
 
 msgid "Cross-filtering is not enabled for this dashboard."
 msgstr "இந்தத் டேஷ்போர்டிற்கு கிராஸ்-ஃபில்டரிங் வசதி இயக்கப்படவில்லை."
@@ -6279,7 +6316,7 @@ msgstr "டிசம்பர் (DEC)"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "நீக்கு (DELETE)"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -6308,6 +6345,10 @@ msgstr "டேஷ்போர்டு"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "டாஷ்போர்டு %(dashboard_id)s கிடைக்கவில்லை"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "டேஷ்போர்டு வடிகட்டி"
@@ -7719,6 +7760,9 @@ msgstr ""
 msgid "Draft"
 msgstr "வரைவு (Draft)"
 
+msgid "Draft dashboard access"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -7936,6 +7980,11 @@ msgstr "திசைசார்ந்த (Directional)"
 msgid "Dynamic group by"
 msgstr "டைனமிக் குழுவாக்கம்"
 
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "டைனமிக் அக்ரிகேஷன் சார்பு"
@@ -7960,7 +8009,7 @@ msgstr "ECharts விருப்பங்கள் (JS பொருள் ல�
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "மின்னஞ்சல் அறிக்கைகள் CTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "பிழை"
@@ -8345,6 +8394,10 @@ msgstr "முடிவு தேதி, தொடக்க தேதிக்�
 
 msgid "Ends With"
 msgstr "இதில் முடியும்"
+
+#, python-format
+msgid "Ends with %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es, fr,
 # it, ja, pt, ru, sl, sr, sr_Latn, zh]
@@ -8810,6 +8863,14 @@ msgstr "சோதனைநிலை (Experimental)"
 msgid "Expired"
 msgstr "காலாவதியானது"
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Expires on"
@@ -8833,10 +8894,6 @@ msgstr ""
 
 msgid "Explore"
 msgstr "ஆராய் (Explore)"
-
-#, python-format
-msgid "Explore - %(table)s"
-msgstr "ஆராய் - %(table)s"
 
 msgid "Explore the result set in the data exploration view"
 msgstr "தரவு ஆய்வுப் பார்வையில் முடிவுகளை ஆராயுங்கள்"
@@ -8983,6 +9040,9 @@ msgstr "கோவை (Expression) காலியாக இருக்கக்
 msgid "Expression evaluated — data not checked"
 msgstr "கோவை மதிப்பிடப்பட்டது — தரவு சரிபார்க்கப்படவில்லை"
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
 msgid ""
@@ -9092,6 +9152,10 @@ msgstr "குறியீட்டை கிளிப்போர்டில�
 #, fuzzy
 msgid "Failed to create API key"
 msgstr "அறிக்கையை உருவாக்க முடியவில்லை"
+
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9278,11 +9342,13 @@ msgstr "வினவல் முடிவுகளைச் சேமிப்�
 msgid "Failed to tag items"
 msgstr "உருப்படிகளுக்கு குறிச்சொல்லிடுவதில் தோல்வி"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "%(alertType)s \"%(alertName)s\" ஐத் தூண்ட முடியவில்லை: %(error)s"
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "அறிக்கையைப் புதுப்பிப்பதில் தோல்வி"
@@ -9907,7 +9973,7 @@ msgstr "ஒவ்வொரு அளவீட்டையும் எவ்வ�
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "இதன் படி குழுவாக்கு (GROUP BY)"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "கேண்ட் சார்ட் (Gantt Chart)"
@@ -9982,6 +10048,9 @@ msgstr ""
 "காப்பகப்படுத்தப்பட்ட சொத்துகளை மீட்டெடுத்து மீண்டும் இணைக்க அல்லது அவற்றை"
 " நிரந்தரமாக நீக்க, 'சமீபத்தில் காப்பகப்படுத்தப்பட்டவை' பகுதிக்குச் "
 "செல்லவும், அல்லது நிர்வாகியின் உதவியைக் கோரவும்."
+
+msgid "Go to Secure extra"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10068,6 +10137,12 @@ msgstr "குழுவின் பெயர்"
 msgid "Group remaining as \"Others\""
 msgstr "மீதமுள்ளவற்றை \"ஏனையவை\" என குழுவாக்கு"
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -10102,6 +10177,10 @@ msgstr "விருந்தினர் பயனர் சார்ட் த
 msgid "HTTP Path"
 msgstr "HTTP பாதை"
 
+msgid "HTTPS will be used to connect to the Druid SQL endpoint."
+msgstr ""
+
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10147,6 +10226,14 @@ msgstr "கோட்டை மறை"
 msgid "Hide chart description"
 msgstr "சார்ட் விளக்கத்தை மறை"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "அடுக்கை மறை"
 
@@ -10175,11 +10262,25 @@ msgstr "ஒவ்வொரு காலகட்டத்திற்கும�
 msgid "Histogram"
 msgstr "ஹிஸ்டோகிராம் (Histogram)"
 
+msgid ""
+"Histogram is not yet supported on semantic views. Use a Bar or Table "
+"chart with an explicit count metric."
+msgstr ""
+
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "முகப்பு"
 
 msgid "Horizon Chart"
 msgstr "ஹொரைசன் சார்ட் (Horizon Chart)"
+
+msgid "Horizon is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
 
 msgid "Horizontal"
 msgstr "கிடைமட்டம்"
@@ -10216,6 +10317,12 @@ msgstr "மணிநேர ஆஃப்செட் (Hours offset)"
 msgid "How do you want to enter service account credentials?"
 msgstr "சேவை கணக்கு நற்சான்றிதழ்களை எவ்வாறு உள்ளிட விரும்புகிறீர்கள்?"
 
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
+
 msgid "How many buckets should the data be grouped in."
 msgstr "தரவு எத்தனை தொகுதிகளாக (buckets) குழுவாக்கப்பட வேண்டும்."
 
@@ -10243,9 +10350,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 குறியீடுகள்"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10438,6 +10542,9 @@ msgstr "இந்தக் காட்சியில் முதல் 25 வ
 #, fuzzy
 msgid "Inactive"
 msgstr "செயலில் உள்ளதா?"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "தொடர்களைச் சேர்"
@@ -10681,6 +10788,10 @@ msgstr "தவறான ஒட்டுமொத்த இயக்கி (cumul
 msgid "Invalid currency code in saved metrics"
 msgstr "சேமிக்கப்பட்ட அளவீடுகளில் தவறான நாணயக் குறியீடு உள்ளது"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "தவறான தேதி/நேர வடிவமைப்பு"
 
@@ -10777,14 +10888,19 @@ msgstr "தவறான நிலை."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "தவறான தாவல் ஐடிகள்: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "%(column)s நெடுவரிசைக்கான செல்லாத கால அடிப்படையிலான வடிகட்டி மதிப்பு"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "மறுமாதிரிக்கான தவறான கால வரம்பு எல்லை: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10981,6 +11097,12 @@ msgstr "லேபிள் உள்ளடக்கங்கள்"
 
 msgid "Label Line"
 msgstr "லேபிள் கோடு"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -11694,6 +11816,9 @@ msgstr "முக்கியமானது"
 msgid "Main navigation"
 msgstr "குறிப்பு"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -11703,6 +11828,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "x-அச்சை வகைகளாக (categorical) மாற்றவும்"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -11862,6 +11990,17 @@ msgstr ""
 "அவற்றின் சரிபார்ப்புப் பாதுகாப்புகளைத் தக்கவைத்துக்கொள்ளும் வகையில் "
 "குறிக்கிறது."
 
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
+
 msgid "Markup type"
 msgstr "மார்க்கப் வகை"
 
@@ -11958,6 +12097,11 @@ msgstr "அதிகபட்ச மதிப்பு"
 
 msgid "Maximum value on the gauge axis"
 msgstr "கேஜ் (gauge) அச்சில் அதிகபட்ச மதிப்பு"
+
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, sl, sr, sr_Latn, zh]
@@ -12515,7 +12659,7 @@ msgstr "இல்லை"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "இதன்படி குழுவாக்கப்படவில்லை"
+msgstr ""
 
 msgid "NOV"
 msgstr "நவ"
@@ -12659,6 +12803,11 @@ msgstr "நைட்டிங்கேல்"
 msgid "Nightingale Rose Chart"
 msgstr "நைட்டிங்கேல் ரோஸ் சார்ட் (Nightingale Rose Chart)"
 
+msgid ""
+"Nightingale Rose is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "No"
 msgstr "இல்லை"
 
@@ -12787,6 +12936,9 @@ msgstr "உங்கள் தேடலுக்குப் பொருத்�
 
 msgid "No description available."
 msgstr "விளக்கம் எதுவும் இல்லை."
+
+msgid "No ending is available for this secret."
+msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "தற்போது எந்தவொரு உருப்படியும் இந்த குறிச்சொல்லைக் கொண்டிருக்கவில்லை"
@@ -13115,6 +13267,9 @@ msgstr ""
 msgid "Not available"
 msgstr "கிடைக்கவில்லை"
 
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Not currently mapped to the partition column."
@@ -13312,7 +13467,7 @@ msgstr "அல்லது (OR)"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "மேலெழுது (OVERWRITE)"
+msgstr ""
 
 msgid "October"
 msgstr "அக்டோபர்"
@@ -13411,6 +13566,12 @@ msgstr "மொத்தம் மட்டும்"
 msgid "Only `SELECT` statements are allowed"
 msgstr "`SELECT` கூற்றுகள் மட்டுமே அனுமதிக்கப்படுகின்றன"
 
+msgid "Only admins can delete semantic views."
+msgstr ""
+
+msgid "Only admins can edit semantic views."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -13453,6 +13614,10 @@ msgstr "ஒற்றை வினவல்கள் மட்டுமே ஆத
 
 msgid "Only the default catalog is supported for this connection"
 msgstr "இந்த இணைப்பிற்கு இயல்புநிலை பட்டியல் மட்டுமே ஆதரிக்கப்படுகிறது"
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -13812,8 +13977,16 @@ msgstr "பக்க நீளம்"
 msgid "Page navigation"
 msgstr "விலகல்"
 
+msgid "Page not found"
+msgstr ""
+
 msgid "Paired t-test Table"
 msgstr "Paired t-test அட்டவணை"
+
+msgid ""
+"Paired t-test is not yet supported on semantic views. Use a Table chart "
+"to inspect the metric by time."
+msgstr ""
 
 msgid "Pandas resample method"
 msgstr "Pandas மறுமாதிரி (resample) முறை"
@@ -13924,6 +14097,9 @@ msgstr "ஒட்டு (Paste)"
 
 msgid "Paste Private Key here"
 msgstr "தனிப்பட்ட சாவியை (Private Key) இங்கே ஒட்டவும்"
+
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
 
 msgid "Paste content of service credentials JSON file here"
 msgstr "சேவை நற்சான்றிதழ் JSON கோப்பின் உள்ளடக்கத்தை இங்கே ஒட்டவும்"
@@ -14116,6 +14292,22 @@ msgstr "பிவட் பயன்முறை (Pivot Mode)"
 msgid "Pivot Table"
 msgstr "பிவட் அட்டவணை (Pivot Table)"
 
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
+
 msgid "Pivot operation must include at least one aggregate"
 msgstr "பிவட் செயல்பாட்டில் குறைந்தது ஒரு தொகுப்பு (aggregate) இருக்க வேண்டும்"
 
@@ -14234,9 +14426,6 @@ msgstr "இரு நேர வரம்புகளையும் வழங்
 
 msgid "Please re-enter the password."
 msgstr "கடவுச்சொல்லை மீண்டும் உள்ளிடவும்."
-
-msgid "Please re-export your file and try importing again"
-msgstr "கோப்பை மீண்டும் எக்ஸ்போர்ட் செய்து, இம்போர்ட் செய்ய முயற்சிக்கவும்"
 
 #, fuzzy
 msgid "Please reach out to the Chart Editor for assistance."
@@ -14439,6 +14628,9 @@ msgstr ""
 msgid "Preview"
 msgstr "முன்னோட்டம்"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -14562,9 +14754,6 @@ msgstr "லேபிள்களை பை சார்ட்டிற்கு 
 
 msgid "Put your code here"
 msgstr "உங்கள் குறியீட்டை இங்கே இடவும்"
-
-msgid "Python datetime string pattern"
-msgstr "Python datetime வடிவமைப்பு"
 
 msgid "Quarter"
 msgstr "கால் ஆண்டு"
@@ -14719,6 +14908,11 @@ msgstr "மூலப் பதிவுகள் (Raw records)"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -14734,6 +14928,9 @@ msgstr ""
 
 #, python-format
 msgid "Re-select fields for %s"
+msgstr ""
+
+msgid "Read from the token's exp claim."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -15067,6 +15264,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "அறிக்கை"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15427,6 +15628,11 @@ msgid_plural ""
 "dashboard. The charts themselves will not be deleted."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 msgid "Results"
 msgstr "முடிவுகள்"
@@ -18120,6 +18326,10 @@ msgstr ""
 "சேமிப்பக விசை அனுமதிக்கப்பட்ட அதிகபட்ச நீளமான %(max_length)d எழுத்துகளை "
 "மீறுகிறது."
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr "ஸ்ட்ரீம் (Stream)"
 
@@ -18297,6 +18507,11 @@ msgstr "சூப்பர்செட் உட்பொதிக்கப்�
 msgid "Superset chart"
 msgstr "சூப்பர்செட் சார்ட்"
 
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
+
 msgid "Superset docs link"
 msgstr "சூப்பர்செட் ஆவண இணைப்பு"
 
@@ -18388,7 +18603,7 @@ msgstr "அட்டவணைகள்"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "நேர_வரம்பு"
+msgstr ""
 
 msgid "THU"
 msgstr "வியா"
@@ -18661,13 +18876,12 @@ msgstr "மின்னஞ்சலில் உட்பொதிக்கப�
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "இந்தத் தரவுத்தளத்தில் %(aggregate)s திரட்டு ஆதரிக்கப்படவில்லை"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+#, python-format
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
 msgstr ""
-"metadata_cache_timeout இல் உள்ள %(key)s எதிர்மறையற்ற முழு எண்ணாக இருக்க "
-"வேண்டும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -18800,8 +19014,21 @@ msgstr ""
 "சன்கி (Sankey) வரைபடம் மதிப்புகளின் ஓட்டம் மற்றும் மாற்றத்தைக் "
 "காட்டுகிறது."
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "URL இல் dataset_id அல்லது slice_id அளவுருக்கள் இல்லை."
+
+msgid ""
+"The X-axis is a SQL expression, so time range filtering is not applied "
+"automatically. Without a time filter, queries may scan the entire table. "
+"Add a filter on your dataset's time column in the Filters section to "
+"limit the rows read."
+msgstr ""
 
 msgid "The X-axis is not on the filters list"
 msgstr "X-அச்சு வடிகட்டி பட்டியலில் இல்லை"
@@ -18818,6 +19045,16 @@ msgstr ""
 #, fuzzy, python-format
 msgid "The `%(field)s` field must be a string."
 msgstr "`%(field)s` புலம் ஒரு சரமாக இருக்க வேண்டும்."
+
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -18840,8 +19077,21 @@ msgstr "குறிப்பு சேமிக்கப்பட்டது"
 msgid "The annotation has been updated"
 msgstr "குறிப்பு புதுப்பிக்கப்பட்டது"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 msgid "The background color of the charts."
 msgstr "சார்ட்டுகளின் பின்னணி நிறம்."
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -18981,6 +19231,13 @@ msgstr ""
 "தற்போதைய பதிப்பை அடையாளம் காண முடியவில்லை. மீட்டமைத்தல் தற்காலிகமாகக் "
 "கிடைக்கவில்லை."
 
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
+
 msgid "The dashboard has been saved"
 msgstr "டாஷ்போர்டு சேமிக்கப்பட்டது"
 
@@ -19011,11 +19268,32 @@ msgstr ""
 "இந்தப் பதிப்பு உருவாக்கப்பட்ட தரவு இனி கிடைக்கவில்லை, எனவே முன்னோட்டம் "
 "பார்க்க முடியாது"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr "கோடு தகவல்களைக் கொண்ட தரவுத்தள நெடுவரிசைகள்"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
 msgstr "தரவுத்தளம் காணப்படவில்லை"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "தரவுத்தளம் தற்போது அதிகமான வினவல்களை இயக்கி வருகிறது."
@@ -19029,6 +19307,17 @@ msgid ""
 msgstr ""
 "வினவலில் குறிப்பிடப்பட்ட தரவுத்தளம் காணப்படவில்லை. நிர்வாகியைத் தொடர்பு "
 "கொள்ளவும்."
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "தரவுத்தளம் எதிர்பாராத பிழையைத் தந்தது."
@@ -19073,6 +19362,12 @@ msgstr ""
 
 msgid "The dataset has been saved"
 msgstr "தரவுத்தொகுப்பு சேமிக்கப்பட்டது"
+
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19123,8 +19418,17 @@ msgid ""
 "-1 to bypass the cache."
 msgstr "கேச் (Cache) காலாவதியாவதற்கு முந்தைய விநாடிகள்."
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 msgid "The encoding format of the lines"
 msgstr "கோடுகளின் குறியாக்க வடிவம்"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
@@ -19481,8 +19785,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "கீழுள்ள தரவுத்தளங்களை இறக்குமதி செய்ய அவற்றின் கடவுச்சொற்கள் தேவை."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "நேர முத்திரை வடிவத்தின் முறை. சரங்களுக்கு (Strings) இதைப் பயன்படுத்தவும் "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19532,10 +19850,8 @@ msgstr "போர்ட் (Port) மூடப்பட்டுள்ளது.
 msgid "The port number is invalid."
 msgstr "போர்ட் எண் செல்லாதது."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "முன்னோட்டத்தை ஏற்ற முடியவில்லை."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "வில் துண்டு அளவுகளை வரையறுக்க முதன்மை மெட்ரிக் பயன்படுத்தப்படுகிறது"
@@ -19809,6 +20125,20 @@ msgstr "சதுர செல்லின் அளவு, பிக்சல�
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "அனைத்து அளவுகளையும் கணக்கிடுவதற்கான சாய்வு (Slope). \"LINEAR\" மட்டும்"
 
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
+
 msgid "The submitted payload failed validation."
 msgstr "சமர்ப்பிக்கப்பட்ட பேலோட் சரிபார்ப்பில் தோல்வியடைந்தது."
 
@@ -19890,6 +20220,14 @@ msgstr "ஒவ்வொரு பிளாக்கிற்குமான (Blo
 msgid "The time unit used for the grouping of blocks"
 msgstr "பிளாக்குகளைக் குழுவாக்கப் பயன்படுத்தப்படும் நேர அலகு"
 
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19955,15 +20293,13 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "உருமாற்றம் மாதிரி வரிசைகளுடன் பொருந்தியது, முழு தரவுத்தொகுப்புடன் அல்ல."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
-"%(column)s க்கு உருமாற்றம் %(returned)s ஐத் திருப்பியளித்தது, இது "
-"%(kind)s ஆகும். இந்த மேப்பிங்கில் பிரதிபலிக்கப்பட்ட வடிகட்டிகள் "
-"தரவுத்தளத்தில் தோல்வியடையும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19975,6 +20311,11 @@ msgstr ""
 "%(column)s க்கு உருமாற்றம் %(returned)s ஐத் திருப்பியளித்தது; இதை "
 "மாற்றாமல் %(type)s மதிப்பாக வினவலில் எழுத இந்தத் தரவுத்தளத்தால் முடியாது."
 " இந்த மேப்பிங்கின் வடிகட்டிகள் பிரதிபலிக்கப்படாது."
+
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "நீங்கள் உள்ளிட்ட இரண்டு கடவுச்சொற்களும் பொருந்தவில்லை!"
@@ -20072,23 +20413,16 @@ msgstr ""
 "முடிவு தற்காலிகமாகச் சேமிக்கப்படுவதால், உருவாக்கப்படும் நிபந்தனை அந்தக் "
 "கணத்தின் நிலையை உறைய வைக்கும்."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"மதிப்பு உருமாற்றத்தைப் பாகுபடுத்த முடியவில்லை. மேப்பிங் சேமிக்கப்பட்டது, "
-"ஆனால் அது சரியாகும் வரை செயலற்றதாகவே இருக்கும்."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"மதிப்பு உருமாற்றத்தைப் பாகுபடுத்த முடியவில்லை: %(detail)s மேப்பிங் "
-"சேமிக்கப்பட்டது, ஆனால் அது சரியாகும் வரை செயலற்றதாகவே இருக்கும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20123,6 +20457,13 @@ msgstr "சேவையின் பதிப்பு"
 #, fuzzy
 msgid "The view configuration must be a JSON object."
 msgstr "காட்சி உள்ளமைவு ஒரு JSON பொருளாக இருக்க வேண்டும்."
+
+msgid ""
+"The virtual dataset query could not be safely parsed, so the tables it "
+"references cannot be resolved. Qualify tables explicitly and avoid "
+"dynamic SQL or statements that change the default schema (e.g. USE, "
+"search_path)."
+msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "அடுக்கின் காணக்கூடிய தலைப்பு"
@@ -20776,6 +21117,9 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr "இந்த விளக்கப்படம் பின்வரும் பதிப்பிற்கு மீட்டெடுக்கப்படும்:"
 
+msgid "This chart's cross-filtering scope doesn't include any other charts."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "This column holds the mapping instead of the default datetime column."
@@ -20794,6 +21138,9 @@ msgstr "இந்த நெடுவரிசை தற்போதைய தர
 
 msgid "This column must contain date/time information."
 msgstr "இந்த நெடுவரிசையில் தேதி/நேரத் தகவல் இருக்க வேண்டும்."
+
+msgid "This comparison time range is empty."
+msgstr ""
 
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
@@ -20843,6 +21190,27 @@ msgstr ""
 "இந்த டாஷ்போர்டில் நேரடியாகப் பதிவிறக்க முடியாத அளவுக்கு அதிகமான தரவு "
 "உள்ளது. பின்னணி ஏற்றுமதிகளை இயக்குமாறு நிர்வாகியிடம் கேளுங்கள், அல்லது "
 "அதன் விளக்கப்படங்களின் வரிசை வரம்புகளைக் குறைக்கவும்."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -21016,6 +21384,11 @@ msgid ""
 msgstr ""
 "மெட்ரிக்கை சார்ட்டுகளுடன் இணைக்க இது தனித்துவ அடையாளங்காட்டியாகப் "
 "பயன்படுத்தப்படுகிறது."
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 msgid "This filter already exist on the report"
 msgstr "இந்த வடிகட்டி அறிக்கையில் ஏற்கனவே உள்ளது"
@@ -21219,16 +21592,12 @@ msgstr ""
 " அவற்றைச் சரிபார்த்து, பின்னர் இந்த அறிவிப்பை ஏற்கவும் அல்லது "
 "விளக்கப்படத்தைச் சேமிக்கவும்."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"இந்த அறிக்கை %(username)s ஆக இயங்குகிறது, அவரால் இந்த %(kind)s ஐ அணுக "
-"முடியாது. அந்தப் பயனர் அணுகக்கூடிய %(kind)s ஐத் தேர்ந்தெடுக்கவும், அல்லது"
-" அறிக்கையை இயக்க வேறு பயனரைத் தேர்ந்தெடுக்கவும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21239,6 +21608,12 @@ msgstr ""
 "இந்தச் சேமிக்கப்பட்ட வடிகட்டி நிலை உறுப்பினர் ஐடி வடிவத்திற்கு முந்தையது."
 " அதை மீட்டமைத்து, அதன் மதிப்புகளை மீண்டும் வெளிப்படையாகத் "
 "தேர்ந்தெடுக்கவும்."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21356,6 +21731,9 @@ msgstr ""
 "இந்தத் தீம் ஒளி அல்காரிதத்தைப் பயன்படுத்துகிறது. அதற்குப் பதிலாக இருண்ட "
 "அல்காரிதத்தில் காண்பிக்கப்படும், எனவே அதன் வண்ணங்கள் வடிவமைக்கப்பட்டபடி "
 "தோன்றாமல் போகலாம்."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21535,6 +21913,11 @@ msgid "Time comparison"
 msgstr "நேர ஒப்பீடு"
 
 msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
+
+msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
@@ -21614,8 +21997,18 @@ msgstr ""
 msgid "Time-series Period Pivot"
 msgstr "நேரத் தொடர் காலப் பிவோட்"
 
+msgid ""
+"Time-series Period Pivot is not yet supported on semantic views. Use a "
+"Line or Bar chart."
+msgstr ""
+
 msgid "Time-series Table"
 msgstr "நேரத் தொடர் அட்டவணை"
+
+msgid ""
+"Time-series Table is not yet supported on semantic views. Use a Table "
+"chart with an explicit time dimension."
+msgstr ""
 
 #, fuzzy
 msgid "Timed Out"
@@ -21717,6 +22110,9 @@ msgstr ""
 "இந்தத் தரவுத்தொகுப்புக்கு மிக அதிகமான முன்னோட்டக் கோரிக்கைகள். சிறிது "
 "நேரம் காத்திருந்து மீண்டும் முயற்சிக்கவும்."
 
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Too many requests. Please wait and try again."
@@ -21740,6 +22136,12 @@ msgid ""
 msgstr ""
 "ஒரே கோரிக்கையில் மிக அதிகமான காட்சிகள்: %(count)s வழங்கப்பட்டுள்ளன, "
 "அதிகபட்சம் %(limit)s மட்டுமே அனுமதிக்கப்படும்."
+
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "கருவிப் பலகம்"
@@ -21875,6 +22277,9 @@ msgstr "இப்போது தூண்டு"
 
 msgid "True"
 msgstr "சரி / உண்மை"
+
+msgid "Truncate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -23852,6 +24257,16 @@ msgstr "ஆம், மாற்றங்களை மேலெழுது"
 msgid "You are adding tags to %s %ss"
 msgstr "நீங்கள் %s %ss களுக்கு டேக்குகளைச் சேர்க்கிறீர்கள்"
 
+msgid ""
+"You are already subscribed to this chart. Your existing report has been "
+"opened for editing."
+msgstr ""
+
+msgid ""
+"You are already subscribed to this dashboard. Your existing report has "
+"been opened for editing."
+msgstr ""
+
 #, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr "மெய்நிகர் தரவுத்தொகுப்பிலிருந்து ஒரு வினவலை எடிட் செய்கிறீர்கள் "
@@ -23937,6 +24352,9 @@ msgstr "எடிட் பயன்முறையில் நீங்கள�
 
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "குறுக்கு வடிகட்டியைப் பயன்படுத்த நீங்கள் சார்ட்டைக் கிளிக் செய்யலாம்."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "
@@ -24026,6 +24444,11 @@ msgstr "இந்தச் சார்ட்டை எடிட் செய்
 
 msgid "You do not have permission to edit this dashboard"
 msgstr "இந்தத் டாஷ்போர்டை எடிட் செய்ய உங்களுக்கு அனுமதி இல்லை"
+
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
 
 #, fuzzy
 msgid "You do not have permission to perform this operation"
@@ -24656,7 +25079,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "மின்னல்"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es, fr,
 # it, ja, pt, ru, sl, sr, sr_Latn]
@@ -24779,6 +25202,10 @@ msgstr "தரவுத்தள இணைப்புகள்"
 msgid "database"
 msgstr "தரவுத்தளம்"
 
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
+
 #, fuzzy
 msgid "databases"
 msgstr "தரவுத்தளம்"
@@ -24892,6 +25319,9 @@ msgstr ""
 msgid "e.g. 5432"
 msgstr "உதாரணமாக: 5432"
 
+msgid "e.g. 8082 (8888 for the router)"
+msgstr ""
+
 msgid "e.g. AKIAIOSFODNN7EXAMPLE"
 msgstr ""
 
@@ -24962,7 +25392,7 @@ msgstr "உள்ளீடுகள்"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "பிழை_செய்தி"
+msgstr ""
 
 msgid "every"
 msgstr "ஒவ்வொரு"
@@ -25440,7 +25870,7 @@ msgstr "அட்டவணை \"%s\" குறைந்தபட்ச இடை
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "ஸ்கீமா1,ஸ்கீமா2"
+msgstr ""
 
 msgid "seconds"
 msgstr "விநாடிகள்"
@@ -25596,6 +26026,10 @@ msgstr "மாற்றியமை (undo)"
 msgid "unknown type icon"
 msgstr "தெரியாத வகை ஐகான்"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "நீக்கு (unset)"
 
@@ -25606,6 +26040,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "மேல் சதவீத மதிப்பு 0 மற்றும் 100 க்கு இடையில் இருக்க வேண்டும்."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "சமீபத்திய_பகிர்வு டெம்ப்ளேட்டைப் பயன்படுத்தவும்"

@@ -1287,3 +1287,84 @@ test('passes the form data of the last request to ChartContainer next to the cur
     expect.objectContaining({ groupby: ['region'] }),
   );
 });
+
+const stateWithCrossFilterScope = (chartsInScope?: number[]) => ({
+  ...defaultState,
+  dashboardInfo: {
+    ...defaultState.dashboardInfo,
+    crossFiltersEnabled: true,
+    metadata: chartsInScope
+      ? {
+          chart_configuration: {
+            [queryId]: {
+              id: queryId,
+              crossFilters: { scope: 'global', chartsInScope },
+            },
+          },
+        }
+      : {},
+  },
+});
+
+test('keeps cross-filter rendering on but reports no targets when the chart cross-filter scope targets no other chart', () => {
+  // emitCrossFilters drives plugin rendering (e.g. Table V2's numbered column
+  // and cell truncation), so it must keep following the dashboard setting.
+  setup({}, stateWithCrossFilterScope([]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
+
+  setup({}, stateWithCrossFilterScope([queryId]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
+});
+
+test('reports cross-filter targets when the chart cross-filter scope targets another chart', () => {
+  setup({}, stateWithCrossFilterScope([queryId + 1]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
+});
+
+test('reports cross-filter targets when the chart has no cross-filter configuration', () => {
+  setup({}, stateWithCrossFilterScope());
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
+});
+
+test('does not emit cross-filters when cross-filtering is disabled on the dashboard', () => {
+  setup({}, defaultState);
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
+});
+
+test('dashboard Chart omits SQL cross-filter using the emitter datasource in Redux', () => {
+  setup(
+    {},
+    {
+      charts: {
+        ...chartQueries,
+        999: { form_data: { datasource: '12__table' } },
+        [queryId]: {
+          ...chartQueries[queryId],
+          form_data: {
+            ...chartQueries[queryId].form_data,
+            datasource: '3__semantic_view',
+            semantic_selection_version: 'cube-member-id-v1',
+          },
+        },
+      },
+      dataMask: {
+        999: {
+          id: '999',
+          filterState: { value: ['US'] },
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: ['US'] }],
+          },
+        },
+      },
+      nativeFilters: { filters: {} },
+      dashboardState: { sliceIds: [queryId, 999] },
+    },
+  );
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.extra_form_data?.filters ?? []).toEqual([]);
+  expect(formData.semantic_selection_version).toBe('cube-member-id-v1');
+});

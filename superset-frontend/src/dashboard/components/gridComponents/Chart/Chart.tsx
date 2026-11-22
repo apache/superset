@@ -17,6 +17,7 @@
  * under the License.
  */
 import cx from 'classnames';
+import { useAppSelector } from 'src/views/store';
 import {
   useCallback,
   useEffect,
@@ -34,7 +35,8 @@ import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
-import { useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 
 import { exportChart } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
@@ -55,6 +57,7 @@ import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import type { RootState, Datasource, Slice } from 'src/dashboard/types';
 import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
+import { selectHasCrossFilterTargets } from 'src/dashboard/util/crossFilters';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -198,6 +201,10 @@ const Chart = (props: ChartProps) => {
   );
 
   const chart = useSelector((state: RootState) => state.charts[props.id]);
+  const sourceDatasources = useAppSelector(
+    selectChartDatasources,
+    shallowEqual,
+  );
   const queriesResponse = chart?.queriesResponse;
   const chartUpdateEndTime = chart?.chartUpdateEndTime;
   const chartStatus = chart?.chartStatus;
@@ -237,6 +244,9 @@ const Chart = (props: ChartProps) => {
   );
   const emitCrossFilters = useSelector(
     (state: RootState) => !!state.dashboardInfo.crossFiltersEnabled,
+  );
+  const hasCrossFilterTargets = useSelector((state: RootState) =>
+    selectHasCrossFilterTargets(state, props.id),
   );
   const maxRows: number = useSelector(
     (state: RootState) => state.dashboardInfo.common.conf.SQL_MAX_ROW as number,
@@ -479,6 +489,7 @@ const Chart = (props: ChartProps) => {
 
   const formData = useMemo(() => {
     const filteredFormData = getFormDataWithExtraFilters({
+      sourceDatasources,
       chart: { id: chart?.id ?? props.id, form_data: chart?.form_data }, // avoid passing the whole chart object
       chartConfiguration,
       chartCustomizationItems: chartCustomizationItems as ChartCustomization[],
@@ -528,6 +539,7 @@ const Chart = (props: ChartProps) => {
       temporal_columns_lookup: temporalColumnsLookup,
     };
   }, [
+    sourceDatasources,
     chart?.id,
     chart?.form_data,
     chartConfiguration,
@@ -909,6 +921,7 @@ const Chart = (props: ChartProps) => {
           }
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
+          hasCrossFilterTargets={hasCrossFilterTargets}
           onChartStateChange={handleChartStateChange}
           suppressLoadingSpinner={suppressLoadingSpinner}
           filterState={dataMask[props.id]?.filterState}

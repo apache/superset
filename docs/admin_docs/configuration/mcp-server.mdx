@@ -227,7 +227,8 @@ server's configured byte limit.
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
-selection, time filters, numeric range filters, and time-grain filters. Range
+selection, time filters, numeric range filters, time-grain filters, and
+time-column filters. Range
 bounds must be finite numbers representable as floats, or null; booleans are
 rejected. Range permalink labels use the dashboard's smart number formatting
 with ASCII minus signs, falling back to plain numeric representations if
@@ -1002,6 +1003,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_JWT_ISSUER`       | `None`    | Expected `iss` claim                                                                                                                                                                                                             |
 | `MCP_JWT_AUDIENCE`     | `None`    | Expected `aud` claim                                                                                                                                                                                                             |
 | `MCP_REQUIRED_SCOPES`  | `[]`      | Required JWT scopes                                                                                                                                                                                                              |
+| `MCP_IGNORED_SCOPES`   | `{}`      | Ignored JWT scopes. Can be used to enable RBAC-only behaviour for identity providers which require to request a scope.                                                                                                           |
 | `MCP_JWT_DEBUG_ERRORS` | `False`   | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750)                                                                                                                                               |
 | `MCP_AUTH_FACTORY`     | `None`    | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT                                                                                                                                  |
 | `MCP_USER_RESOLVER`    | `None`    | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. Use `get_verifier_client_id(access_token)` from `superset.mcp_service.composite_token_verifier` instead of reading `access_token.client_id`: FastMCP 4 `MultiAuth` qualifies that field. The helper supports FastMCP 3 and 4 and identifies the originating verifier, not proof of bearer validity. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
@@ -2431,13 +2433,33 @@ latency.
 
 ### Managing and applying dashboard native filters
 
+Time-column and time-grain filters target a dataset, not a column. When adding
+one with `manage_native_filters`, omit `column`, `default_value`, and the
+select-only flags (`multi_select`, `default_to_first_item`, `sort_ascending`,
+`search_all_options`). Both add and update reject non-null fields that do not
+apply to the filter type, including `False` and empty lists. `default_value` is
+supported only by select filters, not time-range or numerical-range filters.
+Use `default_time_range` for time-range defaults. Updating
+`dataset_id` binds the filter to that SQL dataset, removing any semantic-view
+binding. Defaults from a semantic view are cleared; SQL temporal defaults are
+retained only when the replacement dataset supports them.
+
+For `apply_dashboard_filters`, pass `time_column` as a list containing one temporal
+column name or its unique filter-bar label (verbose name). An exact column name
+wins over case-insensitive names, which win over case-insensitive labels;
+ambiguous matches are rejected. The permalink stores the underlying column name.
+Pass `[]` to clear an optional time-column filter; required filters cannot be
+cleared. Callers without metadata access do not receive underlying column names
+in the result or available-column lists in errors.
+
 `manage_native_filters` requires a numeric dataset column when adding a
 `filter_range` filter or changing its dataset/column target. Select filters
 continue to accept nonnumeric columns.
 
-Dividers are visual separators and are always in scope. When updating a
-`divider` with `manage_native_filters`, use `name` to change its title and
-`description` to change its description; `scope_chart_ids` is rejected.
+Dividers are visual separators and are always in scope. When adding or updating
+a `divider` with `manage_native_filters`, use `name` for its title and
+`description` for its description; type-specific fields and `scope_chart_ids`
+are rejected when non-null.
 `apply_dashboard_filters` excludes dividers from its available-filter error lists.
 
 For `apply_dashboard_filters`, pass `time_grain` as a list containing at most

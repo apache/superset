@@ -87,6 +87,11 @@ export const FilterItem = styled.button`
       border: 0;
     }
 
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: -2px;
+    }
+
     & i svg {
       opacity: 35%;
       margin-right: ${theme.sizeUnit}px;

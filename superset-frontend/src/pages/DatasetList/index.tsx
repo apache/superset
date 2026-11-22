@@ -71,8 +71,10 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
+  type ListViewColumn,
   type ListViewFilters,
   type ListViewFetchDataConfig,
+  ListViewTitleCell,
 } from 'src/components';
 import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -149,16 +151,6 @@ const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
   'dataset.delete.related',
 );
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
 
 const Actions = styled.div`
   ${({ theme }) => css`
@@ -467,6 +459,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canReadLayer = findPermission('can_read', 'SemanticLayer', user?.roles);
 
   const currentSourceFilter = useMemo(() => {
+    // Without semantic layers there is no Source control, so a saved Source in
+    // the URL must not narrow the Database options to "semantic layers only".
+    if (!isFeatureEnabled(SEMANTIC_LAYERS_FLAG)) return '';
     const sourceTypeFilter = lastFetchConfig?.filters.find(
       filter => filter.id === 'source_type',
     );
@@ -549,14 +544,35 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       setLastFetchConfig(config);
       setLoading(true);
       const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+      // The Source control and the semantic-layer connections only exist with
+      // SEMANTIC_LAYERS on, but a saved URL can still carry them. The dataset API
+      // rejects both, and with the control hidden the user could not clear them.
+      const semanticLayersEnabled = isFeatureEnabled(SEMANTIC_LAYERS_FLAG);
 
       // Separate source_type and database/connection filters for special handling
       const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
       const databaseFilter = filterValues.find(f => f.id === 'database');
 
+      // A saved Type = Semantic View has no option without semantic layers, and
+      // the dataset API would read the string as "physical". Drop it like the
+      // connection below, and clear it from the filter state.
+      const savedSemanticType =
+        !semanticLayersEnabled &&
+        filterValues.some(
+          f =>
+            f.id === 'sql' &&
+            (f.value && typeof f.value === 'object' && 'value' in f.value
+              ? f.value.value
+              : f.value) === 'semantic_view',
+        );
+      if (savedSemanticType) {
+        filtersRef.current?.clearFilterById('sql');
+      }
+
       // Track source filter for conditional Type filter visibility
       const otherFilters = filterValues
         .filter(f => f.id !== 'source_type' && f.id !== 'database')
+        .filter(f => !(savedSemanticType && f.id === 'sql'))
         .filter(
           ({ value }) => value !== '' && value !== null && value !== undefined,
         )
@@ -574,7 +590,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
           ? (sourceTypeFilter.value as { value: string }).value
           : (sourceTypeFilter?.value as string | undefined);
-      if (sourceTypeValue) {
+      if (sourceTypeValue && semanticLayersEnabled) {
         otherFilters.push({
           col: 'source_type',
           opr: 'eq',
@@ -592,11 +608,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             ? (databaseFilter.value as { value: unknown }).value
             : databaseFilter.value;
         if (typeof raw === 'string' && raw.startsWith('sl:')) {
-          otherFilters.push({
-            col: 'semantic_layer_uuid',
-            opr: 'eq',
-            value: raw.slice(3),
-          });
+          if (semanticLayersEnabled) {
+            otherFilters.push({
+              col: 'semantic_layer_uuid',
+              opr: 'eq',
+              value: raw.slice(3),
+            });
+          } else {
+            // Drop the stale connection from the filter state too, so it does
+            // not linger in the filter bar or come back on the next refetch.
+            filtersRef.current?.clearFilterById('database');
+          }
         } else if (raw !== null && raw !== undefined && raw !== '') {
           otherFilters.push({
             col: 'database',
@@ -615,7 +637,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       });
 
       return SupersetClient.get({
-        endpoint: `/api/v1/datasource/?q=${queryParams}`,
+        // The combined endpoint only exists to list semantic views next to
+        // datasets. Without semantic layers every row is a dataset, so use the
+        // canonical dataset API, as the Databases list does: it supports every
+        // filter on this page and is gated by the Dataset permission alone.
+        endpoint: `${
+          isFeatureEnabled(SEMANTIC_LAYERS_FLAG)
+            ? '/api/v1/datasource/'
+            : '/api/v1/dataset/'
+        }?q=${queryParams}`,
       })
         .then(({ json = {} }) => {
           setDatasets(json.result);
@@ -908,7 +938,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     }
   };
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Dataset>[]>(
     () => [
       {
         accessor: 'id',
@@ -963,26 +993,31 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 ? JSON.parse(extra)
                 : (extra as DatasetExtra | null);
             return (
-              <FlexRowContainer>
-                {parsedExtra?.certification && (
-                  <CertifiedBadge
-                    certifiedBy={parsedExtra.certification.certified_by}
-                    details={parsedExtra.certification.details}
-                    size="l"
-                  />
-                )}
-                {parsedExtra?.warning_markdown && (
-                  <WarningIconWithTooltip
-                    warningMarkdown={parsedExtra.warning_markdown}
-                    size="l"
-                  />
-                )}
-                {rlsFilters && rlsFilters.length > 0 && (
-                  <RlsBadge rlsFilters={rlsFilters} size="l" />
-                )}
+              <ListViewTitleCell
+                leading={
+                  <>
+                    {parsedExtra?.certification && (
+                      <CertifiedBadge
+                        certifiedBy={parsedExtra.certification.certified_by}
+                        details={parsedExtra.certification.details}
+                        size="l"
+                      />
+                    )}
+                    {parsedExtra?.warning_markdown && (
+                      <WarningIconWithTooltip
+                        warningMarkdown={parsedExtra.warning_markdown}
+                        size="l"
+                      />
+                    )}
+                    {rlsFilters && rlsFilters.length > 0 && (
+                      <RlsBadge rlsFilters={rlsFilters} size="l" />
+                    )}
+                  </>
+                }
+                trailing={description && <InfoTooltip tooltip={description} />}
+              >
                 {titleLink}
-                {description && <InfoTooltip tooltip={description} />}
-              </FlexRowContainer>
+              </ListViewTitleCell>
             );
           } catch {
             return titleLink;
@@ -990,7 +1025,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
-        size: 'xxxl',
+        layout: 'title',
         id: 'table_name',
       },
       {
@@ -1007,7 +1042,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'status',
         id: 'kind',
       },
       {
@@ -1018,7 +1053,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => database?.database_name || '-',
         Header: databaseLabel(),
         accessor: 'database.database_name',
-        size: 'xl',
+        layout: 'identifier',
         id: 'database.database_name',
       },
       {
@@ -1029,7 +1064,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => schema || '-',
         Header: t('Schema'),
         accessor: 'schema',
-        size: 'lg',
+        layout: 'identifier',
         id: 'schema',
       },
       {
@@ -1047,7 +1082,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Editors'),
         id: 'editors',
         disableSortBy: true,
-        size: 'lg',
+        layout: 'people',
       },
       {
         Cell: ({
@@ -1062,7 +1097,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -1092,9 +1127,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tooltip={
                       allowEdit
                         ? t('Delete')
-                        : t(
-                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
-                          )
+                        : t('Only admins can delete semantic views.')
                     }
                     placement="bottom"
                     icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -1109,9 +1142,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tooltip={
                       allowEdit
                         ? t('Edit')
-                        : t(
-                            'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
-                          )
+                        : t('Only admins can edit semantic views.')
                     }
                     placement="bottom"
                     icon={<Icons.EditOutlined iconSize="l" />}
@@ -1201,6 +1232,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canEdit && !canDelete && !canDuplicate,
         disableSortBy: true,
       },
@@ -1426,9 +1458,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         buttonStyle: 'primary',
         component: (
           <Dropdown
-            css={css`
-              margin-left: ${theme.sizeUnit * 2}px;
-            `}
             menu={{
               items: [
                 {

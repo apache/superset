@@ -103,7 +103,7 @@ def test_connection_credentials_keys_unchanged(
         # Compatibility v3 includes changed_on="None" and explicit grain intent.
         "compatible:v3:5e562de2a9c1d5d7f8549ddc7dfbebe4228a801d2b6b0e6c76530e9275b768b9",
         # Includes the grain-selection marker; credentials remain excluded.
-        "0d7fcc39deed431d4556cae0938cb531bb52af435895d39490610ca98b30e9bd",
+        "170b3fdb3bc39bc10fc15de3c12ce8c02a28455b4c597fd140d46e1f780d182d",
     ]
 
 
@@ -501,7 +501,7 @@ def test_refusal_log_includes_method_and_provider_declarations(
 
 
 @pytest.mark.parametrize("theme_fails", [False, True])
-@pytest.mark.usefixtures("_enabled_namespace_bootstrap")
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_namespace_bootstrap_failure_has_its_own_boundary(
     mocker: MockerFixture, theme_fails: bool
 ) -> None:
@@ -589,14 +589,14 @@ def test_namespace_rejects_invalid_configuration(
 
 
 @pytest.fixture
-def _enabled_namespace_bootstrap(mocker: MockerFixture) -> None:
+def enabled_namespace_bootstrap(mocker: MockerFixture) -> None:
     """Exercise eager initialization with semantic layers enabled at startup."""
     mocker.patch(
         "superset.semantic_layers.access.is_semantic_layers_enabled", return_value=True
     )
 
 
-@pytest.mark.usefixtures("_enabled_namespace_bootstrap")
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 @pytest.mark.parametrize("preexisting", [False, True])
 def test_startup_namespace_needs_no_request_pool_checkout(
     tmp_path: Any, mocker: MockerFixture, preexisting: bool
@@ -654,7 +654,7 @@ def test_startup_namespace_needs_no_request_pool_checkout(
         engine.dispose()
 
 
-@pytest.mark.usefixtures("_enabled_namespace_bootstrap")
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_startup_namespace_is_shared_across_independent_apps(
     tmp_path: Any, mocker: MockerFixture
 ) -> None:
@@ -984,7 +984,7 @@ def test_namespace_retry_failure_does_not_publish_identity(
     assert "semantic_execution_namespace" not in app.extensions
 
 
-@pytest.mark.usefixtures("_enabled_namespace_bootstrap")
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_namespace_bootstraps_before_migration_head(
     app: Any,
     session: Any,
@@ -1058,7 +1058,7 @@ def test_namespace_survives_historic_pickle_migration(
     assert _install_namespace(session.get_bind()) == namespace
 
 
-@pytest.mark.usefixtures("_enabled_namespace_bootstrap")
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_namespace_missing_table_defers_without_error_log(
     session: Any,
     mocker: MockerFixture,
@@ -1079,7 +1079,7 @@ def test_namespace_missing_table_defers_without_error_log(
     assert "semantic access will retry (OperationalError)" in caplog.text
 
 
-@pytest.mark.usefixtures("_enabled_namespace_bootstrap")
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_namespace_recovers_after_fresh_install_upgrade(
     session: Any, mocker: MockerFixture
 ) -> None:

@@ -721,6 +721,17 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 #   - stable: Production-ready, tested and supported
 #   - deprecated: Will be removed in a future major release
 
+# Whether this process registers the MCP *host tools* at startup. Registering
+# them imports the MCP service app, which has a real per-process memory cost, and
+# only processes that serve MCP (the web app and the standalone MCP service) need
+# them. Deployments can set this to False for processes that never serve MCP (e.g.
+# Celery workers) to avoid that cost.
+#
+# This gates only host-tool registration. The MCP decorators (@tool/@prompt) are
+# always registered regardless of this flag, so extensions that apply them at
+# import time keep working in every process.
+CORE_MCP_HOST_TOOLS_ENABLED = True
+
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # =================================================================
     # IN DEVELOPMENT
@@ -1104,6 +1115,17 @@ DEFAULT_FEATURE_FLAGS.update(
 # This function can be overridden to customize the name of the user agent
 # triggering the query.
 USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = None
+
+# This function can be overridden to tag each query with where it came from, so
+# the database's query log can tell users, dashboards and charts apart. ClickHouse
+# stores the returned string in system.query_log.log_comment. It receives the
+# database and a dict with whichever of user, dashboard_id, chart_id, report_id
+# and sqllab_query_id apply; return None to send nothing. For example:
+#
+# import json
+# def QUERY_LOG_COMMENT_FUNC(database, context):
+#     return json.dumps({"app": "superset", **context})
+QUERY_LOG_COMMENT_FUNC: Callable[[Database, dict[str, Any]], str | None] | None = None
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
@@ -3404,24 +3426,23 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 #     a principal's tabs); a task type may narrow them to a per-tab channel so only
 #     the tab watching a task is notified. The route never reaches the browser,
 #     which dispatches on `topic`.
-# The JWT authenticates the socket connection and binds it to its principal
-# channel; a browser may also advertise a tab id on the connect URL to bind a
-# per-tab channel (derived from the authorized principal channel). Set a strong
+# A JWT ticket, fetched from GET /api/v1/realtime/token/, authenticates the socket
+# and binds it to its principal channel. The browser sends it as the first frame
+# after connecting, together with an optional tab id that binds a per-tab channel
+# (derived from the authorized principal channel), and sends a fresh one on the
+# open socket before the current one expires. No credential rides the handshake
+# or the URL. Set a strong
 # random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
 # The websocket server can be configured with a previous validation secret
-# during rotations; the Flask app always mints new cookies with the current key.
-# The websocket server validates the signed token at connection time and
-# terminates sockets after JWT expiry; the Flask app re-mints the cookie inside a
-# sliding window before expiry (on any request), and the browser proactively
-# refreshes and reconnects, so an active realtime surface stays connected. Post-
-# mint permission revocation is bounded by this lifetime plus the ping interval.
+# during rotations; the Flask app always mints new tickets with the current key.
+# The websocket server validates the signed ticket in-band and closes sockets
+# (code 4401) when their ticket expires; the browser re-authenticates on the open
+# socket at 75% of the ticket lifetime, so an active realtime surface stays
+# connected without reconnecting. Post-mint permission revocation is bounded by
+# this lifetime plus the ping interval.
 WEBSOCKET_ENABLE = False
 WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 WEBSOCKET_JWT_SECRET = CHANGE_ME_WEBSOCKET_JWT_SECRET
-WEBSOCKET_JWT_COOKIE_NAME = "superset-ws-token"  # noqa: S105
-WEBSOCKET_JWT_COOKIE_SECURE = False
-WEBSOCKET_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = None
-WEBSOCKET_JWT_COOKIE_DOMAIN = None
 WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(minutes=15).total_seconds())
 
 # Prefix for the realtime pub/sub channel (default ""). Redis pub/sub is not

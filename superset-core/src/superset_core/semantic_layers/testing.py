@@ -81,7 +81,7 @@ def _registration(
 
 
 @pytest.fixture
-def semantic_layer_registration(  # noqa: PT004 - public provider fixture name
+def semantic_layer_registration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Allow provider imports during a test without initializing a host.
@@ -116,6 +116,36 @@ class SemanticProviderConformance:
         assert semantic_view.uid()
         assert semantic_view.uid() == semantic_reloaded_view.uid()
         assert _catalog(semantic_view) == _catalog(semantic_reloaded_view)
+        view: SemanticView
+        for view in (semantic_view, semantic_reloaded_view):
+            preferred: str | None = view.preferred_temporal_dimension
+            if preferred is not None:
+                assert isinstance(preferred, str), (
+                    "preferred_temporal_dimension must be a string or None"
+                )
+                selected: Dimension | None = next(
+                    (
+                        dimension
+                        for dimension in view.get_dimensions()
+                        if dimension.name == preferred
+                    ),
+                    None,
+                )
+                assert selected is not None, (
+                    "preferred_temporal_dimension must name an exposed dimension"
+                )
+                assert (
+                    pa.types.is_date(selected.type)
+                    or pa.types.is_timestamp(selected.type)
+                    or pa.types.is_time(selected.type)
+                ), (
+                    "preferred_temporal_dimension must name "
+                    "an exposed temporal dimension selected by the host"
+                )
+        assert (
+            semantic_view.preferred_temporal_dimension
+            == semantic_reloaded_view.preferred_temporal_dimension
+        ), "preferred_temporal_dimension must remain stable on equivalent reload"
 
     @pytest.mark.parametrize(
         "case", ["identity", "grain", "null", "not_null", "or", "order_limit"]
