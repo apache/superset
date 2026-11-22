@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DatasourceType } from '@superset-ui/core';
+import { useState } from 'react';
 import { Form } from '@superset-ui/core/components';
 import fetchMock from 'fetch-mock';
 import {
@@ -51,13 +52,18 @@ function renderPicker(
   const onColumnsLoaded = jest.fn();
   function Harness() {
     const [form] = Form.useForm<NativeFiltersForm>();
+    const [value, setValue] = useState<string | string[]>('');
     return (
       <ColumnSelect
         form={form}
         filterId="grain-probe"
         datasetId={id}
         datasourceType={DatasourceType.SemanticView}
-        onChange={onChange}
+        value={value}
+        onChange={newValue => {
+          setValue(newValue);
+          onChange(newValue);
+        }}
         onColumnsLoaded={onColumnsLoaded}
         mode={mode}
       />
@@ -73,12 +79,68 @@ test('renders distinct semantic labels and keeps the selected member ID', async 
   const { onChange, onColumnsLoaded } = renderPicker(804, undefined, [
     { name: 'CUSTOMERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
     { name: 'ORDERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
+    { name: 'ORDERS.STATUS', type: 'string', verbose_name: 'Status' },
   ]);
   await waitFor(() => expect(onColumnsLoaded).toHaveBeenCalled());
   await userEvent.click(screen.getByRole('combobox'));
   const orderSegment = screen.getByTitle('Segment (ORDERS.SEGMENT)');
+  expect(
+    orderSegment.querySelector('[data-test="semantic-member-id"]'),
+  ).toHaveTextContent('ORDERS.SEGMENT');
+  expect(
+    screen
+      .getByTitle('Status')
+      .querySelector('.ant-select-item-option-content span'),
+  ).toBeNull();
   await userEvent.click(orderSegment);
   expect(onChange.mock.calls[0][0]).toBe('ORDERS.SEGMENT');
+});
+
+test('long duplicate labels keep the member ID visible in options and selection', async () => {
+  const longLabel = 'Sales region and customer segment';
+  const { onChange, onColumnsLoaded } = renderPicker(805, undefined, [
+    { name: 'CUSTOMERS.SEGMENT', type: 'string', verbose_name: longLabel },
+    { name: 'ORDERS.SEGMENT', type: 'string', verbose_name: longLabel },
+  ]);
+  await waitFor(() => expect(onColumnsLoaded).toHaveBeenCalled());
+  await userEvent.click(screen.getByRole('combobox'));
+  expect(screen.getAllByTestId('semantic-member-id')).toHaveLength(2);
+  expect(
+    screen.getByTitle(`${longLabel} (ORDERS.SEGMENT)`),
+  ).toBeInTheDocument();
+  await userEvent.click(screen.getByTitle(`${longLabel} (ORDERS.SEGMENT)`));
+  expect(onChange.mock.calls[0][0]).toBe('ORDERS.SEGMENT');
+  expect(
+    screen
+      .getAllByTestId('semantic-member-id')
+      .find(element => element.closest('.ant-select-content-has-value')),
+  ).toHaveTextContent('ORDERS.SEGMENT');
+});
+
+test('multiple column selections keep the distinguishing member ID', async () => {
+  const { onChange, onColumnsLoaded } = renderPicker(806, 'multiple', [
+    {
+      name: 'CUSTOMERS.SEGMENT',
+      type: 'string',
+      verbose_name: 'Customer market segment',
+    },
+    {
+      name: 'ORDERS.SEGMENT',
+      type: 'string',
+      verbose_name: 'Customer market segment',
+    },
+  ]);
+  await waitFor(() => expect(onColumnsLoaded).toHaveBeenCalled());
+  await userEvent.click(screen.getByRole('combobox'));
+  await userEvent.click(
+    screen.getByTitle('Customer market segment (ORDERS.SEGMENT)'),
+  );
+  expect(onChange.mock.calls[0][0]).toEqual(['ORDERS.SEGMENT']);
+  expect(
+    screen
+      .getByTestId('Column select')
+      .querySelector('[data-test="semantic-member-id"]'),
+  ).toHaveTextContent('ORDERS.SEGMENT');
 });
 
 test.each([undefined, 'multiple'] as const)(

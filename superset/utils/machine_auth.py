@@ -21,7 +21,7 @@ import logging
 from typing import Any, Callable, TYPE_CHECKING
 from urllib.parse import urlparse
 
-from flask import current_app as app, Flask, request, Response, session
+from flask import current_app as app, Flask, g, request, Response, session
 from flask_login import login_user
 from werkzeug.http import parse_cookie
 
@@ -103,6 +103,8 @@ class MachineAuthProvider:
             # stamp a successful login like a normal one. Inactive users stay out.
             if login_user(user):
                 stamp_login_time()
+            if query_log_context := g.get("query_log_context"):
+                session["query_log_context"] = query_log_context
             # A mock response object to get the cookie information from
             response = Response()
             # To ensure all `after_request` functions are called i.e Websockets JWT Auth
