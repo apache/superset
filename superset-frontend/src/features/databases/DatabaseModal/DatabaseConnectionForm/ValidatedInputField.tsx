@@ -28,6 +28,11 @@ const FIELD_TEXT_MAP = {
     ),
     placeholder: t('e.g. xy12345.us-east-2.aws'),
   },
+  materializedb_cluster: {
+    label: t('Cluster'),
+    placeholder: t('e.g. quickstart'),
+    helpText: t('Materialize cluster to run queries on.'),
+  },
   warehouse: {
     label: t('Warehouse'),
     placeholder: t('e.g. compute_wh'),
