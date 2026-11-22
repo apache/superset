@@ -28,6 +28,8 @@ from superset.utils.schema import (
     DiscardIsManagedExternallyMixin,
     validate_external_url,
 )
+from marshmallow import fields, Schema, validates, ValidationError
+from superset.utils.date_parser import get_since_until
 
 get_delete_ids_schema = {
     "type": "array",
@@ -229,6 +231,24 @@ class DashboardJSONMetadataSchema(Schema):
     cross_filters_enabled = fields.Boolean(dump_default=True)
     # controls visibility of "last queried at" timestamp on charts in dashboard view
     show_chart_timestamps = fields.Boolean(dump_default=False)
+    # used for time range presets
+    custom_time_presets = fields.List(
+        fields.Str(), 
+        allow_none=True, 
+        metadata={"description": "List of custom time range presets for this dashboard."}
+    )
+    @validates("custom_time_presets")
+    def validate_custom_time_presets(self, presets: list[str], **kwargs: Any) -> None:
+        if not presets:
+            return
+        for preset in presets:
+            # if not valid time range string, raise ValidationError
+            if not preset or not preset.strip():
+                raise ValidationError("Time range preset cannot be empty.")
+            try:
+                get_since_until(preset)
+            except ValueError as e:
+                raise ValidationError(f"Invalid Time range preset '{preset}': {e}") from e
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
