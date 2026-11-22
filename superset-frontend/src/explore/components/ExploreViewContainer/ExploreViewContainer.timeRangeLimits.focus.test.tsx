@@ -442,23 +442,29 @@ test('after a check Retry that works, focus goes to Update chart', async () => {
   expect(document.activeElement).not.toBe(document.body);
 });
 
-test('after a policy Retry that works, focus goes to Update chart', async () => {
-  withoutUnsavedPrompt();
-  fetchMock.get(EXPLORE_GET, {
-    result: { time_range_limits: { global: SPAN_30, dataset: null } },
-  });
-  renderExplore(state({ limits: { status: 'failed' } }));
-  const retry = await screen.findByRole('button', { name: 'Retry' });
-  retry.focus();
+test.each([false, true])(
+  'after a policy Retry that works, focus goes to Update chart (initial check settled: %s)',
+  async initialCheckSettled => {
+    withoutUnsavedPrompt();
+    fetchMock.get(EXPLORE_GET, {
+      result: { time_range_limits: { global: SPAN_30, dataset: null } },
+    });
+    renderExplore(state({ limits: { status: 'failed' } }));
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    if (initialCheckSettled) {
+      await checked();
+    }
+    retry.focus();
 
-  await userEvent.click(retry);
+    await userEvent.click(retry);
 
-  await waitFor(() =>
-    expect(fetchMock.callHistory.calls(EXPLORE_GET)).toHaveLength(1),
-  );
-  await waitFor(() => expect(chartDataCalls()).toBe(1));
-  await waitFor(() => expect(updateChart()).toHaveFocus());
-});
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(EXPLORE_GET)).toHaveLength(1),
+    );
+    await waitFor(() => expect(chartDataCalls()).toBe(1));
+    await waitFor(() => expect(updateChart()).toHaveFocus());
+  },
+);
 
 test('a time range 400 after "click here" in the stale-chart notice moves focus to the marked control', async () => {
   withoutUnsavedPrompt();

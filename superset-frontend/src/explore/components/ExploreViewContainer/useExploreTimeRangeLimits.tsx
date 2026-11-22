@@ -418,7 +418,11 @@ export function useExploreTimeRangeStatus({
     if (retrySent.current) {
       retrySent.current = false;
       setRetry(null);
-      retryFocus.current = !timeRangeFailed;
+      // A policy refresh can finish before its replacement range check starts.
+      retryFocus.current =
+        retry === 'policy'
+          ? !limitsFailed(props.timeRangeLimits)
+          : !timeRangeFailed;
       if (runAfterRetry.current) {
         runAfterRetry.current = false;
         if (!timeRangeFailed) {
