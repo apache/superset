@@ -144,6 +144,31 @@ test.each([
   },
 );
 
+test.each(['edit', 'delete'])(
+  'semantic view %s tooltip names admins',
+  async verb => {
+    setupApiPermissions(['can_read', 'can_write']);
+    const semanticView = {
+      ...mockDatasets[0],
+      id: 99,
+      kind: 'semantic_view',
+      table_name: 'semantic_orders',
+      editors: [],
+    };
+    mockDatasetListEndpoints({ result: [semanticView], count: 1 });
+    renderDatasetList(mockWriteUser);
+
+    const row = (await screen.findByText('semantic_orders')).closest('tr');
+    const action = within(row!).getByTestId(`dataset-row-${verb}`);
+    await act(async () => {
+      action.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      `Only admins can ${verb} semantic views.`,
+    );
+  },
+);
+
 test('read-only users cannot see bulk select button', async () => {
   // Setup API with read-only permissions
   setupApiPermissions(['can_read']);

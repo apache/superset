@@ -91,6 +91,18 @@ charts. The host refuses these queries before reading cached chart results to
 avoid showing incorrect comparison values. SQL dataset comparisons and semantic
 queries without time shifts are unaffected.
 
+## Resampling of dates
+
+Semantic views can resample a DATE axis, for example to fill daily gaps between
+observations. DATE series labels, raw results and exports without resampling keep their
+date-only representation. Resampled results use the same datetime representation
+as ordinary dataset time-series charts: CSV shows calendar dates for daily
+buckets, while XLSX cells include the midnight time component.
+
+As with ordinary datasets, a NULL time-axis bucket cannot be resampled; filter out
+NULL dates before applying resampling. Resampling does not enable time comparison
+on semantic views. Forecasting on a DATE axis is not addressed by this conversion.
+
 ## Clearing dashboard filters
 
 **Clear all** stages empty values for in-scope filters; **Apply** commits the
@@ -109,6 +121,23 @@ The native-filter column picker lists each semantic member name once, even when
 the provider exposes several time-grain variants of that member. This matches
 Explore's column list: choosing a filter column selects the member, not a grain
 variant. Distinct member names remain separate choices.
+
+The **Drill by** menu also lists each dimension once, using its display label
+when the provider supplies one. Selecting it still drills by the member name.
+The Column, Time column, and Pre-filter pickers in semantic-view native-filter
+settings show these labels. When labels repeat, the member ID appears on a
+separate line in each choice and in the selected value. The Explore Filters
+subject picker shows the same qualified choices and selected subject; its
+compact saved-filter pill still uses the unqualified label. Searching by member
+ID still finds the choice. Labels also appear in display-control column lists
+and Drill by result labels.
+
+## Choosing a datasource for a new chart
+
+The chart-creation datasource picker, including when opened from a dashboard,
+identifies each semantic view by its name and a **Semantic View** marker. These
+labels are also available to screen readers; internal datasource IDs are not the
+option names.
 
 ## Dynamic group by display controls
 
@@ -129,14 +158,22 @@ A mixed selection such as `IN ('a', NULL)` means `IN ('a') OR IS NULL`. Its nega
 form, `NOT IN ('a', NULL)`, means `NOT IN ('a') AND IS NOT NULL`; it excludes both
 `'a'` and missing values. An empty IN selection matches no rows and an empty
 NOT IN selection matches every row, including missing values, as in SQL. A total
-without grouping still returns one row, for example a count of 0. Non-NULL
-comparisons retain their existing semantics.
+without grouping still returns one row, for example a count of 0.
+
+Chart and dashboard exclude (`NOT IN`), not-equal (`!=`), `NOT LIKE` and `NOT ILIKE`
+filters keep rows with missing values, matching ordinary datasets. For example,
+`NOT IN ('a')` becomes `NOT IN ('a') OR IS NULL`. Select NULL explicitly to
+exclude those rows too; `!= NULL` remains `IS NOT NULL`.
+This user-filter normalization does not change SDK-authored predicates or
+literal SQL semantics. A provider that does not support an operator continues
+to refuse it as before.
+Cached chart results for semantic views and ordinary dataset charts with annotation layers are rebuilt once after deployment.
 
 Host filter-value types accept missing values (`None`) inside list selections
 and variable-length tuples, so multi-value selections can preserve NULL members.
 
-Every semantic provider must support mixed positive selections through grouped
-OR predicates. NULL-only and mixed negative selections use ordinary leaf
+Every semantic provider must support mixed positive selections and NULL-preserving
+exclusions through grouped OR predicates. NULL-only and mixed negative selections use ordinary leaf
 predicates. Provider adapters must be upgraded before, or together with, the
 host/SDK so that mixed selections preserve missing-value rows.
 

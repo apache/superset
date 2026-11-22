@@ -151,12 +151,6 @@ msgstr "uno nuovo"
 msgid " at line %(line)d"
 msgstr "alla linea %(line)d"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
-msgid " expression which needs to adhere to the "
-msgstr " espressione che deve essere conforme al "
-
 msgid " for details."
 msgstr " per dettagli."
 
@@ -165,39 +159,6 @@ msgstr " per dettagli."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " vicino a '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" standard, in modo che l'ordinamento lessicografico\n"
-"                      coincida con l'ordinamento cronologico. Se il\n"
-"                      formato del timestamp non rispetta lo standard ISO "
-"8601,\n"
-"                      è necessario definire un'espressione e un tipo per\n"
-"                      trasformare la stringa in una data o in un "
-"timestamp. Nota:\n"
-"                      attualmente i fusi orari non sono supportati. Se "
-"l'ora è memorizzata\n"
-"                      in formato epoch, indicare `epoch_s`, `epoch_ms` o "
-"`epoch_us`. Se non è specificato\n"
-"                      alcun pattern, si ricorre ai valori predefiniti "
-"opzionali per\n"
-"                      database/nome di colonna tramite il parametro extra."
 
 msgid " to add calculated columns"
 msgstr "aggiungere colonne calcolate"
@@ -320,6 +281,16 @@ msgstr ""
 "%(dialect)s non può essere utilizzato come sorgente dati per motivi di "
 "sicurezza."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s o %(lastSuggestion)s invece di "
+"\"%(undefinedParameter)s\"?"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
@@ -433,17 +404,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d righe restituite"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
-# mi, ro, ru, sl, sr, sr_Latn, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s invece di \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s o %(lastSuggestion)s invece di "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s invece di \"%(undefinedParameter)s\"?"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -2528,6 +2492,10 @@ msgstr ""
 
 msgid "Alert"
 msgstr "Avviso"
+
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Avviso \"%(alertName)s\" attivato con successo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10658,6 +10626,14 @@ msgstr "Errore nell'apposizione di tag agli oggetti"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "Impossibile attivare %(alertType)s \"%(alertName)s\": %(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Impossibile attivare l'avviso \"%(alertName)s\": %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Impossibile attivare il report \"%(alertName)s\": %(error)s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11701,6 +11677,7 @@ msgstr "Percorso HTTP"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -11800,6 +11777,9 @@ msgstr "Valore massimo per ciascun periodo."
 
 msgid "Histogram"
 msgstr "Istogramma"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11909,12 +11889,6 @@ msgstr "ISO 3166-2"
 # uk, zh, zh_TW]
 msgid "ISO 3166-2 Codes"
 msgstr "Codici ISO 3166-2"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12165,6 +12139,9 @@ msgstr "In questa vista puoi visualizzare in anteprima le prime 25 righe. "
 
 msgid "Inactive"
 msgstr "Inattivo"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17079,6 +17056,9 @@ msgstr ""
 msgid "Preview"
 msgstr "Anteprima"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -17219,12 +17199,6 @@ msgstr "Mettere le etichette fuori dalla torta?"
 
 msgid "Put your code here"
 msgstr "Mettere il codice qui"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-msgid "Python datetime string pattern"
-msgstr "Modello di stringa datetime Python"
 
 msgid "Quarter"
 msgstr "Quarto"
@@ -17780,6 +17754,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Report"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Report \"%(alertName)s\" attivato con successo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -23000,11 +22978,22 @@ msgstr ""
 "Le password per i database elencati di seguito sono necessarie per "
 "importarli."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Il modello del formato del timestamp. "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23072,10 +23061,8 @@ msgstr "La porta è chiusa."
 msgid "The port number is invalid."
 msgstr "Il numero di porta non è valido."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Impossibile caricare l'anteprima."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23620,15 +23607,9 @@ msgstr ""
 "La trasformazione ha corrisposto alle righe campionate, non all'intero "
 "dataset."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"La trasformazione ha restituito %(returned)s per %(column)s, che è "
-"%(kind)s. I filtri rispecchiati su questa mappatura fallirebbero nel "
-"database."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -23640,6 +23621,9 @@ msgstr ""
 "La trasformazione ha restituito %(returned)s per %(column)s, che questo "
 "database non può scrivere in una query come valore %(type)s senza "
 "modificarlo. I filtri su questa mappatura non verranno rispecchiati."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Le due password inserite non corrispondono"
@@ -23745,23 +23729,12 @@ msgstr ""
 " in una sessione separata e il risultato viene memorizzato nella cache, "
 "quindi il predicato generato congelerebbe un'istantanea di quel momento."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Non è stato possibile analizzare la trasformazione del valore. La "
-"mappatura viene salvata ma resta inattiva finché non sarà corretta."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Non è stato possibile analizzare la trasformazione del valore: %(detail)s"
-" La mappatura viene salvata ma resta inattiva finché non sarà corretta."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25652,6 +25625,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Troppe richieste di anteprima per questo dataset. Attendi un momento e "
 "riprova."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -30422,6 +30398,10 @@ msgstr "annulla"
 msgid "unknown type icon"
 msgstr "icona tipo sconosciuto"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "reimposta"
 
@@ -30437,6 +30417,9 @@ msgid ""
 msgstr ""
 "il percentile superiore deve essere maggiore di 0 e inferiore a 100. Deve"
 " essere maggiore del percentile inferiore."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

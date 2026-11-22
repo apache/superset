@@ -122,17 +122,21 @@ function RoleListEditModal({
   const [loadingRoleUsers, setLoadingRoleUsers] = useState(true);
   const [loadingRolePermissions, setLoadingRolePermissions] = useState(true);
   const [loadingRoleGroups, setLoadingRoleGroups] = useState(true);
+  const [usersHydrated, setUsersHydrated] = useState(false);
   const formRef = useRef<FormInstance | null>(null);
   const permissionFetchSucceeded = useRef(false);
   const groupFetchSucceeded = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
     const filters = [{ col: 'roles', opr: 'rel_m_m', value: id }];
 
     fetchPaginatedData({
       endpoint: `/api/v1/security/users/`,
       pageSize: 100,
       setData: (users: UserObject[]) => {
+        if (cancelled) return;
+        setUsersHydrated(true);
         const seen = new Set<number>();
         setRoleUsers(
           users.filter(u => {
@@ -144,9 +148,13 @@ function RoleListEditModal({
       },
       filters,
       orderBy: { column: 'id', direction: 'asc' },
-      setLoadingState: (loading: boolean) => setLoadingRoleUsers(loading),
+      setLoadingState: () => {
+        if (!cancelled) setLoadingRoleUsers(false);
+      },
       loadingKey: 'roleUsers',
-      addDangerToast,
+      addDangerToast: message => {
+        if (!cancelled) addDangerToast(message);
+      },
       errorMessage: t('There was an error loading users.'),
       mapResult: (user: UserObject) => ({
         id: user.id,
@@ -156,6 +164,9 @@ function RoleListEditModal({
         email: user.email,
       }),
     });
+    return () => {
+      cancelled = true;
+    };
   }, [addDangerToast, id]);
 
   useEffect(() => {
@@ -206,6 +217,7 @@ function RoleListEditModal({
       return;
     }
 
+    let cancelled = false;
     setLoadingRoleGroups(true);
     groupFetchSucceeded.current = false;
     const filters = [{ col: 'id', opr: 'in', value: stableGroupIds }];
@@ -214,19 +226,27 @@ function RoleListEditModal({
       endpoint: `/api/v1/security/groups/`,
       pageSize: 100,
       setData: (data: SelectOption[]) => {
+        if (cancelled) return;
         groupFetchSucceeded.current = true;
         setRoleGroups(data);
       },
       filters,
-      setLoadingState: (loading: boolean) => setLoadingRoleGroups(loading),
+      setLoadingState: () => {
+        if (!cancelled) setLoadingRoleGroups(false);
+      },
       loadingKey: 'roleGroups',
-      addDangerToast,
+      addDangerToast: message => {
+        if (!cancelled) addDangerToast(message);
+      },
       errorMessage: t('There was an error loading groups.'),
       mapResult: (group: { id: number; name: string }) => ({
         value: group.id,
         label: group.name,
       }),
     });
+    return () => {
+      cancelled = true;
+    };
   }, [addDangerToast, stableGroupIds, id]);
 
   useEffect(() => {
@@ -290,17 +310,24 @@ function RoleListEditModal({
       typeof option === 'number' ? option : option.value,
     ) || [];
 
+  const hydrationPending =
+    loadingRoleUsers || loadingRolePermissions || loadingRoleGroups;
+  const saveDisabled = hydrationPending || !usersHydrated;
+
   const handleFormSubmit = async (values: RoleForm) => {
+    if (saveDisabled) throw new Error('Role is not ready to save');
     try {
       const permissionIds = mapSelectedIds(values.rolePermissions);
       const userIds = mapSelectedIds(values.roleUsers);
       const groupIds = mapSelectedIds(values.roleGroups);
-      await Promise.all([
+      const results = await Promise.allSettled([
         updateRoleName(id, values.roleName),
         updateRolePermissions(id, permissionIds),
         updateRoleUsers(id, userIds),
         updateRoleGroups(id, groupIds),
       ]);
+      const failure = results.find(result => result.status === 'rejected');
+      if (failure?.status === 'rejected') throw failure.reason;
       addSuccessToast(t('The role has been updated successfully.'));
     } catch (err) {
       addDangerToast(
@@ -335,6 +362,7 @@ function RoleListEditModal({
         />
       }
       onSave={onSave}
+      disablePrimaryButton={saveDisabled}
       formSubmitHandler={handleFormSubmit}
       initialValues={initialValues}
       requiredFields={['roleName']}
@@ -358,14 +386,17 @@ function RoleListEditModal({
                   <PermissionsField
                     addDangerToast={addDangerToast}
                     loading={loadingRolePermissions}
+                    disabled={loadingRolePermissions}
                   />
                   <UsersField
                     addDangerToast={addDangerToast}
                     loading={loadingRoleUsers}
+                    disabled={loadingRoleUsers || !usersHydrated}
                   />
                   <GroupsField
                     addDangerToast={addDangerToast}
                     loading={loadingRoleGroups}
+                    disabled={loadingRoleGroups}
                   />
                 </>
               </Tabs.TabPane>

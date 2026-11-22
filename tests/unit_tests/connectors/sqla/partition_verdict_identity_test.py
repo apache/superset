@@ -22,16 +22,20 @@ chart's `build_mirrored_predicates` and the editor's preview.
 """
 
 import hashlib
+import logging
 import re
 from collections.abc import Callable, Iterator
+from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+import sqlalchemy as sa
 from flask import Flask
 from flask_caching import Cache
 
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.connectors.sqla.partition_mapping import (
     _probe_cache_key,
@@ -725,3 +729,177 @@ def test_the_probe_cache_survives_the_verdict_changing_shape(app: Flask) -> None
 
         table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
         assert _evaluable(table) is True
+
+
+# ---------------------------------------------------------------------------
+# A cache outage fails open
+# ---------------------------------------------------------------------------
+
+HOURLY = ":value - :value % 3600"
+
+
+@pytest.fixture
+def unreachable_cache() -> Iterator[MagicMock]:
+    """A cache whose server is down: every read and every write raises."""
+    cache = MagicMock(spec=Cache)
+    cache.get.side_effect = ConnectionError("cache server unreachable")
+    cache.set.side_effect = ConnectionError("cache server unreachable")
+    with patch.object(cache_manager, "_cache", cache):
+        yield cache
+
+
+def _hourly_warehouse(tmp_path: Path) -> SqlaTable:
+    """
+    `dataset_1` over a real SQLite table partitioned on the hour of `event_time`.
+
+    Both the probe and the chart run against it, so the rows a chart returns are
+    the rows the table holds rather than what a fake engine claims.
+    """
+    path = tmp_path / "warehouse.db"
+    source = sa.Table(
+        "dataset_1",
+        sa.MetaData(),
+        sa.Column("event_time", sa.BigInteger),
+        sa.Column("dt", sa.BigInteger),
+    )
+    engine = sa.create_engine(f"sqlite:///{path}")
+    with engine.begin() as connection:
+        source.create(connection)
+        connection.execute(
+            sa.insert(source),
+            [
+                {"event_time": instant, "dt": instant - instant % 3600}
+                for instant in (1790841600, 1790848800, EPOCH_INPUT, 1790856000)
+            ],
+        )
+    engine.dispose()
+    return _dataset(
+        Database(database_name="warehouse", sqlalchemy_uri=f"sqlite:///{path}"),
+        1,
+        mapped=("event_time", "BIGINT"),
+        partition=("dt", "BIGINT"),
+        transform=HOURLY,
+    )
+
+
+def _run_chart(table: SqlaTable) -> Any:
+    """A chart listing the `event_time` values at or after ``EPOCH_INPUT``."""
+    return table.query(
+        {
+            "columns": ["event_time"],
+            "metrics": [],
+            "orderby": [],
+            "extras": {},
+            "filter": [
+                {
+                    "col": "event_time",
+                    "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+                    "val": EPOCH_INPUT,
+                }
+            ],
+            "granularity": None,
+            "is_timeseries": False,
+        }
+    )
+
+
+def test_a_chart_returns_its_rows_while_the_cache_is_unreachable(
+    app: Flask, tmp_path: Path, unreachable_cache: MagicMock
+) -> None:
+    table = _hourly_warehouse(tmp_path)
+
+    with app.app_context():
+        result = _run_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS
+    assert sorted(result.df["event_time"]) == [EPOCH_INPUT, 1790856000]
+
+
+def test_a_chart_still_prunes_while_the_cache_is_unreachable(
+    app: Flask, tmp_path: Path, unreachable_cache: MagicMock
+) -> None:
+    """The probe's answer is used even though it could not be cached."""
+    table = _hourly_warehouse(tmp_path)
+
+    with app.app_context():
+        result = _run_chart(table)
+
+    assert "(dt >= 1790848800 OR dt IS NULL)" in result.query
+    unreachable_cache.set.assert_called()
+
+
+def test_every_chart_reaches_the_engine_while_the_cache_is_unreachable(
+    app: Flask, unreachable_cache: MagicMock
+) -> None:
+    """
+    An unreadable cache entry is a miss, never a stale or a raised answer, so
+    the second chart probes again where a working cache would answer it.
+    """
+    table = _dataset(
+        _database(lambda _sql: 1790848800),
+        1,
+        mapped=("event_time", "BIGINT"),
+        partition=("dt", "BIGINT"),
+        transform=HOURLY,
+    )
+
+    probes: MagicMock = table.database.get_df  # type: ignore[assignment]
+
+    with app.app_context():
+        assert _chart(table, EPOCH_INPUT)
+        probes_per_chart = probes.call_count
+        assert _chart(table, EPOCH_INPUT)
+
+    assert probes.call_count == 2 * probes_per_chart
+
+
+def test_the_verdict_reads_as_unknown_while_the_cache_is_unreachable(
+    app: Flask, unreachable_cache: MagicMock
+) -> None:
+    """
+    A chart that mirrors would record `True`; with the cache down nothing is
+    recorded or read back, and `None` is the honest answer -- not `False`,
+    which would report a working mapping as broken.
+    """
+    table = _dataset(
+        _database(lambda _sql: 1790848800),
+        1,
+        mapped=("event_time", "BIGINT"),
+        partition=("dt", "BIGINT"),
+        transform=HOURLY,
+    )
+
+    with app.app_context():
+        assert _chart(table, EPOCH_INPUT)
+        evaluable = _evaluable(table)
+
+    assert evaluable is None
+    unreachable_cache.get.assert_called()
+
+
+def test_an_unreachable_cache_logs_a_warning_for_each_lost_write(
+    app: Flask, caplog: pytest.LogCaptureFixture, unreachable_cache: MagicMock
+) -> None:
+    table = _dataset(
+        _database(lambda _sql: 1790848800),
+        1,
+        mapped=("event_time", "BIGINT"),
+        partition=("dt", "BIGINT"),
+        transform=HOURLY,
+    )
+
+    with (
+        app.app_context(),
+        caplog.at_level(
+            logging.WARNING, logger="superset.connectors.sqla.partition_mapping"
+        ),
+    ):
+        _chart(table, EPOCH_INPUT)
+
+    warnings = {
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno == logging.WARNING
+    }
+    assert "Could not cache partition transform probe" in warnings
+    assert "Could not cache partition transform verdict" in warnings

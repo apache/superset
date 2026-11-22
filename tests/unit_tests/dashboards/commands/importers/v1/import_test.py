@@ -29,7 +29,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import security_manager
 from superset.commands.dashboard.importers.v1.utils import import_dashboard
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError, ImportFailedError
 from superset.commands.importers.v1.utils import import_tag
 from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
@@ -119,7 +119,7 @@ def test_import_dashboard_without_permission(
         security_manager, "can_access", return_value=False
     )
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_dashboard(dashboard_config)
     assert (
         str(excinfo.value)
@@ -159,7 +159,7 @@ def test_import_existing_dashboard_without_access_permission(
     )
 
     with override_user(admin):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -200,7 +200,7 @@ def test_import_existing_dashboard_without_editor_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -471,7 +471,7 @@ def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_editor(
     )
 
     with override_user(non_editor):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(dashboard_config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)
 
@@ -501,7 +501,7 @@ def test_import_soft_deleted_dashboard_raises_when_caller_lacks_can_write(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_dashboard(dashboard_config, overwrite=False)
     assert "can_write" in str(excinfo.value)
 
@@ -748,7 +748,7 @@ def test_import_slug_collision_requires_overwrite_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dashboard(config, overwrite=True)
         assert (
             str(excinfo.value)
