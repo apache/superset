@@ -22,6 +22,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { getTimeFormatter } from '@superset-ui/core';
+import { MetricsLayoutEnum } from '../../src/types';
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import {
   aggregatorTemplates,
@@ -1588,6 +1589,41 @@ test('TableRenderer collapses rows below the default row expansion depth', () =>
   expect(screen.getByText('SF')).toBeInTheDocument();
   expect(screen.queryByText('NYC')).not.toBeInTheDocument();
 });
+
+test.each([MetricsLayoutEnum.ROWS, MetricsLayoutEnum.COLUMNS])(
+  'TableRenderer keeps the first dimension visible with a leading metric on %s',
+  leadingMetricAxis => {
+    const names = ['Metric', 'kind', 'item'];
+    const metricsOnRows = leadingMetricAxis === MetricsLayoutEnum.ROWS;
+    const data = [
+      { Metric: 'sales', kind: 'fruit', item: 'apple', value: 3 },
+      { Metric: 'sales', kind: 'fruit', value: 3 },
+      { Metric: 'sales', value: 3 },
+    ].map((record, index) => {
+      const level = names.slice(0, names.length - index);
+      return {
+        ...record,
+        __metricKey: 'Metric',
+        __rows: metricsOnRows ? level : [],
+        __columns: metricsOnRows ? [] : level,
+      };
+    });
+    const props = buildDefaultProps({
+      data,
+      rows: metricsOnRows ? names : [],
+      cols: metricsOnRows ? [] : names,
+      vals: ['value'],
+      tableOptions: { rowSubTotals: true, colSubTotals: true },
+      leadingMetricAxis,
+      defaultRowExpansionDepth: 1,
+      defaultColExpansionDepth: 1,
+    });
+    renderWithTheme(<TableRenderer {...props} />);
+
+    expect(screen.getByText('fruit')).toBeInTheDocument();
+    expect(screen.queryByText('apple')).not.toBeInTheDocument();
+  },
+);
 
 test('TableRenderer re-applies the default row expansion depth when it changes', () => {
   const { rerender } = renderWithTheme(

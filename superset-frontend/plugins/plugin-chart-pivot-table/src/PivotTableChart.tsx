@@ -262,6 +262,10 @@ export default function PivotTableChart(props: PivotTableProps) {
     defaultColExpansionDepth = 0,
   } = props;
 
+  const metricAxis =
+    metricsLayout === MetricsLayoutEnum.ROWS
+      ? MetricsLayoutEnum.ROWS
+      : MetricsLayoutEnum.COLUMNS;
   const theme = useTheme();
 
   // Base formatter without currency-awareness (for non-AUTO mode or as fallback)
@@ -353,7 +357,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       data.flatMap((query: QueryData) => {
         let levelRows = query.groupby.rows.map(getColumnLabel);
         let levelCols = query.groupby.columns.map(getColumnLabel);
-        if (metricsLayout === MetricsLayoutEnum.ROWS) {
+        if (metricAxis === MetricsLayoutEnum.ROWS) {
           levelRows = combineMetric
             ? [...levelRows, METRIC_KEY]
             : [METRIC_KEY, ...levelRows];
@@ -385,7 +389,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           })),
         );
       }),
-    [data, metricNames, currencyCodeColumn, metricsLayout, combineMetric],
+    [data, metricNames, currencyCodeColumn, metricAxis, combineMetric],
   );
   const groupbyRows = useMemo(
     () => groupbyRowsRaw.map(getColumnLabel),
@@ -408,19 +412,13 @@ export default function PivotTableChart(props: PivotTableProps) {
       ? [groupbyColumns, groupbyRows]
       : [groupbyRows, groupbyColumns];
 
-    if (metricsLayout === MetricsLayoutEnum.ROWS) {
+    if (metricAxis === MetricsLayoutEnum.ROWS) {
       rows_ = combineMetric ? [...rows_, METRIC_KEY] : [METRIC_KEY, ...rows_];
     } else {
       cols_ = combineMetric ? [...cols_, METRIC_KEY] : [METRIC_KEY, ...cols_];
     }
     return [rows_, cols_];
-  }, [
-    combineMetric,
-    groupbyColumns,
-    groupbyRows,
-    metricsLayout,
-    transposePivot,
-  ]);
+  }, [combineMetric, groupbyColumns, groupbyRows, metricAxis, transposePivot]);
 
   const handleChange = useCallback(
     (filters: SelectedFiltersType) => {
@@ -764,6 +762,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           allowRenderHtml={allowRenderHtml}
           defaultRowExpansionDepth={defaultRowExpansionDepth}
           defaultColExpansionDepth={defaultColExpansionDepth}
+          leadingMetricAxis={combineMetric ? undefined : metricAxis}
           showValuesAs={showValuesAs}
           hideEmptyColumns={hideEmptyColumns}
           aggregateFunction={aggregateFunction}

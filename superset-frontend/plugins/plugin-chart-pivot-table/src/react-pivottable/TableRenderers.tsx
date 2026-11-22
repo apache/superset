@@ -41,6 +41,7 @@ import {
   ObjectFormattingEnum,
   ResolvedColorFormatterResult,
 } from '@superset-ui/chart-controls';
+import { MetricsLayoutEnum } from '../types';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
@@ -124,6 +125,7 @@ interface TableRendererProps {
   allowRenderHtml?: boolean;
   defaultRowExpansionDepth?: number;
   defaultColExpansionDepth?: number;
+  leadingMetricAxis?: MetricsLayoutEnum;
   [key: string]: unknown;
 }
 
@@ -221,18 +223,19 @@ const parseLabel = (value: unknown): string | number => {
 };
 
 /**
- * Normalizes a configured default expansion depth. Only a positive integer
- * applies; 0 or any invalid value means fully expanded and returns 0.
+ * Convert a grouping depth to a key prefix length, skipping a leading metric.
+ * Zero or any invalid value means fully expanded.
  */
-function toExpansionDepth(value: unknown): number {
+function toExpansionDepth(value: unknown, hasLeadingMetric: boolean): number {
   const depth = Number(value);
-  return Number.isInteger(depth) && depth > 0 ? depth : 0;
+  return Number.isInteger(depth) && depth > 0
+    ? depth + Number(hasLeadingMetric)
+    : 0;
 }
 
 /**
  * Prefixes that have a subtotal to render: shorter than the full key and
- * actually produced. A shorter key that was never produced (metric-only
- * rollups are omitted for metrics-on-rows) must stay expanded.
+ * actually produced. A shorter key without a subtotal must stay expanded.
  */
 function getCollapsiblePrefixes(
   keys: string[][],
@@ -487,6 +490,7 @@ export function TableRenderer(props: TableRendererProps) {
     allowRenderHtml,
     defaultRowExpansionDepth = 0,
     defaultColExpansionDepth = 0,
+    leadingMetricAxis,
     hideEmptyColumns,
   } = props;
 
@@ -506,8 +510,14 @@ export function TableRenderer(props: TableRendererProps) {
     tableOptions.collapseRows && tableOptions.rowSubTotals,
   );
 
-  const rowExpansionDepth = toExpansionDepth(defaultRowExpansionDepth);
-  const colExpansionDepth = toExpansionDepth(defaultColExpansionDepth);
+  const rowExpansionDepth = toExpansionDepth(
+    defaultRowExpansionDepth,
+    leadingMetricAxis === MetricsLayoutEnum.ROWS,
+  );
+  const colExpansionDepth = toExpansionDepth(
+    defaultColExpansionDepth,
+    leadingMetricAxis === MetricsLayoutEnum.COLUMNS,
+  );
 
   // Manual expands live in this state and would otherwise outlive the
   // checkbox or a depth change. Resetting on each change makes the Explore

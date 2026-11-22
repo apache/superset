@@ -18,6 +18,7 @@
  */
 import {
   ControlPanelConfig,
+  ControlStateMapping,
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
   getStandardizedControls,
@@ -41,6 +42,20 @@ import {
   RESULT_AGGREGATION_LABELS,
 } from './resultAggregation';
 
+const expansionDepthControls = [
+  'defaultRowExpansionDepth',
+  'defaultColExpansionDepth',
+];
+
+/** Counts the group-by fields on each displayed axis. */
+function getDisplayedGroupCounts(controls?: ControlStateMapping) {
+  const rows = ensureIsArray(controls?.groupbyRows?.value).length;
+  const columns = ensureIsArray(controls?.groupbyColumns?.value).length;
+  return controls?.transposePivot?.value
+    ? { rows: columns, columns: rows }
+    : { rows, columns };
+}
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -52,6 +67,7 @@ const config: ControlPanelConfig = {
             name: 'groupbyColumns',
             config: {
               ...sharedControls.groupby,
+              rerender: expansionDepthControls,
               label: t('Columns'),
               description: t('Columns to group by on the columns'),
             },
@@ -62,6 +78,7 @@ const config: ControlPanelConfig = {
             name: 'groupbyRows',
             config: {
               ...sharedControls.groupby,
+              rerender: expansionDepthControls,
               label: t('Rows'),
               description: t('Columns to group by on the rows'),
             },
@@ -260,12 +277,10 @@ const config: ControlPanelConfig = {
                   'Select "1" to show only top-level rows (children collapsed).',
               ),
               mapStateToProps: explore => {
-                const rowCount = ensureIsArray(
-                  explore?.controls?.groupbyRows?.value,
-                ).length;
+                const { rows } = getDisplayedGroupCounts(explore?.controls);
                 // 0 = fully expanded (no collapse), 1..N = collapse deeper levels
                 const choices: [number, string][] = [[0, t('Fully expanded')]];
-                for (let i = 1; i < rowCount; i += 1) {
+                for (let i = 1; i < rows; i += 1) {
                   choices.push([i, t('Expand %s level(s)', i)]);
                 }
                 return { choices };
@@ -273,7 +288,7 @@ const config: ControlPanelConfig = {
               visibility: ({ controls }) =>
                 !!controls?.rowSubTotals?.value &&
                 !controls?.collapseRows?.value &&
-                ensureIsArray(controls?.groupbyRows?.value).length > 1,
+                getDisplayedGroupCounts(controls).rows > 1,
             },
           },
         ],
@@ -313,19 +328,17 @@ const config: ControlPanelConfig = {
                   'Select "1" to show only top-level columns (children collapsed).',
               ),
               mapStateToProps: explore => {
-                const colCount = ensureIsArray(
-                  explore?.controls?.groupbyColumns?.value,
-                ).length;
+                const { columns } = getDisplayedGroupCounts(explore?.controls);
                 // 0 = fully expanded (no collapse), 1..N = collapse deeper levels
                 const choices: [number, string][] = [[0, t('Fully expanded')]];
-                for (let i = 1; i < colCount; i += 1) {
+                for (let i = 1; i < columns; i += 1) {
                   choices.push([i, t('Expand %s level(s)', i)]);
                 }
                 return { choices };
               },
               visibility: ({ controls }) =>
                 !!controls?.colSubTotals?.value &&
-                ensureIsArray(controls?.groupbyColumns?.value).length > 1,
+                getDisplayedGroupCounts(controls).columns > 1,
             },
           },
         ],
@@ -340,6 +353,7 @@ const config: ControlPanelConfig = {
               // dimensions form the rollup levels the totals/subtotals options
               // need (see `buildGroupbyCombinations`), so it needs a real
               // requery rather than a client-side-only re-render.
+              rerender: expansionDepthControls,
               description: t('Swap rows and columns'),
             },
           },
