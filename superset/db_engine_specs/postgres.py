@@ -1141,6 +1141,15 @@ WHERE datistemplate = false;
             inspector.get_foreign_table_names(schema)
         )
 
+    @classmethod
+    def get_materialized_view_names(
+        cls, database: Database, inspector: PGInspector, schema: str | None
+    ) -> set[str]:
+        """
+        Materialized views are not returned by ``get_view_names`` in SQLAlchemy 2.0
+        """
+        return set(inspector.get_materialized_view_names(schema))
+
     @staticmethod
     def get_extra_params(
         database: Database, source: QuerySource | None = None
