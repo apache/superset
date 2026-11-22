@@ -99,7 +99,11 @@ from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
-from superset.commands.exceptions import CommandException, TagForbiddenError
+from superset.commands.exceptions import (
+    CommandException,
+    CommandInvalidError,
+    TagForbiddenError,
+)
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
@@ -111,6 +115,7 @@ from superset.commands.importers.v1.utils import (
 from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
+from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import (
     ScreenshotImageNotAvailableException,
 )
@@ -156,6 +161,10 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
     validate_feature_flags,
+)
+from superset.views.error_handling import (
+    get_error_level_from_status,
+    json_error_response,
 )
 from superset.views.filters import (
     BaseFilterRelatedUsers,
@@ -1810,7 +1819,24 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
             encrypted_extra_secrets=encrypted_extra_secrets,
         )
-        command.run()
+        try:
+            command.run()
+        except CommandInvalidError as ex:
+            # User-caused validation failure (e.g. overwrite=true not passed
+            # for an existing chart) -- expected 4xx, not an app error. Handle
+            # it here, with the same response shape as the generic
+            # CommandException handler, so it never propagates to Flask's
+            # exception dispatch (which is what surfaces it to Sentry).
+            logger.warning("CommandInvalidError", exc_info=True)
+            return json_error_response(
+                SupersetError(
+                    message=ex.message,
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=get_error_level_from_status(ex.status),
+                    extra=ex.normalized_messages(),
+                ),
+                status=ex.status,
+            )
         return self.response(200, message="OK")
 
     @expose("/<uuid_str>/versions/", methods=("GET",))
