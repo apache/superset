@@ -359,6 +359,9 @@
     "@luma.gl/gltf": "~9.4.0",
     "@luma.gl/shadertools": "~9.4.0",
     "@luma.gl/webgl": "~9.4.0",
+    "@storybook/react-webpack5": {
+      "webpack-dev-middleware": "^7.4.6"
+    },
     "cheerio": {
       "undici": "^7.30.2"
     },
@@ -368,12 +371,10 @@
     "jspdf": "^4.2.0",
     "minimatch": "^11.0.1",
     "nwsapi": "^2.2.24",
-    "puppeteer": "^22.4.1",
     "texture-compressor": {
       "image-size": "^2.0.3"
     },
-    "undici": "^8.12.4",
-    "webpack-dev-middleware": "^7.4.6"
+    "undici": "^8.12.4"
   },
   "browserslist": [
     "last 3 chrome versions",
