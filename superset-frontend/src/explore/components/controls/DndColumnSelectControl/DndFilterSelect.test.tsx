@@ -21,14 +21,20 @@ import configureStore from 'redux-mock-store';
 
 import {
   ensureIsArray,
+  SupersetClient,
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  ControlPanelState,
+  dndAdhocFilterControl,
+} from '@superset-ui/chart-controls';
 import {
   act,
   fireEvent,
+  userEvent,
   render,
   screen,
   waitFor,
@@ -43,6 +49,7 @@ import {
   DndFilterSelectProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
+import { semanticViewDimensionsToColumns } from 'src/utils/semanticViewStructure';
 import { Clauses, ExpressionTypes } from '../FilterControl/types';
 import { DndItemType } from '../../DndItemType';
 import { Datasource } from '../../../types';
@@ -526,3 +533,104 @@ test('Filter control commits a compatible Cube dimension as a filter subject', a
     ]);
   });
 });
+
+test('Explore Filters distinguishes semantic dimensions with duplicate labels', async () => {
+  const columns = semanticViewDimensionsToColumns([
+    { name: 'CUSTOMERS.REGION', type: 'string', verbose_name: 'Region' },
+    { name: 'ORDERS.REGION', type: 'string', verbose_name: 'Region' },
+  ]) as ColumnMeta[];
+  const datasource = {
+    ...PLACEHOLDER_DATASOURCE,
+    type: 'semantic_view',
+    columns,
+  } as unknown as Datasource;
+  render(setup({ columns, datasource }), { useDndKit: true, store });
+
+  fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
+  const subjectSelect = await screen.findByRole('combobox', {
+    name: 'Select subject',
+  });
+  fireEvent.mouseDown(subjectSelect);
+  const dropdown = await waitFor(() => {
+    const list = document.querySelector('.ant-select-dropdown-list');
+    if (!list) throw new Error('dropdown not open');
+    return list as HTMLElement;
+  });
+  expect(within(dropdown).getAllByTestId('semantic-member-id')).toHaveLength(2);
+  await userEvent.type(subjectSelect, 'ORDERS.REGION');
+  expect(within(dropdown).getAllByTestId('semantic-member-id')).toHaveLength(1);
+  fireEvent.click(within(dropdown).getByText('ORDERS.REGION'));
+  expect(
+    screen
+      .getByTestId('select-element')
+      .querySelector('[data-test="semantic-member-id"]'),
+  ).toHaveTextContent('ORDERS.REGION');
+});
+
+test.each([undefined, 'old-title-version', 'cube-member-id-v1'])(
+  'existing filter popover retains form selection provenance %s',
+  async version => {
+    const get = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: { result: ['US'] },
+      response: new Response(),
+    });
+    try {
+      const columns = [
+        { column_name: 'country', type: 'VARCHAR', id: 1 },
+      ] as ColumnMeta[];
+      const datasource = {
+        ...PLACEHOLDER_DATASOURCE,
+        type: 'semantic_view',
+        id: 1,
+        columns,
+        filter_select: true,
+        semantic_selection_version: 'cube-member-id-v1',
+        semantic_view_features: [],
+      } as unknown as Datasource;
+      const value = new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'country',
+        operator: 'IN',
+        operatorId: Operators.In,
+        comparator: ['US'],
+        clause: Clauses.Where,
+      });
+      const mapped = dndAdhocFilterControl.mapStateToProps!(
+        {
+          slice: { slice_id: 1 },
+          form_data: { ...baseFormData, semantic_selection_version: version },
+          datasource: datasource as unknown as ControlPanelState['datasource'],
+          controls: {},
+          common: {},
+        },
+        { type: 'DndFilterSelect' },
+      );
+      render(
+        setup({
+          columns,
+          datasource,
+          value,
+          additionalProps: {
+            semanticSelectionVersion: mapped.semanticSelectionVersion,
+          },
+        }),
+        { useDndKit: true, store },
+      );
+      // The test wrapper's default DndContext starts dragging on pointer-down;
+      // Explore requires 5px of movement. Exercise the click without a drag.
+      fireEvent.click(screen.getByText(/country/));
+      await userEvent.click(
+        await screen.findByRole('combobox', { name: 'Comparator option' }),
+      );
+      await waitFor(() => expect(get).toHaveBeenCalled());
+      const endpoint = get.mock.calls.at(-1)?.[0].endpoint;
+      expect(
+        new URL(endpoint!, 'http://localhost').searchParams.get(
+          'semantic_selection_version',
+        ),
+      ).toBe(version ?? null);
+    } finally {
+      get.mockRestore();
+    }
+  },
+);

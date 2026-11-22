@@ -91,7 +91,7 @@ function UIFilters(
           const lbl =
             typeof match.label === 'string'
               ? match.label
-              : String(match.value ?? '');
+              : (match.title ?? String(match.value ?? ''));
           setTooltipLabels(prev => ({ ...prev, [index]: lbl }));
         }
       });

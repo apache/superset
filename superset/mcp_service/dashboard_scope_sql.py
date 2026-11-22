@@ -382,6 +382,7 @@ def _filter_clause(
     """
     import sqlalchemy as sa
 
+    from superset.models.helpers import keep_null_rows
     from superset.utils.core import FilterOperator, GenericDataType
 
     values = clause["val"] if isinstance(clause["val"], list) else [clause["val"]]
@@ -413,7 +414,7 @@ def _filter_clause(
     )
 
     if is_list:
-        return _in_list_clause(sqla_col, op, value, column.column_name)
+        return _in_list_clause(sqla_col, op, value, column.column_name, db_engine_spec)
     if op in (FilterOperator.IS_NULL, FilterOperator.IS_NOT_NULL):
         return db_engine_spec.handle_null_filter(sqla_col, op)
     if op in (FilterOperator.LIKE, FilterOperator.ILIKE):
@@ -428,12 +429,18 @@ def _filter_clause(
             "an empty value.",
             _SQL_GUIDANCE,
         )
-    return db_engine_spec.handle_comparison_filter(sqla_col, op, value)
+    comparison = db_engine_spec.handle_comparison_filter(sqla_col, op, value)
+    if op == FilterOperator.NOT_EQUALS and value is not None:
+        # Same as the dataset path: ``!= x`` only excludes ``x``; NULL rows stay.
+        return keep_null_rows(sqla_col, comparison, db_engine_spec)
+    return comparison
 
 
-def _in_list_clause(sqla_col: Any, op: Any, value: Any, name: str) -> Any:
+def _in_list_clause(
+    sqla_col: Any, op: Any, value: Any, name: str, db_engine_spec: Any
+) -> Any:
     """IN / NOT IN with the dataset path's NULL handling (``IN (x, NULL)``
-    matches NULL rows)."""
+    matches NULL rows; ``NOT IN (x)`` without NULL keeps NULL rows)."""
     import sqlalchemy as sa
 
     from superset.utils.core import FilterOperator
@@ -445,13 +452,21 @@ def _in_list_clause(sqla_col: Any, op: Any, value: Any, name: str) -> Any:
             _SQL_GUIDANCE,
         )
     non_null = [item for item in values if item is not None]
+    is_not_in = op == FilterOperator.NOT_IN
     if not non_null:
         condition = sqla_col.is_(None)
     elif len(non_null) < len(values):
         condition = sa.or_(sqla_col.is_(None), sqla_col.in_(non_null))
     else:
         condition = sqla_col.in_(non_null)
-    return ~condition if op == FilterOperator.NOT_IN else condition
+        if is_not_in:
+            # ``NULL NOT IN (...)`` is not true, so keep NULL rows explicitly;
+            # only the listed values are excluded.
+            return sa.or_(
+                db_engine_spec.handle_null_filter(sqla_col, FilterOperator.IS_NULL),
+                ~condition,
+            )
+    return ~condition if is_not_in else condition
 
 
 def _time_clause(

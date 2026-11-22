@@ -803,3 +803,44 @@ curl http://localhost:5008/health
 1. **Database Connection Errors**: Ensure the MCP service has the same database credentials as Superset
 2. **Authentication Failures**: Verify `MCP_DEV_USERNAME` matches an existing Superset user
 3. **Screenshot Generation Fails**: Check WebDriver configuration and ensure Chrome/Firefox is available in the container
+
+## Rendered PNG chart previews
+
+Call `get_chart_preview` with `{"identifier": 123, "format": "png"}` to
+render a saved chart with Superset's native renderer. The response content has
+`type: "png"`, `mime_type: "image/png"`, base64 `data`, and the actual image
+`width` and `height`. The default preview format remains ASCII.
+
+PNG requires a non-guest authenticated user and the normal chart/data access
+permissions. When granular export controls are enabled, image export permission
+is also required. Unsaved chart state (`form_data_key`) and extra dashboard
+filters (`extra_form_data`) are not supported by this format and return an
+explicit error. Use the other preview formats for those requests.
+
+The MCP host needs Playwright with Chromium installed and a reachable
+`WEBDRIVER_BASEURL`. Each request creates a separate browser, authenticates it as
+the calling user, and closes it after capture; images are not stored in the shared
+thumbnail cache. Requested viewport dimensions must be between 64 and 4096 pixels.
+Capture uses the configured screenshot timeouts. Cancelling an MCP request does
+not immediately interrupt its rendering worker.
+
+PNG responses have a separate serialized byte ceiling,
+`MCP_RESPONSE_SIZE_CONFIG["png_max_bytes"]` (default: 1,000,000 bytes),
+including base64 image data and preview metadata. The guard rejects larger
+responses with an error asking for smaller viewport dimensions or a URL preview.
+A viewport within the 64..4096 range can still exceed this byte ceiling,
+particularly with higher configured pixel density or detailed charts. Images are
+not truncated or silently rescaled. Other preview formats retain the normal
+`max_bytes` budget (default: 50,000 bytes). Operators can override `png_max_bytes`
+in `superset_config.py`; disabling the guard or explicitly excluding the tool
+also disables its image budget.
+
+PNG capture uses a dedicated two-worker executor per MCP process, separate from
+the pool used for transport authentication. Additional captures wait for a
+worker; cancellation does not release a running capture's worker until it exits.
+
+The executor lives for the MCP process lifetime. Start each MCP worker after any
+process fork, and do not fork a worker after it has begun rendering. Python waits
+for running captures when the process exits, so shutdown can wait for a browser
+operation to finish or reach its configured timeout. Cancellation does not
+terminate that browser operation or free its slot early.

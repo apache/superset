@@ -38,7 +38,10 @@ def geohash_decode(
     :return: DataFrame with decoded longitudes and latitudes
     """
     try:
-        lonlat_df = DataFrame()
+        # Carry `df`'s own index: `_append_columns` aligns on it, so a parsed
+        # frame left on a fresh `RangeIndex` matches nothing when the caller's
+        # frame is indexed by anything else, as it is after a `pivot`.
+        lonlat_df = DataFrame(index=df.index)
         lonlat_df["latitude"], lonlat_df["longitude"] = zip(
             *df[geohash].apply(geohash_lib.decode), strict=False
         )
@@ -106,7 +109,8 @@ def geodetic_parse(
         return point[0], point[1], point[2]
 
     try:
-        geodetic_df = DataFrame()
+        # Carry `df`'s own index, for the reason given in `geohash_decode`.
+        geodetic_df = DataFrame(index=df.index)
         (
             geodetic_df["latitude"],
             geodetic_df["longitude"],

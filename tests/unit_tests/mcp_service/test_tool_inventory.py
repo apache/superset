@@ -21,7 +21,7 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
-from fastmcp.tools.tool import Tool
+from fastmcp.tools import Tool
 from jsonschema import Draft202012Validator
 
 from superset.mcp_service.app import mcp
@@ -54,22 +54,24 @@ def budgeted_bytes(text: str) -> int:
 
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
-    "apply_dashboard_filters": 3_700,
+    "apply_dashboard_filters": 4_100,
     "create_dataset": 1_800,
+    "create_dataset_column": 2_400,
     "create_dataset_metric": 2_800,
     "create_theme": 1_200,
     "create_virtual_dataset": 3_700,
     "delete_chart": 1_100,
     "delete_dashboard": 1_100,
     "delete_dataset": 1_100,
+    "delete_dataset_column": 1_200,
     "delete_dataset_metric": 1_300,
     "duplicate_dashboard": 1_900,
     "execute_sql": 2_100,
     "find_users": 1_500,
     "generate_bug_report": 2_600,
-    "generate_chart": 2_400,
+    "generate_chart": 2_800,
     "generate_dashboard": 3_400,
-    "generate_explore_link": 1_800,
+    "generate_explore_link": 2_100,
     "get_annotation_layer_info": 1_000,
     "get_catalog": 1_600,
     "get_chart_data": 2_900,
@@ -81,11 +83,13 @@ TOOL_BUDGETS = {
     "get_compatible_metrics": 1_500,
     "get_dashboard_data": 2_400,
     "get_dashboard_datasets": 1_100,
-    # Independent prose/instruction budgets: 3,178 bytes plus snapshot headroom.
-    "get_dashboard_info": 3_300,
+    # Includes bounded dropdown discovery/proposal schemas: 4,926 bytes,
+    # with an explicit 5,000-byte budget for the full snapshot guidance.
+    "get_dashboard_info": 5_000,
     "get_dashboard_layout": 1_600,
     "get_database_info": 1_400,
-    "get_dataset_info": 2_400,
+    # Progressive discovery adds bounded summary/member request fields (2,935 bytes).
+    "get_dataset_info": 3_100,
     "get_instance_info": 900,
     "get_layer_annotation_info": 1_100,
     "get_query_info": 1_100,
@@ -118,6 +122,7 @@ TOOL_BUDGETS = {
     "list_rls_filters": 2_600,
     "list_roles": 2_700,
     "list_saved_queries": 3_000,
+    "list_semantic_views": 1_200,  # Compact source index: 1,074 measured bytes.
     "list_tags": 3_100,
     "list_tasks": 2_700,
     "list_themes": 3_000,
@@ -126,9 +131,9 @@ TOOL_BUDGETS = {
     "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    # Includes filter-bar dividers and select-filter default values:
-    # 10,380 bytes, rounded up plus the standard 100-byte headroom.
-    "manage_native_filters": 10_500,
+    # Includes filter-bar dividers, select-filter default values, and time-column
+    # filters, with headroom within the 11,200-byte budget.
+    "manage_native_filters": 11_200,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
     "remove_chart_from_dashboard": 1_300,
@@ -136,10 +141,11 @@ TOOL_BUDGETS = {
     "restore_dashboard": 1_000,
     "restore_dataset": 1_100,
     "save_sql_query": 1_600,
-    "update_chart": 4_100,
+    "update_chart": 4_500,
     "update_chart_preview": 2_200,
     "update_dashboard": 4_200,
     "update_dataset": 2_300,
+    "update_dataset_column": 2_900,
     "update_dataset_metric": 3_100,
 }
 
@@ -177,6 +183,25 @@ async def test_sql_dataset_inventory_routes_semantic_view_callers(name: str) -> 
     assert "semantic view" in description
     assert "list_metrics" in description
     assert "get_table" in description
+
+
+@pytest.mark.asyncio
+async def test_apply_dashboard_filters_delivers_rejection_policy() -> None:
+    """Keep the rejected-value policy in compact discovery and the full docstring."""
+    tool: Tool | None = await mcp.get_tool("apply_dashboard_filters")
+    assert tool is not None
+    assert tool.description is not None
+    compact: str = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)([tool])[0][
+        "description"
+    ]
+    # Collapse docstring line wrapping so phrases match across line breaks.
+    full = " ".join(tool.description.split())
+    description = " ".join(compact.split())
+    assert "ask before applying it" in full
+    assert "Never report a rejected filter as applied" in full
+    assert "values to offer the user" not in full
+    assert "If a value is rejected, propose the listed value" in description
+    assert "permalink" in description
 
 
 @pytest.mark.asyncio

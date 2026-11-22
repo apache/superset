@@ -69,7 +69,16 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app as app, g, request, Response, send_file
+from flask import (
+    current_app as app,
+    g,
+    has_app_context,
+    has_request_context,
+    request,
+    Response,
+    send_file,
+    session,
+)
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_sqlalchemy import SQLAlchemy
@@ -117,6 +126,7 @@ from superset.utils.pandas import detect_datetime_format
 if TYPE_CHECKING:
     from superset.explorables.base import ColumnMetadata, Explorable
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -295,6 +305,7 @@ class DatasourceDict(TypedDict):
 
 
 class AdhocFilterClause(TypedDict, total=False):
+    timeGrain: str | None
     clause: str
     expressionType: str
     filterOptionName: str | None
@@ -311,6 +322,7 @@ class QueryObjectFilterClause(TypedDict, total=False):
     val: FilterValues | None
     grain: str | None
     isExtra: bool | None
+    is_literal: bool
 
 
 class ExtraFiltersTimeColumnType(StrEnum):
@@ -1125,6 +1137,8 @@ def simple_filter_to_adhoc(
         "operator": filter_clause["op"],
         "subject": cast(str, filter_clause["col"]),
     }
+    if filter_clause.get("grain"):
+        result["timeGrain"] = filter_clause["grain"]
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
     result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
@@ -1548,6 +1562,15 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
                             "val": adhoc_filter.get("comparator"),
+                            **(
+                                {"grain": adhoc_filter["timeGrain"]}
+                                if adhoc_filter.get("timeGrain")
+                                else {}
+                            ),
+                            # keep dashboard provenance for semantic-view reporting
+                            **(
+                                {"isExtra": True} if adhoc_filter.get("isExtra") else {}
+                            ),
                         }
                     )
             elif expression_type == "SQL":
@@ -2058,6 +2081,7 @@ class DateColumn:
     offset: int | None = None
     time_shift: str | None = None
     timezone: str | None = None  # IANA timezone name
+    date_only: bool = False  # e.g. a DATE column, which the timezone cannot move
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -2072,12 +2096,14 @@ class DateColumn:
         offset: int | None,
         time_shift: str | None,
         timezone: str | None = None,
+        date_only: bool = False,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
             timezone=timezone,
+            date_only=date_only,
             col_label=DTTM_ALIAS,
         )
 
@@ -2178,13 +2204,17 @@ def normalize_dttm_col(
         if _col.timezone and isinstance(_col.timezone, str):
             try:
                 tz = ZoneInfo(_col.timezone)
-                # Data is stored in UTC, convert to the dataset's configured timezone
-                # First make the datetime UTC-aware, then convert to target timezone
+                # Naive values are assumed to be UTC; values that already carry
+                # a timezone are converted from it directly
+                # A date has no time of day, so it is left as it is
                 series = df[_col.col_label]
-                if not series.empty and series.notna().any():
-                    # Convert UTC to target timezone
+                if not _col.date_only and not series.empty and series.notna().any():
                     df[_col.col_label] = (
-                        series.dt.tz_localize("UTC")
+                        (
+                            series.dt.tz_localize("UTC")
+                            if series.dt.tz is None
+                            else series
+                        )
                         .dt.tz_convert(tz)
                         .dt.tz_localize(None)  # Remove timezone info for display
                     )
@@ -2375,7 +2405,7 @@ def remove_extra_adhoc_filters(form_data: dict[str, Any]) -> None:
 def to_int(v: Any, value_if_invalid: int = 0) -> int:
     try:
         return int(v)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return value_if_invalid
 
 
@@ -2409,3 +2439,62 @@ def get_user_agent(database: Database, source: QuerySource | None) -> str:
         return user_agent_func(database, source)
 
     return DEFAULT_USER_AGENT
+
+
+def _as_dict(value: Any) -> dict[str, Any]:
+    from superset.views.utils import loads_request_json
+
+    return value if isinstance(value, dict) else loads_request_json(value)
+
+
+def get_query_log_context(query: Query | None = None) -> dict[str, Any]:
+    from superset.views.utils import get_request_json_body
+
+    payload: Any = g.get("form_data")
+    args: dict[str, Any] = {}
+    chart_id: Any = None
+    carried: dict[str, Any] = {}
+    if has_request_context():
+        payload = get_request_json_body() or request.form.get("form_data") or payload
+        args = request.args.to_dict()
+        if request.endpoint == "ChartDataRestApi.get_data":
+            chart_id = (request.view_args or {}).get("pk")
+        carried.update(session.get("query_log_context") or {})
+    carried.update(g.get("query_log_context") or {})
+    payload = _as_dict(payload)
+    form_data = {
+        **_as_dict(payload.get("form_data")),
+        **_as_dict(args.get("form_data")),
+    }
+    context = {
+        "user": get_username(),
+        "dashboard_id": to_int(
+            args.get("dashboard_id")
+            or payload.get("dashboard_id")
+            or form_data.get("dashboardId")
+        )
+        or None,
+        "chart_id": to_int(
+            chart_id or payload.get("chart_id") or form_data.get("slice_id")
+        )
+        or None,
+        "sqllab_query_id": getattr(query, "id", None),
+        **carried,
+    }
+    return {key: value for key, value in context.items() if value is not None}
+
+
+@contextmanager
+def override_query_log_context(context: dict[str, Any] | None) -> Iterator[None]:
+    previous = g.get("query_log_context")
+    g.query_log_context = {**(previous or {}), **(context or {})}
+    try:
+        yield
+    finally:
+        g.query_log_context = previous
+
+
+def get_query_log_comment(database: Database, query: Query | None = None) -> str | None:
+    if has_app_context() and (log_comment_func := app.config["QUERY_LOG_COMMENT_FUNC"]):
+        return log_comment_func(database, get_query_log_context(query))
+    return None

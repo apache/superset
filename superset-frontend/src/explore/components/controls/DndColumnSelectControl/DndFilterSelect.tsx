@@ -50,6 +50,10 @@ import {
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
 import { toQueryString } from 'src/utils/urlUtils';
+import {
+  getSemanticMemberLabels,
+  type MemberLabel,
+} from 'src/components/SemanticMemberLabel';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
 import { Clauses, ExpressionTypes } from '../FilterControl/types';
@@ -67,9 +71,15 @@ const DND_ACCEPTED_TYPES = [
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
 
+type FilterSelectOption = OptionSortType & {
+  filterOptionName: string;
+  semanticMemberLabel?: MemberLabel;
+};
+
 export interface DndFilterSelectProps extends ControlComponentProps<
   OptionValueType[]
 > {
+  semanticSelectionVersion?: string;
   columns: ColumnMeta[];
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
@@ -101,6 +111,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     return extra;
   }, [datasource?.extra]);
 
+  const { semanticSelectionVersion } = props;
+
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
     propsValues.map((filter: OptionValueType) =>
@@ -117,6 +129,10 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     columns: ColumnMeta[],
     formData: QueryFormData | null | undefined,
   ) => {
+    const memberLabels =
+      datasource.type === 'semantic_view'
+        ? getSemanticMemberLabels(columns)
+        : undefined;
     const options: OptionSortType[] = [
       ...columns,
       ...[...(formData?.metrics || []), formData?.metric].map(
@@ -129,31 +145,26 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     ].filter(option => option);
 
     return options
-      .reduce(
-        (
-          results: (OptionSortType & { filterOptionName: string })[],
-          option,
-        ) => {
-          if ('saved_metric_name' in option && option.saved_metric_name) {
-            results.push({
-              ...option,
-              filterOptionName: option.saved_metric_name,
-            });
-          } else if ('column_name' in option && option.column_name) {
-            results.push({
-              ...option,
-              filterOptionName: `_col_${option.column_name}`,
-            });
-          } else if (option instanceof AdhocMetric) {
-            results.push({
-              ...option,
-              filterOptionName: `_adhocmetric_${option.label}`,
-            });
-          }
-          return results;
-        },
-        [],
-      )
+      .reduce((results: FilterSelectOption[], option) => {
+        if ('saved_metric_name' in option && option.saved_metric_name) {
+          results.push({
+            ...option,
+            filterOptionName: option.saved_metric_name,
+          });
+        } else if ('column_name' in option && option.column_name) {
+          results.push({
+            ...option,
+            filterOptionName: `_col_${option.column_name}`,
+            semanticMemberLabel: memberLabels?.get(option.column_name),
+          });
+        } else if (option instanceof AdhocMetric) {
+          results.push({
+            ...option,
+            filterOptionName: `_adhocmetric_${option.label}`,
+          });
+        }
+        return results;
+      }, [])
       .sort(
         (a: OptionSortType, b: OptionSortType) =>
           (a.saved_metric_name || a.column_name || a.label)?.localeCompare(
@@ -218,7 +229,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   useEffect(() => {
     setOptions(optionsForSelect(props.columns, props.formData));
-  }, [props.columns, props.formData]);
+  }, [props.columns, props.formData, datasource.type]);
 
   useEffect(() => {
     setValues(
@@ -363,6 +374,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
           adhocFilter={adhocFilter}
           options={options}
           datasource={datasource}
+          semanticSelectionVersion={semanticSelectionVersion}
           onFilterEdit={onFilterEdit}
           partitionColumn={partitionColumn}
           onClickClose={onClickClose}
@@ -376,6 +388,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       options,
       partitionColumn,
       datasource,
+      semanticSelectionVersion,
       values,
     ],
   );
@@ -463,6 +476,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         adhocFilter={adhocFilter}
         options={options}
         datasource={datasource}
+        semanticSelectionVersion={semanticSelectionVersion}
         onFilterEdit={onNewFilter}
         partitionColumn={partitionColumn}
         isControlledComponent

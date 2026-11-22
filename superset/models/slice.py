@@ -55,6 +55,7 @@ from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils, json
+from superset.utils.schema import is_query_context_metadata_complete
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -196,6 +197,19 @@ class Slice(  # pylint: disable=too-many-public-methods
         lazy="selectin",
     )
 
+    # Counterpart of ``semantic_view`` for charts built on a saved query: same
+    # type-guarded, view-only join, so display and access resolution hit the
+    # identity map / one batched ``IN`` query instead of a SELECT per chart.
+    saved_query = relationship(
+        "SavedQuery",
+        foreign_keys=[datasource_id],
+        primaryjoin="and_(Slice.datasource_id == SavedQuery.id, "
+        "Slice.datasource_type == 'saved_query')",
+        remote_side="SavedQuery.id",
+        viewonly=True,
+        lazy="selectin",
+    )
+
     token = ""
 
     export_fields = [
@@ -220,7 +234,9 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource(self) -> SqlaTable | None:
         return self.table
 
-    def _display_datasource(self) -> SqlaTable | SemanticView | None:
+    def _display_datasource(
+        self,
+    ) -> SqlaTable | SemanticView | Datasource | None:
         """Return the datasource used to name and link this chart in listings.
 
         Display-only counterpart of ``datasource``: it also resolves semantic
@@ -231,6 +247,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         """
         if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
             return self.semantic_view
+        if self.datasource_type == utils.DatasourceType.SAVEDQUERY:
+            return self.saved_query
         return self.table
 
     @property
@@ -261,6 +279,9 @@ class Slice(  # pylint: disable=too-many-public-methods
             # predicate already enforces the type constraint. ``None`` when
             # the row is gone, matching the DAO fallback's semantics.
             return self.semantic_view
+        if self.datasource_type == utils.DatasourceType.SAVEDQUERY:
+            # Same type-guarded relationship approach as semantic views.
+            return self.saved_query if hasattr(self.saved_query, "perm") else None
         # pylint: disable=import-outside-toplevel
         # Deferred to avoid a circular import: superset.daos.datasource
         # imports connectors and sql_lab models at module top.
@@ -368,7 +389,9 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def datasource_edit_url(self) -> str | None:
-        return getattr(self._display_datasource(), "url", None)
+        url = getattr(self._display_datasource(), "url", None)
+        # ``SavedQuery.url`` is a method, not a property; only surface strings.
+        return url if isinstance(url, str) else None
 
     @property
     def description_markeddown(self) -> str:
@@ -460,12 +483,26 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:
-                return self.get_query_context_factory().create(
-                    **{**json.loads(self.query_context), "current_slice": self}
-                )
+                query_context_payload = json.loads(self.query_context)
             except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)
+                return None
+            # ``QueryContextFactory.create()`` requires ``datasource`` and
+            # ``queries`` as keyword-only arguments; a row saved before the
+            # ChartPostSchema/ChartPutSchema validation added in
+            # apache/superset#35774 can still be missing either, which would
+            # otherwise raise a raw TypeError on every read of this chart.
+            if not is_query_context_metadata_complete(query_context_payload):
+                logger.error(
+                    "Slice %s query_context is missing required "
+                    "'datasource'/'queries' fields",
+                    self.id,
+                )
+                return None
+            return self.get_query_context_factory().create(
+                **{**query_context_payload, "current_slice": self}
+            )
         return None
 
     def get_explore_url(
@@ -505,7 +542,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         # SCRIPT_NAME (the application_root). `Slice.url` itself stays router-
         # relative so frontend callers can apply ensureAppRoot exactly once.
         href = url_for("ExploreView.root", slice_id=self.id)
-        return Markup(f'<a href="{href}">{name}</a>')
+        return Markup('<a href="{}">{}</a>').format(href, name)
 
     @property
     def icons(self) -> str:

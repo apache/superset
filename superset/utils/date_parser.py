@@ -490,6 +490,11 @@ def get_default_bound_for_shorthand(time_range: str) -> str:
     return get_relative_base(match.group(1)) if match else "today"
 
 
+def is_no_time_range(time_range: str | None) -> bool:
+    """Recognize the canonical or request-localized unbounded time range."""
+    return time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE)
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -526,7 +531,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     separator = " : "
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
+    if is_no_time_range(time_range):
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
@@ -909,15 +914,32 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
 
     def eval(self) -> datetime:
         holiday = self.value[0].eval()
-        dttm, country = [None, None]
-        if len(self.value) >= 2:
-            dttm = self.value[1].eval()
-        if len(self.value) == 3:
-            country = self.value[2]
+        dttm: datetime | None = None
+        country: str | None = None
+        # Both arguments after the holiday name are optional, so the second one
+        # is the datetime or the country depending on which were supplied. What
+        # tells them apart is the kind of argument: a datetime is always a
+        # function call (`datetime(...)`, `dateadd(...)`, ...) and a country is
+        # always quoted text.
+        for argument in self.value[1:]:
+            if isinstance(argument, EvalText):
+                country = argument.eval()
+            else:
+                dttm = argument.eval()
         holiday_year = dttm.year if dttm else parse_human_datetime("today").year
-        country = country.eval() if country else "US"
 
-        holiday_lookup = country_holidays(country, years=[holiday_year], observed=False)
+        try:
+            holiday_lookup = country_holidays(
+                country or "US", years=[holiday_year], observed=False
+            )
+        except NotImplementedError as ex:
+            # `country_holidays` has no calendar for the country, which the
+            # caller can correct: the accepted spellings are the ISO code and
+            # the registered name, so a lowercase code or a country written out
+            # in full both land here.
+            raise ValueError(
+                _("Unable to find such a country: [%(country)s]", country=country)
+            ) from ex
         searched_result = holiday_lookup.get_named(holiday, lookup="istartswith")
         if len(searched_result) > 0:
             return dttm_from_timetuple(searched_result[0].timetuple())
@@ -1039,6 +1061,11 @@ def datetime_eval(datetime_expression: str | None = None) -> datetime | None:
             return datetime_parser().parse_string(datetime_expression)[0].eval()
         except ParseException as ex:
             raise ValueError(ex) from ex
+        except RecursionError as ex:
+            # The expression grammar recurses once per nesting level, so a
+            # pathological or pasted expression exhausts the interpreter stack
+            # before the parser can report it as a parse failure.
+            raise ValueError(_("Expression is nested too deeply")) from ex
     return None
 
 

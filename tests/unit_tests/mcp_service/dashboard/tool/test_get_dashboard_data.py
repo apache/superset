@@ -17,6 +17,7 @@
 
 """Unit tests for the get_dashboard_data MCP tool."""
 
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -522,3 +523,509 @@ def test_completeness(row_count, source_total, limit, expected):
     from superset.mcp_service.dashboard.tool.get_dashboard_data import _completeness
 
     assert _completeness(row_count, source_total, limit) == expected
+
+
+@pytest.mark.parametrize("chart_type", ["histogram", "histogram_v2"])
+@pytest.mark.parametrize("with_metadata", [False, True])
+def test_histogram_sample_exposes_input_fetch_limit(
+    chart_type: str, with_metadata: bool
+) -> None:
+    """One output row is not evidence of full histogram input coverage."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    result = _chart_data(1, "Experience", viz=chart_type, rows=[{"0-10": 100}])
+    if with_metadata:
+        from superset.mcp_service.chart.tool.get_chart_data import (
+            _with_query_post_processing,
+        )
+
+        result = _with_query_post_processing(
+            result,
+            SimpleNamespace(
+                queries=[
+                    SimpleNamespace(
+                        row_limit=100, post_processing=[{"operation": "histogram"}]
+                    )
+                ]
+            ),
+        )
+    request = GetDashboardDataRequest(identifier=1, fetch_row_limit=100, sample_rows=5)
+    summary = _summarize_chart_data(result, None, request)
+    assert summary.fetch_row_limit == 100
+    assert summary.sample_rows_limit == 5
+    assert summary.row_count == 1
+    assert summary.truncated is True
+    assert summary.total_rows is None
+    assert summary.completeness_note is not None
+    assert "input coverage is unverified" in summary.completeness_note
+
+
+@pytest.mark.parametrize("fetch_row_limit", [3, 500])
+@pytest.mark.parametrize("has_query_results", [False, True])
+@pytest.mark.parametrize("with_metadata", [False, True])
+def test_box_plot_sample_exposes_input_fetch_limit(
+    fetch_row_limit: int, has_query_results: bool, with_metadata: bool
+) -> None:
+    """Collapsed box-plot statistics cannot prove input retrieval coverage."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    rows = [{"AVG(val)__count": 3, "AVG(val)__max": 249.5}]
+    result = _chart_data(
+        1,
+        "Distribution",
+        viz="box_plot",
+        rows=rows,
+        query_results=(
+            [
+                ChartQueryResult(
+                    query_index=0,
+                    columns=list(rows[0]),
+                    data=rows,
+                    row_count=1,
+                    total_rows=1,
+                )
+            ]
+            if has_query_results
+            else None
+        ),
+    )
+    if with_metadata:
+        from superset.mcp_service.chart.tool.get_chart_data import (
+            _with_query_post_processing,
+        )
+
+        result = _with_query_post_processing(
+            result,
+            SimpleNamespace(
+                queries=[
+                    SimpleNamespace(
+                        row_limit=fetch_row_limit,
+                        post_processing=[{"operation": "boxplot"}],
+                    )
+                ]
+            ),
+        )
+    summary = _summarize_chart_data(
+        result,
+        None,
+        GetDashboardDataRequest(identifier=1, fetch_row_limit=fetch_row_limit),
+    )
+
+    assert summary.fetch_row_limit == fetch_row_limit
+    assert summary.row_count == 1
+    assert summary.total_rows is None
+    assert summary.truncated is True
+    assert summary.completeness_note is not None
+    assert "input coverage is unverified" in summary.completeness_note
+    assert "fetch_row_limit" in summary.completeness_note
+    assert "Histogram bins" not in summary.completeness_note
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("saved", [False, True])
+async def test_timeseries_groupby_pivot_does_not_claim_complete_input(
+    monkeypatch: pytest.MonkeyPatch, saved: bool
+) -> None:
+    """A real pivot of 500 capped rows into 50 timestamps cannot prove coverage."""
+    import importlib
+
+    import pandas as pd
+
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+    from superset.mcp_service.chart.response_preflight import (
+        finalize_chart_data_response,
+    )
+    from superset.mcp_service.chart.schemas import GetChartDataRequest
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+    from superset.utils import pandas_postprocessing
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "sqlite",
+    )
+    form_data = {
+        "viz_type": "echarts_timeseries_line",
+        "datasource": "1__table",
+        "datasource_id": 1,
+        "datasource_type": "table",
+        "x_axis": "event_time",
+        "metrics": ["value"],
+        "groupby": ["category"],
+        "row_limit": 500,
+    }
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+    assert "pivot" in [step["operation"] for step in queries[0]["post_processing"]]
+    context = SimpleNamespace(
+        queries=[
+            SimpleNamespace(
+                **query, filter=[], time_range=None, to_dict=Mock(return_value=query)
+            )
+            for query in queries
+        ],
+        form_data=form_data,
+    )
+    rows = pd.DataFrame(
+        [
+            {"event_time": timestamp, "category": str(category), "value": 1}
+            for timestamp in range(50)
+            for category in range(10)
+        ]
+    )
+    assert len(rows) == 500
+
+    class Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None:
+            """Use a mocked command boundary, without a database."""
+
+        def run(self) -> dict[str, Any]:
+            """Execute the generated pipeline against the capped input."""
+            frame = rows.copy()
+            for step in self.query_context.queries[0].post_processing:
+                frame = getattr(pandas_postprocessing, step["operation"])(
+                    frame, **step.get("options", {})
+                )
+            assert len(frame) == 50
+            return {
+                "queries": [
+                    {
+                        "data": frame.to_dict(orient="records"),
+                        "colnames": list(frame.columns),
+                        "coltypes": [0] * len(frame.columns),
+                        "rowcount": len(frame),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+    )
+    monkeypatch.setattr(
+        module, "build_query_context_from_form_data", lambda *_a, **_kw: context
+    )
+    request = GetChartDataRequest(identifier=1, limit=500)
+    if saved:
+        chart = SimpleNamespace(
+            id=1,
+            slice_name="Grouped timeseries",
+            viz_type=form_data["viz_type"],
+            datasource_id=1,
+            datasource_type="table",
+            params=json.dumps(form_data),
+            query_context=json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "queries": queries,
+                    "form_data": form_data,
+                    "result_type": "full",
+                    "result_format": "json",
+                }
+            ),
+        )
+        monkeypatch.setattr(
+            module, "find_chart_by_identifier", lambda *_a, **_kw: chart
+        )
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *_a, **_kw: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            lambda *_a, **_kw: context,
+        )
+        result = await module.execute_chart_data(request, AsyncMock())
+    else:
+        result = await module._query_from_form_data(form_data, request, AsyncMock())
+        result = finalize_chart_data_response(result)
+    assert isinstance(result, ChartData), result
+    summary = _summarize_chart_data(
+        result, None, GetDashboardDataRequest(identifier=1, fetch_row_limit=500)
+    )
+    assert summary.row_count == 50
+    assert summary.total_rows is None
+    assert summary.truncated is True
+    assert summary.fetch_row_limit == 500
+    assert summary.completeness_note is not None
+    assert "post-processing" in summary.completeness_note
+    assert "fetch_row_limit" in summary.completeness_note
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        "aggregate",
+        "boxplot",
+        "histogram",
+        "pivot",
+        "prophet",
+        "resample",
+        "rolling",
+        "custom_row_filter",
+    ],
+)
+@pytest.mark.parametrize("collapsed_layer", [0, 1])
+@pytest.mark.parametrize("empty_primary", [False, True])
+def test_collapsing_operations_mark_each_query_input_unverified(
+    operation: str, collapsed_layer: int, empty_primary: bool
+) -> None:
+    """Do not infer coverage from any layer's transformed output count."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    layers = [
+        ChartQueryResult(
+            query_index=index,
+            columns=["value"],
+            data=[{"value": 1}],
+            row_count=1,
+            total_rows=1,
+        )
+        for index in range(2)
+    ]
+    if empty_primary:
+        layers[0] = ChartQueryResult(
+            query_index=0, columns=["value"], data=[], row_count=0, total_rows=0
+        )
+    result = _chart_data(1, "Mixed", viz="mixed_timeseries", query_results=layers)
+    result._query_post_processing = [[], []]
+    result._query_post_processing[collapsed_layer] = [operation, "flatten"]
+    summary = _summarize_chart_data(
+        result, None, GetDashboardDataRequest(identifier=1, fetch_row_limit=500)
+    )
+    assert summary.truncated is True
+    assert summary.queries is not None
+    for index, layer in enumerate(summary.queries):
+        assert layer.truncated is (index == collapsed_layer)
+        expected_total = 0 if empty_primary and index == 0 else 1
+        assert layer.total_rows == (
+            None if index == collapsed_layer else expected_total
+        )
+    primary_index = 1 if empty_primary else 0
+    assert summary.total_rows == (None if collapsed_layer == primary_index else 1)
+    assert summary.completeness_note is not None
+    assert "post-processing" in summary.completeness_note
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        "compare",
+        "contribution",
+        "cum",
+        "diff",
+        "flatten",
+        "geodetic_parse",
+        "geohash_decode",
+        "geohash_encode",
+        "rank",
+        "rename",
+        "select",
+        "sort",
+    ],
+)
+def test_row_preserving_operations_keep_completeness_checks(operation: str) -> None:
+    """Column/value/index-only transforms do not invalidate retrieval row counts."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    result = _chart_data(1, "Rows", viz="echarts_timeseries_line")
+    result._query_post_processing = [[operation]]
+    summary = _summarize_chart_data(
+        result, None, GetDashboardDataRequest(identifier=1, fetch_row_limit=500)
+    )
+    assert summary.total_rows == 1
+    assert summary.truncated is False
+    assert summary.completeness_note is not None
+    assert "use row_count, total_rows" in summary.completeness_note
+    assert "_query_post_processing" not in result.model_dump()
+
+
+def test_post_processing_classification_covers_registry() -> None:
+    """New registry operations require an explicit audit but default to caution."""
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _ROW_PRESERVING_OPERATIONS,
+    )
+    from superset.utils.pandas_postprocessing import OPERATIONS
+
+    assert set(OPERATIONS) == _ROW_PRESERVING_OPERATIONS | {
+        "aggregate",
+        "boxplot",
+        "histogram",
+        "pivot",
+        "prophet",
+        "resample",
+        "rolling",
+    }
+
+
+def test_executed_post_processing_metadata_tracks_all_queries() -> None:
+    """The internal handoff preserves query positions and stays off the wire."""
+    from superset.mcp_service.chart.response_preflight import (
+        finalize_chart_data_response,
+    )
+    from superset.mcp_service.chart.tool.get_chart_data import (
+        _with_query_post_processing,
+    )
+
+    result = _chart_data(1, "Mixed", viz="mixed_timeseries")
+    context = SimpleNamespace(
+        queries=[
+            SimpleNamespace(row_limit=100, post_processing=[{"operation": "sort"}]),
+            SimpleNamespace(
+                row_limit=10,
+                post_processing=[{"operation": "rolling"}, {"operation": "flatten"}],
+            ),
+        ]
+    )
+    response = finalize_chart_data_response(
+        _with_query_post_processing(result, context)
+    )
+    assert isinstance(response, ChartData)
+    assert response._query_post_processing == [["sort"], ["rolling", "flatten"]]
+    assert response._query_row_limits == [100, 10]
+    assert "_query_row_limits" not in response.model_dump()
+    assert "_query_row_limits" not in ChartData.model_json_schema()["properties"]
+    assert "_query_post_processing" not in response.model_dump()
+    assert "_query_post_processing" not in ChartData.model_json_schema()["properties"]
+
+
+@pytest.mark.parametrize("columns", [[], ["category"]])
+def test_pivot_completeness_respects_groupby(columns: list[str]) -> None:
+    """An ungrouped timeseries pivot preserves the twelve input timestamps."""
+    from superset.mcp_service.chart.tool.get_chart_data import (
+        _with_query_post_processing,
+    )
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    result = _chart_data(
+        1,
+        "Monthly",
+        viz="echarts_timeseries_line",
+        rows=[{"month": i, "value": i} for i in range(12)],
+    )
+    context = SimpleNamespace(
+        queries=[
+            SimpleNamespace(
+                row_limit=100,
+                post_processing=[
+                    {
+                        "operation": "pivot",
+                        "options": {"index": ["month"], "columns": columns},
+                    },
+                    {"operation": "flatten"},
+                ],
+            )
+        ]
+    )
+    result = _with_query_post_processing(result, context)
+    summary = _summarize_chart_data(result, None, GetDashboardDataRequest(identifier=1))
+    assert summary.truncated is bool(columns)
+    assert summary.total_rows == (None if columns else 12)
+
+
+def test_completeness_uses_executed_limit() -> None:
+    """A server cap below the requested fetch limit must remain visible."""
+    from superset.mcp_service.chart.tool.get_chart_data import (
+        _with_query_post_processing,
+    )
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    result = _chart_data(1, "Capped", rows=[{"value": i} for i in range(10)])
+    result = _with_query_post_processing(
+        result,
+        SimpleNamespace(queries=[SimpleNamespace(row_limit=10, post_processing=[])]),
+    )
+    summary = _summarize_chart_data(
+        result, None, GetDashboardDataRequest(identifier=1, fetch_row_limit=100)
+    )
+    assert summary.fetch_row_limit == 10
+    assert summary.total_rows is None
+    assert summary.truncated is True
+
+
+def test_dashboard_completeness_guidance_is_shared() -> None:
+    """Long population guidance must appear once rather than on every chart."""
+    from superset.mcp_service.dashboard.schemas import (
+        DashboardData,
+        GetDashboardDataRequest,
+    )
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    result = _chart_data(1, "Distribution", viz="histogram", rows=[{"count": 10}])
+    chart = _summarize_chart_data(result, None, GetDashboardDataRequest(identifier=1))
+    response = DashboardData(
+        dashboard_id=1,
+        dashboard_name="Example",
+        chart_count=30,
+        charts_returned=30,
+        charts=[chart] * 30,
+    )
+    assert response.model_dump_json().count("source aggregates") == 1
+    assert "unverified" in response.completeness_note
+    assert len(chart.completeness_note or "") < 150
+
+
+def test_multi_query_completeness_uses_each_executed_limit() -> None:
+    """A capped secondary query must not borrow the primary query's limit."""
+    from superset.mcp_service.chart.tool.get_chart_data import (
+        _with_query_post_processing,
+    )
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    layers = [
+        ChartQueryResult(
+            query_index=i,
+            columns=["value"],
+            data=[{"value": 1}],
+            row_count=1,
+            total_rows=1,
+        )
+        for i in range(2)
+    ]
+    result = _chart_data(1, "Mixed", query_results=layers)
+    result = _with_query_post_processing(
+        result,
+        SimpleNamespace(
+            queries=[
+                SimpleNamespace(row_limit=10, post_processing=[]),
+                SimpleNamespace(row_limit=1, post_processing=[]),
+            ]
+        ),
+    )
+    summary = _summarize_chart_data(result, None, GetDashboardDataRequest(identifier=1))
+    assert summary.fetch_row_limit == 10
+    assert summary.truncated is True
+    assert summary.queries is not None
+    assert summary.queries[0].truncated is False
+    assert summary.queries[1].truncated is True
+    assert summary.queries[1].total_rows is None

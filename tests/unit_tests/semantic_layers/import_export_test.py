@@ -896,7 +896,9 @@ def test_orphaned_dashboard_target_does_not_abort_mixed_export(
         dashboard_export.DashboardDAO, "find_by_ids", lambda ids: [source, plain]
     )
     monkeypatch.setattr(
-        dashboard_export.DatasetDAO, "find_by_ids", lambda ids: [table] if ids else []
+        dashboard_export.DatasetDAO,
+        "find_by_ids",
+        lambda ids, **kwargs: [table] if ids else [],
     )
     monkeypatch.setattr(
         dashboard_export.ExportChartsCommand, "run", lambda *args, **kwargs: iter(())
@@ -916,6 +918,28 @@ def test_orphaned_dashboard_target_does_not_abort_mixed_export(
     targets: list[dict[str, Any]] = exported["metadata"][control][0]["targets"]
     assert targets[0] == {"datasourceType": "semantic_view"}
     assert targets[1]["datasetUuid"] == VIEW_UUID
-    dataset_export.assert_called_once_with([81])
+    dataset_export.assert_called_once_with([81], include_deleted=True)
     with pytest.raises(refs.SemanticReferenceError, match="requires datasourceRef"):
         refs.resolve_bundle_references({"dashboards/orphan.yaml": exported})
+
+
+def test_reference_export_follows_runtime_flip(
+    view: SemanticView,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Turning the feature off retains the established bundle rejection."""
+    expected: dict[str, str] = refs.export_view_reference(view)
+    configs: dict[str, Any] = {"charts/chart.yaml": chart_config()}
+    expected_import: dict[str, dict[str, Any]] = refs.resolve_bundle_references(configs)
+    monkeypatch.setattr(
+        refs.feature_flag_manager, "is_feature_enabled", lambda flag: False
+    )
+    with pytest.raises(refs.SemanticReferenceError, match="require SEMANTIC_LAYERS"):
+        refs.export_view_reference(view)
+    with pytest.raises(refs.SemanticReferenceError, match="require SEMANTIC_LAYERS"):
+        refs.resolve_bundle_references(configs)
+    monkeypatch.setattr(
+        refs.feature_flag_manager, "is_feature_enabled", lambda flag: True
+    )
+    assert refs.export_view_reference(view) == expected
+    assert refs.resolve_bundle_references(configs) == expected_import

@@ -29,6 +29,7 @@ import pytest
 import yaml
 from pydantic import TypeAdapter, ValidationError
 
+from superset import is_feature_enabled
 from superset.mcp_service.chart.chart_helpers import (
     build_query_dicts_from_form_data,
     resolve_gantt_query_fields,
@@ -73,6 +74,7 @@ from superset.mcp_service.chart.validation.dataset_validator import (
 from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
 from superset.mcp_service.chart.validation.schema_validator import SchemaValidator
 from superset.mcp_service.common.error_schemas import DatasetContext
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 update_chart_module = importlib.import_module(
     "superset.mcp_service.chart.tool.update_chart"
@@ -837,6 +839,41 @@ def test_query_fields_and_query_context_shape_match_frontend() -> None:
     assert query["row_limit"] == 321
 
 
+def test_saved_column_objects_become_semantic_query_names() -> None:
+    """Saved Gantt references remain queryable after a semantic-view rebind."""
+    form_data: dict[str, Any] = {
+        "viz_type": "gantt_chart",
+        "start_time": {"column_name": "start_time"},
+        "end_time": {"column_name": "end_time"},
+        "y_axis": {"column_name": "task"},
+        "series": {"column_name": "owner"},
+        "tooltip_columns": [{"column_name": "project"}],
+    }
+    expected_columns: list[str] = [
+        "start_time",
+        "end_time",
+        "task",
+        "owner",
+        "project",
+    ]
+
+    columns: list[Any]
+    series_columns: list[Any]
+    columns, _, _, series_columns = resolve_gantt_query_fields(form_data)
+
+    assert columns == expected_columns
+    assert series_columns == ["owner"]
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="semantic_view",
+    ):
+        query: dict[str, Any] = build_query_dicts_from_form_data(
+            form_data, 7, "semantic_view"
+        )[0]
+    assert query["columns"] == expected_columns
+    assert query["series_columns"] == ["owner"]
+
+
 def test_saved_query_fallback_rejects_malformed_native_order() -> None:
     form_data = {
         "viz_type": "gantt_chart",
@@ -1045,7 +1082,7 @@ async def test_generate_chart_maps_ambiguous_gantt_reference_to_error() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1),
+            return_value=regular_user(id=1),
         ),
         patch.object(
             ValidationPipeline,
@@ -1091,7 +1128,7 @@ async def test_update_chart_maps_gantt_semantic_normalization_to_error() -> None
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1),
+            return_value=regular_user(id=1),
         ),
         patch.object(
             update_chart_module, "find_chart_by_identifier", return_value=chart
@@ -1148,7 +1185,7 @@ def test_update_chart_preview_maps_gantt_semantic_normalization_to_error() -> No
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1),
+            return_value=regular_user(id=1),
         ),
         patch.object(
             update_chart_preview_module, "_find_dataset", return_value=dataset
@@ -1169,9 +1206,18 @@ def test_update_chart_preview_maps_gantt_semantic_normalization_to_error() -> No
 
 
 @pytest.mark.parametrize("generate_query_preview", [False, True])
+@pytest.mark.parametrize("embedded_enabled", [False, True])
 def test_update_chart_preview_normalizes_all_gantt_refs_before_url_and_query_preview(
     generate_query_preview: bool,
+    embedded_enabled: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(
+        "superset.is_feature_enabled",
+        lambda flag: embedded_enabled
+        if flag == "EMBEDDED_SUPERSET"
+        else is_feature_enabled(flag),
+    )
     columns = [
         SimpleNamespace(
             column_name=column["name"],
@@ -1217,7 +1263,7 @@ def test_update_chart_preview_normalizes_all_gantt_refs_before_url_and_query_pre
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1),
+            return_value=regular_user(id=1),
         ),
         patch.object(
             update_chart_preview_module, "_find_dataset", return_value=dataset
@@ -1381,7 +1427,7 @@ def test_cached_update_chart_preview_preserves_or_replaces_temporal_binding(
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1),
+            return_value=regular_user(id=1),
         ),
         patch.object(
             update_chart_preview_module, "_find_dataset", return_value=dataset
@@ -2071,7 +2117,7 @@ async def test_update_chart_rejects_preserved_series_colliding_with_new_category
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1),
+            return_value=regular_user(id=1),
         ),
         patch.object(
             update_chart_module, "find_chart_by_identifier", return_value=chart
@@ -2147,7 +2193,7 @@ def test_update_chart_preview_rejects_cached_series_colliding_with_new_category(
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1),
+            return_value=regular_user(id=1),
         ),
         patch.object(
             update_chart_preview_module, "_find_dataset", return_value=dataset
@@ -2229,7 +2275,7 @@ async def test_real_update_preserves_omitted_and_overrides_explicit_defaults() -
         with (
             patch(
                 "superset.mcp_service.auth.get_user_from_request",
-                return_value=Mock(id=1),
+                return_value=regular_user(id=1),
             ),
             patch.object(
                 update_chart_module, "find_chart_by_identifier", return_value=chart
@@ -2554,7 +2600,8 @@ async def test_default_gantt_update_validates_named_preview_before_caching() -> 
             side_effect=lambda **kwargs: nullcontext(),
         ),
         patch(
-            "superset.mcp_service.auth.get_user_from_request", return_value=Mock(id=1)
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=regular_user(id=1),
         ),
         patch.object(
             update_chart_module, "find_chart_by_identifier", return_value=chart

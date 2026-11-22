@@ -16,10 +16,12 @@
 # under the License.
 
 import os
+import sys
 from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy.exc import OperationalError
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
@@ -83,13 +85,15 @@ class TestSupersetApp:
     @patch("superset.commands.theme.seed.SeedSystemThemesCommand")
     def test_sync_config_to_db_initializes_when_tables_exist(
         self,
-        mock_seed_themes_command,
-        mock_logger,
-    ):
+        mock_seed_themes_command: MagicMock,
+        mock_logger: MagicMock,
+        mocker: MockerFixture,
+    ) -> None:
         """Test that features are initialized when database is up-to-date."""
         # Setup
         app = SupersetApp(__name__)
         app.config = {"SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"}
+        mocker.patch("superset.semantic_layers.execution.bootstrap_semantic_namespace")
         mock_seed_themes = MagicMock()
         mock_seed_themes_command.return_value = mock_seed_themes
 
@@ -137,6 +141,78 @@ class TestSupersetAppInitializer:
         makedirs.assert_called_once_with("/var/lib/superset", exist_ok=True)
 
     @patch("superset.initialization.logger")
+    @patch("superset.initialization.stats_logger_manager")
+    @patch("superset.initialization.cache_manager")
+    @patch("superset.initialization.feature_flag_manager")
+    def test_semantic_cache_unsupported_coordination_is_nonfatal(
+        self,
+        mock_feature_flags: MagicMock,
+        mock_cache_manager: MagicMock,
+        mock_stats_manager: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_app: MagicMock = MagicMock()
+        mock_app.config = {
+            "SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS": 1.0,
+            "SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS": 30,
+        }
+        mock_feature_flags.is_feature_enabled.return_value = True
+        mock_cache_manager.semantic_cache_coordination = None
+        mock_stats_manager.instance.gauge.side_effect = RuntimeError(
+            "metrics unavailable"
+        )
+        initializer: SupersetAppInitializer = SupersetAppInitializer(mock_app)
+
+        initializer.configure_semantic_cache()
+
+        mock_logger.warning.assert_called_once()
+        warning: str = mock_logger.warning.call_args.args[0]
+        assert "owner-token leases" in warning
+        mock_stats_manager.instance.gauge.assert_called_once_with(
+            "semantic_cache.containment.enabled", 0.0
+        )
+        mock_stats_manager.instance.incr.assert_called_once_with(
+            "semantic_cache.containment.unsupported"
+        )
+
+    @patch("superset.initialization.logger")
+    @patch("superset.initialization.stats_logger_manager")
+    @patch("superset.initialization.cache_manager")
+    @patch("superset.initialization.feature_flag_manager")
+    def test_semantic_cache_null_data_cache_warns_and_disables(
+        self,
+        mock_feature_flags: MagicMock,
+        mock_cache_manager: MagicMock,
+        mock_stats_manager: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        """The default ``NullCache`` data cache can never serve a containment
+        hit; enabling the flag on top of it must be surfaced, not silent."""
+        from flask_caching.backends.nullcache import NullCache
+
+        mock_app: MagicMock = MagicMock()
+        mock_app.config = {
+            "SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS": 1.0,
+            "SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS": 30,
+        }
+        mock_feature_flags.is_feature_enabled.return_value = True
+        mock_cache_manager.data_cache = NullCache()
+        mock_cache_manager.semantic_cache_coordination = MagicMock()
+        initializer: SupersetAppInitializer = SupersetAppInitializer(mock_app)
+
+        initializer.configure_semantic_cache()
+
+        mock_logger.warning.assert_called_once()
+        warning: str = mock_logger.warning.call_args.args[0]
+        assert "DATA_CACHE_CONFIG" in warning
+        mock_stats_manager.instance.gauge.assert_called_once_with(
+            "semantic_cache.containment.enabled", 0.0
+        )
+        mock_stats_manager.instance.incr.assert_called_once_with(
+            "semantic_cache.containment.unsupported"
+        )
+
+    @patch("superset.initialization.logger")
     def test_init_app_in_ctx_calls_sync_config_to_db(self, mock_logger):
         """Test that initialization calls app.sync_config_to_db()."""
         # Setup
@@ -155,12 +231,180 @@ class TestSupersetAppInitializer:
             patch.object(app_initializer, "configure_auth_provider"),
             patch.object(app_initializer, "configure_ssh_manager"),
             patch.object(app_initializer, "configure_stats_manager"),
+            patch.object(app_initializer, "configure_semantic_cache"),
             patch.object(app_initializer, "init_views"),
         ):
             app_initializer.init_app_in_ctx()
 
         # Assert that sync_config_to_db was called on the app
         mock_app.sync_config_to_db.assert_called_once()
+
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_host_tools")
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_decorators")
+    @patch("superset.core.api.core_api_injection.initialize_core_api_dependencies")
+    def test_init_core_dependencies_registers_host_tools_by_default(
+        self,
+        mock_init_api,
+        mock_init_decorators,
+        mock_init_host_tools,
+    ):
+        """Default config (flag absent): decorators and host tools both register."""
+        mock_app = MagicMock()
+        mock_app.config = {}
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        app_initializer.init_core_dependencies()
+
+        mock_init_api.assert_called_once()
+        # Decorators are always registered so extensions using @tool/@prompt at
+        # import time keep working in every process.
+        mock_init_decorators.assert_called_once()
+        # Host tools default to on.
+        mock_init_host_tools.assert_called_once()
+
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_host_tools")
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_decorators")
+    @patch("superset.core.api.core_api_injection.initialize_core_api_dependencies")
+    def test_init_core_dependencies_registers_host_tools_when_enabled(
+        self,
+        mock_init_api,
+        mock_init_decorators,
+        mock_init_host_tools,
+    ):
+        """Flag True: decorators and host tools both register (unchanged behavior)."""
+        mock_app = MagicMock()
+        mock_app.config = {"CORE_MCP_HOST_TOOLS_ENABLED": True}
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        app_initializer.init_core_dependencies()
+
+        mock_init_api.assert_called_once()
+        mock_init_decorators.assert_called_once()
+        mock_init_host_tools.assert_called_once()
+
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_host_tools")
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_decorators")
+    @patch("superset.core.api.core_api_injection.initialize_core_api_dependencies")
+    def test_init_core_dependencies_skips_host_tools_when_disabled(
+        self,
+        mock_init_api,
+        mock_init_decorators,
+        mock_init_host_tools,
+    ):
+        """Flag False: host-tool registration is skipped, but core init and the
+        decorator swap still run (so @tool/@prompt extensions don't break)."""
+        mock_app = MagicMock()
+        mock_app.config = {"CORE_MCP_HOST_TOOLS_ENABLED": False}
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        app_initializer.init_core_dependencies()
+
+        # Core API deps and the decorator swap still run.
+        mock_init_api.assert_called_once()
+        mock_init_decorators.assert_called_once()
+        # The heavy MCP service app import is skipped.
+        mock_init_host_tools.assert_not_called()
+
+    def test_disabled_worker_decorators_do_not_import_service_app(self):
+        """A disabled worker only swaps the decorators; applying a real
+        @tool/@prompt decoration must not import the MCP service app.
+
+        This exercises the concrete decorators (not the initializer, which is
+        mocked in the tests above). Since a Celery worker with
+        CORE_MCP_HOST_TOOLS_ENABLED=False never calls
+        initialize_core_mcp_host_tools(), superset.mcp_service.app is absent, and
+        the concrete @tool/@prompt decorators must stay no-ops so the heavy
+        host-tool stack is not loaded on demand.
+        """
+        from superset.core.mcp.core_mcp_injection import (
+            create_prompt_decorator,
+            create_tool_decorator,
+        )
+
+        # Simulate the worker: ensure the service app is not loaded, restoring
+        # whatever was there afterwards so we don't disturb other tests.
+        saved = sys.modules.pop("superset.mcp_service.app", None)
+        try:
+            assert "superset.mcp_service.app" not in sys.modules
+
+            @create_tool_decorator
+            def dummy_tool() -> int:
+                """A representative extension tool."""
+                return 1
+
+            @create_prompt_decorator
+            def dummy_prompt() -> str:
+                """A representative extension prompt."""
+                return "prompt"
+
+            # The heavy host-tool stack must stay unimported...
+            assert "superset.mcp_service.app" not in sys.modules
+            # ...and the decorators return the original functions untouched, so
+            # the extension keeps working.
+            assert dummy_tool() == 1
+            assert dummy_prompt() == "prompt"
+        finally:
+            if saved is not None:
+                sys.modules["superset.mcp_service.app"] = saved
+
+    @patch("superset.core.mcp.core_mcp_injection.logger")
+    def test_skipped_decoration_warns_once(self, mock_logger):
+        """A skipped @tool/@prompt registration is logged at WARNING, once per
+        registration, so a process that should serve MCP but has host tools
+        disabled does not silently lose extension tools/prompts."""
+        from superset.core.mcp import core_mcp_injection
+
+        saved = sys.modules.pop("superset.mcp_service.app", None)
+        try:
+            with patch.object(core_mcp_injection, "_skipped_registrations", set()):
+
+                def dummy() -> int:
+                    return 1
+
+                core_mcp_injection.create_tool_decorator(dummy)
+                core_mcp_injection.create_tool_decorator(dummy)
+                core_mcp_injection.create_prompt_decorator(name="my_prompt")(dummy)
+
+            assert "superset.mcp_service.app" not in sys.modules
+            # One warning for the tool (deduplicated) and one for the prompt.
+            assert mock_logger.warning.call_count == 2
+            logged = [c.args[1:3] for c in mock_logger.warning.call_args_list]
+            assert logged == [("tool", "dummy"), ("prompt", "my_prompt")]
+        finally:
+            if saved is not None:
+                sys.modules["superset.mcp_service.app"] = saved
+
+    @patch("superset.core.mcp.core_mcp_injection.logger")
+    def test_host_tools_quietly_skipped_without_fastmcp(self, mock_logger):
+        """Without the optional fastmcp dependency, host-tool registration is a
+        quiet skip (no ERROR log, no service app import), like the decorators."""
+        import superset.mcp_service
+        from superset.core.mcp import core_mcp_injection
+
+        saved = sys.modules.pop("superset.mcp_service.app", None)
+        # The package caches the submodule as an attribute, so
+        # ``from superset.mcp_service import app`` would succeed without touching
+        # sys.modules. Clear it too so the import only happens if the guard fails.
+        saved_attr = getattr(superset.mcp_service, "app", None)
+        if hasattr(superset.mcp_service, "app"):
+            delattr(superset.mcp_service, "app")
+        try:
+            with patch.object(
+                core_mcp_injection, "_fastmcp_available", return_value=False
+            ):
+                core_mcp_injection.initialize_core_mcp_dependencies()
+
+            assert "superset.mcp_service.app" not in sys.modules
+            assert not hasattr(superset.mcp_service, "app")
+            mock_logger.error.assert_not_called()
+            mock_logger.debug.assert_any_call(
+                "fastmcp is not installed, skipping MCP host tool registration"
+            )
+        finally:
+            if saved is not None:
+                sys.modules["superset.mcp_service.app"] = saved
+            if saved_attr is not None:
+                superset.mcp_service.app = saved_attr
 
     def test_database_uri_lazy_property(self):
         """Test database_uri property uses lazy initialization with smart caching."""

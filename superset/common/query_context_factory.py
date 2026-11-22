@@ -27,12 +27,27 @@ from superset.common.query_object_factory import QueryObjectFactory
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
+from superset.extensions import security_manager
 from superset.models.slice import Slice
+from superset.security.manager import STOCK_RAISE_FOR_ACCESS
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+from superset.utils.date_parser import is_no_time_range
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+
+
+def _uses_stock_raise_for_access() -> bool:
+    """Check the resolved method against the original stock function.
+
+    The semantic preflight passes empty queries. Instance wrappers and operator
+    reassignment of the base-class method must keep the completed-context path.
+    """
+    return (
+        getattr(security_manager.raise_for_access, "__func__", None)
+        is STOCK_RAISE_FOR_ACCESS
+    )
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -41,9 +56,11 @@ def create_query_object_factory() -> QueryObjectFactory:
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods
     _query_object_factory: QueryObjectFactory
+    _authorize_semantic_before_metadata: bool
 
-    def __init__(self) -> None:
+    def __init__(self, authorize_semantic_before_metadata: bool = False) -> None:
         self._query_object_factory = create_query_object_factory()
+        self._authorize_semantic_before_metadata = authorize_semantic_before_metadata
 
     def create(  # pylint: disable=too-many-arguments
         self,
@@ -56,6 +73,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
         force_nonce: str | None = None,
+        client_id: str | None = None,
         custom_cache_timeout: int | None = None,
         preserve_null_row_limit: bool = False,
     ) -> QueryContext:
@@ -71,6 +89,30 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
+
+        if (
+            self._authorize_semantic_before_metadata
+            and datasource_model_instance is not None
+            and DatasourceType(datasource["type"]) == DatasourceType.SEMANTIC_VIEW
+        ):
+            # Guest dashboard and payload checks need the completed query context,
+            # and an operator EXTRA_RAISE_FOR_ACCESS_BYPASS hook or a custom
+            # security manager's raise_for_access may read the request's queries;
+            # keep their authorization path and timing unchanged.
+            if (
+                not security_manager.is_guest_user()
+                and not current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
+                and _uses_stock_raise_for_access()
+            ):
+                QueryContext(
+                    datasource=datasource_model_instance,
+                    queries=[],
+                    slice_=slice_,
+                    form_data=form_data,
+                    result_type=result_type,
+                    result_format=result_format,
+                    cache_values={},
+                ).raise_for_access()
 
         # The server pagination var is extracted from form data as the
         # row limit for server pagination is more
@@ -89,6 +131,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     datasource_model_instance=cast(
                         "BaseDatasource", datasource_model_instance
                     ),
+                    force_query=force,
                     server_pagination=server_pagination,
                     preserve_null_row_limit=preserve_null_row_limit,
                     **query_obj,
@@ -111,6 +154,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             result_format=result_format,
             force=force,
             force_nonce=force_nonce,
+            client_id=client_id,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
         )
@@ -131,7 +175,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         query_object: QueryObject,
     ) -> QueryObject:
         self._apply_granularity(query_object, form_data, datasource)
-        self._apply_filters(query_object)
+        self._apply_filters(query_object, form_data)
         self._add_tooltip_columns(query_object, form_data)
         self._add_currency_column(query_object, form_data, datasource)
         return query_object
@@ -254,25 +298,41 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
         }
         x_axis = form_data and form_data.get("x_axis")
-        temporal_range_filters = [
+        main_dttm_col = getattr(datasource, "main_dttm_col", None)
+        # Filters that would be clobbered by inferring main_dttm_col below: a
+        # TEMPORAL_RANGE filter already on main_dttm_col itself isn't
+        # "independent", it's the same time subject inference would also
+        # pick, and gets deduped once inference runs.
+        other_temporal_filters = [
             filter_
             for filter_ in query_object.filter
-            if filter_["op"] == "TEMPORAL_RANGE"
+            if filter_["op"] == "TEMPORAL_RANGE" and filter_["col"] != main_dttm_col
         ]
 
         should_infer_filter_granularity: bool = (
             is_adhoc_column(x_axis)  # type: ignore
             and query_object.granularity is None
             and bool(query_object.from_dttm or query_object.to_dttm)
-            and (bool(query_object.time_range) or not temporal_range_filters)
-            and (main_dttm_col := getattr(datasource, "main_dttm_col", None))
-            in temporal_columns
+            and (bool(query_object.time_range) or not other_temporal_filters)
+            and main_dttm_col in temporal_columns
         )
         if should_infer_filter_granularity:
             # The inferred column supplies the time-filter subject. It must not be
             # treated as an explicitly selected granularity, which would rewrite
             # the x-axis or remove an independent temporal filter below.
             query_object.granularity = main_dttm_col
+            # Drop any TEMPORAL_RANGE filter already targeting the same column
+            # (e.g. left over from when it was the physical x-axis) so helpers.py
+            # doesn't emit the same WHERE condition twice: once from this
+            # inferred granularity's from_dttm/to_dttm, once from the filter.
+            query_object.filter = [
+                filter_
+                for filter_ in query_object.filter
+                if not (
+                    filter_["op"] == "TEMPORAL_RANGE"
+                    and filter_["col"] == main_dttm_col
+                )
+            ]
             return
 
         if (
@@ -383,6 +443,10 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # another temporal filter. A new filter based on the value of
             # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
+            # Keep independent predicates when the Time Column is unchanged.
+            # A swapped x-axis drill can carry the overriding column's bucket.
+            # Sunburst levels are independent of the Time Column, so their
+            # non-dashboard predicates remain valid when that column changes.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -391,10 +455,47 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and filter.get("grain")
+                        and any(
+                            isinstance(column, dict)
+                            and column.get("columnType") == "BASE_AXIS"
+                            and column.get("label") == filter["col"]
+                            and column.get("timeGrain") == filter["grain"]
+                            for column in query_object.columns
+                        )
+                    )
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and (
+                            filter_to_remove == granularity
+                            or (
+                                (form_data or {}).get("viz_type") == "sunburst_v2"
+                                # Dashboard filters can come from a swapped x-axis.
+                                and not filter.get("isExtra")
+                            )
+                        )
+                    )
                 ]
 
-    def _apply_filters(self, query_object: QueryObject) -> None:
+    def _apply_filters(
+        self, query_object: QueryObject, form_data: dict[str, Any] | None = None
+    ) -> None:
+        """Apply the time range, retaining the source of dashboard overrides."""
+        extra_form_data: object = (form_data or {}).get("extra_form_data")
+        dashboard_time_override: bool = (
+            isinstance(extra_form_data, dict)
+            and "time_range" in extra_form_data
+            and extra_form_data["time_range"] == query_object.time_range
+        )
         if query_object.time_range:
             for filter_object in query_object.filter:
                 if filter_object["op"] == "TEMPORAL_RANGE":
+                    saved: object = filter_object.get("val")
+                    was_unbounded: bool = saved is None or (
+                        isinstance(saved, str) and is_no_time_range(saved)
+                    )
                     filter_object["val"] = query_object.time_range
+                    if dashboard_time_override and was_unbounded:
+                        filter_object["isExtra"] = True

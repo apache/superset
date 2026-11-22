@@ -25,10 +25,12 @@ pinning against regressions.
 
 import importlib.util
 import json  # noqa: TID251 - testing a standalone script that uses stdlib json
+import shlex
 from pathlib import Path
 
 import polib  # type: ignore[import-untyped]
 import pytest
+from babel.messages.frontend import CommandLineInterface
 
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4] / "scripts" / "translations" / "backfill_po.py"
@@ -56,6 +58,12 @@ def test_is_valid_lang_code_accepts_region_and_script_subtags(lang: str) -> None
 def test_is_valid_lang_code_rejects_malformed_and_traversal(lang: str) -> None:
     """Malformed codes and path-traversal attempts are rejected."""
     assert not backfill_po._is_valid_lang_code(lang)
+
+
+def test_lang_name_names_the_script_for_both_serbian_catalogs() -> None:
+    """``sr`` is Cyrillic and ``sr_Latn`` is Latin; the prompt must say which."""
+    assert "Cyrillic" in backfill_po._lang_name("sr")
+    assert "Latin" in backfill_po._lang_name("sr_Latn")
 
 
 def test_parse_response_singular_strings() -> None:
@@ -503,6 +511,34 @@ def test_is_do_not_translate_allows_normal_entry() -> None:
     assert not backfill_po._is_do_not_translate(entry)
 
 
+@pytest.mark.parametrize(
+    "comment",
+    [
+        "i18n: the short identifier in a URL; do not translate as the animal",
+        "i18n: translate Slug as a URL identifier; do not translate as an animal",
+        "i18n: don't translate as a server tier",
+        "i18n: a URL identifier,\ndo not translate it as the animal",
+        "i18n: a product term, not on the do-not-translate list",
+    ],
+)
+def test_is_do_not_translate_ignores_prose_in_an_i18n_note(comment: str) -> None:
+    """An ``i18n:`` note saying how *not* to translate a term is guidance on
+    meaning, not a do-not-translate marker: the entry still gets translated,
+    with the note in the prompt."""
+    entry = polib.POEntry(msgid="Slug", msgstr="", comment=comment)
+    assert not backfill_po._is_do_not_translate(entry)
+
+
+def test_is_do_not_translate_honors_marker_beside_an_i18n_note() -> None:
+    """The stamped marker line still counts when the entry also has a note."""
+    entry = polib.POEntry(
+        msgid="not-in-registry-token",
+        msgstr="",
+        comment="i18n: an API field name\ndo-not-translate",
+    )
+    assert backfill_po._is_do_not_translate(entry)
+
+
 def test_backfill_skips_do_not_translate_entries_end_to_end(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -514,11 +550,14 @@ def test_backfill_skips_do_not_translate_entries_end_to_end(
     po_dir = tmp_path / lang / "LC_MESSAGES"
     po_dir.mkdir(parents=True)
     po_path = po_dir / "messages.po"
-    # One curated DNT msgid, one translator-marked DNT entry, one normal entry.
+    # One curated DNT msgid, one translator-marked DNT entry, one entry whose
+    # i18n note says "do not translate as ..." in prose, one normal entry.
     po_path.write_text(
         'msgid ""\nmsgstr ""\n\n'
         'msgid "bolt"\nmsgstr ""\n\n'
         '# Не переводить\nmsgid "Keep me literal"\nmsgstr ""\n\n'
+        "#. i18n: a URL identifier; do not translate as the animal\n"
+        'msgid "Slug"\nmsgstr ""\n\n'
         'msgid "Save dashboard"\nmsgstr ""\n',
         encoding="utf-8",
     )
@@ -526,6 +565,7 @@ def test_backfill_skips_do_not_translate_entries_end_to_end(
     index_path.write_text("{}", encoding="utf-8")
 
     monkeypatch.setattr(backfill_po, "TRANSLATIONS_DIR", tmp_path)
+    monkeypatch.setattr(backfill_po, "resolve_model", lambda model: "claude-test")
 
     seen_msgids: list[str] = []
 
@@ -545,10 +585,373 @@ def test_backfill_skips_do_not_translate_entries_end_to_end(
     # DNT entries never reached the translator …
     assert "bolt" not in seen_msgids
     assert "Keep me literal" not in seen_msgids
-    assert seen_msgids == ["Save dashboard"]
+    assert seen_msgids == ["Slug", "Save dashboard"]
 
     # … and stay untranslated in the written file, while the normal one is filled.
     written = polib.pofile(str(po_path))
     assert written.find("bolt").msgstr == ""
     assert written.find("Keep me literal").msgstr == ""
+    assert written.find("Slug").msgstr == "T:Slug"
     assert written.find("Save dashboard").msgstr == "T:Save dashboard"
+
+
+# --- i18n: developer notes -------------------------------------------------
+
+_BACKEND_NOTE = (
+    "the kind of system behind a connection: a database engine "
+    "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver"
+)
+
+
+@pytest.mark.parametrize(
+    ("comment", "expected"),
+    [
+        ("i18n: a URL identifier, not the animal", "a URL identifier, not the animal"),
+        (
+            "i18n: the kind of system behind a connection: a database engine\n"
+            "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver",
+            _BACKEND_NOTE,
+        ),
+        ("i18n: a URL identifier\ndo-not-translate", "a URL identifier"),
+        ("do-not-translate\ni18n: a URL identifier", "a URL identifier"),
+        # A note may say "do not translate" in prose; only the exact stamped
+        # marker line ends it.
+        (
+            "i18n: the product name,\ndo not translate it",
+            "the product name, do not translate it",
+        ),
+        ("i18n: first note\ni18n: second note", "first note second note"),
+        ("do-not-translate", None),
+        ("", None),
+    ],
+)
+def test_developer_note_reads_the_i18n_comment(
+    comment: str, expected: str | None
+) -> None:
+    entry = polib.POEntry(msgid="Slug", msgstr="", comment=comment)
+    assert backfill_po._developer_note(entry) == expected
+
+
+def _babel_update_sh_update_args(template: Path, directory: Path) -> list[str]:
+    """The ``pybabel update`` call from babel_update.sh, with its paths replaced.
+
+    Only ``-i`` and ``-d`` change, so any other flag in the script reaches the
+    test unchanged.
+    """
+    script = (_SCRIPT_PATH.parent / "babel_update.sh").read_text(encoding="utf-8")
+    start = script.find("\npybabel update")
+    assert start >= 0, (
+        "babel_update.sh has no line starting with `pybabel update`; update "
+        "_babel_update_sh_update_args to find the catalog update call"
+    )
+    lines = script[start + 1 :].splitlines()
+    command: list[str] = []
+    for line in lines:
+        command.append(line.rstrip("\\").strip())
+        if not line.endswith("\\"):
+            break
+    args = shlex.split(" ".join(command))
+    assert args[:2] == ["pybabel", "update"], args
+    for flag, value in (("-i", template), ("-d", directory)):
+        args[args.index(flag) + 1] = str(value)
+    return args
+
+
+@pytest.mark.parametrize(
+    ("template_comment", "catalog_comment", "expected"),
+    [
+        # A note added in source reaches a catalog entry that had none.
+        (
+            "i18n: a URL identifier, not the animal",
+            "",
+            "a URL identifier, not the animal",
+        ),
+        # A reworded note replaces the catalog's stale wording.
+        ("i18n: the new wording", "i18n: the old wording", "the new wording"),
+        # A note removed from source is removed from the catalog.
+        ("", "i18n: a note since removed", None),
+        # A wrapped note keeps its continuation line and the stamped marker.
+        (
+            "i18n: the kind of system behind a connection: a database engine\n"
+            "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver\n"
+            "do-not-translate",
+            "",
+            _BACKEND_NOTE,
+        ),
+    ],
+)
+def test_pybabel_update_carries_the_note_into_catalogs(
+    tmp_path: Path,
+    template_comment: str,
+    catalog_comment: str,
+    expected: str | None,
+) -> None:
+    """``pybabel update``, with the flags from ``babel_update.sh``, syncs each note.
+
+    The backfill reads notes from the catalog it translates, so a note only
+    reaches the model once ``pybabel update`` has copied it from the template.
+    Committed catalogs may lag the template between catalog refreshes, so this
+    exercises the propagation itself on a throwaway catalog rather than the
+    state of the committed files.
+    """
+    template = polib.POFile()
+    template.append(polib.POEntry(msgid="Slug", msgstr="", comment=template_comment))
+    pot = tmp_path / "messages.pot"
+    template.save(str(pot))
+
+    catalog = polib.POFile()
+    catalog.metadata = {"Language": "es", "Content-Type": "text/plain; charset=UTF-8"}
+    catalog.append(polib.POEntry(msgid="Slug", msgstr="Slug", comment=catalog_comment))
+    po = tmp_path / "es" / "LC_MESSAGES" / "messages.po"
+    po.parent.mkdir(parents=True)
+    catalog.save(str(po))
+
+    args = _babel_update_sh_update_args(pot, tmp_path)
+    CommandLineInterface().run(args)
+
+    updated = polib.pofile(str(po)).find("Slug")
+    assert updated.msgstr == "Slug"
+    assert backfill_po._developer_note(updated) == expected, (
+        f"`{' '.join(args)}` did not sync the note into the es catalog; check the "
+        "pybabel update flags in babel_update.sh"
+    )
+
+
+def test_build_batch_items_carries_the_note_only_when_present() -> None:
+    noted = polib.POEntry(msgid="Slug", msgstr="", comment="i18n: a URL identifier")
+    plain = polib.POEntry(msgid="Save", msgstr="")
+    plural = polib.POEntry(
+        msgid="%(n)s chart",
+        msgid_plural="%(n)s charts",
+        msgstr_plural={0: "", 1: ""},
+        comment="i18n: saved charts, not a chart type",
+    )
+    items = backfill_po._build_batch_items([noted, plain, plural], index={}, lang="de")
+    assert items[0]["developer_note"] == "a URL identifier"
+    assert "developer_note" not in items[1]
+    assert items[2]["is_plural"]
+    assert items[2]["developer_note"] == "saved charts, not a chart type"
+
+
+def test_build_prompt_puts_the_note_above_reference_translations() -> None:
+    batch = [
+        {"msgid": "Slug", "index_key": "Slug", "developer_note": "a URL identifier"},
+        {"msgid": "Save", "index_key": "Save"},
+    ]
+    index = {"Slug": {"fr": "Slug", "de": "Kopfzeile"}}
+    prompt = backfill_po.build_prompt("es", batch, index)
+
+    assert 'Developer note: "a URL identifier"' in prompt
+    assert prompt.count("Developer note:") == 1
+    assert "follow the note" in prompt
+    # The note is rendered with its own entry, before that entry's references.
+    entry = prompt.split("--- [0]")[1].split("--- [1]")[0]
+    assert entry.index("Developer note:") < entry.index("German:")
+
+
+def test_build_prompt_has_no_note_section_without_notes() -> None:
+    batch = [{"msgid": "Save", "index_key": "Save"}]
+    prompt = backfill_po.build_prompt("es", batch, index={})
+    assert "Developer note" not in prompt
+
+
+def test_single_plaintext_fallback_sends_the_note(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: dict[str, str] = {}
+
+    def fake_run(args: list[str], **kwargs: object) -> object:
+        sent["prompt"] = str(kwargs["input"])
+
+        class Result:
+            returncode = 0
+            stdout = "Identificador"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    item = {"msgid": "Slug", "index_key": "Slug", "developer_note": "a URL identifier"}
+
+    result = backfill_po._translate_single_plaintext("model", "es", item, index={})
+
+    assert result == "Identificador"
+    assert (
+        "Developer note (authoritative on the intended meaning): a URL identifier"
+        in sent["prompt"]
+    )
+
+
+# --- model resolution and the claude -p invocation -----------------------------
+
+
+class _FakeResult:
+    def __init__(self, stdout: str, returncode: int = 0) -> None:
+        self.stdout = stdout
+        self.stderr = ""
+        self.returncode = returncode
+
+
+def test_default_model_is_an_alias_for_the_latest_sonnet() -> None:
+    assert backfill_po.DEFAULT_MODEL == "sonnet"
+
+
+def test_claude_command_disables_tools() -> None:
+    cmd = backfill_po._claude_command("/usr/bin/claude", "sonnet")
+    assert cmd[:4] == ["/usr/bin/claude", "--model", "sonnet", "-p"]
+    tools_at = cmd.index("--tools")
+    assert cmd[tools_at + 1] == ""
+
+
+def test_resolve_model_returns_concrete_ids_without_a_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(*args: object, **kwargs: object) -> None:
+        raise AssertionError("no CLI call expected for a concrete model ID")
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", boom)
+    assert backfill_po.resolve_model("claude-opus-5-5") == "claude-opus-5-5"
+    # Models served through a gateway (ANTHROPIC_BASE_URL) are not aliases.
+    assert backfill_po.resolve_model("gemma4-26b") == "gemma4-26b"
+
+
+def test_resolve_model_reads_the_concrete_id_for_an_alias(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: dict[str, list[str]] = {}
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        sent["args"] = args
+        payload = {"result": "OK", "modelUsage": {"claude-sonnet-9-9": {}}}
+        return _FakeResult(json.dumps(payload))
+
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+
+    assert backfill_po.resolve_model("sonnet") == "claude-sonnet-9-9"
+    assert "--output-format" in sent["args"]
+    assert "--tools" in sent["args"]
+
+
+def test_resolve_model_falls_back_to_the_alias_on_unreadable_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(
+        backfill_po.subprocess, "run", lambda *a, **k: _FakeResult("not json")
+    )
+    assert backfill_po.resolve_model("sonnet") == "sonnet"
+
+
+def test_resolve_model_raises_when_the_cli_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(
+        backfill_po.subprocess, "run", lambda *a, **k: _FakeResult("", returncode=1)
+    )
+    with pytest.raises(RuntimeError):
+        backfill_po.resolve_model("sonnet")
+
+
+# --- normalize_catalog: canonical Babel formatting ------------------------------
+
+_LONG = (
+    "This is a deliberately long source string that is well past the "
+    "seventy-six column wrapping width Babel uses when writing catalogs."
+)
+
+
+def _write_catalog(tmp_path: Path, body: str) -> Path:
+    po = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po.parent.mkdir(parents=True)
+    po.write_text(
+        'msgid ""\nmsgstr ""\n'
+        '"Language: fr\\n"\n'
+        '"Plural-Forms: nplurals=2; plural=(n > 1);\\n"\n'
+        '"Content-Type: text/plain; charset=utf-8\\n"\n\n' + body,
+        encoding="utf-8",
+    )
+    return po
+
+
+def test_normalize_catalog_wraps_long_lines_and_keeps_content(
+    tmp_path: Path,
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        "# Machine-translated via backfill_po.py (claude-x) [no refs]\n"
+        "#, fuzzy\n"
+        f'msgid "{_LONG}"\n'
+        'msgstr "Traduction"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    text = po.read_text(encoding="utf-8")
+    assert all(len(line) <= 80 for line in text.splitlines())
+    assert not text.endswith("\n\n")
+    entry = polib.pofile(str(po)).find(_LONG)
+    assert entry is not None
+    assert entry.msgstr == "Traduction"
+    assert "fuzzy" in entry.flags
+    assert "Machine-translated via backfill_po.py" in entry.tcomment
+
+
+def test_normalize_catalog_marks_percent_labels_no_python_format(
+    tmp_path: Path,
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        '#, python-format\nmsgid "% of total"\nmsgstr "% du total"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    entry = polib.pofile(str(po)).find("% of total")
+    assert entry is not None
+    assert "no-python-format" in entry.flags
+    assert "python-format" not in entry.flags
+
+
+# --- _run_claude: retry on transient CLI failures -------------------------------
+
+
+def test_run_claude_retries_transient_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    results = [_FakeResult("", returncode=1), _FakeResult('{"0": "Hola"}')]
+    calls: list[list[str]] = []
+    sleeps: list[float] = []
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        calls.append(args)
+        return results.pop(0)
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    monkeypatch.setattr(backfill_po.time, "sleep", sleeps.append)
+
+    result = backfill_po._run_claude(["claude", "-p"], "prompt")
+
+    assert result.returncode == 0
+    assert len(calls) == 2
+    assert sleeps == [backfill_po._RETRY_DELAYS[0]]
+
+
+def test_run_claude_returns_last_failure_after_all_attempts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        calls.append(args)
+        return _FakeResult("", returncode=1)
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    monkeypatch.setattr(backfill_po.time, "sleep", lambda _s: None)
+
+    result = backfill_po._run_claude(["claude", "-p"], "prompt")
+
+    assert result.returncode == 1
+    assert len(calls) == len(backfill_po._RETRY_DELAYS) + 1

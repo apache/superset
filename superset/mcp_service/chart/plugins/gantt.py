@@ -309,6 +309,7 @@ class GanttChartPlugin(BaseChartPlugin):
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
     ) -> Any | None:
         from superset.mcp_service.chart.chart_utils import validate_gantt_form_data
 

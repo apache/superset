@@ -57,6 +57,7 @@ interface AdhocFilterEditPopoverProps {
   onClose: () => void;
   onResize: () => void;
   options: FilterOption[];
+  semanticSelectionVersion?: string;
   datasource?: Record<string, unknown>;
   partitionColumn?: string;
   theme?: SupersetTheme;
@@ -97,6 +98,7 @@ function AdhocFilterEditPopover({
   onResize,
   options,
   datasource,
+  semanticSelectionVersion,
   partitionColumn,
   operators,
   requireSave,
@@ -359,6 +361,7 @@ function AdhocFilterEditPopover({
                   onChange={onAdhocFilterChange}
                   options={options as ColumnType[]}
                   datasource={datasource as unknown as Dataset}
+                  semanticSelectionVersion={semanticSelectionVersion}
                   onHeightChange={adjustHeight}
                   partitionColumn={partitionColumn}
                   popoverRef={popoverContentRef.current}
@@ -368,6 +371,7 @@ function AdhocFilterEditPopover({
             ),
           },
           ...(datasource?.type === 'semantic_view' ||
+          adhocFilter.timeGrain ||
           [
             Operators.ContainsAny,
             Operators.ContainsAll,
@@ -379,9 +383,8 @@ function AdhocFilterEditPopover({
             Operators.LengthGreaterThanOrEqual,
             Operators.LengthLessThanOrEqual,
           ].includes(adhocFilter.operatorId as Operators)
-            ? // Hide the Custom SQL tab for element-level array operators: they
-              // have no portable SQL representation, and converting one would
-              // silently turn the filter into invalid raw SQL.
+            ? // Time buckets and element-level array operators have no portable
+              // raw SQL representation; conversion would change their meaning.
               []
             : [
                 {

@@ -44,6 +44,8 @@ import { getTabId } from 'src/hooks/useTabId';
 import { getAsyncQueryError } from './asyncQueryError';
 import {
   connectRealtime,
+  getRealtimeState,
+  rearmRealtime,
   subscribeRealtime,
   subscribeRealtimeOpen,
   subscribeRealtimeState,
@@ -107,8 +109,9 @@ type Waiter = {
 };
 
 let config: AppConfig;
-// Whether the realtime websocket is the transport. When true we never poll: the
-// socket is the mechanism and a reconnect catch-up reconciles any gap.
+// Whether the realtime websocket is the transport. When true the socket is the
+// mechanism and a reconnect catch-up reconciles any gap; the poll runs only while
+// the ticket endpoint refuses this session (see usesPolling).
 let wsEnabled = false;
 // Coalescing state for the WS-mode catch-up (see scheduleCatchUp): a microtask is
 // pending, a fetch is in flight, and/or a follow-up is queued.
@@ -292,6 +295,13 @@ const abandonRealtimeWaiters = () => {
   );
 };
 
+// Whether completions are tracked by polling `status_changes`: always without the
+// websocket transport, and also while the ticket endpoint refuses this session
+// (`unauthorized`). A refused principal (e.g. an embedded guest whose role lacks
+// the realtime permission) still reads its task statuses through the REST API.
+const usesPolling = (): boolean =>
+  !wsEnabled || getRealtimeState() === 'unauthorized';
+
 const finishStatus = (taskId: string, status: string, message?: string) => {
   const waiters = waitersByTaskId.get(taskId);
   if (!waiters) return;
@@ -407,9 +417,11 @@ const loadStatusChanges = async (generation: number) => {
 // Start (or wake) the poll loop for a freshly registered waiter: poll eagerly
 // again, and kick the loop if it had gone idle. Idempotent — a no-op while the
 // loop is already running, when async queries are disabled, or when the websocket
-// is the transport (WS mode never polls; reconnect catch-up reconciles instead).
+// is the live transport (see usesPolling; a reconnect catch-up reconciles instead).
+// A running loop continues until its waiters drain, even if the socket opens
+// meanwhile: a status seen by both transports settles its waiter only once.
 const ensurePolling = () => {
-  if (wsEnabled) return;
+  if (!usesPolling()) return;
   currentPollDelayMs = pollingDelayMs;
   lastProgressAt = Date.now(); // a fresh request restarts the give-up clock
   if (!pollingActive && isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -497,18 +509,22 @@ const catchUpAndWait = (): Promise<void> => {
 
 subscribeRealtimeOpen(scheduleCatchUp);
 
-// The websocket is the sole completion transport when enabled, so a genuinely-down
-// server must not hang waiters until the long give-up. On each `reconnecting`
-// transition, reconcile via the socket-independent status_changes catch-up (so a
-// task that completed while disconnected is still observed); once the socket is
-// `unhealthy` (enough consecutive failed reconnects), settle the still-pending
-// waiters with a clear error instead of waiting out `pollStaleTimeoutMs`.
+// A genuinely-down websocket server must not hang waiters until the long give-up.
+// On each `reconnecting` transition, reconcile via the socket-independent
+// status_changes catch-up (so a task that completed while disconnected is still
+// observed); once the socket is `unhealthy` (enough consecutive failed
+// reconnects), settle the still-pending waiters with a clear error instead of
+// waiting out `pollStaleTimeoutMs`. When the ticket endpoint refuses the session
+// (`unauthorized`), no socket will deliver completions, so track the pending
+// waiters by polling instead.
 subscribeRealtimeState(state => {
   if (!wsEnabled || !waitersByTaskId.size) return;
   if (state === 'reconnecting') {
     scheduleCatchUp();
   } else if (state === 'unhealthy') {
     abandonRealtimeWaiters();
+  } else if (state === 'unauthorized') {
+    ensurePolling();
   }
 });
 
@@ -607,7 +623,21 @@ export const waitForAsyncData = async <T = unknown[]>(
       }
       waiters.add(waiter);
     });
-    if (wsEnabled) {
+    // This waiter exists because a chart-data request just succeeded, so a
+    // session the ticket endpoint refused earlier may be valid again (e.g. after
+    // logging back in): re-arm the socket, and let the reconnect catch-up (or a
+    // fresh refusal, which falls back to polling) settle the waiter.
+    if (wsEnabled && getRealtimeState() === 'unauthorized') rearmRealtime();
+    // The realtime connection state is the source of truth: a waiter registering
+    // while the socket is `unhealthy` is settled at once, not left to wait on a
+    // transition that already happened. One registering while the session is
+    // refused (`unauthorized` and not re-armed) is tracked by polling.
+    if (wsEnabled && getRealtimeState() === 'unhealthy') {
+      settle(waiter, new Error('Realtime connection unavailable'));
+      return;
+    }
+    const polling = usesPolling();
+    if (!polling) {
       // WS is the transport (no polling). Bound a genuinely-lost completion (a
       // dropped socket message with no reconnect) so a chart can't spin forever;
       // a reconnect catch-up normally settles it well before this fires. Before
@@ -641,7 +671,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     // completed between the POST and the waiter existing (its socket message may
     // have arrived before this waiter, or before the socket subscribed). Coalesced
     // with sibling registrations/reconnects into one request.
-    if (wsEnabled) scheduleCatchUp();
+    if (!polling) scheduleCatchUp();
   }).catch(async (error: unknown) => {
     if (!(error instanceof FailedQueryTasksError)) throw error;
     const queryError = await getAsyncQueryError(

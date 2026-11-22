@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder.api import (
     expose,
     permission_name,
@@ -31,7 +31,6 @@ from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled, security_manager
-from superset.charts.filters import ChartFilter
 from superset.commands.report.create import CreateReportScheduleCommand
 from superset.commands.report.delete import DeleteReportScheduleCommand
 from superset.commands.report.exceptions import (
@@ -51,11 +50,15 @@ from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.commands.report.update_config import UpdateReportConfigCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.report import ReportConfigDAO
-from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
 from superset.extensions import event_logger
-from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
+from superset.reports.filters import (
+    ReportScheduleAllTextFilter,
+    ReportScheduleFilter,
+    ReportTargetChartFilter,
+    ReportTargetDashboardFilter,
+)
 from superset.reports.models import ReportCreationMethod, ReportSchedule
 from superset.reports.schemas import (
     get_delete_ids_schema,
@@ -69,6 +72,7 @@ from superset.reports.schemas import (
     ReportScheduleSubscribeSchema,
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
+from superset.tasks.types import FixedExecutor
 from superset.utils.slack import (
     get_channels_with_search,
     SlackChannelListingClientError,
@@ -124,6 +128,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         **BaseSupersetModelRestApi.extra_fields_rel_fields,
         "created_by": ["email", "active"],
         "editors": ["type", "active", "secondary_label", "img"],
+        "dashboard": ["published"],
         "run_as": ["email", "active"],
         "run_alert_query_as": ["email", "active"],
     }
@@ -307,8 +312,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     }
 
     base_related_field_filters = {
-        "chart": [["id", ChartFilter, lambda: []]],
-        "dashboard": [["id", DashboardAccessFilter, lambda: []]],
+        # Narrower than ordinary chart/dashboard visibility: a scheduled report
+        # renders as the deployment's configured executor, not as its author.
+        "chart": [["id", ReportTargetChartFilter, lambda: []]],
+        "dashboard": [["id", ReportTargetDashboardFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
@@ -381,6 +388,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                   schema:
                     type: object
                     properties:
+                      default_executor:
+                        type: string
+                        nullable: true
+                        description: >-
+                          Fixed default execution account, visible only to admins.
                       result:
                         $ref: '#/components/schemas/ReportConfigurationSchema'
             401:
@@ -391,7 +403,21 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         config = ReportConfigDAO.get_effective_config()
-        return self.response(200, result=self.configuration_schema.dump(config))
+        # Only disclose a fixed execution identity to administrators. Other
+        # executor strategies depend on the schedule and cannot be named here.
+        executors = current_app.config["ALERT_REPORTS_EXECUTORS"]
+        default_executor = None
+        if (
+            security_manager.is_admin()
+            and executors
+            and isinstance(executors[0], FixedExecutor)
+        ):
+            default_executor = executors[0].username
+        return self.response(
+            200,
+            result=self.configuration_schema.dump(config),
+            default_executor=default_executor,
+        )
 
     @expose("/configuration/", methods=("PUT",))
     @protect()

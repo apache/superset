@@ -19,6 +19,7 @@
 import {
   sanitizeHtml,
   tooltipHtml,
+  tooltipMarker,
   truncateLabel,
   TRUNCATION_MAX_CHARS,
 } from '@superset-ui/core';
@@ -270,5 +271,38 @@ describe('tooltipHtml truncation modes', () => {
         longCell,
       );
     });
+  });
+});
+
+describe('tooltipMarker', () => {
+  test('keeps its color and shape through sanitizeHtml', () => {
+    const html = removeWhitespaces(
+      sanitizeHtml(tooltipMarker('#1f77b4', 'pin')),
+    );
+    expect(html).toContain('color:#1f77b4');
+    expect(html).toContain('border:5pxsolidcurrentcolor');
+    expect(html).toContain('border-radius:50%50%050%');
+  });
+
+  test('keeps the triangle borders and lift through sanitizeHtml', () => {
+    const html = removeWhitespaces(
+      sanitizeHtml(tooltipMarker('#1f77b4', 'triangle')),
+    );
+    expect(html).toContain('border-width:05px10px');
+    expect(html).toContain('border-color:transparenttransparentcurrentcolor');
+    expect(html).toContain('vertical-align:calc(0.5em+5px)');
+  });
+
+  test('draws the diamond as a glyph', () => {
+    expect(tooltipMarker('#1f77b4', 'diamond')).toContain('◆');
+  });
+
+  test('falls back to a circle for unknown symbols', () => {
+    expect(tooltipMarker('red', 'arrow')).toBe(tooltipMarker('red', 'circle'));
+  });
+
+  test('returns nothing without a color string', () => {
+    expect(tooltipMarker(undefined)).toBe('');
+    expect(tooltipMarker({ type: 'linear' })).toBe('');
   });
 });

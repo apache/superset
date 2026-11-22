@@ -374,6 +374,24 @@ async def test_get_user_info_success(mock_find, mcp_server):
 
 @patch("superset.daos.user.UserDAO.find_by_id")
 @pytest.mark.asyncio
+async def test_get_user_info_eager_loads_roles_and_group_roles(mock_find, mcp_server):
+    """Reported roles include the ones held through a group, so both
+    relationships load with the user instead of lazily per group."""
+    mock_find.return_value = create_mock_user(user_id=1, username="admin")
+
+    async with Client(mcp_server) as client:
+        await client.call_tool("get_user_info", {"request": {"identifier": 1}})
+
+    options = mock_find.call_args.kwargs["query_options"]
+    paths = {
+        tuple(str(element) for element in option.path if "." in str(element))
+        for option in options
+    }
+    assert paths == {("User.roles",), ("User.groups", "Group.roles")}
+
+
+@patch("superset.daos.user.UserDAO.find_by_id")
+@pytest.mark.asyncio
 async def test_get_user_info_not_found(mock_find, mcp_server):
     """get_user_info returns a not_found error for unknown IDs."""
     mock_find.return_value = None

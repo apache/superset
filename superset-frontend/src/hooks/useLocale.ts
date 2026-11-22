@@ -25,6 +25,7 @@ import 'dayjs/locale/fr';
 import 'dayjs/locale/es';
 import 'dayjs/locale/it';
 import 'dayjs/locale/zh-cn';
+import 'dayjs/locale/zh-tw';
 import 'dayjs/locale/ja';
 import 'dayjs/locale/de';
 import 'dayjs/locale/pt';
@@ -35,6 +36,20 @@ import 'dayjs/locale/cs';
 import 'dayjs/locale/sk';
 import 'dayjs/locale/sl';
 import 'dayjs/locale/nl';
+import 'dayjs/locale/ar';
+import 'dayjs/locale/ca';
+import 'dayjs/locale/fa';
+import 'dayjs/locale/fi';
+import 'dayjs/locale/lv';
+import 'dayjs/locale/mi';
+import 'dayjs/locale/pl';
+import 'dayjs/locale/ro';
+import 'dayjs/locale/sr-cyrl';
+import 'dayjs/locale/sr';
+import 'dayjs/locale/ta';
+import 'dayjs/locale/th';
+import 'dayjs/locale/tr';
+import 'dayjs/locale/uk';
 
 /* eslint-disable no-restricted-imports */
 import { Locale } from 'antd/es/locale';
@@ -45,6 +60,7 @@ export const LOCALE_MAPPING = {
   es: () => import('antd/locale/es_ES'),
   it: () => import('antd/locale/it_IT'),
   zh: () => import('antd/locale/zh_CN'),
+  zh_TW: () => import('antd/locale/zh_TW'),
   ja: () => import('antd/locale/ja_JP'),
   de: () => import('antd/locale/de_DE'),
   pt: () => import('antd/locale/pt_PT'),
@@ -57,6 +73,28 @@ export const LOCALE_MAPPING = {
   nl: () => import('antd/locale/nl_NL'),
 };
 /* eslint-enable no-restricted-imports */
+
+// Babel's generic 'zh' code is treated as Simplified Chinese for date
+// formatting: dayjs also ships a bare 'zh' locale, but this project
+// imports 'zh-cn' specifically, so 'zh' needs an explicit override here.
+// The Serbian pair is inverted between the two: dayjs's 'sr' is the Latin
+// script and 'sr-cyrl' the Cyrillic one, while Babel's 'sr' is Cyrillic and
+// 'sr_Latn' Latin, so normalizing would hand each catalog the other script
+// (and 'sr-latn', which dayjs does not ship, silently does nothing).
+const DAYJS_LOCALE_OVERRIDES: Record<string, string> = {
+  zh: 'zh-cn',
+  sr: 'sr-cyrl',
+  sr_Latn: 'sr',
+};
+
+// Flask-Babel locale codes use underscores and mixed case (zh_TW, pt_BR);
+// dayjs locale names are lowercase and hyphenated (zh-tw, pt-br). Most
+// codes convert with a straight case/separator normalization; only codes
+// where dayjs's name isn't just a reformatting of Babel's need an entry
+// in DAYJS_LOCALE_OVERRIDES above.
+export const toDayjsLocale = (localeCode: string): string =>
+  DAYJS_LOCALE_OVERRIDES[localeCode] ??
+  localeCode.toLowerCase().replace(/_/g, '-');
 
 export const useLocale = (): Locale | undefined | null => {
   const [datePickerLocale, setDatePickerLocale] = useState<
@@ -77,7 +115,7 @@ export const useLocale = (): Locale | undefined | null => {
         LOCALE_MAPPING[localFromFlaskBabel as keyof typeof LOCALE_MAPPING]()
           .then((locale: { default: Locale }) => {
             setDatePickerLocale(locale.default);
-            dayjs.locale(localFromFlaskBabel);
+            dayjs.locale(toDayjsLocale(localFromFlaskBabel));
           })
           .catch(() => setDatePickerLocale(undefined));
       } else {

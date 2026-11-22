@@ -33,7 +33,6 @@ import {
   ChartMetadata,
 } from '@superset-ui/core';
 import type { EChartsCoreOption, EChartsType } from 'echarts/core';
-import type { TooltipMarker } from 'echarts/types/src/util/format';
 import type { ECElementEvent } from 'echarts/types/src/util/types';
 import { StackControlsValue } from './constants';
 
@@ -89,7 +88,6 @@ export enum LegendType {
 }
 
 export type ForecastValue = {
-  marker: TooltipMarker;
   observation?: number;
   forecastTrend?: number;
   forecastLower?: number;
@@ -103,6 +101,7 @@ export type LegendFormData = {
   legendType: LegendType;
   showLegend: boolean;
   legendSort: 'asc' | 'desc' | null;
+  showSelectorLegend: boolean;
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;

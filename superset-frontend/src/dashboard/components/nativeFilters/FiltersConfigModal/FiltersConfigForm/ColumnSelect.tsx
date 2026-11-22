@@ -18,6 +18,7 @@
  */
 import { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import rison from 'rison';
+import { uniq, uniqBy } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   Column,
@@ -29,6 +30,10 @@ import {
 } from '@superset-ui/core';
 import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import {
+  getSemanticMemberLabels,
+  SemanticMemberLabel,
+} from 'src/components/SemanticMemberLabel';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import {
@@ -68,6 +73,29 @@ export const getDatasourceKey = (
   datasourceType: DatasourceType | undefined,
 ) => `${datasetId}__${datasourceType || DatasourceType.Table}`;
 
+export const getColumnOptions = (
+  columns: Column[],
+  filterValues: (column: Column) => boolean,
+  showVerboseNames: boolean,
+  datasourceType?: DatasourceType,
+): { label: string; value: string }[] => {
+  const filtered = uniqBy(
+    ensureIsArray(columns).filter(filterValues),
+    'column_name',
+  );
+  const semantic = datasourceType === DatasourceType.SemanticView;
+  const names = filtered.map(column =>
+    (semantic || showVerboseNames) && column.verbose_name
+      ? column.verbose_name
+      : column.column_name,
+  );
+  const memberLabels = semantic ? getSemanticMemberLabels(filtered) : undefined;
+  return filtered.map((column, index) => ({
+    label: memberLabels?.get(column.column_name)?.fullName ?? names[index],
+    value: column.column_name,
+  }));
+};
+
 /** Special purpose AsyncSelect that selects a column from a dataset */
 export function ColumnSelect({
   allowClear = false,
@@ -93,27 +121,36 @@ export function ColumnSelect({
     ]);
   }, [form, filterId, formField]);
 
-  // The names backing the rendered options: the loaded columns narrowed by
+  // The unique names backing the rendered options: the loaded columns narrowed by
   // `filterValues`, the same narrowing the option list applies, so a default
   // seeded through onColumnsLoaded matches the available options exactly.
   const filterColumnNames = useCallback(
     (cols: Column[]) =>
-      ensureIsArray(cols)
-        .filter(filterValues)
-        .map((col: Column) => col.column_name),
+      uniq(
+        ensureIsArray(cols)
+          .filter(filterValues)
+          .map((col: Column) => col.column_name),
+      ),
     [filterValues],
   );
 
   const options = useMemo(
     () =>
-      ensureIsArray(columns)
-        .filter(filterValues)
-        .map((col: Column) => ({
-          label: (showVerboseNames && col.verbose_name) || col.column_name,
-          value: col.column_name,
-        })),
-    [columns, filterValues, showVerboseNames],
+      getColumnOptions(
+        ensureIsArray(columns),
+        filterValues,
+        showVerboseNames,
+        datasourceType,
+      ),
+    [columns, filterValues, showVerboseNames, datasourceType],
   );
+  const memberLabels = useMemo(() => {
+    if (datasourceType !== DatasourceType.SemanticView) return undefined;
+    const labels = getSemanticMemberLabels(
+      uniqBy(ensureIsArray(columns).filter(filterValues), 'column_name'),
+    );
+    return new Map([...labels].filter(([, label]) => label.memberId));
+  }, [columns, filterValues, datasourceType]);
 
   // Whether the current selection still matches a loaded column. An empty
   // selection has nothing to look up and is legitimate (e.g. a cleared
@@ -144,14 +181,22 @@ export function ColumnSelect({
   // ID sequences, so switching between them with the same numeric ID must still
   // trigger a column re-fetch.
   const datasourceKey = getDatasourceKey(datasetId, datasourceType);
-  // The datasource whose columns should be shown. A response for any other
-  // datasource is stale (the user switched while it was in flight) and is
-  // ignored, so it can neither replace the options nor reach onColumnsLoaded.
-  const latestDatasourceKey = useRef(datasourceKey);
-  latestDatasourceKey.current = datasourceKey;
+  // Only the request for the current datasource may update the columns: a
+  // late response for a previous (possibly same-id) datasource is ignored.
+  const requestIdRef = useRef(0);
+  // The form outlives this picker: once unmounted, its pending request must
+  // not reset the column a replacement picker has set.
+  useEffect(
+    () => () => {
+      requestIdRef.current += 1;
+    },
+    [],
+  );
   useChangeEffect(datasourceKey, previous => {
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
     const requestKey = datasourceKey;
-    const isStale = () => latestDatasourceKey.current !== requestKey;
+    const isCurrent = () => requestId === requestIdRef.current;
     if (previous != null) {
       setColumns([]);
       resetColumnField();
@@ -161,20 +206,21 @@ export function ColumnSelect({
       const handleError = async (
         badResponse: Parameters<typeof getClientErrorObject>[0],
       ) => {
+        if (!isCurrent()) return;
         const errorText = selectClientErrorMessage(
           await getClientErrorObject(badResponse),
           t('An error has occurred'),
           { 403: t('You do not have permission to edit this dashboard') },
         );
-        addDangerToast(errorText);
+        // The binding may have changed while the error body was read.
+        if (!isCurrent()) return;
+        addDangerToast(errorText, { noDuplicate: true });
       };
 
       if (datasourceType === DatasourceType.SemanticView) {
         fetchSemanticViewStructure(datasetId)
           .then(({ dimensions }) => {
-            if (isStale()) {
-              return;
-            }
+            if (!isCurrent()) return;
             const cols: Column[] = semanticViewDimensionsToColumns(dimensions);
             if (!isValueInColumns(cols)) {
               resetColumnField();
@@ -183,7 +229,7 @@ export function ColumnSelect({
             onColumnsLoaded?.(filterColumnNames(cols), requestKey);
           }, handleError)
           .finally(() => {
-            if (!isStale()) {
+            if (isCurrent()) {
               setLoading(false);
             }
           });
@@ -200,7 +246,7 @@ export function ColumnSelect({
           })}`,
         })
           .then(({ json: { result } }) => {
-            if (isStale()) {
+            if (!isCurrent()) {
               return;
             }
             if (!isValueInColumns(result.columns)) {
@@ -210,22 +256,50 @@ export function ColumnSelect({
             onColumnsLoaded?.(filterColumnNames(result.columns), requestKey);
           }, handleError)
           .finally(() => {
-            if (!isStale()) {
+            if (isCurrent()) {
               setLoading(false);
             }
           });
       }
+    } else {
+      // A superseded request no longer clears the spinner itself.
+      setLoading(false);
     }
   });
 
   return (
     <Select
+      css={
+        memberLabels && [...memberLabels.values()].some(label => label.memberId)
+          ? {
+              '& .ant-select-content-has-value': {
+                height: 'auto',
+              },
+              '&& .ant-select-selection-item': {
+                maxHeight: 'none',
+                height: 'auto',
+              },
+            }
+          : undefined
+      }
       mode={mode}
       value={mode === 'multiple' ? value || [] : value}
       ariaLabel={t('Column select')}
       loading={loading}
       onChange={onChange}
       options={options}
+      optionRender={option => {
+        const label = memberLabels?.get(String(option.value));
+        return label ? <SemanticMemberLabel label={label} /> : option.label;
+      }}
+      labelRender={selected => {
+        const label = memberLabels?.get(String(selected.value));
+        return label ? (
+          <SemanticMemberLabel label={label} showTitle />
+        ) : (
+          selected.label
+        );
+      }}
       placeholder={placeholder}
       notFoundContent={t('No compatible columns found')}
       showSearch

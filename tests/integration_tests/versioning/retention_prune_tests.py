@@ -194,6 +194,71 @@ class TestDashboardVersionRetention(SupersetTestCase):
             dashboard.dashboard_title = original_title
             db.session.commit()
 
+    def test_cap_preserves_whole_transactions_across_runs(self) -> None:
+        """Two capped passes each remove two old transactions, never live rows."""
+        from datetime import datetime, timedelta, timezone
+
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import versioning_manager
+
+        from superset.tasks.version_history_retention import _prune_old_versions_impl
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        original_title: str = dashboard.dashboard_title
+        try:
+            index: int
+            for index in range(4):
+                dashboard.dashboard_title = f"USA Births Names capped {index}"
+                db.session.commit()
+
+            tx_table: sa.Table = versioning_manager.transaction_cls.__table__
+            with db.engine.begin() as conn:
+                conn.execute(
+                    sa.update(tx_table).values(
+                        issued_at=datetime.now(timezone.utc).replace(tzinfo=None)
+                        - timedelta(days=100)
+                    )
+                )
+
+            count_before: int = db.session.scalar(
+                sa.select(sa.func.count()).select_from(tx_table)
+            )
+            preview: dict[str, Any] = _prune_old_versions_impl(
+                30, max_per_run=2, dry_run=True
+            )
+            assert preview["eligible_backlog"] >= 4
+            assert preview["estimated_capped_runs"] >= 2
+            assert (
+                db.session.scalar(sa.select(sa.func.count()).select_from(tx_table))
+                == count_before
+            )
+
+            first: dict[str, Any] = _prune_old_versions_impl(30, max_per_run=2)
+            second: dict[str, Any] = _prune_old_versions_impl(30, max_per_run=2)
+            assert first["pruned_transactions"] == 2
+            assert second["pruned_transactions"] == 2
+            assert first["cap_reached"] is True
+            assert second["cap_reached"] is True
+            assert first["remaining_eligible"] == preview["eligible_backlog"] - 2
+            assert second["remaining_eligible"] == preview["eligible_backlog"] - 4
+            assert (
+                db.session.scalar(sa.select(sa.func.count()).select_from(tx_table))
+                == count_before - 4
+            )
+            db.session.expire_all()
+            assert any(
+                row.end_transaction_id is None for row in _get_version_rows(dashboard)
+            )
+        finally:
+            dashboard.dashboard_title = original_title
+            db.session.commit()
+
     def test_retention_preserves_live_child_and_m2m_rows(self) -> None:
         """Regression for the live-row preservation BLOCKER.
 

@@ -27,6 +27,8 @@ import pytest
 from flask_babel import lazy_gettext
 from flask_babel.speaklater import LazyString
 
+from tests.unit_tests.mcp_service.conftest import regular_user
+
 if TYPE_CHECKING:
     from fastmcp import FastMCP
     from fastmcp.client.client import CallToolResult
@@ -786,7 +788,7 @@ class TestBuildQueryContextFromFormData:
         queries = call_kwargs["queries"]
         assert len(queries) == 1
         filters = queries[0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
 
 class TestExtractXAxisCol:
@@ -1393,7 +1395,7 @@ class TestSqlFromSavedQueryContextExtraFormData:
         )
 
         filters = query_context_json["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
         assert query_context_json["_set_form_data_args"].args[1:] == (1, "table")
 
     def test_real_column_filter_via_adhoc_filters_key(self):
@@ -1415,7 +1417,7 @@ class TestSqlFromSavedQueryContextExtraFormData:
         )
 
         filters = query_context_json["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     def test_no_extra_form_data_leaves_query_unchanged(self):
         """Without extra_form_data, the saved query_context is used as-is."""
@@ -1466,7 +1468,7 @@ class TestGetChartSqlTool:
     def mock_auth(self):
         """Mock authentication for all tests."""
         with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-            mock_user = Mock()
+            mock_user = regular_user()
             mock_user.id = 1
             mock_user.username = "admin"
             mock_get_user.return_value = mock_user
