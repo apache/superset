@@ -143,9 +143,6 @@ msgstr " uno nuevo"
 msgid " at line %(line)d"
 msgstr " en la línea %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " expresión que debe adherirse al "
-
 #, fuzzy
 msgid " for details."
 msgstr "Detalles"
@@ -153,40 +150,6 @@ msgstr "Detalles"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " cerca de «%(highlight)s»"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" estándar para garantizar que el orden lexicográfico\n"
-"                      coincida con el orden cronológico. Si el\n"
-"                      formato de la marca de tiempo no se ajusta al "
-"estándar ISO 8601,\n"
-"                      deberá definir una expresión y un tipo para\n"
-"                      transformar la cadena en una fecha o marca de "
-"tiempo. Tenga en cuenta\n"
-"                      que actualmente no se admiten zonas horarias. Si la"
-" hora se almacena\n"
-"                      en formato epoch, indique `epoch_s`, `epoch_ms` o "
-"`epoch_us`. Si no se especifica\n"
-"                      ningún patrón, se recurre a los valores "
-"predeterminados opcionales por\n"
-"                      nombre de base de datos/columna mediante el "
-"parámetro extra."
 
 msgid " to add calculated columns"
 msgstr " para añadir columnas calculadas"
@@ -305,6 +268,16 @@ msgstr ""
 "%(dialect)s no se puede utilizar como fuente de datos por razones de "
 "seguridad."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"¿%(firstSuggestions)s o %(lastSuggestion)s en lugar de "
+"«%(undefinedParameter)s»?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "archivo %(label)s"
@@ -410,15 +383,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d filas devueltas"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "¿%(suggestion)s en lugar de «%(undefinedParameter)s»?"
-msgstr[1] ""
-"¿%(firstSuggestions)s o %(lastSuggestion)s en lugar de "
-"«%(undefinedParameter)s»?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "¿%(suggestion)s en lugar de «%(undefinedParameter)s»?"
 
 #, python-format
 msgid ""
@@ -972,7 +940,7 @@ msgstr "Percentiles 10/90"
 
 #. do-not-translate
 msgid "10000"
-msgstr "10 000"
+msgstr ""
 
 msgid "104 weeks"
 msgstr "104 semanas"
@@ -6292,7 +6260,7 @@ msgstr "DIC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "BORRAR"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10044,7 +10012,7 @@ msgstr "Personalizar más cómo se muestra cada métrica"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "AGRUPAR POR"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10256,6 +10224,7 @@ msgstr "Un usuario invitado no puede modificar la carga útil del gráfico"
 msgid "HTTP Path"
 msgstr "Ruta HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10415,9 +10384,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Códigos ISO-3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12765,7 +12731,7 @@ msgstr "n/a"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NO AGRUPADO POR"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -13567,7 +13533,7 @@ msgstr "O"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOBRESCRIBIR"
+msgstr ""
 
 msgid "October"
 msgstr "Octubre"
@@ -14857,9 +14823,6 @@ msgstr "¿Poner las etiquetas fuera del pastel?"
 
 msgid "Put your code here"
 msgstr "Pon tu código aquí"
-
-msgid "Python datetime string pattern"
-msgstr "Patrón de cadena de fecha y hora de Python"
 
 msgid "Quarter"
 msgstr "Trimestre"
@@ -20052,8 +20015,33 @@ msgstr ""
 "Se necesitan las contraseñas de las bases de datos a continuación para "
 "poder importarlas."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "El patrón del formato de marca de tiempo. Para columnas de texto, usa "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
+"El patrón del formato de marca de tiempo. Para columnas de texto, usa una"
+" expresión de [patrón de cadena de fecha y hora de "
+"Python](%(python_url)s) que cumpla el estándar [ISO 8601](%(iso_url)s), "
+"para que el orden lexicográfico coincida con el orden cronológico. Si el "
+"formato de marca de tiempo no cumple el estándar ISO 8601, tienes que "
+"definir una expresión y un tipo que transformen el texto en una fecha o "
+"una marca de tiempo. Por ahora no se admiten zonas horarias. Si la hora "
+"se guarda en formato epoch, indica `epoch_s`, `epoch_ms` o `epoch_us`. Si"
+" no se especifica ningún patrón, se usan los valores predeterminados "
+"opcionales por base de datos o por nombre de columna, definidos en el "
+"parámetro extra."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25572,7 +25560,7 @@ msgstr "deck.gl: contorno"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl: GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl: cuadrícula"
@@ -26082,9 +26070,8 @@ msgid "permalink state not found"
 msgstr "no se ha encontrado el estado del enlace permanente"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Pivotado"
+msgstr ""
 
 msgid "pixels"
 msgstr "píxeles"
