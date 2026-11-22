@@ -5614,6 +5614,9 @@ msgstr ""
 msgid "Deselect all"
 msgstr ""
 
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
+
 msgid "Design with"
 msgstr ""
 
@@ -10494,12 +10497,6 @@ msgstr ""
 
 #, python-format
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
-msgstr ""
-
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -18191,6 +18188,9 @@ msgid "You do not have permission to edit this dashboard"
 msgstr ""
 
 msgid "You do not have permission to import this asset. Ask its owner or an administrator for the required access, then retry."
+msgstr ""
+
+msgid "You do not have permission to modify this semantic view."
 msgstr ""
 
 msgid "You do not have permission to perform this operation"
