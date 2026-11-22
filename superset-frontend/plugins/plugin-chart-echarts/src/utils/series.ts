@@ -1486,6 +1486,25 @@ export function getTimeCompareStackId(
 }
 
 const TOOLTIP_SERIES_KEY = 'seriesId';
+
+// Clamped points carry their source number on `originalValue`, while readers
+// sorting by metric also receive plain tuples and wrapped points.
+const getTooltipSortValue = (datum: unknown, yIndex: number): number => {
+  if (!datum || typeof datum !== 'object') {
+    return Number.NaN;
+  }
+  const { data, value } = datum as { data?: unknown; value?: unknown };
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const originalValue = (data as { originalValue?: unknown }).originalValue;
+    if (typeof originalValue === 'number' && Number.isFinite(originalValue)) {
+      return originalValue;
+    }
+  }
+  const tuple = Array.isArray(data) ? data : value;
+  const numericValue = Array.isArray(tuple) ? tuple[yIndex] : tuple;
+  return typeof numericValue === 'number' ? numericValue : Number.NaN;
+};
+
 export function extractTooltipKeys(
   forecastValue: any[],
   yIndex: number,
@@ -1495,7 +1514,10 @@ export function extractTooltipKeys(
   if (richTooltip && tooltipSortByMetric) {
     return forecastValue
       .slice()
-      .sort((a, b) => b.data[yIndex] - a.data[yIndex])
+      .sort(
+        (a, b) =>
+          getTooltipSortValue(b, yIndex) - getTooltipSortValue(a, yIndex),
+      )
       .map(value => value[TOOLTIP_SERIES_KEY]);
   }
   if (richTooltip) {

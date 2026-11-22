@@ -69,6 +69,22 @@ const MIN_TIMESERIES_PLOT_HEIGHT = 80;
 // Maximum fraction of chart width that a Left/Right HTML legend may occupy.
 const MAX_CUSTOM_LEGEND_WIDTH_RATIO = 0.4;
 
+// A point clamped to a Y-axis bound keeps its plotted coordinates on `value`
+// and its source number on `originalValue`. Readers that need coordinates
+// accept either the plain tuple or the wrapped shape.
+const getPointTuple = (data: unknown): SeriesDataPoint | undefined => {
+  if (Array.isArray(data)) {
+    return data as SeriesDataPoint;
+  }
+  if (data && typeof data === 'object' && 'value' in data) {
+    const value = (data as { value?: unknown }).value;
+    if (Array.isArray(value)) {
+      return value as SeriesDataPoint;
+    }
+  }
+  return undefined;
+};
+
 // Bound the legend after accounting for the fixed ECharts grid reservations,
 // leaving enough coordinate space for the plot itself to remain usable.
 export const getTimeseriesLegendMaxHeight = (
@@ -175,7 +191,9 @@ export default function EchartsTimeseries({
     const { series } = echartOptions as { series?: { data?: unknown[] }[] };
     const baseSeries = (series ?? []).map(s =>
       Array.isArray(s.data)
-        ? (s.data.filter(Array.isArray) as SeriesDataPoint[])
+        ? s.data
+            .map(getPointTuple)
+            .filter((point): point is SeriesDataPoint => point !== undefined)
         : [],
     );
     // Preserve the axis' native x type: numeric for time/value axes,
@@ -544,8 +562,9 @@ export default function EchartsTimeseries({
     formData.orientation === OrientationType.Horizontal ? 1 : 0;
   const getXAxisValue = useCallback(
     (data: unknown, name: unknown) => {
-      if (Array.isArray(data)) {
-        const categoryAxisValue = data[xAxisValueIndex];
+      const point = getPointTuple(data);
+      if (point) {
+        const categoryAxisValue = point[xAxisValueIndex];
         if (
           typeof categoryAxisValue === 'string' ||
           typeof categoryAxisValue === 'number'
@@ -695,7 +714,8 @@ export default function EchartsTimeseries({
           xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
         if (data && xAxis.type === AxisType.Time && xAxisCol) {
           // For horizontal orientation the [x, value] pair is swapped
-          const xValue = Array.isArray(data) ? data[xAxisValueIndex] : data;
+          const point = getPointTuple(data);
+          const xValue = point ? point[xAxisValueIndex] : data;
           const xAxisFilter = getTemporalXAxisDrillByFilter(
             xAxisCol,
             xValue,

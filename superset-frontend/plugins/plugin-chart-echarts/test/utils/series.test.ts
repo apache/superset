@@ -2387,6 +2387,24 @@ test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
   expect(result).toEqual(['bar', 'foo']);
 });
 
+test('extractTooltipKeys sorts a clamped point by its originalValue', () => {
+  const result = extractTooltipKeys(
+    [
+      { data: [0, 10], seriesId: 'plain' },
+      {
+        data: { value: [0, 30], originalValue: 33.2 },
+        value: [0, 30],
+        seriesId: 'clamped',
+      },
+      { data: [0, 5], seriesId: 'small' },
+    ],
+    1,
+    true,
+    true,
+  );
+  expect(result).toEqual(['clamped', 'plain', 'small']);
+});
+
 test('extractTooltipKeys with non-rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, false, false);
   expect(result).toEqual(['foo']);

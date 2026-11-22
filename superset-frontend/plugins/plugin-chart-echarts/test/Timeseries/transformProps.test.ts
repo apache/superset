@@ -4033,6 +4033,56 @@ describe('tooltip for metrics whose labels end in forecast suffixes', () => {
     expect(html).not.toContain('No data');
     expect(html).toContain('>ci<');
   });
+
+  test('sorts a clamped series by its source value in the tooltip', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        metrics: ['Series A', 'Series B', 'Series C'],
+        groupby: [],
+        richTooltip: true,
+        tooltipSortByMetric: true,
+        truncateYAxis: true,
+        yAxisBounds: [0, 10],
+      } as Partial<EchartsTimeseriesFormData>,
+      queriesData: [
+        createTestQueryData(
+          createTestData([
+            { 'Series A': 5, 'Series B': 33.2, 'Series C': 10 },
+          ]),
+        ),
+      ],
+    });
+    const tooltipFormatter = (transformProps(chartProps).echartOptions as any)
+      .tooltip.formatter;
+    const html = tooltipFormatter([
+      {
+        seriesId: 'Series A',
+        seriesName: 'Series A',
+        value: [BASE_TIMESTAMP, 5],
+        data: [BASE_TIMESTAMP, 5],
+        marker,
+      },
+      {
+        seriesId: 'Series B',
+        seriesName: 'Series B',
+        value: [BASE_TIMESTAMP, 10],
+        data: { value: [BASE_TIMESTAMP, 10], originalValue: 33.2 },
+        marker,
+      },
+      {
+        seriesId: 'Series C',
+        seriesName: 'Series C',
+        value: [BASE_TIMESTAMP, 10],
+        data: [BASE_TIMESTAMP, 10],
+        marker,
+      },
+    ]);
+
+    expect(html.indexOf('Series B')).toBeLessThan(html.indexOf('Series C'));
+    expect(html.indexOf('Series C')).toBeLessThan(html.indexOf('Series A'));
+    expect(html).toContain('33.2');
+  });
 });
 
 test('shows gridlines and axis ticks by default', () => {

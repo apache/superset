@@ -423,6 +423,36 @@ test('dragging the handle rebases every series against the snapped x value', () 
   ]);
 });
 
+test('rebases wrapped clamped points like plain tuples', () => {
+  renderTimeseries({
+    echartOptions: {
+      series: [
+        {
+          data: [
+            [0, 10],
+            { value: [2, 30], originalValue: 33.2 },
+          ],
+        },
+      ],
+    } as any,
+  });
+  const graphic = getBaselineGraphic();
+  mockChart.setOption.mockClear();
+  // The clamped point's x=2 remains part of the baseline grid even though
+  // its data is wrapped to preserve the source value.
+  graphic.ondrag.call({ x: 2 * PX_PER_UNIT - 4, y: 0 });
+
+  const rebaseCall = mockChart.setOption.mock.calls.find(([option]) =>
+    Array.isArray(option?.series),
+  );
+  expect(rebaseCall).toBeDefined();
+  const [{ series }] = rebaseCall!;
+  expect(series[0].data).toEqual([
+    [0, (1 + 10) / (1 + 30) - 1],
+    [2, 0],
+  ]);
+});
+
 test('dragging snaps to the nearest known x value rather than an arbitrary pixel', () => {
   renderTimeseries();
   const graphic = getBaselineGraphic();
@@ -898,6 +928,84 @@ test('context menu cross-filter is available for a temporal bar point', async ()
       col: 'ds',
       op: 'TEMPORAL_RANGE',
       val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
+});
+
+test('cross-filters a clamped time point that carries originalValue', () => {
+  jest.useFakeTimers();
+  const setDataMask = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.DAY,
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.DAY,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: { label: DTTM_ALIAS, type: AxisType.Time },
+  });
+
+  // ECharts passes an empty axis label for time points; the x value has to
+  // come from the wrapped tuple rather than from `name`.
+  getLatestEchartProps().eventHandlers?.click?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: { value: [Date.UTC(2021, 0, 1), 30], originalValue: 33.2 },
+    name: '',
+    dataIndex: 0,
+  });
+  advanceClickTimer();
+
+  expect(setDataMask.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
+    },
+  ]);
+});
+
+test('context menu drills into the time value of a clamped point', async () => {
+  const onContextMenu = jest.fn();
+  const raw = Date.UTC(2021, 0, 1);
+
+  renderTimeseries({
+    onContextMenu,
+    groupby: [],
+    formData: {
+      ...DEFAULT_FORM_DATA,
+      datasource: '1__table',
+      viz_type: 'echarts_timeseries_line',
+      metric: 'count',
+      groupby: [],
+      granularitySqla: 'ds',
+      timeGrainSqla: undefined,
+    },
+    xAxis: { label: DTTM_ALIAS, type: AxisType.Time },
+  });
+
+  await getLatestEchartProps().eventHandlers?.contextmenu?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: { value: [raw, 30], originalValue: 33.2 },
+    name: '',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  const { drillToDetail, drillBy } = onContextMenu.mock.lastCall[2];
+  expect(drillToDetail).toEqual([
+    expect.objectContaining({ col: 'ds', op: '==', val: raw }),
+  ]);
+  expect(drillBy.xAxisFilters).toEqual([
+    {
+      col: 'ds',
+      op: '==',
+      val: '2021-01-01T00:00:00',
+      formattedVal: String(raw),
     },
   ]);
 });
