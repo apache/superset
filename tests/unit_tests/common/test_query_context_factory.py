@@ -1404,13 +1404,13 @@ def test_time_range_adds_a_filter_for_a_temporal_x_axis_without_one() -> None:
         "ds",
     )
     assert query.filter == [
-        {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "2000-01-01 : 2001-01-01"},
         {
             "col": "ds",
             "op": "TEMPORAL_RANGE",
             "val": "2024-01-01 : 2025-01-01",
             "isExtra": True,
         },
+        {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "2000-01-01 : 2001-01-01"},
     ]
 
 

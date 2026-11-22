@@ -528,7 +528,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     "op": "TEMPORAL_RANGE",
                     "val": None,
                 }
-                query_object.filter.append(axis_filter)
+                # Time comparison shifts only the first temporal range, so the
+                # x-axis range goes first.
+                query_object.filter.insert(0, axis_filter)
                 targets = [axis_filter]
             else:
                 targets = temporal_filters
