@@ -174,7 +174,7 @@ def test_metadata_aliases_share_result_cache(
             web_context.datasource.metadata_generation
         )
         assert (
-            "semantic-null-filters-v1"
+            "semantic-null-filters-v2"
             in web_context.datasource.get_extra_cache_keys({})
         )
 

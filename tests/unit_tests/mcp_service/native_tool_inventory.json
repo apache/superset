@@ -264,10 +264,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 250,
-      "description_chars": 3577,
+      "description_chars": 3667,
       "entry_bytes": {
-        "structured": 26411,
-        "text_only": 6037
+        "structured": 26509,
+        "text_only": 6135
       },
       "input_schema_bytes": 2037,
       "output_schema_bytes": 20358
@@ -408,10 +408,10 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 261,
-      "description_chars": 692,
+      "description_chars": 703,
       "entry_bytes": {
-        "structured": 1532,
-        "text_only": 1130
+        "structured": 1544,
+        "text_only": 1142
       },
       "input_schema_bytes": 171,
       "output_schema_bytes": 386
@@ -1331,8 +1331,8 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 558234,
-      "text_only": 230526
+      "structured": 558344,
+      "text_only": 230636
     },
     "compact_catalog_bytes": {
       "structured": 499916,
