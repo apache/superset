@@ -6041,15 +6041,15 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
     )
 
 
-def test_explore_mixin_adhoc_metric_quotes_snowflake_case_sensitive_identifier(
+def test_explore_mixin_adhoc_metric_leaves_snowflake_lowercase_column_unquoted(
     database: Database,
 ) -> None:
-    """``ExploreMixin.adhoc_metric_to_sqla`` quotes exact-case Snowflake columns.
-
-    Unlike the ``SqlaTable`` override, this implementation builds the aggregate
-    from a bare ``sa.column()`` unconditionally, so every SIMPLE adhoc metric on
-    the query-object path bypassed identifier preparation.
     """
+    ``ExploreMixin.adhoc_metric_to_sqla`` builds SIMPLE adhoc metrics from a bare
+    ``sa.column()``, so lowercase Snowflake column metadata renders unquoted and
+    Snowflake folds it to the uppercase physical column.
+    """
+    snowdialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
     from superset.models.helpers import ExploreMixin
 
@@ -6068,27 +6068,32 @@ def test_explore_mixin_adhoc_metric_quotes_snowflake_case_sensitive_identifier(
         "label": "total",
     }
 
-    with database.get_sqla_engine() as engine:
-        dialect = engine.dialect
-
     rendered = str(
         datasource.adhoc_metric_to_sqla(metric, {}).compile(
-            dialect=dialect,
+            dialect=snowdialect.SnowflakeDialect(),
             compile_kwargs={"literal_binds": True},
         )
     )
 
-    assert '"amount"' in rendered, (
-        f"Expected the exact-case column to be quoted, got: {rendered}"
-    )
-    assert "(amount)" not in rendered, f"Column was aggregated unquoted: {rendered}"
+    assert "sum(amount)" in rendered.lower()
+    assert '"amount"' not in rendered
 
 
-def test_convert_tbl_column_quotes_snowflake_case_sensitive_identifier(
+@pytest.mark.parametrize(
+    "column_name,expected",
+    [("name", "name"), ("NAME", '"NAME"')],
+)
+def test_convert_tbl_column_leaves_snowflake_lowercase_column_unquoted(
     database: Database,
     mocker: MockerFixture,
+    column_name: str,
+    expected: str,
 ) -> None:
-    """The chart query-object path quotes exact-case Snowflake physical columns."""
+    """
+    The chart query-object path renders lowercase Snowflake column metadata
+    unquoted and keeps SQLAlchemy's quoting for exact-case uppercase names.
+    """
+    snowdialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
     from superset.models.core import Database
@@ -6103,19 +6108,16 @@ def test_convert_tbl_column_quotes_snowflake_case_sensitive_identifier(
         table_name="bug_test",
         normalize_columns=False,
     )
-    tbl_column = TableColumn(column_name="name", type="VARCHAR", table=table)
-
-    with database.get_sqla_engine() as engine:
-        dialect = engine.dialect
+    tbl_column = TableColumn(column_name=column_name, type="VARCHAR", table=table)
 
     rendered = str(
         table.convert_tbl_column_to_sqla_col(tbl_column).compile(
-            dialect=dialect,
+            dialect=snowdialect.SnowflakeDialect(),
             compile_kwargs={"literal_binds": True},
         )
     )
 
-    assert rendered == '"name"'
+    assert rendered == expected
 
 
 @pytest.mark.parametrize(

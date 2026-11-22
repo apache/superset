@@ -1633,11 +1633,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             # surrounding operator precedence (e.g. COUNT(DISTINCT ...)).
             col = Grouping(literal_column(expression, type_=type_))
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
-            )
-            col = column(identifier, type_=type_)
+            col = column(self.column_name, type_=type_)
         col = self.database.make_sqla_column_compatible(col, label)
         return col
 
@@ -1671,11 +1667,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
-            )
-            sqla_col = column(identifier, type_=type_)
+            sqla_col = column(self.column_name, type_=type_)
             return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
             if template_processor:
@@ -1716,11 +1708,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
-            )
-            col = column(identifier, type_=type_)
+            col = column(self.column_name, type_=type_)
         if (
             apply_dataset_offset
             and time_grain
@@ -2572,12 +2560,7 @@ class SqlaTable(
                     template_processor=template_processor
                 )
             else:
-                sqla_column = column(
-                    self.db_engine_spec.prepare_identifier(
-                        column_name,
-                        normalize_columns=bool(self.normalize_columns),
-                    )
-                )
+                sqla_column = column(column_name)
 
             if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
                 sqla_metric = self.sqla_aggregations[aggregate](sqla_column)

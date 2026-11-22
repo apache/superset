@@ -5304,12 +5304,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             aggregate: Any = metric.get("aggregate")
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
-            sqla_column = sa.column(
-                self.db_engine_spec.prepare_identifier(
-                    column_name,
-                    normalize_columns=bool(self.normalize_columns),
-                )
-            )
+            sqla_column = sa.column(column_name)
 
             if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
                 sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
@@ -6955,11 +6950,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # SELECT/GROUP BY/ORDER BY, series-limit prequery, or JOIN ON.
             col = Grouping(literal_column(expression, type_=type_))
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, tbl_column.column_name),
-                normalize_columns=bool(self.normalize_columns),
-            )
-            col = sa.column(identifier, type_=type_)
+            col = sa.column(tbl_column.column_name, type_=type_)
         col = self.make_sqla_column_compatible(col, label)
         return col
 
