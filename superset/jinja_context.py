@@ -1559,7 +1559,7 @@ def get_template_processor(
 def i18n_macro(default_text: str) -> str:
     """Jinja macro for translating asset metadata into the viewer's locale.
 
-    Usage in a templated field (e.g. a chart axis label or native filter name)::
+    Usage in SQL-templated content (e.g. virtual dataset SQL or a metric expression)::
 
         {{ i18n('Sales') }}
 
