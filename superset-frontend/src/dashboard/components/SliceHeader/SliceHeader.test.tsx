@@ -1254,6 +1254,6 @@ test('Should use the localized name in the click-to-edit tooltip', async () => {
 
   // The tooltip describes what is on screen, so it names the localized title
   // rather than the canonical one behind it.
-  userEvent.hover(screen.getByText('Ventes'));
+  await userEvent.hover(screen.getByText('Ventes'));
   expect(await screen.findByText('Click to edit Ventes.')).toBeInTheDocument();
 });

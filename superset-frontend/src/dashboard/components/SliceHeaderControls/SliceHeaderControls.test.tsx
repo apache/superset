@@ -1212,11 +1212,11 @@ test('menu strings the viewer reads use the displayed name', async () => {
     ...props,
     slice: { ...props.slice, display_name: 'Ventes' },
   } as SliceHeaderControlsProps);
-  openMenu();
+  await openMenu();
 
-  userEvent.hover(screen.getByText('Edit chart'));
+  await userEvent.hover(screen.getByText('Edit chart'));
   expect(await screen.findByText(/Click to edit Ventes/)).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('View as table'));
+  await userEvent.click(screen.getByText('View as table'));
   expect(await screen.findByText('Chart Data: Ventes')).toBeInTheDocument();
 });
