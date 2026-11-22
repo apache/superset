@@ -75,6 +75,9 @@ export const EncryptedField = ({
   const [pendingValidationValue, setPendingValidationValue] = useState<
     string | null
   >(null);
+  // Tracks whether the user has typed or pasted into the textarea this
+  // session, so their own input is shown while stored values stay hidden.
+  const [hasUserEdited, setHasUserEdited] = useState(false);
   const { addDangerToast } = useToasts();
   const isGSheets = db?.engine === Engines.GSheet;
   const showCredentialsInfo = !isEditMode && (!isGSheets || !isPublic);
@@ -87,9 +90,11 @@ export const EncryptedField = ({
   // In edit mode the backend may return the existing (masked) credential in
   // the parameters. Do not surface any pre-existing value in the field; the
   // user must re-enter credentials to change them. This also matches the
-  // mount effect below, which resets the parameter to an empty string.
+  // mount effect below, which resets the parameter to an empty string. Once
+  // the user has typed or pasted, the value comes from their own input and is
+  // displayed normally.
   const encryptedValue =
-    isEditMode || paramValue == null
+    (isEditMode && !hasUserEdited) || paramValue == null
       ? ''
       : typeof paramValue === 'object'
         ? JSON.stringify(paramValue)
@@ -211,7 +216,12 @@ export const EncryptedField = ({
           }
           placeholder={t('Paste content of service credentials JSON file here')}
           label={t('Service Account')}
-          onChange={changeMethods.onParametersChange}
+          onChange={(
+            event: Parameters<typeof changeMethods.onParametersChange>[0],
+          ) => {
+            setHasUserEdited(true);
+            changeMethods.onParametersChange(event);
+          }}
           helpText={t('Add service credentials')}
           renderAsTextArea
           textAreaCss={credentialTextAreaCss}
