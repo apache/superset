@@ -33,18 +33,22 @@ class GetFilterStateCommand(GetTemporaryCacheCommand):
         self._refresh_timeout = app.config["FILTER_STATE_CACHE_CONFIG"].get(
             "REFRESH_TIMEOUT_ON_RETRIEVAL"
         )
+        self._json_metadata: Optional[str] = None
 
     def get(self, cmd_params: CommandParameters) -> Optional[str]:
         resource_id = cmd_params.resource_id
         key = cache_key(resource_id, cmd_params.key)
-        check_access(resource_id)
+        # Keep the metadata for ``get_filter_names``. Read it here: refreshing
+        # the entry below commits, which expires the loaded dashboard.
+        self._json_metadata = check_access(resource_id).json_metadata or "{}"
         entry = cache_manager.filter_state_cache.get(key) or {}
         if entry and self._refresh_timeout:
             cache_manager.filter_state_cache.set(key, entry)
         return entry.get("value")
 
-    @staticmethod
-    def get_filter_names(resource_id: int, value: Optional[str]) -> dict[str, str]:
+    def get_filter_names(
+        self, resource_id: int, value: Optional[str]
+    ) -> dict[str, str]:
         """
         Cross-reference the filter ids present in a cached filter_state
         ``value`` (a ``DataMaskStateWithId``, i.e. a map keyed by filter id)
@@ -63,9 +67,14 @@ class GetFilterStateCommand(GetTemporaryCacheCommand):
         if not isinstance(parsed_value, dict):
             return {}
 
-        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
+        # ``get`` has already loaded and access-checked the dashboard; look it
+        # up only when this is called without it.
+        json_metadata = self._json_metadata
+        if json_metadata is None:
+            dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
+            json_metadata = dashboard.json_metadata or "{}"
         try:
-            metadata = json.loads(dashboard.json_metadata or "{}")
+            metadata = json.loads(json_metadata)
         except (json.JSONDecodeError, TypeError):
             return {}
         if not isinstance(metadata, dict):
