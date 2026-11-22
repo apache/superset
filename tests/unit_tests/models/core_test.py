@@ -19,9 +19,11 @@
 import base64
 import gc
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
+from threading import Event
 from typing import Any, Callable, Iterator
 
 import pandas as pd
@@ -40,6 +42,7 @@ from sqlalchemy import (
     select,
     Table as SqlalchemyTable,
 )
+from sqlalchemy.engine import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm.session import Session
@@ -5189,7 +5192,7 @@ def test_default_schema_existing_publication_is_not_retried(
     cached_schema: str,
     supports_add: bool,
 ) -> None:
-    """Renew another worker's value, then rate-limit repeated publication."""
+    """Leave another worker's value in place, then rate-limit repeated publication."""
     clock = mocker.patch("superset.models.core.monotonic", return_value=0)
     cache = shared_default_schema_cache
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
@@ -5211,6 +5214,10 @@ def test_default_schema_existing_publication_is_not_retried(
     write.assert_called_once()
     key = write.call_args.args[0]
     assert cache.get(key) == cached_schema
+    clock.return_value = 60
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert write.call_count == 1
+    assert cache.get(key) == cached_schema
     clock.return_value = 1800
     assert database.get_default_schema_from_engine(None) == "main"
     assert cache.get(key) == cached_schema
@@ -5219,6 +5226,48 @@ def test_default_schema_existing_publication_is_not_retried(
     assert database.get_default_schema_from_engine(None) == "main"
     assert cache.get(key) is None
     assert write.call_count == 2
+
+
+def test_default_schema_concurrent_lookups_share_inflight_publication(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """Concurrent warm lookups skip cache I/O while publication is in flight."""
+    mocker.patch("superset.models.core.monotonic", return_value=0)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    engine: Engine
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+    app_context = current_app.app_context
+    entered = Event()
+    release = Event()
+    real_add = shared_default_schema_cache.add
+
+    def slow_add(key: str, schema: str, timeout: int) -> bool:
+        """Hold the first cache call until the concurrent lookup has returned."""
+        if write.call_count == 1:
+            entered.set()
+            assert release.wait(timeout=10)
+        return real_add(key, schema, timeout=timeout)
+
+    def lookup() -> str | None:
+        """Use a thread-local app context for the shared cache proxy."""
+        with app_context():
+            return database.get_default_schema_from_engine(None)
+
+    write = mocker.patch.object(
+        shared_default_schema_cache, "add", side_effect=slow_add
+    )
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(lookup)
+        try:
+            assert entered.wait(timeout=5)
+            second = executor.submit(lookup)
+            assert second.result(timeout=5) == "main"
+            assert write.call_count == 1
+        finally:
+            release.set()
+        assert first.result(timeout=5) == "main"
+    assert write.call_count == 1
 
 
 def test_default_schema_unsuccessful_publication_retries(
