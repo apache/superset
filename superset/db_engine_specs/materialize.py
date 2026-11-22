@@ -39,7 +39,6 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        # TODO: Add package name for SQLAlchemy dialect after uploaded to PyPi
         # TODO: Add connecting string builder after integrated 'cluster' in input form
         "pypi_packages": ["psycopg2", "sqlalchemy-materialize"],
         "connection_string": (
@@ -59,22 +58,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
         """Run statements independently unless an explicit transaction is opened."""
         if not connection.autocommit:
             connection.autocommit = True
-    
-    # NOTES: 
-    # - Time grains inherited from Postgres work. Tested in Materialize Console.
-    # - TODO: Test in SQLLab once pg_catalog.pg_opclass thingy is fixed
-    # I think I fixed pg_opclass in the dialect, but there's more to fix
-    # e.g. afaik, foreign key is not supported in Materialize.
-    # and theres like get_foreign_key() function or similar in the dialect.
-    
-    
-    # TODO: FIX! Materialize doesnt accept query with comments on both before and after query
-    # e.g. 
-    # -- comment1 
-    # SELECT 1;
-    # -- comment 2
-    # NEED TO RETEST! One possible fix allows_sql_comments = False
-    
+            
     @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
