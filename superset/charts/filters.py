@@ -169,7 +169,10 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         # charts from a dashboard they were legitimately granted.
         query = apply_extra_access_exclusions(query, "charts", Slice.id)
 
-        if security_manager.can_access_all_datasources():
+        if (
+            security_manager.can_access_all_datasources()
+            or security_manager.can_access_all_charts()
+        ):
             return query
 
         return self._apply_viewers(query)

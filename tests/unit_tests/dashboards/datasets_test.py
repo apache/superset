@@ -64,9 +64,19 @@ pytest_plugins: list[str] = ["tests.unit_tests.semantic_layers.models_test"]
 @pytest.fixture(autouse=True)
 def datasource_access() -> Iterator[None]:
     """Default metadata fixtures to an authorized principal."""
-    with patch(
-        "superset.models.dashboard.security_manager.can_access_all_datasources",
-        return_value=True,
+    with (
+        patch(
+            "superset.models.dashboard.security_manager.can_access_all_datasources",
+            return_value=True,
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.can_access_all_dashboards",
+            return_value=False,
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.can_access_all_charts",
+            return_value=False,
+        ),
     ):
         yield
 

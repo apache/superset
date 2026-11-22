@@ -502,6 +502,14 @@ def _gate_patches(sm, *, granted_perms: set[str]) -> Iterator[None]:
             sm, "get_datasource_access_error_object", return_value=MagicMock()
         ),
         patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
+        patch(
+            "superset.models.dashboard.security_manager.can_access_all_dashboards",
+            return_value=False,
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.can_access_all_charts",
+            return_value=False,
+        ),
     )
     with ExitStack() as stack:
         for patcher in patches:
@@ -833,6 +841,8 @@ def _apply_list_filter(
     sm = MagicMock()
     sm.is_admin.return_value = False
     sm.can_access_all_datasources.return_value = False
+    sm.can_access_all_dashboards.return_value = False
+    sm.can_access_all_dashboards.return_value = False
     sm.get_accessible_databases.return_value = accessible_databases
     sm.user_view_menu_names.side_effect = lambda perm: view_menus[perm]
 

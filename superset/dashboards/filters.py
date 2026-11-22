@@ -140,6 +140,11 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if security_manager.is_admin():
             return query
 
+        if security_manager.can_access_all_dashboards():
+            # Ensure that users who have read all dashboards permission
+            # can't access draft dashboards
+            return query.filter(Dashboard.published)
+
         return self._apply_viewers(query)
 
     def _apply_viewers(self, query: Query) -> Query:

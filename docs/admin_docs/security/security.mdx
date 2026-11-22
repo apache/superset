@@ -37,6 +37,11 @@ users and altering other people’s slices and dashboards.
 Alpha users have access to all data sources, but they cannot grant or revoke access
 from other users. They are also limited to altering the objects that they own. Alpha users can add and alter data sources.
 
+Alpha also holds the `all_dashboards_view` and `all_charts_view` permissions. With them, an Alpha user
+can see every chart and every published dashboard, including those with viewers they are not part of.
+Unpublished dashboards stay hidden, and neither permission grants edit rights: only editors of an
+object can change it.
+
 ### Gamma
 
 Gamma users have limited access. They can only consume data coming from data sources
@@ -385,6 +390,11 @@ same rather than relying on the asset being absent from a picker.
 Access to dashboards is managed via editors (subjects that have edit permissions to the dashboard).
 Non-editor user access can be managed in two ways. Note that dashboards must be published to be
 visible to other users.
+
+Users with the `all_dashboards_view` permission (Alpha by default) can see every published dashboard,
+including dashboards with viewers they are not part of. `all_charts_view` does the same for charts.
+Neither permission grants access to the underlying data: querying a chart still requires access to
+its dataset (Alpha has this through `all_datasource_access`).
 
 #### Dataset-Based Access (Default)
 

@@ -2239,6 +2239,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "muldelete",
         "all_database_access",
         "all_datasource_access",
+        "all_dashboards_view",
+        "all_charts_view",
     }
 
     OBJECT_SPEC_PERMISSIONS = {
@@ -2720,6 +2722,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the user can access all the databases
         """
         return self.can_access("all_database_access", "all_database_access")
+
+    def can_access_all_dashboards(self) -> bool:
+        """
+        Return True if the user can access all the dashboards, False otherwise.
+
+        :returns: Whether the user can access all the dashboards
+        """
+        return self.can_access("all_dashboards_view", "all_dashboards_view")
+
+    def can_access_all_charts(self) -> bool:
+        """
+        Return True if the user can access all the charts, False otherwise.
+
+        :returns: Whether the user can access all the charts
+        """
+        return self.can_access("all_charts_view", "all_charts_view")
 
     def can_access_database(self, database: "Database") -> bool:
         """
@@ -3618,6 +3636,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
+        self.add_permission_view_menu("all_dashboards_view", "all_dashboards_view")
+        self.add_permission_view_menu("all_charts_view", "all_charts_view")
         self.add_permission_view_menu("all_query_access", "all_query_access")
         self.add_permission_view_menu(
             REALTIME_NOTIFICATION_PERMISSION,
@@ -6387,7 +6407,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_dashboard_access_error_object(dashboard)
                 )
 
-            if self.is_admin() or self.is_editor(dashboard):
+            if (
+                self.is_admin()
+                or self.is_editor(dashboard)
+                or (dashboard.published and self.can_access_all_dashboards())
+            ):
                 return
 
             if dashboard.viewers:
@@ -6440,6 +6464,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if chart:
             if self.is_admin() or self.is_editor(chart):
+                return
+
+            if self.can_access_all_charts():
                 return
 
             if chart.viewers:

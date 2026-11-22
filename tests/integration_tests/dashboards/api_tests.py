@@ -47,6 +47,7 @@ from sqlalchemy import and_, event, func
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm.exc import StaleDataError
 from superset import db, security_manager  # noqa: F401
+from superset.extensions import feature_flag_manager
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.daos.dashboard import (
     DashboardDAO,
@@ -90,6 +91,15 @@ from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
     GAMMA_USERNAME,
+)
+from tests.integration_tests.fixtures.dashboard_access import (
+    ALPHA_USER1,
+    GAMMA_USER1,
+    GAMMA_USER2,
+    CHART_NAME,
+    PUBLISHED_DASHBOARD_SLUG,
+    UNPUBLISHED_DASHBOARD_SLUG,
+    dashboard_with_chart_and_users,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -9690,4 +9700,264 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             db.session.commit()
             for tag in (custom_tag, editor_tag, type_tag):
                 db.session.delete(tag)
+            db.session.commit()
+
+
+@pytest.mark.usefixtures("dashboard_with_chart_and_users")
+class TestAlphaRoleViewAccess(SupersetTestCase):
+    """Alpha access to dashboards and charts it neither edits nor views by grant."""
+
+    def _list_dashboard_slugs(self, username: str) -> list[str]:
+        """Slugs of the test dashboards visible to ``username`` in the list view."""
+        query = {
+            "filters": [
+                {
+                    "col": "dashboard_title",
+                    "opr": "title_or_slug",
+                    "value": PUBLISHED_DASHBOARD_SLUG,
+                }
+            ]
+        }
+        self.logout()
+        response = self.get_list("dashboard", query, username)
+        assert response.status_code == 200
+        return [d["slug"] for d in json.loads(response.data.decode("utf-8"))["result"]]
+
+    @parameterized.expand([("viewers_on", True), ("viewers_off", False)])
+    def test_dataset_access_list_view(self, name: str, viewers_enabled: bool):
+        """
+        Situation: a published and an unpublished dashboard, neither with viewers,
+        sharing one chart. ``ENABLE_VIEWERS`` is on or off. gamma_user1 has
+        access to the chart's dataset.
+
+        List view - check that earlier dataset based access holds:
+        - alpha_user1 sees the published dashboard but not the unpublished one.
+        - gamma_user1 sees the published dashboard.
+        - gamma_user2 does not see the published dashboard.
+        """
+        with patch.dict(
+            feature_flag_manager._feature_flags, {"ENABLE_VIEWERS": viewers_enabled}
+        ):
+            alpha_slugs = self._list_dashboard_slugs(ALPHA_USER1)
+            assert PUBLISHED_DASHBOARD_SLUG in alpha_slugs
+            assert UNPUBLISHED_DASHBOARD_SLUG not in alpha_slugs
+            assert PUBLISHED_DASHBOARD_SLUG in self._list_dashboard_slugs(GAMMA_USER1)
+            assert PUBLISHED_DASHBOARD_SLUG not in self._list_dashboard_slugs(
+                GAMMA_USER2
+            )
+
+    @parameterized.expand([("viewers_on", True), ("viewers_off", False)])
+    def test_dataset_access_dashboard_and_chart(self, name: str, viewers_enabled: bool):
+        """
+        Situation: same as ``test_dataset_access_list_view``.
+
+        Check that dataset based access holds true.
+        - alpha_user1 and gamma_user1 can open the published dashboard, its chart
+          and the chart in explore.
+        - alpha_user1 gets 403 on the unpublished dashboard.
+        - gamma_user2 gets 403 on the published dashboard and 404 on the chart.
+        - gamma_user2 gets 200 from explore, with no chart in the response.
+        """
+        published = (
+            db.session.query(Dashboard).filter_by(slug=PUBLISHED_DASHBOARD_SLUG).one()
+        )
+        unpublished = (
+            db.session.query(Dashboard).filter_by(slug=UNPUBLISHED_DASHBOARD_SLUG).one()
+        )
+        chart = published.slices[0]
+        with patch.dict(
+            feature_flag_manager._feature_flags, {"ENABLE_VIEWERS": viewers_enabled}
+        ):
+            for username in (ALPHA_USER1, GAMMA_USER1):
+                self.logout()
+                self.login(username)
+                response = self.get_assert_metric(
+                    f"api/v1/dashboard/{published.id}", "get"
+                )
+                assert response.status_code == 200, username
+                response = self.get_assert_metric(f"api/v1/chart/{chart.id}", "get")
+                assert response.status_code == 200, username
+                # Explore answers 200 even without access, returning an empty
+                # placeholder, so check that the chart itself comes back.
+                response = self.client.get(f"api/v1/explore/?slice_id={chart.id}")
+                assert response.status_code == 200, username
+                result = json.loads(response.data.decode("utf-8"))["result"]
+                assert result["slice"]["slice_id"] == chart.id, username
+
+            self.logout()
+            self.login(ALPHA_USER1)
+            response = self.get_assert_metric(
+                f"api/v1/dashboard/{unpublished.id}", "get"
+            )
+            assert response.status_code == 403
+
+            self.logout()
+            self.login(GAMMA_USER2)
+            # A hidden dashboard is denied (403), a hidden chart reads as missing (404).
+            response = self.client.get(f"api/v1/dashboard/{published.id}")
+            assert response.status_code == 403
+            response = self.client.get(f"api/v1/chart/{chart.id}")
+            assert response.status_code == 404
+            # Explore does not deny: it returns an empty placeholder without the chart.
+            response = self.client.get(f"api/v1/explore/?slice_id={chart.id}")
+            assert response.status_code == 200
+            assert json.loads(response.data.decode("utf-8"))["result"]["slice"] is None
+
+    def test_viewer_access_list_view(self):
+        """
+        Situation: ``ENABLE_VIEWERS`` is on and gamma_user2 is the only viewer of
+        the published dashboard. Only gamma_user1 has access to the chart's dataset.
+
+        List view:
+        - alpha_user1 sees the dashboard due to all_dashboards_view permission.
+        - gamma_user1 does not see it, as the dataset fallback no longer applies.
+        - gamma_user2 sees it due to being a viewer
+        """
+        published = (
+            db.session.query(Dashboard).filter_by(slug=PUBLISHED_DASHBOARD_SLUG).one()
+        )
+        published.viewers = subjects_from_users([self.get_user(GAMMA_USER2)])
+        db.session.commit()
+        with patch.dict(feature_flag_manager._feature_flags, {"ENABLE_VIEWERS": True}):
+            alpha_slugs = self._list_dashboard_slugs(ALPHA_USER1)
+            assert PUBLISHED_DASHBOARD_SLUG in alpha_slugs
+            assert PUBLISHED_DASHBOARD_SLUG not in self._list_dashboard_slugs(
+                GAMMA_USER1
+            )
+            assert PUBLISHED_DASHBOARD_SLUG in self._list_dashboard_slugs(GAMMA_USER2)
+
+    def test_viewer_access_dashboard_and_chart(self):
+        """
+        Situation: same as ``test_viewer_access_list_view``. The chart has no
+        viewers of its own, so it follows dataset access.
+
+        Alpha user experiences no changes as they have all_dashboards_view permission.
+        Gamma user can nno longer access the dashboard but they can access the chart in
+        explore view as they can still use the dataset access.
+
+        - alpha_user1: dashboard 200, chart 200, chart data 200.
+        - gamma_user1: dashboard 403, chart 200, chart data 200.
+        - gamma_user2: dashboard 200, chart 404, chart data 403.
+        """
+        published = (
+            db.session.query(Dashboard).filter_by(slug=PUBLISHED_DASHBOARD_SLUG).one()
+        )
+        chart = published.slices[0]
+        published.viewers = subjects_from_users([self.get_user(GAMMA_USER2)])
+        db.session.commit()
+        try:
+            with patch.dict(
+                feature_flag_manager._feature_flags, {"ENABLE_VIEWERS": True}
+            ):
+                for username, dashboard_status, chart_status, data_status in (
+                    (ALPHA_USER1, 200, 200, 200),
+                    (GAMMA_USER1, 403, 200, 200),
+                    (GAMMA_USER2, 200, 404, 403),
+                ):
+                    self.logout()
+                    self.login(username)
+                    response = self.client.get(f"api/v1/dashboard/{published.id}")
+                    assert response.status_code == dashboard_status, username
+                    response = self.client.get(f"api/v1/chart/{chart.id}")
+                    assert response.status_code == chart_status, username
+                    response = self.client.post(
+                        "api/v1/chart/data",
+                        json={
+                            "datasource": {"id": chart.datasource_id, "type": "table"},
+                            "queries": [{"metrics": ["count"]}],
+                        },
+                    )
+                    assert response.status_code == data_status, username
+                    if data_status == 200:
+                        data = json.loads(response.data.decode("utf-8"))
+                        assert data["result"][0]["data"] == [{"count": 3}], username
+        finally:
+            published.viewers = []
+            db.session.commit()
+
+    def test_viewer_access_chart_list_view(self):
+        """
+        Situation: ``ENABLE_VIEWERS`` is on and gamma_user2 is the only direct
+        viewer of the chart as well as dashboard. gamma_user1 has access to the
+        chart's dataset.
+
+        Chart list view:
+        - alpha_user1 sees the chart due to all_charts_view permission
+        - gamma_user1 does not see it, as the dataset fallback no longer applies.
+        - gamma_user2 sees it due to being part of chart view
+        """
+        chart = (
+            db.session.query(Dashboard)
+            .filter_by(slug=PUBLISHED_DASHBOARD_SLUG)
+            .one()
+            .slices[0]
+        )
+        chart.viewers = subjects_from_users([self.get_user(GAMMA_USER2)])
+        db.session.commit()
+        query = {"filters": [{"col": "slice_name", "opr": "eq", "value": CHART_NAME}]}
+        try:
+            with patch.dict(
+                feature_flag_manager._feature_flags, {"ENABLE_VIEWERS": True}
+            ):
+                for username, expected_ids in (
+                    (ALPHA_USER1, [chart.id]),
+                    (GAMMA_USER1, []),
+                    (GAMMA_USER2, [chart.id]),
+                ):
+                    self.logout()
+                    response = self.get_list("chart", query, username)
+                    assert response.status_code == 200, username
+                    result = json.loads(response.data.decode("utf-8"))["result"]
+                    assert [c["id"] for c in result] == expected_ids, username
+        finally:
+            chart.viewers = []
+            db.session.commit()
+
+    def test_viewer_access_dashboard_and_chart_with_chart_viewer(self):
+        """
+        Situation: same as test_viewer_access_chart_list_view
+
+        In this case, both dashboard.viewers and chart.viewers are present
+
+        - alpha_user1: Has all permissions.
+        - gamma_user1: Has no permission to view chart or dashboard.
+        - gamma_user2: can view dashboard and chart, but not the data
+        """
+        published = (
+            db.session.query(Dashboard).filter_by(slug=PUBLISHED_DASHBOARD_SLUG).one()
+        )
+        chart = published.slices[0]
+        gamma_user2_subjects = subjects_from_users([self.get_user(GAMMA_USER2)])
+        published.viewers = gamma_user2_subjects
+        chart.viewers = gamma_user2_subjects
+        db.session.commit()
+        try:
+            with patch.dict(
+                feature_flag_manager._feature_flags, {"ENABLE_VIEWERS": True}
+            ):
+                for username, dashboard_status, chart_status, data_status in (
+                    (ALPHA_USER1, 200, 200, 200),
+                    (GAMMA_USER1, 403, 404, 200),
+                    (GAMMA_USER2, 200, 200, 403),
+                ):
+                    self.logout()
+                    self.login(username)
+                    response = self.client.get(f"api/v1/dashboard/{published.id}")
+                    assert response.status_code == dashboard_status, username
+                    response = self.client.get(f"api/v1/chart/{chart.id}")
+                    assert response.status_code == chart_status, username
+                    response = self.client.post(
+                        "api/v1/chart/data",
+                        json={
+                            "datasource": {"id": chart.datasource_id, "type": "table"},
+                            "queries": [{"metrics": ["count"]}],
+                        },
+                    )
+                    assert response.status_code == data_status, username
+                    if data_status == 200:
+                        data = json.loads(response.data.decode("utf-8"))
+                        assert data["result"][0]["data"] == [{"count": 3}], username
+        finally:
+            published.viewers = []
+            chart.viewers = []
             db.session.commit()
