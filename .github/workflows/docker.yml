@@ -868,7 +868,7 @@ jobs:
               --context "$BUILD_CONTEXT" \
               --context-ref "$BUILD_CONTEXT_REF" \
               --extra-flags "$EXTRA_FLAGS" \
-              "$PLATFORM_ARG"; then
+              $PLATFORM_ARG; then
               break
             fi
             if [ "$attempt" -eq 3 ]; then
