@@ -24,6 +24,7 @@ import {
   screen,
   waitFor,
   within,
+  act,
 } from '@superset-ui/core/spec';
 import { AsyncSelect } from '.';
 
@@ -138,8 +139,30 @@ const findAllSelectValues = () =>
     ),
   );
 
+// The search fetch runs behind two real-clock debounces (250 ms + 500 ms), which
+// leaves little slack in waitFor's 1000 ms window on a loaded CI runner. Tests
+// that type opt into a fake clock, which waitFor advances while it polls.
+let user: Pick<typeof userEvent, 'click' | 'clear' | 'type'> = userEvent;
+let fakeClock = false;
+const useFakeClock = () => {
+  jest.useFakeTimers();
+  fakeClock = true;
+  user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+};
+
+afterEach(() => {
+  if (fakeClock) {
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
+    fakeClock = false;
+    user = userEvent;
+  }
+});
+
 const clearAll = async () =>
-  await userEvent.click(screen.getByLabelText('close-circle'));
+  await user.click(screen.getByLabelText('close-circle'));
 
 const matchOrder = async (expectedLabels: string[]) => {
   const actualLabels: string[] = [];
@@ -155,14 +178,16 @@ const matchOrder = async (expectedLabels: string[]) => {
 
 const type = async (text: string) => {
   const select = getSelect();
-  await userEvent.clear(select);
+  await user.clear(select);
   // userEvent.type() rejects an empty string as a key sequence; clear()
   // above already leaves the input empty, so there's nothing left to type.
   if (text === '') return undefined;
-  return await userEvent.type(select, text, { delay: 10 });
+  return await user.type(select, text, { delay: 10 });
 };
 
-const open = () => waitFor(async () => await userEvent.click(getSelect()));
+const open = async () => {
+  await user.click(getSelect());
+};
 
 // userEvent.type()'s `{Escape}` key sequence isn't reliably picked up by
 // rc-select's keydown handler under jsdom; dispatch the key event directly.
@@ -240,6 +265,7 @@ test('keeps the extra props of a selected value that is not in the options', asy
 });
 
 test('keeps the extra props of an option picked from search results after the search clears', async () => {
+  useFakeClock();
   // Selecting stores only { label, value }. Once the search clears and the
   // base page (which lacks the pick) is restored, the option rebuilt from the
   // selection must still carry the picked option's aria-label, and its title
@@ -266,7 +292,7 @@ test('keeps the extra props of an option picked from search results after the se
   );
   await open();
   await type('Amy');
-  await userEvent.click(await findSelectOption('Amy'));
+  await user.click(await findSelectOption('Amy'));
 
   await waitFor(() =>
     expect(
@@ -318,7 +344,7 @@ test('does not add a new option if the value is already in the options', async (
 test('inverts the selection', async () => {
   render(<AsyncSelect {...defaultProps} invertSelection />);
   await open();
-  await userEvent.click(await findSelectOption(OPTIONS[0].label));
+  await user.click(await findSelectOption(OPTIONS[0].label));
   expect(await screen.findByLabelText('stop')).toBeInTheDocument();
 });
 
@@ -354,7 +380,7 @@ test('should sort selected to top when in single mode', async () => {
   render(<AsyncSelect {...defaultProps} mode="single" />);
   const originalLabels = OPTIONS.map(option => option.label);
   await open();
-  await userEvent.click(await findSelectOption(originalLabels[1]));
+  await user.click(await findSelectOption(originalLabels[1]));
   // after selection, keep the original order
   expect(await matchOrder(originalLabels)).toBe(true);
 
@@ -367,7 +393,7 @@ test('should sort selected to top when in single mode', async () => {
 
   // keep clicking other items, the updated order should still based on
   // original order
-  await userEvent.click(await findSelectOption(originalLabels[5]));
+  await user.click(await findSelectOption(originalLabels[5]));
   await matchOrder(labels);
   closeDropdown();
   await open();
@@ -388,7 +414,7 @@ test('should sort selected to the top when in multi mode', async () => {
   let labels = originalLabels.slice();
 
   await open();
-  await userEvent.click(await findSelectOption(labels[1]));
+  await user.click(await findSelectOption(labels[1]));
   expect(await matchOrder(labels)).toBe(true);
 
   closeDropdown();
@@ -397,7 +423,7 @@ test('should sort selected to the top when in multi mode', async () => {
   expect(await matchOrder(labels)).toBe(true);
 
   await open();
-  await userEvent.click(await findSelectOption(labels[5]));
+  await user.click(await findSelectOption(labels[5]));
   closeDropdown();
   await open();
   labels = [labels.splice(0, 1)[0], labels.splice(4, 1)[0]].concat(labels);
@@ -411,6 +437,7 @@ test('should sort selected to the top when in multi mode', async () => {
 });
 
 test('searches for label or value', async () => {
+  useFakeClock();
   const option = OPTIONS[11];
   render(<AsyncSelect {...defaultProps} />);
   const search = option.value;
@@ -422,6 +449,7 @@ test('searches for label or value', async () => {
 });
 
 test('search order exact and startWith match first', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} />);
   await open();
   await type('Her');
@@ -435,12 +463,14 @@ test('search order exact and startWith match first', async () => {
 });
 
 test('ignores case when searching', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} />);
   await type('george');
   expect(await findSelectOption('George')).toBeInTheDocument();
 });
 
 test('same case should be ranked to the top', async () => {
+  useFakeClock();
   const loadOptions = jest.fn(async () => ({
     data: [
       { value: 'Cac' },
@@ -463,12 +493,14 @@ test('same case should be ranked to the top', async () => {
 });
 
 test('ignores special keys when searching', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} />);
   await type('{shift}');
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
 });
 
 test('searches for custom fields', async () => {
+  useFakeClock();
   render(
     <AsyncSelect {...defaultProps} optionFilterProps={['label', 'gender']} />,
   );
@@ -551,6 +583,7 @@ test('renders a custom label', async () => {
 });
 
 test('searches for a word with a custom label', async () => {
+  useFakeClock();
   const loadOptions = jest.fn(async () => ({
     data: [
       { value: 'John', label: <h1>John</h1> },
@@ -567,6 +600,7 @@ test('searches for a word with a custom label', async () => {
 });
 
 test('removes a new option if the user does not select it', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} allowNewOptions />);
   await type(NEW_OPTION);
   expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
@@ -630,6 +664,7 @@ test('deduplicates pasted values against loaded options when allowNewOptions is 
 });
 
 test('does not add a new option if allowNewOptions is false', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} />);
   await open();
   await type(NEW_OPTION);
@@ -645,7 +680,7 @@ test('adds the null option when selected in single mode', async () => {
   }));
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await open();
-  await userEvent.click(await findSelectOption(NULL_OPTION.label));
+  await user.click(await findSelectOption(NULL_OPTION.label));
   const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(NULL_OPTION.label);
 });
@@ -659,8 +694,8 @@ test('adds the null option when selected in multiple mode', async () => {
     <AsyncSelect {...defaultProps} options={loadOptions} mode="multiple" />,
   );
   await open();
-  await userEvent.click(await findSelectOption(OPTIONS[0].label));
-  await userEvent.click(await findSelectOption(NULL_OPTION.label));
+  await user.click(await findSelectOption(OPTIONS[0].label));
+  await user.click(await findSelectOption(NULL_OPTION.label));
   const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(NULL_OPTION.label);
@@ -701,7 +736,7 @@ test('displays the loading indicator when opening', async () => {
     resolveOptions = resolve;
   });
   render(<AsyncSelect {...defaultProps} options={() => pendingOptions} />);
-  await userEvent.click(getSelect());
+  await user.click(getSelect());
 
   await waitFor(() => {
     expect(screen.getByText(LOADING)).toBeInTheDocument();
@@ -718,7 +753,7 @@ test('makes a selection in single mode', async () => {
   render(<AsyncSelect {...defaultProps} />);
   const optionText = 'Emma';
   await open();
-  await userEvent.click(await findSelectOption(optionText));
+  await user.click(await findSelectOption(optionText));
   expect(await findSelectValue()).toHaveTextContent(optionText);
 });
 
@@ -726,8 +761,8 @@ test('multiple selections in multiple mode', async () => {
   render(<AsyncSelect {...defaultProps} mode="multiple" />);
   await open();
   const [firstOption, secondOption] = OPTIONS;
-  await userEvent.click(await findSelectOption(firstOption.label));
-  await userEvent.click(await findSelectOption(secondOption.label));
+  await user.click(await findSelectOption(firstOption.label));
+  await user.click(await findSelectOption(secondOption.label));
   const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(firstOption.label);
   expect(values[1]).toHaveTextContent(secondOption.label);
@@ -738,7 +773,7 @@ test('changes the selected item in single mode', async () => {
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
   const [firstOption, secondOption] = OPTIONS;
-  await userEvent.click(await findSelectOption(firstOption.label));
+  await user.click(await findSelectOption(firstOption.label));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({
       label: firstOption.label,
@@ -751,7 +786,7 @@ test('changes the selected item in single mode', async () => {
   // `pointer-events: none` on itself while doing so; opt out of user-event's
   // pointer events check for this click since it's a testing artifact, not
   // a real interaction blocker.
-  await userEvent.click(await findSelectOption(secondOption.label), {
+  await user.click(await findSelectOption(secondOption.label), {
     pointerEventsCheck: 0,
   });
   expect(onChange).toHaveBeenCalledWith(
@@ -769,8 +804,8 @@ test('deselects an item in multiple mode', async () => {
   await open();
   const option3 = OPTIONS[2];
   const option8 = OPTIONS[7];
-  await userEvent.click(await findSelectOption(option8.label));
-  await userEvent.click(await findSelectOption(option3.label));
+  await user.click(await findSelectOption(option8.label));
+  await user.click(await findSelectOption(option3.label));
 
   let options = await findAllSelectOptions();
   expect(options).toHaveLength(Math.min(defaultProps.pageSize, OPTIONS.length));
@@ -792,13 +827,14 @@ test('deselects an item in multiple mode', async () => {
   expect(values[0]).toHaveTextContent(option8.label);
   expect(values[1]).toHaveTextContent(option3.label);
 
-  await userEvent.click(await findSelectOption(option3.label));
+  await user.click(await findSelectOption(option3.label));
   values = await findAllSelectValues();
   expect(values.length).toBe(1);
   expect(values[0]).toHaveTextContent(option8.label);
 });
 
 test('adds a new option if none is available and allowNewOptions is true', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} allowNewOptions />);
   await open();
   await type(NEW_OPTION);
@@ -806,6 +842,7 @@ test('adds a new option if none is available and allowNewOptions is true', async
 });
 
 test('does not add a new option if the option already exists', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} allowNewOptions />);
   const option = OPTIONS[0].label;
   await open();
@@ -819,6 +856,7 @@ test('does not add a new option if the option already exists', async () => {
 });
 
 test('shows "No data" when allowNewOptions is false and a new option is entered', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} allowNewOptions={false} showSearch />);
   await open();
   await type(NEW_OPTION);
@@ -828,6 +866,7 @@ test('shows "No data" when allowNewOptions is false and a new option is entered'
 });
 
 test('does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} allowNewOptions />);
   await open();
   await type(NEW_OPTION);
@@ -857,6 +896,7 @@ test('sets a initial value in multiple mode', async () => {
 });
 
 test('searches for matches in both loaded and unloaded pages', async () => {
+  useFakeClock();
   render(<AsyncSelect {...defaultProps} />);
   await open();
   await type('and');
@@ -873,6 +913,7 @@ test('searches for matches in both loaded and unloaded pages', async () => {
 });
 
 test('searches for an item in a page not loaded', async () => {
+  useFakeClock();
   const mock = jest.fn(loadOptions);
   render(<AsyncSelect {...defaultProps} options={mock} />);
   const search = 'Sandro';
@@ -898,6 +939,7 @@ test('fetches data when opening', async () => {
 });
 
 test('fetches data only after a search input is entered if fetchOnlyOnSearch is true', async () => {
+  useFakeClock();
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(
     <AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />,
@@ -919,6 +961,7 @@ test('displays an error message when an exception is thrown while fetching', asy
 });
 
 test('clears a previous fetch error once a later fetch succeeds', async () => {
+  useFakeClock();
   const error = 'Fetch error';
   const loadOptions = jest.fn(async (search: string) => {
     if (search === 'fail') {
@@ -938,6 +981,7 @@ test('clears a previous fetch error once a later fetch succeeds', async () => {
 });
 
 test('clears a previous fetch error when the next page comes from cache', async () => {
+  useFakeClock();
   const error = 'Fetch error';
   const loadOptions = jest.fn(
     async (search: string, page: number, pageSize: number) => {
@@ -956,12 +1000,13 @@ test('clears a previous fetch error when the next page comes from cache', async 
 
   // Clearing the input re-requests the first page, which is already cached
   // and therefore never reaches the network.
-  await userEvent.clear(getSelect());
+  await user.clear(getSelect());
   expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
   expect(screen.queryByText(error)).not.toBeInTheDocument();
 });
 
 test('ignores a late failure from a search the user has moved on from', async () => {
+  useFakeClock();
   const error = 'Fetch error';
   let rejectSlow: (reason: Error) => void = () => {};
   const loadOptions = jest.fn(async (search: string) => {
@@ -987,6 +1032,7 @@ test('ignores a late failure from a search the user has moved on from', async ()
 });
 
 test('still surfaces a base-fetch failure that lands mid-search', async () => {
+  useFakeClock();
   const error = 'Fetch error';
   let rejectBase: (reason: Error) => void = () => {};
   const loadOptions = jest.fn(async (search: string) => {
@@ -1010,6 +1056,7 @@ test('still surfaces a base-fetch failure that lands mid-search', async () => {
 });
 
 test('does not fire a new request for the same search input', async () => {
+  useFakeClock();
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(
     <AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />,
@@ -1021,6 +1068,7 @@ test('does not fire a new request for the same search input', async () => {
 });
 
 test('does not fire a new request if all values have been fetched', async () => {
+  useFakeClock();
   const mock = jest.fn(loadOptions);
   const search = 'George';
   const pageSize = OPTIONS.length;
@@ -1033,6 +1081,7 @@ test('does not fire a new request if all values have been fetched', async () => 
 });
 
 test('fires a new request if all values have not been fetched', async () => {
+  useFakeClock();
   const mock = jest.fn(loadOptions);
   const pageSize = OPTIONS.length / 2;
   render(<AsyncSelect {...defaultProps} options={mock} pageSize={pageSize} />);
@@ -1064,6 +1113,7 @@ test('renders a helper text when one is provided', async () => {
 });
 
 test('finds an element with a numeric value and does not duplicate the options', async () => {
+  useFakeClock();
   const options = jest.fn(async () => ({
     data: [
       { label: 'a', value: 11 },
@@ -1127,6 +1177,7 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
 });
 
 test('does not fire onChange when searching but no selection', async () => {
+  useFakeClock();
   const onChange = jest.fn();
   render(
     <main>
@@ -1140,8 +1191,8 @@ test('does not fire onChange when searching but no selection', async () => {
   );
   await open();
   await type('Joh');
-  await userEvent.click(await findSelectOption('John'));
-  await userEvent.click(screen.getByRole('main'));
+  await user.click(await findSelectOption('John'));
+  await user.click(screen.getByRole('main'));
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
@@ -1188,6 +1239,7 @@ test('fires onChange when pasting a selection', async () => {
 });
 
 test('replaces cached options with search results instead of merging', async () => {
+  useFakeClock();
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
     value: i,
@@ -1216,6 +1268,7 @@ test('replaces cached options with search results instead of merging', async () 
 });
 
 test('shows all options when filterOption is false', async () => {
+  useFakeClock();
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Base ${i}`,
     value: i,
@@ -1249,6 +1302,7 @@ test('shows all options when filterOption is false', async () => {
 });
 
 test('renders a server-matched option whose label diverges from the search term when filterOption is false (regression for #42041)', async () => {
+  useFakeClock();
   // Mirrors the real permissions-search bug: the remote fetch legitimately
   // matches the raw, underscore-containing value (e.g. a schema name like
   // "stg_silver"), but the returned option's displayed label has had
@@ -1295,6 +1349,7 @@ test('renders a server-matched option whose label diverges from the search term 
 });
 
 test('preserves new option entry across search fetch when allowNewOptions is on', async () => {
+  useFakeClock();
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
     value: i,
@@ -1323,6 +1378,7 @@ test('preserves new option entry across search fetch when allowNewOptions is on'
 });
 
 test('drops new option entry when fetched search options contain a matching label (regression for #44873)', async () => {
+  useFakeClock();
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
     value: i,
@@ -1352,6 +1408,7 @@ test('drops new option entry when fetched search options contain a matching labe
 });
 
 test('drops optimistic new option when paginated mergeData contains matching label', async () => {
+  useFakeClock();
   const initialData = [{ label: 'Existing 1', value: 1 }];
   const nextPageData = [{ label: 'Created Later', value: 99 }];
   const loadOptions = jest.fn(async (_search: string, page: number) => {
@@ -1427,6 +1484,7 @@ test('drops optimistic new option when paginated mergeData contains matching lab
 });
 
 test('restores base options when search is cleared', async () => {
+  useFakeClock();
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
     value: i,
@@ -1460,6 +1518,7 @@ test('restores base options when search is cleared', async () => {
 });
 
 test('replaces results when switching between two searches', async () => {
+  useFakeClock();
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
     value: i,
@@ -1495,6 +1554,7 @@ test('replaces results when switching between two searches', async () => {
 });
 
 test('refetches a dropped search response when the same search is repeated', async () => {
+  useFakeClock();
   type OptionRow = { label: string; value: string | number };
   type PageResponse = { data: OptionRow[]; totalCount: number };
   // Resolves the in-flight loadOptions promise of the calling test.
@@ -1568,6 +1628,7 @@ test('refetches a dropped search response when the same search is repeated', asy
 });
 
 test('keeps loading indicator while a newer request is in flight after a stale response is dropped', async () => {
+  useFakeClock();
   // Regression for the P2 race: the `.finally` block that clears isLoading
   // must not fire when a stale (dropped) response resolves while a newer
   // request is still in flight. Otherwise the spinner disappears mid-search
@@ -1649,6 +1710,7 @@ test('keeps loading indicator while a newer request is in flight after a stale r
 });
 
 test('re-shows search results when the same search term is repeated after a clear', async () => {
+  useFakeClock();
   // Regression: a prior fix cached search responses' totalCount in
   // fetchedQueries. After restore-on-clear had replaced selectOptions with
   // the base list, re-typing a previously-resolved term would hit the cache
@@ -1701,6 +1763,7 @@ test('re-shows search results when the same search term is repeated after a clea
 });
 
 test('appends page>1 results during an active search and discards them when search changes', async () => {
+  useFakeClock();
   // Covers the production branch `else { mergeData(data) }` in fetchPage that
   // fires when search is non-empty AND page > 0 — i.e. user scrolled within
   // a multi-page search result. Switching to a new search must replace, not
@@ -1808,6 +1871,7 @@ test('appends page>1 results during an active search and discards them when sear
 });
 
 test('does not duplicate options when using numeric values', async () => {
+  useFakeClock();
   render(
     <AsyncSelect
       {...defaultProps}
@@ -2014,6 +2078,7 @@ test('keeps the extra props of a pasted option that is not on the loaded page', 
 });
 
 test('typing the title of a React-label option and a comma selects it', async () => {
+  useFakeClock();
   const onChange = jest.fn();
   const options = jest.fn(async () => ({
     data: [
@@ -2047,19 +2112,20 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   const optionText = 'Emma';
   await open();
   expect(onChange).toHaveBeenCalledTimes(0);
-  await userEvent.click(await findSelectOption(optionText));
+  await user.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
   // The virtual list re-aligns to the selected option and briefly sets
   // `pointer-events: none` on itself while doing so; opt out of user-event's
   // pointer events check for this click since it's a testing artifact, not
   // a real interaction blocker.
-  await userEvent.click(await findSelectOption(optionText), {
+  await user.click(await findSelectOption(optionText), {
     pointerEventsCheck: 0,
   });
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
 test('cancels pending debounce on unmount', async () => {
+  useFakeClock();
   const mockOnSearch = jest.fn();
 
   const { unmount } = render(
@@ -2072,12 +2138,16 @@ test('cancels pending debounce on unmount', async () => {
   );
 
   await type('test');
-  await new Promise(resolve => setTimeout(resolve, 300));
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
   expect(mockOnSearch).toHaveBeenCalledWith('test');
   mockOnSearch.mockClear();
   await type('unmounted');
   unmount();
-  await new Promise(resolve => setTimeout(resolve, 300));
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
   expect(mockOnSearch).not.toHaveBeenCalled();
 });
 
