@@ -40,7 +40,7 @@ jobs:
       github.repository == 'apache/superset' &&
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.head.repo.fork == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       pull-requests: write # to post the approving review via `gh pr review`
     steps:
