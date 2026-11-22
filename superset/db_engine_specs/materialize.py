@@ -17,6 +17,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 from marshmallow import fields
 
 from superset.db_engine_specs.base import (
@@ -210,16 +211,20 @@ class MaterializeEngineSpec(PostgresEngineSpec):
         query: Query,
         cancel_query_id: str,
     ) -> bool:
+        """
+        Cancel the running query on the given Materialize connection.
+
+        Materialize does not expose ``pg_stat_activity``; it accepts the
+        connection ID from ``pg_backend_pid()`` directly in
+        ``pg_cancel_backend``, which returns whether that connection exists.
+        """
         if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
             return False
 
         try:
-            cursor.execute(
-                "SELECT pg_terminate_backend(pid) "
-                "FROM pg_stat_activity "
-                f"WHERE pid='{cancel_query_id}'"
-            )
+            cursor.execute("SELECT pg_cancel_backend(%s)", (int(cancel_query_id),))
+            row = cursor.fetchone()
         except Exception:
             return False
 
-        return True
+        return bool(row and row[0])
