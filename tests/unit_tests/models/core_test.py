@@ -5178,7 +5178,7 @@ def test_default_schema_old_worker_does_not_overwrite_new_discovery(
     assert database.get_default_schema_from_engine(None) == "old"
     assert shared_default_schema_cache.get(key) == "new"
     assert write.call_count == 2
-    fallback_write.assert_called_once_with(key, "new", timeout=3600)
+    fallback_write.assert_not_called()
 
 
 @pytest.mark.parametrize("supports_add", [False, True])
@@ -5224,7 +5224,8 @@ def test_default_schema_existing_publication_is_not_retried(
 def test_default_schema_unsuccessful_publication_retries(
     shared_default_schema_cache: Cache, mocker: MockerFixture
 ) -> None:
-    """A false cache write result must not mark the engine as published."""
+    """A false cache write result is retried after the backoff, not every lookup."""
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0)
     cache = shared_default_schema_cache
     real_add = cache.add
     write = mocker.patch.object(cache, "add", return_value=False)
@@ -5233,6 +5234,9 @@ def test_default_schema_unsuccessful_publication_retries(
     key = write.call_args.args[0]
     assert cache.get(key) is None
     write.side_effect = real_add
+    assert database.get_default_schema_from_engine(None) == "main"
+    write.assert_called_once()
+    clock.return_value = 60
     assert database.get_default_schema_from_engine(None) == "main"
     assert cache.get(key) == "main"
     assert write.call_count == 2
@@ -5300,6 +5304,42 @@ def test_default_schema_long_lived_engine_renews_shared_discovery(
         database.get_default_schema_from_engine(None)
 
 
+@pytest.mark.parametrize("supports_add", [False, True])
+def test_default_schema_renewal_does_not_extend_a_differing_shared_value(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    supports_add: bool,
+) -> None:
+    """A shared value no live engine reports expires instead of being renewed."""
+    from superset.utils import cache as cache_util
+
+    cache = shared_default_schema_cache
+    clock = mocker.patch("superset.models.core.monotonic", return_value=1000)
+    cache_clock = mocker.patch("cachelib.simple.time", return_value=1000)
+    if not supports_add:
+        mocker.patch.object(cache, "add", side_effect=NotImplementedError)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+    key = cache_util.generate_cache_key(
+        {
+            "database_id": database.id,
+            "catalog": None,
+            "engine": engine.get_execution_options()["superset_engine_identity"],
+        },
+        key_prefix="database_default_schema:",
+    )
+    cache.set(key, "stale", timeout=3600)
+    for elapsed in (0, 1800):
+        clock.return_value = cache_clock.return_value = 1000 + elapsed
+        assert database.get_default_schema_from_engine(None) == "main"
+        assert cache.get(key) == "stale"
+    # Past the stale entry's original lifetime it must be gone or replaced.
+    clock.return_value = cache_clock.return_value = 1000 + 3600
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert cache.get(key) in (None, "main")
+
+
 @pytest.mark.parametrize("operation", ["get", "add"])
 def test_default_schema_cache_outage_does_not_flood_warning_log(
     shared_default_schema_cache: Cache,
@@ -5324,11 +5364,12 @@ def test_default_schema_cache_outage_does_not_flood_warning_log(
     with caplog.at_level("DEBUG", logger="superset.models.core"):
         for _ in range(40):
             assert database.get_default_schema_from_engine(None) == "main"
-    assert failed.call_count == 40
+    # A failed read is retried per lookup; a failed write backs off.
+    assert failed.call_count == (40 if operation == "get" else 1)
     messages = [
         record
         for record in caplog.records
         if "the default schema cache" in record.message
     ]
-    assert len(messages) == 40
+    assert len(messages) == failed.call_count
     assert all(record.levelname == "DEBUG" for record in messages)

@@ -144,10 +144,14 @@ T = TypeVar("T")
 _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
 _DEFAULT_SCHEMA_CACHE_TIMEOUT = 3600
-# Renew shared discovery without writing on every warm cache-key lookup.
-_DEFAULT_SCHEMA_PUBLISHED_AT: weakref.WeakKeyDictionary[Engine, float] = (
+# Renew shared discovery without writing on every warm cache-key lookup. Holds the
+# monotonic time at which an engine may next attempt to publish.
+_DEFAULT_SCHEMA_NEXT_PUBLISH_AT: weakref.WeakKeyDictionary[Engine, float] = (
     weakref.WeakKeyDictionary()
 )
+# Backoff after an unsuccessful publication, so a cache outage costs one attempt
+# per interval rather than one per lookup.
+_DEFAULT_SCHEMA_RETRY_INTERVAL = 60
 _DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
@@ -160,24 +164,52 @@ _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
 
 
 def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
-    """Publish discovery or renew the value already published by another worker."""
+    """
+    Publish discovery, or renew an entry that already holds the same schema.
+
+    An entry holding a different schema is left to expire: renewing it would keep a
+    value alive that no live engine reports.
+    """
     try:
         if cache_manager.cache.add(cache_key, schema, timeout=timeout):
             return True
     except (AttributeError, NotImplementedError):
         # Backends without add support use a best-effort read before writing.
         cached_schema = cache_manager.cache.get(cache_key)
-        return bool(
-            cache_manager.cache.set(
-                cache_key,
-                cached_schema if cached_schema is not None else schema,
-                timeout=timeout,
-            )
-        )
+        if cached_schema is not None and cached_schema != schema:
+            return True
+        return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
     cached_schema = cache_manager.cache.get(cache_key)
     if cached_schema is None:
         return False
-    return bool(cache_manager.cache.set(cache_key, cached_schema, timeout=timeout))
+    if cached_schema != schema:
+        return True
+    return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
+
+
+def _publish_default_schema_if_due(engine: Engine, cache_key: str, schema: str) -> None:
+    """
+    Publish or renew shared discovery when the engine's interval has elapsed.
+
+    A failed publication is retried after a short backoff. Cache I/O runs outside the
+    process-wide lock; concurrent lookups skip it while one attempt is in flight.
+    """
+    with _DEFAULT_SCHEMA_CACHE_LOCK:
+        timestamp = monotonic()
+        due_at = _DEFAULT_SCHEMA_NEXT_PUBLISH_AT.get(engine)
+        if due_at is not None and timestamp < due_at:
+            return
+        _DEFAULT_SCHEMA_NEXT_PUBLISH_AT[engine] = (
+            timestamp + _DEFAULT_SCHEMA_RETRY_INTERVAL
+        )
+    interval: float = _DEFAULT_SCHEMA_RETRY_INTERVAL
+    try:
+        if _publish_default_schema(cache_key, schema, _DEFAULT_SCHEMA_CACHE_TIMEOUT):
+            interval = _DEFAULT_SCHEMA_CACHE_TIMEOUT / 2
+    except Exception:  # pylint: disable=broad-except
+        logger.debug("Unable to write the default schema cache")
+    with _DEFAULT_SCHEMA_CACHE_LOCK:
+        _DEFAULT_SCHEMA_NEXT_PUBLISH_AT[engine] = timestamp + interval
 
 
 def _log_embedded_rejection(
@@ -1175,7 +1207,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         restarts for one hour, scoped to the database, catalog and effective
         engine identity. Cache failures leave local discovery available.
         Warm lookups renew shared discovery at most once per half-hour per engine,
-        preserving an existing worker's value. SSH tunnels do not
+        and only while the shared value matches the engine's own; a differing value is
+        left to expire. A failed publication is retried after a short backoff, outside
+        the process-wide lock. SSH tunnels do not
         share discovery because their local connection URLs contain ephemeral ports.
         Cold-engine discovery retains the inspector's OAuth2 retry policy.
         """
@@ -1214,21 +1248,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if schema is None:
                     schema = sqla.inspect(engine).default_schema_name
                 if schema is not None and cache_key is not None:
-                    with _DEFAULT_SCHEMA_CACHE_LOCK:
-                        published_at = _DEFAULT_SCHEMA_PUBLISHED_AT.get(engine)
-                        timestamp = monotonic()
-                        if (
-                            published_at is None
-                            or timestamp - published_at
-                            >= _DEFAULT_SCHEMA_CACHE_TIMEOUT / 2
-                        ):
-                            try:
-                                if _publish_default_schema(
-                                    cache_key, schema, _DEFAULT_SCHEMA_CACHE_TIMEOUT
-                                ):
-                                    _DEFAULT_SCHEMA_PUBLISHED_AT[engine] = timestamp
-                            except Exception:  # pylint: disable=broad-except
-                                logger.debug("Unable to write the default schema cache")
+                    _publish_default_schema_if_due(engine, cache_key, schema)
                 yield schema
 
         with self._open_with_oauth2_retry(open_schema) as schema:
