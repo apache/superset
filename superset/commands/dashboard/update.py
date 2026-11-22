@@ -353,7 +353,15 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         )
         for report in reports:
             ReportScheduleDAO.update(report, {"active": False})
-            self._send_deactivated_report_email(report, description)
+            try:
+                self._send_deactivated_report_email(report, description)
+            except Exception:  # pylint: disable=broad-except
+                # The notice is best effort: a mail outage must not undo the
+                # dashboard save or leave the report active.
+                logger.exception(
+                    "Failed to email the editors of deactivated report %s",
+                    report.id,
+                )
 
     def process_tab_diff(self) -> None:
         def find_deleted_tabs() -> list[str]:

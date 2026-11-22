@@ -26,6 +26,7 @@ from superset.commands.dashboard.update import (
     UpdateDashboardCommand,
     UpdateDashboardNativeFiltersCommand,
 )
+from superset.subjects.types import SubjectType
 from superset.utils import json
 
 
@@ -522,3 +523,62 @@ def test_native_filter_match_is_exact_not_a_substring(app_context: None) -> None
     )
 
     report_dao.update.assert_not_called()
+
+
+def test_native_filters_command_survives_a_failed_deactivation_email(
+    app_context: None,
+) -> None:
+    """An unreachable mail server must not abort the filter update."""
+    command = _filters_command(
+        {"deleted": ["NATIVE_FILTER-2"]}, ["NATIVE_FILTER-1", "NATIVE_FILTER-2"]
+    )
+    report = _filter_report(10, 1, "NATIVE_FILTER-2")
+    editor = MagicMock()
+    editor.type = SubjectType.USER
+    editor.user.email = "editor@example.com"
+    report.editors = [editor]
+
+    with (
+        patch.object(UpdateDashboardCommand, "validate"),
+        patch("superset.daos.dashboard.derive_metadata_scopes") as derive,
+        patch("superset.commands.dashboard.update.ReportScheduleDAO") as report_dao,
+        patch(
+            "superset.commands.dashboard.update.send_email_smtp",
+            side_effect=ConnectionRefusedError,
+        ) as send_email,
+    ):
+        derive.return_value = {"native_filter_configuration": []}
+        report_dao.find_by_native_filter_id.return_value = [report]
+        command.run.__wrapped__(command)
+
+    report_dao.update.assert_called_once_with(report, {"active": False})
+    send_email.assert_called_once()
+
+
+def test_process_tab_diff_survives_a_failed_deactivation_email(
+    app_context: None,
+) -> None:
+    """An unreachable mail server must not abort the tab deletion either."""
+    command = _tab_diff_command("TAB-1", "TAB-2", "TAB-3")
+    reports = [_tab_report(10, 1, '["TAB-2"]'), _tab_report(11, 1, '["TAB-3"]')]
+    editor = MagicMock()
+    editor.type = SubjectType.USER
+    editor.user.email = "editor@example.com"
+    for report in reports:
+        report.editors = [editor]
+
+    with (
+        patch("superset.commands.dashboard.update.ReportScheduleDAO") as report_dao,
+        patch(
+            "superset.commands.dashboard.update.send_email_smtp",
+            side_effect=ConnectionRefusedError,
+        ) as send_email,
+    ):
+        report_dao.find_by_extra_metadata.side_effect = lambda key: [
+            report for report in reports if key in report.extra["dashboard"]["anchor"]
+        ]
+        command.process_tab_diff()
+
+    # A failed notice for one report does not stop the next from deactivating.
+    assert [call.args[0] for call in report_dao.update.call_args_list] == reports
+    assert send_email.call_count == 2
