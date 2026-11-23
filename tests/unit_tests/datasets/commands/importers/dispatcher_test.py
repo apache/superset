@@ -23,6 +23,9 @@ check. Legacy YAML files remain importable via the dedicated
 directly.
 """
 
+import pytest
+from pytest_mock import MockerFixture
+
 
 def test_dataset_import_dispatcher_excludes_v0() -> None:
     """POST /api/v1/dataset/import/ must not dispatch to the v0 importer."""
@@ -30,3 +33,22 @@ def test_dataset_import_dispatcher_excludes_v0() -> None:
     from superset.commands.dataset.importers.dispatcher import command_versions
 
     assert v0.ImportDatasetsCommand not in command_versions
+
+
+def test_dataset_import_dispatcher_propagates_refusal_without_error_log(
+    mocker: MockerFixture,
+) -> None:
+    """A refused import (e.g. forbidden data URI) must propagate without
+    being logged as an unexpected error."""
+    from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
+    from superset.commands.dataset.importers import dispatcher
+
+    command = mocker.MagicMock()
+    command.return_value.run.side_effect = DatasetForbiddenDataURI()
+    mocker.patch.object(dispatcher, "command_versions", [command])
+    mock_logger = mocker.patch.object(dispatcher, "logger")
+
+    with pytest.raises(DatasetForbiddenDataURI):
+        dispatcher.ImportDatasetsCommand({}).run()
+
+    mock_logger.exception.assert_not_called()
