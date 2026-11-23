@@ -89,6 +89,7 @@ from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
 
+from superset.charts.query_mode import is_tree_query_mode
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -1258,9 +1259,21 @@ def _collect_sortable_identifiers(
     return allowed
 
 
+def _is_tree_mode_chart(stored_chart: "Slice") -> bool:
+    """Read the Tree capability from the stored chart, never the request."""
+    return is_tree_query_mode(
+        {
+            "viz_type": stored_chart.viz_type,
+            "query_mode": stored_chart.params_dict.get("query_mode"),
+        }
+    )
+
+
 def _collect_stored_orderby_entries(
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> set[str]:
     """
     Frozen saved orderby entries a guest may replay exactly.
@@ -1268,6 +1281,11 @@ def _collect_stored_orderby_entries(
     allowed: set[str] = {
         freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
     }
+    if is_tree_mode:
+        allowed.update(
+            freeze_value(entry)
+            for entry in stored_chart.params_dict.get("tree_orderby") or []
+        )
     if stored_query_context:
         for query in stored_query_context.get("queries") or []:
             allowed.update(freeze_value(entry) for entry in query.get("orderby") or [])
@@ -1374,6 +1392,8 @@ def _orderby_modified(
     query_context: "QueryContext",
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> bool:
     """
     Whether any order-by clause sorts by a term the stored chart does not already
@@ -1385,7 +1405,7 @@ def _orderby_modified(
     """
     visible_targets = _collect_sortable_identifiers(stored_chart, stored_query_context)
     stored_orderby_entries = _collect_stored_orderby_entries(
-        stored_chart, stored_query_context
+        stored_chart, stored_query_context, is_tree_mode=is_tree_mode
     )
     form_data = query_context.form_data or {}
     # Both ``form_data`` and each ``QueryObject`` can carry an order-by, and in
@@ -1770,6 +1790,8 @@ def _columns_metrics_modified(
     form_data: dict[str, Any],
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> bool:
     """
     Whether the requested columns/metrics/group-by read beyond what the stored
@@ -1788,6 +1810,8 @@ def _columns_metrics_modified(
         ("groupby", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
     ]:
         is_metric = key == "metrics"
+        if is_tree_mode:
+            stored_params_keys += ("tree_metrics" if is_metric else "tree_columns",)
 
         # Requested column values additionally collapse a frontend-synthesized
         # ``BASE_AXIS`` x-axis to the column it references (see
@@ -2041,6 +2065,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # query_context was present is the key signal for the missing/stale case.
     # Use ``is not None`` so an empty-but-present stored context reads as present.
     stored_context_state = "present" if stored_query_context is not None else "missing"
+    is_tree_mode = _is_tree_mode_chart(stored_chart)
 
     # Each comparator guards one facet of the payload against the stored chart;
     # the first one that objects rejects the request, with its reason logged
@@ -2065,7 +2090,11 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ),
         (
             lambda: _columns_metrics_modified(
-                query_context, form_data, stored_chart, stored_query_context
+                query_context,
+                form_data,
+                stored_chart,
+                stored_query_context,
+                is_tree_mode=is_tree_mode,
             ),
             "columns/metrics/group-by not a subset of the stored chart",
         ),
@@ -2077,7 +2106,10 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ),
         (
             lambda: _orderby_modified(
-                query_context, stored_chart, stored_query_context
+                query_context,
+                stored_chart,
+                stored_query_context,
+                is_tree_mode=is_tree_mode,
             ),
             "order-by references a term not on the stored chart",
         ),
