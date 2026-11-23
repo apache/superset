@@ -421,7 +421,7 @@ const DropPreview = styled.div<{ placement: GridPlacement }>`
  * `:hover` matches every ancestor, so a container would otherwise light up
  * alongside whichever of its children the pointer is actually over.
  */
-const Interactive = styled.div<{
+export const Interactive = styled.div<{
   showBounds?: boolean;
   $destination?: boolean;
   $editable?: boolean;
@@ -720,7 +720,7 @@ export const overflowFor = (container: boolean, dragging: boolean): string => {
  * The two are siblings so chrome escapes the content's scrolling, clipping
  * and stacking; see `CanvasWidgetChromeContext`.
  */
-function WidgetBody({
+export function WidgetBody({
   editable,
   offset,
   overflow,

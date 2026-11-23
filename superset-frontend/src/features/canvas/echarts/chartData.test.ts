@@ -20,6 +20,7 @@ import fetchMock from 'fetch-mock';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   fetchPlacementData,
+  fetchWidgetData,
   runtimeFilters,
   withTemporalValues,
 } from './chartData';
@@ -93,4 +94,48 @@ test('temporal columns read as dates, and nothing else changes', () => {
     { ds: '2024-01-31', at: '2024-01-31 09:30:00', n: 5 },
     { ds: null, at: '2024-02-01', n: 6 },
   ]);
+});
+
+test("reads a saved widget's own data route, without a canvas", async () => {
+  const endpoint =
+    'glob:*/api/v1/widget/00000000-0000-4000-8000-0000000000aa/data';
+  fetchMock.post(endpoint, {
+    result: {
+      datasets: [
+        {
+          name: 'main',
+          inline_data: [{ revenue: 5, day: 1704067200000 }],
+          coltypes: {
+            revenue: GenericDataType.Numeric,
+            day: GenericDataType.Temporal,
+          },
+          query: 'SELECT 5',
+        },
+      ],
+    },
+  });
+
+  const data = await fetchWidgetData({
+    widgetId: '00000000-0000-4000-8000-0000000000aa',
+    filters: [{ datasetId: 13, column: 'country', values: ['USA'] }],
+  });
+
+  // Read as the placement route's answer is, temporal columns as dates.
+  expect(data).toEqual({
+    rows: [{ revenue: 5, day: '2024-01-01' }],
+    coltypes: {
+      revenue: GenericDataType.Numeric,
+      day: GenericDataType.Temporal,
+    },
+    query: 'SELECT 5',
+    language: undefined,
+  });
+  const call = fetchMock.callHistory.lastCall(endpoint);
+  expect(
+    new Headers(call?.options.headers as HeadersInit).get('X-Canvas-Draft'),
+  ).toBeNull();
+  expect(JSON.parse(call?.options.body as string)).toEqual({
+    runtime_filters: [{ datasetId: 13, column: 'country', values: ['USA'] }],
+  });
+  fetchMock.removeRoutes();
 });

@@ -49,8 +49,16 @@ export interface FilterValue {
 
 /** The props the canvas passes to a widget renderer. */
 export interface CanvasWidgetProps {
-  canvasId: number;
-  /** The placement's id, unique within the canvas, e.g. `revenue-trend`. */
+  /**
+   * The canvas that places this widget. Unset where a {@link WidgetHost}
+   * shows a saved widget on its own, outside any canvas: there is no
+   * placement then, and `nodeId` is the saved widget's UUID.
+   */
+  canvasId?: number;
+  /**
+   * The placement's id, unique within the canvas, e.g. `revenue-trend`.
+   * Outside a canvas, the saved widget's UUID.
+   */
   nodeId: string;
   /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
   widgetType: string;
@@ -97,6 +105,37 @@ export interface CanvasWidgetProps {
    */
   refreshKey: number;
 }
+
+/** What a {@link WidgetHost} needs to show one saved widget. */
+export interface WidgetHostProps {
+  /** The saved widget's UUID. */
+  widgetId: string;
+  /**
+   * Values of the filters that reach the widget, as a canvas's filters reach
+   * a placement: the controls of the page around it, say. The widget is the
+   * only node of its filter bus, so what it publishes reaches nothing.
+   */
+  filters?: FilterValue[];
+  /** Increment to refetch the widget's data, as a canvas refresh does. */
+  refreshKey?: number;
+  /**
+   * Whether to draw the widget's name above it, as a canvas titles a
+   * placement. On by default; leave it off when the page heads itself with
+   * the same name.
+   */
+  showTitle?: boolean;
+}
+
+/**
+ * Shows one saved widget on its own, outside any canvas, in the cell a
+ * canvas draws around a placement: its title row, the slot its own controls
+ * render into, its error boundary, and the placeholder a canvas shows for a
+ * widget that can't render. The widget type's renderer runs unchanged, with
+ * `canvasId` unset and the props of a filter bus of one node.
+ *
+ * It fills the height its parent gives it, as a cell fills its rows.
+ */
+export declare const WidgetHost: ComponentType<WidgetHostProps>;
 
 /**
  * The draft open on the active canvas. Its `token` authorizes reading,

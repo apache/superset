@@ -100,6 +100,27 @@ export function withTemporalValues(
   });
 }
 
+/** Both data endpoints answer a widget's binding as a dataset of its own. */
+function firstDataset(json: {
+  result?: {
+    datasets?: {
+      inline_data?: DataRow[];
+      coltypes?: Record<string, GenericDataType>;
+      query?: string;
+      language?: string;
+    }[];
+  };
+}): PlacementData {
+  const dataset = json?.result?.datasets?.[0];
+  const coltypes = dataset?.coltypes ?? {};
+  return {
+    rows: withTemporalValues(dataset?.inline_data ?? [], coltypes),
+    coltypes,
+    query: dataset?.query,
+    language: dataset?.language,
+  };
+}
+
 /**
  * A placement's data. The server builds the query from the placement's
  * stored binding, so the page, MCP tools and reports run the same query.
@@ -129,12 +150,23 @@ export async function fetchPlacementData({
     headers,
     jsonPayload: { runtime_filters: filters },
   });
-  const dataset = json?.result?.datasets?.[0];
-  const coltypes = dataset?.coltypes ?? {};
-  return {
-    rows: withTemporalValues(dataset?.inline_data ?? [], coltypes),
-    coltypes,
-    query: dataset?.query,
-    language: dataset?.language,
-  };
+  return firstDataset(json);
+}
+
+/**
+ * A saved widget's data on its own, without a canvas: the same query its
+ * placements run, built on the server from its stored binding.
+ */
+export async function fetchWidgetData({
+  widgetId,
+  filters,
+}: {
+  widgetId: string;
+  filters: SelectFilterValue[];
+}): Promise<PlacementData> {
+  const { json } = await SupersetClient.post({
+    endpoint: `/api/v1/widget/${encodeURIComponent(widgetId)}/data`,
+    jsonPayload: { runtime_filters: filters },
+  });
+  return firstDataset(json);
 }

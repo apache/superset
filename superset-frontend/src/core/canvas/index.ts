@@ -22,7 +22,13 @@
  * widget renderers by type, and the canvas the user has open.
  */
 
-import { ComponentType, useSyncExternalStore } from 'react';
+import {
+  ComponentType,
+  createElement,
+  lazy,
+  Suspense,
+  useSyncExternalStore,
+} from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
@@ -106,8 +112,20 @@ export const setActiveCanvas = (value: canvasApi.ActiveCanvas | undefined) => {
   activeCanvas.fire(value);
 };
 
+// Loaded on first use, with the canvas code it shares, so that a page that
+// never shows a widget doesn't load it.
+const LazyWidgetHost = lazy(() => import('src/features/canvas/WidgetHost'));
+
+const WidgetHost: typeof canvasApi.WidgetHost = props =>
+  createElement(
+    Suspense,
+    { fallback: null },
+    createElement(LazyWidgetHost, props),
+  );
+
 export const canvas: typeof canvasApi = {
   registerWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
+  WidgetHost,
 };

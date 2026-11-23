@@ -24,6 +24,7 @@ import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import {
   DataBinding,
   fetchPlacementData,
+  fetchWidgetData,
   PlacementData,
   runtimeFilters,
 } from './echarts/chartData';
@@ -64,14 +65,16 @@ function canNormalizeError(
 /**
  * A placement's rows, queried on the server from its stored `dataBinding`,
  * narrowed by the filter values that reach it and refetched on refresh. A
- * widget without a binding gets none.
+ * widget without a binding gets none. Outside a canvas, where a widget host
+ * shows a saved widget, the rows are that saved widget's own.
  */
 export function useWidgetRows(
   {
     canvasId,
     nodeId,
+    widgetId,
     props,
-  }: Pick<CanvasRendererProps, 'canvasId' | 'nodeId' | 'props'>,
+  }: Pick<CanvasRendererProps, 'canvasId' | 'nodeId' | 'widgetId' | 'props'>,
   filters: FilterValue[],
   refreshKey: number,
 ): WidgetRows {
@@ -113,13 +116,17 @@ export function useWidgetRows(
         loading: true,
       },
     }));
-    fetchPlacementData({
-      canvasId,
-      placementId: nodeId,
-      draftToken,
-      versionUuid,
-      filters: selected,
-    })
+    const fetched =
+      canvasId === undefined
+        ? fetchWidgetData({ widgetId: widgetId ?? nodeId, filters: selected })
+        : fetchPlacementData({
+            canvasId,
+            placementId: nodeId,
+            draftToken,
+            versionUuid,
+            filters: selected,
+          });
+    fetched
       .then(data => {
         if (!cancelled) {
           setState({ key, value: { ...data, loading: false } });
@@ -165,7 +172,7 @@ export function useWidgetRows(
     };
     // The key stands in for the binding and filters, recreated every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasId, log, nodeId, key, refreshKey]);
+  }, [canvasId, log, nodeId, widgetId, key, refreshKey]);
 
   const datasource = bound ? `${binding?.datasetId}__table` : undefined;
   // Stable between renders, so callers can depend on it in effects.

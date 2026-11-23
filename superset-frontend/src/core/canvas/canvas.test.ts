@@ -128,3 +128,7 @@ test('active canvas changes fire on the open draft and a version preview', () =>
   ]);
   subscription.dispose();
 });
+
+test('extensions get the widget host with the rest of the canvas namespace', () => {
+  expect(typeof canvas.WidgetHost).toBe('function');
+});
