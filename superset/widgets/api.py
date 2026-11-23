@@ -432,8 +432,10 @@ class WidgetRestApi(BaseSupersetModelRestApi):
             by default the `dataBinding` as the dataset `main`, as the caller,
             each narrowed by `runtime_filters` on its dataset, without a
             canvas, and answers each as a dataset of its name. One failing
-            query fails the request. Each dataset includes the query that ran
-            when the caller can view queries.
+            query fails the request. A widget type may refuse the request: it
+            is then answered with the type's `code` and `message`, by default
+            as a 409. Each dataset includes the query that ran when the caller
+            can view queries.
           parameters:
           - in: path
             schema:
@@ -469,6 +471,10 @@ class WidgetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: >-
+                The widget's type refused the request, as its `code` says; a
+                type may answer another client error
             422:
               $ref: '#/components/responses/422'
         """

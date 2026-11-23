@@ -189,6 +189,35 @@ def test_a_widget_of_a_type_unavailable_here_has_no_data(
     run_binding.assert_not_called()
 
 
+def test_a_widget_types_refusal_comes_through_with_its_code(
+    tables: Session,
+    make_user: MakeUser,
+    make_widget: MakeWidget,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.widgets import WidgetQueryRefusedError
+
+    from superset.widgets.registry import registry
+
+    mocker.patch.object(
+        registry["markdown"],
+        "build_queries",
+        MagicMock(side_effect=WidgetQueryRefusedError("CONTENT_CHANGED", "Reload")),
+    )
+    alice_user, alice = make_user("alice", "Gamma")
+    widget = make_widget("Notes", editors=[alice], props={"content": "x"})
+
+    with override_user(alice_user), pytest.raises(CanvasQueryFailedError) as caught:
+        GetWidgetDataCommand(widget.uuid, []).run()
+
+    assert (caught.value.error.status, caught.value.error.code) == (
+        409,
+        "CONTENT_CHANGED",
+    )
+    run_binding.assert_not_called()
+
+
 URL = "/api/v1/widget/{}/data"
 WIDGET = "00000000-0000-4000-8000-000000000001"
 
@@ -267,6 +296,28 @@ def test_the_route_answers_each_failure(
     response = client.post(URL.format(WIDGET), json={})
 
     assert response.status_code == status
+
+
+@api_flags
+def test_the_route_answers_a_refusal_with_its_code_and_message(
+    client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    from superset_core.widgets import WidgetQueryRefusedError
+
+    refused = WidgetQueryRefusedError("CONTENT_CHANGED", "Reload it", 410)
+    command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
+    command.return_value.run.side_effect = CanvasQueryFailedError(
+        canvas_query_error(refused)
+    )
+
+    response = client.post(URL.format(WIDGET), json={})
+
+    assert response.status_code == 410
+    assert response.json == {
+        "message": "Reload it",
+        "error_type": "WidgetQueryRefused",
+        "code": "CONTENT_CHANGED",
+    }
 
 
 @api_flags
