@@ -130,6 +130,7 @@ const PropertiesModal = ({
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
   const [dashboardInfo, setDashboardInfo] = useState<DashboardInfo>();
+  const [customTimePresets, setCustomTimePresets] = useState<string[]>([]);
 
   // JSON validation for metadata
   const jsonAnnotations = useJsonValidation(jsonMetadata, {
@@ -250,6 +251,7 @@ const PropertiesModal = ({
       );
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
+      setCustomTimePresets(metadata?.custom_time_presets || []);
     },
     [form],
   );
@@ -398,12 +400,19 @@ const PropertiesModal = ({
       jsonMetadataObj.async_mode = asyncMode;
     }
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
+    if (customTimePresets.length > 0) {
+      jsonMetadataObj.custom_time_presets = customTimePresets;
+    } else {
+      delete jsonMetadataObj.custom_time_presets;
+    }
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
       label_colors: customLabelColors,
       color_scheme: updatedColorScheme,
       show_chart_timestamps: showChartTimestamps,
+      custom_time_presets:
+        customTimePresets.length > 0 ? customTimePresets : undefined,
     };
 
     originalDashboardMetadata.current = updatedDashboardMetadata;
@@ -600,10 +609,55 @@ const PropertiesModal = ({
     setJsonMetadata(jsonStringify(jsonMetadataObj));
   };
 
+  const handleCustomTimePresetsChange = (values: string[]) => {
+    const cleanedValues = values.map(v => v.trim()).filter(Boolean);
+    setCustomTimePresets(cleanedValues);
+
+    const jsonMetadataObj = parseJsonMetadata();
+    if (!jsonMetadataObj) {
+      return;
+    }
+    if (cleanedValues.length > 0) {
+      jsonMetadataObj.custom_time_presets = cleanedValues;
+    } else {
+      delete jsonMetadataObj.custom_time_presets;
+    }
+    setJsonMetadata(jsonStringify(jsonMetadataObj));
+  };
+
+  const handleJsonMetadataChange = (value: string) => {
+    setJsonMetadata(value);
+    try {
+      const parsedValue = value?.length ? JSON.parse(value) : {};
+      if (Array.isArray(parsedValue.custom_time_presets)) {
+        setCustomTimePresets(parsedValue.custom_time_presets);
+      } else if (!('custom_time_presets' in parsedValue)) {
+        setCustomTimePresets([]);
+      }
+    } catch (_) {
+      // mid-edit invalid JSON: leave the Select state alone
+    }
+  };
+
   // Helper function for styling section
   const hasCustomLabelsColor = !!Object.keys(
     getJsonMetadata()?.label_colors || {},
-  ).length;
+   ).length;
+
+  // Regex check for custom time presets
+  const invalidCustomPresets = useMemo(
+    () => customTimePresets.filter(
+      p => !/^last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?$/i.test(p)), 
+    [customTimePresets],
+  );
+
+  // Relay error message for custom time presets
+  const customTimePresetsError = invalidCustomPresets.length
+    ? t(
+        'Invalid time preset: %s. Use the format "Last <number> <unit>", e.g. "Last 5 minutes".',
+        invalidCustomPresets.join('. '),
+      )
+    : undefined;
 
   // Validation setup
   const modalSections = useMemo(
@@ -659,10 +713,14 @@ const PropertiesModal = ({
         key: 'advanced',
         name: t('Advanced settings'),
         validator: () => {
+          const errors: string[] = [];
           if (jsonAnnotations.length > 0) {
-            return [t('Invalid JSON metadata')];
+            errors.push(t('Invalid JSON metadata'));
           }
-          return [];
+          if (invalidCustomPresets.length > 0) {
+            errors.push(t('Invalid custom time preset'));
+          }
+          return errors;
         },
       },
     ],
@@ -719,7 +777,7 @@ const PropertiesModal = ({
     if (isDataReady) {
       validateSection('advanced');
     }
-  }, [jsonMetadata, validateSection, isDataReady]);
+  }, [jsonMetadata, customTimePresets, validateSection, isDataReady]);
 
   // Validate refresh section when frequency changes or data loads
   useEffect(() => {
@@ -919,7 +977,10 @@ const PropertiesModal = ({
                   jsonMetadata={jsonMetadata}
                   jsonAnnotations={jsonAnnotations}
                   validationStatus={validationStatus}
-                  onJsonMetadataChange={setJsonMetadata}
+                  onJsonMetadataChange={handleJsonMetadataChange}
+                  customTimePresets={customTimePresets}
+                  onCustomTimePresetsChange={handleCustomTimePresetsChange}
+                  customTimePresetsError={customTimePresetsError}
                 />
               ),
             },
