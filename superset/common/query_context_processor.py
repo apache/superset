@@ -691,7 +691,7 @@ class QueryContextProcessor:
         context: dict[str, Any] = {
             "user_id": get_user_id(),
             "source_rls": source_rls,
-            "semantic_filter_protocol": "semantic-null-filters-v1",
+            "semantic_filter_protocol": "semantic-null-filters-v2",
             "source_versions": metadata_versions,
         }
         # Omit optional components when empty to preserve unaffected key bytes.

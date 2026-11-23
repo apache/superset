@@ -721,6 +721,17 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 #   - stable: Production-ready, tested and supported
 #   - deprecated: Will be removed in a future major release
 
+# Whether this process registers the MCP *host tools* at startup. Registering
+# them imports the MCP service app, which has a real per-process memory cost, and
+# only processes that serve MCP (the web app and the standalone MCP service) need
+# them. Deployments can set this to False for processes that never serve MCP (e.g.
+# Celery workers) to avoid that cost.
+#
+# This gates only host-tool registration. The MCP decorators (@tool/@prompt) are
+# always registered regardless of this flag, so extensions that apply them at
+# import time keep working in every process.
+CORE_MCP_HOST_TOOLS_ENABLED = True
+
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # =================================================================
     # IN DEVELOPMENT
@@ -1114,6 +1125,17 @@ DEFAULT_FEATURE_FLAGS.update(
 # This function can be overridden to customize the name of the user agent
 # triggering the query.
 USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = None
+
+# This function can be overridden to tag each query with where it came from, so
+# the database's query log can tell users, dashboards and charts apart. ClickHouse
+# stores the returned string in system.query_log.log_comment. It receives the
+# database and a dict with whichever of user, dashboard_id, chart_id, report_id
+# and sqllab_query_id apply; return None to send nothing. For example:
+#
+# import json
+# def QUERY_LOG_COMMENT_FUNC(database, context):
+#     return json.dumps({"app": "superset", **context})
+QUERY_LOG_COMMENT_FUNC: Callable[[Database, dict[str, Any]], str | None] | None = None
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}

@@ -38,7 +38,11 @@ import {
   TreemapSeriesCallbackDataParams,
   TreemapTransformedProps,
 } from './types';
-import { formatSeriesName, getColtypesMapping } from '../utils/series';
+import {
+  formatSeriesName,
+  getColtypesMapping,
+  sanitizeHtml,
+} from '../utils/series';
 import {
   COLOR_SATURATION,
   BORDER_WIDTH,
@@ -101,7 +105,8 @@ export function formatTooltip({
   if (formattedPercent) {
     row.push(formattedPercent);
   }
-  return tooltipHtml([row], treePath.join(' ▸ '));
+  // Escape dimension names so labels such as <NULL> are not treated as HTML.
+  return tooltipHtml([row], sanitizeHtml(treePath.join(' ▸ ')));
 }
 
 export default function transformProps(
