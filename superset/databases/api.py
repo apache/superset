@@ -1240,11 +1240,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             # declared dialect. A customer database that only partially
             # implements that dialect (e.g. a postgres-wire-protocol engine
             # missing pg_catalog.pg_index columns SQLAlchemy's postgres
-            # dialect now queries) raises here - that's the target
+            # dialect queries) raises here - that's the target
             # database's limitation, not a Superset bug: answer with a
             # typed 422 and a warning instead of an unhandled 500 + ERROR,
             # matching the sibling table_metadata_deprecated endpoint above.
-            self.incr_stats("error", self.table_metadata.__name__)
             logger.warning(
                 "table_metadata: reflection failed for database=%s table=%s",
                 pk,
@@ -1253,7 +1252,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(error_msg_from_exception(ex))
 
-        self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **payload)
 
     @expose("/<int:pk>/table_metadata/extra/", methods=["GET"])
