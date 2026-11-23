@@ -720,13 +720,17 @@ def _apply_cascade_changes(
             if fid in requested_ids:
                 continue
             parents = conf.get("cascadeParentIds")
-            if not isinstance(parents, list) or not removed_ids.intersection(parents):
+            if not isinstance(parents, list) or not any(
+                isinstance(parent, str) and parent in removed_ids for parent in parents
+            ):
                 continue
             if fid not in modified_by_id:
                 conf = copy.deepcopy(conf)
                 modified.append(conf)
                 final_by_id[fid] = conf
-            conf["cascadeParentIds"] = [p for p in parents if p not in removed_ids]
+            conf["cascadeParentIds"] = [
+                p for p in parents if not isinstance(p, str) or p not in removed_ids
+            ]
 
     for fid in sorted(requested_ids):
         _validate_cascade_parents(fid, final_by_id)

@@ -3423,3 +3423,36 @@ def test_cascade_parent_ids_field_is_documented_in_schemas() -> None:
 
     assert "cascade_parent_ids" in BaseNewFilterSpec.model_fields
     assert "cascade_parent_ids" in NativeFilterUpdateSpec.model_fields
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("rename", [False, True])
+@pytest.mark.parametrize("malformed_first", [False, True])
+async def test_remove_parent_preserves_malformed_dependency_entries(
+    mcp_server: object, rename: bool, malformed_first: bool
+) -> None:
+    """Removal tolerates unhashable legacy entries, including on updated children."""
+    child = _child_filter("city", ["country", "region"])
+    malformed = [{"legacy": "value"}, ["legacy"], None]
+    child["cascadeParentIds"] = (
+        malformed + ["country", "region"]
+        if malformed_first
+        else ["country", "region"] + malformed
+    )
+    filters = [_child_filter("country", []), _child_filter("region", []), child]
+    request: dict[str, Any] = {"remove": ["country"]}
+    if rename:
+        request["update"] = [{"id": "city", "name": "Renamed"}]
+
+    data, captured = await _manage(mcp_server, filters, request)
+
+    assert data["error"] is None
+    modified = captured["payload"]["modified"]
+    assert len(modified) == 1
+    assert modified[0]["cascadeParentIds"] == (
+        malformed + ["region"] if malformed_first else ["region"] + malformed
+    )
+    assert "country" in child["cascadeParentIds"]
+    assert next(f for f in data["filters"] if f["id"] == "city")[
+        "cascade_parent_ids"
+    ] == ["region"]

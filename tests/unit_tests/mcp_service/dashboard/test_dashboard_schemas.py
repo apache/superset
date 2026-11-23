@@ -494,7 +494,8 @@ class TestExtractNativeFilters:
         )
         assert result[0].targets == [{"column": {"name": "col1"}}]
 
-    def test_projects_cascade_parent_ids(self) -> None:
+    @pytest.mark.parametrize("include_metadata", [True, False])
+    def test_projects_cascade_parent_ids(self, include_metadata: bool) -> None:
         metadata = json_dumps(
             {
                 "native_filter_configuration": [
@@ -507,7 +508,9 @@ class TestExtractNativeFilters:
                 ]
             }
         )
-        result = _extract_native_filters(metadata)
+        result = _extract_native_filters(
+            metadata, include_data_model_metadata=include_metadata
+        )
         assert result[0].cascade_parent_ids == []
         assert result[1].cascade_parent_ids == ["country"]
 
