@@ -91,9 +91,7 @@ views.registerView(
 ```
 
 The left-hand side of the bar is the navigation itself, and there is no view
-location for it. An extension that wants an entry there contributes a
-[page](#pages) instead, so that the entry and the screen it opens are one
-declaration rather than two that can disagree.
+location for it.
 
 #### The Home page
 

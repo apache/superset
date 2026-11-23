@@ -1005,8 +1005,8 @@ const DashboardBuilder = () => {
           browser signed in as a real user, so without this guard an editor
           with a draft of their own has whatever they are told about it drawn
           into the PNG and emailed to the recipients -- frequently viewers,
-          who see no workflow UI at all (R5-02). `standalone=3` is the mode
-          core added for exactly that distinction.
+          who see no workflow UI at all. `standalone=3` is the mode core
+          added for exactly that distinction.
         */}
         {!isReport && (
           <ViewListExtension viewId={ViewLocations.dashboard.panel} />

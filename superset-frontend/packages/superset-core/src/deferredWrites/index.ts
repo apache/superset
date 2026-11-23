@@ -87,29 +87,6 @@ export interface DeferralOracle {
     assetIds: (number | string)[],
   ): Promise<Record<string, boolean>>;
   /**
-   * The payload the host should hydrate instead of the live asset, or `null`
-   * when nothing is being held.
-   *
-   * `wouldDefer` is enough to word a button and not enough for the case the
-   * host has when it opens an asset. The author may already hold a version of
-   * their own -- a write that was accepted and not applied -- and hydrating
-   * the published asset over it shows them a state of their own work they did
-   * not leave it in, then saves on top of it. So the host asks before it
-   * hydrates, and whoever is holding the write says what to hydrate.
-   *
-   * `unknown` because the shape belongs to the asset type rather than to this
-   * contract: a chart's is form data, a dashboard's is a layout, and core
-   * describing either is core carrying the extension's model again. The
-   * caller casts to the shape it already handles.
-   *
-   * One asset, not many, and a payload rather than a flag: this is asked when
-   * opening one thing, so the bulk shape `wouldDefer` has would mean
-   * fetching every row's held version to draw a list.
-   *
-   * Optional, so every oracle written against `wouldDefer` alone stays valid.
-   * An oracle that does not implement it is read as holding nothing.
-   */
-  /**
    * Whether the host may go ahead with something a person has just asked
    * for, before it happens.
    *
@@ -140,6 +117,29 @@ export interface DeferralOracle {
     assetId: number | string,
   ): Promise<boolean>;
 
+  /**
+   * The payload the host should hydrate instead of the live asset, or `null`
+   * when nothing is being held.
+   *
+   * `wouldDefer` is enough to word a button and not enough for the case the
+   * host has when it opens an asset. The author may already hold a version of
+   * their own -- a write that was accepted and not applied -- and hydrating
+   * the published asset over it shows them a state of their own work they did
+   * not leave it in, then saves on top of it. So the host asks before it
+   * hydrates, and whoever is holding the write says what to hydrate.
+   *
+   * `unknown` because the shape belongs to the asset type rather than to this
+   * contract: a chart's is form data, a dashboard's is a layout, and core
+   * describing either is core carrying the extension's model again. The
+   * caller casts to the shape it already handles.
+   *
+   * One asset, not many, and a payload rather than a flag: this is asked when
+   * opening one thing, so the bulk shape `wouldDefer` has would mean
+   * fetching every row's held version to draw a list.
+   *
+   * Optional, so every oracle written against `wouldDefer` alone stays valid.
+   * An oracle that does not implement it is read as holding nothing.
+   */
   heldVersion?(
     assetType: string,
     assetId: number | string,

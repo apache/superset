@@ -43,6 +43,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { deferredWriteMessage, isDeferredWrite } from '@superset-ui/core';
 import type { deferredWrites as api } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
 import { createEventEmitter } from '../utils';
@@ -63,6 +64,20 @@ let oracle: DeferralOracle | undefined;
 
 const deferredEmitter = createEventEmitter<DeferredWrite>();
 
+/**
+ * Fires when the registered oracle arrives or goes away.
+ *
+ * Extensions register after the host has rendered, so anything that asked
+ * the oracle once at mount asked before there was one. Without this the
+ * answer taken on that first render is the only answer the surface ever
+ * has: `useDeferral` returns all-false for the life of the page, and a
+ * delete dialog words itself as though nothing were held.
+ *
+ * Internal. Extensions do not need to know when their own oracle lands,
+ * and the host surfaces that care reach it through `useDeferral`.
+ */
+const oracleEmitter = createEventEmitter<void>();
+
 export function registerDeferralOracle(next: DeferralOracle): Disposable {
   if (oracle && oracle !== next) {
     logging.warn(
@@ -72,9 +87,11 @@ export function registerDeferralOracle(next: DeferralOracle): Disposable {
     return new Disposable(() => {});
   }
   oracle = next;
+  oracleEmitter.fire(undefined);
   return new Disposable(() => {
     if (oracle === next) {
       oracle = undefined;
+      oracleEmitter.fire(undefined);
     }
   });
 }
@@ -216,25 +233,15 @@ export const onDeferralsInvalidated = invalidationEmitter.subscribe;
  * answer for every row it draws, and asking per row turns a page render into
  * a burst of requests.
  *
- * Re-asks when the ids change and when a write is deferred anywhere, since
- * the row that was just deferred is the one whose answer is now stale.
- */
-/**
- * Ask the oracle for a set of rows.
- *
- * One request for the whole page, not one per row: a list page needs an
- * answer for every row it draws, and asking per row turns a page render into
- * a burst of requests.
- *
  * Re-asks when the ids change, when a write is deferred anywhere, and when
  * the party holding the rule says previous answers have moved on.
  *
- * With nothing registered this touches no state at all, and answers all-false
- * from the first render. That matters more than it sounds: an earlier version
- * started at `{}` and then set all-false once the ids arrived, which
- * re-rendered the surface around it for no change in answer, and a
- * confirmation dialog with a controlled "type DELETE to confirm" input lost
- * what had been typed into it.
+ * With nothing registered this touches no state at all and answers all-false
+ * from the first render, rather than answering empty and then correcting
+ * itself once the ids arrive. The correction would re-render the surface
+ * around it for no change in answer, which is enough to clear a controlled
+ * input -- a confirmation dialog asking the reader to type DELETE loses what
+ * they have typed.
  */
 export function useDeferral(
   assetType: string,
@@ -246,17 +253,30 @@ export function useDeferral(
   );
 
   useEffect(() => {
-    if (!hasDeferralOracle()) {
-      return undefined;
-    }
     let current = true;
     const ask = () => {
+      // Asked every time rather than once at mount: with no oracle there is
+      // nothing to ask, but one may still arrive, and going back to `null`
+      // when the last one leaves drops answers nobody stands behind any
+      // more. Setting `null` over `null` is what React already ignores, so
+      // the no-extension case still touches no state.
+      if (!hasDeferralOracle()) {
+        if (current) setAnswered(null);
+        return;
+      }
       wouldDefer(assetType, key ? key.split(',') : []).then(next => {
         if (current) setAnswered(next);
       });
     };
     ask();
-    const subscriptions = [onDeferred(ask), onDeferralsInvalidated(ask)];
+    const subscriptions = [
+      onDeferred(ask),
+      onDeferralsInvalidated(ask),
+      // The subscription this hook was missing. An extension registers after
+      // the host has rendered, so without it the only answer this surface
+      // ever gets is the one taken before there was an oracle to ask.
+      oracleEmitter.subscribe(ask),
+    ];
     return () => {
       current = false;
       subscriptions.forEach(subscription => subscription.dispose());
@@ -293,7 +313,7 @@ const read: api.DeferredWriteReader = response => {
   return {
     message: deferredWriteMessage(
       body as Parameters<typeof deferredWriteMessage>[0],
-      'Your changes were accepted but are not live yet.',
+      t('Your changes were accepted but are not live yet.'),
     ),
     ...(held?.id === undefined ? {} : { reference: { id: held.id } }),
     ...(held?.count === undefined ? {} : { count: held.count }),
@@ -304,11 +324,9 @@ const read: api.DeferredWriteReader = response => {
 export const deferredWrites: api.DeferredWritesApi = {
   read,
   announce: announceDeferred,
-  // Both handed through as they are. They were downgraded here before -- the
-  // subscription to a bare unsubscribe function, the registration to
-  // nothing -- which left an extension unable to withdraw an oracle, so a
-  // reloaded extension's second registration was refused. Every other
-  // namespace returns a `Disposable`; these do now too.
+  // Both return a `Disposable`, as every other namespace does: an extension
+  // that cannot withdraw an oracle cannot re-register one, so reloading it
+  // would leave the first registration in place and refuse the second.
   onDidDefer: onDeferred,
   registerOracle: registerDeferralOracle,
   wouldDefer,

@@ -356,13 +356,48 @@ describe('useDeferral', () => {
       registration.dispose();
     }
   });
+
+  test('asks an oracle that registers after the surface has mounted', async () => {
+    // The ordinary case, not an edge one: an extension registers its oracle
+    // after the host has rendered, so a hook that asks only at mount asks
+    // before there is anything to ask -- and then answers all-false for the
+    // life of the page, wording every dialog as though nothing were held.
+    render(<Row ids={[1]} />);
+    await waitFor(() => expect(answersOnScreen()).toEqual({ '1': false }));
+
+    const oracle = oracleAnswering({ '1': true });
+    let registration: ReturnType<typeof registerDeferralOracle> | undefined;
+    act(() => {
+      registration = registerDeferralOracle(oracle);
+    });
+    try {
+      await waitFor(() => expect(answersOnScreen()).toEqual({ '1': true }));
+    } finally {
+      registration?.dispose();
+    }
+  });
+
+  test('stops standing behind its answers once the oracle goes away', async () => {
+    // The other half of listening for registration. Keeping the last answers
+    // after the oracle that gave them has gone would leave the surface
+    // asserting a rule nothing is enforcing any more.
+    const oracle = oracleAnswering({ '1': true });
+    const registration = registerDeferralOracle(oracle);
+    render(<Row ids={[1]} />);
+    await waitFor(() => expect(answersOnScreen()).toEqual({ '1': true }));
+
+    act(() => {
+      registration.dispose();
+    });
+    await waitFor(() => expect(answersOnScreen()).toEqual({ '1': false }));
+  });
 });
 
 test('with nothing registered the hook settles without a state update', async () => {
-  // It used to start at `{}` and then set all-false, which re-rendered the
-  // surface around it on every mount for no change in answer. A confirmation
-  // dialog with a controlled "type DELETE to confirm" input lost what had
-  // been typed into it that way.
+  // Answering empty first and correcting to all-false once the ids arrive
+  // would re-render the surface around it for no change in answer, which is
+  // enough to clear a controlled input -- a confirmation dialog asking the
+  // reader to type DELETE loses what they have typed.
   let renders = 0;
   const Counted = () => {
     renders += 1;

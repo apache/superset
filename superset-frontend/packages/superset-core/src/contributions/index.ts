@@ -207,29 +207,6 @@ export interface MenuContributions {
  * Aggregates all contributions (commands, menus, views, editors, and chat)
  * provided by an extension or module.
  */
-/**
- * A page as it is declared in the manifest.
- *
- * Keyed by the id of a view the extension registers at the page location, and
- * carrying one thing the runtime view does not: the permission that guards the
- * page's URL. The host serves the application shell at `/extensions/pages/<id>`
- * so a cold load, a refresh or a bookmark resolves, and that server-side route
- * has to be guarded like any other page in Superset. Naming an existing
- * permission -- the resource the extension's own API registers -- means nothing
- * new has to be created and granted before the page is reachable.
- *
- * A page that declares none is reachable by any signed-in user, which is what
- * the host's own login-gated shell pages already are.
- */
-export interface PageContribution extends View {
-  permission?: {
-    /** FAB resource name, e.g. the extension API's `class_permission_name`. */
-    resource: string;
-    /** FAB action name. Defaults to `read`. */
-    action?: string;
-  };
-}
-
 export interface Contributions {
   /** List of commands. */
   commands: Command[];
@@ -237,13 +214,6 @@ export interface Contributions {
   menus: MenuContributions;
   /** Nested mapping of view contributions by scope and location. */
   views: ViewContributions;
-  /**
-   * Top-level pages contributed by the extension. Each names a view the
-   * extension registers at the page location, which the host serves at
-   * `/extensions/pages/<id>` -- so unlike a view it is not a slot inside a
-   * surface the host already ships.
-   */
-  pages?: PageContribution[];
   /** List of editors. */
   editors?: Editor[];
   /**

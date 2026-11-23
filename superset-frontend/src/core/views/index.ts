@@ -36,9 +36,23 @@ type View = viewsApi.View;
 type ViewRegisteredEvent = viewsApi.ViewRegisteredEvent;
 type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
 
+/**
+ * Every registered view, by id.
+ *
+ * `component` is stored under the widest props type the registry can state.
+ * Each view is registered with its own, and one map cannot hold them all
+ * without erasing somewhere; doing it here, once, keeps `resolveView` and
+ * every caller typed. The cast at the one registration site is the only
+ * place the erasure happens, and `resolveView` hands the component exactly
+ * this shape back.
+ */
 const viewRegistry: Map<
   string,
-  { view: View; location: string; component: ComponentType<any> }
+  {
+    view: View;
+    location: string;
+    component: ComponentType<Record<string, unknown>>;
+  }
 > = new Map();
 
 const locationIndex: Map<string, Set<string>> = new Map();
@@ -86,7 +100,13 @@ export const registerView: typeof viewsApi.registerView = <Props>(
     locationIndex.get(replaced.location)?.delete(id);
   }
 
-  const entry = { view, location, component };
+  const entry = {
+    view,
+    location,
+    // See `viewRegistry`: a registry holding every view's component cannot
+    // also hold every view's props type.
+    component: component as ComponentType<Record<string, unknown>>,
+  };
   viewRegistry.set(id, entry);
 
   const ids = locationIndex.get(location) ?? new Set();
