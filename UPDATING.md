@@ -41,6 +41,22 @@ assists people when migrating to a new version.
   rejects the save. Optional capture failures isolated by a successful savepoint
   rollback may still omit history without rejecting the save.
 
+- `list` and `pages` are now reserved extension publisher names. An
+  extension already published under either will fail manifest validation
+  and the `superset-extensions` CLI will refuse to build it; the host owns
+  `/extensions/list/` and `/extensions/pages/<id>`, so a publisher of those
+  names could not be addressed. Rename the publisher and reinstall.
+
+- `navigation.getPage()` can now return `'extension'`, for a page contributed
+  by an extension. Code that switches exhaustively on the `Page` union will
+  not compile until that member is handled, and code that switches without a
+  default may fall through on an extension page at runtime.
+
+- `navigation.getLocation().pathname` is relative to the application root, so
+  on a deployment served under a prefix it does not carry that prefix.
+  `navigation.getApplicationRoot()` reports the prefix for callers that need
+  it, such as a `fetch` built by hand.
+
 - Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
 
 - Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
