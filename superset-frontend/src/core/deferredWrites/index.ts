@@ -34,10 +34,9 @@
  * oracle an extension registers, and takes "no" for an answer when nothing
  * is registered.
  *
- * Asking is what removes the extension's name from the host. Every one of
- * these sites used to read a specific feature flag, which is the same
- * coupling as importing the extension's module with extra steps: core knew
- * both that the feature existed and what it was called.
+ * Asking is what keeps the extension's name out of the host: core learns
+ * that a write will be held without learning who holds it, or that the
+ * holder exists at all when none is registered.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -129,24 +128,6 @@ export async function wouldDefer(
 }
 
 /**
- * What should be hydrated for this asset instead of the live one?
- *
- * `wouldDefer` answers a question a button asks. This answers the one a page
- * asks as it opens: the person may be holding a version of their own, and
- * hydrating the published asset over it shows them a state of their own work
- * they did not leave it in -- and then saves on top of it.
- *
- * `null` means hydrate the live asset, and it is the answer for every way of
- * not getting one: nothing registered, an oracle that does not answer this
- * question, an oracle that throws, an oracle that answers `undefined`. That
- * is deliberate. The host's own behaviour -- open what the server sent -- is
- * correct in all four cases, so there is nothing for a caller to handle and
- * no second code path for it to get wrong.
- *
- * The payload is `unknown`: its shape belongs to the asset type, and the
- * caller casts to the shape it already hydrates.
- */
-/**
  * Ask whether the host may go ahead with something a person just asked for.
  *
  * Awaited before the host acts, so whoever holds the rule can put its own
@@ -173,6 +154,24 @@ export async function mayProceed(
   }
 }
 
+/**
+ * What should be hydrated for this asset instead of the live one?
+ *
+ * `wouldDefer` answers a question a button asks. This answers the one a page
+ * asks as it opens: the person may be holding a version of their own, and
+ * hydrating the published asset over it shows them a state of their own work
+ * they did not leave it in -- and then saves on top of it.
+ *
+ * `null` means hydrate the live asset, and it is the answer for every way of
+ * not getting one: nothing registered, an oracle that does not answer this
+ * question, an oracle that throws, an oracle that answers `undefined`. That
+ * is deliberate. The host's own behaviour -- open what the server sent -- is
+ * correct in all four cases, so there is nothing for a caller to handle and
+ * no second code path for it to get wrong.
+ *
+ * The payload is `unknown`: its shape belongs to the asset type, and the
+ * caller casts to the shape it already hydrates.
+ */
 export async function heldVersion(
   assetType: string,
   assetId: number | string,
@@ -272,9 +271,10 @@ export function useDeferral(
     const subscriptions = [
       onDeferred(ask),
       onDeferralsInvalidated(ask),
-      // The subscription this hook was missing. An extension registers after
-      // the host has rendered, so without it the only answer this surface
-      // ever gets is the one taken before there was an oracle to ask.
+      // Re-asks when an oracle is registered or replaced. An extension
+      // registers after the host has rendered, so without this the only
+      // answer this surface ever gets is the one taken before there was an
+      // oracle to ask.
       oracleEmitter.subscribe(ask),
     ];
     return () => {

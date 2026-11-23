@@ -18,7 +18,7 @@
  */
 /**
  * Re-exported for the many SQL Lab components that already import it from
- * here. The locations themselves are no longer SQL Lab's alone, so they live
- * with the registry that resolves them.
+ * here. The locations span the whole host, so they live with the registry
+ * that resolves them.
  */
 export { ViewLocations } from 'src/core/viewLocations';

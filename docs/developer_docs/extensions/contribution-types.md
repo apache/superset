@@ -51,23 +51,49 @@ A location is a string, and the nested shape of the `contributions.views`
 block in `extension.json` mirrors it: `sqllab.panels` is declared under
 `sqllab` → `panels`.
 
-| Location | Where it renders |
-| --- | --- |
-| `navbar.right` | The right-hand end of the navigation bar, on every page |
-| `home.section` | A section of the Home page, after Superset's own |
-| `dashboard.header` | Beside the dashboard title |
-| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu |
-| `dashboard.sidebar` | A column down the right of the chart grid, at most `min(400px, 33vw)` wide. Wider content is clipped rather than scrolled, so size contributions fluidly and render popups at the page root |
-| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu |
-| `explore.header` | Beside the chart title in Explore |
-| `explore.panel` | Between the Explore header and the chart, full width |
-| `listView.{chart,dashboard,dataset}.nameCell` | Beside an item's name, in that type's list and in the archive |
-| `listView.{chart,dashboard,dataset}.actions` | In a list row's action buttons |
-| `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) |
+| Location | Where it renders | Props |
+| --- | --- | --- |
+| `navbar.right` | The right-hand end of the navigation bar, on every page | — |
+| `home.sectionPrimary` | A section of the Home page, before Superset's own | — |
+| `home.section` | A section of the Home page, after Superset's own | — |
+| `dashboard.header` | Beside the dashboard title | — |
+| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu | `AssetViewProps` |
+| `dashboard.editActions` | Beside Save, while the dashboard is being edited | `EditActionProps` |
+| `dashboard.panel` | Between the dashboard header and the chart grid, full width | — |
+| `dashboard.sidebar` | A column down the right of the chart grid, at most `min(400px, 33vw)` wide. Wider content is clipped rather than scrolled, so size contributions fluidly and render popups at the page root | — |
+| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu | `AssetViewProps` |
+| `dashboard.chartNameCell` | Beside an individual chart's name on a dashboard | `AssetViewProps` |
+| `explore.header` | Beside the chart title in Explore | — |
+| `explore.panel` | Between the Explore header and the chart, the width of the chart column | — |
+| `listView.{chart,dashboard,dataset}.nameCell` | Beside an item's name, in that type's list and in the archive | `ListViewItemProps` |
+| `listView.{chart,dashboard,dataset}.actions` | In a list row's action buttons | `ListViewItemProps` |
+| `listView.{chart,dashboard,dataset}.deleteConfirmation` | In the dialog that asks the reader to confirm deleting an item | `AssetViewProps` |
+| `listView.dashboard.statusCell` | Beside a dashboard row's published-or-draft status | `AssetViewProps` |
+| `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) | — |
 
-A contributed component is rendered with no props: whatever it needs, it
-fetches for itself. The exception is the list-view locations, described below,
-which render the same component once per row.
+A location marked — renders its component with no props: whatever it needs, it
+fetches for itself. The rest render one registered component once per asset,
+and hand it the asset, because that is the one thing the component cannot work
+out on its own:
+
+- `views.AssetViewProps` is `{ assetId }`, the primary key of the asset the
+  component is rendered beside.
+- `views.ListViewItemProps` adds `archived`, described under
+  [List rows](#list-rows).
+- `views.EditActionProps` is `{ hasUnsavedChanges, saveFirst }`. An action
+  contributed beside Save may need the dashboard's current edits committed
+  before it can act on them, and it cannot commit them itself: whether there
+  is anything to save, and the saving, are the host's.
+
+```tsx
+const ReviewButton = ({ assetId }: views.AssetViewProps) => ...;
+
+views.registerView<views.AssetViewProps>(
+  { id: 'acme.reviews.chartAction', name: 'Send for review' },
+  'dashboard.chartActions',
+  ReviewButton,
+);
+```
 
 Every location renders nothing at all until an extension contributes to it, so
 a Superset with no extensions installed is laid out exactly as before. Several
@@ -114,8 +140,8 @@ views.registerView(
 
 #### List rows
 
-The `listView` locations render once per row, so unlike every other location
-they hand the component something: `views.ListViewItemProps`.
+The `listView` locations render once per row, and hand the component
+`views.ListViewItemProps` so it can tell the rows apart.
 
 ```tsx
 const RowMarker = ({ assetId, archived }: views.ListViewItemProps) => ...;

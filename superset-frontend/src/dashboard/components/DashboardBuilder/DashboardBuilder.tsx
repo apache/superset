@@ -96,7 +96,7 @@ import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import ViewListExtension from 'src/components/ViewListExtension';
-import { DOCKED_PANEL_SLOT, ViewLocations } from 'src/core/viewLocations';
+import { ViewLocations } from 'src/core/viewLocations';
 import DashboardWrapper from './DashboardWrapper';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
@@ -265,6 +265,11 @@ const VersionHistoryColumn = styled.div<{
     }
   `}
 `;
+
+// The column's own id, which only the host uses. A contribution reaches this
+// column by registering at `dashboard.sidebar`; nothing is expected to find
+// the element and render into it.
+const EXTENSION_SIDEBAR_COLUMN_ID = 'superset-dashboard-extension-sidebar';
 
 /**
  * The column extensions contribute a dashboard-side panel into.
@@ -1114,17 +1119,16 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
-      <ExtensionSidebarColumn id={DOCKED_PANEL_SLOT}>
-        {/* Guarded like `dashboard.panel` above: a report renders this
-            dashboard to a PNG that is emailed to recipients, and a
-            full-height contributed column would be captured in it and
-            squeeze the chart grid. The slot element itself stays, so
-            anything portalling into `DOCKED_PANEL_SLOT` still finds its
-            target. */}
-        {!isReport && (
+      {/* Guarded like `dashboard.panel` above: a report renders this
+          dashboard to a PNG that is emailed to recipients, and a full-height
+          contributed column would be captured in it and squeeze the chart
+          grid. The column itself goes with it, so a report lays out no track
+          for it at all. */}
+      {!isReport && (
+        <ExtensionSidebarColumn id={EXTENSION_SIDEBAR_COLUMN_ID}>
           <ViewListExtension viewId={ViewLocations.dashboard.sidebar} />
-        )}
-      </ExtensionSidebarColumn>
+        </ExtensionSidebarColumn>
+      )}
       {/* Guests have no version history to show; keep its viewport-sized host
           out of embedded documents so it cannot affect iframe sizing. */}
       {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (

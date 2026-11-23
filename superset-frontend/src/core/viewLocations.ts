@@ -39,17 +39,6 @@
  * // In component code:
  * <ViewListExtension viewId={ViewLocations.dashboard.sidebar} />
  */
-/**
- * The DOM id of the grid column a contributed panel docks in.
- *
- * A panel has to sit beside the asset, not above it, or its height pushes the
- * whole column down the page. Explore lays out an empty slot in its right-hand
- * column and the panel portals into it; the dashboard's extension sidebar
- * column carries the same id, so one lookup finds the right column on either
- * surface.
- */
-export const DOCKED_PANEL_SLOT = 'superset-docked-panel-slot';
-
 export const ViewLocations = {
   sqllab: {
     leftSidebar: 'sqllab.leftSidebar',

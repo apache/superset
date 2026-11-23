@@ -24,7 +24,12 @@ export interface ViewListExtensionProps {
   viewId: string;
   /**
    * Forwarded to every component registered at this location. Locations that
-   * render once per item use it to say which item is being rendered.
+   * render once per asset use it to say which asset is being rendered.
+   *
+   * Left open here because this component forwards whatever a location hands
+   * it. What each location actually supplies is a published contract:
+   * `views.AssetViewProps`, `views.ListViewItemProps` or
+   * `views.EditActionProps` on `@apache-superset/core`.
    */
   viewProps?: Record<string, unknown>;
 }
