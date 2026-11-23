@@ -24,6 +24,23 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard history records related chart archives using the new
+  `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
+  new archive writes with versioning capture enabled. During a rollout, activity
+  reads tolerate a missing scope table and continue returning content history;
+  archive capture skipped before the migration cannot be reconstructed or
+  backfilled. Archive activity adds no content version and does not change
+  recovery or content-restore behavior. Downgrade removes archive scopes and
+  archive records but leaves content history intact; empty activity transactions
+  may remain until normal history retention removes them.
+
+- Version-history commit-time finalization rejects the whole save when a database
+  error occurs outside a recoverable savepoint, including final field or child
+  diff generation and version-transaction lookup. This applies to ordinary
+  content saves as well as chart archives. A lost transaction or savepoint also
+  rejects the save. Optional capture failures isolated by a successful savepoint
+  rollback may still omit history without rejecting the save.
+
 - **OAuth login with a single provider:** when `OAUTH_PROVIDERS` contains exactly
   one provider, the login page now skips the provider choice and redirects
   straight to that provider's sign-in. After logout, users land on the login page
