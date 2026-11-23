@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The BigQuery fetch memory cap (`BQ_FETCH_MAX_MB`) no longer applies to chart
+  CSV/XLSX downloads or SQL Lab CSV exports: these return every row up to the
+  row limit, as before the cap was added. On-screen chart and SQL Lab results
+  keep the cap. SQL Lab reports a result cut by the cap with the new
+  `MEMORY` limiting factor instead of `NOT_LIMITED`. Set `BQ_FETCH_MAX_MB = None`
+  (or `0`) to turn the cap off.
+
 - Dashboard history records related chart archives using the new
   `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
   new archive writes with versioning capture enabled. During a rollout, activity

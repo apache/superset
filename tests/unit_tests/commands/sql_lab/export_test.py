@@ -17,6 +17,7 @@
 """Unit tests for SQL Lab CSV export."""
 
 from decimal import Decimal
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -24,7 +25,9 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.sql_lab.export import SqlResultExportCommand
+from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import csv
+from superset.utils.fetch_memory_cap import is_fetch_memory_cap_disabled
 
 
 @pytest.mark.parametrize(
@@ -111,3 +114,60 @@ def test_csv_export_mixed_frame_is_byte_identical(
     assert result["data"] == expected.encode()
     assert result["count"] == 5
     assert formatter.call_count == 5
+
+
+@pytest.mark.parametrize(
+    ("limiting_factor", "uses_results_backend"),
+    [
+        (LimitingFactor.MEMORY, False),
+        (LimitingFactor.DROPDOWN, True),
+        (LimitingFactor.NOT_LIMITED, True),
+    ],
+)
+def test_csv_export_reruns_memory_truncated_results_without_cap(
+    mocker: MockerFixture,
+    limiting_factor: LimitingFactor,
+    uses_results_backend: bool,
+) -> None:
+    """
+    Stored SQL Lab results cut short by an engine fetch memory cap are
+    incomplete, so the export reruns the query without the cap, keeping the
+    row limit. Other stored results are exported as they are.
+    """
+    results_backend = mocker.patch("superset.commands.sql_lab.export.results_backend")
+    results_backend.get.return_value = b"blob"
+    mocker.patch(
+        "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
+    )
+    mocker.patch(
+        "superset.commands.sql_lab.export._deserialize_results_payload",
+        return_value={"data": [{"n": 1}], "columns": [{"name": "n"}]},
+    )
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+    query = MagicMock()
+    query.results_key = "key"
+    query.select_sql = None
+    query.executed_sql = "SELECT n FROM t LIMIT 4"
+    query.limiting_factor = limiting_factor
+    query.database.db_engine_spec.engine = "bigquery"
+    cap_disabled: list[bool] = []
+
+    def get_df(*_: Any) -> pd.DataFrame:
+        cap_disabled.append(is_fetch_memory_cap_disabled())
+        return pd.DataFrame({"n": [1, 2, 3, 4]})
+
+    query.database.get_df.side_effect = get_df
+    mock_db = mocker.patch("superset.commands.sql_lab.export.db")
+    query_result = mock_db.session.query.return_value.filter_by.return_value
+    query_result.one_or_none.return_value = query
+
+    result = SqlResultExportCommand("client_id").run()
+
+    if uses_results_backend:
+        assert result["count"] == 1
+        query.database.get_df.assert_not_called()
+    else:
+        # LIMIT 4 holds the extra probe row, so 3 rows are exported.
+        assert result["count"] == 3
+        assert cap_disabled == [True]
+    assert is_fetch_memory_cap_disabled() is False

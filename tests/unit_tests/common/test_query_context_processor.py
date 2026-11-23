@@ -17,7 +17,7 @@
 
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
@@ -159,6 +159,83 @@ def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
         call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
     ]
     assert contexts[0] != contexts[1]
+
+
+@pytest.mark.parametrize(
+    ("result_format", "engine_has_cap", "keyed_apart"),
+    [
+        (ChartDataResultFormat.CSV, True, True),
+        (ChartDataResultFormat.XLSX, True, True),
+        (ChartDataResultFormat.JSON, True, False),
+        (ChartDataResultFormat.ARROW, True, False),
+        (ChartDataResultFormat.CSV, False, False),
+    ],
+)
+def test_query_cache_key_separates_uncapped_downloads(
+    processor: QueryContextProcessor,
+    result_format: ChartDataResultFormat,
+    engine_has_cap: bool,
+    keyed_apart: bool,
+) -> None:
+    """
+    Downloads skip the engine fetch memory cap, so on engines that have one
+    they must not share a cache entry with capped on-screen results.
+    """
+    processor._query_context.result_format = result_format
+    datasource = cast(MagicMock, processor._qc_datasource)
+    db_engine_spec = datasource.database.db_engine_spec
+    db_engine_spec.has_fetch_memory_cap.return_value = engine_has_cap
+    query_obj = MagicMock()
+    query_obj.annotation_layers = []
+
+    with patch("superset.common.query_context_processor.security_manager"):
+        processor.query_cache_key(query_obj)
+
+    kwargs = query_obj.cache_key.call_args.kwargs
+    if keyed_apart:
+        assert kwargs["fetch_memory_cap"] is False
+    else:
+        assert "fetch_memory_cap" not in kwargs
+
+
+@pytest.mark.parametrize(
+    ("result_format", "cap_disabled"),
+    [
+        (ChartDataResultFormat.CSV, True),
+        (ChartDataResultFormat.XLSX, True),
+        (ChartDataResultFormat.JSON, False),
+        (ChartDataResultFormat.ARROW, False),
+    ],
+)
+def test_execute_query_object_skips_fetch_memory_cap_for_downloads(
+    processor: QueryContextProcessor,
+    result_format: ChartDataResultFormat,
+    cap_disabled: bool,
+) -> None:
+    """
+    CSV/XLSX downloads are not rendered in the browser, so the datasource query
+    runs without the engine fetch memory cap; rendered formats keep it.
+    """
+    from superset.utils.fetch_memory_cap import is_fetch_memory_cap_disabled
+
+    processor._query_context.result_format = result_format
+    seen: list[bool] = []
+
+    def get_query_result(_: Any) -> MagicMock:
+        seen.append(is_fetch_memory_cap_disabled())
+        return MagicMock()
+
+    cast(
+        MagicMock, processor._qc_datasource
+    ).get_query_result.side_effect = get_query_result
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        return_value=False,
+    ):
+        processor._execute_query_object(MagicMock())
+
+    assert seen == [cap_disabled]
+    assert is_fetch_memory_cap_disabled() is False
 
 
 def test_annotation_cache_key_binds_the_source_connection_embedded_identity(

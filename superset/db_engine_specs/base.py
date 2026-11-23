@@ -1812,6 +1812,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def has_fetch_memory_cap(cls) -> bool:
+        """
+        Whether ``fetch_data`` may stop early to stay within a memory budget.
+
+        Engines that return ``True`` honor
+        ``superset.utils.fetch_memory_cap.fetch_memory_cap_disabled`` so callers
+        that do not render the result (e.g. CSV/XLSX exports) can fetch every
+        row. Callers also use this to keep capped and uncapped results apart
+        in the results cache.
+        """
+        return False
+
+    @classmethod
     def fetch_data_with_cursor(
         cls,
         database: Database,

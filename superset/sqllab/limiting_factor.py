@@ -22,4 +22,7 @@ class LimitingFactor(StrEnum):
     DROPDOWN = "DROPDOWN"
     QUERY_AND_DROPDOWN = "QUERY_AND_DROPDOWN"
     NOT_LIMITED = "NOT_LIMITED"
+    # The engine stopped fetching early to stay within a memory budget
+    # (e.g. ``BQ_FETCH_MAX_MB``), so rows were dropped below the row limit.
+    MEMORY = "MEMORY"
     UNKNOWN = "UNKNOWN"

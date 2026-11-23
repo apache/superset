@@ -22,6 +22,7 @@ import {
   screen,
   waitFor,
   fireEvent,
+  userEvent,
   within,
 } from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
@@ -598,6 +599,40 @@ describe('ResultSet', () => {
       ).toBeInTheDocument();
     });
   });
+
+  test.each([
+    [
+      true,
+      'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads include all rows up to the query limit.',
+    ],
+    [
+      false,
+      'The number of rows displayed is limited to 42 due to memory constraints.',
+    ],
+  ])(
+    'should warn when rows were dropped by a memory cap (csv: %s)',
+    async (csv, message) => {
+      setup(
+        { ...mockedProps, csv },
+        mockStore({
+          ...initialState,
+          user,
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [queries[0].id]: { ...queries[0], limitingFactor: 'MEMORY' },
+            },
+          },
+        }),
+      );
+
+      await userEvent.hover(await screen.findByText('42 rows'));
+
+      expect(
+        await screen.findByText(`42 rows returned. ${message}`),
+      ).toBeInTheDocument();
+    },
+  );
 
   test('should not allow download as CSV when user does not have permission to export data', async () => {
     const { queryByTestId } = setup(

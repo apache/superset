@@ -33,6 +33,7 @@ from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils, csv
+from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
 from superset.views.utils import _deserialize_results_payload
 
 logger = logging.getLogger(__name__)
@@ -108,7 +109,13 @@ class SqlResultExportCommand(BaseCommand):
     ) -> SqlExportResult:
         self.validate()
         blob = None
-        if results_backend and self._query.results_key:
+        # A result truncated by an engine memory cap is incomplete: rerun the
+        # query without the cap instead of exporting the stored rows.
+        if (
+            results_backend
+            and self._query.results_key
+            and self._query.limiting_factor != LimitingFactor.MEMORY
+        ):
             logger.info(
                 "Fetching CSV from results backend [%s]", self._query.results_key
             )
@@ -143,14 +150,17 @@ class SqlResultExportCommand(BaseCommand):
                 LimitingFactor.QUERY,
                 LimitingFactor.DROPDOWN,
                 LimitingFactor.QUERY_AND_DROPDOWN,
+                LimitingFactor.MEMORY,
             }:
                 # remove extra row from `increased_limit`
                 limit -= 1
-            df = self._query.database.get_df(
-                sql,
-                self._query.catalog,
-                self._query.schema,
-            )[:limit]
+            # A download is not rendered, so skip engine memory caps.
+            with fetch_memory_cap_disabled():
+                df = self._query.database.get_df(
+                    sql,
+                    self._query.catalog,
+                    self._query.schema,
+                )[:limit]
 
         _format_decimal_columns(df)
 

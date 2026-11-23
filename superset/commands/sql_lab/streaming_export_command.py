@@ -145,6 +145,7 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
             LimitingFactor.QUERY,
             LimitingFactor.DROPDOWN,
             LimitingFactor.QUERY_AND_DROPDOWN,
+            LimitingFactor.MEMORY,
         }:
             # remove extra row from `increased_limit`
             limit -= 1

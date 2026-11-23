@@ -100,6 +100,7 @@ enum LimitingFactor {
   QueryAndDropdown = 'QUERY_AND_DROPDOWN',
   Dropdown = 'DROPDOWN',
   NotLimited = 'NOT_LIMITED',
+  Memory = 'MEMORY',
 }
 
 export interface ResultSetProps {
@@ -526,6 +527,16 @@ const ResultSet = ({
         'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
         { rows },
       );
+    } else if (limitingFactor === LimitingFactor.Memory) {
+      limitMessage = csv
+        ? t(
+            'The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads include all rows up to the query limit.',
+            { rows },
+          )
+        : t(
+            'The number of rows displayed is limited to %(rows)d due to memory constraints.',
+            { rows },
+          );
     } else if (shouldUseDefaultDropdownAlert) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the dropdown.',

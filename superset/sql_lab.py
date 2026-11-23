@@ -74,6 +74,7 @@ from superset.sql.execution.utils import (
 from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
+from superset.superset_typing import FetchedRows
 from superset.utils import json
 from superset.utils.core import (
     override_user,
@@ -386,11 +387,14 @@ def _execute_query(
                 )
                 increased_limit = None if query.limit is None else query.limit + 1
                 data = db_engine_spec.fetch_data(cursor, increased_limit)
-                if query.limit is None or len(data) <= query.limit:
-                    query.limiting_factor = LimitingFactor.NOT_LIMITED
-                else:
+                if query.limit is not None and len(data) > query.limit:
                     # return 1 row less than increased_query
                     data = data[:-1]
+                elif isinstance(data, FetchedRows) and data.truncated:
+                    # the engine dropped rows below the limit to save memory
+                    query.limiting_factor = LimitingFactor.MEMORY
+                else:
+                    query.limiting_factor = LimitingFactor.NOT_LIMITED
     except SoftTimeLimitExceeded as ex:
         query.status = QueryStatus.TIMED_OUT
 

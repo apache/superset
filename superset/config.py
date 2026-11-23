@@ -2246,8 +2246,11 @@ DEFAULT_DB_ID = None
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
-# BigQuery max fetch size in MB (limits memory usage when fetching large results)
-BQ_FETCH_MAX_MB = 200
+# BigQuery max fetch size in MB (limits memory usage when fetching large results
+# that are rendered in the browser). Rows past the estimated budget are dropped
+# and the chart or SQL Lab result reports the truncation. CSV/XLSX downloads are
+# not capped. Set to None (or 0) to disable the cap.
+BQ_FETCH_MAX_MB: int | None = 200
 
 # Timeout duration for SQL Lab query validation
 SQLLAB_VALIDATION_TIMEOUT = int(timedelta(seconds=10).total_seconds())

@@ -54,6 +54,7 @@ from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import core as utils, json
+from superset.utils.fetch_memory_cap import is_fetch_memory_cap_disabled
 from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
@@ -413,6 +414,39 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return None
 
     @classmethod
+    def _fetch_max_mb(cls) -> int | None:
+        """
+        The configured fetch memory budget in MB, or ``None`` when disabled.
+        """
+        # ``BQ_FETCH_MAX_MB`` has a default in ``config.py``, so use bracket
+        # access in-context — a missing key should surface as a loud KeyError
+        # rather than be silently masked by a duplicated default here. The
+        # 200 fallback is only used when running outside an app context
+        # (e.g., direct unit-test calls to ``fetch_data``).
+        max_mb: int | None = (
+            current_app.config["BQ_FETCH_MAX_MB"] if has_app_context() else 200
+        )
+        # ``None`` or ``0`` turns the cap off.
+        return max_mb or None
+
+    @classmethod
+    def has_fetch_memory_cap(cls) -> bool:
+        return cls._fetch_max_mb() is not None
+
+    @classmethod
+    def _fetch_all_data(
+        cls, cursor: Any, limit: int | None = None
+    ) -> list[tuple[Any, ...]]:
+        """Fetch without the memory budget, up to ``limit`` rows."""
+        data = super().fetch_data(cursor, limit)
+        if data and type(data[0]).__name__ == "Row":
+            data = [r.values() for r in data]  # type: ignore
+        if has_request_context():
+            g.bq_memory_limited = False
+            g.bq_memory_limited_row_count = len(data) if data else 0
+        return data
+
+    @classmethod
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:  # noqa: C901
         """
         Progressive fetch for BigQuery to prevent browser memory overload.
@@ -421,15 +455,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         total number of rows that fit within ``BQ_FETCH_MAX_MB``.
         Falls back to the parent implementation if the initial read fails.
         Errors after consuming rows propagate instead of returning partial data.
+
+        The budget is skipped when ``BQ_FETCH_MAX_MB`` is ``None``/``0`` and
+        for fetches that are not rendered in the browser (CSV/XLSX exports),
+        which run inside ``fetch_memory_cap_disabled``.
         """
-        # ``BQ_FETCH_MAX_MB`` has a default in ``config.py``, so use bracket
-        # access in-context — a missing key should surface as a loud KeyError
-        # rather than be silently masked by a duplicated default here. The
-        # 200 fallback is only used when running outside an app context
-        # (e.g., direct unit-test calls to ``fetch_data``).
-        max_mb: int = (
-            current_app.config["BQ_FETCH_MAX_MB"] if has_app_context() else 200
-        )
+        max_mb = cls._fetch_max_mb()
+        if max_mb is None or is_fetch_memory_cap_disabled():
+            return cls._fetch_all_data(cursor, limit)
         max_bytes = max_mb * 1024 * 1024
 
         first_batch: list[Any] = []
@@ -506,13 +539,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             if first_batch:
                 raise cls.get_dbapi_mapped_exception(ex) from ex
             # An initial read failure leaves no buffered rows to lose.
-            data = super().fetch_data(cursor, limit)
-            if data and type(data[0]).__name__ == "Row":
-                data = [r.values() for r in data]  # type: ignore
-            if has_request_context():
-                g.bq_memory_limited = False
-                g.bq_memory_limited_row_count = len(data) if data else 0
-            return data
+            return cls._fetch_all_data(cursor, limit)
 
     @staticmethod
     def _mutate_label(label: str) -> str:

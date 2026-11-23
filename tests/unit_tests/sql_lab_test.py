@@ -49,6 +49,7 @@ from superset.sql_lab import (
     get_sql_results,
     SqlLabException,
 )
+from superset.superset_typing import FetchedRows
 from superset.utils import json as superset_json
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
@@ -125,6 +126,52 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
         query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
+
+
+@pytest.mark.parametrize(
+    ("fetched", "expected_rows", "expected_factor"),
+    [
+        # The engine dropped rows below the limit to stay within its memory cap.
+        (FetchedRows([(1,), (2,)], truncated=True), [(1,), (2,)], "MEMORY"),
+        (FetchedRows([(1,), (2,)], truncated=False), [(1,), (2,)], "NOT_LIMITED"),
+        ([(1,), (2,)], [(1,), (2,)], "NOT_LIMITED"),
+        # The extra probe row came back: the limit, not memory, cut the result.
+        ([(1,), (2,), (3,), (4,), (5,), (6,)], [(1,), (2,), (3,), (4,), (5,)], None),
+        (
+            FetchedRows([(1,), (2,), (3,), (4,), (5,), (6,)], truncated=True),
+            [(1,), (2,), (3,), (4,), (5,)],
+            None,
+        ),
+    ],
+)
+def test_execute_query_reports_memory_truncation(
+    mocker: MockerFixture,
+    app: None,
+    fetched: list[tuple[int]],
+    expected_rows: list[tuple[int]],
+    expected_factor: str | None,
+) -> None:
+    """
+    A result cut short by an engine fetch memory cap (e.g. ``BQ_FETCH_MAX_MB``)
+    is reported as limited by memory, not as ``NOT_LIMITED``.
+    """
+    from superset.sqllab.limiting_factor import LimitingFactor
+
+    query = mocker.MagicMock()
+    query.executed_sql = "SELECT n FROM t"
+    query.limit = 5
+    query.limiting_factor = LimitingFactor.DROPDOWN
+    db_engine_spec = query.database.db_engine_spec
+    db_engine_spec.fetch_data.return_value = fetched
+    cursor = mocker.MagicMock()
+    result_set = mocker.patch("superset.sql_lab.SupersetResultSet")
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    execute_query(query, cursor=cursor, log_params={})
+
+    db_engine_spec.fetch_data.assert_called_once_with(cursor, 6)
+    assert list(result_set.call_args.args[0]) == expected_rows
+    assert query.limiting_factor == (expected_factor or LimitingFactor.DROPDOWN)
 
 
 def test_execute_query_converts_stopped_exception_to_sqllab_query_stopped(

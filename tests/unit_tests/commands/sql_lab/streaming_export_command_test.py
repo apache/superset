@@ -332,6 +332,34 @@ def test_limiting_factor_dropdown(mocker, mock_query):
         assert len(lines) == 101
 
 
+@pytest.mark.parametrize(
+    ("limiting_factor", "expected_limit"),
+    [
+        # Memory-truncated results ran with the increased limit, like DROPDOWN.
+        (LimitingFactor.MEMORY, 100),
+        (LimitingFactor.DROPDOWN, 100),
+        (LimitingFactor.NOT_LIMITED, 101),
+    ],
+)
+def test_row_limit_drops_probe_row_for_memory_truncated_results(
+    mocker: MockerFixture,
+    mock_query: MagicMock,
+    limiting_factor: LimitingFactor,
+    expected_limit: int,
+) -> None:
+    """
+    A result cut short by an engine fetch memory cap was executed with the
+    increased (limit + 1) SQL limit, so the export drops the probe row.
+    """
+    mock_query.executed_sql = "SELECT * FROM test LIMIT 101"
+    mock_query.limiting_factor = limiting_factor
+    _setup_sqllab_mocks(mocker, mock_query)
+    command = StreamingSqlResultExportCommand("test_client_123")
+    command.validate()
+
+    assert command._get_row_limit() == expected_limit
+
+
 def test_limiting_factor_query_and_dropdown(mocker, mock_query):
     """Test limit adjustment for QUERY_AND_DROPDOWN limiting factor."""
     mock_query.select_sql = None
