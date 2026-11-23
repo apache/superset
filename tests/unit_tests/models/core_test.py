@@ -1517,9 +1517,9 @@ def test_prequeries_execute_on_real_connections(
     with database.get_raw_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE name = 'prequery_marker'")
-        assert cursor.fetchone() is not None, (
-            "prequery did not run on the new connection"
-        )
+        assert (
+            cursor.fetchone() is not None
+        ), "prequery did not run on the new connection"
     assert _ENGINE_CACHE == {}
 
 
@@ -3270,6 +3270,44 @@ def test_get_raw_connection_leaves_recovery_to_an_outer_retry(
     refresh.assert_not_called()
 
 
+def test_get_raw_connection_rolls_back_a_session_deactivated_by_a_failed_flush(
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A failed flush while opening the connection (for example persisting a
+    refreshed OAuth2 token) must not leave the request's session unusable, or
+    the next ORM read raises ``PendingRollbackError`` in place of the real error.
+    """
+    Database.metadata.create_all(session.get_bind())
+
+    def failing_flush() -> None:
+        session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+        session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+        session.flush()
+
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = failing_flush
+    database = Database(database_name="login_db", sqlalchemy_uri="snowflake://")
+    database.id = 1
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(Database, "get_oauth2_config", return_value={"id": "client-id"})
+    mocker.patch.object(Database, "db_engine_spec").get_prequeries.return_value = []
+    g = mocker.MagicMock()
+    g.user.id = 2
+    mocker.patch("superset.models.core.g", g)
+    mocker.patch("superset.utils.oauth2.g", g)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        with database.get_raw_connection():
+            pass
+
+    assert session.is_active
+    assert session.query(Database).count() == 0
+
+
 def test_get_raw_connection_without_oauth2_is_unchanged(
     app_context: None,
     mocker: MockerFixture,
@@ -4868,6 +4906,6 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     upper = sql.upper()
     assert "OFFSET" in upper
     assert "LIMIT" in upper
-    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
-        f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
-    )
+    assert upper.rfind("OFFSET") < upper.rfind(
+        "LIMIT"
+    ), f"OFFSET must precede LIMIT for Trino, got: {sql!r}"

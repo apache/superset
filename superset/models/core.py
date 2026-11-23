@@ -1106,10 +1106,23 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return
 
         with ExitStack() as stack:
-            yield execute_with_oauth2_retry(
-                self,
-                lambda: stack.enter_context(open_context()),
-            )
+            try:
+                value = execute_with_oauth2_retry(
+                    self,
+                    lambda: stack.enter_context(open_context()),
+                )
+            except Exception:
+                # Opening the connection can refresh and stage an OAuth2 token,
+                # and a failed flush of it deactivates the request-scoped
+                # session. Nothing on this path owns a rollback, so later ORM
+                # access in the same request would raise PendingRollbackError
+                # in place of the real error. (Other callers of
+                # ``execute_with_oauth2_retry`` own the rollback themselves and
+                # inspect ``db.session.is_active`` first.)
+                if not db.session.is_active:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                raise
+            yield value
 
     def get_default_catalog(self) -> str | None:
         """
