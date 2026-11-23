@@ -162,7 +162,9 @@ def test_csv_generation_with_special_characters(mocker: MockerFixture) -> None:
     ]
 
     mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -195,7 +197,9 @@ def test_csv_generation_escapes_formula_prefixes(mocker: MockerFixture) -> None:
     ]
 
     mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -231,7 +235,9 @@ def test_streaming_with_null_values(mocker: MockerFixture) -> None:
     ]
 
     mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -285,7 +291,9 @@ def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
     generator = csv_generator_callable()
     list(generator)
 
-    mock_connection.execution_options.assert_called_once_with(stream_results=True)
+    mock_connection.execution_options.assert_called_once_with(
+        stream_results=True, no_parameters=True
+    )
 
 
 def test_literal_bind_param_token_in_sql_executes_on_real_engine(
@@ -314,7 +322,9 @@ def test_empty_result_set(mocker: MockerFixture) -> None:
     mock_result.fetchmany.side_effect = [[]]
 
     mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -350,7 +360,9 @@ def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
     mock_result.fetchmany.side_effect = [[("val",)], []]
 
     mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -394,7 +406,9 @@ def test_streaming_export_mutation_does_not_double_apply(
     mock_result.fetchmany.side_effect = [[("val",)], []]
 
     mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -431,7 +445,9 @@ def test_streaming_export_runs_in_its_request_context_after_the_view_returns(
     result_proxy.fetchmany.side_effect = [[(1,)], []]
 
     connection = mocker.MagicMock()
-    connection.execution_options.return_value.exec_driver_sql.return_value = result_proxy
+    connection.execution_options.return_value.exec_driver_sql.return_value = (
+        result_proxy
+    )
     connection.__enter__.return_value = connection
     connection.__exit__.return_value = None
     engine = mocker.MagicMock()
@@ -614,7 +630,9 @@ def test_streaming_export_commits_before_streaming_rows(mocker: MockerFixture) -
     result_proxy.keys.return_value = ["id"]
     result_proxy.fetchmany.side_effect = [[(1,)], []]
     connection = mocker.MagicMock()
-    connection.execution_options.return_value.exec_driver_sql.return_value = result_proxy
+    connection.execution_options.return_value.exec_driver_sql.return_value = (
+        result_proxy
+    )
     connection.__enter__.return_value = connection
     connection.__exit__.return_value = None
 

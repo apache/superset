@@ -347,7 +347,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 session.commit()  # pylint: disable=consider-using-transaction
                 with engine.connect() as connection:
                     result_proxy = connection.execution_options(
-                        stream_results=True
+                        stream_results=True, no_parameters=True
                     ).exec_driver_sql(mutated_sql)
 
                     columns = list(result_proxy.keys())

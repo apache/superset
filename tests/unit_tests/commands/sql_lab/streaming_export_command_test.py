@@ -229,7 +229,9 @@ def test_csv_generation_with_executed_sql_and_limit(
     ]
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -264,7 +266,9 @@ def test_csv_generation_with_special_characters(mocker, mock_query):
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -388,7 +392,9 @@ def test_empty_result_set(mocker, mock_query):
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -495,7 +501,9 @@ def test_streaming_execution_options_enabled(mocker, mock_query, mock_result_pro
     generator = csv_generator_callable()
     list(generator)
 
-    mock_connection.execution_options.assert_called_once_with(stream_results=True)
+    mock_connection.execution_options.assert_called_once_with(
+        stream_results=True, no_parameters=True
+    )
 
 
 @patch("superset.commands.streaming_export.base.logger")
@@ -545,7 +553,9 @@ def test_null_values_handling(mocker, mock_query):
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -625,7 +635,9 @@ def test_csv_export_config_custom_separator(mocker, mock_query) -> None:
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -673,7 +685,9 @@ def test_csv_export_config_custom_decimal(mocker, mock_query) -> None:
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -719,7 +733,9 @@ def test_csv_export_config_combined_sep_and_decimal(mocker, mock_query) -> None:
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -769,7 +785,9 @@ def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query) -
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.exec_driver_sql.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
