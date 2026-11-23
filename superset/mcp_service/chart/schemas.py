@@ -1046,6 +1046,41 @@ class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     )
 
 
+def _route_x_axis_key(data: Any, column_keys: tuple[str, ...]) -> Any:
+    """Route an ``x_axis`` payload to the column field or to axis styling.
+
+    Native ``form_data`` names the x-axis column ``x_axis``, and models that
+    accept it as a column alias also expose an ``x_axis`` styling field, so a
+    single input key would otherwise feed both. The payload's shape decides:
+    a bare string, or a non-empty mapping that names no styling field, is a
+    column reference and is moved to ``x``; anything else stays put and
+    configures the axis. Keying off the styling names rather than the column
+    names keeps a mistyped styling key ("sort_by") reported against
+    ``AxisConfig``, where the caller meant it, instead of against ``ColumnRef``.
+    """
+    if not isinstance(data, dict) or "x_axis" not in data:
+        return data
+    value = data["x_axis"]
+    is_column_ref = isinstance(value, str) or (
+        isinstance(value, dict)
+        and bool(value)
+        and not set(value) & set(AxisConfig.model_fields)
+    )
+    if not is_column_ref:
+        return data
+    data = dict(data)
+    column = data.pop("x_axis")
+    if any(data.get(key) is not None for key in column_keys):
+        raise ValueError(
+            "'x_axis' was read as the x-axis column, but "
+            f"{' / '.join(repr(key) for key in column_keys)} names it too. "
+            "Pass the column once, and use 'x_axis' only for axis styling "
+            "(title, scale, format)."
+        )
+    data["x"] = {"name": column} if isinstance(column, str) else column
+    return data
+
+
 class LegendConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore")
 
@@ -2943,6 +2978,73 @@ class BubbleChartConfig(BaseChartConfig):
         return self
 
 
+class RadarChartConfig(BaseChartConfig):
+    """Config for radar charts (viz_type ``radar``).
+
+    Matches the frontend Radar buildQuery contract: multiple ``metrics``
+    become the radar axes (indicators), and an optional ``groupby`` splits the
+    data into one polygon per category. With no groupby the whole dataset is a
+    single polygon. The query orders by the first metric descending.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["radar"] = "radar"
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Value metrics forming the radar axes (one axis per "
+        "metric; radars read best with 3 or more)",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        description="Optional category columns; each row becomes one polygon. "
+        "Omit for a single-polygon radar.",
+    )
+    row_limit: int = Field(10, description="Max series polygons", ge=1, le=10000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "RadarChartConfig":
+        """groupby entries are dimensions, not metrics."""
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.is_metric:
+                raise ValueError(
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metrics' "
+                    "field)"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def record_implicit_metric_aggregate(self) -> "RadarChartConfig":
+        """Each axis is a metric slot, so a bare column is summed.
+
+        ``create_metric_object`` applies that default when it builds the
+        form_data. Recording it here keeps the aggregate-compatibility check
+        from skipping the ref — SUM of a text column is then rejected with a
+        clear message instead of rendering a polygon of zeros.
+        """
+        self.metrics = [
+            col if col.is_metric else col.model_copy(update={"aggregate": "SUM"})
+            for col in self.metrics
+        ]
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -3234,11 +3336,9 @@ class MixedTimeseriesChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
-    x: ColumnRef = Field(
-        ...,
-        description="Shared temporal X-axis column",
-        validation_alias=AliasChoices("x", "x_axis"),
-    )
+    # ``x_axis`` is also accepted for this field, but it arrives through
+    # ``disambiguate_x_axis`` rather than an alias -- see _route_x_axis_key.
+    x: ColumnRef = Field(..., description="Shared temporal X-axis column")
     time_grain: TimeGrain | None = Field(
         None,
         description="PT1H, P1D, P1W, P1M, P1Y",
@@ -3334,6 +3434,12 @@ class MixedTimeseriesChartConfig(BaseChartConfig):
     resample_rule_b: str | None = None
     resample_method_b: str | None = None
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def disambiguate_x_axis(cls, data: Any) -> Any:
+        """Send an ``x_axis`` payload to ``x`` or to the styling field."""
+        return _route_x_axis_key(data, ("x",))
 
     @field_validator("group_by", "group_by_secondary", mode="before")
     @classmethod
@@ -3974,6 +4080,8 @@ class XYChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
+    # ``x_axis`` is also accepted for this field, but it arrives through
+    # ``disambiguate_x_axis`` rather than an alias -- see _route_x_axis_key.
     x: ColumnRef | None = Field(
         None,
         description=(
@@ -4123,6 +4231,12 @@ class XYChartConfig(BaseChartConfig):
                 "Series ranking requires an aggregate, saved metric, or SQL metric"
             )
         return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def disambiguate_x_axis(cls, data: Any) -> Any:
+        """Send an ``x_axis`` payload to ``x`` or to the styling field."""
+        return _route_x_axis_key(data, ("x", "x_column"))
 
     @field_validator("group_by", mode="before")
     @classmethod
@@ -5944,6 +6058,7 @@ ChartConfig = Annotated[
     | GaugeChartConfig
     | TreemapChartConfig
     | BubbleChartConfig
+    | RadarChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -5960,7 +6075,8 @@ ChartConfig = Annotated[
         discriminator=CHART_TYPE_DISCRIMINATOR,
         description=(
             "Chart configuration - specify chart_type as 'xy', 'bullet', 'table', "
-            "'pie', 'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', "
+            "'pie', 'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'radar', "
+            "'pivot_table', "
             "'interactive_pivot', 'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', 'waterfall', or 'gantt'"
         ),
@@ -6502,7 +6618,10 @@ class UpdateChartRequest(
     ] = Field(
         None,
         description=(
-            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name. "
+            "Outdated semantic tables require all columns reselected and explicit "
+            "filters ([] to clear). Unverified retained selections refuse with "
+            "Explore recovery guidance."
         ),
     )
     add_columns: List[ColumnRef] | None = Field(

@@ -192,7 +192,11 @@ export const subscribeReport =
         dispatch(addSuccessToast(t('The report has been created')));
       })
       .catch(err => {
-        dispatch(addDangerToast(t('Failed to create report')));
+        // A 409 means the user is already subscribed to this chart or
+        // dashboard; the caller opens that subscription instead of failing.
+        if (err?.status !== 409) {
+          dispatch(addDangerToast(t('Failed to create report')));
+        }
         throw err;
       });
 

@@ -33,6 +33,7 @@ import {
   DashboardLayout,
   GLOBAL_SCOPE_POINTER,
   isCrossFilterScopeGlobal,
+  RootState,
 } from '../types';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 
@@ -40,6 +41,29 @@ export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
 ): boolean =>
   metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled;
+
+/**
+ * Whether a chart's cross-filter scope reaches at least one other chart.
+ * A cross-filter from a chart without targets would filter nothing. A chart
+ * without a cross-filter configuration is treated as having targets.
+ */
+export const hasCrossFilterTargets = (
+  chartConfiguration: ChartConfiguration | undefined,
+  chartId: number,
+): boolean => {
+  const chartsInScope =
+    chartConfiguration?.[chartId]?.crossFilters?.chartsInScope;
+  return !chartsInScope || chartsInScope.some(id => id !== chartId);
+};
+
+export const selectHasCrossFilterTargets = (
+  state: RootState,
+  chartId: number,
+): boolean =>
+  hasCrossFilterTargets(
+    state.dashboardInfo?.metadata?.chart_configuration,
+    chartId,
+  );
 
 export const getCrossFiltersConfiguration = (
   dashboardLayout: DashboardLayout,

@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 from contextlib import closing
+from functools import partial
 from typing import Any
 
 from flask import current_app as app
@@ -27,10 +28,11 @@ from flask_appbuilder.security.sqla.models import (
     PermissionView,
     ViewMenu,
 )
+from jsonpath_ng import parse
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -45,11 +47,33 @@ from superset.utils.core import timeout
 logger = logging.getLogger(__name__)
 
 
-def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) -> bool:
+def _connect_args(serialized_extra: str | None) -> dict[str, Any]:
+    try:
+        connect_args = (
+            json.loads(serialized_extra or "{}")
+            .get("engine_params", {})
+            .get("connect_args", {})
+        )
+    except (TypeError, ValueError, AttributeError):
+        return {}
+    return connect_args if isinstance(connect_args, dict) else {}
+
+
+def uri_identity_changed(
+    existing_uri: str | None,
+    submitted_uri: str | None,
+    existing_extra: str | None = None,
+    submitted_extra: str | None = None,
+) -> bool:
     """
     Whether two SQLAlchemy URIs differ once their password is stripped --
     i.e. whether the effective connection destination (driver, host, port,
     database, username, query params) changed.
+
+    The stored engine spec compares URIs that spell the same destination
+    differently (e.g. a setting in ``connect_args`` versus the URI query) by
+    their effective destination. ``engine_params`` changes are checked
+    separately by ``engine_params_changed``.
     """
     try:
         stored = make_url_safe(existing_uri or "")._replace(password=None)
@@ -58,7 +82,36 @@ def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) ->
         # An unparseable URI cannot be compared: treat it as a change so a
         # stored secret never survives onto it.
         return True
-    return stored != incoming
+    if stored == incoming:
+        return False
+    engine_spec = Database.get_db_engine_spec(stored)
+    return engine_spec.get_connection_identity(
+        stored, _connect_args(existing_extra)
+    ) != engine_spec.get_connection_identity(incoming, _connect_args(submitted_extra))
+
+
+def reuse_stored_password(
+    model: Database, submitted_uri: str, submitted_extra: str | None = None
+) -> str | None:
+    """
+    Return ``submitted_uri`` with the stored password restored, if the
+    submission keeps the masked password and reaches the same destination as
+    the stored URI (per ``uri_identity_changed``); ``None`` otherwise.
+    """
+    safe_uri = model.safe_sqlalchemy_uri()
+    if submitted_uri == safe_uri:
+        return model.sqlalchemy_uri_decrypted
+    try:
+        submitted = make_url_safe(submitted_uri)
+        stored = make_url_safe(safe_uri)
+    except DatabaseInvalidError:
+        return None
+    if submitted.password != stored.password or uri_identity_changed(
+        safe_uri, submitted_uri, model.extra, submitted_extra
+    ):
+        return None
+    password = make_url_safe(model.sqlalchemy_uri_decrypted).password
+    return submitted.set(password=password).render_as_string(hide_password=False)
 
 
 def engine_params_changed(
@@ -87,6 +140,25 @@ def engine_params_changed(
             return {"__unparseable__": True}
 
     return _engine_params(submitted_extra) != _engine_params(existing_extra)
+
+
+def import_connection_identity_changed(
+    existing: Database, config: dict[str, Any]
+) -> bool:
+    """Whether an import config points ``existing`` at a different endpoint."""
+    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
+        return True
+
+    # The URI's host/port aren't the whole story: `extra.engine_params`
+    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
+    # connect kwargs and can override them. An import that opens a live
+    # connection (`add_permissions` -> `get_all_catalog_names`) with a
+    # rehydrated stored password must not do so against a destination this
+    # field silently redirected.
+    submitted_extra = config.get("extra")
+    if isinstance(submitted_extra, dict):
+        submitted_extra = json.dumps(submitted_extra)
+    return engine_params_changed(existing.extra, submitted_extra)
 
 
 def ssh_tunnel_endpoint_changed(
@@ -182,6 +254,57 @@ def oauth2_endpoint_rebind_unsafe(
     return secret_reused and endpoint_changed
 
 
+def encrypted_extra_secrets_reused(
+    sensitive_fields: set[str],
+    existing_encrypted_extra: str | None,
+    submitted_masked_encrypted_extra: str | None,
+    *,
+    submitted: bool,
+) -> bool:
+    """
+    Whether an update would carry a stored ``encrypted_extra`` secret over.
+
+    A stored secret (a non-empty value at one of ``sensitive_fields``) is reused
+    when the update leaves ``masked_encrypted_extra`` out -- the stored blob stays
+    attached as is -- or sends the mask at that secret's path, which
+    ``unmask_encrypted_extra`` restores verbatim. Judged per secret, not by
+    comparing whole blobs: any other field changing in the same save must not hide
+    a still-masked secret, and a secret re-entered with its stored value is a fresh
+    one the caller is entitled to attach. A dropped path drops the secret.
+    """
+    try:
+        existing = json.loads(existing_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(existing, dict):
+        return False
+
+    def is_stored(field: str) -> bool:
+        return any(
+            match.value not in (None, "") for match in parse(field).find(existing)
+        )
+
+    if not any(is_stored(field) for field in sensitive_fields):
+        return False  # nothing stored to carry over
+    if not submitted:
+        return True
+
+    try:
+        submitted_config = json.loads(submitted_masked_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False  # malformed payloads are rejected by schema validation elsewhere
+    if not isinstance(submitted_config, dict):
+        return False
+    # Follow each match's own path, as `reveal_sensitive` does: rendering it to a
+    # string and parsing that again reads a dotted key as a nested one.
+    return any(
+        match.value == PASSWORD_MASK
+        and any(old.value not in (None, "") for old in match.full_path.find(existing))
+        for field in sensitive_fields
+        for match in parse(field).find(submitted_config)
+    )
+
+
 def ping(engine: Engine) -> bool:
     try:
         time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
@@ -218,11 +341,16 @@ def _get_all_schema_names_with_retry(
         return database.get_all_schema_names(catalog=catalog, cache=False)
 
 
-def add_permissions(database: Database) -> None:
+def add_permissions(database: Database, *, commit: bool = True) -> None:
     """
     Add DAR for catalogs and schemas.
     """
-    # TODO: Migrate this to use the non-commiting add_pvm helper instead
+    # Imports must keep permissions and assets in the same transaction.
+    add_permission = (
+        security_manager.add_permission_view_menu
+        if commit
+        else partial(add_pvm, db.session, security_manager)
+    )
     if database.db_engine_spec.supports_catalog:
         # Adding permissions to all catalogs (and all their schemas) can take a long
         # time (minutes, while importing a chart, eg). If the database does not
@@ -238,7 +366,7 @@ def add_permissions(database: Database) -> None:
             catalogs = {database.get_default_catalog()}
 
         for catalog in catalogs:
-            security_manager.add_permission_view_menu(
+            add_permission(
                 "catalog_access",
                 security_manager.get_catalog_perm(
                     database.database_name,
@@ -252,7 +380,7 @@ def add_permissions(database: Database) -> None:
         try:
             schemas = _get_all_schema_names_with_retry(database, catalog)
             for schema in schemas:
-                security_manager.add_permission_view_menu(
+                add_permission(
                     "schema_access",
                     security_manager.get_schema_perm(
                         database.database_name,

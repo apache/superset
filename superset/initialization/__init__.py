@@ -332,6 +332,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SubjectRestApi)
         appbuilder.add_api(LogRestApi)
 
+        if self.config.get("WEBSOCKET_ENABLE"):
+            from superset.websocket.api import RealtimeRestApi
+
+            appbuilder.add_api(RealtimeRestApi)
+
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             from superset.extensions.api import ExtensionsRestApi
             from superset.extensions.storage.api import ExtensionStorageRestApi
@@ -631,11 +636,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             initialize_core_api_dependencies,
         )
         from superset.core.mcp.core_mcp_injection import (
-            initialize_core_mcp_dependencies,
+            initialize_core_mcp_decorators,
+            initialize_core_mcp_host_tools,
         )
 
         initialize_core_api_dependencies()
-        initialize_core_mcp_dependencies()
+
+        # The MCP decorators (@tool/@prompt) must be registered in every process:
+        # extensions can apply them at import time, and the abstract versions raise
+        # NotImplementedError until they are swapped for the concrete ones. This is
+        # cheap and does not import the MCP service app.
+        initialize_core_mcp_decorators()
+
+        # Registering the MCP host tools imports the MCP service app, which has a
+        # real per-process memory cost. Only processes that serve MCP (the web app
+        # and the standalone MCP service) need it, so deployments can disable it for
+        # processes that never serve MCP -- e.g. Celery workers -- to avoid the cost.
+        if self.config.get("CORE_MCP_HOST_TOOLS_ENABLED", True):
+            initialize_core_mcp_host_tools()
 
     def init_all_dependencies_and_extensions(self) -> None:
         """
@@ -1120,7 +1138,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_stats_manager()
         self.configure_semantic_cache()
         self.configure_task_manager()
-        self.configure_websocket()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -1802,13 +1819,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             from superset.tasks.manager import TaskManager
 
             TaskManager.init_app(self.superset_app)
-
-    def configure_websocket(self) -> None:
-        """Mint the websocket channel-token cookie when the transport is enabled."""
-        if self.config.get("WEBSOCKET_ENABLE"):
-            from superset.websocket.channel import register_ws_channel_cookie
-
-            register_ws_channel_cookie(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config

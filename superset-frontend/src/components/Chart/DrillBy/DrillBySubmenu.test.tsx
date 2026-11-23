@@ -31,6 +31,7 @@ import {
 } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import { semanticViewDimensionsToColumns } from 'src/utils/semanticViewStructure';
 import { DrillBySubmenu, DrillBySubmenuProps } from './DrillBySubmenu';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
@@ -270,6 +271,39 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
       column_name: 'col1',
       groupby: true,
     },
+    { filters: defaultFilters, groupbyFieldName: 'groupby' },
+  );
+});
+
+test('semantic date variants show one labelled drill choice with the same identity', async () => {
+  const columns = semanticViewDimensionsToColumns([
+    {
+      name: 'Orders.order_date',
+      type: 'date32[day]',
+      grain: 'Day',
+      verbose_name: 'Order date',
+    },
+    {
+      name: 'Orders.order_date',
+      type: 'date32[day]',
+      grain: null,
+      verbose_name: 'Order date',
+    },
+  ]);
+  const onSelection = jest.fn();
+  renderSubmenu({
+    dataset: { ...mockDataset, columns, drillable_columns: columns },
+    onSelection,
+  });
+  await expectDrillByEnabled();
+  const submenu = await screen.findByTestId('drill-by-submenu');
+  expect(within(submenu).getAllByText('Order date')).toHaveLength(1);
+  expect(
+    within(submenu).queryByText('Orders.order_date'),
+  ).not.toBeInTheDocument();
+  await userEvent.click(within(submenu).getByText('Order date'));
+  expect(onSelection).toHaveBeenCalledWith(
+    expect.objectContaining({ column_name: 'Orders.order_date' }),
     { filters: defaultFilters, groupbyFieldName: 'groupby' },
   );
 });
