@@ -65,8 +65,10 @@ export default function transformData(
 
   const start = new Date(fromDttm);
   const end = new Date(toDttm);
-  // Last instant inside the exclusive `[fromDttm, toDttm)` bounds.
-  const lastMs = Math.max(toDttm - 1, fromDttm);
+  // Last whole millisecond strictly below the exclusive `toDttm` bound. The
+  // ceil keeps a fractional bound just above a boundary inside the period
+  // that boundary starts.
+  const lastMs = Math.max(Math.ceil(toDttm) - 1, fromDttm);
   const last = new Date(lastMs);
   const diffSecs = (toDttm - fromDttm) / 1000;
 

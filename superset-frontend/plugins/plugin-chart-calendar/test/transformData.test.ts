@@ -85,6 +85,18 @@ test.each([
     utc(2026, 11, 1),
     2,
   ],
+  [
+    'fractional end just above a month boundary includes that month',
+    utc(2026, 9, 1),
+    utc(2026, 11, 1) + 0.5,
+    3,
+  ],
+  [
+    'fractional end just below a month boundary adds no block',
+    utc(2026, 9, 1),
+    utc(2026, 11, 1) - 0.5,
+    2,
+  ],
   ['range crossing a year boundary', utc(2024, 11, 15), utc(2026, 2, 10), 16],
   ['whole months plus a partial month', utc(2024, 1, 1), utc(2024, 3, 15), 3],
   ['month-end clamped start', utc(2024, 1, 31), utc(2024, 3, 1), 2],
@@ -114,6 +126,18 @@ test.each([
     'exclusive end on the next week start adds no block',
     utc(2026, 9, 19),
     utc(2026, 9, 28),
+    2,
+  ],
+  [
+    'fractional end just above a week start includes that week',
+    utc(2026, 9, 19),
+    utc(2026, 9, 28) + 0.5,
+    3,
+  ],
+  [
+    'fractional end just below a week start adds no block',
+    utc(2026, 9, 19),
+    utc(2026, 9, 28) - 0.5,
     2,
   ],
   [
