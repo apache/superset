@@ -111,9 +111,11 @@ def sanitize_sheet_name(raw: str, used: set[str]) -> str:
     name = name.strip().strip("'").strip()
     if not name:
         name = "Sheet"
+    name = name[:MAX_SHEET_NAME_LEN].strip().strip("'").strip()
+    if not name:
+        name = "Sheet"
     if name.lower() == _RESERVED_SHEET_NAME:
         name = f"{name}_"
-    name = name[:MAX_SHEET_NAME_LEN]
 
     if name.lower() not in used:
         used.add(name.lower())
@@ -122,7 +124,11 @@ def sanitize_sheet_name(raw: str, used: set[str]) -> str:
     suffix = 2
     while True:
         marker = f"~{suffix}"
-        candidate = name[: MAX_SHEET_NAME_LEN - len(marker)] + marker
+        base = (
+            name[: MAX_SHEET_NAME_LEN - len(marker)].strip().strip("'").strip()
+            or "Sheet"
+        )
+        candidate = f"{base}{marker}"
         if candidate.lower() not in used:
             used.add(candidate.lower())
             return candidate
