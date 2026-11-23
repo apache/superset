@@ -747,6 +747,13 @@ class NativeFilterSummary(BaseModel):
         default_factory=list,
         description="Filter targets (column name and dataset ID)",
     )
+    cascade_parent_ids: List[str] = Field(
+        default_factory=list,
+        description=(
+            "IDs of the direct parent filters that narrow this filter's "
+            "choices (its dependencies). Empty when the filter is independent."
+        ),
+    )
 
 
 class NativeFilterValueSummary(NativeFilterSummary):
@@ -2050,6 +2057,19 @@ def _parse_json_metadata(json_metadata_str: str | None) -> Dict[str, Any] | None
     return metadata
 
 
+def native_filter_cascade_parent_ids(conf: Dict[str, Any]) -> List[str]:
+    """Return a filter's direct parent filter IDs, ignoring malformed entries.
+
+    Dividers never have dependencies, so they always report none.
+    """
+    if _is_divider(conf):
+        return []
+    parents = conf.get("cascadeParentIds")
+    if not isinstance(parents, list):
+        return []
+    return [parent for parent in parents if isinstance(parent, str)]
+
+
 def _extract_native_filters(
     json_metadata_str: str | None,
     *,
@@ -2058,9 +2078,10 @@ def _extract_native_filters(
     """Extract native filter summaries from raw json_metadata string.
 
     Parses the json_metadata JSON blob and pulls out only the filter
-    name, type, and optionally targets — dropping verbose fields like controlValues,
-    defaultDataMask, scope, and cascadeParentIds. Restricted users keep filter
-    names and types, but target columns and dataset IDs are data-model metadata.
+    name, type, parent filter IDs, and optionally targets — dropping verbose
+    fields like controlValues, defaultDataMask, and scope. Restricted users keep
+    filter names, types, and dependencies, but target columns and dataset IDs
+    are data-model metadata.
 
     Dividers (visual separators with no dataset/column) are stored under
     ``title`` rather than ``name`` and have no ``filterType``; both are
@@ -2094,6 +2115,7 @@ def _extract_native_filters(
                 name=f.get("title") if is_divider else f.get("name"),
                 filter_type="divider" if is_divider else f.get("filterType"),
                 targets=targets,
+                cascade_parent_ids=native_filter_cascade_parent_ids(f),
             )
         )
     return summaries
@@ -2659,13 +2681,24 @@ _TYPE_SPECIFIC_FILTER_FIELDS: dict[str, frozenset[str]] = {
             "enable_empty_filter",
             "sort_ascending",
             "search_all_options",
+            "cascade_parent_ids",
         }
     ),
-    "filter_range": frozenset({"dataset_id", "column", "enable_empty_filter"}),
-    "filter_time": frozenset({"default_time_range"}),
+    "filter_range": frozenset(
+        {"dataset_id", "column", "enable_empty_filter", "cascade_parent_ids"}
+    ),
+    "filter_time": frozenset({"default_time_range", "cascade_parent_ids"}),
     "filter_timegrain": frozenset({"dataset_id", "enable_empty_filter"}),
     "filter_timecolumn": frozenset({"dataset_id", "enable_empty_filter"}),
 }
+# Filter types that can sit on either side of a dependency, mirroring the filter
+# bar's ``supportsCascadeDependencies`` (time grain / time column filters and
+# dividers cannot).
+CASCADE_DEPENDENCY_FILTER_TYPES: frozenset[str] = frozenset(
+    filter_type
+    for filter_type, fields in _TYPE_SPECIFIC_FILTER_FIELDS.items()
+    if "cascade_parent_ids" in fields
+)
 _ALL_TYPE_SPECIFIC_FILTER_FIELDS: frozenset[str] = frozenset().union(
     *_TYPE_SPECIFIC_FILTER_FIELDS.values()
 )
@@ -2724,6 +2757,10 @@ class BaseNewFilterSpec(_NativeFilterTypeFieldsSpec):
             "IDs of charts on the dashboard this filter applies to. Omit to "
             "apply it to all charts on the dashboard."
         ),
+    )
+    cascade_parent_ids: List[str] | None = Field(
+        None,
+        description="Direct parent filter IDs that narrow this filter's choices.",
     )
 
     @field_validator("dataset_id", mode="before", check_fields=False)
@@ -2936,6 +2973,13 @@ class NativeFilterUpdateSpec(BaseModel):
         description=(
             "Chart IDs this filter should apply to. Replaces the current "
             "scope. All IDs must belong to charts on the dashboard."
+        ),
+    )
+    cascade_parent_ids: List[str] | None = Field(
+        None,
+        description=(
+            "Direct parent filter IDs narrowing this filter's choices; "
+            "replaces current parents, [] clears."
         ),
     )
 
