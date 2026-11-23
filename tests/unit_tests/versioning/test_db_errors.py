@@ -379,3 +379,52 @@ def test_foreign_key_phrase_in_sql_is_not_a_violation() -> None:
 
 def test_foreign_key_violation_none_input() -> None:
     assert is_foreign_key_violation(None) is False
+
+
+@pytest.mark.parametrize(
+    "args,attrs,expected",
+    [
+        ((1213, "transaction rolled back"), {"sqlstate": "40001"}, True),
+        ((1305, "savepoint missing"), {"sqlstate": "42000"}, True),
+        ((1205, "statement timeout"), {"sqlstate": "3B001"}, False),
+        ((1146, "missing table"), {}, False),
+        (("savepoint missing",), {"pgcode": "3B001"}, True),
+        (("savepoint missing",), {"sqlstate": "3B001"}, True),
+        (("deadlock",), {"pgcode": "40P01"}, False),
+        (("serialization failure",), {"pgcode": "40001"}, False),
+        (("1305 savepoint missing",), {}, False),
+    ],
+)
+def test_lost_transaction_uses_structured_driver_diagnostics(
+    args: tuple[object, ...], attrs: dict[str, str], expected: bool
+) -> None:
+    """Only transaction-loss evidence makes optional statement recovery fatal."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    error = _wrap(OperationalError, _FakeDriverError(*args, **attrs))
+    assert is_lost_transaction_error(error) is expected
+
+
+def test_lost_transaction_follows_exception_chains_without_looping() -> None:
+    """Context-manager cleanup can obscure the original transaction loss."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    original = _wrap(OperationalError, _FakeDriverError(1213, "deadlock"))
+    cleanup = RuntimeError("cleanup failed")
+    cleanup.__cause__ = original
+    original.__context__ = cleanup
+    assert is_lost_transaction_error(cleanup)
+    cleanup.__cause__ = ValueError("ordinary computation failure")
+    cleanup.__context__ = cleanup
+    assert not is_lost_transaction_error(cleanup)
+    assert not is_lost_transaction_error(None)
+
+
+def test_lost_transaction_invalidation_is_fatal_without_driver_code() -> None:
+    """A discarded connection cannot preserve the caller's transaction."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    error = OperationalError(
+        "SELECT 1", {}, Exception("disconnect"), connection_invalidated=True
+    )
+    assert is_lost_transaction_error(error)

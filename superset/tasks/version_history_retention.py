@@ -444,16 +444,20 @@ def _run_prune_pass(
 
             # Scope rows do not anchor live content. Explicit cleanup also
             # covers metadata-created schemas without the migration's FK.
+            archive_scope_rows = 0
             if (
                 tx_ids
                 and tables.archive_scope is not None
                 and sa.inspect(conn).has_table(tables.archive_scope.name)
             ):
                 for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
-                    conn.execute(
-                        sa.delete(tables.archive_scope).where(
-                            tables.archive_scope.c.transaction_id.in_(chunk)
-                        )
+                    archive_scope_rows += (
+                        conn.execute(
+                            sa.delete(tables.archive_scope).where(
+                                tables.archive_scope.c.transaction_id.in_(chunk)
+                            )
+                        ).rowcount
+                        or 0
                     )
 
             # Drop the version_transaction rows themselves. ON DELETE
@@ -503,6 +507,7 @@ def _run_prune_pass(
         "pruned_parent_shadows": parent_rows,
         "pruned_child_shadows": child_rows,
         "pruned_m2m_shadows": m2m_rows,
+        "pruned_archive_scopes": archive_scope_rows,
     }
 
 
@@ -682,6 +687,7 @@ def _prune_old_versions_impl(
         "pruned_parent_shadows": 0,
         "pruned_child_shadows": 0,
         "pruned_m2m_shadows": 0,
+        "pruned_archive_scopes": 0,
     }
     total_retried: int = 0
     after_id: int = 0

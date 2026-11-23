@@ -467,16 +467,20 @@ def _delete_history_targets(
     for table, predicate in targets:
         # Both shadow endpoints can become orphaned when their rows are removed.
         # Change records and archive scopes have only the opening endpoint.
-        for name in ("transaction_id", "end_transaction_id"):
-            if name in table.c:
-                tx_ids.update(
-                    row[0]
-                    for row in session.execute(
-                        sa.select(table.c[name])
-                        .where(predicate, table.c[name].is_not(None))
-                        .distinct()
-                    )
+        endpoints = [
+            table.c[name]
+            for name in ("transaction_id", "end_transaction_id")
+            if name in table.c
+        ]
+        if endpoints:
+            tx_ids.update(
+                endpoint
+                for row in session.execute(
+                    sa.select(*endpoints).where(predicate).distinct()
                 )
+                for endpoint in row
+                if endpoint is not None
+            )
         removed += session.execute(sa.delete(table).where(predicate)).rowcount
     return removed
 

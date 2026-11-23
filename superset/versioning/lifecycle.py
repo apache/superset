@@ -26,12 +26,15 @@ from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from sqlalchemy.engine import Connection, NestedTransaction, Transaction
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from superset.utils.dates import naive_utcnow
 from superset.versioning.changes.table import version_changes_table
-from superset.versioning.db_errors import is_missing_table_error
+from superset.versioning.db_errors import (
+    is_lost_transaction_error,
+    is_missing_table_error,
+)
 from superset.versioning.factory import transaction_actor_args
 from superset.versioning.lifecycle_table import version_chart_archive_scope_table
 from superset.versioning.metrics import emit_capture_timing, incr_capture_error
@@ -41,7 +44,7 @@ _BATCH_SIZE = 500
 logger = logging.getLogger(__name__)
 
 
-class LifecycleCaptureFatalError(RuntimeError):
+class LifecycleCaptureFatalError(SQLAlchemyError):
     """Optional capture cannot prove the caller's transaction survived."""
 
 
@@ -77,7 +80,8 @@ def release_capture_savepoint(
     """Release successful work without swallowing lost savepoints."""
     _check_transaction(connection, outer_transaction)
     try:
-        savepoint.commit()
+        # This connection savepoint belongs to optional metadata, not the ORM unit.
+        savepoint.commit()  # pylint: disable=consider-using-transaction
     except Exception as error:
         raise LifecycleCaptureFatalError(
             "Could not release archive capture savepoint"
@@ -103,7 +107,8 @@ def rollback_capture_savepoint(
             "Archive capture savepoint is no longer active"
         ) from error
     try:
-        savepoint.rollback()
+        # Explicit recovery preserves both the statement and rollback failures.
+        savepoint.rollback()  # pylint: disable=consider-using-transaction
     except Exception as rollback_error:
         # Keep both the original failure and failed recovery in the exception chain.
         try:
@@ -113,12 +118,9 @@ def rollback_capture_savepoint(
                 "Could not roll back archive capture savepoint"
             ) from chained_error
     _check_transaction(connection, outer_transaction)
-    diagnostic = getattr(error, "orig", error)
-    code = getattr(diagnostic, "pgcode", None) or getattr(diagnostic, "sqlstate", None)
-    args = getattr(diagnostic, "args", ())
-    if code == "3B001" or (args and args[0] == 1305):
+    if is_lost_transaction_error(error):
         raise LifecycleCaptureFatalError(
-            "Database reported a missing capture savepoint"
+            "Database reported lost archive capture transaction state"
         ) from error
 
 
@@ -257,6 +259,7 @@ def _capture_chunk(
         rollback_capture_savepoint(
             connection, membership_savepoint, outer_transaction, error
         )
+        logger.exception("versioning: archive membership capture failed")
         incr_capture_error("lifecycle_membership")
         return 0, 0
     release_capture_savepoint(connection, membership_savepoint, outer_transaction)
@@ -273,6 +276,7 @@ def _capture_chunk(
             rollback_capture_savepoint(
                 connection, chart_savepoint, outer_transaction, error
             )
+            logger.exception("versioning: chart archive capture failed")
             incr_capture_error("lifecycle_chart")
             continue
         release_capture_savepoint(connection, chart_savepoint, outer_transaction)
@@ -327,6 +331,7 @@ def capture_chart_archives(session: Session, archives: list[ChartArchive]) -> No
             connection, outer_savepoint, outer_transaction, error
         )
         if not isinstance(error, DBAPIError) or not is_missing_table_error(error):
+            logger.exception("versioning: archive transaction capture failed")
             incr_capture_error("lifecycle")
     finally:
         emit_capture_timing("lifecycle", (perf_counter() - start) * 1000)

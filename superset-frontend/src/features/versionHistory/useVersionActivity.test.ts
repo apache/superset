@@ -423,7 +423,7 @@ test('clearing the uuid ignores an in-flight response', async () => {
   expect(result.current.count).toBe(0);
 });
 
-test('content-only self responses keep the current chart version through archive/recovery refreshes', async () => {
+test('repeated refreshes preserve the newest content-only self response', async () => {
   mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => ({
     count: options?.pageSize === 1 ? 1 : 2,
     result:

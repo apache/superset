@@ -135,7 +135,9 @@ class TestChartArchiveActivity(SupersetTestCase):
         issued_at = datetime.fromisoformat(
             row["issued_at"].replace("Z", "+00:00")
         ).replace(tzinfo=None)
-        assert before <= issued_at <= datetime.now(timezone.utc).replace(tzinfo=None)
+        # MySQL DATETIME can round the capture timestamp to the next second.
+        after = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=1)
+        assert before <= issued_at <= after
         assert row["summary"] == "Chart archived: Archive chart 0"
         assert row["source"] == "related"
         assert row["version_uuid"] is None
@@ -406,3 +408,24 @@ class TestChartArchiveActivity(SupersetTestCase):
         finally:
             db.session.delete(dashboard)
             db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True, VERSION_HISTORY=True)
+    def test_fatal_capture_failure_rolls_back_delete_with_public_error(self) -> None:
+        """Fatal capture rejects DELETE without leaking internal error details."""
+        from superset.versioning.lifecycle import LifecycleCaptureFatalError
+
+        self.login(ADMIN_USERNAME)
+        chart_id = self.charts[0].id
+        private_error = "private driver failure during archive capture"
+        with patch(
+            "superset.versioning.lifecycle._write_archive",
+            side_effect=LifecycleCaptureFatalError(private_error),
+        ):
+            response = self.client.delete(f"/api/v1/chart/{chart_id}")
+        assert response.status_code == 422
+        assert private_error not in response.get_data(as_text=True)
+        assert self.archives() == []
+        db.session.expire_all()
+        persisted = db.session.get(Slice, chart_id)
+        assert persisted is not None
+        assert persisted.deleted_at is None

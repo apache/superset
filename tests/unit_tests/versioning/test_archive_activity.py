@@ -358,3 +358,66 @@ def test_archive_decoration_redacts_deleted_identity_and_protected_detail(
         assert record["summary"] == "Chart archived: Archive-time name"
         assert (record["changed_by"] is not None) is can_edit
         assert (record["to_value"] is not None) is can_edit
+
+
+@pytest.mark.parametrize("api_kind", ["Slice", "SqlaTable"])
+def test_related_visibility_includes_archived_rows_without_bypassing_access(
+    capture_session: sa.orm.Session,
+    monkeypatch: pytest.MonkeyPatch,
+    api_kind: str,
+) -> None:
+    """History includes archives under read policy without unhiding ordinary reads."""
+    from superset.charts.filters import ChartFilter
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models import helpers
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.versioning.activity import visibility
+    from superset.views.base import DatasourceFilter
+
+    model: type[Slice] | type[SqlaTable] = Slice if api_kind == "Slice" else SqlaTable
+    access_filter = ChartFilter if api_kind == "Slice" else DatasourceFilter
+    name_column = "slice_name" if api_kind == "Slice" else "table_name"
+    extra_fields: dict[str, Any] = {}
+    if api_kind == "SqlaTable":
+        capture_session.execute(
+            Database.__table__.insert().values(
+                id=900, database_name="Visibility test", sqlalchemy_uri="sqlite://"
+            )
+        )
+        extra_fields["database_id"] = 900
+    capture_session.execute(
+        model.__table__.insert(),
+        [
+            {
+                "id": entity_id,
+                name_column: f"Entity {entity_id}",
+                "deleted_at": deleted_at,
+                **extra_fields,
+            }
+            for entity_id, deleted_at in [
+                (901, datetime(2026, 1, 1)),
+                (902, datetime(2026, 1, 1)),
+                (904, None),
+            ]
+        ],
+    )
+    monkeypatch.setattr(helpers, "is_feature_enabled", lambda _: True)
+
+    def apply_access(
+        self: Any, query: sa.orm.Query[Any], value: Any
+    ) -> sa.orm.Query[Any]:
+        """Model a read grant for one archived row and one active row."""
+        return query.filter(model.id.in_([901, 904]))
+
+    monkeypatch.setattr(access_filter, "apply", apply_access)
+    assert visibility._resolve_visibility(
+        {(api_kind, entity_id) for entity_id in [901, 902, 903, 904]}
+    ) == {
+        (api_kind, 901): True,  # readable archive
+        (api_kind, 902): False,  # unreadable archive, not a tombstone
+        (api_kind, 903): True,  # hard-deleted, redacted by decoration
+        (api_kind, 904): True,  # readable active row
+    }
+    # A per-statement history bypass must never escape into ordinary reads.
+    assert capture_session.query(model.id).all() == [(904,)]

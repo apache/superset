@@ -253,6 +253,7 @@ def test_retention_deletes_scopes_without_using_them_as_live_anchors(
     with patch.object(retention, "db", SimpleNamespace(engine=session.get_bind())):
         result = retention._run_prune_pass(datetime(2026, 1, 1), tables)
     assert result["pruned_transactions"] == 1
+    assert result["pruned_archive_scopes"] == 2
     assert _count(session, metadata, "version_chart_archive_scope") == 0
     assert session.execute(sa.select(tx.c.id)).scalars().all() == [11]
     assert _count(session, metadata, "slices_version") == 1
@@ -290,3 +291,20 @@ def test_reused_chart_id_does_not_strand_deleted_archive_scopes(
     assert session.execute(
         sa.select(metadata.tables["version_transaction"].c.id)
     ).scalars().all() == [10]
+
+
+def test_purge_collects_closing_transaction_as_an_orphan_candidate(
+    cleanup_db: tuple[Session, sa.MetaData],
+) -> None:
+    """A transaction referenced only as the purged shadow's end must be swept."""
+    session, metadata = cleanup_db
+    chart = SimpleNamespace(id=1, uuid=uuid4())
+    session.execute(
+        metadata.tables["version_transaction"].insert(), [{"id": 10}, {"id": 11}]
+    )
+    session.execute(
+        metadata.tables["slices_version"].insert(),
+        {"id": chart.id, "transaction_id": 10, "end_transaction_id": 11},
+    )
+    assert _delete(session, metadata, chart, "chart") == 1
+    assert _count(session, metadata, "version_transaction") == 0

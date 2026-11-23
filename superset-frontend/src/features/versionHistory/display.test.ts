@@ -577,3 +577,21 @@ test('redacted paths can be described without reconstructing their values', () =
     ),
   ).toBe("Changed 'setting'");
 });
+
+test('deleted dataset headline retains its affected-chart count without restoring its name', () => {
+  expect(
+    relatedHeadline(
+      record({
+        source: 'related',
+        entity_kind: 'dataset',
+        entity_deleted: true,
+        entity_uuid: null,
+        entity_name: '',
+        summary: '(deleted) Dataset',
+        impact: { charts: 3 },
+        path: null,
+        to_value: null,
+      }),
+    ),
+  ).toBe('Dataset used by 3 charts updated: Untitled dataset');
+});

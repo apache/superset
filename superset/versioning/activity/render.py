@@ -144,11 +144,10 @@ def apply_record_decoration(
             and live_uuid != historical_uuid
         )
         entity_uuid = historical_uuid or live_uuid
-        if tombstone["deleted"] or reused_identity:
-            entity_uuid = None
         if reused_identity or (is_archive and historical_uuid is None):
-            entity_uuid = None
             tombstone = {"deleted": True, "deletion_state": None}
+        if tombstone["deleted"]:
+            entity_uuid = None
         is_self = api_kind == path_kind and entity_id == path_id
 
         # Emit the user-facing form ("dashboard"/"chart"/"dataset") on the

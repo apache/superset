@@ -212,7 +212,10 @@ def test_archive_membership_is_immutable(capture_session: Session) -> None:
 
 @pytest.mark.parametrize("fail_all", [False, True])
 def test_chart_failure_isolation(
-    capture_session: Session, monkeypatch: pytest.MonkeyPatch, fail_all: bool
+    capture_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    fail_all: bool,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """A rolled-back chart loses all scopes; all failures leave no transaction."""
     from sqlalchemy_continuum import versioning_manager
@@ -244,6 +247,7 @@ def test_chart_failure_isolation(
         chart.deleted_at = datetime(2026, 1, 1)
     capture_session.commit()
     assert len(archives(capture_session)) == int(not fail_all)
+    assert "chart archive capture failed" in caplog.text
     assert capture_session.scalar(
         sa.select(sa.func.count()).select_from(version_chart_archive_scope_table)
     ) == int(not fail_all)
@@ -497,7 +501,9 @@ def test_archive_baseline_attribution(
 
 
 def test_membership_chunk_failure_skips_complete_chunk(
-    capture_session: Session, monkeypatch: pytest.MonkeyPatch
+    capture_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Partially read destinations never produce a misleading canonical event."""
     from superset.versioning import lifecycle
@@ -525,6 +531,7 @@ def test_membership_chunk_failure_skips_complete_chunk(
     capture_session.commit()
     assert len(archives(capture_session)) == 1
     assert calls == 2
+    assert "archive membership capture failed" in caplog.text
 
 
 @pytest.mark.parametrize("detached", [False, True])
@@ -594,3 +601,245 @@ def test_lifecycle_import_before_app_initialization() -> None:
         capture_output=True,
         timeout=30,
     )
+
+
+@pytest.mark.parametrize("site", ["stamp", "persist"])
+def test_lost_content_savepoint_prevents_lifecycle_capture(
+    capture_session: Session, monkeypatch: pytest.MonkeyPatch, site: str
+) -> None:
+    """Mixed content/archive commits stop before lifecycle SQL after MySQL1305."""
+    from unittest.mock import MagicMock
+
+    from superset.versioning import lifecycle
+    from superset.versioning.changes import listener
+
+    chart = Slice(slice_name="before", viz_type="table", params="{}")
+    capture_session.add(chart)
+    capture_session.commit()
+    error = sa.exc.OperationalError(
+        "SAVEPOINT", {}, Exception(1305, "missing savepoint")
+    )
+    monkeypatch.setattr(
+        listener,
+        "_write_action_kind" if site == "stamp" else "bulk_insert_records",
+        MagicMock(side_effect=error),
+    )
+    capture = MagicMock()
+    monkeypatch.setattr(lifecycle, "capture_chart_archives", capture)
+    chart.slice_name = "after"
+    chart.deleted_at = datetime(2026, 1, 1)
+    capture_session.info[listener.ACTION_KIND_KEY] = listener.ACTION_KIND_RESTORE
+    with pytest.raises(sa.exc.OperationalError) as raised:
+        capture_session.commit()
+    assert raised.value is error
+    capture.assert_not_called()
+    capture_session.rollback()
+    assert chart.slice_name == "before"
+    assert chart.deleted_at is None
+    assert archives(capture_session) == []
+
+
+@pytest.mark.parametrize("code", [1305, "3B001"])
+def test_missing_savepoint_backstop_after_successful_rollback(code: int | str) -> None:
+    """A successful rollback cannot override a driver-reported missing savepoint."""
+    from unittest.mock import MagicMock
+
+    from superset.versioning.lifecycle import (
+        LifecycleCaptureFatalError,
+        rollback_capture_savepoint,
+    )
+
+    connection = MagicMock(invalidated=False, closed=False)
+    outer = MagicMock(is_active=True)
+    savepoint = MagicMock(is_active=True)
+    connection.get_transaction.return_value = outer
+    diagnostic = Exception(code)
+    if isinstance(code, str):
+        diagnostic.sqlstate = code  # type: ignore[attr-defined]
+    original = sa.exc.OperationalError("SELECT", {}, diagnostic)
+    with pytest.raises(LifecycleCaptureFatalError) as raised:
+        rollback_capture_savepoint(connection, savepoint, outer, original)
+    savepoint.rollback.assert_called_once()
+    assert raised.value.__cause__ is original
+
+
+def test_finalizer_manager_kill_switch_does_not_evaluate_capture_policy(
+    capture_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Direct finalization stops even when a retained unit would allow capture."""
+    from unittest.mock import MagicMock
+
+    from sqlalchemy_continuum import versioning_manager
+
+    from superset.versioning.changes import listener
+
+    monkeypatch.setitem(versioning_manager.options, "versioning", False)
+    policy = MagicMock(return_value=True)
+    flush = MagicMock()
+    lifecycle = MagicMock()
+    monkeypatch.setattr(listener, "capture_for_write", policy)
+    monkeypatch.setattr(capture_session, "flush", flush)
+    monkeypatch.setattr(listener, "_capture_lifecycle", lifecycle)
+    listener.finalize_change_records(capture_session)
+    policy.assert_not_called()
+    flush.assert_not_called()
+    lifecycle.assert_not_called()
+
+
+def test_expired_hard_deleted_chart_does_not_break_commit(
+    capture_session: Session,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Core deletion after retained archive state drops optional collection."""
+    from unittest.mock import MagicMock
+
+    from superset.versioning.changes import listener
+
+    chart = Slice(slice_name="chart", viz_type="table", params="{}")
+    capture_session.add(chart)
+    capture_session.commit()
+    chart_id = chart.id
+    chart.deleted_at = datetime(2026, 1, 1)
+    capture_session.flush()
+    capture_session.expire(chart)
+    capture_session.connection().execute(
+        sa.delete(Slice.__table__).where(Slice.__table__.c.id == chart_id)
+    )
+    metric = MagicMock()
+    monkeypatch.setattr(listener, "incr_capture_error", metric)
+    capture_session.commit()
+    assert archives(capture_session) == []
+    metric.assert_any_call("lifecycle_collect")
+    assert "archive transition collection failed" in caplog.text
+
+
+@pytest.mark.parametrize("failure", ["lost", "invalidated", "statement", "fatal"])
+def test_unsafe_collection_failures_propagate(
+    capture_session: Session, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    """Collection has no savepoint, so database failures cannot be swallowed."""
+    from unittest.mock import MagicMock
+
+    from superset.versioning import lifecycle
+    from superset.versioning.changes import listener
+
+    if failure == "fatal":
+        error = lifecycle.LifecycleCaptureFatalError("failed rollback")
+    else:
+        error = sa.exc.OperationalError(
+            "SELECT",
+            {},
+            Exception(1305 if failure == "lost" else "failed read"),
+            connection_invalidated=failure == "invalidated",
+        )
+    monkeypatch.setattr(
+        lifecycle, "collect_chart_archives", MagicMock(side_effect=error)
+    )
+    capture = MagicMock()
+    monkeypatch.setattr(lifecycle, "capture_chart_archives", capture)
+    with pytest.raises(type(error)) as raised:
+        listener._capture_lifecycle(capture_session, {})
+    assert raised.value is error
+    capture.assert_not_called()
+
+
+def test_fatal_capture_is_handled_by_chart_command_transaction(
+    capture_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fatal capture rolls back and maps to the chart command's public error."""
+    from superset.commands.chart.delete import DeleteChartCommand
+    from superset.commands.chart.exceptions import ChartDeleteFailedError
+    from superset.daos.chart import ChartDAO
+    from superset.versioning.lifecycle import LifecycleCaptureFatalError
+
+    chart = Slice(slice_name="chart", viz_type="table", params="{}")
+    capture_session.add(chart)
+    capture_session.commit()
+    command = DeleteChartCommand([chart.id])
+
+    def validate() -> None:
+        """Use the persisted chart without unrelated authorization setup."""
+        command._models = [chart]
+
+    def delete(_models: list[Slice]) -> None:
+        """Mutate caller data before the failed metadata boundary."""
+        chart.deleted_at = datetime(2026, 1, 1)
+
+    def fail_commit() -> None:
+        """Model the fatal database boundary raised during commit finalization."""
+        raise LifecycleCaptureFatalError("private savepoint state")
+
+    monkeypatch.setattr(command, "validate", validate)
+    monkeypatch.setattr(ChartDAO, "delete", delete)
+    from superset.extensions import db
+
+    monkeypatch.setattr(db.session, "commit", fail_commit)
+    with pytest.raises(ChartDeleteFailedError) as raised:
+        command.run()
+    assert isinstance(raised.value.__cause__, LifecycleCaptureFatalError)
+    assert chart.deleted_at is None
+    assert "private savepoint" not in str(raised.value)
+
+
+def test_recoverable_lifecycle_allocation_failure_is_logged(
+    capture_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Optional allocation failures remain visible without a metrics backend."""
+    from unittest.mock import MagicMock
+
+    from superset.versioning import lifecycle
+
+    chart = Slice(slice_name="chart", viz_type="table", params="{}")
+    capture_session.add(chart)
+    capture_session.commit()
+    monkeypatch.setattr(
+        lifecycle,
+        "transaction_actor_args",
+        MagicMock(side_effect=ValueError("invalid actor")),
+    )
+    metric = MagicMock()
+    monkeypatch.setattr(lifecycle, "incr_capture_error", metric)
+    chart.deleted_at = datetime(2026, 1, 1)
+    capture_session.commit()
+    assert chart.deleted_at is not None
+    assert archives(capture_session) == []
+    metric.assert_called_once_with("lifecycle")
+    assert "archive transaction capture failed" in caplog.text
+
+
+@pytest.mark.parametrize("stage", ["scalar", "child", "lookup"])
+def test_unisolated_content_read_failure_stops_before_lifecycle(
+    capture_session: Session, monkeypatch: pytest.MonkeyPatch, stage: str
+) -> None:
+    """An unisolated failed read is not made safe by a recoverable SQLSTATE."""
+    from unittest.mock import MagicMock
+
+    from superset.versioning import lifecycle
+    from superset.versioning.changes import listener
+
+    chart = Slice(slice_name="before", viz_type="table", params="{}")
+    capture_session.add(chart)
+    capture_session.commit()
+    diagnostic = Exception("deadlock during unisolated read")
+    diagnostic.sqlstate = "40P01"  # type: ignore[attr-defined]
+    error = sa.exc.OperationalError("SELECT", {}, diagnostic)
+    helpers = {
+        "scalar": "compute_records_from_state",
+        "child": "_dataset_child_records_for_tx_from_shadows",
+        "lookup": "_current_transaction_id",
+    }
+    monkeypatch.setattr(listener, helpers[stage], MagicMock(side_effect=error))
+    capture = MagicMock()
+    monkeypatch.setattr(lifecycle, "capture_chart_archives", capture)
+    chart.slice_name = "after"
+    chart.deleted_at = datetime(2026, 1, 1)
+    with pytest.raises(sa.exc.OperationalError) as raised:
+        capture_session.commit()
+    assert raised.value is error
+    capture.assert_not_called()
+    capture_session.rollback()
+    assert chart.slice_name == "before"
+    assert chart.deleted_at is None

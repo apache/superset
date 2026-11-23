@@ -116,6 +116,40 @@ def is_lock_contention_error(exc: BaseException | None) -> bool:
     return any(phrase in text for phrase in _LOCK_CONTENTION_PHRASES)
 
 
+def is_lost_transaction_error(exc: BaseException | None) -> bool:
+    """Recognize structured evidence that optional capture lost caller work.
+
+    MySQL deadlocks roll back the whole transaction; a missing savepoint or an
+    invalidated connection also makes continuation unsafe. PostgreSQL deadlocks
+    and MySQL lock timeouts alone are not fatal: an enclosing savepoint may
+    isolate them. Inspect exception chains because savepoint cleanup can replace
+    the original driver error. Never classify on SQL or parameter text.
+    """
+    pending = [exc] if exc is not None else []
+    seen: set[int] = set()
+    while pending:
+        error = pending.pop()
+        if id(error) in seen:
+            continue
+        seen.add(id(error))
+        if getattr(error, "connection_invalidated", False):
+            return True
+        diagnostic = _driver_diagnostic(error)
+        args = getattr(diagnostic, "args", ())
+        if args and isinstance(args[0], int):
+            # MySQL drivers may expose SQLSTATE as well as their decisive errno.
+            if args[0] in (1213, 1305):
+                return True
+        elif (
+            getattr(diagnostic, "pgcode", None) or getattr(diagnostic, "sqlstate", None)
+        ) == "3B001":
+            return True
+        for linked in (error.__cause__, error.__context__):
+            if linked is not None:
+                pending.append(linked)
+    return False
+
+
 #: MySQL/MariaDB errnos for a foreign key violation: adding a child row whose
 #: parent is missing (1452, and 1216 from older servers).
 _MYSQL_FOREIGN_KEY_VIOLATION: tuple[int, ...] = (1452, 1216)

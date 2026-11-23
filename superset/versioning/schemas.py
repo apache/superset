@@ -351,8 +351,9 @@ class ActivityRecordSchema(Schema):
         metadata={
             "description": (
                 "Name of the source entity *at the time of the change* — "
-                "denormalized from the validity-strategy shadow row. "
-                "Survives entity rename / delete."
+                "denormalized from the validity-strategy shadow row, or from "
+                "the capture-time payload for ``__archive__`` records. "
+                "Preserved across renames; redacted for deleted related entities."
             )
         },
     )

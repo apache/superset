@@ -421,10 +421,10 @@ export function relatedHeadline(
   record: ActivityRecord,
   records: ActivityRecord[] = [record],
 ): string {
-  if (record.entity_deleted) {
-    return record.summary || t('Item updated: %s', entityDisplayName(record));
-  }
   if (isChartArchiveRecord(record)) {
+    if (record.entity_deleted) {
+      return record.summary || t('Item updated: %s', entityDisplayName(record));
+    }
     return t('Chart archived: %s', entityDisplayName(record));
   }
   const chartCount = record.impact?.charts ?? 0;

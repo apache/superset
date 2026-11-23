@@ -14,11 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Real backend lifecycle boundaries on explicitly configured disposable databases.
+"""Archive transaction boundaries against disposable PostgreSQL and MySQL servers.
 
-Set VERSIONING_TEST_POSTGRES_URI / VERSIONING_TEST_MYSQL_URI to dedicated empty
-metadata databases. These tests create and drop only their declared test tables.
-They can run independently with pytest --noconftest against this file.
+Run with pytest -m testcontainers tests/testcontainers/versioning/test_chart_archive.py.
+The dedicated versioning-testcontainers workflow exercises both engines on PRs.
 """
 
 from __future__ import annotations
@@ -49,6 +48,14 @@ from superset.versioning.lifecycle_table import (
     version_chart_archive_scope_table as scope,
 )
 
+pytestmark = pytest.mark.testcontainers
+
+# CI splits engines into independent jobs; a local invocation exercises both.
+_selected_backend = os.environ.get("SUPERSET_VERSIONING_TEST_DIALECT")
+if _selected_backend not in (None, "POSTGRES", "MYSQL"):
+    raise ValueError("SUPERSET_VERSIONING_TEST_DIALECT must be POSTGRES or MYSQL")
+_BACKENDS = [_selected_backend] if _selected_backend else ["POSTGRES", "MYSQL"]
+
 migration = import_module(
     "superset.migrations.versions.2026-11-23_00-00_a7d29bc4e681_add_chart_archive_scope"
 )
@@ -57,10 +64,6 @@ migration = import_module(
 @pytest.fixture(scope="module", autouse=True)
 def model_import_context() -> Iterator[None]:
     """Initialize production model dependencies against disposable SQLite only."""
-    if not any(
-        os.environ.get(f"VERSIONING_TEST_{kind}_URI") for kind in ("POSTGRES", "MYSQL")
-    ):
-        pytest.skip("Disposable backend database URLs are not configured")
     # A normal integration-suite invocation already initialized these models.
     if "superset.models.dashboard" in sys.modules:
         yield
@@ -86,15 +89,30 @@ def model_import_context() -> Iterator[None]:
         db.engine.dispose()
 
 
-@pytest.fixture(params=["POSTGRES", "MYSQL"])
-def backend(
-    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
-) -> Iterator[Engine]:
-    """Create minimal real metadata tables in a caller-provided isolated database."""
-    uri = os.environ.get(f"VERSIONING_TEST_{request.param}_URI")
-    if not uri:
-        pytest.skip(f"VERSIONING_TEST_{request.param}_URI is not configured")
-    engine = sa.create_engine(uri)
+@pytest.fixture(scope="module", params=_BACKENDS)
+def backend_uri(request: pytest.FixtureRequest) -> Iterator[str]:
+    """Start a real disposable metadata server; absent drivers fail in CI."""
+    from tests.testcontainers.db_engine_specs._driver import require_driver
+
+    if request.param == "POSTGRES":
+        require_driver("testcontainers.community.postgres")
+        from testcontainers.community.postgres import PostgresContainer
+
+        with PostgresContainer("postgres:17-alpine") as container:
+            yield container.get_connection_url()
+    else:
+        require_driver("testcontainers.community.mysql")
+        require_driver("pymysql")
+        from testcontainers.community.mysql import MySqlContainer
+
+        with MySqlContainer("mysql:8.0", dialect="pymysql") as container:
+            yield container.get_connection_url()
+
+
+@pytest.fixture
+def backend(backend_uri: str, monkeypatch: pytest.MonkeyPatch) -> Iterator[Engine]:
+    """Create minimal real metadata tables in the test-owned database."""
+    engine = sa.create_engine(backend_uri)
     metadata = sa.MetaData()
     tx = sa.Table(
         "version_transaction",
@@ -377,7 +395,14 @@ def test_migration_rerun_uuid_cascade_and_downgrade(backend: Engine) -> None:
             "ix_chart_archive_scope_dashboard",
             "ix_chart_archive_scope_chart",
         } <= index_names
-        connection.exec_driver_sql("INSERT INTO version_transaction (id) VALUES (1)")
+        assert (
+            connection.execute(
+                versioning_manager.transaction_cls.__table__.insert().values(
+                    action_kind=None
+                )
+            ).inserted_primary_key[0]
+            == 1
+        )
         row = {
             "id": uuid4(),
             "transaction_id": 1,
@@ -520,3 +545,184 @@ def test_missing_scope_read_and_write_keep_connection_usable(
             ).scalars().all() == ["field"]
     finally:
         users.drop(backend)
+
+
+@pytest.mark.parametrize("capture_step", ["stamp", "changes"])
+def test_content_deadlock_cannot_commit_phantom_archive(
+    backend: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    capture_step: str,
+) -> None:
+    """The real before-commit pipeline stops after MySQL loses caller content work."""
+    from superset.versioning.changes import listener
+    from superset.versioning.diff import ChangeRecord
+
+    pg = backend.dialect.name == "postgresql"
+    blocker_ready, contender_ready = Event(), Event()
+    blocker_errors: list[BaseException] = []
+    error_codes: list[str | int] = []
+    after_error_sql: list[str] = []
+    archive = lifecycle.ChartArchive(1, uuid4(), "renamed chart")
+    change = ChangeRecord(
+        kind="field",
+        operation="edit",
+        path=["slice_name"],
+        from_value="old",
+        to_value="renamed chart",
+    )
+    # Isolate the SQL transaction protocol from Continuum's model diff setup;
+    # finalization, content savepoints, and subsequent lifecycle capture are real.
+    monkeypatch.setattr(listener, "capture_for_write", lambda session: True)
+    monkeypatch.setattr(listener, "_current_transaction_id", lambda session: 1)
+    monkeypatch.setattr(
+        listener, "_build_scalar_buffer", lambda states: {("chart", 1): [change]}
+    )
+    monkeypatch.setattr(
+        lifecycle, "collect_chart_archives", lambda session, states: [archive]
+    )
+    monkeypatch.setitem(versioning_manager.options, "versioning", True)
+    monkeypatch.setattr(
+        listener, "_append_child_records_to_buffer", lambda session, tx, buffer: None
+    )
+    monkeypatch.setattr(
+        listener, "reconcile_parent_snapshots", lambda session, tx: None
+    )
+
+    def contend(session: Session, *_args: Any) -> None:
+        """Make the actual content savepoint encounter a database deadlock."""
+        contender_ready.set()
+        try:
+            session.connection().exec_driver_sql(
+                "UPDATE archive_test_locks SET value=1 WHERE id=2"
+            )
+        except DBAPIError as error:
+            error_codes.append(_code(error))
+            raise
+
+    seam = "_write_action_kind" if capture_step == "stamp" else "bulk_insert_records"
+    monkeypatch.setattr(listener, seam, contend)
+    thread = Thread(
+        target=_hold_conflicting_lock,
+        args=(backend, blocker_ready, contender_ready, blocker_errors),
+        daemon=True,
+    )
+    thread.start()
+    assert blocker_ready.wait(10)
+    try:
+        with Session(backend) as session:
+            connection = session.connection()
+            if pg:
+                connection.exec_driver_sql("SET LOCAL deadlock_timeout='100ms'")
+            assert (
+                connection.execute(
+                    versioning_manager.transaction_cls.__table__.insert().values(
+                        action_kind=None
+                    )
+                ).inserted_primary_key[0]
+                == 1
+            )
+            connection.exec_driver_sql(
+                "UPDATE archive_test_work SET value=1 WHERE id=1"
+            )
+            connection.exec_driver_sql(
+                "UPDATE archive_test_locks SET value=1 WHERE id=1"
+            )
+            session.info[listener.ACTION_KIND_KEY] = "restore"
+
+            def record_sql(
+                _connection: Connection,
+                _cursor: Any,
+                statement: str,
+                _parameters: Any,
+                _context: Any,
+                _many: bool,
+            ) -> None:
+                """Detect any SQL after content savepoint recovery fails."""
+                if error_codes:
+                    after_error_sql.append(statement)
+
+            sa.event.listen(connection, "before_cursor_execute", record_sql)
+            sa.event.listen(session, "before_commit", listener.finalize_change_records)
+            if pg:
+                session.commit()
+                assert error_codes == ["40P01"]
+            else:
+                with pytest.raises(DBAPIError) as raised:
+                    session.commit()
+                assert _code(raised.value) == 1305
+                assert error_codes == [1213]
+                assert len(after_error_sql) == 1
+                assert after_error_sql[0].startswith("ROLLBACK TO SAVEPOINT")
+                session.rollback()
+    finally:
+        contender_ready.set()
+        thread.join(15)
+    assert not thread.is_alive()
+    assert blocker_errors == []
+    with backend.connect() as fresh:
+        assert fresh.exec_driver_sql(
+            "SELECT value FROM archive_test_work WHERE id=1"
+        ).scalar_one() == int(pg)
+        archived_ids = (
+            fresh.execute(
+                sa.select(version_changes_table.c.entity_id).where(
+                    version_changes_table.c.kind == lifecycle.CHART_ARCHIVE_KIND
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert archived_ids == ([1] if pg else [])
+
+
+def test_purge_reads_both_shadow_endpoints_in_one_statement(backend: Engine) -> None:
+    """Endpoint collection has the same bounded SQL cost on both metadata engines."""
+    from superset.commands.deletion_retention.purge_cascade import (
+        _delete_history_targets,
+    )
+
+    shadow = sa.Table(
+        "archive_test_shadow",
+        sa.MetaData(),
+        sa.Column("id", sa.Integer),
+        sa.Column("transaction_id", sa.BigInteger),
+        sa.Column("end_transaction_id", sa.BigInteger),
+    )
+    shadow.create(backend)
+    try:
+        with Session(backend) as session:
+            session.execute(
+                shadow.insert(),
+                [
+                    {"id": 1, "transaction_id": 10, "end_transaction_id": 11},
+                    {"id": 1, "transaction_id": 11, "end_transaction_id": None},
+                ],
+            )
+            statements: list[str] = []
+
+            def track(
+                _connection: Connection,
+                _cursor: Any,
+                statement: str,
+                _parameters: Any,
+                _context: Any,
+                _many: bool,
+            ) -> None:
+                """Count only candidate collection and deletion SQL."""
+                statements.append(statement)
+
+            sa.event.listen(session.connection(), "before_cursor_execute", track)
+            candidates: set[int] = set()
+            assert (
+                _delete_history_targets(
+                    session, [(shadow, shadow.c.id == 1)], candidates
+                )
+                == 2
+            )
+            assert candidates == {10, 11}
+            assert len(statements) == 2
+            assert statements[0].startswith("SELECT DISTINCT")
+            assert statements[1].startswith("DELETE")
+            session.commit()
+    finally:
+        shadow.drop(backend)
