@@ -176,6 +176,7 @@ The `@tool` decorator accepts several optional parameters:
 - **`description`**: Explains what the tool does (helps AI agents decide when to use it)
 - **`tags`**: Categories for organization and discovery
 - **`protect`**: Whether the tool requires user authentication (defaults to `True`)
+- **`metadata_only`**: Set it to `True` for a tool that reads only Superset's metadata database, never a warehouse, a semantic layer or a screenshot service (defaults to `False`). Its calls are admitted under `MCP_METADATA_TOOL_WORKERS` rather than `MCP_TOOL_WORKERS`, so the tool keeps answering while slow warehouse queries fill every warehouse slot. A tool that reaches a warehouse anyway must take a warehouse slot first, and answers **MCP server busy** if none is free
 
 ### Naming Your Tools
 

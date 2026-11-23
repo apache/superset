@@ -1289,7 +1289,7 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
 
 
 def mcp_auth_hook(  # noqa: C901
-    tool_func: F, *, tool_name: str | None = None
+    tool_func: F, *, tool_name: str | None = None, metadata_only: bool = False
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """
     Authentication and authorization decorator for MCP tools.
@@ -1301,6 +1301,10 @@ def mcp_auth_hook(  # noqa: C901
     stored on tool_func by the @tool decorator in core_mcp_injection.py.
     If present, check_tool_permission() verifies the user has the required
     FAB permission before the tool function runs.
+
+    metadata_only admits calls under the metadata-only bound, as a tool named in
+    METADATA_ONLY_TOOLS is: it is how a tool the host doesn't list, such as an
+    extension's, declares that it reads only the metadata database.
 
     tool_name is the registered tool identity, including any extension prefix.
     When supplied, dataset routing scope is checked and the request's dashboard
@@ -1443,7 +1447,7 @@ def mcp_auth_hook(  # noqa: C901
 
     from superset.mcp_service.worker import METADATA_ONLY_TOOLS
 
-    metadata_only = tool_name in METADATA_ONLY_TOOLS
+    metadata_only = metadata_only or tool_name in METADATA_ONLY_TOOLS
 
     @functools.wraps(tool_func)
     async def worker_wrapper(*args: Any, **kwargs: Any) -> Any:

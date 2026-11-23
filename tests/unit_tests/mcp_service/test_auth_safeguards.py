@@ -141,6 +141,26 @@ def test_create_tool_decorator_fails_fast_on_registration_error() -> None:
             decorator(sample_tool)
 
 
+@pytest.mark.parametrize("metadata_only", [False, True])
+def test_create_tool_decorator_passes_the_metadata_only_declaration(
+    metadata_only: bool,
+) -> None:
+    """A tool the host doesn't list declares itself metadata-only."""
+
+    def wait_for_report() -> None:
+        pass
+
+    decorator: Callable[..., Any] = create_tool_decorator(metadata_only=metadata_only)
+    with (
+        patch("superset.mcp_service.auth.mcp_auth_hook", wraps=mcp_auth_hook) as hook,
+        patch("fastmcp.tools.Tool.from_function"),
+        patch("superset.mcp_service.app.mcp.add_tool"),
+    ):
+        decorator(wait_for_report)
+
+    assert hook.call_args.kwargs["metadata_only"] is metadata_only
+
+
 def test_create_prompt_decorator_fails_fast_on_registration_error() -> None:
     """``create_prompt_decorator`` must propagate registration errors instead
     of returning the unwrapped function. Prompts can expose system instructions

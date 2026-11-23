@@ -73,7 +73,9 @@ BUSY_MESSAGE = "MCP server busy: all tool workers are occupied. Retry later."
 # hold every warehouse slot. Anything that can reach a warehouse, a semantic
 # layer or a screenshot service stays in the warehouse bound. A listed tool
 # that does reach a warehouse must still take a warehouse slot first (see
-# WorkerCall.admit_warehouse), so a wrong entry cannot overdraw the pool.
+# WorkerCall.admit_warehouse), so a wrong entry cannot overdraw the pool. A
+# tool this list can't name, such as an extension's, declares it with
+# ``@tool(metadata_only=True)``.
 METADATA_ONLY_TOOLS = frozenset(
     {
         "find_users",

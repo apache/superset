@@ -207,6 +207,7 @@ def create_tool_decorator(  # noqa: C901
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
+    metadata_only: bool = False,
 ) -> Callable[..., Any]:
     """
     Create the concrete MCP tool decorator implementation.
@@ -228,6 +229,8 @@ def create_tool_decorator(  # noqa: C901
         method_permission_name: FAB action name (e.g., "read", "write").
             Defaults to "write" if tags has "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
+        metadata_only: Admit the tool's calls under the metadata-only bound, as
+            the host's own tools in ``METADATA_ONLY_TOOLS`` are.
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
@@ -276,7 +279,9 @@ def create_tool_decorator(  # noqa: C901
                 # Pass the registered (extension-prefixed) name so call-time
                 # checks keyed on tool identity cannot be confused by an
                 # extension tool that shares a base name with a host tool.
-                wrapped_func = mcp_auth_hook(func, tool_name=tool_name)
+                wrapped_func = mcp_auth_hook(
+                    func, tool_name=tool_name, metadata_only=metadata_only
+                )
             else:
                 wrapped_func = func
 

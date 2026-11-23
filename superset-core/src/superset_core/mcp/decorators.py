@@ -58,6 +58,7 @@ def tool(
     class_permission_name: str | None = None,
     method_permission_name: str | None = None,
     annotations: ToolAnnotations | None = None,
+    metadata_only: bool = False,
 ) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
     Decorator to register an MCP tool with optional authentication.
@@ -87,6 +88,14 @@ def tool(
             Defaults to "write" if tags includes "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
             These hints help MCP clients understand tool behavior and safety.
+        metadata_only: Whether the tool reads only Superset's metadata database,
+            never a warehouse, a semantic layer or a screenshot service. Its
+            calls are admitted under the host's separate bound for such tools
+            and hold no warehouse slot while they run or wait, so they keep
+            answering while slow warehouse queries hold every warehouse slot. A
+            tool that reaches a warehouse anyway must take a warehouse slot
+            first, so a wrong declaration can't overdraw the pool. Defaults to
+            ``False``.
 
     Returns:
         Decorator function that registers and wraps the tool, or the wrapped function
