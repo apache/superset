@@ -84,6 +84,13 @@ stops filling — an empty or stale history misrepresents the entity as
 unchanged. History only accrues while capture is on; edits made while it was
 off are not reconstructed.
 
+At commit time, an optional history-capture failure isolated by a successful
+savepoint rollback may omit history while allowing the save to succeed. A database
+error outside that isolation, or a lost transaction or savepoint, rejects the
+whole save. This applies to ordinary content saves as well as archive operations:
+Superset does not report success when it cannot establish that the user's changes
+survived the capture failure.
+
 ## Retention
 
 The `version_history.prune_old_versions` background task prunes expired

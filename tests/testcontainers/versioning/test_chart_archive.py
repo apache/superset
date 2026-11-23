@@ -63,8 +63,10 @@ migration = import_module(
 
 @pytest.fixture(scope="module", autouse=True)
 def model_import_context() -> Iterator[None]:
-    """Initialize production model dependencies against disposable SQLite only."""
-    # A normal integration-suite invocation already initialized these models.
+    """Reuse pytest's app, or initialize SQLite for standalone execution."""
+    # CI loads tests/conftest.py, which imports tests.integration_tests.test_app
+    # and initializes models using its test configuration before this fixture.
+    # The SQLite fallback supports standalone invocations with --noconftest.
     if "superset.models.dashboard" in sys.modules:
         yield
         return

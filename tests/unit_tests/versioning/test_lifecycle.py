@@ -350,8 +350,14 @@ def test_lifecycle_actor_and_capture_timestamp(
     assert row.action_kind is None
 
 
-def test_missing_scope_table_preserves_archive(capture_session: Session) -> None:
-    """An isolated pre-migration write failure preserves application work."""
+def test_missing_scope_table_preserves_archive(
+    capture_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pre-migration write failure is quiet but counted and preserves user work."""
+    from unittest.mock import MagicMock
+
+    from superset.versioning import lifecycle
     from superset.versioning.lifecycle_table import version_chart_archive_scope_table
 
     chart = Slice(slice_name="chart", viz_type="table", params="{}")
@@ -359,10 +365,16 @@ def test_missing_scope_table_preserves_archive(capture_session: Session) -> None
     capture_session.add(dashboard)
     capture_session.commit()
     version_chart_archive_scope_table.drop(capture_session.connection())
+    log = MagicMock()
+    metric = MagicMock()
+    monkeypatch.setattr(lifecycle.logger, "exception", log)
+    monkeypatch.setattr(lifecycle, "incr_capture_error", metric)
     chart.deleted_at = datetime(2026, 1, 1)
     capture_session.commit()
     assert chart.deleted_at == datetime(2026, 1, 1)
     assert archives(capture_session) == []
+    log.assert_not_called()
+    metric.assert_called_once_with("lifecycle_chart")
     version_chart_archive_scope_table.create(capture_session.connection())
     capture_session.commit()
 
@@ -811,8 +823,9 @@ def test_recoverable_lifecycle_allocation_failure_is_logged(
 
 
 @pytest.mark.parametrize("stage", ["scalar", "child", "lookup"])
+@pytest.mark.parametrize("archive", [False, True])
 def test_unisolated_content_read_failure_stops_before_lifecycle(
-    capture_session: Session, monkeypatch: pytest.MonkeyPatch, stage: str
+    capture_session: Session, monkeypatch: pytest.MonkeyPatch, stage: str, archive: bool
 ) -> None:
     """An unisolated failed read is not made safe by a recoverable SQLSTATE."""
     from unittest.mock import MagicMock
@@ -835,7 +848,8 @@ def test_unisolated_content_read_failure_stops_before_lifecycle(
     capture = MagicMock()
     monkeypatch.setattr(lifecycle, "capture_chart_archives", capture)
     chart.slice_name = "after"
-    chart.deleted_at = datetime(2026, 1, 1)
+    if archive:
+        chart.deleted_at = datetime(2026, 1, 1)
     with pytest.raises(sa.exc.OperationalError) as raised:
         capture_session.commit()
     assert raised.value is error
@@ -843,3 +857,57 @@ def test_unisolated_content_read_failure_stops_before_lifecycle(
     capture_session.rollback()
     assert chart.slice_name == "before"
     assert chart.deleted_at is None
+
+
+def test_null_dashboard_uuid_does_not_drop_other_archive_memberships(
+    capture_session: Session,
+) -> None:
+    """An invalid dashboard identity cannot suppress valid scopes for the chart."""
+    from superset.versioning.lifecycle_table import version_chart_archive_scope_table
+
+    chart = Slice(slice_name="chart", viz_type="table", params="{}")
+    invalid = Dashboard(dashboard_title="missing UUID", slices=[chart])
+    valid = Dashboard(dashboard_title="valid UUID", slices=[chart])
+    capture_session.add_all([invalid, valid])
+    capture_session.commit()
+    capture_session.connection().execute(
+        sa.update(Dashboard.__table__)
+        .where(Dashboard.__table__.c.id == invalid.id)
+        .values(uuid=None)
+    )
+    chart.deleted_at = datetime(2026, 1, 1)
+    capture_session.commit()
+    assert len(archives(capture_session)) == 1
+    scopes = capture_session.execute(sa.select(version_chart_archive_scope_table)).all()
+    assert len(scopes) == 1
+    assert scopes[0].dashboard_id == valid.id
+    assert scopes[0].dashboard_uuid == valid.uuid
+
+
+def test_fatal_lifecycle_capture_is_logged_and_counted_once(
+    capture_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fatal metadata failures stay observable when the API returns a public error."""
+    from unittest.mock import MagicMock
+
+    from superset.versioning import lifecycle
+    from superset.versioning.changes import listener
+
+    chart = Slice(slice_name="chart", viz_type="table", params="{}")
+    capture_session.add(chart)
+    capture_session.commit()
+    failure = lifecycle.LifecycleCaptureFatalError("lost transaction")
+    monkeypatch.setattr(lifecycle, "_write_archive", MagicMock(side_effect=failure))
+    log = MagicMock()
+    metric = MagicMock()
+    monkeypatch.setattr(listener.logger, "exception", log)
+    monkeypatch.setattr(listener, "incr_capture_error", metric)
+    chart.deleted_at = datetime(2026, 1, 1)
+    with pytest.raises(lifecycle.LifecycleCaptureFatalError) as raised:
+        capture_session.commit()
+    assert raised.value is failure
+    log.assert_called_once_with("version_changes: fatal archive capture failure")
+    metric.assert_called_once_with("lifecycle_fatal")
+    capture_session.rollback()
+    assert chart.deleted_at is None
+    assert archives(capture_session) == []

@@ -276,7 +276,8 @@ def _capture_chunk(
             rollback_capture_savepoint(
                 connection, chart_savepoint, outer_transaction, error
             )
-            logger.exception("versioning: chart archive capture failed")
+            if not isinstance(error, DBAPIError) or not is_missing_table_error(error):
+                logger.exception("versioning: chart archive capture failed")
             incr_capture_error("lifecycle_chart")
             continue
         release_capture_savepoint(connection, chart_savepoint, outer_transaction)

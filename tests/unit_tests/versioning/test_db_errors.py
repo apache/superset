@@ -428,3 +428,26 @@ def test_lost_transaction_invalidation_is_fatal_without_driver_code() -> None:
         "SELECT 1", {}, Exception("disconnect"), connection_invalidated=True
     )
     assert is_lost_transaction_error(error)
+    outer = ValueError("recovery failed")
+    outer.__cause__ = error
+    assert is_lost_transaction_error(outer)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        KeyError(1213),
+        ValueError(1305),
+        _FakeDriverError(1213, sqlstate="40001"),
+        _FakeDriverError("missing savepoint", sqlstate="3B001"),
+        _FakeDriverError("not a DBAPI wrapper", orig=_FakeDriverError(1305)),
+        _FakeDriverError("not a DBAPI wrapper", connection_invalidated=True),
+    ],
+)
+def test_python_exception_arguments_are_not_transaction_loss(
+    error: BaseException,
+) -> None:
+    """Only a DBAPI wrapper can establish that numbers are driver error codes."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    assert not is_lost_transaction_error(error)

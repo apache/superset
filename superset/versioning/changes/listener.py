@@ -471,7 +471,12 @@ def _capture_lifecycle(
         logger.exception("version_changes: archive transition collection failed")
         incr_capture_error("lifecycle_collect")
         archives = []
-    capture_chart_archives(session, archives)
+    try:
+        capture_chart_archives(session, archives)
+    except LifecycleCaptureFatalError:
+        logger.exception("version_changes: fatal archive capture failure")
+        incr_capture_error("lifecycle_fatal")
+        raise
 
 
 def finalize_change_records(session: Session) -> None:
@@ -481,6 +486,12 @@ def finalize_change_records(session: Session) -> None:
     so the capture write path can be exercised directly by unit tests
     against an isolated session; it depends only on the session and the
     module helpers, never on the registered entity classes.
+
+    Ordinary computation failures may skip optional metadata. DBAPI failures in
+    unisolated scalar, child, transaction-lookup, or archive-collection reads
+    propagate because no savepoint rollback proves caller work survived. This
+    policy applies to ordinary content saves as well as archives, preventing a
+    successful commit response after the database rolled back the user's work.
     """
     from sqlalchemy_continuum import versioning_manager
 
