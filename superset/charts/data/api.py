@@ -215,6 +215,16 @@ class ChartDataRestApi(ChartRestApi):
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
         json_body["force"] = request.args.get("force")
 
+        if chart.datasource_type == "semantic_view":
+            # Semantic views bind this chart as ``slice_`` below, and the guest
+            # payload check then requires ``form_data.slice_id`` to match it. A
+            # saved context is replayed verbatim, so it can lack the id or, after
+            # "Save as", carry the source chart's; stamp it as the browser does.
+            json_body["form_data"] = {
+                **(json_body.get("form_data") or {}),
+                "slice_id": chart.id,
+            }
+
         # Apply dashboard filter context when filters_dashboard_id is provided
         dashboard_filter_context: DashboardFilterContext | None = None
         if "filters_dashboard_id" in request.args:
