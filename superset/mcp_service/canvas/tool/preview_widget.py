@@ -29,8 +29,9 @@ from flask import current_app
 from mcp.types import ImageContent, TextContent
 from superset_core.canvas import WidgetResolver
 from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.widgets import QueryRequest
 
-from superset.canvas.data import run_binding, RuntimeFilter
+from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
@@ -40,6 +41,7 @@ from superset.commands.canvas.exceptions import (
     CanvasForbiddenError,
     CanvasNotFoundError,
 )
+from superset.commands.canvas.placement_data import widget_queries
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
@@ -110,28 +112,49 @@ def _render(
     return response.json()
 
 
+def _sample(data: PlacementData) -> dict[str, Any]:
+    rows = data.rows
+    sample: dict[str, Any] = {
+        "row_count": len(rows),
+        "columns": list(rows[0]) if rows else [],
+        "sample_rows": rows[:SAMPLE_ROWS],
+    }
+    if data.query and can_view_query():
+        sample["query"] = data.query
+        sample["query_language"] = data.language
+    return sample
+
+
 def _with_rows(
     result: dict[str, Any],
-    props: dict[str, Any],
+    queries: dict[str, dict[str, Any]],
     runtime_filters: list[RuntimeFilter] | None = None,
 ) -> list[dict[str, Any]]:
-    """Run the widget's query, if it has one, and record what came back."""
-    binding = props.get("dataBinding")
-    if not isinstance(binding, dict) or not binding.get("datasetId"):
+    """
+    Run the widget's queries, if it has any, and record what came back.
+    Returns the rows of a widget whose only query is ``main``, which the
+    renderer draws.
+    """
+    if not queries:
         if keeps_own_data(result.get("widget_type")):
             result.setdefault("warnings", []).append(UNREAD_REASON)
         return []
-    data = run_binding(binding, runtime_filters)
-    rows = data.rows
-    result["row_count"] = len(rows)
-    result["columns"] = list(rows[0]) if rows else []
-    result["sample_rows"] = rows[:SAMPLE_ROWS]
-    if data.query and can_view_query():
-        result["query"] = data.query
-        result["query_language"] = data.language
-    if not rows:
-        result["warnings"] = ["The widget's query returned no rows"]
-    return rows
+    datasets = {
+        name: run_binding(binding, runtime_filters) for name, binding in queries.items()
+    }
+    if list(datasets) == ["main"]:
+        result.update(_sample(datasets["main"]))
+        if not datasets["main"].rows:
+            result["warnings"] = ["The widget's query returned no rows"]
+        return datasets["main"].rows
+    result["datasets"] = [
+        {"name": name, **_sample(data)} for name, data in datasets.items()
+    ]
+    if empty := [name for name, data in datasets.items() if not data.rows]:
+        result["warnings"] = [
+            f"The widget's {name!r} query returned no rows" for name in empty
+        ]
+    return []
 
 
 def _with_render(
@@ -271,8 +294,15 @@ def _preview_widget_impl(
             }, None
         widget_type, props = widget.widget_type, widget.props
     result.update(placement_id=placement_id, widget_type=widget_type)
+    request = QueryRequest(
+        str(source.canvas.id),
+        placement_id,
+        props,
+        draft_token=draft_token if source.draft else None,
+        widget_id=widget_id or None,
+    )
     try:
-        rows = _with_rows(result, props, runtime_filters)
+        rows = _with_rows(result, widget_queries(widget_type, request), runtime_filters)
     except Exception as ex:  # pylint: disable=broad-except
         result.update(query_error(ex))
         return result, None
@@ -308,7 +338,7 @@ def preview_widget(
 ) -> PreviewWidgetResponse:
     """Check a widget the way a viewer will see it, after adding or changing it.
 
-    Runs the placement's query as you and returns the row count and sample
+    Runs the placement's queries as you and returns the row count and sample
     rows. For ``echarts`` widgets, when the deployment has a renderer, also
     returns the option as rendered, warnings (unbound fields, empty data,
     tooltips or labels that would print raw objects) and a PNG at the
@@ -317,9 +347,11 @@ def preview_widget(
     ``draft_token``, previews the placement as it is in that draft.
 
     Also returns ``query``, the query that ran, when the user can view
-    queries: use it when asked what a chart computes. ``filters`` narrows the
-    query the way the canvas's filters do, one ``{datasetId, column, values}``
-    per filter value; filters on other datasets don't apply.
+    queries: use it when asked what a chart computes. The queries are the
+    ones the widget's type builds; a type that builds several has each one's
+    results in ``datasets``. ``filters`` narrows the queries the way the
+    canvas's filters do, one ``{datasetId, column, values}`` per filter value;
+    filters on other datasets don't apply.
     """
     result, image = _preview_widget_impl(
         canvas_id, placement_id, dark, draft_token, filters

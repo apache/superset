@@ -20,13 +20,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
 from superset_core.canvas import StoredWidget
+from superset_core.widgets import QueryRequest, Widget, WidgetQuery
 
-from superset.canvas.data import PlacementData
+from superset.canvas.data import PlacementData, RuntimeFilter
+from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
 from superset.mcp_service.canvas.tool.canvas_ops_common import UNREAD_REASON
 from superset.mcp_service.canvas.tool.get_canvas_data import (
     _get_canvas_data_impl,
@@ -37,6 +39,32 @@ from superset.utils import json
 
 MODULE = "superset.mcp_service.canvas.tool.get_canvas_data"
 BINDING = {"datasetId": 13, "metrics": ["revenue"]}
+KPIS = "extensions.acme.kpis.board"
+
+
+class Kpis(Widget):
+    """An extension's widget type whose queries aren't in its props."""
+
+    widget_type = KPIS
+    asked: list[QueryRequest] = []
+
+    @classmethod
+    def build_queries(cls, request: QueryRequest) -> list[WidgetQuery]:
+        cls.asked.append(request)
+        return [
+            WidgetQuery(name, {"datasetId": 3, "metrics": [name]})
+            for name in request.props.get("kpis", [])
+        ]
+
+
+@pytest.fixture
+def kpis() -> Iterator[type[Kpis]]:
+    Kpis.asked = []
+    with patch(
+        "superset.commands.canvas.placement_data.get_widget_types",
+        return_value={KPIS: Kpis},
+    ):
+        yield Kpis
 
 
 @pytest.fixture(autouse=True)
@@ -65,6 +93,7 @@ def _canvas() -> dict[str, Any]:
 def _run(
     query_error: Exception | None = None,
     definition: dict[str, Any] | None = None,
+    rows_of: Callable[..., PlacementData] | None = None,
     **kwargs: Any,
 ) -> tuple[dict[str, Any], MagicMock]:
     resolver = MagicMock()
@@ -89,7 +118,7 @@ def _run(
         patch(
             f"{MODULE}.run_binding",
             return_value=PlacementData(rows, None, None),
-            side_effect=query_error,
+            side_effect=rows_of or query_error,
         ) as run,
     ):
         dao.find_by_id_or_uuid.return_value = canvas
@@ -189,6 +218,145 @@ def test_a_failing_query_is_reported_per_widget(view_query: bool) -> None:
 
     assert all(w["error_type"] == "QueryError" for w in result["widgets"])
     assert all("rows" not in w for w in result["widgets"])
+
+
+def _with_kpis(*names: str) -> dict[str, Any]:
+    definition = _canvas()
+    definition["root"]["children"].insert(2, "board")
+    definition["nodes"]["board"] = {"widgetType": KPIS, "props": {"kpis": list(names)}}
+    return definition
+
+
+def _rows_of(binding: dict[str, Any], filters: Any) -> PlacementData:
+    return PlacementData([{binding["metrics"][0]: 1.0}], None, None)
+
+
+def test_an_extension_widget_types_own_queries_answer_by_dataset(
+    kpis: type[Kpis],
+) -> None:
+    filters = [RuntimeFilter(datasetId=3, column="region", values=["EMEA"])]
+    result, run = _run(
+        definition=_with_kpis("revenue", "deals"),
+        rows_of=_rows_of,
+        runtime_filters=filters,
+    )
+
+    board = result["widgets"][1]
+    assert board["placement_id"] == "board"
+    assert board["datasets"] == [
+        {
+            "name": "revenue",
+            "row_count": 1,
+            "columns": ["revenue"],
+            "rows": [{"revenue": 1.0}],
+        },
+        {
+            "name": "deals",
+            "row_count": 1,
+            "columns": ["deals"],
+            "rows": [{"deals": 1.0}],
+        },
+    ]
+    assert "rows" not in board
+    assert "unread" not in result
+    # Each runs as any other query, as the caller and narrowed by the filters.
+    assert [
+        call.args for call in run.call_args_list if call.args[0]["datasetId"] == 3
+    ] == [
+        ({"datasetId": 3, "metrics": ["revenue"]}, filters),
+        ({"datasetId": 3, "metrics": ["deals"]}, filters),
+    ]
+    assert kpis.asked == [
+        QueryRequest(
+            canvas_id="7", placement_id="board", props={"kpis": ["revenue", "deals"]}
+        )
+    ]
+    assert GetCanvasDataResponse.model_validate(result).widgets[1].datasets
+
+
+def test_an_extension_widget_type_that_builds_no_query_is_unread(
+    kpis: type[Kpis],
+) -> None:
+    result, _ = _run(definition=_with_kpis())
+
+    assert result["unread"] == [
+        {"placement_id": "board", "widget_type": KPIS, "reason": UNREAD_REASON}
+    ]
+    assert [w["placement_id"] for w in result["widgets"]] == ["inner", "kpi"]
+
+
+def test_max_widgets_counts_every_query_a_widget_runs(kpis: type[Kpis]) -> None:
+    result, run = _run(
+        definition=_with_kpis("revenue", "deals"), rows_of=_rows_of, max_widgets=2
+    )
+
+    # The board's two queries don't fit after the first widget's one.
+    assert [w["placement_id"] for w in result["widgets"]] == ["inner"]
+    assert result["skipped"] == ["board", "kpi"]
+    assert run.call_count == 1
+
+
+def test_a_widget_type_that_fails_to_build_its_queries_is_reported(
+    kpis: type[Kpis],
+) -> None:
+    with (
+        patch.object(
+            Kpis, "build_queries", side_effect=RuntimeError("private-diagnostic")
+        ),
+        patch(
+            "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
+            return_value=False,
+        ),
+    ):
+        result, run = _run(definition=_with_kpis("revenue"), max_widgets=2)
+
+    board = result["widgets"][1]
+    assert board["placement_id"] == "board"
+    assert board["error"] == "The widget's query failed."
+    assert board["error_type"] == "QueryError"
+    assert "private-diagnostic" not in json.dumps(result)
+    # It counts as one widget against max_widgets.
+    assert result["skipped"] == ["kpi"]
+    assert run.call_count == 1
+
+
+def test_a_widget_type_learns_the_placement_comes_from_the_callers_draft(
+    kpis: type[Kpis],
+) -> None:
+    draft = MagicMock(canvas_id=7, definition=_with_kpis("revenue"))
+    draft.resolver.return_value.widgets.return_value = {}
+    with (
+        patch(f"{MODULE}.load_draft", return_value=draft),
+        patch(f"{MODULE}.CanvasDAO") as dao,
+        patch(f"{MODULE}.render_context", return_value={}),
+        patch(f"{MODULE}.draft_url", return_value="/canvas/7/#draft=tok"),
+        patch(f"{MODULE}.run_binding", side_effect=_rows_of),
+    ):
+        dao.find_by_id.return_value = MagicMock(id=7, title="Sales")
+        _get_canvas_data_impl(7, "tok", ["board"], 50, 20, None)
+
+    assert [(r.canvas_id, r.draft_token) for r in kpis.asked] == [("7", "tok")]
+
+
+def test_dataset_rows_are_trimmed_to_fit_the_response_budget() -> None:
+    from superset.mcp_service.canvas.tool.get_canvas_data import _fit_rows
+
+    entries: list[dict[str, Any]] = [
+        {
+            "placement_id": "board",
+            "datasets": [
+                {"name": "big", "rows": [{"v": "x" * 100}] * 100},
+                {"name": "small", "rows": [{"v": 1}] * 3},
+            ],
+        }
+    ]
+
+    _fit_rows(entries, 2_000)
+
+    assert len(json.dumps(entries)) <= 2_000
+    big, small = entries[0]["datasets"]
+    assert big["truncated"] is True
+    assert small["rows"] == [{"v": 1}] * 3
 
 
 def test_rows_are_trimmed_to_fit_the_response_budget() -> None:

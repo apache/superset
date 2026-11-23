@@ -798,7 +798,7 @@ def test_placement_and_preview_query_error_contract(
         "superset.mcp_service.canvas.tool.canvas_ops_common.logger.warning"
     )
     widget = CanvasWidgetData.model_validate(
-        _widget_data("chart", "echarts", {"dataBinding": {}}, "Chart", 50, None)
+        _widget_data("chart", "echarts", {"main": {}}, "Chart", 50, None)
     ).model_dump(exclude_none=True)
     assert widget["error_type"] == mcp_category
     assert widget["error"] == mcp_message
@@ -963,7 +963,7 @@ def test_structured_query_errors_preserve_diagnostics_and_oauth_contract(
         "superset.mcp_service.canvas.tool.get_canvas_data.run_binding",
         side_effect=error,
     )
-    widget = _widget_data("chart", "echarts", {"dataBinding": {}}, "Chart", 50, None)
+    widget = _widget_data("chart", "echarts", {"main": {}}, "Chart", 50, None)
     CanvasWidgetData.model_validate(widget)
     for payload in (preview, widget):
         assert payload["error_type"] == expected_type
@@ -1124,7 +1124,7 @@ def test_mcp_query_permissions_preserve_classification_and_reconnect(
         "superset.mcp_service.canvas.tool.get_canvas_data.run_binding",
         side_effect=error,
     )
-    widget = _widget_data("chart", "echarts", {"dataBinding": {}}, "Chart", 50, None)
+    widget = _widget_data("chart", "echarts", {"main": {}}, "Chart", 50, None)
     for payload in (preview, widget):
         if family in {"denied", "missing"}:
             assert payload["error_type"] == "DatasetNotAccessible"

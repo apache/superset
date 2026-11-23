@@ -28,7 +28,7 @@ from superset import security_manager
 from superset.app import SupersetApp
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.errors import SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
@@ -538,3 +538,74 @@ def test_real_chart_validation_wrapper_keeps_rest_and_preview_repairable(
     assert isinstance(query.spy_exception, ChartDataQueryValidationError)
     assert image is None
     render.assert_not_called()
+
+
+def test_a_widget_types_own_query_runs_as_the_caller_in_both_tools(
+    app: SupersetApp,
+    aggregate_table: SqlaTable,
+    aggregate_canvas: Canvas,
+    mocker: MockerFixture,
+) -> None:
+    """What a widget type builds runs through the chart data pipeline, which
+    checks the caller's access to its dataset, as for the canvas page."""
+    from superset_core.widgets import QueryRequest, WidgetQuery
+
+    from superset.mcp_service.canvas.tool.get_canvas_data import (
+        _get_canvas_data_impl,
+    )
+    from superset.widgets.registry import registry
+
+    app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = BASE_URL
+    top_two = {
+        "datasetId": aggregate_table.id,
+        "metrics": ["total_amount"],
+        "dimensions": ["category"],
+        "orderBy": [{"field": "total_amount", "descending": True}],
+        "rowLimit": 2,
+    }
+
+    def build(request: QueryRequest) -> list[WidgetQuery]:
+        return [WidgetQuery("top_two", top_two)]
+
+    mocker.patch.object(registry["ag-grid-table"], "build_queries", build)
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    access = mocker.spy(security_manager, "raise_for_access")
+    expected = [
+        {"category": "B", "total_amount": 100},
+        {"category": "F", "total_amount": 90},
+    ]
+
+    preview, _ = _preview_widget_impl(aggregate_canvas.id, "amounts", False)
+    data = _get_canvas_data_impl(aggregate_canvas.id, None, None, 50, 10, None)
+
+    assert preview["datasets"][0]["name"] == "top_two"
+    assert preview["datasets"][0]["sample_rows"] == expected
+    [widget] = data["widgets"]
+    assert widget["datasets"] == [
+        {
+            "name": "top_two",
+            "row_count": 2,
+            "columns": ["category", "total_amount"],
+            "rows": expected,
+        }
+    ]
+    assert access.call_count >= 2
+    mocker.patch.object(
+        security_manager,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="no access to the dataset",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    denied, _ = _preview_widget_impl(aggregate_canvas.id, "amounts", False)
+    denied_data = _get_canvas_data_impl(aggregate_canvas.id, None, None, 50, 10, None)
+
+    assert denied["error_type"] == "DatasetNotAccessible"
+    assert "datasets" not in denied
+    assert denied_data["widgets"][0]["error_type"] == "DatasetNotAccessible"
+    assert "datasets" not in denied_data["widgets"][0]
