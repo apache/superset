@@ -821,15 +821,23 @@ class ChartDataRestApi(ChartRestApi):
             ]
             add_extra_log_payload(is_cached=is_cached_values)
 
-        return self._send_chart_response(
-            result,
-            form_data,
-            datasource,
-            filename,
-            expected_rows,
-            dashboard_filter_context=dashboard_filter_context,
-            slice_=slice_,
-        )
+        try:
+            return self._send_chart_response(
+                result,
+                form_data,
+                datasource,
+                filename,
+                expected_rows,
+                dashboard_filter_context=dashboard_filter_context,
+                slice_=slice_,
+            )
+        except QueryObjectValidationError as exc:
+            # Client-side post-processing (e.g. the pivot table) raises this
+            # when a groupby/metric label the chart requested isn't actually
+            # a column of the query result -- a malformed/stale request, not
+            # a server bug, so map it to the usual chart-data 4xx instead of
+            # escaping as a 500.
+            return self.response_400(message=sanitize_error_message(exc.message))
 
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
         """Extract filename and expected_rows from request for streaming exports."""

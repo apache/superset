@@ -249,6 +249,35 @@ def test_apply_client_processing_temporal_pivot_totals(
     assert pd.to_numeric(output.iloc[:, -1]).tolist() == [3.0, 3.0, 6.0]
 
 
+def test_apply_client_processing_pivot_unknown_metric_raises_validation_error() -> None:
+    """A metric/column label absent from the query result is a bad request,
+    not an unhandled 500 (SUPERSET-PYTHON-1CG5)."""
+    source = pd.DataFrame(
+        {
+            "region": ["east", "west"],
+            "sales": [1, 2],
+        }
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": source.to_dict("records"),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["not_a_real_column"],
+    }
+    from superset.exceptions import QueryObjectValidationError
+
+    with pytest.raises(QueryObjectValidationError):
+        apply_client_processing(result, form_data)
+
+
 def test_pivot_df_no_cols_no_rows_single_metric():
     """
     Pivot table when no cols/rows and 1 metric are selected.
