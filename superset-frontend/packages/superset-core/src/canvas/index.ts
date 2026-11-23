@@ -55,6 +55,11 @@ export interface CanvasWidgetProps {
   /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
   widgetType: string;
   /**
+   * For a widget entity (anything but a container or text): the UUID of the
+   * saved widget the placement shows.
+   */
+  widgetId?: string;
+  /**
    * The widget's props, valid against its schema. Only explicitly set values;
    * defaults come from the schema.
    */

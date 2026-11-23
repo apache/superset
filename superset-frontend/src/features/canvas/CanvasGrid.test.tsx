@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { canvas as canvasApi } from '@apache-superset/core';
 import type { CanvasRendererProps } from 'src/core/canvas/types';
 import {
   fireEvent,
@@ -23,7 +24,7 @@ import {
   screen,
   within,
 } from 'spec/helpers/testing-library';
-import { registerWidgetRenderer } from 'src/core';
+import { canvas, registerWidgetRenderer } from 'src/core';
 import { BUILTIN_RENDERERS } from './builtinRenderers';
 import CanvasGrid, {
   emptyScopeValues,
@@ -222,6 +223,21 @@ test('renders widgets through their renderers, nested in grid containers', () =>
   expect(
     screen.getByText('colors=supersetColors timestamp=true refresh=2'),
   ).toBeInTheDocument();
+});
+
+test("an extension's renderer gets the id of the saved widget it shows", () => {
+  const Probe = ({ widgetId }: canvasApi.CanvasWidgetProps) => (
+    <span>{`widget=${widgetId}`}</span>
+  );
+  const registration = canvas.registerWidgetRenderer('test.probe', Probe);
+
+  renderGrid(emptyScopeValues(), jest.fn(), {
+    ...result,
+    widgetTypes: { ...result.widgetTypes, unknown: 'test.probe' },
+  });
+
+  expect(screen.getByText('widget=w-unknown')).toBeInTheDocument();
+  registration.dispose();
 });
 
 test('shows placeholders for unavailable widgets and unregistered types', () => {
