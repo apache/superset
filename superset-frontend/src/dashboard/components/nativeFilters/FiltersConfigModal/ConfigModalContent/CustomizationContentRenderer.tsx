@@ -23,10 +23,13 @@ import {
   ChartCustomizationDivider,
 } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
+import { t } from '@apache-superset/core/translation';
 import FiltersConfigForm from '../FiltersConfigForm/FiltersConfigForm';
 import DividerConfigForm from '../DividerConfigForm';
 import { NativeFiltersForm, FilterRemoval } from '../types';
 import { CHART_CUSTOMIZATION_DIVIDER_PREFIX } from '../utils';
+import { isHiddenSemanticCustomization } from '../../utils';
 
 export interface CustomizationContentRendererProps {
   chartCustomizationIds: string[];
@@ -83,6 +86,16 @@ function CustomizationContentRenderer({
                 divider={
                   chartCustomizationConfigMap[id] as ChartCustomizationDivider
                 }
+              />
+            ) : !removedItems[id] &&
+              chartCustomizationConfigMap[id] &&
+              isHiddenSemanticCustomization(chartCustomizationConfigMap[id]) ? (
+              <Alert
+                type="info"
+                showIcon
+                message={t(
+                  'Dynamic group by is not supported on semantic views. Remove this display control to stop storing it.',
+                )}
               />
             ) : (
               <FiltersConfigForm

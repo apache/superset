@@ -725,47 +725,61 @@ test('does not overwrite filterState when modern native_filters URL format is us
   ).toBeUndefined();
 });
 
-test('renders a not-found state instead of throwing when the dashboard 404s', async () => {
-  mockUseDashboard.mockReturnValue({
-    result: null,
-    error: new SupersetApiError({ status: 404, message: 'Not found' }),
-  });
-  mockUseDashboardCharts.mockReturnValue({
-    result: null,
-    error: new SupersetApiError({ status: 404, message: 'Not found' }),
-  });
-  mockUseDashboardDatasets.mockReturnValue({
-    result: null,
-    error: new SupersetApiError({ status: 404, message: 'Not found' }),
-    status: 'error',
-  });
+test.each([
+  { status: 404, title: 'This dashboard does not exist' },
+  { status: 403, title: 'Forbidden' },
+])(
+  'renders a distinct dashboard error state for status $status',
+  async ({ status, title }) => {
+    mockUseDashboard.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+    });
+    mockUseDashboardCharts.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+    });
+    mockUseDashboardDatasets.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+      status: 'error',
+    });
 
-  render(
-    <Suspense fallback="loading">
-      <DashboardPage idOrSlug="404" />
-    </Suspense>,
-    {
-      useRedux: true,
-      useRouter: true,
-      initialState: {
-        dashboardInfo: {},
-        dashboardState: { sliceIds: [] },
-        nativeFilters: { filters: {} },
-        dataMask: {},
+    render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="404" />
+      </Suspense>,
+      {
+        useRedux: true,
+        useRouter: true,
+        initialState: {
+          dashboardInfo: {},
+          dashboardState: { sliceIds: [] },
+          nativeFilters: { filters: {} },
+          dataMask: {},
+        },
       },
-    },
-  );
+    );
 
-  expect(
-    await screen.findByText('This dashboard does not exist'),
-  ).toBeInTheDocument();
-  expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
+    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        status === 403 ? 'This dashboard does not exist' : 'Forbidden',
+      ),
+    ).not.toBeInTheDocument();
+    if (status === 403) {
+      expect(
+        screen.getByText("You don't have access to this dashboard."),
+      ).toBeInTheDocument();
+    }
+    expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
 
-  await userEvent.click(
-    screen.getByRole('button', { name: 'See all dashboards' }),
-  );
-  expect(window.location.pathname).toBe('/dashboard/list/');
-});
+    await userEvent.click(
+      screen.getByRole('button', { name: 'See all dashboards' }),
+    );
+    expect(window.location.pathname).toBe('/dashboard/list/');
+  },
+);
 
 test('clears undo history after hydrating the dashboard', async () => {
   render(
@@ -1183,3 +1197,42 @@ test('switching dashboards mid-retry does not leave Try again stuck loading', as
     ),
   );
 });
+
+test.each(['filter key', 'permalink'])(
+  'a viewer filter change cancels an in-flight %s retry and ignores its late response',
+  async kind => {
+    const fetchValue =
+      kind === 'filter key' ? mockFetchFilterValue : mockFetchPermalinkValue;
+    fetchValue.mockRejectedValue(new Error('network'));
+    if (kind === 'filter key') renderWithFilterKey();
+    else renderWithPermalink();
+    await screen.findByText(FAILED_BANNER);
+
+    let resolveRetry: (value: unknown) => void = () => {};
+    fetchValue.mockReturnValueOnce(
+      new Promise(resolve => {
+        resolveRetry = resolve;
+      }),
+    );
+    (hydrateDashboard as jest.Mock).mockClear();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(fetchValue).toHaveBeenCalledTimes(3));
+    const retryCall = fetchValue.mock.calls[2];
+    const signal = retryCall[kind === 'filter key' ? 2 : 1] as AbortSignal;
+
+    act(() => releaseFilterKeyPublish());
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+    // Resolve even after cancellation to model a transport ignoring abort.
+    const savedMask = { 'NATIVE_FILTER-saved': { id: 'NATIVE_FILTER-saved' } };
+    await act(async () => {
+      resolveRetry(
+        kind === 'filter key' ? savedMask : { state: { dataMask: savedMask } },
+      );
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
+    expect(signal.aborted).toBe(true);
+    expect(fetchValue).toHaveBeenCalledTimes(3);
+    expect(isFilterKeyPublishHeld()).toBe(false);
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  },
+);

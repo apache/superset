@@ -43,8 +43,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-26.04
-    # Leave time for setup, the full suite, scoped coverage gates, and uploads.
-    timeout-minutes: 45
+    # The full suite takes about 42 minutes on two-worker runners. Leave
+    # headroom for setup, scoped coverage gates, uploads, and runner variance.
+    timeout-minutes: 60
     permissions:
       # Declaring any permission drops the defaults, and checkout and `$/` actions
       # need read access wherever the repository is not public.
@@ -69,6 +70,8 @@ jobs:
         with:
           develocity-access-key: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY || '' }}
           python-version: ${{ matrix.python-version }}
+      - name: Install HiveServer2 transport test dependencies
+        run: uv pip install --system -e ".[hive,impala]"
       - name: SDK unit tests
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
