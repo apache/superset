@@ -17,12 +17,13 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { DataRecordValue } from '@superset-ui/core';
+import { ContextMenuFilters, DataRecordValue } from '@superset-ui/core';
 import { HeatmapTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 import {
   getHeatmapCrossFilterDataMask,
+  getHeatmapDrillFilters,
   getSelectedHeatmapKeys,
 } from './crossFilter';
 
@@ -30,6 +31,11 @@ type HeatmapCellDatum = {
   xValue: DataRecordValue;
   yValue: DataRecordValue;
   value: (number | string | null | undefined)[];
+};
+
+type HeatmapEvent = {
+  data?: unknown;
+  event?: { stop: () => void; event: PointerEvent };
 };
 
 function isHeatmapCellDatum(data: unknown): data is HeatmapCellDatum {
@@ -52,13 +58,14 @@ export default function Heatmap(props: HeatmapTransformedProps) {
     filterState,
     setDataMask,
     coltypeMapping,
+    onContextMenu,
   } = props;
 
   const eventHandlers: EventHandlers = useMemo(() => {
     const selectedKeys = getSelectedHeatmapKeys(filterState?.selectedValues);
 
     return {
-      click: (event: { data?: unknown }) => {
+      click: (event: HeatmapEvent) => {
         if (
           !emitCrossFilters ||
           !setDataMask ||
@@ -77,6 +84,41 @@ export default function Heatmap(props: HeatmapTransformedProps) {
         });
         setDataMask(crossFilter.dataMask);
       },
+      contextmenu: (event: HeatmapEvent) => {
+        if (!onContextMenu || !isHeatmapCellDatum(event.data)) {
+          return;
+        }
+        event.event?.stop();
+        const pointerEvent = event.event?.event;
+        if (!pointerEvent) {
+          return;
+        }
+        const { xValue, yValue } = event.data;
+        const drillFilters = getHeatmapDrillFilters({
+          xColumn: formData.xAxis,
+          yColumn: formData.groupby,
+          xValue,
+          yValue,
+          coltypeMapping,
+        }) as NonNullable<ContextMenuFilters['drillToDetail']>;
+
+        const crossFilter =
+          emitCrossFilters && setDataMask
+            ? getHeatmapCrossFilterDataMask({
+                xColumn: formData.xAxis,
+                yColumn: formData.groupby,
+                xValue,
+                yValue,
+                selectedKeys,
+                coltypeMapping,
+              })
+            : undefined;
+
+        onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+          drillToDetail: drillFilters,
+          ...(crossFilter && { crossFilter }),
+        });
+      },
     };
   }, [
     coltypeMapping,
@@ -84,6 +126,7 @@ export default function Heatmap(props: HeatmapTransformedProps) {
     filterState?.selectedValues,
     formData.groupby,
     formData.xAxis,
+    onContextMenu,
     setDataMask,
   ]);
 

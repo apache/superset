@@ -594,9 +594,21 @@ describe('Heatmap transformProps', () => {
     expect(tooltipHtml).toContain('2021 (2)');
   });
 
-  test('plugin metadata advertises Behavior.InteractiveChart', () => {
+  test('plugin metadata advertises Behavior.InteractiveChart and Behavior.DrillToDetail', () => {
     const plugin = new EchartsHeatmapChartPlugin();
     expect(plugin.metadata.behaviors).toContain(Behavior.InteractiveChart);
+    expect(plugin.metadata.behaviors).toContain(Behavior.DrillToDetail);
+  });
+
+  test('transformProps forwards onContextMenu and setDataMask hooks', () => {
+    const onContextMenu = jest.fn();
+    const setDataMask = jest.fn();
+    const chartProps = createChartProps({}, sparseData, {
+      hooks: { onContextMenu, setDataMask },
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+    expect(result.onContextMenu).toBe(onContextMenu);
+    expect(result.setDataMask).toBe(setDataMask);
   });
 
   test('cursor is pointer when emitCrossFilters is true and default when false', () => {

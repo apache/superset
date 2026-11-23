@@ -31,7 +31,7 @@ import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
-  behaviors: [Behavior.InteractiveChart],
+  behaviors: [Behavior.InteractiveChart, Behavior.DrillToDetail],
   category: t('Correlation'),
   description: t(
     'Visualize a related metric across pairs of groups. Heatmaps excel at showcasing the correlation or strength between two groups. Color is used to emphasize the strength of the link between each pair of groups.',

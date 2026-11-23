@@ -72,11 +72,13 @@ function setup(
     emitCrossFilters?: boolean;
     filterState?: { selectedValues?: string[] | null };
     setDataMask?: jest.Mock | undefined;
+    onContextMenu?: jest.Mock | undefined;
   } = {},
 ) {
   const setDataMask =
-    overrides.setDataMask !== undefined ? overrides.setDataMask : jest.fn();
-  const onContextMenu = jest.fn();
+    'setDataMask' in overrides ? overrides.setDataMask : jest.fn();
+  const onContextMenu =
+    'onContextMenu' in overrides ? overrides.onContextMenu : jest.fn();
 
   const chartProps = {
     ...new ChartProps({
@@ -98,6 +100,7 @@ function setup(
     <Heatmap
       {...transformed}
       setDataMask={setDataMask}
+      onContextMenu={onContextMenu}
       emitCrossFilters={overrides.emitCrossFilters ?? true}
       filterState={overrides.filterState ?? {}}
     />,
@@ -105,7 +108,7 @@ function setup(
 
   const lastCall = mockedEchart.mock.calls[mockedEchart.mock.calls.length - 1];
   const { eventHandlers } = lastCall[0] as { eventHandlers: EventHandlers };
-  return { eventHandlers, setDataMask };
+  return { eventHandlers, setDataMask, onContextMenu };
 }
 
 beforeEach(() => {
@@ -229,4 +232,266 @@ test('clicking with non-cell data does not call setDataMask', () => {
   eventHandlers.click({ data: [0, 0, 10] });
 
   expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('right-clicking a cell stops browser context menu and invokes onContextMenu with drillToDetail and crossFilter', () => {
+  const { eventHandlers, onContextMenu } = setup();
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 'Monday',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 120, clientY: 240 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [x, y, payload] = onContextMenu!.mock.calls[0];
+  expect(x).toBe(120);
+  expect(y).toBe(240);
+  expect(payload.drillToDetail).toEqual([
+    { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
+    { col: 'hour', op: '==', val: 9, formattedVal: '9' },
+  ]);
+  const expectedKey = heatmapCellKey('Monday', 9);
+  expect(payload.crossFilter).toEqual({
+    dataMask: {
+      extraFormData: {
+        filters: [
+          { col: 'day_of_week', op: 'IN', val: ['Monday'] },
+          { col: 'hour', op: 'IN', val: [9] },
+        ],
+      },
+      filterState: {
+        label: 'Monday (9)',
+        value: 'Monday (9)',
+        selectedValues: [expectedKey],
+      },
+    },
+    isCurrentValueSelected: false,
+  });
+});
+
+test('context menu reflects already-selected cell in crossFilter toggle payload', () => {
+  const selectedKey = heatmapCellKey('Monday', 9);
+  const { eventHandlers, onContextMenu } = setup({
+    filterState: { selectedValues: [selectedKey] },
+  });
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 'Monday',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 50, clientY: 100 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+  expect(payload.drillToDetail).toEqual([
+    { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
+    { col: 'hour', op: '==', val: 9, formattedVal: '9' },
+  ]);
+  expect(payload.crossFilter).toEqual({
+    dataMask: {
+      extraFormData: { filters: [] },
+      filterState: {
+        label: null,
+        value: null,
+        selectedValues: null,
+      },
+    },
+    isCurrentValueSelected: true,
+  });
+});
+
+test('context menu omits crossFilter when emitCrossFilters is false', () => {
+  const { eventHandlers, onContextMenu } = setup({ emitCrossFilters: false });
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 'Monday',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+  expect(payload.drillToDetail).toEqual([
+    { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
+    { col: 'hour', op: '==', val: 9, formattedVal: '9' },
+  ]);
+  expect(payload.crossFilter).toBeUndefined();
+  expect('crossFilter' in payload).toBe(false);
+});
+
+test('context menu omits crossFilter when setDataMask is undefined', () => {
+  const { eventHandlers, onContextMenu } = setup({ setDataMask: undefined });
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 'Monday',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+  expect(payload.drillToDetail).toBeDefined();
+  expect(payload.crossFilter).toBeUndefined();
+  expect('crossFilter' in payload).toBe(false);
+});
+
+test('context menu drillToDetail emits IS NULL for null and undefined dimensions', () => {
+  const { eventHandlers, onContextMenu } = setup();
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: null,
+      yValue: undefined,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+  expect(payload.drillToDetail).toEqual([
+    { col: 'day_of_week', op: 'IS NULL', formattedVal: '<NULL>' },
+    { col: 'hour', op: 'IS NULL', formattedVal: '<NULL>' },
+  ]);
+});
+
+test('context menu drillToDetail serializes bigint dimension values', () => {
+  const { eventHandlers, onContextMenu } = setup();
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 9007199254740995n,
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+  expect(payload.drillToDetail[0]).toEqual({
+    col: 'day_of_week',
+    op: '==',
+    val: '9007199254740995',
+    formattedVal: '9007199254740995',
+  });
+});
+
+test('context menu does not invoke onContextMenu if pointer event is missing', () => {
+  const { eventHandlers, onContextMenu } = setup();
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 'Monday',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: { stop },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  expect(onContextMenu).not.toHaveBeenCalled();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 'Monday',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+  });
+
+  expect(onContextMenu).not.toHaveBeenCalled();
+});
+
+test('context menu does not invoke onContextMenu for non-cell data', () => {
+  const { eventHandlers, onContextMenu } = setup();
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: undefined,
+    event: {
+      stop,
+      event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+    },
+  });
+  eventHandlers.contextmenu({
+    data: {},
+    event: {
+      stop,
+      event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+    },
+  });
+  eventHandlers.contextmenu({
+    data: [0, 0, 10],
+    event: {
+      stop,
+      event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).not.toHaveBeenCalled();
+  expect(onContextMenu).not.toHaveBeenCalled();
+});
+
+test('context menu does nothing when onContextMenu is undefined', () => {
+  const { eventHandlers } = setup({ onContextMenu: undefined });
+  const stop = jest.fn();
+
+  expect(() => {
+    eventHandlers.contextmenu({
+      data: {
+        xValue: 'Monday',
+        yValue: 9,
+        value: [0, 0, 10],
+      },
+      event: {
+        stop,
+        event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+      },
+    });
+  }).not.toThrow();
+
+  expect(stop).not.toHaveBeenCalled();
 });

@@ -173,12 +173,13 @@ export function getHeatmapCrossFilterDataMask({
   }
 
   const filters: QueryObjectFilterClause[] = [];
-  if (
+  const isSameColumn =
     resolvedXColumn &&
     resolvedYColumn &&
-    getColumnLabel(resolvedXColumn) === getColumnLabel(resolvedYColumn) &&
-    xValue === yValue
-  ) {
+    getColumnLabel(resolvedXColumn) === getColumnLabel(resolvedYColumn);
+  const isSameValue = xValue === yValue || (xValue == null && yValue == null);
+
+  if (isSameColumn && isSameValue) {
     filters.push(dimensionFilter(resolvedXColumn, xValue));
   } else {
     if (resolvedXColumn) {
@@ -202,4 +203,68 @@ export function getHeatmapCrossFilterDataMask({
     },
     isCurrentValueSelected,
   };
+}
+
+function buildHeatmapDrillFilterClause(
+  col: QueryFormColumn,
+  value?: DataRecordValue,
+  coltypeMapping?: Record<string, GenericDataType>,
+): QueryObjectFilterClause {
+  const formattedVal = formatHeatmapValue(value, col, coltypeMapping);
+  if (value == null) {
+    return {
+      col,
+      op: 'IS NULL',
+      formattedVal,
+    };
+  }
+  return {
+    col,
+    op: '==',
+    val: toJsonSafeFilterValue(value),
+    formattedVal,
+  };
+}
+
+export function getHeatmapDrillFilters({
+  xColumn,
+  yColumn,
+  xValue,
+  yValue,
+  coltypeMapping,
+}: {
+  xColumn?: QueryFormColumn | QueryFormColumn[];
+  yColumn?: QueryFormColumn | QueryFormColumn[];
+  xValue?: DataRecordValue;
+  yValue?: DataRecordValue;
+  coltypeMapping?: Record<string, GenericDataType>;
+}): QueryObjectFilterClause[] {
+  const resolvedXColumn = Array.isArray(xColumn) ? xColumn[0] : xColumn;
+  const resolvedYColumn = Array.isArray(yColumn) ? yColumn[0] : yColumn;
+
+  const filters: QueryObjectFilterClause[] = [];
+  const isSameColumn =
+    resolvedXColumn &&
+    resolvedYColumn &&
+    getColumnLabel(resolvedXColumn) === getColumnLabel(resolvedYColumn);
+  const isSameValue = xValue === yValue || (xValue == null && yValue == null);
+
+  if (isSameColumn && isSameValue) {
+    filters.push(
+      buildHeatmapDrillFilterClause(resolvedXColumn, xValue, coltypeMapping),
+    );
+  } else {
+    if (resolvedXColumn) {
+      filters.push(
+        buildHeatmapDrillFilterClause(resolvedXColumn, xValue, coltypeMapping),
+      );
+    }
+    if (resolvedYColumn) {
+      filters.push(
+        buildHeatmapDrillFilterClause(resolvedYColumn, yValue, coltypeMapping),
+      );
+    }
+  }
+
+  return filters;
 }

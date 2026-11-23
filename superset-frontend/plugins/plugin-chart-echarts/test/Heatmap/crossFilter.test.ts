@@ -22,6 +22,7 @@ import {
   EMPTY_STRING,
   formatHeatmapValue,
   getHeatmapCrossFilterDataMask,
+  getHeatmapDrillFilters,
   getSelectedHeatmapKeys,
   heatmapCellKey,
   heatmapValueId,
@@ -274,5 +275,166 @@ describe('getHeatmapCrossFilterDataMask', () => {
       { col: 'hour', op: 'IN', val: [16] },
     ]);
     expect(result.dataMask.filterState.label).toBe('Friday (16)');
+  });
+});
+
+describe('getHeatmapDrillFilters', () => {
+  test('builds equality filters with raw values and formatted display labels', () => {
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'day_of_week',
+      yColumn: 'hour',
+      xValue: 'Monday',
+      yValue: 9,
+    });
+
+    expect(filters).toEqual([
+      { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
+      { col: 'hour', op: '==', val: 9, formattedVal: '9' },
+    ]);
+  });
+
+  test('emits op: IS NULL and formattedVal: <NULL> for null and undefined values', () => {
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'day_of_week',
+      yColumn: 'hour',
+      xValue: null,
+      yValue: undefined,
+    });
+
+    expect(filters).toEqual([
+      { col: 'day_of_week', op: 'IS NULL', formattedVal: '<NULL>' },
+      { col: 'hour', op: 'IS NULL', formattedVal: '<NULL>' },
+    ]);
+  });
+
+  test('serializes bigint values to string in val and formats them', () => {
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'entity_id',
+      yColumn: 'hour',
+      xValue: 9007199254740993n,
+      yValue: 10,
+    });
+
+    expect(filters).toEqual([
+      {
+        col: 'entity_id',
+        op: '==',
+        val: '9007199254740993',
+        formattedVal: '9007199254740993',
+      },
+      { col: 'hour', op: '==', val: 10, formattedVal: '10' },
+    ]);
+  });
+
+  test('formats empty string as val: "" and formattedVal: <empty string>', () => {
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'category',
+      yColumn: 'status',
+      xValue: '',
+      yValue: 'active',
+    });
+
+    expect(filters).toEqual([
+      { col: 'category', op: '==', val: '', formattedVal: EMPTY_STRING },
+      { col: 'status', op: '==', val: 'active', formattedVal: 'active' },
+    ]);
+  });
+
+  test('handles ad-hoc SQL expression column object preserving col and label', () => {
+    const adhocColumn = {
+      sqlExpression: "CONCAT(dept, '_', team)",
+      label: 'dept_team',
+      expressionType: 'SQL' as const,
+    };
+    const filters = getHeatmapDrillFilters({
+      xColumn: adhocColumn,
+      yColumn: 'metric_bin',
+      xValue: 'Sales_Direct',
+      yValue: 5,
+    });
+
+    expect(filters).toEqual([
+      {
+        col: adhocColumn,
+        op: '==',
+        val: 'Sales_Direct',
+        formattedVal: 'Sales_Direct',
+      },
+      { col: 'metric_bin', op: '==', val: 5, formattedVal: '5' },
+    ]);
+  });
+
+  test('deduplicates when x and y columns and values are identical', () => {
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'category',
+      yColumn: 'category',
+      xValue: 'A',
+      yValue: 'A',
+    });
+
+    expect(filters).toEqual([
+      { col: 'category', op: '==', val: 'A', formattedVal: 'A' },
+    ]);
+  });
+
+  test('deduplicates when x and y columns are identical and both are null or undefined', () => {
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'category',
+      yColumn: 'category',
+      xValue: null,
+      yValue: undefined,
+    });
+
+    expect(filters).toEqual([
+      { col: 'category', op: 'IS NULL', formattedVal: '<NULL>' },
+    ]);
+  });
+
+  test('does not deduplicate when column is identical but values differ', () => {
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'category',
+      yColumn: 'category',
+      xValue: 'A',
+      yValue: 'B',
+    });
+
+    expect(filters).toEqual([
+      { col: 'category', op: '==', val: 'A', formattedVal: 'A' },
+      { col: 'category', op: '==', val: 'B', formattedVal: 'B' },
+    ]);
+  });
+
+  test('handles when only xColumn or only yColumn is provided', () => {
+    const onlyX = getHeatmapDrillFilters({
+      xColumn: 'day_of_week',
+      xValue: 'Monday',
+      yValue: 9,
+    });
+    expect(onlyX).toEqual([
+      { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
+    ]);
+
+    const onlyY = getHeatmapDrillFilters({
+      yColumn: 'hour',
+      xValue: 'Monday',
+      yValue: 9,
+    });
+    expect(onlyY).toEqual([
+      { col: 'hour', op: '==', val: 9, formattedVal: '9' },
+    ]);
+  });
+
+  test('handles groupby passed as array of columns', () => {
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'day_of_week',
+      yColumn: ['hour'],
+      xValue: 'Monday',
+      yValue: 9,
+    });
+
+    expect(filters).toEqual([
+      { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
+      { col: 'hour', op: '==', val: 9, formattedVal: '9' },
+    ]);
   });
 });
