@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-20 13:18+0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -138,9 +138,6 @@ msgstr "یکی جدید"
 msgid " at line %(line)d"
 msgstr "در خط %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr "عبارتی که باید به دستور العمل‌ها پایبند باشد"
-
 #, fuzzy
 msgid " for details."
 msgstr "جزئیات"
@@ -150,40 +147,6 @@ msgstr "جزئیات"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr "نزدیک به '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" استاندارد تا ترتیب واژه‌نامه‌ای\n"
-"                      با ترتیب زمانی مطابقت داشته باشد. اگر\n"
-"                      قالب برچسب زمانی از استاندارد ISO 8601 پیروی "
-"نمی‌کند\n"
-"                      باید یک عبارت و نوع برای\n"
-"                      تبدیل رشته به تاریخ یا برچسب زمانی تعریف کنید. "
-"توجه:\n"
-"                      در حال حاضر مناطق زمانی پشتیبانی نمی‌شوند. اگر زمان"
-"\n"
-"                      در قالب epoch ذخیره شده است، `epoch_s`، `epoch_ms` "
-"یا `epoch_us` را وارد کنید. اگر هیچ الگویی\n"
-"                      مشخص نشده باشد، از مقادیر پیش‌فرض اختیاری در سطح هر"
-"\n"
-"                      پایگاه داده/نام ستون از طریق پارامتر extra استفاده "
-"می‌شود."
 
 msgid " to add calculated columns"
 msgstr "برای اضافه کردن ستون‌های محاسبه‌شده"
@@ -264,6 +227,12 @@ msgstr "% از مجموع سطر"
 msgid "% of total"
 msgstr "% از کل"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
+# ja, pt, pt_BR, sl, zh]
+#, fuzzy, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr "%(alertType)s «%(alertName)s» با موفقیت فعال شد"
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -297,9 +266,15 @@ msgstr[1] "%(count)s دارایی وابسته بایگانی شده‌اند."
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s به دلایل امنیتی نمی‌تواند به عنوان منبع داده استفاده شود."
 
-#, python-format
-msgid "%(file)s (database \"%(name)s\")"
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
 msgstr ""
+"%(firstSuggestions)s یا %(lastSuggestion)s به جای "
+"\"%(undefinedParameter)s\"?"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
@@ -392,12 +367,6 @@ msgstr "%(prefix)sنتایج به دلیل محدودیت حافظه به %(row_
 
 #, python-format
 msgid ""
-"%(reason)s Ask the asset owner or an administrator for the required "
-"access, then retry."
-msgstr ""
-
-#, python-format
-msgid ""
 "%(report_type)s schedule frequency exceeding limit. Please configure a "
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
 "execution."
@@ -410,17 +379,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d سطر برگشت داده شد"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
-# mi, ro, ru, sl, sr, sr_Latn, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s به جای \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s یا %(lastSuggestion)s به جای "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s به جای \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -435,10 +397,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
-
-#, python-format
-msgid "%s (Draft)"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -547,10 +505,6 @@ msgstr[1] "%s نمودار تحت‌تأثیر"
 #, python-format
 msgid "%s aggregates(s)"
 msgstr "%s مجموع(ها)"
-
-#, python-format
-msgid "%s change(s)"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -929,9 +883,6 @@ msgstr ""
 "-- توجه: مگر اینکه کوئریی خود را ذخیره کنید، این زبانه ها اگر کوکی های "
 "خود را پاک کنید یا مرورگر را تغییر دهید، پایدار نخواهند ماند.\n"
 "\n"
-
-msgid "-----BEGIN PRIVATE KEY-----"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -1345,12 +1296,6 @@ msgstr ""
 "مقادیر ذخیره‌شده را بازنشانی و دوباره انتخاب کنید. اگر هدف آن نمای معنایی"
 " دیگری است، این نمودار را از دامنه‌اش حذف کنید."
 
-msgid ""
-"A database operation failed. Test the destination database connection and"
-" check its credentials and permissions. If it still fails, contact an "
-"administrator with the reference below."
-msgstr ""
-
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "برای اتصال از طریق تونل SSH، پورت پایگاه داده الزامی است."
 
@@ -1585,12 +1530,6 @@ msgstr "یک آدرس اینترنتی قابل خواندن برای داشبو
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "ارجاع به پیکربندی [زمان] با در نظر گرفتن جزئیات"
 
-msgid ""
-"A referenced database, schema, or table is unavailable. Check that it "
-"exists in the destination connection and that the database account can "
-"access it, then retry."
-msgstr ""
-
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
 msgstr "گزارشی به نام \"%(name)s\" قبلاً وجود دارد"
@@ -1602,9 +1541,6 @@ msgstr "یک مجموعه داده قابل استفاده مجدد با چار�
 #, fuzzy
 msgid "A rule with this name already exists."
 msgstr "قانونی با این نام از قبل وجود دارد."
-
-msgid "A saved query with this name already exists"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -1732,12 +1668,6 @@ msgstr ""
 msgid "A-Z"
 msgstr "کلید a-z"
 
-msgid "AI"
-msgstr ""
-
-msgid "AI assistant"
-msgstr ""
-
 #, fuzzy
 msgid "AND"
 msgstr "تصادفی"
@@ -1783,21 +1713,6 @@ msgstr "اجرای ناهمزمان پرس‌وجو"
 msgid "AUG"
 msgstr "آگوست"
 
-msgid "AWS Access Key ID"
-msgstr ""
-
-msgid "AWS Secret Access Key"
-msgstr ""
-
-msgid "AWS access key ID"
-msgstr ""
-
-msgid "AWS region, e.g. us-east-1"
-msgstr ""
-
-msgid "AWS secret access key"
-msgstr ""
-
 #, fuzzy
 msgid "Aborted"
 msgstr "شروع شد"
@@ -1840,12 +1755,6 @@ msgstr "عملیات"
 
 msgid "Active"
 msgstr "فعال"
-
-msgid ""
-"Active alerts and reports may stop delivering if their execution account "
-"is not an Admin or dashboard editor. Check the accounts running those "
-"schedules before unpublishing."
-msgstr ""
 
 msgid "Actual Values"
 msgstr "مقادیر واقعی"
@@ -1930,9 +1839,6 @@ msgstr "یک افزونه اضافه کنید"
 
 msgid "Add a dataset"
 msgstr "یک مجموعه داده اضافه کنید"
-
-msgid "Add a datasource"
-msgstr ""
 
 msgid "Add a new tab"
 msgstr "یک زبانه جدید اضافه کنید"
@@ -2057,9 +1963,6 @@ msgstr "فیلتر اضافه کنید"
 msgid "Add group"
 msgstr "افزودن گروه"
 
-msgid "Add interval bounds above to configure colors here."
-msgstr ""
-
 msgid "Add item"
 msgstr "آیتم اضافه کنید"
 
@@ -2091,9 +1994,6 @@ msgstr "فیلترها را اضافه و ویرایش کنید"
 #, fuzzy
 msgid "Add or edit filters and controls"
 msgstr "فیلترها را اضافه و ویرایش کنید"
-
-msgid "Add ranges above to configure their colors here."
-msgstr ""
 
 #, fuzzy
 msgid "Add report"
@@ -2149,12 +2049,6 @@ msgstr "اضافه شد"
 #, fuzzy, python-format
 msgid "Added %s '%s'"
 msgstr "%s ‹%s› اضافه شد"
-
-#, python-format
-msgid "Added %s widget"
-msgid_plural "Added %s widgets"
-msgstr[0] ""
-msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -2360,10 +2254,6 @@ msgstr ""
 
 msgid "Alert"
 msgstr "هشدار"
-
-#, python-format
-msgid "Alert \"%(alertName)s\" triggered successfully"
-msgstr ""
 
 msgid "Alert Triggered, In Grace Period"
 msgstr "هشدار فعال شده، در دوره‌ی مهلت"
@@ -2848,10 +2738,6 @@ msgstr "خطایی هنگام دریافت مقادیر ویرایشگران ر�
 msgid "An error occurred while fetching function names."
 msgstr "در حین بازیابی نام‌های تابع، خطایی رخ داد."
 
-#, python-format
-msgid "An error occurred while fetching modifiers: %s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy, python-format
@@ -3039,11 +2925,6 @@ msgstr "خروجی‌گیری برای این داشبورد هم‌اکنون �
 
 msgid "An unexpected error occurred"
 msgstr "یک خطای غیرمنتظره رخ داد"
-
-msgid ""
-"An unexpected error occurred. Contact an administrator with this "
-"reference and the time of the import."
-msgstr ""
 
 msgid "Anchor to"
 msgstr "لنگر به"
@@ -3395,9 +3276,6 @@ msgstr "آیا مطمئن هستید که می‌خواهید %s انتخاب‌
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "آیا از حذف یادداشت‌های انتخاب شده مطمئن هستید؟"
 
-msgid "Are you sure you want to delete the selected canvases?"
-msgstr ""
-
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "آیا مطمئن هستید که می‌خواهید نمودارهای انتخاب‌شده را حذف کنید؟"
 
@@ -3514,9 +3392,6 @@ msgstr ""
 msgid "Arrow"
 msgstr "فلش"
 
-msgid "Ask the chat to add widgets to it."
-msgstr ""
-
 msgid "Assign a set of parameters as"
 msgstr "یک مجموعه از پارامترها را به عنوان"
 
@@ -3531,18 +3406,12 @@ msgstr "هشدارها و گزارش‌های مرتبط"
 msgid "Asynchronous query execution"
 msgstr "اجرای کوئری به صورت ناهمزمان"
 
-msgid "Athena work group to run queries against"
-msgstr ""
-
 #, fuzzy
 msgid "Attribution"
 msgstr "توزیع"
 
 msgid "August"
 msgstr "اوت"
-
-msgid "Authentication method"
-msgstr ""
 
 #, fuzzy
 msgid "Authorization Request URI"
@@ -3675,9 +3544,6 @@ msgstr "بازگشت"
 msgid "Back to all"
 msgstr "بازگشت به همه"
 
-msgid "Back to current"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Back to sign in"
@@ -3714,9 +3580,6 @@ msgstr "جهت‌گیری نوار"
 
 msgid "Base"
 msgstr "پایه"
-
-msgid "Base background"
-msgstr ""
 
 #, fuzzy
 msgid "Base exponent"
@@ -3802,9 +3665,6 @@ msgstr "بولیّن"
 #, fuzzy, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "بلوک %(block_num)s از %(block_count)s"
-
-msgid "Border"
-msgstr ""
 
 #, fuzzy
 msgid "Border color"
@@ -3914,9 +3774,6 @@ msgstr ""
 
 msgid "Box Plot"
 msgstr "نمودار جعبه‌ای"
-
-msgid "Break"
-msgstr ""
 
 msgid "Breakdowns"
 msgstr "تحلیل‌ها"
@@ -4216,9 +4073,6 @@ msgstr ""
 "/api/v1/dataset/<uuid>/restore) مجموعه‌داده‌ها را نگه می‌دارد، اما پایگاه"
 " داده همچنان قابل حذف نخواهد بود."
 
-msgid "Cannot delete semantic views"
-msgstr ""
-
 #, fuzzy
 msgid "Cannot delete system themes"
 msgstr "نمی‌توان به کوئری دسترسی پیدا کرد"
@@ -4266,24 +4120,6 @@ msgstr "نمی‌توان پوشه‌ها را در پوشه‌های پیش‌�
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "نمی‌توان رشته زمان [%(human_readable)s] را تجزیه کرد"
-
-msgid "Canvas"
-msgstr ""
-
-msgid "Canvas could not be created."
-msgstr ""
-
-msgid "Canvas could not be deleted."
-msgstr ""
-
-msgid "Canvas could not be updated."
-msgstr ""
-
-msgid "Canvas parameters are invalid."
-msgstr ""
-
-msgid "Canvases"
-msgstr ""
 
 #, fuzzy
 msgid "Captcha"
@@ -4458,23 +4294,14 @@ msgstr "ویرایش شده توسط"
 msgid "Changed color palette"
 msgstr "پالت رنگ تغییر کرد"
 
-msgid "Changed details"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "فیلتر روی '%s' تغییر کرد"
 
-msgid "Changed filter scopes"
-msgstr ""
-
 #, fuzzy
 msgid "Changed on"
 msgstr "تغییر"
-
-msgid "Changed settings"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4514,9 +4341,6 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "تغییر این داشبورد ممنوع است"
-
-msgid "Changing this canvas is forbidden"
-msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "تغییر این نمودار ممنوع است"
@@ -4563,9 +4387,6 @@ msgstr "تغییر این مجموعه داده ممنوع است"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "تغییر این پوسته مجاز نیست"
-
-msgid "Changing this widget is forbidden."
-msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "کاراکتر برای تفسیر به عنوان نقطه اعشاری"
@@ -4781,12 +4602,6 @@ msgstr "این نمودار را بررسی کنید:"
 msgid "Check out this dashboard: "
 msgstr "این داشبورد را بررسی کنید:"
 
-msgid ""
-"Check the import file and destination connection settings. If the problem"
-" continues, contact an administrator with the error and time of the "
-"import."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Check the value transform →"
@@ -4809,9 +4624,6 @@ msgstr "در حال بررسی نمودارها و داشبوردهایی که �
 #, fuzzy
 msgid "Checking for affected charts and dashboards…"
 msgstr "در حال بررسی نمودارها و داشبوردهای تحت تأثیر…"
-
-msgid "Checking which charts will be removed…"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -5318,20 +5130,6 @@ msgstr "رنگ میله‌های سمت راست نمودار"
 msgid "Color for breakpoint"
 msgstr "نقاط شکسته سطل"
 
-msgid "Color for decrease"
-msgstr ""
-
-msgid "Color for increase"
-msgstr ""
-
-#, python-format
-msgid "Color for interval up to %s"
-msgstr ""
-
-#, python-format
-msgid "Color for range up to %s"
-msgstr ""
-
 msgid "Color metric"
 msgstr "معیار رنگ"
 
@@ -5349,16 +5147,6 @@ msgstr "طرح رنگ"
 #, fuzzy, python-format
 msgid "Color scheme: %s"
 msgstr "طرح رنگ: %s"
-
-msgid ""
-"Color used for the arrow and symbols when the metric decreased from the "
-"comparison value. Defaults to red."
-msgstr ""
-
-msgid ""
-"Color used for the arrow and symbols when the metric increased from the "
-"comparison value. Defaults to green."
-msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5508,10 +5296,6 @@ msgid "Columns folder can only contain column items"
 msgstr "پوشه ستون‌ها فقط می‌تواند شامل آیتم‌های ستون باشد"
 
 #, python-format
-msgid "Columns mapped to the same target: %(columns)s"
-msgstr ""
-
-#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "ستون‌های گم‌شده در مجموعه داده: %(invalid_columns)s"
 
@@ -5558,6 +5342,15 @@ msgstr "ستون‌هایی که بینندگان می‌توانند برای �
 
 msgid "Combine metrics"
 msgstr "ترکیب معیارها"
+
+msgid ""
+"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
+"denote colors from the chosen color scheme and are 1-indexed. Length must"
+" be matching that of interval bounds."
+msgstr ""
+"انتخاب رنگ به صورت جدا شده با ویرگول برای بازه‌ها، به عنوان مثال ۱، ۲، ۴."
+" اعداد صحیح رنگ‌ها را از طرح رنگ انتخابی نشان می‌دهند و از شماره‌گذاری ۱ "
+"شروع می‌شوند. طول باید مطابق با حدود بازه باشد."
 
 msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
@@ -5741,9 +5534,6 @@ msgstr "این داشبورد را برای گنجاندن در یک برنام�
 msgid "Configure your how you overlay is displayed here."
 msgstr "تنظیمات نمایش لایه شما را در اینجا پیکربندی کنید."
 
-msgid "Configured"
-msgstr ""
-
 #, fuzzy
 msgid "Confirm"
 msgstr "تأیید ذخیره سازی"
@@ -5822,9 +5612,6 @@ msgstr "اتصال مشکلی ندارد!"
 #, fuzzy
 msgid "Contact the report owner for error details."
 msgstr "برای جزئیات خطا با مالک گزارش تماس بگیرید."
-
-msgid "Container background"
-msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -6044,19 +5831,14 @@ msgstr ""
 "بررسی اینکه کدام نمودارها و داشبوردها به %s انتخاب‌شده وابسته هستند ممکن "
 "نبود. حذف آن‌ها ممکن است نمودارها و داشبوردها را از کار بیندازد."
 
-msgid ""
-"Could not check which charts will be removed. Restoring may remove charts"
-" added after this version."
-msgstr ""
-
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "نمی‌توان به پایگاه داده متصل شد: \"%(database)s\""
 
-msgid ""
-"Could not enrich the controls for this widget; showing the default form. "
-"See the server logs for details."
-msgstr ""
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr "حذف نماهای معنایی %s ممکن نبود: %s"
 
 msgid "Could not fetch all saved charts"
 msgstr "نتوانستیم همه نمودارهای ذخیره شده را بارگذاری کنیم"
@@ -6065,10 +5847,6 @@ msgstr "نتوانستیم همه نمودارهای ذخیره شده را با
 #, fuzzy, python-format
 msgid "Could not find %s"
 msgstr "%s پیدا نشد"
-
-#, python-format
-msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -6092,10 +5870,6 @@ msgid ""
 msgstr ""
 "بارگذاری فراداده‌های این پیکربندی ممکن نبود؛ فرم پیش‌فرض نمایش داده "
 "می‌شود. برای جزئیات، گزارش‌های سرور را ببینید."
-
-#, python-format
-msgid "Could not load the stored secrets: %s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -6128,9 +5902,6 @@ msgid ""
 msgstr ""
 "تعیین کاربری که باید در اتصال پایگاه داده جعل هویت شود ممکن نبود. پرس‌وجو"
 " اجرا نشد، زیرا اجرای آن باعث اتصال با کاربر نادرست می‌شد."
-
-msgid "Could not save this schedule"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -6578,7 +6349,7 @@ msgstr "دسامبر"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "حذف"
+msgstr ""
 
 msgid "DML"
 msgstr "دی‌ام‌ال"
@@ -6607,10 +6378,6 @@ msgstr "داشبورد"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "داشبورد %(dashboard_id)s پیدا نشد"
-
-#, python-format
-msgid "Dashboard %(id)s not found"
-msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -7193,9 +6960,6 @@ msgstr ""
 "عرض حداقل پیش‌فرض ستون به پیکسل، عرض واقعی ممکن است هنوز بزرگتر از این "
 "باشد اگر ستون‌های دیگر به فضای زیادی نیاز نداشته باشند."
 
-msgid "Default schema (database) to connect to"
-msgstr ""
-
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "زمانی که گزینه \"فیلتر دارای مقدار پیش‌فرض است\" انتخاب شده باشد، باید "
@@ -7400,12 +7164,6 @@ msgstr "حذف همه توکن‌ها"
 msgid "Delete annotation"
 msgstr "حذفی Annotate"
 
-msgid "Delete canvas"
-msgstr ""
-
-msgid "Delete canvas?"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -7463,15 +7221,6 @@ msgstr "حذف موارد انتخاب‌شده"
 msgid "Delete template"
 msgstr "قالب را حذف کنید"
 
-#, python-format
-msgid "Delete the other semantic view, %s? This cannot be undone."
-msgid_plural "Delete the other semantic views, %s? This cannot be undone."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Delete the other semantic views?"
-msgstr ""
-
 #, fuzzy
 msgid "Delete theme"
 msgstr "قالب را حذف کنید"
@@ -7507,12 +7256,6 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "لایه حاشیه‌نویسی %(num)d حذف شد"
 msgstr[1] "لایه‌های حاشیه‌نویسی %(num)d حذف شدند"
-
-#, python-format
-msgid "Deleted %(num)d canvas"
-msgid_plural "Deleted %(num)d canvases"
-msgstr[0] ""
-msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -7577,12 +7320,6 @@ msgstr "%s حذف شد"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s مورد حذف شد"
-
-#, python-format
-msgid "Deleted %s semantic view"
-msgid_plural "Deleted %s semantic views"
-msgstr[0] ""
-msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -8111,18 +7848,6 @@ msgstr ""
 msgid "Draft"
 msgstr "پیش‌نویس"
 
-msgid "Draft dashboard access"
-msgstr ""
-
-msgid "Draft discarded"
-msgstr ""
-
-msgid "Draft published"
-msgstr ""
-
-msgid "Draft. Only you can see these changes."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -8229,9 +7954,6 @@ msgstr[1] "ستون‌ها/معیارها را اینجا رها کنید یا �
 
 msgid "Drop a temporal column here or click"
 msgstr "یک ستون موقتی را اینجا رها کنید یا کلیک کنید"
-
-msgid "Drop a widget here"
-msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "ستون‌ها/معیارها را اینجا رها کنید یا کلیک کنید"
@@ -8356,9 +8078,7 @@ msgstr "جهتی"
 msgid "Dynamic group by"
 msgstr "غیر گروه‌بندی شده توسط"
 
-msgid ""
-"Dynamic group by is not supported on semantic views. Remove this display "
-"control to stop storing it."
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
 msgstr ""
 
 #, fuzzy
@@ -8376,7 +8096,7 @@ msgstr "انتخاب پویای ستون‌های گروه‌بندی از یک 
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "ای چارتس"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -8386,7 +8106,7 @@ msgstr "گزینه‌های ECharts (لیترال‌های شیء JS)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "ایمیل گزارشات"
+msgstr ""
 
 msgid "ERROR"
 msgstr "خطا"
@@ -8475,9 +8195,6 @@ msgstr "ویرایش لایه یادداشت"
 msgid "Edit annotation layer properties"
 msgstr "ویژگی‌های لایه یادداشت را ویرایش کنید"
 
-msgid "Edit canvas"
-msgstr ""
-
 msgid "Edit chart"
 msgstr "ویرایش نمودار"
 
@@ -8548,15 +8265,6 @@ msgstr "ویرایش هشدار"
 msgid "Edited"
 msgstr "ویرایش شده"
 
-#, python-format
-msgid "Edited %s widget"
-msgid_plural "Edited %s widgets"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Edited widget content"
-msgstr ""
-
 msgid "Editing 1 filter:"
 msgstr "ویرایش ۱ فیلتر:"
 
@@ -8584,6 +8292,14 @@ msgstr "یا نام پایگاه داده به درستی نوشته نشده ا
 #, python-format
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr "نام کاربری \"%(username)s\" یا رمز عبور نادرست است."
+
+#, python-format
+msgid ""
+"Either the username \"%(username)s\", password, or database name "
+"\"%(database)s\" is incorrect."
+msgstr ""
+"نام کاربری \"%(username)s\"، رمز عبور یا نام پایگاه داده \"%(database)s\""
+" نادرست است."
 
 msgid "Either the username or the password is wrong."
 msgstr "نام کاربری یا رمز عبور اشتباه است."
@@ -8642,26 +8358,6 @@ msgstr ""
 #, fuzzy
 msgid "Embedded dashboard could not be deleted."
 msgstr "داشبورد نمی‌تواند حذف شود."
-
-msgid "Embedded guest credentials"
-msgstr ""
-
-msgid ""
-"Embedded guest credentials are invalid or incomplete. Provide all "
-"required fields or clear them to leave embedded viewers unconfigured."
-msgstr ""
-
-msgid ""
-"Embedded guest credentials can't be added or changed while the embedded "
-"credential fallback is turned off. Leave the stored credentials unchanged"
-" or clear them."
-msgstr ""
-
-msgid ""
-"Embedded guest credentials only apply to connections that use OAuth2 with"
-" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
-"information and turn on impersonation, or clear the embedded credentials."
-msgstr ""
 
 msgid "Embedding deactivated."
 msgstr "گنجاندن غیرفعال شده است."
@@ -8816,10 +8512,6 @@ msgstr "تاریخ پایان باید بعد از تاریخ شروع باشد.
 msgid "Ends With"
 msgstr "عرض لبه"
 
-#, python-format
-msgid "Ends with %s."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "Ends with (ILIKE %x)"
 msgstr "عرض لبه"
@@ -8916,12 +8608,6 @@ msgstr "نام هشدار را وارد کنید"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "اطلاعات اعتبارسنجی مورد نیاز %(dbModelName)s را وارد کنید"
-
-msgid ""
-"Enter the scopes allowed by your Snowflake integration, for example "
-"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
-"the user's default role."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9312,14 +8998,6 @@ msgstr "آزمایشی"
 #, fuzzy
 msgid "Expired"
 msgstr "کاوش کنید"
-
-#, python-format
-msgid "Expired %s"
-msgstr ""
-
-#, python-format
-msgid "Expires %s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9795,6 +9473,10 @@ msgstr "عدم توانایی در بازیابی نوع پیشرفته"
 msgid "Failed to revoke API key"
 msgstr "ابطال کلید API ناموفق بود"
 
+#, fuzzy
+msgid "Failed to save chart customization"
+msgstr "بارگذاری داده‌های نمودار شکست خورد"
+
 msgid "Failed to save cross-filter scoping"
 msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
 
@@ -9836,13 +9518,11 @@ msgstr "ذخیره نتایج پرس‌وجو ناموفق بود. لطفاً د
 msgid "Failed to tag items"
 msgstr "برچسب زدن به موارد با شکست مواجه شد"
 
-#, python-format
-msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
-msgstr ""
-
-#, python-format
-msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
-msgstr ""
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
+# ja, pt, pt_BR, sl, zh]
+#, fuzzy, python-format
+msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgstr "راه‌اندازی %(alertType)s «%(alertName)s» ناموفق بود: %(error)s"
 
 msgid "Failed to update report"
 msgstr "به‌روزرسانی گزارش ناموفق بود"
@@ -10228,11 +9908,6 @@ msgid "Fix the Extra JSON to edit certification"
 msgstr "برای ویرایش گواهی، JSON اضافی را اصلاح کنید"
 
 msgid ""
-"Fix the JSON errors below to edit colors here; your changes sync "
-"automatically once the JSON is valid again."
-msgstr ""
-
-msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
 msgstr ""
@@ -10515,7 +10190,7 @@ msgstr "نحوه نمایش هر معیار را بیشتر سفارشی‌سا�
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "گروه‌بندی"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10593,9 +10268,6 @@ msgid ""
 msgstr ""
 "برای بازیابی و تخصیص مجدد دارایی‌های بایگانی‌شده یا حذف دائمی آن‌ها به "
 "«اخیراً بایگانی‌شده» بروید، یا از یک مدیر کمک بخواهید."
-
-msgid "Go to Secure extra"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10688,12 +10360,6 @@ msgstr "نام گروه"
 msgid "Group remaining as \"Others\""
 msgstr "گروه‌بندی باقی‌مانده به عنوان \"سایرین\""
 
-msgid ""
-"Group remaining as \"Others\" cannot be calculated for this metric on a "
-"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
-"metric."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -10737,8 +10403,9 @@ msgstr "کاربر مهمان نمی‌تواند بارگذاری نمودار 
 msgid "HTTP Path"
 msgstr "مسیر HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
-msgstr "هندلBars"
+msgstr ""
 
 msgid "Handlebars Template"
 msgstr "قالب هندل‌بارز"
@@ -10822,6 +10489,9 @@ msgstr "بالاترین مقدار برای هر دوره."
 msgid "Histogram"
 msgstr "هیستوگرام"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "خانه"
 
@@ -10863,12 +10533,6 @@ msgstr "اختلاف ساعت"
 msgid "How do you want to enter service account credentials?"
 msgstr "چگونه می‌خواهید اعتبارنامه‌های حساب سرویس را وارد کنید؟"
 
-msgid ""
-"How labels wider than the max width are shortened. \"Truncate\" cuts the "
-"label and adds an ellipsis. \"Break\" wraps the label onto additional "
-"lines."
-msgstr ""
-
 msgid "How many buckets should the data be grouped in."
 msgstr "داده‌ها باید در چند سطل گروه‌بندی شوند؟"
 
@@ -10901,9 +10565,6 @@ msgstr "ISO 3166-2"
 msgid "ISO 3166-2 Codes"
 msgstr "کدهای ISO ۳۱۶۶-۲"
 
-msgid "ISO 8601"
-msgstr "استاندارد ISO ۸۶۰۱"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "ISO suffix / abbreviation"
@@ -10927,6 +10588,8 @@ msgstr "شناسه"
 msgid "Id of root node of the tree."
 msgstr "شناسه گره ریشه درخت."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
@@ -10935,10 +10598,18 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth2 "
-"credentials. Snowflake OAuth2 connections also require it for embedded "
-"guest credentials."
+" the queries as the currently logged on user via their own OAuth "
+"credentials."
 msgstr ""
+"اگر Presto یا Trino باشد، همه پرس‌وجوها در SQL Lab با هویت کاربری که در "
+"حال حاضر وارد شده اجرا می‌شوند و این کاربر باید مجوز اجرای آن‌ها را داشته"
+" باشد. اگر Hive باشد و hive.server2.enable.doAs فعال باشد، پرس‌وجوها با "
+"حساب سرویس اجرا می‌شوند، اما کاربر واردشده از طریق ویژگی "
+"hive.server2.proxy.user جانشین‌سازی می‌شود. اگر Databricks باشد، از "
+"OAuth2 برای احراز هویت به‌عنوان کاربر واردشده استفاده می‌شود. اگر "
+"Snowflake یا Google Sheets باشد و احراز هویت OAuth برای پایگاه داده "
+"پیکربندی شده باشد، پرس‌وجوها با اعتبارنامه‌های OAuth خود کاربر واردشده "
+"اجرا می‌شوند."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "اگر یک معیار مشخص شده باشد، مرتب‌سازی بر اساس ارزش معیار انجام خواهد شد."
@@ -11113,6 +10784,9 @@ msgstr "در این نما می‌توانید ۲۵ ردیف اول را پیش�
 #, fuzzy
 msgid "Inactive"
 msgstr "فعال"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "شامل سری‌ها"
@@ -11384,10 +11058,6 @@ msgstr "عملگر تجمعی نامعتبر: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "کد ارز نامعتبر در معیارهای ذخیره شده"
 
-#, python-format
-msgid "Invalid dashboard id: %(id)s"
-msgstr ""
-
 msgid "Invalid date/timestamp format"
 msgstr "فرمت تاریخ/زمان نامعتبر است"
 
@@ -11499,10 +11169,6 @@ msgstr "مقدار فیلتر زمانی نامعتبر برای ستون %(colu
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "مرز بازه زمانی نامعتبر برای نمونه‌گیری مجدد: %(value)s"
 
-#, python-format
-msgid "Invalid time range for %(column)s: %(message)s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Inverse"
@@ -11576,9 +11242,6 @@ msgstr "مسئله ۱۰۰۰ - مجموعه داده برای کوئری خیلی
 
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "مسئله ۱۰۰۱ - پایگاه داده تحت بار غیرمعمولی قرار دارد."
-
-msgid "It was published, discarded or expired, or it belongs to someone else."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -11685,9 +11348,6 @@ msgstr "کلید"
 msgid "Key Prefix"
 msgstr "پیشوند"
 
-msgid "Key pair"
-msgstr ""
-
 msgid "Keyboard shortcuts"
 msgstr "میانبرهای صفحه کلید"
 
@@ -11715,12 +11375,6 @@ msgstr "محتویات برچسب"
 
 msgid "Label Line"
 msgstr "برچسب خط"
-
-msgid "Label Max Width"
-msgstr ""
-
-msgid "Label Overflow"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -12225,9 +11879,6 @@ msgstr "ستون خطوط"
 msgid "Lines encoding"
 msgstr "رمزگذاری خطوط"
 
-msgid "Link"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy
@@ -12279,15 +11930,6 @@ msgstr "لیست بروزرسانی شده"
 msgid "List view"
 msgstr "عدد را تقسیم کن"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 msgid "Live render"
 msgstr "رندر زنده"
 
@@ -12338,9 +11980,6 @@ msgstr "در حال بارگذاری انواع لایه معنایی…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "در حال بارگذاری لایه‌های معنایی…"
-
-msgid "Loading the view shared with you…"
-msgstr ""
 
 #, fuzzy
 msgid "Loading timezones..."
@@ -12487,9 +12126,6 @@ msgstr "اصلی"
 msgid "Main navigation"
 msgstr "انیمیشن"
 
-msgid "Make draft"
-msgstr ""
-
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -12499,9 +12135,6 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "محور x را دسته‌بندی کنید."
-
-msgid "Make this dashboard a draft?"
-msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -12654,17 +12287,6 @@ msgstr ""
 "نمودارهای ایجادشده از طریق قرارداد جغرافیایی MCP را علامت‌گذاری می‌کند تا"
 " Explore بررسی‌های اعتبارسنجی آن‌ها را حفظ کند."
 
-msgid ""
-"Marks the column as a time column for time range filters and time grains."
-" If the column type in the database is not a date or timestamp, set a "
-"Datetime format below: for strings it sets how time range filter values "
-"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
-"converts them to timestamps. A Datetime format does not convert a string "
-"column, so on some databases a time grain on it can fail or return wrong "
-"results; a calculated column that casts the value to a timestamp avoids "
-"this."
-msgstr ""
-
 msgid "Markup type"
 msgstr "نوع نشانه‌گذاری"
 
@@ -12780,11 +12402,6 @@ msgstr "بیشینه مقدار"
 
 msgid "Maximum value on the gauge axis"
 msgstr "حداکثر مقدار روی محور گیج"
-
-msgid ""
-"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
-"limit."
-msgstr ""
 
 #, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
@@ -13271,12 +12888,6 @@ msgstr "انتقال نگاشت به این ستون ←"
 msgid "Move only"
 msgstr "تنها جابجا کنید"
 
-msgid "Move widget"
-msgstr ""
-
-msgid "Moved"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -13376,7 +12987,7 @@ msgstr "غیرقابل انتشار"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "غیر گروه‌بندی شده توسط"
+msgstr ""
 
 msgid "NOV"
 msgstr "نوامبر"
@@ -13428,11 +13039,6 @@ msgstr "نام پایگاه داده خود را وارد کنید"
 #, fuzzy
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr "پوشه خود را نام‌گذاری کنید و برای ویرایش بعدی آن، روی نام پوشه کلیک کنید"
-
-msgid ""
-"Named instances can't be entered as the host. Enter only the host and the"
-" port the instance listens on, or connect with a SQLAlchemy URI instead."
-msgstr ""
 
 #, fuzzy
 msgid "Native filter column is required"
@@ -13647,9 +13253,6 @@ msgstr "هیچ پایگاه داده‌ای با جستجوی شما مطابق�
 msgid "No description available."
 msgstr "توضیحی موجود نیست."
 
-msgid "No ending is available for this secret."
-msgstr ""
-
 msgid "No entities have this tag currently assigned"
 msgstr "هیچ موجودیتی در حال حاضر به این برچسب اختصاص داده نشده است."
 
@@ -13736,10 +13339,6 @@ msgstr "هیچ کوئری ارائه‌دهنده‌ای برای این اجر�
 msgid "No records found"
 msgstr "هیچ رکوردی یافت نشد"
 
-#, python-format
-msgid "No renderer for widget type \"%s\""
-msgstr ""
-
 msgid "No results"
 msgstr "هیچ نتیجه‌ای یافت نشد"
 
@@ -13825,10 +13424,6 @@ msgid ""
 msgstr ""
 "هیچ لایه معنایی برای شما در دسترس نیست. از مدیر سیستم خود بخواهید یک لایه"
 " معنایی راه‌اندازی کند یا دسترسی به یکی از آن‌ها را به شما بدهد."
-
-#, python-format
-msgid "No semantic views were deleted because other assets depend on %s."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13987,9 +13582,6 @@ msgstr "تمام فیلدهای مورد نیاز پر نشده‌اند. لطف
 msgid "Not available"
 msgstr "در دسترس نیست"
 
-msgid "Not available while editing. Save or discard your changes to export."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Not currently mapped to the partition column."
@@ -14038,9 +13630,6 @@ msgstr "به‌روز نیست"
 #, fuzzy
 msgid "Nothing here yet"
 msgstr "هیچ چیزی تحریک نشد"
-
-msgid "Nothing to save yet"
-msgstr ""
 
 msgid "Nothing triggered"
 msgstr "هیچ چیزی تحریک نشد"
@@ -14210,7 +13799,7 @@ msgstr "یا"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "بازنویسی"
+msgstr ""
 
 msgid "October"
 msgstr "اکتبر"
@@ -14352,10 +13941,6 @@ msgstr "فقط تماس‌های تکی پشتیبانی می‌شوند"
 msgid "Only the default catalog is supported for this connection"
 msgstr "کاتالوگ پیش‌فرضی که باید برای اتصال استفاده شود."
 
-#, python-format
-msgid "Only the ending of secrets with at least %s characters is shown."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Only the first %s values are listed."
@@ -14480,11 +14065,6 @@ msgstr ""
 "محتویات CA_BUNDLE اختیاری برای اعتبارسنجی درخواست‌های HTTPS. فقط در برخی "
 "موتورهای پایگاه داده موجود است."
 
-msgid ""
-"Optional custom color for each range band, e.g. to match a brand palette."
-" Bands left unset use the default shading."
-msgstr ""
-
 msgid "Optional d3 date format string"
 msgstr "رشته فرمت تاریخ d3 اختیاری"
 
@@ -14495,9 +14075,6 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "بُعد اختیاری برای تقسیم نمودار به چند سری شمعی."
-
-msgid "Optional if your workgroup sets a result location."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -14740,9 +14317,6 @@ msgstr "طول صفحه"
 msgid "Page navigation"
 msgstr "تجمیع"
 
-msgid "Page not found"
-msgstr ""
-
 msgid "Paired t-test Table"
 msgstr "جدول تست t جفتی"
 
@@ -14860,9 +14434,6 @@ msgstr "به‌روزرسانی"
 
 msgid "Paste Private Key here"
 msgstr "کلید خصوصی را اینجا بچسبانید"
-
-msgid "Paste a new token into Secure extra and click Finish."
-msgstr ""
 
 msgid "Paste content of service credentials JSON file here"
 msgstr "محتوای فایل JSON اعتبارنامه‌های سرویس را اینجا بچسبانید"
@@ -14996,12 +14567,6 @@ msgstr "فیزیکی"
 msgid "Physical (table or view)"
 msgstr "فیزیکی (جدول یا نمایه)"
 
-msgid ""
-"Pick a color for each interval band defined above by its upper bound. "
-"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
-"keep following the chosen color scheme until an interval color is edited."
-msgstr ""
-
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "یک بعد را انتخاب کنید که رنگ‌های دسته‌ای از آن تعریف شده‌اند."
 
@@ -15071,22 +14636,6 @@ msgstr "حالت ویرایش"
 msgid "Pivot Table"
 msgstr "جدول محوری"
 
-msgid ""
-"Pivot Table has too many rollup levels for a semantic view. Remove row or"
-" column dimensions and try again."
-msgstr ""
-
-msgid ""
-"Pivot Table level reached the row limit on a semantic view; it may be "
-"complete or truncated. Add filters or remove row or column dimensions and"
-" try again."
-msgstr ""
-
-msgid ""
-"Pivot Table pagination is not supported on semantic views. Clear the row "
-"offset and try again."
-msgstr ""
-
 msgid "Pivot operation must include at least one aggregate"
 msgstr "عملیات پیوت باید حداقل شامل یک تجمیع باشد."
 
@@ -15112,9 +14661,6 @@ msgstr "ارتفاع پیکسل هر سری"
 
 msgid "Pixels"
 msgstr "پیکسل‌ها"
-
-msgid "Placements you edited were changed since your revision."
-msgstr ""
 
 msgid "Plain"
 msgstr "ساده"
@@ -15229,6 +14775,11 @@ msgstr "لطفاً هر دو کران زمانی (از و تا) را مشخص ک
 
 msgid "Please re-enter the password."
 msgstr "لطفاً رمز عبور را دوباره وارد کنید."
+
+msgid "Please re-export your file and try importing again"
+msgstr ""
+"لطفاً فایل خود را دوباره صادر کنید و دوباره سعی در وارد کردن آن داشته "
+"باشید."
 
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
@@ -15422,6 +14973,9 @@ msgstr "موضوع گزاره زمانی تولیدشده داشبورد را ه
 msgid "Preview"
 msgstr "پیش‌نمایش"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -15486,12 +15040,6 @@ msgstr "کلید خصوصی و رمز عبور"
 msgid "Private Key Password"
 msgstr "رمزعبور کلید خصوصی"
 
-msgid "Private key (PEM)"
-msgstr ""
-
-msgid "Private key passphrase (optional)"
-msgstr ""
-
 msgid "Proceed"
 msgstr "ادامه دهید"
 
@@ -15551,9 +15099,6 @@ msgstr "برچسب‌ها را در خارج از دایره قرار دهید؟
 
 msgid "Put your code here"
 msgstr "کد خود را اینجا قرار دهید"
-
-msgid "Python datetime string pattern"
-msgstr "الگوی رشته تاریخ و زمان پایتون"
 
 msgid "Quarter"
 msgstr "سه‌ماه"
@@ -15672,9 +15217,6 @@ msgstr "محدوده‌ها"
 msgid "Range Type"
 msgstr "نوع دامنه"
 
-msgid "Range colors"
-msgstr ""
-
 msgid "Range filter"
 msgstr "فیلتر محدوده"
 
@@ -15711,14 +15253,6 @@ msgstr ""
 msgid "Raw records"
 msgstr "رکوردهای خام"
 
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
-
-msgid ""
-"Re-export the assets from a compatible Superset version, then retry with "
-"the new file."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -15729,16 +15263,10 @@ msgstr "انتخاب مجدد فیلدها"
 msgid "Re-pick fields for this chart"
 msgstr "انتخاب مجدد فیلدها برای این نمودار"
 
-msgid "Read from the token's exp claim."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "چیدمان بازآرایی شد"
-
-msgid "Rearranged the layout"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15789,9 +15317,6 @@ msgstr "مستطیل"
 
 msgid "Recurring (every)"
 msgstr "تکراری (هر)"
-
-msgid "Redo"
-msgstr ""
 
 msgid "Redo the action"
 msgstr "عملیات را دوباره انجام دهید"
@@ -15856,9 +15381,6 @@ msgstr "به‌روزرسانی نمودارها"
 
 msgid "Refreshing columns"
 msgstr "بارگذاری مجدد ستون‌ها"
-
-msgid "Region"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15972,9 +15494,6 @@ msgstr "نوع تجسم"
 msgid "Remove dependency"
 msgstr "حذف وابستگی"
 
-msgid "Remove embedded guest credentials"
-msgstr ""
-
 #, fuzzy
 msgid "Remove filter"
 msgstr "حذف آیتم"
@@ -16017,22 +15536,10 @@ msgstr "کوئری را از لاگ حذف کنید"
 msgid "Remove sheet"
 msgstr "حذف برگه"
 
-msgid "Remove widget"
-msgstr ""
-
-msgid "Removed"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed %s '%s'"
 msgstr "%s «%s» حذف شد"
-
-#, python-format
-msgid "Removed %s widget"
-msgid_plural "Removed %s widgets"
-msgstr[0] ""
-msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -16085,10 +15592,6 @@ msgstr "تغییر نام تب"
 msgid "Renamed chart"
 msgstr "نمودار تغییر نام یافت"
 
-#, python-format
-msgid "Renamed to “%s”"
-msgstr ""
-
 msgid "Render HTML"
 msgstr "رندر HTML"
 
@@ -16119,10 +15622,6 @@ msgstr ""
 
 msgid "Report"
 msgstr "گزارش"
-
-#, python-format
-msgid "Report \"%(alertName)s\" triggered successfully"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -16360,11 +15859,6 @@ msgstr "اگر حساب شما از قبل گذرواژه دارد، الزام�
 msgid "Required to mirror range filters, including the time range."
 msgstr "برای بازتاب فیلترهای بازه‌ای، از جمله بازه زمانی، الزامی است."
 
-msgid ""
-"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
-" (Advanced → Security)."
-msgstr ""
-
 msgid "Resample"
 msgstr "نمونه‌برداری مجدد"
 
@@ -16438,13 +15932,6 @@ msgstr "بازنشانی گذرواژه %(app_name)s شما"
 msgid "Resize"
 msgstr "بازنشانی"
 
-#, python-format
-msgid "Resize widget from the %s corner"
-msgstr ""
-
-msgid "Resized"
-msgstr ""
-
 msgid "Resource already has an attached report."
 msgstr "منبع قبلاً یک گزارش ضمایم شده دارد."
 
@@ -16470,23 +15957,6 @@ msgstr "بازیابی این نسخه"
 msgid "Restore this version?"
 msgstr "این نسخه بازیابی شود؟"
 
-#, python-format
-msgid "Restored %s"
-msgstr ""
-
-#, python-format
-msgid ""
-"Restored %s; %s widget no longer exists or is no longer yours to place, "
-"so it was left out."
-msgid_plural ""
-"Restored %s; %s widgets no longer exist or are no longer yours to place, "
-"so they were left out."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Restored an earlier version"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -16502,10 +15972,6 @@ msgstr "به نسخه %s بازیابی شد"
 msgid "Restored version"
 msgstr "نسخه بازیابی‌شده"
 
-#, python-format
-msgid "Restored version %s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -16519,26 +15985,6 @@ msgid ""
 msgstr ""
 "بازیابی یک نسخه جدید ایجاد می‌کند. تاریخچه نسخه‌های فعلی شما از بین "
 "نخواهد رفت."
-
-msgid ""
-"Restoring saves a new version, so no history is lost. Drafts started "
-"before the restore can no longer be published."
-msgstr ""
-
-#, python-format
-msgid ""
-"Restoring will remove %s chart added after this version from this "
-"dashboard. The chart itself will not be deleted."
-msgid_plural ""
-"Restoring will remove %s charts added after this version from this "
-"dashboard. The charts themselves will not be deleted."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid ""
-"Result aggregation is not supported for Pivot Tables on semantic views. "
-"Set Aggregation function to \"Use metric definition\"."
-msgstr ""
 
 msgid "Results"
 msgstr "نتایج"
@@ -16858,15 +16304,6 @@ msgstr "در حال اجرا"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "در حال اجرای بیانیه %(block_num)s از %(block_count)s"
-
-msgid ""
-"S3 location where Athena query results are stored, e.g. s3://my-bucket"
-"/athena-results/. Can be left empty when the work group defines a query "
-"result location or uses managed query results."
-msgstr ""
-
-msgid "S3 query results location"
-msgstr ""
 
 msgid "SAT"
 msgstr "سَت"
@@ -17195,9 +16632,6 @@ msgstr ""
 "semantic_selection_version را از فراداده منبع داده یا MCP list_metrics "
 "ارائه دهید."
 
-msgid "Saving your changes…"
-msgstr ""
-
 #, fuzzy
 msgid "Saving..."
 msgstr "در حال بارگذاری..."
@@ -17408,9 +16842,6 @@ msgstr "معیار ثانویه"
 
 msgid "Secondary currency format"
 msgstr "قالب ارز ثانویه"
-
-msgid "Secondary text"
-msgstr ""
 
 msgid "Secondary y-axis Bounds"
 msgstr "محدودیت‌های محور ثانویه y"
@@ -18018,9 +17449,6 @@ msgstr "نماهای معنایی"
 #, fuzzy
 msgid "Semantic cache"
 msgstr "حافظه پنهان معنایی"
-
-msgid "Semantic colors"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -18683,9 +18111,6 @@ msgstr "نمایش تیک‌های اصلی روی محورها."
 msgid "Show the numbers along the value axis."
 msgstr "نمایش اعداد در امتداد محور مقدار."
 
-msgid "Show the published canvas"
-msgstr ""
-
 #, fuzzy
 msgid "Show total"
 msgstr "نمایش مجموع"
@@ -18980,9 +18405,6 @@ msgstr ""
 "کردن آن توسط شما ذخیره کرده است. ذخیره‌سازی اکنون آن تغییرات را لغو "
 "می‌کرد، بنابراین لغو شد. ویرایش‌های خود را کپی کنید، این پنجره را ببندید "
 "و دیتاست را دوباره باز کنید تا آن‌ها را مجدداً اعمال کنید."
-
-msgid "Something went wrong"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
@@ -19394,10 +18816,6 @@ msgid ""
 "characters."
 msgstr "کلید ذخیره‌سازی از حداکثر طول مجاز %(max_length)d کاراکتر بیشتر است."
 
-#, python-format
-msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
-msgstr ""
-
 msgid "Stream"
 msgstr "جریان"
 
@@ -19575,11 +18993,6 @@ msgstr "مستندات SDK جاسازی شده Superset."
 msgid "Superset chart"
 msgstr "چارت سوپرست"
 
-msgid ""
-"Superset could not reach the database. Check the host, port, network "
-"access, and database availability, then retry the import."
-msgstr ""
-
 #, fuzzy
 msgid "Superset docs link"
 msgstr "چارت سوپرست"
@@ -19695,7 +19108,7 @@ msgstr "جدول‌ها"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "محدوده_زمانی"
+msgstr ""
 
 msgid "THU"
 msgstr "پنج‌شنبه"
@@ -19982,26 +19395,16 @@ msgstr "چیدمان متن"
 msgid "Text embedded in email"
 msgstr "متن گنجانده شده در ایمیل"
 
-msgid "That change could not be saved."
-msgstr ""
-
-msgid "That change could not be undone."
-msgstr ""
-
-msgid "That draft could not be started."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "تابع تجمیعی %(aggregate)s در این پایگاه داده پشتیبانی نمی‌شود"
 
-#, python-format
-msgid ""
-"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
-" received %(value)s. Enter a whole number of seconds (0 or greater) under"
-" Advanced > Performance."
-msgstr ""
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
+# ja, pt, pt_BR, sl, zh]
+#, fuzzy, python-format
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgstr "مقدار %(key)s در metadata_cache_timeout باید یک عدد صحیح نامنفی باشد."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20132,12 +19535,6 @@ msgstr ""
 " جریان ارزش را نشان می‌دهند. ارتفاع گره با متریک بصری شده مطابقت دارد و "
 "نمای واضحی از توزیع و تغییر ارزش ارائه می‌دهد."
 
-msgid ""
-"The Snowflake connection could not be established. Check the account "
-"identifier, connection address, network access, and authentication "
-"settings, then retry the import."
-msgstr ""
-
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "آدرس وب فاقد پارامترهای dataset_id یا slice_id است."
 
@@ -20159,16 +19556,6 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "فیلد `%(field)s` باید یک رشته باشد."
 
-#, python-format
-msgid "The `%(operation)s` post-processing operation failed: %(message)s"
-msgstr ""
-
-#, python-format
-msgid ""
-"The `%(operation)s` post-processing operation references a column or "
-"level that is not in the query result: %(name)s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20189,32 +19576,9 @@ msgstr "تفسیر ثبت شد"
 msgid "The annotation has been updated"
 msgstr "توضیحات به‌روزرسانی شده‌اند."
 
-msgid ""
-"The asset configuration is invalid. Review this file's fields and "
-"references. Re-export the assets from a compatible Superset version, then"
-" retry with the new file."
-msgstr ""
-
 #, fuzzy
 msgid "The background color of the charts."
 msgstr "نام نمودار را اضافه کنید"
-
-#, python-format
-msgid ""
-"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
-"export the dashboard with its dependencies from a compatible Superset "
-"version, then retry."
-msgstr ""
-
-msgid "The canvas changed since this draft started; start a new draft."
-msgstr ""
-
-msgid "The canvas changed too much since your revision; reload it."
-msgstr ""
-
-#, python-format
-msgid "The canvas will be restored to %s."
-msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -20372,13 +19736,6 @@ msgid ""
 "unavailable."
 msgstr "نسخه فعلی شناسایی نشد. بازیابی موقتاً در دسترس نیست."
 
-#, python-format
-msgid ""
-"The custom SQL expression %(expression)s could not be run against this "
-"dataset's database: %(error)s. Check that it only uses columns and "
-"functions this database supports."
-msgstr ""
-
 msgid "The dashboard has been saved"
 msgstr "داشبورد ذخیره شد"
 
@@ -20409,32 +19766,11 @@ msgstr ""
 "داده‌هایی که این نسخه بر اساس آن‌ها ساخته شده دیگر در دسترس نیستند، "
 "بنابراین پیش‌نمایش آن ممکن نیست"
 
-msgid ""
-"The database TLS connection failed. Ask an administrator to check the "
-"certificate and connection security settings, then retry."
-msgstr ""
-
-msgid ""
-"The database account does not have the required permissions. Ask a "
-"database administrator to grant access to the required database, schema, "
-"and tables, then retry."
-msgstr ""
-
 msgid "The database columns that contains lines information"
 msgstr "ستون‌های پایگاه داده که اطلاعات خطوط را شامل می‌شوند"
 
-msgid ""
-"The database connection timed out. Check database availability and "
-"network access, then retry the import."
-msgstr ""
-
 msgid "The database could not be found"
 msgstr "پایگاه داده پیدا نشد"
-
-msgid ""
-"The database driver could not be loaded. Ask an administrator to install "
-"the required driver, then retry the import."
-msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "پایگاه داده در حال حاضر درخواست‌های فراوانی را پردازش می‌کند."
@@ -20448,17 +19784,6 @@ msgid ""
 msgstr ""
 "پایگاه داده‌ای که در این کوئری به آن اشاره شده است پیدا نشد. لطفاً برای "
 "کمک بیشتر با یک مدیر تماس بگیرید یا دوباره تلاش کنید."
-
-msgid ""
-"The database rejected the connection credentials or required connection "
-"details are missing. Check the database authentication settings and test "
-"the connection, then retry the import."
-msgstr ""
-
-msgid ""
-"The database requires authorization. Open the database connection, sign "
-"in with its authentication provider, then retry the import."
-msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "پایگاه داده یک خطای غیرمنتظره برگرداند."
@@ -20511,12 +19836,6 @@ msgstr ""
 msgid "The dataset has been saved"
 msgstr "داده‌ها با موفقیت ذخیره شده‌اند"
 
-msgid ""
-"The dataset uses a catalog that this connection does not allow. Use the "
-"connection's default catalog, or ask an administrator to enable access to"
-" the required catalog."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20562,9 +19881,6 @@ msgstr "نام داشبورد را اضافه کنید"
 msgid "The distance between cells, in pixels"
 msgstr "فاصله بین سلول‌ها، به پیکسل"
 
-msgid "The draft changed since your revision; reload it."
-msgstr ""
-
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -20572,17 +19888,8 @@ msgstr ""
 "مدت زمان به ثانیه قبل از نامعتبر شدن کش. برای دور زدن کش، مقدار -۱ را "
 "تنظیم کنید."
 
-msgid ""
-"The embedded guest private key could not be read. Provide a PEM private "
-"key and its correct passphrase (leave the passphrase empty for an "
-"unencrypted key)."
-msgstr ""
-
 msgid "The encoding format of the lines"
 msgstr "فرمت کدگذاری خطوط"
-
-msgid "The ending is hidden because the secret is too short."
-msgstr ""
 
 msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
@@ -20618,16 +19925,6 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "خاصیت ویژگی برای استفاده در برچسب‌های نقطه"
-
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -20932,31 +20229,52 @@ msgstr "این داشبورد با موفقیت ذخیره شد."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Certificate\" section of"
-" the database configuration is not present in export files, and should be"
-" added manually after the import if it is needed."
+"together with the charts. Please note that the \"Secure Extra\" and "
+"\"Certificate\" sections of the database configuration are not present in"
+" export files, and should be added manually after the import if they are "
+"needed."
 msgstr ""
+"برای وارد کردن پایگاه‌های داده زیر به همراه نمودارها، نیاز به رمزهای عبور"
+" آن‌ها دارید. لطفاً توجه داشته باشید که بخش‌های \"Secure Extra\" و "
+"\"Certificate\" در پیکربندی پایگاه داده در فایل‌های خروجی وجود ندارند و "
+"در صورت نیاز، باید پس از وارد کردن به صورت دستی اضافه شوند."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Certificate\" "
-"section of the database configuration is not present in export files, and"
-" should be added manually after the import if it is needed."
+"together with the dashboards. Please note that the \"Secure Extra\" and "
+"\"Certificate\" sections of the database configuration are not present in"
+" export files, and should be added manually after the import if they are "
+"needed."
 msgstr ""
+"برای وارد کردن پایگاه داده‌های زیر همراه با داشبوردها، به پسوردهای آن‌ها "
+"نیاز است. لطفاً توجه داشته باشید که بخش‌های «امنیت اضافی» و «گواهی» در "
+"پیکربندی پایگاه داده در فایل‌های صادراتی وجود ندارد و باید به صورت دستی "
+"پس از وارد کردن، در صورت نیاز، اضافه شوند."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Certificate\" section "
-"of the database configuration is not present in export files, and should "
-"be added manually after the import if it is needed."
+"together with the datasets. Please note that the \"Secure Extra\" and "
+"\"Certificate\" sections of the database configuration are not present in"
+" export files, and should be added manually after the import if they are "
+"needed."
 msgstr ""
+"برای وارد کردن پایگاه‌های داده زیر به همراه مجموعه داده‌ها، به رمزهای "
+"عبور آنها نیاز است. لطفاً توجه داشته باشید که بخش‌های \"امنیت اضافی\" و "
+"\"گواهینامه\" در پیکربندی پایگاه داده در فایل‌های صادراتی وجود ندارند و "
+"در صورت نیاز پس از وارد کردن باید به صورت دستی اضافه شوند."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Certificate\" "
-"section of the database configuration is not present in export files, and"
-" should be added manually after the import if it is needed."
+"together with the saved queries. Please note that the \"Secure Extra\" "
+"and \"Certificate\" sections of the database configuration are not "
+"present in export files, and should be added manually after the import if"
+" they are needed."
 msgstr ""
+"برای وارد کردن پایگاه‌های داده زیر به همراه کوئریهای ذخیره‌شده، به رمزهای"
+" عبور نیاز است. لطفاً توجه داشته باشید که بخش‌های \"Secure Extra\" و "
+"\"Certificate\" در فایل‌های صادراتی پیکربندی پایگاه داده موجود نیستند و "
+"در صورتی که به آن‌ها نیاز باشد، باید به‌صورت دستی پس از وارد کردن اضافه "
+"شوند."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20964,8 +20282,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "رمزهای عبور پایگاه‌های داده زیر برای وارد کردن آن‌ها مورد نیاز است."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "الگوی فرمت زمان‌مهر. برای رشته‌ها از استفاده کنید"
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21018,10 +20350,8 @@ msgstr "بندر بسته است."
 msgid "The port number is invalid."
 msgstr "شماره پورت نامعتبر است."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "پیش‌نمایش بارگذاری نشد."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "معیار اصلی برای تعریف اندازه‌های بخش‌های قوس استفاده می‌شود."
@@ -21238,12 +20568,15 @@ msgstr "گزارش ایجاد شده است"
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "تصویر صفحه در حال تولید است. لطفاً صفحه را ترک نکنید."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
+"%(type)s انتخاب‌شده به %(charts)s در %(dashboards)s مرتبط هستند. بایگانی "
+"کردن آن‌ها باعث می‌شود نمودارهای وابسته تا زمان بازیابی در دسترس نباشند."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21254,11 +20587,14 @@ msgstr ""
 "%(type)s انتخاب‌شده توسط %(charts)s استفاده می‌شوند. بایگانی کردن آن‌ها "
 "باعث می‌شود نمودارهای وابسته تا زمان بازیابی در دسترس نباشند."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy, python-format
 msgid ""
-"The selected %s are linked to %s and %s. Deleting them will break those "
+"The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
 msgstr ""
+"%s انتخاب‌شده به %s در %s مرتبط هستند. حذف آن‌ها باعث خراب شدن این اشیا "
+"می‌شود."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21316,20 +20652,6 @@ msgstr "اندازه سلول مربعی، به پیکسل"
 #, fuzzy
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "شیب برای محاسبه تمام اندازه‌ها. فقط \"LINEAR\""
-
-#, python-format
-msgid "The stored %s expired on %s."
-msgstr ""
-
-#, python-format
-msgid "The stored %s expires in %s day (%s)."
-msgid_plural "The stored %s expires in %s days (%s)."
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "The stored %s expires today at %s."
-msgstr ""
 
 msgid "The submitted payload failed validation."
 msgstr "بار ارسال شده در اعتبارسنجی شکست خورد."
@@ -21424,14 +20746,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "واحد زمانی مورد استفاده برای گروه‌بندی بلوک‌ها"
 
-#, python-format
-msgid "The token expired on %s."
-msgstr ""
-
-#, python-format
-msgid "The token expires on %s."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -21495,14 +20809,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "تبدیل با ردیف‌های نمونه‌برداری‌شده مطابقت داشت، نه با کل مجموعه‌داده."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"تبدیل برای %(column)s مقدار %(returned)s را برگرداند که %(kind)s است. "
-"فیلترهای بازتاب‌شده‌ی این نگاشت در پایگاه داده با شکست مواجه می‌شدند."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21514,6 +20823,9 @@ msgstr ""
 "تبدیل برای %(column)s مقدار %(returned)s را برگرداند که این پایگاه داده "
 "نمی‌تواند آن را بدون تغییر به‌عنوان مقدار %(type)s در پرس‌وجو بنویسد. "
 "فیلترهای این نگاشت بازتاب داده نمی‌شوند."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -21616,23 +20928,12 @@ msgstr ""
 "مکان اجرا بستگی دارد. تبدیل در یک نشست جداگانه ارزیابی و نتیجه کش می‌شود،"
 " بنابراین گزاره‌ی تولیدشده یک عکس لحظه‌ای از آن زمان را ثابت نگه می‌دارد."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"تبدیل مقدار قابل تجزیه نبود. نگاشت ذخیره می‌شود اما تا زمان رفع مشکل "
-"غیرفعال می‌ماند."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"تبدیل مقدار قابل تجزیه نبود: %(detail)s نگاشت ذخیره می‌شود اما تا زمان "
-"رفع مشکل غیرفعال می‌ماند."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21679,15 +20980,6 @@ msgstr "نمایش مقدار بر روی نوار"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "شیوه چیدمان تیک‌ها بر روی محور X"
 
-#, python-format
-msgid ""
-"The widget was changed by someone else. Reload it and apply your change "
-"to revision %(revision)s."
-msgstr ""
-
-msgid "The widget's query failed"
-msgstr ""
-
 msgid "The width of the Isoline in pixels"
 msgstr "عرض ایزولین به پیکسل"
 
@@ -21730,9 +21022,6 @@ msgstr "پوسته ایجاد نشد."
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "پوسته به‌روزرسانی نشد."
-
-msgid "Theme does not exist"
-msgstr ""
 
 #, fuzzy
 msgid "Theme imported"
@@ -21939,10 +21228,6 @@ msgstr "هنگام بایگانی مشکلی رخ داد: %s"
 msgid "There was an issue cancelling the task: %s"
 msgstr "هنگام لغو وظیفه مشکلی رخ داد: %s"
 
-#, python-format
-msgid "There was an issue creating the canvas: %s"
-msgstr ""
-
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
 msgstr "یک مشکل در حذف وجود داشت: %s"
@@ -21972,10 +21257,6 @@ msgstr "مشکلی در حذف %s انتخاب‌شده وجود داشت: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "یک مشکل در حذف یادداشت‌های انتخاب‌شده وجود داشت: %s"
-
-#, python-format
-msgid "There was an issue deleting the selected canvases: %s"
-msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -22132,11 +21413,14 @@ msgstr ""
 "محتوای آن را تغییر دهند؛ برای اعمال این تغییر، فیلد «اجرا به‌عنوان» را "
 "روی حساب خودتان تنظیم کنید."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
+"این %(type)s به %(charts)s در %(dashboards)s پیوند دارد. بایگانی آن باعث "
+"می‌شود نمودارهای وابسته تا زمان بازیابی در دسترس نباشند."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -22254,26 +21538,10 @@ msgstr ""
 "این می‌تواند یک آدرس آی‌پی (مانند ۱۲۷.۰.۰.۱) یا یک نام دامنه (مانند "
 "mydatabase.com) باشد."
 
-msgid ""
-"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
-"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
-"host here and the port the instance listens on below, or connect with a "
-"SQLAlchemy URI instead."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "This cannot be undone."
 msgstr "این کار قابل بازگشت نیست."
-
-msgid "This canvas changed while you were editing, so your change was undone."
-msgstr ""
-
-msgid "This canvas does not exist, or you do not have access to it"
-msgstr ""
-
-msgid "This canvas is empty"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
@@ -22295,25 +21563,8 @@ msgstr ""
 "این نمودار فیلترهای متقابل را به نمودارهایی اعمال می‌کند که "
 "مجموعه‌داده‌های آن‌ها شامل ستون‌هایی با همان نام است."
 
-msgid ""
-"This chart can't be shown here because its database connection isn't set "
-"up for embedded dashboards. Please contact the dashboard's owner."
-msgstr ""
-
-#, python-format
-msgid "This chart could not be drawn: %s"
-msgstr ""
-
 msgid "This chart has been moved to a different filter scope."
 msgstr "این نمودار به دامنه فیلتر دیگری منتقل شده است."
-
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -22343,11 +21594,6 @@ msgstr "این نمودار دیگر وجود ندارد."
 #, fuzzy
 msgid "This chart only"
 msgstr "فقط این نمودار"
-
-msgid ""
-"This chart uses legacy color positions past the end of the selected color"
-" scheme, so its band colors cannot be previewed or edited here."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22411,15 +21657,6 @@ msgstr "این ستون ممکن است با داده‌های فعلی سازگ
 msgid "This column must contain date/time information."
 msgstr "این ستون باید شامل اطلاعات تاریخ/زمان باشد."
 
-msgid "This comparison time range is empty."
-msgstr ""
-
-msgid ""
-"This connection stores embedded guest credentials, which only apply with "
-"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
-"before turning impersonation off."
-msgstr ""
-
 msgid ""
 "This control filters the whole chart based on the selected time range. "
 "All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. "
@@ -22470,27 +21707,6 @@ msgstr ""
 "این داشبورد داده‌های بسیار زیادی برای دانلود مستقیم دارد. از یک مدیر "
 "بخواهید برون‌بری‌های پس‌زمینه را فعال کند، یا محدودیت ردیف نمودارهای آن "
 "را کاهش دهید."
-
-msgid ""
-"This dashboard is a draft. The execution account must be an Admin or "
-"dashboard editor. Publish the dashboard when it is ready to share, or ask"
-" an administrator to add the execution account as a dashboard editor. If "
-"Run as is available, select an authorized account."
-msgstr ""
-
-msgid ""
-"This dashboard is a draft. The execution account must be an Admin or "
-"dashboard editor. Publish the dashboard when it is ready to share, or ask"
-" an administrator to identify the execution account and add it as a "
-"dashboard editor."
-msgstr ""
-
-#, python-format
-msgid ""
-"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
-"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
-" Draft dashboards require an Admin or dashboard editor."
-msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -22613,18 +21829,12 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "این عنصر را برای ترسیم روی نمودار تعریف می‌کند."
 
-msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
 msgstr "این بُعد با انتخاب‌های فعلی سازگار نیست. یک بُعد سازگار انتخاب کنید."
-
-msgid "This draft is no longer available"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -22674,11 +21884,6 @@ msgid ""
 msgstr ""
 "این فیلد به عنوان یک شناسایی منحصر به فرد برای اتصال معیار به نمودارها "
 "استفاده می‌شود. همچنین به عنوان نام مستعار در کوئریی SQL استفاده می‌شود."
-
-msgid ""
-"This file is not a supported dashboard export. Re-export the dashboard "
-"from a compatible Superset version, then retry with the new ZIP file."
-msgstr ""
 
 #, fuzzy
 msgid "This filter already exist on the report"
@@ -22907,15 +22112,16 @@ msgstr ""
 "است با قبل متفاوت به نظر برسند. لطفاً آن‌ها را بررسی کنید، سپس این اعلان "
 "را تأیید کنید یا نمودار را ذخیره کنید."
 
-msgid "This placement has no data binding."
-msgstr ""
-
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or ask an administrator to update the "
-"execution account's access."
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
+"این گزارش با نام کاربری %(username)s اجرا می‌شود که به این %(kind)s "
+"دسترسی ندارد. یک %(kind)s که این کاربر به آن دسترسی دارد انتخاب کنید، یا "
+"کاربر دیگری برای اجرای گزارش انتخاب کنید."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22925,12 +22131,6 @@ msgid ""
 msgstr ""
 "این وضعیت ذخیره‌شده فیلتر مربوط به پیش از قالب شناسه عضو است. آن را "
 "بازنشانی کنید و مقادیر آن را دوباره به‌صراحت انتخاب کنید."
-
-msgid ""
-"This schedule runs with your permissions. You must be an Admin or an "
-"editor of this draft dashboard. Publish the dashboard when it is ready to"
-" share, or ask an administrator to give you dashboard editor access."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23047,9 +22247,6 @@ msgstr ""
 "این پوسته از الگوریتم روشن استفاده می‌کند. به جای آن با الگوریتم تیره "
 "نمایش داده خواهد شد، بنابراین ممکن است رنگ‌های آن مطابق طراحی دیده نشوند."
 
-msgid "This time range is empty. Choose an end time later than the start time."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23101,9 +22298,6 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "این  مورد تریاژ شده توسط:"
 msgstr[1] ""
-
-msgid "This widget is unavailable"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -23237,11 +22431,6 @@ msgstr "ستون زمان برای اعمال بازه زمانی"
 
 msgid "Time comparison"
 msgstr "مقایسه زمان"
-
-msgid ""
-"Time comparison is not yet supported on semantic views. Remove the time "
-"shift and try again."
-msgstr ""
 
 msgid ""
 "Time delta in natural language\n"
@@ -23439,6 +22628,9 @@ msgstr ""
 "درخواست‌های پیش‌نمایش برای این مجموعه داده بیش از حد زیاد است. کمی صبر "
 "کنید و دوباره تلاش کنید."
 
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Too many requests. Please wait and try again."
@@ -23461,12 +22653,6 @@ msgid ""
 msgstr ""
 "نماهای بیش از حد در یک درخواست: %(count)s ارائه شده، حداکثر %(limit)s "
 "مجاز است."
-
-msgid "Too short"
-msgstr ""
-
-msgid "Too short to show safely"
-msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -23612,9 +22798,6 @@ msgstr "همین حالا اجرا کن"
 #, fuzzy
 msgid "True"
 msgstr "سه‌شنبه"
-
-msgid "Truncate"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -23898,10 +23081,6 @@ msgstr "بازیابی ساختار نمای معنایی ممکن نیست."
 #, fuzzy
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "امکان دریافت نماهای معنایی وجود ندارد. پیکربندی لایه را بررسی کنید."
-
-#, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
 
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -24228,9 +23407,6 @@ msgstr "مجموعه داده بدون عنوان"
 msgid "Untitled Query"
 msgstr "کوئری بدون عنوان"
 
-msgid "Untitled canvas"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -24249,16 +23425,9 @@ msgstr "مجموعه‌داده بدون عنوان"
 msgid "Untitled query"
 msgstr "کوئری بی‌عنوان"
 
-msgid "Untitled tab"
-msgstr ""
-
 #, fuzzy
 msgid "Unverified"
 msgstr "تعریف نشده"
-
-#, python-format
-msgid "Up to %s"
-msgstr ""
 
 msgid "Update"
 msgstr "به‌روزرسانی"
@@ -24393,9 +23562,6 @@ msgstr "اجرای کوئری جاری"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "از فرمت تاریخ استفاده کنید حتی زمانی که مقدار متریک زمان‌سنج نیست."
 
-msgid "Use default"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24437,9 +23603,6 @@ msgstr ""
 msgid "Use only a single value."
 msgstr "فقط از یک مقدار استفاده کنید."
 
-msgid "Use scheme colors"
-msgstr ""
-
 msgid "Use the Advanced Analytics options below"
 msgstr "از گزینه‌های تجزیه و تحلیل پیشرفته زیر استفاده کنید"
 
@@ -24458,14 +23621,6 @@ msgid ""
 msgstr ""
 "به‌طور داخلی برای شناسایی پلاگین استفاده می‌شود. باید به نام بسته از فایل"
 " package.json پلاگین تنظیم شود."
-
-msgid ""
-"Used only when a dashboard is viewed through an embedded guest token. "
-"Every embedded viewer of this connection queries as this one user, so it "
-"should be a dedicated account with the narrowest access those dashboards "
-"need. Logged-in users are unaffected and continue to authenticate "
-"individually via OAuth2."
-msgstr ""
 
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -24734,10 +23889,6 @@ msgstr ""
 msgid "Version"
 msgstr "نسخه"
 
-#, python-format
-msgid "Version %s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -24810,9 +23961,6 @@ msgstr "بیننده"
 msgid "Viewers"
 msgstr "بینندگان"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24824,10 +23972,6 @@ msgstr ""
 "بینندگان فهرستی از موضوعاتی هستند که می‌توانند داشبورد را مشاهده کنند. "
 "اگر هیچ بیننده‌ای تعریف نشده باشد، داشبورد برای تمام کاربران دارای "
 "مجوزهای مناسب منبع داده قابل دسترسی است."
-
-#, python-format
-msgid "Viewing %s"
-msgstr ""
 
 msgid "Viewport"
 msgstr "نمایشگر"
@@ -25051,11 +24195,6 @@ msgstr "ما نمی‌توانیم ستون \"%(column_name)s\" را در خط %
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "نمی‌توانیم ستون \"%(column_name)s\" را شناسایی کنیم."
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
-msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -25486,21 +24625,6 @@ msgstr "گزینه‌های ویکسار/داده‌های پرت"
 msgid "Why do I need to create a database?"
 msgstr "آیا می‌خواهید یک پایگاه داده جدید اضافه کنید؟"
 
-msgid "Widget could not be created."
-msgstr ""
-
-msgid "Widget could not be deleted."
-msgstr ""
-
-msgid "Widget could not be updated."
-msgstr ""
-
-msgid "Widget parameters are invalid."
-msgstr ""
-
-msgid "Widgets this draft changes were changed since; start a new draft."
-msgstr ""
-
 msgid "Width"
 msgstr "عرض"
 
@@ -25530,9 +24654,6 @@ msgstr "ابر واژه"
 
 msgid "Word Rotation"
 msgstr "چرخش کلمات"
-
-msgid "Work Group"
-msgstr ""
 
 msgid "Working"
 msgstr "در حال کار کردن"
@@ -25694,9 +24815,6 @@ msgstr "بله، cancel کنید"
 msgid "Yes, overwrite changes"
 msgstr "بله، تغییرات را بازنویسی کنید"
 
-msgid "You"
-msgstr ""
-
 #, python-format
 msgid "You are adding tags to %s %ss"
 msgstr "شما در حال اضافه کردن برچسب به %s %ss هستید"
@@ -25804,9 +24922,6 @@ msgstr "شما می‌توانید اجزاء را در حالت ویرایش ا
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "شما می‌توانید به سادگی بر روی نمودار کلیک کنید تا فیلتر متقاطع اعمال شود."
 
-msgid "You can also select an authorized account in Run as."
-msgstr ""
-
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
@@ -25883,9 +24998,6 @@ msgstr "شما به جدول‌های زیر دسترسی ندارید: %s."
 msgid "You do not have permission to access this datasource"
 msgstr "شما اجازه دسترسی به این منبع داده را ندارید"
 
-msgid "You do not have permission to change this layout."
-msgstr ""
-
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "شما اجازه ویرایش این %s را ندارید."
@@ -25895,11 +25007,6 @@ msgstr "شما اجازه ویرایش این چارت را ندارید"
 
 msgid "You do not have permission to edit this dashboard"
 msgstr "شما اجازه ویرایش این داشبورد را ندارید"
-
-msgid ""
-"You do not have permission to import this asset. Ask its owner or an "
-"administrator for the required access, then retry."
-msgstr ""
 
 #, fuzzy
 msgid "You do not have permission to perform this operation"
@@ -26239,10 +25346,6 @@ msgstr ""
 " تقسیم کنید) یا تنظیم پیکربندی SUPERSET_DASHBOARD_POSITION_DATA_LIMIT را "
 "افزایش دهید."
 
-#, python-format
-msgid "Your display control changes were not saved: %s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -26276,10 +25379,6 @@ msgstr "خروجی گرفتن از «%(title)s» کامل نشد."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "خروجی «%(title)s» شما آماده است."
-
-#, python-format
-msgid "Your filter changes were not saved: %s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26548,7 +25647,7 @@ msgstr "پس‌پرکنید"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "بولت"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26559,12 +25658,6 @@ msgstr "آیکون نوع بولیانی"
 
 msgid "bottom"
 msgstr "پایین"
-
-msgid "bottom left"
-msgstr ""
-
-msgid "bottom right"
-msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "دکمه (cmd + ز) را بزنید تا زمانی که تغییرات خود را ذخیره کنید."
@@ -26581,9 +25674,6 @@ msgstr[1] "حذف نمی‌شود زیرا هنوز %s مجموعه‌داده �
 
 msgid "cannot be empty"
 msgstr "نمی‌تواند خالی باشد"
-
-msgid "canvases"
-msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -26618,6 +25708,9 @@ msgstr "کد ISO ۳۱۶۶-۱ الفا-۳ (cca3)"
 msgid "code International Olympic Committee (cioc)"
 msgstr "کد کمیته بین‌المللی المپیک (cioc)"
 
+msgid "color scheme for comparison"
+msgstr "طرح رنگ برای مقایسه"
+
 msgid "color type"
 msgstr "نوع رنگ"
 
@@ -26644,15 +25737,12 @@ msgstr "ایجاد کنید"
 msgid "create a new chart"
 msgstr "یک نمودار جدید بسازید"
 
-msgid "create a semantic view"
-msgstr ""
-
 msgid "create dataset from SQL query"
 msgstr "ایجاد مجموعه داده از کوئریی SQL"
 
 #. do-not-translate
 msgid "crontab"
-msgstr "کرون‌تب"
+msgstr ""
 
 msgid "css"
 msgstr "سی‌اس‌اس"
@@ -26680,10 +25770,6 @@ msgstr "اتصالات پایگاه داده"
 
 msgid "database"
 msgstr "پایگاه داده"
-
-#, python-format
-msgid "database \"%(name)s\" (%(file)s)"
-msgstr ""
 
 #, fuzzy
 msgid "databases"
@@ -26797,14 +25883,8 @@ msgstr "به عنوان مثال ********"
 msgid "e.g. 127.0.0.1"
 msgstr "به عنوان مثال 127.0.0.1"
 
-msgid "e.g. 1433"
-msgstr ""
-
 msgid "e.g. 5432"
 msgstr "به عنوان مثال ۵۴۳۲"
-
-msgid "e.g. AKIAIOSFODNN7EXAMPLE"
-msgstr ""
 
 msgid "e.g. AccountAdmin"
 msgstr "به عنوان مثال: حساب مدیر"
@@ -26818,26 +25898,14 @@ msgstr "به عنوان مثال compute_wh"
 msgid "e.g. default"
 msgstr "به عنوان مثال: پیش‌فرض"
 
-msgid "e.g. embedded_viewer"
-msgstr ""
-
 msgid "e.g. hive_metastore"
 msgstr "به عنوان مثال: hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "به عنوان مثال: پارامتر۱=مقدار۱&پارامتر۲=مقدار۲"
 
-msgid "e.g. primary"
-msgstr ""
-
-msgid "e.g. s3://my-bucket/athena-results/"
-msgstr ""
-
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "e.g. sql/protocolv1/o/۱۲۳۴۵"
-
-msgid "e.g. us-east-1"
-msgstr ""
 
 msgid "e.g. world_population"
 msgstr "به عنوان مثال: world_population"
@@ -27027,12 +26095,6 @@ msgstr "انتظار می‌رود که یک عدد صحیح باشد"
 msgid "is false"
 msgstr "غلط است"
 
-#, python-format
-msgid ""
-"is linked to %s charts and %s dashboards. Are you sure you want to "
-"continue? Deleting the dataset will break those objects."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sl, sr, sr_Latn, tr, uk, zh]
 #, fuzzy, python-format
@@ -27044,6 +26106,17 @@ msgstr ""
 "به %s نمودار که در %s داشبورد نمایش داده می‌شوند متصل است و کاربران %s "
 "زبانه SQL Lab باز دارند که از این پایگاه داده استفاده می‌کنند. آیا مطمئن "
 "هستید که می‌خواهید ادامه دهید؟ حذف پایگاه داده این اشیاء را از کار "
+"می‌اندازد."
+
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
+# es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh]
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"به %s نمودار که در %s داشبورد نمایش داده می‌شوند متصل است. آیا مطمئن "
+"هستید که می‌خواهید ادامه دهید؟ حذف مجموعه‌داده این اشیاء را از کار "
 "می‌اندازد."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -27272,9 +26345,8 @@ msgid "permalink state not found"
 msgstr "وضعیت پیوند دائمی پیدا نشد"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "محور بندی شده"
+msgstr ""
 
 msgid "pixels"
 msgstr "پیکسل‌ها"
@@ -27514,9 +26586,6 @@ msgstr "مستندات نمودار Handlebars"
 msgid "theme"
 msgstr "زمان"
 
-msgid "this dashboard is unavailable or you no longer have access."
-msgstr ""
-
 #, fuzzy
 msgid "timestamp"
 msgstr "نمایش زمان‌سنج"
@@ -27528,17 +26597,15 @@ msgstr "بالا"
 msgid "top"
 msgstr "بالا"
 
-msgid "top left"
-msgstr ""
-
-msgid "top right"
-msgstr ""
-
 msgid "undo"
 msgstr "بازگردانی"
 
 msgid "unknown type icon"
 msgstr "نوع آیکون ناشناخته"
+
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
 
 #, fuzzy
 msgid "unset"
@@ -27556,6 +26623,9 @@ msgid ""
 msgstr ""
 "درصد بالایی باید بزرگتر از ۰ و کمتر از ۱۰۰ باشد. همچنین باید بیشتر از "
 "درصد پایینی باشد."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "از الگوی latest_partition استفاده کنید"
@@ -27611,9 +26681,6 @@ msgstr "y: مقادیر در هر ردیف نرمال‌سازی شده‌اند
 
 msgid "year"
 msgstr "سال"
-
-msgid "you do not have permission to edit this dashboard."
-msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

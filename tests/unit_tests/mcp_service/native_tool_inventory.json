@@ -23,13 +23,13 @@
         "openWorldHint": false,
         "readOnlyHint": false
       },
-      "compact_description_chars": 276,
-      "description_chars": 2121,
+      "compact_description_chars": 292,
+      "description_chars": 2137,
       "entry_bytes": {
-        "structured": 11258,
-        "text_only": 7454
+        "structured": 11290,
+        "text_only": 7486
       },
-      "input_schema_bytes": 5014,
+      "input_schema_bytes": 5030,
       "output_schema_bytes": 3788
     },
     "apply_dashboard_filters": {
@@ -87,11 +87,11 @@
         "openWorldHint": false,
         "readOnlyHint": false
       },
-      "compact_description_chars": 291,
-      "description_chars": 362,
+      "compact_description_chars": 290,
+      "description_chars": 311,
       "entry_bytes": {
-        "structured": 4589,
-        "text_only": 785
+        "structured": 4537,
+        "text_only": 733
       },
       "input_schema_bytes": 147,
       "output_schema_bytes": 3788
@@ -344,10 +344,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 250,
-      "description_chars": 3577,
+      "description_chars": 3667,
       "entry_bytes": {
-        "structured": 26411,
-        "text_only": 6037
+        "structured": 26509,
+        "text_only": 6135
       },
       "input_schema_bytes": 2037,
       "output_schema_bytes": 20358
@@ -424,13 +424,13 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 100,
-      "description_chars": 779,
+      "description_chars": 932,
       "entry_bytes": {
-        "structured": 3778,
-        "text_only": 1898
+        "structured": 4290,
+        "text_only": 2053
       },
       "input_schema_bytes": 864,
-      "output_schema_bytes": 1864
+      "output_schema_bytes": 2221
     },
     "get_canvas_draft": {
       "annotations": {
@@ -536,10 +536,10 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 261,
-      "description_chars": 692,
+      "description_chars": 703,
       "entry_bytes": {
-        "structured": 1532,
-        "text_only": 1130
+        "structured": 1544,
+        "text_only": 1142
       },
       "input_schema_bytes": 171,
       "output_schema_bytes": 386
@@ -1571,12 +1571,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 626776,
-      "text_only": 261854
+      "structured": 627378,
+      "text_only": 262099
     },
     "compact_catalog_bytes": {
-      "structured": 560279,
-      "text_only": 195357
+      "structured": 560667,
+      "text_only": 195388
     },
     "largest_entry": {
       "structured": {

@@ -316,6 +316,37 @@ and stamps do-not-translate markers. A bare
 (`scripts/translations/check_pot_drift.py`) fails when the template's strings
 differ from what the script's extraction finds.
 
+### Keeping a sentence in one string
+
+Keep each sentence in one `t()` call. A sentence split into several calls
+around a link has a fixed word order. Translators then cannot write a
+grammatical sentence in their language.
+
+For a link inside help text or a tooltip, one way to keep the sentence whole
+is a markdown link with a named placeholder for the URL, rendered with
+`SafeMarkdown` from `@superset-ui/core/components`. The dataset editor's
+"Datetime format" help works this way:
+
+```tsx
+<SafeMarkdown
+  // i18n: translate the whole sentence, including the link text; keep the
+  // [text](%(…)s) link syntax and the placeholder unchanged
+  source={t('Read the [ISO 8601](%(iso_url)s) article.', {
+    iso_url: 'https://en.wikipedia.org/wiki/ISO_8601',
+  })}
+/>
+```
+
+The URL stays out of the translated string. `SafeMarkdown` blocks
+`javascript:` links, sanitizes or escapes HTML, and renders backticks as code.
+Check its limits before you use it:
+
+- It wraps the text in a paragraph, so it does not fit inside an inline label
+  or a button.
+- It renders nothing until its markdown libraries load.
+- Its links open in the same tab. A markdown link has no `target` attribute,
+  and the sanitizer removes one written in HTML.
+
 ### Adding context for translators
 
 A translatable string arrives in a catalog with no surrounding code, so a term
