@@ -20,10 +20,12 @@
 import pytest
 
 from superset.extensions.context import (
+    bind_context,
     ConcreteExtensionContext,
     extension_context,
     get_context,
     get_current_extension_context,
+    restore_context,
     use_context,
 )
 from tests.unit_tests.extensions.storage.conftest import create_manifest
@@ -122,3 +124,37 @@ def test_context_exception_still_restores():
         raise_in_context()
 
     assert get_current_extension_context() is None
+
+
+def test_restore_context_gives_each_call_a_context_of_its_own():
+    """What an extension registered runs later in a context made for the call."""
+    manifest = create_manifest("acme", "tools")
+    with extension_context(manifest) as loading:
+        captured = get_current_extension_context()
+
+    assert get_current_extension_context() is None
+    with restore_context(captured):
+        ctx = get_context()
+        assert ctx.extension.id == "acme.tools"
+        assert ctx is not loading
+    assert get_current_extension_context() is None
+
+    # The host's own code (no context captured) runs as it is.
+    with restore_context(None):
+        assert get_current_extension_context() is None
+
+
+def test_bind_context_runs_the_function_in_the_captured_context():
+    """A bound function finds its extension wherever it is called."""
+    manifest = create_manifest("acme", "tools")
+
+    def whoami(greeting: str) -> str:
+        return f"{greeting} {get_context().extension.id}"
+
+    with extension_context(manifest):
+        bound = bind_context(whoami, get_current_extension_context())
+
+    assert bound("hello") == "hello acme.tools"
+    assert bound.__name__ == "whoami"
+    assert get_current_extension_context() is None
+    assert bind_context(whoami, None) is whoami

@@ -27,7 +27,11 @@ from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from sqlalchemy.orm import scoped_session
 
-from superset.extensions.context import get_current_extension_context
+from superset.extensions.context import (
+    bind_context,
+    ConcreteExtensionContext,
+    get_current_extension_context,
+)
 from superset.extensions.permissions import register_extension_resource
 
 if TYPE_CHECKING:
@@ -308,6 +312,21 @@ def inject_semantic_layer_implementations() -> None:
     core_sl_module.semantic_layer = semantic_layer_impl  # type: ignore[assignment]
 
 
+def _bind_widget_hooks(cls: Any, context: ConcreteExtensionContext) -> None:
+    """
+    Run an extension widget type's hooks in its context. The host calls them
+    while requests run, long after the extension that registered the type
+    loaded; every classmethod ``Widget`` declares is such a hook, so one added
+    to the contract is bound too.
+    """
+    from superset_core.widgets import Widget
+
+    for hook, member in vars(Widget).items():
+        if isinstance(member, classmethod):
+            method = getattr(cls, hook).__func__
+            setattr(cls, hook, classmethod(bind_context(method, context)))
+
+
 def inject_widget_implementations() -> None:
     """
     Replace the abstract widget decorator in ``superset_core.widgets.decorators``
@@ -378,6 +397,8 @@ def inject_widget_implementations() -> None:
             except Exception:
                 registry.pop(key, None)
                 raise
+            if context:
+                _bind_widget_hooks(cls, context)
             return cls
 
         return decorator
