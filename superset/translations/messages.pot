@@ -26,7 +26,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-23 14:11+0300\n"
+"POT-Creation-Date: 2026-11-23 15:13+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3413,6 +3413,10 @@ msgstr ""
 
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
+msgstr ""
+
+#, python-format
+msgid "Chart archived: %s"
 msgstr ""
 
 msgid "Chart cache timeout"

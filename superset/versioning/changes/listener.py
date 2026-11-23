@@ -48,7 +48,7 @@ from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import event
-from sqlalchemy.exc import OperationalError, ProgrammingError
+from sqlalchemy.exc import DBAPIError, OperationalError, ProgrammingError
 from sqlalchemy.orm import Session, SessionTransaction
 
 from superset.versioning.changes.normalization import NORMALIZATION_CONTEXT_KEY
@@ -62,7 +62,10 @@ from superset.versioning.changes.state import (
     compute_records_from_state,
 )
 from superset.versioning.changes.table import ENTITY_KIND_BY_CLASS_NAME
-from superset.versioning.db_errors import is_missing_table_error
+from superset.versioning.db_errors import (
+    is_lost_transaction_error,
+    is_missing_table_error,
+)
 from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
@@ -213,7 +216,9 @@ def _build_scalar_buffer(
     for key, (obj, pre_state) in initial_states.items():
         try:
             records = compute_records_from_state(obj, pre_state)
-        except Exception:  # pylint: disable=broad-except
+        except Exception as error:  # pylint: disable=broad-except
+            if isinstance(error, DBAPIError) or is_lost_transaction_error(error):
+                raise
             logger.exception(
                 "version_changes: final diff failed for %s id=%s",
                 type(obj).__name__,
@@ -273,7 +278,9 @@ def _append_child_records_to_buffer(
                 buffer[key] = fold_dashboard_layout_with_chart_changes(buffer[key])
                 if not buffer[key]:
                     del buffer[key]
-    except Exception:  # pylint: disable=broad-except
+    except Exception as error:  # pylint: disable=broad-except
+        if isinstance(error, DBAPIError) or is_lost_transaction_error(error):
+            raise
         logger.exception("version_changes: child-diff failed for tx %s", tx_id)
         incr_capture_error("child_diff")
 
@@ -387,7 +394,9 @@ def _stamp_action_kind_on_transaction(
                     return
                 action_kind = ACTION_KIND_CREATE
             _write_action_kind(session, tx_tbl, tx_id, action_kind)
-    except Exception:  # pylint: disable=broad-except
+    except Exception as error:  # pylint: disable=broad-except
+        if is_lost_transaction_error(error):
+            raise
         logger.exception(
             "version_changes: failed to stamp action_kind=%s on tx %s",
             action_kind,
@@ -421,21 +430,53 @@ def _persist_buffered_records(
         with session.connection().begin_nested():
             bulk_insert_records(session, tx_id, buffer)
     except Exception as ex:  # pylint: disable=broad-except
+        if is_lost_transaction_error(ex):
+            raise
         if isinstance(
             ex, (OperationalError, ProgrammingError)
         ) and is_missing_table_error(ex):
             # version_changes table missing (migration not yet applied) —
             # the one genuinely benign case; stay quiet.
             return
-        # Everything else — a deadlock or dropped connection as much as a
-        # malformed record — is a real capture loss. Swallowing it silently
-        # made "the save succeeded but its history doesn't exist" invisible.
+        # Recoverable failures are capture loss. Logging keeps a successful
+        # save with missing history visible even without a metrics backend.
         logger.exception(
             "version_changes: bulk insert failed for tx %s (%d entities)",
             tx_id,
             len(buffer),
         )
         incr_capture_error("bulk_insert")
+
+
+def _capture_lifecycle(
+    session: Session,
+    initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]],
+) -> None:
+    """Skip ordinary collection failures while propagating unsafe database state."""
+    from superset.versioning.lifecycle import (
+        capture_chart_archives,
+        collect_chart_archives,
+        LifecycleCaptureFatalError,
+    )
+
+    try:
+        archives = collect_chart_archives(session, initial_states)
+    except LifecycleCaptureFatalError:
+        raise
+    except Exception as error:  # pylint: disable=broad-except
+        # Collection has no SQL savepoint. A failed database read cannot be
+        # assumed isolated, unlike an ordinary missing/deleted ORM instance.
+        if isinstance(error, DBAPIError) or is_lost_transaction_error(error):
+            raise
+        logger.exception("version_changes: archive transition collection failed")
+        incr_capture_error("lifecycle_collect")
+        archives = []
+    try:
+        capture_chart_archives(session, archives)
+    except LifecycleCaptureFatalError:
+        logger.exception("version_changes: fatal archive capture failure")
+        incr_capture_error("lifecycle_fatal")
+        raise
 
 
 def finalize_change_records(session: Session) -> None:
@@ -445,7 +486,17 @@ def finalize_change_records(session: Session) -> None:
     so the capture write path can be exercised directly by unit tests
     against an isolated session; it depends only on the session and the
     module helpers, never on the registered entity classes.
+
+    Ordinary computation failures may skip optional metadata. DBAPI failures in
+    unisolated scalar, child, transaction-lookup, or archive-collection reads
+    propagate because no savepoint rollback proves caller work survived. This
+    policy applies to ordinary content saves as well as archives, preventing a
+    successful commit response after the database rolled back the user's work.
     """
+    from sqlalchemy_continuum import versioning_manager
+
+    if not versioning_manager.options["versioning"]:
+        return
     if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
         return
     if not capture_for_write(session):
@@ -471,20 +522,21 @@ def finalize_change_records(session: Session) -> None:
 
         try:
             tx_id: int | None = _current_transaction_id(session)
-        except Exception:  # pylint: disable=broad-except
+        except Exception as error:  # pylint: disable=broad-except
+            if isinstance(error, DBAPIError) or is_lost_transaction_error(error):
+                raise
             logger.exception("version_changes: transaction lookup failed")
             incr_capture_error("transaction_lookup")
             return
-        if tx_id is None:
-            return
+        if tx_id is not None:
+            _stamp_action_kind_on_transaction(session, tx_id)
+            _append_child_records_to_buffer(session, tx_id, buffer)
+            _inject_action_meta_record(session, buffer)
 
-        _stamp_action_kind_on_transaction(session, tx_id)
-        _append_child_records_to_buffer(session, tx_id, buffer)
-        _inject_action_meta_record(session, buffer)
-
-        if buffer:
-            _persist_buffered_records(session, tx_id, buffer)
-        reconcile_parent_snapshots(session, tx_id)
+            if buffer:
+                _persist_buffered_records(session, tx_id, buffer)
+            reconcile_parent_snapshots(session, tx_id)
+        _capture_lifecycle(session, initial_states)
     finally:
         session.info.pop(_FINALIZING_KEY, None)
         if start is not None:

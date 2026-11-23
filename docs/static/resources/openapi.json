@@ -291,7 +291,7 @@
             "type": "string"
           },
           "entity_name": {
-            "description": "Name of the source entity *at the time of the change* \u2014 denormalized from the validity-strategy shadow row. Survives entity rename / delete.",
+            "description": "Name of the source entity *at the time of the change* \u2014 denormalized from the validity-strategy shadow row, or from the capture-time payload for ``__archive__`` records. Preserved across renames; redacted for deleted related entities.",
             "type": "string"
           },
           "entity_uuid": {
@@ -322,7 +322,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "Content category \u2014 what kind of thing changed. ``field`` is the fallback for scalar changes without a more specific category. Per-record.",
+            "description": "Content category \u2014 what kind of thing changed. ``field`` is the fallback for scalar changes without a more specific category. Per-record. ``__archive__`` announces a chart archive in related dashboard activity only.",
             "enum": [
               "filter",
               "metric",
@@ -339,7 +339,8 @@
               "color_palette",
               "field",
               "__meta__",
-              "__creation__"
+              "__creation__",
+              "__archive__"
             ],
             "type": "string"
           },
@@ -372,11 +373,11 @@
             "type": "string"
           },
           "summary": {
-            "description": "Synthesized headline for ``source: \"related\"`` records \u2014 e.g., ``\"Dataset updated: Sales Transactions\"``. Empty string for ``source: \"self\"`` records, except ``__meta__`` self records (e.g. restore announcements), which carry their own headline.",
+            "description": "Synthesized headline for ``source: \"related\"`` records \u2014 e.g., ``\"Dataset updated: Sales Transactions\"`` or ``\"Chart archived: Sales\"``. Empty string for ``source: \"self\"`` records, except ``__meta__`` self records (e.g. restore announcements), which carry their own headline.",
             "type": "string"
           },
           "to_value": {
-            "description": "New value; ``null`` = removed.",
+            "description": "New value; ``null`` = removed. For ``__archive__``, an object with the archived chart's ``entity_uuid`` and capture-time ``entity_name``; null when related detail is redacted.",
             "nullable": true
           },
           "transaction_id": {
