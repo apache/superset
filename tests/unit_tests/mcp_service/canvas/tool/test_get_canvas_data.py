@@ -60,10 +60,7 @@ class Kpis(Widget):
 @pytest.fixture
 def kpis() -> Iterator[type[Kpis]]:
     Kpis.asked = []
-    with patch(
-        "superset.commands.canvas.placement_data.get_widget_types",
-        return_value={KPIS: Kpis},
-    ):
+    with patch.dict("superset.widgets.registry.registry", {KPIS: Kpis}):
         yield Kpis
 
 

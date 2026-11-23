@@ -390,9 +390,8 @@ def test_preview_runs_an_extension_widget_types_own_queries() -> None:
     )
     with (
         patch(f"{PREVIEW}.load_draft", return_value=draft),
-        patch(
-            "superset.commands.canvas.placement_data.get_widget_types",
-            return_value={"extensions.acme.kpis.board": Kpis},
+        patch.dict(
+            "superset.widgets.registry.registry", {"extensions.acme.kpis.board": Kpis}
         ),
         patch(f"{PREVIEW}.run_binding", side_effect=rows_of),
         patch(f"{PREVIEW}.can_view_query", return_value=True),
