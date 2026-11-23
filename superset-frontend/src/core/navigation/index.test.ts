@@ -365,79 +365,78 @@ test('navigateTo still reaches the address before the shell hands over', async (
   expect(window.location.href).toBe('/extensions/pages/acme.tools.queue');
 });
 
-describe('a deployment served under a prefix', () => {
-  // Every value after the first comes from the router, whose `basename` is
-  // the application root, so `location.pathname` there is already relative to
-  // it. The seed does not come from the router -- it is the raw browser path
-  // -- so it has to be rooted away to match, or an `AppLocation` would
-  // sometimes carry the prefix and sometimes not.
-  test('getApplicationRoot reports the prefix', async () => {
-    mockApplicationRoot.mockReturnValue('/analytics');
-    const { navigation } = await importNavigation();
+// Under a deployment served from a prefix, every value after the first
+// comes from the router, whose `basename` is the application root, so
+// `location.pathname` there is already relative to it. The seed does not
+// come from the router -- it is the raw browser path -- so it has to be
+// rooted away to match, or an `AppLocation` would sometimes carry the
+// prefix and sometimes not.
+test('getApplicationRoot reports the prefix', async () => {
+  mockApplicationRoot.mockReturnValue('/analytics');
+  const { navigation } = await importNavigation();
 
-    expect(navigation.getApplicationRoot()).toBe('/analytics');
+  expect(navigation.getApplicationRoot()).toBe('/analytics');
+});
+
+test('getApplicationRoot is empty at a domain root', async () => {
+  const { navigation } = await importNavigation();
+
+  expect(navigation.getApplicationRoot()).toBe('');
+});
+
+test('a cold load onto a page reports "extension", prefix and all', async () => {
+  mockApplicationRoot.mockReturnValue('/analytics');
+  Object.defineProperty(window, 'location', {
+    writable: true,
+    value: {
+      pathname: '/analytics/extensions/pages/acme.tools.queue',
+      search: '',
+      assign: jest.fn(),
+    },
   });
 
-  test('getApplicationRoot is empty at a domain root', async () => {
-    const { navigation } = await importNavigation();
+  const { navigation } = await importNavigation();
 
-    expect(navigation.getApplicationRoot()).toBe('');
-  });
+  expect(navigation.getPage()).toBe('extension');
+});
 
-  test('a cold load onto a page reports "extension", prefix and all', async () => {
-    mockApplicationRoot.mockReturnValue('/analytics');
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: {
-        pathname: '/analytics/extensions/pages/acme.tools.queue',
-        search: '',
-        assign: jest.fn(),
-      },
-    });
-
-    const { navigation } = await importNavigation();
-
-    expect(navigation.getPage()).toBe('extension');
-  });
-
-  test('getLocation reports the path without the prefix', async () => {
-    mockApplicationRoot.mockReturnValue('/analytics');
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: {
-        pathname: '/analytics/extensions/pages/acme.tools.queue/42',
-        search: '?tab=open',
-        assign: jest.fn(),
-      },
-    });
-
-    const { navigation } = await importNavigation();
-
-    expect(navigation.getLocation()).toEqual({
-      pathname: '/extensions/pages/acme.tools.queue/42',
+test('getLocation reports the path without the prefix', async () => {
+  mockApplicationRoot.mockReturnValue('/analytics');
+  Object.defineProperty(window, 'location', {
+    writable: true,
+    value: {
+      pathname: '/analytics/extensions/pages/acme.tools.queue/42',
       search: '?tab=open',
-    });
+      assign: jest.fn(),
+    },
   });
 
-  test('a page strips its own address off either deployment the same way', async () => {
-    // Which is the point of reporting a root-relative path: the idiom in the
-    // docs does not have to know where the deployment is mounted.
-    mockApplicationRoot.mockReturnValue('/analytics');
-    const id = 'acme.tools.queue';
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: {
-        pathname: `/analytics/extensions/pages/${id}/42/edit`,
-        search: '',
-        assign: jest.fn(),
-      },
-    });
+  const { navigation } = await importNavigation();
 
-    const { navigation } = await importNavigation();
-
-    const subPath = navigation
-      .getLocation()
-      .pathname.slice(`/extensions/pages/${id}`.length);
-    expect(subPath).toBe('/42/edit');
+  expect(navigation.getLocation()).toEqual({
+    pathname: '/extensions/pages/acme.tools.queue/42',
+    search: '?tab=open',
   });
+});
+
+test('a page strips its own address off either deployment the same way', async () => {
+  // Which is the point of reporting a root-relative path: the idiom in the
+  // docs does not have to know where the deployment is mounted.
+  mockApplicationRoot.mockReturnValue('/analytics');
+  const id = 'acme.tools.queue';
+  Object.defineProperty(window, 'location', {
+    writable: true,
+    value: {
+      pathname: `/analytics/extensions/pages/${id}/42/edit`,
+      search: '',
+      assign: jest.fn(),
+    },
+  });
+
+  const { navigation } = await importNavigation();
+
+  const subPath = navigation
+    .getLocation()
+    .pathname.slice(`/extensions/pages/${id}`.length);
+  expect(subPath).toBe('/42/edit');
 });
