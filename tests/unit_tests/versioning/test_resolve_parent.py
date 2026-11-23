@@ -18,7 +18,12 @@
 resolves to its dataset, so the versioning hooks can give that save a new
 dataset version."""
 
-from sqlalchemy import Column, ForeignKeyConstraint, Integer
+from collections.abc import Iterator
+from contextlib import contextmanager
+from types import SimpleNamespace
+from typing import Any
+
+from sqlalchemy import Column, event, ForeignKeyConstraint, Integer
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm.session import Session
 
@@ -28,23 +33,92 @@ from superset.versioning.baseline.collection import (
 )
 
 
-def test_new_metric_resolves_to_its_dataset_by_foreign_key(session: Session) -> None:
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric
+def _dataset(session: Session, name: str = "t") -> Any:
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
 
     SqlaTable.metadata.create_all(session.get_bind())
     dataset = SqlaTable(
-        table_name="t",
-        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+        table_name=name,
+        database=Database(database_name=f"db_{name}", sqlalchemy_uri="sqlite://"),
     )
     session.add(dataset)
     session.flush()
+    return dataset
 
-    metric = SqlMetric(metric_name="m", expression="COUNT(*)", table_id=dataset.id)
+
+@contextmanager
+def _recorded_statements(session: Session) -> Iterator[list[str]]:
+    statements: list[str] = []
+
+    def record(*args: Any) -> None:
+        statements.append(args[2])
+
+    engine = session.get_bind()
+    event.listen(engine, "before_cursor_execute", record)
+    try:
+        yield statements
+    finally:
+        event.remove(engine, "before_cursor_execute", record)
+
+
+def _new_metric(dataset: Any) -> Any:
+    from superset.connectors.sqla.models import SqlMetric
+
+    return SqlMetric(metric_name="m", expression="COUNT(*)", table_id=dataset.id)
+
+
+def test_new_metric_resolves_to_its_dataset_by_foreign_key(session: Session) -> None:
+    dataset = _dataset(session)
+    metric = _new_metric(dataset)
     session.add(metric)
 
     assert metric.table is None
     assert resolve_parent(session, metric, child_to_parent_registry()) is dataset
+
+
+def test_lookup_of_a_loaded_dataset_issues_no_query(session: Session) -> None:
+    dataset = _dataset(session)
+    metric = _new_metric(dataset)
+    session.add(metric)
+    with _recorded_statements(session) as statements:
+        assert resolve_parent(session, metric, child_to_parent_registry()) is dataset
+
+    assert statements == []
+
+
+def test_metric_removed_from_its_dataset_resolves_without_a_query(
+    session: Session,
+) -> None:
+    """Removing a metric from ``dataset.metrics`` (delete-orphan) clears its
+    ``table`` but keeps ``table_id`` until the flush; the dataset is the one
+    being edited, so it's found in the identity map."""
+    dataset = _dataset(session)
+    metric = _new_metric(dataset)
+    session.add(metric)
+    session.flush()
+    dataset.metrics.remove(metric)
+    with _recorded_statements(session) as statements:
+        assert metric.table is None
+        assert resolve_parent(session, metric, child_to_parent_registry()) is dataset
+
+    assert statements == []
+
+
+def test_no_op_check_keeps_the_dataset_row_for_a_new_metric(session: Session) -> None:
+    """The dataset's own columns are unchanged in a metric-only save, so the
+    plugin would skip its version row unless it sees the new metric as the
+    dataset's child."""
+    from superset.versioning.factory import _has_dirty_versioned_children
+
+    dataset = _dataset(session)
+    other = _dataset(session, "other")
+    metric = _new_metric(dataset)
+    session.add(metric)
+    uow = SimpleNamespace(operations={"insert": SimpleNamespace(target=metric)})
+
+    assert _has_dirty_versioned_children(dataset, session, uow) is True
+    assert _has_dirty_versioned_children(other, session, uow) is False
 
 
 def test_child_without_a_foreign_key_resolves_to_nothing(session: Session) -> None:
