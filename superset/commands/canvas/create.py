@@ -25,11 +25,18 @@ from flask import current_app
 from marshmallow import ValidationError
 
 from superset.canvas.definition.ops import newly_unreadable
-from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.placements import placement_types
+from superset.canvas.definition.registry import (
+    get_widget_resolver,
+    get_widget_types,
+    TYPE_TURNED_OFF,
+    widget_type_enabled,
+)
 from superset.canvas.definition.schemas import canonical_widget_id, empty_definition
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
+    pointer,
 )
 from superset.canvas.definition.versions import (
     check_definition_version,
@@ -106,6 +113,14 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
         if denied := self._unreadable_bindings(definition):
             exceptions.append(ValidationError(denied, field_name="definition"))
             return
+        if turned_off := self._turned_off(definition):
+            exceptions.append(
+                ValidationError(
+                    {path: [TYPE_TURNED_OFF] for path in turned_off},
+                    field_name="definition",
+                )
+            )
+            return
         self._properties["definition"] = json.dumps(definition)
         self._properties["definition_version"] = definition["version"]
         self._properties["revision"] = 1
@@ -127,6 +142,22 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
                 pointer = "/".join(("", "nodes", node_id, "props", *path))
                 denied[pointer] = [f"unknown dataset {dataset_id}, or no access to it"]
         return denied
+
+    @staticmethod
+    def _turned_off(definition: dict[str, Any]) -> list[str]:
+        """Where ``definition`` places a widget type the host has turned off."""
+        nodes = definition["nodes"]
+        return [
+            pointer(
+                "nodes",
+                node_id,
+                "widgetId" if "widgetId" in nodes[node_id] else "widgetType",
+            )
+            for node_id, widget in placement_types(
+                nodes, get_widget_types(), get_widget_resolver()
+            ).items()
+            if not widget_type_enabled(widget.widget_type)
+        ]
 
     @staticmethod
     def _hidden_widgets(raw: Any) -> dict[str, str]:

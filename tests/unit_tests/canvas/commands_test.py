@@ -93,6 +93,33 @@ def test_create_reveals_nothing_about_a_widget_placed_where_it_cannot_go(
     }
 
 
+def test_create_refuses_a_type_turned_off(
+    create_deps: None, mocker: MockerFixture
+) -> None:
+    mocker.patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"chart", "group"})},
+    )
+    command = create_command(
+        {
+            "title": "x",
+            "definition": canvas(
+                {"a": node("chart-1"), "g": inline("group"), "k": node("xchart-1")}
+            ),
+        }
+    )
+
+    with pytest.raises(CanvasInvalidError) as excinfo:
+        command.validate()
+
+    assert excinfo.value.normalized_messages() == {
+        "definition": {
+            "/nodes/a/widgetId": ["this widget type is turned off"],
+            "/nodes/g/widgetType": ["this widget type is turned off"],
+        }
+    }
+
+
 def test_create_refuses_a_binding_to_a_dataset_the_author_cannot_read(
     create_deps: None, mocker: MockerFixture
 ) -> None:

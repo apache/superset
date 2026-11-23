@@ -18,23 +18,56 @@
 Where the canvas looks up widget types and persisted widgets.
 
 Widget types come from the registry, which built-ins and extensions register
-into with ``@widget``; widget entities through a ``WidgetResolver``.
+into with ``@widget``; widget entities through a ``WidgetResolver``. The host
+may turn a registered type off (``widget_type_enabled``).
 """
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 
+from flask import current_app, has_app_context
 from superset_core.canvas import WidgetResolver
 from superset_core.widgets import Widget
 
+logger = logging.getLogger(__name__)
+
 WidgetTypes = Mapping[str, type[Widget]]
+
+TYPE_TURNED_OFF = "this widget type is turned off"
 
 
 def get_widget_types() -> WidgetTypes:
     from superset.widgets.registry import registry
 
     return registry
+
+
+def widget_type_enabled(widget_type: str) -> bool:
+    """
+    Whether the host has ``widget_type`` on, asked on every call:
+    ``CANVAS_WIDGET_TYPE_ENABLED_FUNC`` when it is set, otherwise
+    ``CANVAS_DISABLED_WIDGET_TYPES``. Every type is on outside an app.
+
+    A check that raises turns the type off, so a failed lookup never turns on
+    a type the host meant to keep off.
+    """
+    if not has_app_context():
+        return True
+    config = current_app.config
+    if (enabled := config.get("CANVAS_WIDGET_TYPE_ENABLED_FUNC")) is not None:
+        try:
+            return bool(enabled(widget_type))
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "CANVAS_WIDGET_TYPE_ENABLED_FUNC raised for widget_type=%r; "
+                "turning it off",
+                widget_type,
+                exc_info=True,
+            )
+            return False
+    return widget_type not in (config.get("CANVAS_DISABLED_WIDGET_TYPES") or ())
 
 
 _resolver: WidgetResolver | None = None

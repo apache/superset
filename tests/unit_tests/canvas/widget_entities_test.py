@@ -328,6 +328,40 @@ def test_publishing_a_draft_resolves_layout_once_per_request(
     assert rows == {"a": 1, "b": 5}
 
 
+def test_a_type_turned_off_after_a_draft_added_it_stops_the_commit(
+    canvas: Any, session: Session, draft_cache: SimpleCache, mocker: MockerFixture
+) -> None:
+    from superset.commands.canvas.draft import (
+        ApplyCanvasDraftOperationsCommand,
+        CommitCanvasDraftCommand,
+        CreateCanvasDraftCommand,
+        load_draft,
+    )
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+    from superset.widgets.models import Widget
+
+    draft = CreateCanvasDraftCommand(canvas.id).run()
+    draft, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops({"op": "add", "id": "sales", "widgetType": "chart"})
+    ).run()
+    mocker.patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"chart"})},
+    )
+
+    # Publishing the draft adds the type to the canvas, as an add would.
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    assert [issue.message for issue in excinfo.value.issues] == [
+        "this widget type is turned off"
+    ]
+    assert canvas.revision == 1
+    assert session.query(Widget).count() == 0
+    # The draft is kept, so its author can remove the placement and publish.
+    assert load_draft(draft.token).revision == draft.revision
+
+
 @pytest.mark.parametrize(
     "scenario",
     ["separate", "batch", "parent", "sibling", "shared_placement", "readded"],

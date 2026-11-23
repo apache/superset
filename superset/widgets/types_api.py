@@ -25,6 +25,7 @@ from flask_appbuilder.hooks import before_request
 from flask_babel import gettext as _
 
 from superset import is_feature_enabled
+from superset.canvas.definition.registry import widget_type_enabled
 from superset.extensions import event_logger
 from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
@@ -94,6 +95,7 @@ class WidgetControlsRestApi(BaseSupersetApi):
         result = [
             {"id": cls.widget_type, "name": cls.name, "description": cls.description}
             for cls in registry.values()
+            if widget_type_enabled(cls.widget_type)
         ]
         return self.response(200, result=result)
 
@@ -183,7 +185,7 @@ class WidgetControlsRestApi(BaseSupersetApi):
               $ref: '#/components/responses/404'
         """
         widget = registry.get(widget_type)
-        if widget is None:
+        if widget is None or not widget_type_enabled(widget_type):
             return self.response_404()
         # GET carries no body (and no CSRF); tolerate a missing/non-JSON body so
         # the base schema is returned for a plain read. A body that IS present
@@ -304,7 +306,7 @@ class WidgetControlsRestApi(BaseSupersetApi):
               $ref: '#/components/responses/404'
         """
         widget = registry.get(widget_type)
-        if widget is None:
+        if widget is None or not widget_type_enabled(widget_type):
             return self.response_404()
         body = request.get_json(silent=True) or {}
         if not isinstance(body, dict):

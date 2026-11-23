@@ -24,6 +24,7 @@ from typing import Any, Dict, List
 
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.canvas.definition.registry import widget_type_enabled
 from superset.canvas.definition.schemas import DEFINITION_VERSION
 from superset.mcp_service.widgets.schemas import ListWidgetTypesResponse
 from superset.mcp_service.widgets.utils import registry
@@ -59,7 +60,7 @@ def _required_props(cls: Any) -> List[str] | None:
 
 
 def _list_widget_types_impl() -> List[Dict[str, Any]]:
-    """Pure logic: the registered schema-driven widget types."""
+    """Pure logic: the registered schema-driven widget types the host has on."""
     return [
         {
             "id": cls.widget_type,
@@ -70,6 +71,7 @@ def _list_widget_types_impl() -> List[Dict[str, Any]]:
             "canvas": _canvas_facts(cls) or None,
         }
         for cls in registry.values()
+        if widget_type_enabled(cls.widget_type)
     ]
 
 

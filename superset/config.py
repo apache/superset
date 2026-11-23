@@ -1408,6 +1408,20 @@ CANVAS_DRAFT_TTL_SECONDS: int = 7 * 24 * 60 * 60
 # such as by an agent working in the same draft. 0 turns checking off.
 CANVAS_DRAFT_POLL_INTERVAL: int = 5
 
+# Canvas widget types to turn off, by id, such as {"markdown"} or
+# {"extensions.acme.reports.report"}. A type that is turned off is left out of
+# the widget type lists, has no control schema, and can't be added to a canvas
+# or a draft. Placements that already hold one render as unavailable, and its
+# data isn't served.
+CANVAS_DISABLED_WIDGET_TYPES: frozenset[str] = frozenset()
+
+# A per-request check, called as CANVAS_WIDGET_TYPE_ENABLED_FUNC(widget_type)
+# on every lookup, for a host that turns types on and off by user, workspace or
+# request. When set, CANVAS_DISABLED_WIDGET_TYPES is ignored. It must be cheap
+# and in-process, such as a feature flag already loaded in flask.g. If it
+# raises, the type is turned off and a warning is logged.
+CANVAS_WIDGET_TYPE_ENABLED_FUNC: Callable[[str], bool] | None = None
+
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
 

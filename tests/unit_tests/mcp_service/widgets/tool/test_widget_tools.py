@@ -53,6 +53,20 @@ def test_list_widget_types_impl() -> None:
     assert {"metric-tile", "ag-grid-table", "echarts"} <= ids
 
 
+def test_widget_types_turned_off_are_neither_listed_nor_described() -> None:
+    with patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"markdown"})},
+    ):
+        ids = {b["id"] for b in _list_widget_types_impl()}
+        result = _get_widget_control_schema_impl("markdown")
+
+    assert "markdown" not in ids
+    assert {"metric-tile", "ag-grid-table"} <= ids
+    assert result["error"]["error_type"] == "invalid_widget_type"
+    assert "markdown" not in result["valid_widget_types"]
+
+
 def test_list_widget_types_names_required_props_and_grid_columns() -> None:
     types = {b["id"]: b for b in _list_widget_types_impl()}
 
