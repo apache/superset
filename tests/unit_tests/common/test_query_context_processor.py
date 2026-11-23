@@ -1664,6 +1664,84 @@ def test_ensure_totals_available_updates_cache_values():
     )
 
 
+def test_ensure_totals_available_contribution_without_options():
+    """
+    A contribution entry with no ``options`` key is valid input, since
+    ``options`` is optional in the post-processing schema.
+    ensure_totals_available must create ``options`` rather than raising
+    ``KeyError``, which previously escaped as a 500.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+
+    # Main query carries a contribution operation with no options dict.
+    main_query = QueryObject(
+        datasource=mock_datasource,
+        columns=["brokerage"],
+        metrics=["Amount In"],
+        row_limit=50000,
+        post_processing=[{"operation": "contribution"}],
+    )
+    # Totals query: no columns, has metrics, no post-processing.
+    totals_query = QueryObject(
+        datasource=mock_datasource,
+        columns=[],
+        metrics=["Amount In"],
+        row_limit=50000,
+        post_processing=[],
+    )
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.datasource = mock_datasource
+    mock_query_context.queries = [main_query, totals_query]
+    mock_query_context.result_type = "full"
+    mock_query_context.cache_values = {
+        "datasource": {"type": "table", "id": 1},
+        "queries": [
+            {
+                "columns": ["brokerage"],
+                "metrics": ["Amount In"],
+                "row_limit": 50000,
+                "post_processing": [{"operation": "contribution"}],
+            },
+            {
+                "columns": [],
+                "metrics": ["Amount In"],
+                "row_limit": 50000,
+                "post_processing": [],
+            },
+        ],
+        "result_type": "full",
+        "result_format": "json",
+    }
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    mock_query_result = MagicMock()
+    mock_query_result.df = pd.DataFrame({"Amount In": [40771550101.81883]})
+
+    with patch.object(
+        mock_query_context, "get_query_result", return_value=mock_query_result
+    ):
+        # Must not raise KeyError: 'options'.
+        processor.ensure_totals_available()
+
+    assert main_query.post_processing[0]["options"]["contribution_totals"] == {
+        "Amount In": 40771550101.81883
+    }
+
+
 def test_get_df_payload_validates_before_cache_key_generation():
     """
     Test that get_df_payload calls validate() before generating cache key.
@@ -2458,9 +2536,11 @@ def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     processor._qc_datasource = mock_datasource
 
     captured_columns: list[list[Any]] = []
+    captured_limits: list[int | None] = []
 
     def fake_get_query_result(sub_query: QueryObject) -> QueryResult:
         captured_columns.append(copy.copy(sub_query.columns))
+        captured_limits.append(sub_query.row_limit)
         return QueryResult(
             df=pd.DataFrame({"metric": [1]}),
             query="SELECT 1",
@@ -2478,6 +2558,7 @@ def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     assert captured_columns[1] == [adhoc_col]
     # Grand total level has no groupby columns.
     assert captured_columns[2] == []
+    assert captured_limits == [None, None, None]
 
 
 def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
@@ -2529,6 +2610,136 @@ def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
     # ...and the requested offset is applied exactly once, to the combined
     # result: 2 + 1 = 3 total rows in, minus an offset of 1 = 2 rows out.
     assert len(result.df) == 2
+
+
+def test_semantic_grouping_sets_fallback_bounds_each_level(app: Flask) -> None:
+    """A semantic rollup must refuse incomplete levels before showing totals."""
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    datasource: MagicMock = MagicMock()
+    datasource.type = "semantic_view"
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        grouping_sets=[["region"], []],
+        row_limit=3,
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = datasource
+
+    def execute(sub_query: QueryObject) -> QueryResult:
+        assert sub_query.row_limit == 3
+        assert sub_query.row_offset == 0
+        return QueryResult(
+            df=pd.DataFrame({"sales": [1, 2]}),
+            query="SELECT sales",
+            duration=timedelta(0),
+        )
+
+    datasource.get_query_result.side_effect = execute
+    result: QueryResult = processor._grouping_sets_fallback(query)
+    assert len(result.df) == 4
+    assert datasource.get_query_result.call_count == 2
+
+    datasource.get_query_result.reset_mock()
+
+    def full_level(sub_query: QueryObject) -> QueryResult:
+        return QueryResult(
+            df=pd.DataFrame({"sales": [1, 2, 3]}),
+            query="SELECT sales",
+            duration=timedelta(0),
+        )
+
+    datasource.get_query_result.side_effect = full_level
+    with pytest.raises(QueryObjectValidationError, match="Pivot Table.*limit"):
+        processor._grouping_sets_fallback(query)
+    assert datasource.get_query_result.call_count == 1
+
+
+def test_semantic_grouping_sets_fallback_rejects_too_many_levels(app: Flask) -> None:
+    """The fallback must reject large rollups before any provider call."""
+    from superset.common.query_object import QueryObject
+
+    datasource: MagicMock = MagicMock()
+    datasource.type = "semantic_view"
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        grouping_sets=[["region"]] * 10,
+        row_limit=3,
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = datasource
+
+    with pytest.raises(QueryObjectValidationError, match="Pivot Table.*levels"):
+        processor._grouping_sets_fallback(query)
+    datasource.get_query_result.assert_not_called()
+
+
+def test_semantic_grouping_sets_fallback_caps_saved_limit(app: Flask) -> None:
+    """A saved high cell limit cannot bypass the per-level query bound."""
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    datasource: MagicMock = MagicMock()
+    datasource.type = "semantic_view"
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        grouping_sets=[["region"]],
+        row_limit=50000,
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = datasource
+
+    def execute(sub_query: QueryObject) -> QueryResult:
+        assert sub_query.row_limit == 10000
+        return QueryResult(
+            df=pd.DataFrame({"sales": [1]}),
+            query="SELECT sales",
+            duration=timedelta(0),
+        )
+
+    datasource.get_query_result.side_effect = execute
+    processor._grouping_sets_fallback(query)
+    datasource.get_query_result.assert_called_once()
+
+    with patch.dict(app.config, {"ROW_LIMIT": 5}):
+        datasource.get_query_result.reset_mock()
+
+        def config_capped(sub_query: QueryObject) -> QueryResult:
+            assert sub_query.row_limit == 5
+            return execute_result
+
+        execute_result: QueryResult = QueryResult(
+            df=pd.DataFrame({"sales": [1]}),
+            query="SELECT sales",
+            duration=timedelta(0),
+        )
+        datasource.get_query_result.side_effect = config_capped
+        processor._grouping_sets_fallback(query)
+        datasource.get_query_result.assert_called_once()
+
+
+def test_semantic_grouping_sets_fallback_refuses_saved_offset(app: Flask) -> None:
+    """A saved offset cannot remove totals from a semantic pivot."""
+    from superset.common.query_object import QueryObject
+
+    datasource: MagicMock = MagicMock()
+    datasource.type = "semantic_view"
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        grouping_sets=[["region"]],
+        row_offset=1,
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = datasource
+
+    with pytest.raises(QueryObjectValidationError, match="Pivot Table pagination"):
+        processor._grouping_sets_fallback(query)
+    datasource.get_query_result.assert_not_called()
 
 
 def test_grouping_sets_fallback_mixed_levels_exact() -> None:
@@ -3096,7 +3307,7 @@ def test_semantic_annotation_generation_versions_sql_parent(
     assert old == {
         "user_id": 42,
         "source_rls": {"7": ["scope"]},
-        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "semantic_filter_protocol": "semantic-null-filters-v2",
         "source_versions": {"7": view.metadata_generation},
     }
     assert new != old
@@ -3305,7 +3516,7 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     assert current_key != legacy_key
     assert context == {
         **legacy_context,
-        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "semantic_filter_protocol": "semantic-null-filters-v2",
         "source_versions": {"7": view.metadata_generation},
     }
 
@@ -3343,3 +3554,220 @@ def test_get_df_payload_keeps_dataset_validation_type() -> None:
     assert isinstance(payload["error"], QueryObjectValidationMessage)
     assert payload["error"] == "Columns missing in dataset: ['missing']"
     cache.set_query_result.assert_not_called()
+
+
+def _stub_result(df: pd.DataFrame | None = None, status: str | None = None):
+    from datetime import timedelta
+
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.helpers import QueryResult
+
+    return QueryResult(
+        df=pd.DataFrame({"metric": [1]}) if df is None else df,
+        query="SELECT 1",
+        duration=timedelta(seconds=0),
+        status=status or QueryStatus.SUCCESS,
+    )
+
+
+def test_get_query_result_is_skipped_once_a_stop_was_requested() -> None:
+    """A Stop that landed before this statement started keeps it off the warehouse."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["state"])
+
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        return_value=True,
+    ) as requested:
+        result = processor.get_query_result(query_obj)
+
+    requested.assert_called_once_with("client-1")
+    mock_datasource.get_query_result.assert_not_called()
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message
+    assert result.df.empty
+
+
+def test_grouping_sets_fallback_stops_at_a_failed_level() -> None:
+    """A failed (or cancelled) level ends the fallback with that failure.
+
+    Running the remaining levels would let a later level's SUCCESS overwrite
+    the failure, and the partial concatenation would then be cached as a
+    complete result.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state"],
+        grouping_sets=[["state"], []],
+    )
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+
+    failed = _stub_result(df=pd.DataFrame(), status=QueryStatus.FAILED)
+    failed.error_message = "canceling statement due to user request"
+    mock_datasource.get_query_result.side_effect = [failed, _stub_result()]
+
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        return_value=False,
+    ):
+        result = processor._grouping_sets_fallback(query_obj)
+
+    assert result is failed
+    assert mock_datasource.get_query_result.call_count == 1
+
+
+def test_grouping_sets_fallback_honours_a_stop_between_levels() -> None:
+    """Each level checks the cancel intent, so a Stop in the gap skips the rest."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state"],
+        grouping_sets=[["state"], []],
+    )
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = mock_datasource
+    mock_datasource.get_query_result.return_value = _stub_result()
+
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        side_effect=[False, True],
+    ):
+        result = processor._grouping_sets_fallback(query_obj)
+
+    assert mock_datasource.get_query_result.call_count == 1
+    assert result.status == QueryStatus.FAILED
+
+
+def test_ensure_totals_available_runs_the_totals_query_cancellably() -> None:
+    """The totals query runs inside the same cancel scope as the chart queries."""
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.database = MagicMock()
+    totals_query = QueryObject(datasource=mock_datasource, columns=["state"])
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    query_context.queries = [totals_query]
+    query_context.get_query_result.return_value = _stub_result()
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = mock_datasource
+
+    scope = MagicMock()
+    with (
+        patch(
+            "superset.common.query_context_processor.cancellable_chart_query",
+            scope,
+        ),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "_resolve_forced_query", return_value=False),
+    ):
+        processor.ensure_totals_available(queries_needing_totals=[0], totals_idx=0)
+
+    scope.assert_called_once_with("client-1", mock_datasource.database)
+    scope.return_value.__enter__.assert_called_once()
+    query_context.get_query_result.assert_called_once_with(totals_query)
+
+
+def test_main_query_runs_inside_the_cancel_scope() -> None:
+    """The main query is wrapped so Stop cancels the warehouse query itself."""
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.client_id = "client-1"
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["col1"])
+    cache = MagicMock(
+        is_loaded=False,
+        df=pd.DataFrame(),
+        error_message=None,
+        bq_memory_limited=False,
+    )
+    scope = MagicMock()
+
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as cache_manager,
+        patch(
+            "superset.common.query_context_processor.cancellable_chart_query",
+            scope,
+        ),
+        patch.object(query_obj, "validate", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=3600),
+        patch.object(
+            processor, "get_query_result", return_value=_stub_result()
+        ) as get_query_result,
+        patch.object(processor, "get_annotation_data", return_value={}),
+    ):
+        cache_manager.get.return_value = cache
+        processor.get_df_payload(query_obj)
+
+    scope.assert_called_once_with("client-1", mock_datasource.database)
+    scope.return_value.__enter__.assert_called_once()
+    get_query_result.assert_called_once_with(query_obj)
+
+
+def test_get_payload_result_scopes_the_run_for_cancellation() -> None:
+    """The run-level scope wraps the whole payload, clearing the intent after."""
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    query_context.queries = []
+    query_context.prepare_contribution_totals.return_value = ([], None)
+    query_context.cache_values = {"queries": []}
+    processor = QueryContextProcessor(query_context)
+
+    run = MagicMock()
+    with patch("superset.common.query_context_processor.chart_query_run", run):
+        result = processor.get_payload_result(force_cached=True)
+
+    run.assert_called_once_with("client-1")
+    run.return_value.__enter__.assert_called_once()
+    run.return_value.__exit__.assert_called_once()
+    assert result.queries == ()
+
+
+def test_get_query_result_discards_a_result_stopped_mid_statement() -> None:
+    """A Stop landing during the statement must not leave a cacheable result."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.get_query_result.return_value = _stub_result()
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["state"])
+
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        side_effect=[False, True],
+    ):
+        result = processor.get_query_result(query_obj)
+
+    mock_datasource.get_query_result.assert_called_once()
+    assert result.status == QueryStatus.FAILED
+    assert result.df.empty

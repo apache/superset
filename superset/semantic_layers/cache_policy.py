@@ -345,7 +345,11 @@ def select_reuse(
     entry: CachedEntry,
     capabilities: ContainmentCapabilities,
 ) -> ReuseDecision | None:
-    """Prove whether and how a cached descriptor can satisfy a query."""
+    """Prove descriptor compatibility; transformation checks rollup row bounds.
+
+    Descriptors do not contain the post-filter, post-rollup cardinality needed
+    to prove that a limited result can be served without cutting rows.
+    """
     # Compare the order the rows were cut by, defaults included: two unordered
     # queries can default to different temporal dimensions.
     order_compatible: bool = (
@@ -373,7 +377,8 @@ def select_reuse(
         return None
     # EXACT and PROJECT keep the cached row order. A rollup comes from an
     # unlimited entry and is re-sorted by the default order, so the order the
-    # entry was stored in does not matter.
+    # entry was stored in does not matter. The transform must refuse a limited
+    # rollup if it would cut rows under provider-defined NULL/tie ordering.
     if mode is not ReuseMode.ROLLUP and not order_compatible:
         return None
     if mode is ReuseMode.ROLLUP and query.order:

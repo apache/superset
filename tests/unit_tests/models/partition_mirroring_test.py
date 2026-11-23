@@ -27,15 +27,17 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from importlib.util import find_spec
 from pathlib import Path
-from typing import Any
+from typing import Any, cast, NamedTuple
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 import sqlalchemy as sa
 from flask import Flask
+from sqlglot import exp
 
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -57,6 +59,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.models.helpers import ExploreMixin
+from superset.sql.parse import SQLStatement
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
@@ -144,7 +147,8 @@ def _rendering_dates_like_presto(table: SqlaTable) -> Any:
     )
 
 
-def _query(table: SqlaTable, **kwargs: Any) -> str:
+def _query_obj(**kwargs: Any) -> dict[str, Any]:
+    """A minimal chart query grouping by ``country``, overridden by ``kwargs``."""
     defaults: dict[str, Any] = {
         "columns": ["country"],
         "metrics": [],
@@ -155,7 +159,11 @@ def _query(table: SqlaTable, **kwargs: Any) -> str:
         "is_timeseries": False,
     }
     defaults.update(kwargs)
-    result = table.get_sqla_query(**defaults)
+    return defaults
+
+
+def _query(table: SqlaTable, **kwargs: Any) -> str:
+    result = table.get_sqla_query(**_query_obj(**kwargs))
     return str(
         result.sqla_query.compile(compile_kwargs={"literal_binds": True})
     ).replace("\n", " ")
@@ -272,6 +280,41 @@ def test_a_text_column_s_bound_is_not_rounded_as_though_it_were_temporal(
 
     # Handed through untouched: no rounding, and no seconds-shaped rewrite.
     assert probe.call_args.args[-1] == ["2026-07-06T10:08:11.500000"]
+
+
+def test_an_iso_string_on_a_text_column_flagged_temporal_is_probed_verbatim(
+    app: Flask,
+) -> None:
+    """
+    `is_dttm` can mark a column stored as text, and there the engine compares
+    the text with the text: nothing is cast to an instant, so the probe has to
+    see the string exactly as the filter carries it. Read as temporal, the
+    equality would reach the probe as a `datetime` and answer in another
+    spelling than the rows hold.
+    """
+    table = _table(
+        transform=":value",
+        monotonic=True,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+    next(c for c in table.columns if c.column_name == "country").is_dttm = True
+
+    with app.app_context():
+        with patch(PROBE, return_value=["2026-07-06T10:08:11"]) as probe:
+            _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": "2026-07-06T10:08:11",
+                    }
+                ],
+            )
+
+    assert probe.call_args.args[-1] == ["2026-07-06T10:08:11"]
 
 
 def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
@@ -1441,7 +1484,8 @@ def test_a_string_in_list_of_dates_mirrors_element_wise(app: Flask) -> None:
     """
     The guard above is about a *time of day*, not about `IN` on a DATE column:
     every member at the start of its day is compared in full, so the list
-    mirrors and the pruning is kept.
+    mirrors and the pruning is kept -- probed at the days themselves, which is
+    what the engine compares.
     """
     table = _mapped_date_table()
 
@@ -1459,7 +1503,7 @@ def test_a_string_in_list_of_dates_mirrors_element_wise(app: Flask) -> None:
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["2026-01-01", "2026-01-02"]
+    assert probe.call_args.args[-1] == [date(2026, 1, 1), date(2026, 1, 2)]
     assert "dt_epoch IN (1767225600, 1767312000)" in sql
 
 
@@ -1516,12 +1560,21 @@ def test_a_string_upper_bound_rounds_outward_on_a_date_column(app: Flask) -> Non
     assert "dt_epoch <= 1768953600" in sql
 
 
-def test_a_date_only_string_equality_still_mirrors_unchanged(app: Flask) -> None:
+@pytest.mark.parametrize(
+    "value",
+    ["2026-01-01", "2026-01-01T00:00:00", "2026-01-01 00:00:00"],
+    ids=["date", "iso-t-midnight", "midnight"],
+)
+def test_a_midnight_string_equality_on_a_date_column_probes_the_day(
+    app: Flask, value: str
+) -> None:
     """
-    A value the engine compares in full is left exactly as it arrived, down to
-    the type the probe binds: reading the string back into an instant would
-    change the bind type and the probe's cache key on a query that was already
-    correct, for no gain at all.
+    The engine casts the text to the column's type and compares the day, so
+    the probe is handed the day whatever the spelling. Handed the text
+    verbatim, ``CAST(:value AS TEXT)`` onto a text day key answered
+    ``'2026-01-01T00:00:00'`` -- what drill-by sends at the "Original value"
+    grain -- and the mirror asked for a key no row holds: 0 rows on Postgres
+    where the filter matched 78.
     """
     table = _mapped_date_table()
 
@@ -1534,12 +1587,12 @@ def test_a_date_only_string_equality_still_mirrors_unchanged(app: Flask) -> None
                         {
                             "col": "event_date",
                             "op": FilterOperator.EQUALS.value,
-                            "val": "2026-01-01",
+                            "val": value,
                         }
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["2026-01-01"]
+    assert probe.call_args.args[-1] == [date(2026, 1, 1)]
     assert "dt_epoch = 1767225600" in sql
 
 
@@ -1572,14 +1625,18 @@ def test_a_datetime_lower_bound_rounds_outward_instead_of_declining(
     assert "dt_epoch >= 1767571200" in sql
 
 
-def test_a_string_filter_value_is_untouched_on_a_full_precision_engine(
-    app: Flask,
+@pytest.mark.parametrize(
+    "value", ["2026-01-05 10:00:00", "2026-01-05T10:00:00"], ids=["space", "iso-t"]
+)
+def test_a_string_filter_value_is_probed_as_its_instant_on_a_full_precision_engine(
+    app: Flask, value: str
 ) -> None:
     """
-    The widening is detected, not enumerated per engine. An engine whose
-    literal carries the whole value needs none of this, and substituting an
-    instant for the text would move the probe off the cache entry every
-    already-correct query shares.
+    An engine whose literal carries the whole value needs no widening, but it
+    still compares the instant the text denotes, not the text: Postgres reads
+    ``'2026-01-05T10:00:00'`` into the same timestamp as the spaced spelling.
+    Probed verbatim, ``CAST(:value AS TEXT)`` answered in the author's spelling
+    and the mirror asked for a key no row holds.
     """
     table = _table()
 
@@ -1596,18 +1653,18 @@ def test_a_string_filter_value_is_untouched_on_a_full_precision_engine(
                         {
                             "col": "event_time",
                             "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
-                            "val": "2026-01-05 10:00:00",
+                            "val": value,
                         }
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["2026-01-05 10:00:00"]
+    assert probe.call_args.args[-1] == [datetime(2026, 1, 5, 10, 0)]
 
 
-def test_a_string_in_list_is_untouched_on_a_full_precision_engine(
+def test_a_string_in_list_is_probed_as_instants_on_a_full_precision_engine(
     app: Flask,
 ) -> None:
-    """The `IN` counterpart: the new element-wise routing disturbs nothing."""
+    """The `IN` counterpart, member by member."""
     table = _table()
 
     with app.app_context():
@@ -1629,8 +1686,8 @@ def test_a_string_in_list_is_untouched_on_a_full_precision_engine(
                 )
 
     assert probe.call_args.args[-1] == [
-        "2026-01-01 10:00:00",
-        "2026-01-02 09:00:00",
+        datetime(2026, 1, 1, 10, 0),
+        datetime(2026, 1, 2, 9, 0),
     ]
     assert "dt_epoch IN (1, 2)" in sql
 
@@ -1722,15 +1779,15 @@ def test_an_unreadable_member_declines_an_in_list_on_a_date_column(
     assert "dt_epoch" not in sql
 
 
-def test_an_unreadable_string_is_left_alone_on_a_full_precision_engine(
+def test_an_unreadable_string_declines_on_a_full_precision_engine(
     app: Flask,
 ) -> None:
     """
-    The decline belongs to the coarseness, not to the format. On a TIMESTAMP
-    column the engine compares the whole string the chart author typed, so there
-    is nothing for the server to resolve and the probe is handed the text as it
-    arrived -- which is what keeps the same non-ISO filter working on a
-    timestamp mapped column while it declines on a DATE one.
+    A TIMESTAMP column declines a non-ISO string too. The engine compares the
+    instant it reads the text as -- Postgres reads ``'07/06/2026 10:08:11'``
+    under its ``DateStyle`` -- and the server cannot read it the same way
+    without guessing, so there is no instant to probe. Handing the probe the
+    text instead is what ``CAST(:value AS TEXT)`` answered wrongly.
     """
     table = _table()
 
@@ -1752,8 +1809,8 @@ def test_an_unreadable_string_is_left_alone_on_a_full_precision_engine(
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["07/06/2026 10:08:11"]
-    assert "dt_epoch = 1783332491" in sql
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
 
 
 def _on_postgres(table: SqlaTable) -> SqlaTable:
@@ -4010,6 +4067,37 @@ def test_a_retried_statement_the_denylist_allows_still_recovers(
     assert "dt_key" not in executed[1]
 
 
+def _epoch_bucket_transform(bucket: int) -> str:
+    """The hourly (3600) or daily (86400) epoch-key recipe for Hive and Impala."""
+    return f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
+
+
+def _epoch_bucket_filter(operator: str) -> dict[str, Any]:
+    """
+    A chart filter on ``event_time`` for ``operator``.
+
+    ``range`` is the time range control; the rest are ad-hoc filters at
+    2026-10-01 10:30:00, with ``IN`` adding 2026-10-02 11:59:59.
+    """
+    if operator == "range":
+        return {
+            "granularity": "event_time",
+            "from_dttm": datetime(2026, 10, 1, 10, 30),
+            "to_dttm": datetime(2026, 10, 2, 10, 30),
+        }
+    return {
+        "filter": [
+            {
+                "col": "event_time",
+                "op": operator,
+                "val": ["2026-10-01 10:30:00", "2026-10-02 11:59:59"]
+                if operator == "IN"
+                else "2026-10-01 10:30:00",
+            }
+        ]
+    }
+
+
 # A comment the owner wrote is inert: it is removed before the probe compiles,
 # so it costs neither rows nor pruning.
 @pytest.mark.parametrize("comment", ["", " -- floor to the bucket"])
@@ -4051,30 +4139,8 @@ def test_epoch_bucket_queries_preserve_actual_rows(
     ]
     rows.append(("null_partition", "2026-10-01 10:30:00", None))
     connection.executemany("INSERT INTO web_events VALUES (?, ?, ?)", rows)
-    table = _table(
-        transform=(
-            f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
-            f"{comment}"
-        )
-    )
-    if operator == "range":
-        arguments = {
-            "granularity": "event_time",
-            "from_dttm": datetime(2026, 10, 1, 10, 30),
-            "to_dttm": datetime(2026, 10, 2, 10, 30),
-        }
-    else:
-        arguments = {
-            "filter": [
-                {
-                    "col": "event_time",
-                    "op": operator,
-                    "val": ["2026-10-01 10:30:00", "2026-10-02 11:59:59"]
-                    if operator == "IN"
-                    else "2026-10-01 10:30:00",
-                }
-            ]
-        }
+    table = _table(transform=f"{_epoch_bucket_transform(bucket)}{comment}")
+    arguments = _epoch_bucket_filter(operator)
     with (
         app.app_context(),
         patch.object(
@@ -4091,6 +4157,162 @@ def test_epoch_bucket_queries_preserve_actual_rows(
         connection.execute(unmirrored_sql).fetchall()
     )
     connection.close()
+
+
+HIVE_FAMILY = [
+    "hive",
+    pytest.param(
+        "impala",
+        marks=pytest.mark.skipif(
+            find_spec("impala") is None, reason="the impyla dialect is not installed"
+        ),
+    ),
+]
+
+# The hour and day epoch keys of the bounds `_epoch_bucket_filter` uses:
+# `first` is 2026-10-01 10:30:00, `second` the `IN` list's 2026-10-02 11:59:59
+# and `last` the time range's end, 2026-10-02 10:30:00 (all UTC).
+EPOCH_BUCKET_KEYS = {
+    3600: {"first": 1790848800, "second": 1790938800, "last": 1790935200},
+    86400: {"first": 1790812800, "second": 1790899200, "last": 1790899200},
+}
+
+# The key the recipes partition on, and what each operator mirrors onto it as
+# `(operator, bounds)`: strict bounds widen to non-strict ones, and an `IN`
+# list maps element-wise. Bounds name entries of `EPOCH_BUCKET_KEYS`.
+KEY = "dt_epoch"
+MIRRORED_BOUNDS = {
+    "==": [("=", ["first"])],
+    ">": [(">=", ["first"])],
+    ">=": [(">=", ["first"])],
+    "<": [("<=", ["first"])],
+    "<=": [("<=", ["first"])],
+    "IN": [("IN", ["first", "second"])],
+    "range": [(">=", ["first"]), ("<=", ["last"])],
+}
+COMPARISONS = {exp.EQ: "=", exp.GT: ">", exp.GTE: ">=", exp.LT: "<", exp.LTE: "<="}
+
+
+class PartitionMirror(NamedTuple):
+    """The mirrored predicate on `KEY`, as the engine's own parser reads it."""
+
+    #: ``(column, operator, values)`` per comparison inside the NULL escape;
+    #: a numeric literal reads as an ``int``, anything else as its SQL text.
+    bounds: list[tuple[str, str, list[int | str]]]
+    #: The columns the conjunction holding the mirror filters on, besides `KEY`.
+    anded_with: set[str]
+
+
+def _literal(node: exp.Expression) -> int | str:
+    if isinstance(node, exp.Literal) and not node.is_string:
+        return int(node.this)
+    return node.sql()
+
+
+def _partition_mirror(sql: str, engine: str) -> PartitionMirror | None:
+    """
+    Find ``<bounds on KEY> OR KEY IS NULL`` in the WHERE clause, or ``None``.
+
+    Read from the sqlglot tree for the engine, so identifier quoting and
+    redundant parentheses -- both rendering choices of the driver -- do not
+    matter; precedence and literal types do.
+    """
+    where = SQLStatement(sql, engine)._parsed.find(exp.Where)  # noqa: SLF001
+    escapes = (
+        node
+        for node in (where.find_all(exp.Or) if where else [])
+        if isinstance(null_check := node.right.unnest(), exp.Is)
+        and null_check.this.name == KEY
+        and isinstance(null_check.expression, exp.Null)
+    )
+    if (escape := next(escapes, None)) is None:
+        return None
+
+    bounds = escape.left.unnest()
+    conjuncts = list(bounds.flatten()) if isinstance(bounds, exp.And) else [bounds]
+    outer: exp.Expression = escape
+    while isinstance(outer.parent, exp.Paren):
+        outer = outer.parent
+    conjunction = outer.parent if isinstance(outer.parent, exp.And) else None
+    return PartitionMirror(
+        bounds=[
+            (
+                conjunct.this.name,
+                "IN" if isinstance(conjunct, exp.In) else COMPARISONS[type(conjunct)],
+                [_literal(value) for value in conjunct.expressions]
+                if isinstance(conjunct, exp.In)
+                else [_literal(conjunct.expression)],
+            )
+            for conjunct in conjuncts
+        ],
+        anded_with={column.name for column in conjunction.find_all(exp.Column)} - {KEY}
+        if conjunction
+        else set(),
+    )
+
+
+def _epoch_key(value: datetime | str, bucket: int) -> int:
+    """The key ``floor(unix_timestamp(value) / bucket) * bucket`` reads, in UTC."""
+    instant = datetime.fromisoformat(value) if isinstance(value, str) else value
+    return int(instant.replace(tzinfo=timezone.utc).timestamp()) // bucket * bucket
+
+
+def _hive_family_chart_sql(engine: str, bucket: int, operator: str) -> str:
+    """
+    The SQL a chart on a Hive or Impala dataset sends, with the engine faked.
+
+    Only `_probe`, the one call that sends the transform to the warehouse, is
+    replaced; it answers each value -- a datetime, or the text a simple filter
+    binds -- with the epoch key the recipe computes. Everything between the
+    filter and the compiled statement runs for real, in the engine's dialect.
+    """
+    table = _table(transform=_epoch_bucket_transform(bucket))
+    table.database = Database(
+        database_name="test_db",
+        sqlalchemy_uri=f"{engine}://warehouse.example.com:10000/default",
+    )
+
+    def warehouse(
+        database: Database,
+        catalog: str | None,
+        schema: str | None,
+        transform: str,
+        values: list[datetime | str],
+        **kwargs: Any,
+    ) -> list[int]:
+        return [_epoch_key(value, bucket) for value in values]
+
+    with patch(f"{PARTITION_MAPPING}._probe", side_effect=warehouse):
+        return table.get_query_str(
+            cast(QueryObjectDict, _query_obj(**_epoch_bucket_filter(operator)))
+        )
+
+
+@pytest.mark.parametrize("operator", list(MIRRORED_BOUNDS))
+@pytest.mark.parametrize("bucket", [3600, 86400])
+@pytest.mark.parametrize("engine", HIVE_FAMILY)
+def test_hive_family_mirrors_epoch_buckets_as_numeric_keys_or_null(
+    app: Flask, engine: str, bucket: int, operator: str
+) -> None:
+    """
+    On Hive and Impala the mirror compares the key with numeric literals (a
+    quoted key is a string comparison the engine coerces per row, which prunes
+    nothing), widens strict bounds, is escaped for the NULL partition the engines
+    park unconvertible rows in, and is ANDed onto the chart's own filter.
+    """
+    keys = EPOCH_BUCKET_KEYS[bucket]
+
+    with app.app_context():
+        sql = _hive_family_chart_sql(engine, bucket, operator)
+
+    mirror = _partition_mirror(sql, engine)
+    assert mirror is not None, "no `... OR dt_epoch IS NULL` in the WHERE clause"
+    assert mirror.bounds == [
+        (KEY, mirrored, [keys[name] for name in names])
+        for mirrored, names in MIRRORED_BOUNDS[operator]
+    ]
+    assert mirror.anded_with == {"event_time"}
+    assert ":value" not in sql
 
 
 @pytest.mark.parametrize("source_type", ["TIMESTAMP", "VARCHAR"])

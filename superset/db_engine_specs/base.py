@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
-from collections.abc import Iterator
+from collections.abc import Collection, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from inspect import signature
@@ -59,6 +59,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import (
     BinaryExpression,
+    ClauseElement,
     ColumnClause,
     ColumnElement,
     Select,
@@ -108,7 +109,11 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import hash_from_str
-from superset.utils.json import redact_sensitive, reveal_sensitive
+from superset.utils.json import (
+    get_sensitive_field_hints,
+    redact_sensitive,
+    reveal_sensitive,
+)
 from superset.utils.network import (
     get_ssrf_safe_requester,
     is_hostname_valid,
@@ -167,7 +172,11 @@ TIME_LIMIT_EXCEPTIONS = (
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
     for col in cols:
-        result_set_columns.append({"column_name": col.get("name"), **col})  # type: ignore
+        values = {
+            key: str(value) if isinstance(value, ClauseElement) else value
+            for key, value in col.items()
+        }
+        result_set_columns.append({"column_name": col.get("name"), **values})  # type: ignore
     return result_set_columns
 
 
@@ -820,6 +829,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB engine spec support cross-catalog queries?
     supports_cross_catalog_queries = False
 
+    # Are catalog names case-insensitive? When True, a catalog can appear in
+    # permissions with different cases (eg, the catalog listing returns `SALES` while
+    # the connection URI says `sales`), and catalog/schema permissions match when only
+    # the case of the catalog differs. Database and schema names still match exactly.
+    # Only set this for engines where catalogs that differ only by case are the same
+    # catalog, otherwise users would be granted access to a different catalog.
+    case_insensitive_catalogs = False
+
     # Does the DB engine support schemas? When set to False the schema selector is
     # hidden in the dataset creation UI and schema is not required for table access.
     supports_schemas = True
@@ -867,6 +884,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # ready (e.g. Trino's) expose the id only then, which lets an execution
     # owner cancel a query whose caller has given up.
     has_query_id_during_execute = False
+
+    # Execution owners may call cursor.cancel() from another thread when the
+    # driver exposes it. This does not enable SQL Lab's cross-process stop path.
+    supports_cancel_on_live_cursor = False
+
+    @classmethod
+    def can_cancel_live_cursor(  # pylint: disable=unused-argument
+        cls, driver: str, cursor: Any
+    ) -> bool:
+        """Whether ``cursor.cancel()`` is safe to call from another thread."""
+        return cls.supports_cancel_on_live_cursor is True and callable(
+            getattr(cursor, "cancel", None)
+        )
 
     @classmethod
     def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
@@ -1272,6 +1302,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.limit_method
 
     @classmethod
+    def get_max_column_name_length(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> int | None:
+        """
+        Method for dynamic `max_column_name_length`.
+
+        In Oracle the identifier length limit is version-dependent, so Superset needs
+        to inspect the database configuration in order to determine it. This method
+        allows engine-specs to define dynamic values for the attribute.
+        """
+        return cls.max_column_name_length
+
+    @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.
@@ -1340,6 +1384,50 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         with database.get_inspector(catalog=catalog) as inspector:
             return inspector.default_schema_name
+
+    @classmethod
+    def get_catalog_reference_schema(
+        cls,
+        catalog: str,  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        The schema a table naming a catalog but no schema (``catalog..table``) is
+        read from, whatever schema the connection is in.
+
+        Such a reference does not go through the connection's own default schema or
+        search path, which are those of the catalog the query runs in. An engine
+        that fixes the schema it reads returns it, and one that leaves it to the
+        catalog, or doesn't say, returns ``None``: the schema is then unknown, and a
+        control that matches tables by schema has to match the table in any schema.
+
+        :param catalog: The catalog the reference names
+        """
+        return None
+
+    @classmethod
+    def get_search_path(
+        cls,
+        database: Database,
+        catalog: str | None,
+        tables: Collection[str] = (),
+    ) -> tuple[list[str], dict[str, list[str]]]:
+        """
+        Resolve tables referenced without a schema the way the connection does.
+
+        Most engines look in their default schema only. An engine with a search
+        path looks in each of its schemas in order and reads the first table of
+        the name it finds, so the default schema isn't necessarily the one holding
+        a given table, and a control that matches tables by schema (RLS,
+        ``DISALLOWED_SQL_TABLES``) has to know which one does.
+
+        :param tables: The names of tables referenced without a schema
+        :returns: The schemas looked in, in order, and the schema holding each of
+            ``tables`` that one does (an engine that can't tell leaves a table
+            out, so it's taken to be in any of them)
+        :raises Exception: If the connection can't be asked
+        """
+        schema = cls.get_default_schema(database, catalog)
+        return ([schema] if schema else []), {}
 
     @classmethod
     def get_schema_from_engine_params(  # pylint: disable=unused-argument
@@ -2274,6 +2362,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
+    def get_catalog_for_connection(  # pylint: disable=unused-argument
+        cls,
+        database: Database,
+        uri: URL,
+        catalog: str | None,
+    ) -> str | None:
+        """Return the selected catalog, allowing engine-specific legacy aliases."""
+        return catalog
+
+    @classmethod
     def adjust_engine_params(  # pylint: disable=unused-argument
         cls,
         uri: URL,
@@ -2742,6 +2840,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return validated_embedded_credentials(credentials)
 
     @classmethod
+    def get_embedded_credentials_error(
+        cls,
+        credentials: dict[str, str],  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        Explain why a complete embedded fallback credential cannot be used, or
+        return ``None``.
+
+        ``validate_embedded_credentials`` only checks that the fields are filled in;
+        this checks that what they hold is usable, e.g. that a private key decodes
+        with its passphrase. Called when a credential is saved, never at query time,
+        and with unmasked secrets. The message is shown to the administrator saving
+        the connection, so it must never quote the credential's values.
+        """
+        return None
+
+    @classmethod
     def apply_embedded_credentials(
         cls,
         database: Database,  # pylint: disable=unused-argument
@@ -2886,7 +3001,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return not security_manager.is_guest_user(g.user)
 
     @classmethod
-    def make_label_compatible(cls, label: str) -> str | quoted_name:
+    def make_label_compatible(
+        cls,
+        label: str,
+        database: Database | None = None,
+    ) -> str | quoted_name:
         """
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
@@ -2896,14 +3015,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         generate a truncated label by calling truncate_label().
 
         :param label: expected expression label/alias
+        :param database: database the label is for, to read a version-dependent
+            maximum column name length
         :return: conditionally mutated label supported by the db engine
         """
         label_mutated = cls._mutate_label(label)
-        if (
+        max_length = (
             cls.max_column_name_length
-            and len(label_mutated) > cls.max_column_name_length
-        ):
-            label_mutated = cls._truncate_label(label)
+            if database is None
+            else cls.get_max_column_name_length(database)
+        )
+        if max_length and cls._label_length(label_mutated) > max_length:
+            label_mutated = cls._truncate_label(label)[:max_length]
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
         return label_mutated
@@ -2935,6 +3058,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return sqla_type(match), generic_type
             return sqla_type, generic_type
         return None
+
+    @staticmethod
+    def _label_length(label: str) -> int:
+        """
+        Return the length of a label in the unit `max_column_name_length` counts.
+
+        Most engines count characters. Engines that limit identifiers in bytes can
+        override this method.
+        """
+        return len(label)
 
     @staticmethod
     def _mutate_label(label: str) -> str:
@@ -3364,9 +3497,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param user: logged-in user
 
-        :returns: username if given user is not null
+        :returns: username if available, otherwise None
         """
-        return user.username if user else None
+        return getattr(user, "username", None) if user else None
 
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
@@ -3421,6 +3554,68 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return json.dumps(new_config)
 
     @classmethod
+    def encrypted_extra_sensitive_field_labels(cls) -> dict[str, str]:
+        """
+        Map each sensitive `encrypted_extra` JSONPath to its human label, sorted
+        by path. Paths without a declared label use their last segment, except
+        the secrets every engine adds (the OAuth2 client secret and the embedded
+        guest credential), which get readable defaults.
+        """
+        declared = {
+            "$.oauth2_client_info.secret": "OAuth2 client secret",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.password": "Embedded guest password",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.privatekey_body": (
+                "Embedded guest private key (PEM)"
+            ),
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.privatekey_pass": (
+                "Embedded guest private key passphrase"
+            ),
+            **(
+                cls.encrypted_extra_sensitive_fields
+                if isinstance(cls.encrypted_extra_sensitive_fields, dict)
+                else {}
+            ),
+        }
+        return {
+            path: declared.get(path, path.rsplit(".", 1)[-1])
+            for path in sorted(cls.encrypted_extra_sensitive_field_paths())
+        }
+
+    @classmethod
+    def encrypted_extra_hints(
+        cls, encrypted_extra: str | None, length: int
+    ) -> list[dict[str, Any]]:
+        """
+        Hints for the sensitive fields of `encrypted_extra`.
+
+        Each hint has the field `path`, a human `label` and the last `length`
+        characters of the stored value as `suffix` (``None`` when the value is too
+        short to reveal any). A JWT also gets `expires_at` and `expired` from its
+        `exp` claim, ``None`` otherwise. Returns an empty list when `encrypted_extra`
+        is missing or malformed, or when `length` is not positive.
+        """
+        if encrypted_extra is None or length <= 0:
+            return []
+
+        try:
+            config = json.loads(encrypted_extra)
+        except (TypeError, json.JSONDecodeError):
+            return []
+
+        if not isinstance(config, dict):
+            return []
+
+        labels = cls.encrypted_extra_sensitive_field_labels()
+        return [
+            {**hint, "label": labels.get(hint["path"], hint["path"].rsplit(".", 1)[-1])}
+            for hint in get_sensitive_field_hints(
+                config,
+                cls.encrypted_extra_sensitive_field_paths(),
+                length,
+            )
+        ]
+
+    @classmethod
     def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
         """
         Return the destination a stored credential is sent to, for checks that
@@ -3461,6 +3656,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            "encrypted_extra_sensitive_fields": (
+                cls.encrypted_extra_sensitive_field_labels()
+            ),
             "identifier_quote": {
                 "start": cls.identifier_quote_start,
                 "end": cls.identifier_quote_end,

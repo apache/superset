@@ -21,7 +21,7 @@ import os
 import re
 import subprocess
 import time
-from typing import List, Optional
+from typing import Any, List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -31,6 +31,7 @@ from urllib.request import Request, urlopen
 MAX_RETRIES: int = 4
 RETRY_BACKOFF_SECONDS: int = 2
 REQUEST_TIMEOUT_SECONDS: int = 30
+ZERO_SHA = "0" * 40
 # GitHub returns 429 when throttling, which is transient and worth retrying
 # alongside 5xx server errors. It also returns 403 for two very different
 # reasons — a secondary rate limit, and a token missing the required scope —
@@ -223,17 +224,27 @@ def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
     return [file_info["filename"] for file_info in files]
 
 
-def fetch_changed_files_push(repo: str, sha: str) -> List[str]:
-    """Fetches files changed in the last commit for push events using GitHub API."""
-    # Fetch commit details to get the parent SHA
+def fetch_changed_files_push(
+    repo: str, sha: str, before_sha: Optional[str] = None
+) -> List[str]:
+    """Fetches files changed in a push event using GitHub API."""
+    if before_sha:
+        compare_url = (
+            f"https://api.github.com/repos/{repo}/compare/{before_sha}...{sha}"
+        )
+        comparison_data = fetch_files_github_api(compare_url)
+        return [file["filename"] for file in comparison_data["files"]]
+
     commit_url = f"https://api.github.com/repos/{repo}/commits/{sha}"
     commit_data = fetch_files_github_api(commit_url)
+
     if "parents" not in commit_data or len(commit_data["parents"]) < 1:
         raise RuntimeError("No parent commit found for comparison.")
+
     parent_sha = commit_data["parents"][0]["sha"]
-    # Compare the current commit against its parent
     compare_url = f"https://api.github.com/repos/{repo}/compare/{parent_sha}...{sha}"
     comparison_data = fetch_files_github_api(compare_url)
+
     return [file["filename"] for file in comparison_data["files"]]
 
 
@@ -254,6 +265,20 @@ def is_int(s: str) -> bool:
     return bool(re.match(r"^-?\d+$", s))
 
 
+def get_push_event() -> dict[str, Any]:
+    """Reads the webhook payload GitHub writes for the triggering event.
+
+    Returns an empty dict when `GITHUB_EVENT_PATH` is unset (local runs).
+    """
+    event_path = os.getenv("GITHUB_EVENT_PATH")
+
+    if not event_path:
+        return {}
+
+    with open(event_path, encoding="utf-8") as event_file:
+        return json.load(event_file)
+
+
 def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
@@ -267,9 +292,19 @@ def main(event_type: str, sha: str, repo: str) -> None:
             print_files(files)
 
     elif event_type == "push":
-        files = fetch_changed_files_push(repo, sha)
-        print("Files touched since previous commit:")
-        print_files(files)
+        event = get_push_event()
+        before_sha = event.get("before")
+        if event.get("forced") or before_sha == ZERO_SHA:
+            # A force push rewrites history, so `before...after` diffs against
+            # the merge base and can miss changes. A zero `before` (a new
+            # branch's first push) has no base to compare against. Treat both
+            # like workflow_dispatch/schedule: every group is changed.
+            print("forced or new-branch push, assuming all changed")
+            files = None
+        else:
+            files = fetch_changed_files_push(repo, sha, before_sha)
+            print("Files touched by push:")
+            print_files(files)
 
     elif event_type in ("workflow_dispatch", "schedule"):
         # Manual or cron-triggered runs aren't tied to a specific diff, so
