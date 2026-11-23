@@ -105,18 +105,51 @@ describe('ImageLoader', () => {
     }
   });
 
+  test('fetches absolute URLs as-is without the app root', async () => {
+    const absoluteUrl = 'https://images.example.com/absolute-thumbnail.png';
+    fetchMock.get(
+      absoluteUrl,
+      { body: blob, headers: { 'Content-Type': 'image/png' } },
+      { name: 'absolute-thumbnail' },
+    );
+    await SupersetClient.configure({
+      protocol: 'http:',
+      host: 'localhost',
+      appRoot: '/analytics',
+    }).init();
+
+    try {
+      setup({ src: absoluteUrl });
+      expect(await screen.findByTestId('image-loader')).toHaveAttribute(
+        'src',
+        '/local_url',
+      );
+      expect(
+        fetchMock.callHistory.calls(/absolute-thumbnail/).map(({ url }) => url),
+      ).toEqual([absoluteUrl]);
+    } finally {
+      fetchMock.removeRoute('absolute-thumbnail');
+      await SupersetClient.configure({
+        protocol: 'http:',
+        host: 'localhost',
+      }).init();
+    }
+  });
+
   test('displays fallback image when SupersetClient is not configured', async () => {
     SupersetClient.reset();
     const loggingSpy = jest.spyOn(logging, 'error').mockImplementation();
 
     try {
-      setup({ src: 'https://picsum.photos/seed/superset/300/200' });
+      setup({ src: '/unconfigured-thumbnail' });
       await waitFor(() => expect(loggingSpy).toHaveBeenCalled());
       expect(screen.getByTestId('image-loader')).toHaveAttribute(
         'src',
         '/fallback',
       );
-      expect(fetchMock.callHistory.calls(/picsum/)).toHaveLength(0);
+      expect(
+        fetchMock.callHistory.calls(/unconfigured-thumbnail/),
+      ).toHaveLength(0);
     } finally {
       loggingSpy.mockRestore();
       await SupersetClient.configure({

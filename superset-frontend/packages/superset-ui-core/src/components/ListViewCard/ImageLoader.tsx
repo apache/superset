@@ -58,10 +58,17 @@ export function ImageLoader({
 
   useEffect(() => {
     if (src) {
-      // Start the request inside the chain so an unconfigured client
-      // (e.g. Storybook) rejects into the fallback instead of throwing.
+      // Superset endpoints go through SupersetClient so the app root is
+      // prepended; absolute URLs are fetched as-is. Starting inside the chain
+      // lets an unconfigured client (e.g. Storybook) reject into the fallback
+      // instead of throwing.
+      const isAbsoluteUrl = /^(https?:)?\/\//i.test(src);
       Promise.resolve()
-        .then(() => SupersetClient.get({ endpoint: src, parseMethod: 'raw' }))
+        .then(() =>
+          isAbsoluteUrl
+            ? fetch(src)
+            : SupersetClient.get({ endpoint: src, parseMethod: 'raw' }),
+        )
         .then(response => response.blob())
         .then(blob => {
           if (/image/.test(blob.type)) {
