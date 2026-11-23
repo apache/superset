@@ -31,7 +31,10 @@ from superset_core.canvas import WidgetResolver
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.canvas.data import run_binding, RuntimeFilter
-from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.registry import (
+    get_widget_resolver,
+    widget_type_available,
+)
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.commands.canvas.draft import CanvasDraft, load_draft
@@ -271,6 +274,13 @@ def _preview_widget_impl(
             }, None
         widget_type, props = widget.widget_type, widget.props
     result.update(placement_id=placement_id, widget_type=widget_type)
+    if widget_type is None or not widget_type_available(widget_type):
+        return {
+            **result,
+            "error": "This widget is unavailable: its widget type isn't "
+            "registered here, or is turned off",
+            "error_type": "WidgetTypeUnavailableError",
+        }, None
     try:
         rows = _with_rows(result, props, runtime_filters)
     except Exception as ex:  # pylint: disable=broad-except

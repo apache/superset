@@ -149,6 +149,54 @@ def test_unknown_and_unbound_placements(
     run_binding.assert_not_called()
 
 
+def test_a_widget_type_the_host_doesnt_know_has_no_data(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    session: Session,
+    run_binding: MagicMock,
+) -> None:
+    definition = json.loads(canvas.definition)
+    definition["nodes"]["gone"] = {
+        "widgetType": "extensions.acme.kpis.board",
+        "props": {"dataBinding": BINDING},
+    }
+    definition["root"]["children"].append("gone")
+    canvas.definition = json.dumps(definition)
+    session.commit()
+
+    response = client.post(URL.format("gone"), json={})
+
+    # What an uninstalled type stored was never checked by this host.
+    assert response.status_code == 404
+    assert response.json["message"] == "This widget is unavailable."
+    run_binding.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"chart"})},
+        {"CANVAS_WIDGET_TYPE_ENABLED_FUNC": lambda widget_type: widget_type != "chart"},
+    ],
+)
+def test_a_widget_type_turned_off_has_no_data(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+    config: dict[str, Any],
+) -> None:
+    mocker.patch.dict("superset.canvas.definition.registry.current_app.config", config)
+
+    response = client.post(URL.format("chart"), json={})
+
+    assert response.status_code == 404
+    assert response.json["message"] == "This widget is unavailable."
+    run_binding.assert_not_called()
+
+
 @pytest.mark.parametrize(
     "caller, status",
     [("viewer", 200), ("stranger", 404), ("guest", 404)],

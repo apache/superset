@@ -21,7 +21,8 @@ Placement rules live on the server only: ``placements`` gives every node on a
 grid its resolved position, auto-placed nodes included, so clients render
 without re-implementing auto-placement and collision push-down.
 ``widgetTypes`` maps placements to their widget so clients pick a renderer;
-placements that don't resolve are left out and render as placeholders.
+placements that don't resolve, or whose type the host turned off, are left out
+and render as placeholders.
 ``gridColumns`` gives the column count of each grid container, whose
 children's placements are in its own grid units. ``layoutConstraints`` gives
 the span limits a widget declares, so a client that lets the user drag and
@@ -58,6 +59,7 @@ from superset.canvas.definition.placements import placement_types, upgrade_entit
 from superset.canvas.definition.registry import (
     get_widget_resolver,
     get_widget_types,
+    widget_type_enabled,
     WidgetTypes,
 )
 from superset.canvas.definition.schemas import ROOT_ID
@@ -78,7 +80,24 @@ def render_context(
         ),
         widget_types,
     )
-    type_ids = {node_id: w.widget_type for node_id, w in node_types.items()}
+    # A type the host turned off keeps its place in the layout, but the page
+    # learns neither its type nor its saved widget, so no renderer of it runs
+    # and the placement shows as unavailable.
+    enabled = {
+        widget_type: widget_type_enabled(widget_type)
+        for widget_type in {w.widget_type for w in node_types.values()}
+        | {entity.widget_type for entity in widgets.values()}
+    }
+    widgets = {
+        widget_id: entity
+        for widget_id, entity in widgets.items()
+        if enabled[entity.widget_type]
+    }
+    type_ids = {
+        node_id: w.widget_type
+        for node_id, w in node_types.items()
+        if enabled[w.widget_type]
+    }
 
     grids: list[tuple[str, list[str], int]] = [
         (

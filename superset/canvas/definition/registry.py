@@ -70,6 +70,15 @@ def widget_type_enabled(widget_type: str) -> bool:
     return widget_type not in (config.get("CANVAS_DISABLED_WIDGET_TYPES") or ())
 
 
+def widget_type_available(widget_type: str) -> bool:
+    """
+    Whether a placement of ``widget_type`` may render and serve its data: the
+    type is registered here and the host has it on. What a type this host
+    doesn't know stored was never checked by it, and no page renders it.
+    """
+    return widget_type in get_widget_types() and widget_type_enabled(widget_type)
+
+
 _resolver: WidgetResolver | None = None
 
 

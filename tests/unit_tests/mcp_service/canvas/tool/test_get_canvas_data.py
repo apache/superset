@@ -145,6 +145,32 @@ def test_a_canvas_full_of_unread_widgets_stays_within_the_size_budget() -> None:
     assert len(json.dumps(result)) < MAX_RESPONSE_BYTES
 
 
+def test_leaves_out_types_turned_off() -> None:
+    with patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"echarts"})},
+    ):
+        result, run = _run()
+
+    assert result["widgets"] == []
+    assert "unread" not in result
+    run.assert_not_called()
+
+
+def test_runs_no_query_a_type_unknown_here_stored() -> None:
+    definition = _canvas()
+    definition["nodes"]["inner"] = {
+        "widgetType": "extensions.acme.kpis.board",
+        "props": {"dataBinding": BINDING},
+    }
+
+    result, run = _run(definition=definition)
+
+    # The saved echarts widget still answers; the uninstalled type doesn't.
+    assert [w["placement_id"] for w in result["widgets"]] == ["kpi"]
+    assert run.call_count == 1
+
+
 def test_caps_rows_and_widgets() -> None:
     result, run = _run(max_rows=2, max_widgets=1)
 

@@ -111,6 +111,13 @@ class CanvasPlacementUnboundError(CommandException):
     message = _("This placement has no data binding.")
 
 
+class WidgetTypeUnavailableError(CommandException):
+    """A widget type that isn't registered here, or that the host turned off."""
+
+    status = 404
+    message = _("This widget is unavailable.")
+
+
 class DraftConflictError(CommandException):
     """
     A draft write based on an older draft revision, or a commit of a draft

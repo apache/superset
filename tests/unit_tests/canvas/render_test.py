@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
 from superset_core.widgets import Widget, WidgetBehavior, WidgetUi
 
 from superset.canvas.definition.render import render_context
@@ -332,6 +333,30 @@ def test_widget_entities_are_titled_by_name_unless_they_label_themselves() -> No
     )
 
     assert render_context(definition, rules, resolver)["titles"] == {"k": "chart-1"}
+
+
+def test_a_type_turned_off_renders_as_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    definition = normalize_definition(
+        canvas({"k": node("chart-1"), "f": node("filter-1")}, children=["k", "f"]),
+        rules,
+        resolver,
+    )
+    every_type = render_context(definition, rules, resolver)
+    monkeypatch.setattr(
+        "superset.canvas.definition.render.widget_type_enabled",
+        lambda widget_type: widget_type != "chart",
+    )
+
+    context = render_context(definition, rules, resolver)
+
+    # It keeps its place, but the page learns neither its type nor its widget.
+    assert context["placements"] == every_type["placements"]
+    assert context["widgetTypes"] == {"f": "filter"}
+    assert set(context["widgets"]) == {"filter-1"}
+    assert "k" not in context["titles"]
 
 
 def test_chrome_rows_say_what_a_container_keeps_above_its_grid() -> None:

@@ -20,7 +20,10 @@ from typing import Any
 from uuid import UUID
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
-from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.registry import (
+    get_widget_resolver,
+    widget_type_available,
+)
 from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
 from superset.canvas.versions import version_snapshot
 from superset.commands.base import BaseCommand
@@ -30,6 +33,7 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
     CanvasPlacementNotFoundError,
     CanvasPlacementUnboundError,
+    WidgetTypeUnavailableError,
 )
 from superset.daos.canvas import CanvasDAO
 
@@ -39,7 +43,9 @@ class GetPlacementDataCommand(BaseCommand):
     Run a placement's query as the caller. The query comes from the stored
     definition, the caller's draft of the canvas, or a version of it; the
     caller only adds runtime filters. Reading needs access to the canvas and
-    to the binding's dataset, which the chart data pipeline checks.
+    to the binding's dataset, which the chart data pipeline checks. A
+    placement whose widget type isn't registered here, or that the host
+    turned off, serves no data.
     """
 
     def __init__(
@@ -82,10 +88,14 @@ class GetPlacementDataCommand(BaseCommand):
         node = definition["nodes"].get(self._placement_id)
         if node is None:
             raise CanvasPlacementNotFoundError()
-        props = node.get("props") or {}
+        widget_type, props = node.get("widgetType"), node.get("props") or {}
         if widget_id := node.get("widgetId"):
             widget = resolver.widgets({widget_id}).get(widget_id)
-            props = widget.props if widget is not None else {}
+            widget_type, props = (
+                (widget.widget_type, widget.props) if widget is not None else (None, {})
+            )
+        if widget_type is not None and not widget_type_available(widget_type):
+            raise WidgetTypeUnavailableError()
         binding = props.get("dataBinding")
         if not isinstance(binding, dict) or not isinstance(
             binding.get("datasetId"), int
