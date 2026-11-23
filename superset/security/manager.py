@@ -23,12 +23,14 @@ import re
 import time
 from collections import defaultdict
 from collections.abc import Set as AbstractSet
+from contextlib import contextmanager
 from math import ceil
 from types import SimpleNamespace
 from typing import (
     Any,
     Callable,
     cast,
+    Iterator,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -2543,9 +2545,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         user = g.user
-        if user.is_anonymous:
-            return self.is_item_public(permission_name, view_name)
-        return self._has_view_access(user, permission_name, view_name)
+        cached: tuple[Any, dict[tuple[str, str], bool]] | None = getattr(
+            g, "_permission_check_cache", None
+        )
+        key: tuple[str, str] = (permission_name, view_name)
+        if cached is not None and cached[0] is user and key in cached[1]:
+            return cached[1][key]
+        allowed: bool = (
+            self.is_item_public(permission_name, view_name)
+            if user.is_anonymous
+            else self._has_view_access(user, permission_name, view_name)
+        )
+        if cached is not None and cached[0] is user:
+            cached[1][key] = allowed
+        return allowed
+
+    @contextmanager
+    def cache_permission_checks(self) -> Iterator[None]:
+        """Memoize exact permission checks during one read-only serialization.
+
+        Do not use around permission writes or authentication changes. The cache
+        belongs to the Flask context and the ``g.user`` binding at scope entry.
+        Reassigning that binding bypasses it; a re-login behind the same
+        LocalProxy would not. The read-only list dump does not authenticate.
+        The cache is discarded even if serialization fails, and custom
+        security-manager overrides still run normally.
+        """
+        previous: tuple[Any, dict[tuple[str, str], bool]] | None = getattr(
+            g, "_permission_check_cache", None
+        )
+        g._permission_check_cache = (getattr(g, "user", None), {})
+        try:
+            yield
+        finally:
+            if previous is None:
+                g.pop("_permission_check_cache", None)
+            else:
+                g._permission_check_cache = previous
 
     def can_access_catalog_scoped(
         self,

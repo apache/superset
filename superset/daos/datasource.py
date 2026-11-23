@@ -290,7 +290,11 @@ class DatasourceDAO(BaseDAO[Datasource]):
             return {}
         objs = (
             db.session.query(SemanticView)
-            .options(joinedload(SemanticView.changed_by))
+            .options(
+                joinedload(SemanticView.changed_by),
+                joinedload(SemanticView.created_by),
+                joinedload(SemanticView.semantic_layer),
+            )
             .filter(cast(Any, SemanticView.id).in_(ids))
             .all()
         )
