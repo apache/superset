@@ -31,6 +31,7 @@ from superset import is_feature_enabled
 from superset.canvas.data import data_response, PlacementDataRequest
 from superset.canvas.definition.validation import request_errors
 from superset.canvas.query_errors import CanvasQueryFailedError
+from superset.commands.canvas.exceptions import WidgetTypeUnavailableError
 from superset.commands.widget.create import CreateWidgetCommand
 from superset.commands.widget.data import GetWidgetDataCommand
 from superset.commands.widget.delete import DeleteWidgetCommand
@@ -490,5 +491,7 @@ class WidgetRestApi(BaseSupersetModelRestApi):
             )
         except WidgetNotFoundError:
             return self.response_404()
+        except WidgetTypeUnavailableError as ex:
+            return self.response(404, message=str(ex.message))
         except WidgetUnboundError as ex:
             return self.response_422(message=str(ex.message))

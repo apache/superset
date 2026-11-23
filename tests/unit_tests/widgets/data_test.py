@@ -28,6 +28,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.canvas.data import PlacementData, RuntimeFilter
 from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
+from superset.commands.canvas.exceptions import WidgetTypeUnavailableError
 from superset.commands.widget.data import GetWidgetDataCommand
 from superset.commands.widget.exceptions import WidgetNotFoundError, WidgetUnboundError
 from superset.daos.exceptions import DatasourceNotFound
@@ -155,6 +156,39 @@ def test_a_widget_without_its_binding_is_unbound(
     run_binding.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("widget_type", "turned_off"),
+    [
+        ("extensions.acme.kpis.board", frozenset()),
+        ("markdown", frozenset({"markdown"})),
+    ],
+)
+def test_a_widget_of_a_type_unavailable_here_has_no_data(
+    tables: Session,
+    make_user: MakeUser,
+    make_widget: MakeWidget,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+    widget_type: str,
+    turned_off: frozenset[str],
+) -> None:
+    alice_user, alice = make_user("alice", "Gamma")
+    widget = make_widget(
+        "Sales",
+        viewers=[alice],
+        widget_type=widget_type,
+        props={"dataBinding": BINDING},
+    )
+    mocker.patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": turned_off},
+    )
+
+    with override_user(alice_user), pytest.raises(WidgetTypeUnavailableError):
+        GetWidgetDataCommand(widget.uuid, []).run()
+    run_binding.assert_not_called()
+
+
 URL = "/api/v1/widget/{}/data"
 WIDGET = "00000000-0000-4000-8000-000000000001"
 
@@ -214,6 +248,7 @@ def test_the_route_answers_the_datasets_envelope(
     ("error", "status"),
     [
         (WidgetNotFoundError(WIDGET), 404),
+        (WidgetTypeUnavailableError(), 404),
         (WidgetUnboundError(), 422),
         (CanvasQueryFailedError(canvas_query_error(NO_ACCESS)), 403),
         (CanvasQueryFailedError(canvas_query_error(DatasourceNotFound())), 404),

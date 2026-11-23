@@ -542,6 +542,13 @@ def test_extensions_read_a_placed_widget_through_superset_core(
     ]:
         with pytest.raises(placements.PlacementNotFoundError):
             placements.load_placed_widget(canvas_id, placement_id, token)
+    # A type turned off stops an extension's own routes too.
+    mocker.patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"chart"})},
+    )
+    with pytest.raises(placements.PlacementNotFoundError):
+        placements.load_placed_widget("100", "chart")
 
 
 def test_runtime_filters_narrow_only_the_bindings_dataset() -> None:

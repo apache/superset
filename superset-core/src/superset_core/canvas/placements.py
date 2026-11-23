@@ -67,8 +67,9 @@ def load_placed_widget(
         still be allowed to edit the canvas.
     :returns: The widget's UUID and content.
     :raises PlacementNotFoundError: If the caller can't read the canvas or the
-        draft, the canvas has no such placement, or the placement shows no
-        saved widget (a container or text stores its own content).
+        draft, the canvas has no such placement, the placement shows no saved
+        widget (a container or text stores its own content), or the widget's
+        type isn't available: not registered, or turned off by the host.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 

@@ -430,6 +430,7 @@ def inject_canvas_implementations() -> None:
         placement_id: str,
         draft_token: str | None = None,
     ) -> tuple[str, StoredWidget]:
+        from superset.canvas.definition.registry import widget_type_available
         from superset.commands.canvas.placement_data import load_placement
         from superset.commands.exceptions import ForbiddenError, ObjectNotFoundError
 
@@ -437,7 +438,13 @@ def inject_canvas_implementations() -> None:
             placement = load_placement(canvas_id, placement_id, draft_token)
         except (ObjectNotFoundError, ForbiddenError) as ex:
             raise PlacementNotFoundError(placement_id) from ex
-        if placement.widget_id is None or placement.widget is None:
+        # A type that is unavailable is refused here too, so an extension's
+        # own routes that serve a placement stop with the canvas page.
+        if (
+            placement.widget_id is None
+            or placement.widget is None
+            or not widget_type_available(placement.widget.widget_type)
+        ):
             raise PlacementNotFoundError(placement_id)
         return placement.widget_id, placement.widget
 
