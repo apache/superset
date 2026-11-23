@@ -3869,47 +3869,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ]
         role.permissions = role_pvms
 
-    def _host_claims_resource(self, resource: str) -> bool:
-        """Whether one of Superset's own views owns this FAB view menu.
-
-        SIP-235 allows an extension to gate on a host permission -- its own
-        example is `{classPermissionName: 'Dashboard'}` -- so an extension
-        may legitimately register an API class carrying a host resource's
-        name. Classifying that as the extension's would make the host's
-        `Dashboard` admin-only and strip every Gamma and Alpha permission on
-        it at the next `superset init`, which is worse than the leak the
-        classification exists to close.
-
-        Answered against the views actually registered with the app rather
-        than a parallel registry, because the host's own REST APIs are
-        registered with `appbuilder.add_api(...)` directly and never pass
-        through the `@api` decorator, so a registry fed from that decorator
-        would be empty in production and this guard would never fire. A view
-        registered under an extension context carries
-        `_api_metadata["is_extension"]`, which is what distinguishes the two
-        here.
-        """
-        for view in getattr(self.appbuilder, "baseviews", []):
-            if (getattr(view, "class_permission_name", None) or "") != resource:
-                continue
-            metadata = getattr(view, "_api_metadata", None) or {}
-            if metadata.get("is_extension"):
-                continue
-            # Positive evidence, not merely the absence of the extension
-            # marker. `_api_metadata` is set only by the `@api` decorator,
-            # and an extension may register with `appbuilder.add_api(...)`
-            # directly -- so "no metadata" meant "the host owns it", which
-            # classified such an extension's own resource as the host's and
-            # turned the whole classification off for it. Measured against a
-            # real extension: `superset init` then widened its administrative
-            # permission to Alpha and Gamma, the defect this exists to close.
-            #
-            # The host's own views live under `superset.`; an extension's
-            # live in its own package.
-            if type(view).__module__.split(".", 1)[0] == "superset":
-                return True
-        return False
-
     def _is_admin_only(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is accessible to only Admin users,
@@ -3926,28 +3885,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             pvm.view_menu.name in self.READ_ONLY_MODEL_VIEWS
             and pvm.permission.name not in self.READ_ONLY_PERMISSION
         ):
-            return True
-        # Imported here, not at module scope: `superset.extensions` pulls the
-        # app's own extension objects and importing it from here at import
-        # time closes a cycle. The same reason as `event_logger` below.
-        from superset.extensions.permissions import (  # pylint: disable=import-outside-toplevel
-            is_extension_resource,
-        )
-
-        if is_extension_resource(pvm.view_menu.name) and not self._host_claims_resource(
-            pvm.view_menu.name
-        ):
-            # A resource an extension registered. `_is_gamma_pvm` is a
-            # denylist, so without this the next `superset init` hands every
-            # permission on it to stock Gamma and Alpha -- and a page gated
-            # on one quietly stops being gated. Recorded as the extension's
-            # API class is registered rather than listed here, because
-            # `ADMIN_ONLY_VIEW_MENUS` is a literal set an extension's
-            # resource can never be added to.
-            #
-            # Admin alone until an operator grants it to a role of their own.
-            # Role sync only rebuilds the built-in roles, so a grant to a
-            # custom role survives.
             return True
         return (
             pvm.view_menu.name in self.ADMIN_ONLY_VIEW_MENUS

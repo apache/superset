@@ -30,7 +30,6 @@ from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from superset import security_manager
-from superset.extensions.context import use_context
 
 BOOT_ON: dict[str, Any] = {"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": True}}
 BOOT_OFF: dict[str, Any] = {"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": False}}
@@ -213,37 +212,3 @@ def test_superset_base_preserves_extension_permissions(
     assert api.allow_browser_login is True
     assert api.csrf_exempt is False
     assert isinstance(api, BaseSupersetApi)
-
-
-@pytest.mark.parametrize("app", [BOOT_ON], indirect=True)
-def test_registering_an_extension_api_records_its_resource(app: Any) -> None:
-    """The wiring, driven through a real `@api` registration.
-
-    Asserted end to end rather than by calling the registrar directly,
-    because two earlier attempts at this guard were wired to something
-    nothing calls -- the recording existed and never ran, and unit tests
-    that invoked it by hand passed the whole time. Deleting the call in
-    `api_impl` has to turn this red.
-    """
-    import superset_core.rest_api.decorators as core_rest_api
-
-    from superset.extensions import permissions
-    from superset.views.base_api import BaseSupersetApi
-    from tests.unit_tests.extensions.storage.conftest import create_context
-
-    before = set(permissions._extension_resources)  # noqa: SLF001
-    try:
-        permissions.clear_extension_resources()
-        ctx = create_context()
-
-        with app.app_context(), use_context(ctx):
-
-            @core_rest_api.api(id="thing", name="Thing")
-            class AcmeThingApi(BaseSupersetApi):  # pylint: disable=unused-variable
-                resource_name = "thing"
-                class_permission_name = "AcmeThing"
-
-        assert permissions.is_extension_resource("AcmeThing") is True
-    finally:
-        permissions.clear_extension_resources()
-        permissions._extension_resources.update(before)  # noqa: SLF001
