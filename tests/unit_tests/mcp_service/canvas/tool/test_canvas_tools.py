@@ -361,6 +361,33 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
     assert result["option"] == {"series": []}
 
 
+def test_a_widget_types_refusal_reaches_agents_with_its_code() -> None:
+    from superset_core.widgets import WidgetQueryRefusedError
+
+    from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
+    from superset.mcp_service.canvas.schemas import (
+        CanvasWidgetData,
+        PreviewWidgetResponse,
+    )
+    from superset.mcp_service.canvas.tool.canvas_ops_common import query_error
+
+    refused = WidgetQueryRefusedError("CONTENT_CHANGED", "This widget changed")
+    expected = {
+        "error": "This widget changed",
+        "error_type": "WidgetQueryRefused",
+        "error_code": "CONTENT_CHANGED",
+    }
+
+    # Raised by the type, or classified on its way to the tool.
+    assert query_error(refused) == expected
+    assert query_error(CanvasQueryFailedError(canvas_query_error(refused))) == expected
+    entry = CanvasWidgetData.model_validate({"placement_id": "chart", **expected})
+    assert entry.model_dump() == {"placement_id": "chart", **expected}
+    assert PreviewWidgetResponse.model_validate(expected).error_code == (
+        "CONTENT_CHANGED"
+    )
+
+
 def test_preview_reports_unknown_placements() -> None:
     from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
 

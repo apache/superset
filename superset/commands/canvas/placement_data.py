@@ -20,7 +20,7 @@ from collections.abc import Mapping
 from typing import Any
 from uuid import UUID
 
-from superset_core.widgets import QueryRequest, Widget
+from superset_core.widgets import QueryRequest, Widget, WidgetQueryRefusedError
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver, get_widget_types
@@ -120,11 +120,16 @@ def widget_queries(
     no dataset isn't bound yet and is left out. Every binding a type builds
     gets the same checks, and runs the same way, as the caller.
 
-    Raises ``ValueError`` for a type that builds two queries of one name: each
-    name is a dataset of the answer.
+    Raises ``CanvasQueryFailedError`` for a type that refuses the request
+    (``WidgetQueryRefusedError``), with the type's code and message, and
+    ``ValueError`` for a type that builds two queries of one name: each name
+    is a dataset of the answer.
     """
     widget_cls = get_widget_types().get(widget_type) if widget_type else None
-    queries = (widget_cls or Widget).build_queries(request)
+    try:
+        queries = (widget_cls or Widget).build_queries(request)
+    except WidgetQueryRefusedError as ex:
+        raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
     names = [query.name for query in queries]
     if len(set(names)) != len(names):
         raise ValueError(f"widget type {widget_type!r} names a query twice: {names}")

@@ -131,7 +131,8 @@ class Widget:
         """
         The widget's queries, whose results the host serves as its datasets
         (see ``superset_core.widgets.queries``): by default the props'
-        ``dataBinding``, as ``main``.
+        ``dataBinding``, as ``main``. Raise ``WidgetQueryRefusedError`` to
+        refuse the request with a code and a message instead.
         """
         binding = request.props.get("dataBinding")
         return [WidgetQuery("main", binding)] if isinstance(binding, Mapping) else []

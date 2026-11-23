@@ -41,4 +41,5 @@ from superset_core.widgets.enrichment import EnricherFn as EnricherFn
 from superset_core.widgets.queries import (
     QueryRequest as QueryRequest,
     WidgetQuery as WidgetQuery,
+    WidgetQueryRefusedError as WidgetQueryRefusedError,
 )

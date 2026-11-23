@@ -31,6 +31,10 @@ The host checks and runs a query that a widget type builds exactly as one from
 the props: as the caller, with their dataset access, row level security and
 the runtime filters, which narrow every query. A widget type decides what its
 widgets query, never who may read their data.
+
+A widget type may also refuse a data request (``WidgetQueryRefusedError``),
+such as one that names content the widget no longer serves; the host then
+answers with the type's code and message instead of any dataset.
 """
 
 from __future__ import annotations
@@ -66,3 +70,27 @@ class WidgetQuery:
     # In the shape of a placement's ``dataBinding``. One that names no dataset
     # isn't bound yet, and the host leaves it out.
     binding: Mapping[str, Any]
+
+
+class WidgetQueryRefusedError(Exception):
+    """
+    A widget type's refusal to build its queries for a data request: the host
+    runs none of them and answers with ``code`` and ``message`` as they are,
+    over HTTP with ``status``.
+
+    ``code`` is for programs, such as the widget's renderer deciding what to
+    do next. ``message`` reaches whoever made the request, so it must say
+    nothing they may not know. ``status`` is a client error, by default 409
+    for a request that names what the widget no longer serves, but not 401
+    or 407: the frontend answers a 401 by sending the person to sign in.
+    """
+
+    def __init__(self, code: str, message: str, status: int = 409) -> None:
+        if not isinstance(code, str) or not code:
+            raise ValueError("a widget query refusal needs a code")
+        if not 400 <= status < 500 or status in {401, 407}:
+            raise ValueError(f"a widget query refusal can't answer {status}")
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.status = status
