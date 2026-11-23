@@ -363,6 +363,9 @@ export function useDraftActions(
           addSuccessToast(t('Draft published'));
         }
       };
+      // A retry shows the publish going on, as the first try does, rather
+      // than the stop it is retrying.
+      show();
       holding(true);
       publishAll().finally(() => holding(false));
     },
