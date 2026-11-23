@@ -220,8 +220,9 @@ class ChartDataRestApi(ChartRestApi):
             # payload check then requires ``form_data.slice_id`` to match it. A
             # saved context is replayed verbatim, so it can lack the id or, after
             # "Save as", carry the source chart's; stamp it as the browser does.
+            saved_form_data = json_body.get("form_data")
             json_body["form_data"] = {
-                **(json_body.get("form_data") or {}),
+                **(saved_form_data if isinstance(saved_form_data, dict) else {}),
                 "slice_id": chart.id,
             }
 
