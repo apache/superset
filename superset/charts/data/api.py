@@ -227,6 +227,7 @@ class ChartDataRestApi(ChartRestApi):
 
         # Apply dashboard filter context when filters_dashboard_id is provided
         dashboard_filter_context: DashboardFilterContext | None = None
+        filters_dashboard_id: int | None
         if "filters_dashboard_id" in request.args:
             raw = request.args.get("filters_dashboard_id")
             try:
