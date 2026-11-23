@@ -113,6 +113,11 @@ openapi_spec_methods_override = {
     },
 }
 
+CUSTOM_TIME_PRESET_REGEX = re.compile(
+    r"last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?",
+    re.IGNORECASE,
+)
+
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
@@ -233,8 +238,8 @@ class DashboardJSONMetadataSchema(Schema):
     show_chart_timestamps = fields.Boolean(dump_default=False)
     # used for time range presets
     custom_time_presets = fields.List(
-        fields.Str(), 
-        allow_none=True, 
+        fields.Str(),
+        allow_none=True,
         metadata={"description": "List of custom time range presets for this dashboard."}
     )
     @validates("custom_time_presets")
@@ -245,6 +250,11 @@ class DashboardJSONMetadataSchema(Schema):
             # if not valid time range string, raise ValidationError
             if not preset or not preset.strip():
                 raise ValidationError("Time range preset cannot be empty.")
+            if not CUSTOM_TIME_PRESET_REGEX.fullmatch(preset):
+                raise ValidationError(
+                    f"Invalid time range preset '{preset}'. "
+                    'Use the format "Last <number> <unit>", e.g. "Last 5 minutes".'
+                )
             try:
                 get_since_until(preset)
             except ValueError as e:
