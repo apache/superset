@@ -2189,3 +2189,39 @@ class TestGetChartDataWithDashboardFilter(BaseTestChartDataApi):
         assert rv.status_code == 400
         data = json.loads(rv.data.decode("utf-8"))
         assert "not on dashboard" in data["message"]
+
+
+def test_first_n_per_group_returns_capped_rows_and_sql_rowcount(
+    test_client, login_as_admin, physical_query_context
+):
+    physical_query_context["result_type"] = ChartDataResultType.RESULTS
+    physical_query_context["queries"][0] = {
+        "columns": [
+            {
+                "label": "parent",
+                "sqlExpression": "CASE WHEN col1 < 5 THEN 'x' ELSE 'y' END",
+                "expressionType": "SQL",
+            },
+            "col1",
+        ],
+        "metrics": [],
+        "orderby": [["col1", True]],
+        "post_processing": [
+            {
+                "operation": "first_n_per_group",
+                "options": {"groupby": ["parent"], "n": 2},
+            }
+        ],
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == 200
+    result = rv.json["result"][0]
+    assert result["data"] == [
+        {"parent": "x", "col1": 0},
+        {"parent": "x", "col1": 1},
+        {"parent": "y", "col1": 5},
+        {"parent": "y", "col1": 6},
+    ]
+    assert result["rowcount"] == 4
+    assert result["sql_rowcount"] == 10

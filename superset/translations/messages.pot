@@ -18990,6 +18990,9 @@ msgstr ""
 msgid "greeting"
 msgstr ""
 
+msgid "groupby must contain at least one column"
+msgstr ""
+
 msgid "header"
 msgstr ""
 
@@ -19124,6 +19127,9 @@ msgid "multi-value type icon"
 msgstr ""
 
 msgid "must have a value"
+msgstr ""
+
+msgid "n must be a positive integer"
 msgstr ""
 
 msgid "name"

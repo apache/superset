@@ -25,6 +25,7 @@ from superset.utils.pandas_postprocessing.compare import compare
 from superset.utils.pandas_postprocessing.contribution import contribution
 from superset.utils.pandas_postprocessing.cum import cum
 from superset.utils.pandas_postprocessing.diff import diff
+from superset.utils.pandas_postprocessing.first_n_per_group import first_n_per_group
 from superset.utils.pandas_postprocessing.flatten import flatten
 from superset.utils.pandas_postprocessing.geography import (
     geodetic_parse,
@@ -52,6 +53,7 @@ __all__ = [
     "contribution",
     "cum",
     "diff",
+    "first_n_per_group",
     "geohash_encode",
     "geohash_decode",
     "geodetic_parse",

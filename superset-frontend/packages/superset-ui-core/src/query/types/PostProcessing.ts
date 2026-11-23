@@ -241,6 +241,17 @@ interface _PostProcessingRank {
 }
 export type PostProcessingRank = _PostProcessingRank | DefaultPostProcessing;
 
+interface _PostProcessingFirstNPerGroup {
+  operation: 'first_n_per_group';
+  options: {
+    groupby: string[];
+    n: number;
+  };
+}
+export type PostProcessingFirstNPerGroup =
+  | _PostProcessingFirstNPerGroup
+  | DefaultPostProcessing;
+
 interface _PostProcessingHistogram {
   operation: 'histogram';
   options?: {
@@ -274,7 +285,8 @@ export type PostProcessingRule =
   | PostProcessingRename
   | PostProcessingFlatten
   | PostProcessingHistogram
-  | PostProcessingRank;
+  | PostProcessingRank
+  | PostProcessingFirstNPerGroup;
 
 export function isPostProcessingAggregation(
   rule?: PostProcessingRule,
