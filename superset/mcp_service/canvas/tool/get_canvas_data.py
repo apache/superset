@@ -51,6 +51,8 @@ MAX_WIDGETS = 50
 # Under the MCP response size guard, which fails the whole call when crossed:
 # rows are trimmed to fit instead.
 MAX_RESPONSE_BYTES = 40_000
+# The most ``unread`` entries listed; each repeats the reason.
+MAX_UNREAD = 20
 
 
 def _in_layout_order(definition: dict[str, Any]) -> Iterator[str]:
@@ -186,15 +188,16 @@ def _get_canvas_data_impl(
                 runtime_filters,
             )
         )
-    _fit_rows(entries, MAX_RESPONSE_BYTES)
+    listed = {
+        key: value
+        for key, value in (("skipped", skipped), ("unread", unread[:MAX_UNREAD]))
+        if value
+    }
+    # The lists share the budget with the rows: trimmed rows alone could still
+    # leave the response past the size guard.
+    _fit_rows(entries, MAX_RESPONSE_BYTES - len(json.dumps(listed)))
     result["widgets"] = entries
-    result.update(
-        {
-            key: value
-            for key, value in (("skipped", skipped), ("unread", unread))
-            if value
-        }
-    )
+    result.update(listed)
     return result
 
 
@@ -234,7 +237,8 @@ def get_canvas_data(
     title, row count, columns and up to ``max_rows`` rows (at most 500);
     rows are trimmed further, marked ``truncated``, to keep the response small.
     Placements without a query (containers, text, filters) are left out;
-    an extension widget with no ``dataBinding`` is listed in ``unread``.
+    the first 20 extension widgets with no ``dataBinding`` are listed in
+    ``unread``.
     ``placement_ids`` limits it to those placements; ``max_widgets`` (at most
     50) caps how many queries run, and the rest are listed in ``skipped``.
     With ``draft_token``, reads the draft instead of the published canvas.

@@ -535,6 +535,14 @@ export function useCanvasLayout(
     setSaving(false);
   }, [canvasId, draftToken]);
 
+  // The revision the next write is based on: the newest the server is known
+  // to have reached, by a fetch, a write of ours or an undo or redo.
+  const baseRevision = useCallback(
+    () =>
+      Math.max(fetched.current, confirmed.current ?? 0, adopted.current ?? 0),
+    [],
+  );
+
   const send = useCallback(
     (ops: Map<string, LayoutWrite>) => {
       writing.current = true;
@@ -546,11 +554,7 @@ export function useCanvasLayout(
       const isRetry = retrying.current;
       retrying.current = false;
       const startedAt = Logger.getTimestamp();
-      const base = Math.max(
-        fetched.current,
-        confirmed.current ?? 0,
-        adopted.current ?? 0,
-      );
+      const base = baseRevision();
       const placeOps = [...ops].map(([id, write]) => asOperation(id, write));
       // While a draft is open the layout belongs to the draft, not the
       // published canvas: same operations, but its own route, its own
@@ -706,7 +710,7 @@ export function useCanvasLayout(
           }
         });
     },
-    [canvasId, draftToken, log, reload],
+    [baseRevision, canvasId, draftToken, log, reload],
   );
 
   const write = useCallback(
@@ -763,7 +767,7 @@ export function useCanvasLayout(
           fetchedColumns.current,
         );
         return {
-          revision: Math.max(fetched.current, confirmed.current ?? 0) + 1,
+          revision: baseRevision() + 1,
           placements: without(
             {
               ...(newer?.placements ?? fetchedPlacements.current),
@@ -811,7 +815,10 @@ export function useCanvasLayout(
           scopes: newer?.scopes ?? fetchedScopes.current,
         };
       });
-      if (writing.current) {
+      // Queued, too, while a 409's retry waits on its refetch: sent now it
+      // would be based on the revision that conflicted, and replaying the
+      // retry after it would put back what this gesture just changed.
+      if (writing.current || retry.current) {
         // Deleted before being set: `Map.set` on a key it already holds keeps
         // that key's original position, and this queue is sent as ordered
         // operations. The server lets a later one win a contested cell, so a
@@ -825,7 +832,7 @@ export function useCanvasLayout(
       }
       send(new Map(entries));
     },
-    [canEdit, log, send],
+    [baseRevision, canEdit, log, send],
   );
 
   // `gesture` tells a drag apart from a resize, which `kind` alone cannot:
@@ -906,16 +913,24 @@ export function useCanvasLayout(
           entry.parent === ROOT_NODE_ID ||
           present(entry.parent)),
     );
-    if (!fits) {
-      setError(UNDONE());
-      return;
-    }
-    const entries = pending.entries.filter(
-      ([id, entry]) => entry.kind !== 'remove' || present(id),
+    if (!fits) setError(UNDONE());
+    // Gestures made while the refetch was in flight go after the retry, so
+    // each node ends up where it was dropped last.
+    const entries = new Map(
+      fits
+        ? pending.entries.filter(
+            ([id, entry]) => entry.kind !== 'remove' || present(id),
+          )
+        : [],
     );
-    if (entries.length === 0) return;
-    retrying.current = true;
-    write(entries, undefined, true);
+    queued.current.forEach((entry, id) => {
+      entries.delete(id);
+      entries.set(id, entry);
+    });
+    queued.current.clear();
+    if (entries.size === 0) return;
+    retrying.current = fits;
+    write([...entries], undefined, true);
   }, [revision, result.placements, write]);
 
   // The definition wins once a fetch catches up to what was applied locally.

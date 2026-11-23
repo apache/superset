@@ -35,6 +35,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from functools import cached_property
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -212,6 +213,11 @@ class CanvasDraft:
     def canvas_id(self) -> int:
         return self.canvas.id
 
+    @cached_property
+    def _saved_placed(self) -> set[str]:
+        # The saved canvas doesn't change under a draft within a request.
+        return _placed(CanvasDAO.load(self.canvas))
+
     def resolver(self) -> PendingWidgetResolver:
         """
         The draft's widgets over the saved ones. A saved widget the draft
@@ -221,7 +227,7 @@ class CanvasDraft:
         base = get_widget_resolver()
         returning = _placed(self.definition) - set(self.widgets)
         if returning:
-            returning -= _placed(CanvasDAO.load(self.canvas))
+            returning -= self._saved_placed
         if returning and (hidden := returning - base.placeable(returning)):
             base = HidingWidgetResolver(base, hidden)
         return PendingWidgetResolver(base, self.widgets)
@@ -391,8 +397,9 @@ def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
         "canEdit": security_manager.can_access("can_write", "Canvas"),
     }
     if resolved:
-        payload.update(resolve_scopes(draft.definition, resolver=draft.resolver()))
-        payload.update(render_context(draft.definition, resolver=draft.resolver()))
+        resolver = draft.resolver()
+        payload.update(resolve_scopes(draft.definition, resolver=resolver))
+        payload.update(render_context(draft.definition, resolver=resolver))
     return payload
 
 
@@ -444,7 +451,8 @@ class ApplyCanvasDraftOperationsCommand:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision, draft_revision=draft.revision)
-        if issues := placement_issues(self._ops, draft.resolver()):
+        resolver = draft.resolver()
+        if issues := placement_issues(self._ops, resolver):
             raise DefinitionInvalidError(
                 "The operations add widgets that cannot be placed", issues=issues
             )
@@ -456,7 +464,7 @@ class ApplyCanvasDraftOperationsCommand:
         # Summarised against the definition as it stood, before it is
         # replaced: a resize is only a resize next to the span it replaced.
         placed = (
-            render_context(before, resolver=draft.resolver())["placements"]
+            render_context(before, resolver=resolver)["placements"]
             if any(op.op.get("op") in LAYOUT_OPS for op in applied)
             else {}
         )

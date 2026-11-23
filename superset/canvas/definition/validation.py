@@ -45,7 +45,12 @@ from superset_core.canvas import GridPlacement, WidgetResolver
 from superset_core.canvas.base import MAX_GRID_ROW, MAX_GRID_ROW_SPAN
 from superset_core.widgets import Widget
 
-from superset.canvas.definition.grid import Rect, resolve_grid, span_errors
+from superset.canvas.definition.grid import (
+    Rect,
+    resolve_grid,
+    span_errors,
+    unpositioned,
+)
 from superset.canvas.definition.placements import (
     placement_types,
     upgrade_inline_props,
@@ -407,9 +412,10 @@ class _Validator:
                 ]:
                     self.fail(pointer(*layout_path), message)
             elif columns is not None and span_errors(layout, columns):
-                # Its grid narrowed since it was placed.
+                # Its grid narrowed since it was placed: auto-placed at the
+                # size it had, as wide as the grid allows.
                 kept.add(child_id)
-                layouts.append({})
+                layouts.append(unpositioned(layout, columns))
                 continue
             layouts.append(layout)
             doc["nodes"][child_id]["layout"] = layout

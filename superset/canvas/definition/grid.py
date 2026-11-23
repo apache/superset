@@ -106,6 +106,17 @@ def span_errors(layout: dict[str, Any], columns: int) -> list[str]:
     return []
 
 
+def unpositioned(layout: dict[str, Any], columns: int) -> dict[str, Any]:
+    """``layout`` without its position, to be auto-placed at its size, no wider
+    than ``columns``."""
+    sized: dict[str, Any] = {}
+    if col_span := layout.get("colSpan"):
+        sized["colSpan"] = min(col_span, columns)
+    if row_span := layout.get("rowSpan"):
+        sized["rowSpan"] = row_span
+    return sized
+
+
 def resolve_grid(
     layouts: list[dict[str, Any]], columns: int
 ) -> tuple[list[Rect], list[dict[str, Any]]]:

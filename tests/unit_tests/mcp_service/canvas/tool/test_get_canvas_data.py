@@ -28,7 +28,11 @@ from superset_core.canvas import StoredWidget
 
 from superset.canvas.data import PlacementData
 from superset.mcp_service.canvas.tool.canvas_ops_common import UNREAD_REASON
-from superset.mcp_service.canvas.tool.get_canvas_data import _get_canvas_data_impl
+from superset.mcp_service.canvas.tool.get_canvas_data import (
+    _get_canvas_data_impl,
+    MAX_RESPONSE_BYTES,
+    MAX_UNREAD,
+)
 from superset.utils import json
 
 MODULE = "superset.mcp_service.canvas.tool.get_canvas_data"
@@ -123,6 +127,22 @@ def test_lists_extension_widgets_it_cannot_read() -> None:
         }
     ]
     assert "unread" not in _run()[0]
+
+
+def test_a_canvas_full_of_unread_widgets_stays_within_the_size_budget() -> None:
+    definition = _canvas()
+    for index in range(400):
+        node_id = f"extension-widget-number-{index}"
+        definition["root"]["children"].append(node_id)
+        definition["nodes"][node_id] = {
+            "widgetType": "extensions.acme.kpis.board",
+            "props": {},
+        }
+
+    result, _ = _run(definition=definition)
+
+    assert len(result["unread"]) == MAX_UNREAD
+    assert len(json.dumps(result)) < MAX_RESPONSE_BYTES
 
 
 def test_caps_rows_and_widgets() -> None:

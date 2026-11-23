@@ -52,7 +52,7 @@ from pydantic import ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
 from superset_core.widgets import Widget, WidgetUi
 
-from superset.canvas.definition.grid import resolve_grid, span_errors
+from superset.canvas.definition.grid import resolve_grid, span_errors, unpositioned
 from superset.canvas.definition.pending import widget_payload
 from superset.canvas.definition.placements import placement_types, upgrade_entities
 from superset.canvas.definition.registry import (
@@ -225,11 +225,16 @@ def _span_constraints(ui: WidgetUi, content_rows: int = 0) -> dict[str, int]:
 
 def _grid_layout(layout: dict[str, Any], columns: int) -> dict[str, Any]:
     """A stored layout as grid placement; one kept from another layout model,
-    or that overflows a grid narrowed since, is auto-placed instead."""
+    or that overflows a grid narrowed since, is auto-placed instead -- the
+    latter at the size it had."""
     try:
         placement = GridPlacement.model_validate(layout).model_dump(
             mode="json", by_alias=True, exclude_none=True
         )
     except ValidationError:
         return {}
-    return {} if span_errors(placement, columns) else placement
+    return (
+        unpositioned(placement, columns)
+        if span_errors(placement, columns)
+        else placement
+    )

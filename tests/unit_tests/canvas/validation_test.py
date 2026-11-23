@@ -130,8 +130,30 @@ def test_a_layout_its_narrowed_grid_no_longer_fits_is_auto_placed() -> None:
         "col": 1,
         "row": 1,
         "colSpan": 12,
-        "rowSpan": 1,
+        "rowSpan": 2,
     }
+
+
+def test_a_layout_wider_than_its_narrowed_grid_keeps_its_height() -> None:
+    from superset.canvas.definition.render import render_context
+
+    layout = {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 3}
+    raw = canvas(
+        {
+            "g": inline("group", layout={"colSpan": 12, "rowSpan": 4}, children=["a"]),
+            "a": node("chart-1", layout=layout),
+        },
+        children=["g"],
+    )
+
+    result = normalize_definition(
+        raw, canvas_widget_types(), FakeResolver(), strict_nodes=[], props_nodes=[]
+    )
+    placed = render_context(result, canvas_widget_types(), FakeResolver())
+
+    assert result["nodes"]["a"]["layout"] == layout
+    assert placed["placements"]["a"]["rowSpan"] == 3
+    assert placed["placements"]["a"]["colSpan"] <= 12
 
 
 def test_a_container_grown_past_the_row_span_cap_is_refused() -> None:
