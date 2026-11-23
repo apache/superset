@@ -206,6 +206,28 @@ class WidgetContentError(ValueError):
         )
 
 
+def checked_props(
+    widget: type[Widget], props: dict[str, Any], version: int | None
+) -> dict[str, Any]:
+    """
+    ``props`` written at ``version``, upgraded to ``widget``'s current schema
+    version and checked by its own ``validate_control_values``. Raises
+    ``WidgetContentError`` naming what it refuses.
+    """
+    try:
+        upgraded = current_props(widget, props, version)
+    except ValueError as ex:
+        raise WidgetContentError("props", {"/props": [str(ex)]}) from ex
+    messages: dict[str, list[str]] = {}
+    for error in widget.validate_control_values(upgraded):
+        messages.setdefault(pointer("props", *error["loc"]), []).append(
+            error["message"]
+        )
+    if messages:
+        raise WidgetContentError("props", messages)
+    return upgraded
+
+
 def entity_props(
     widget_type: str,
     props: dict[str, Any],
@@ -226,17 +248,7 @@ def entity_props(
         raise WidgetContentError(
             "widget_type", {"/widgetType": [f"unknown widget {widget_type!r}"]}
         )
-    try:
-        upgraded = current_props(widget, props, version)
-    except ValueError as ex:
-        raise WidgetContentError("props", {"/props": [str(ex)]}) from ex
-    messages: dict[str, list[str]] = {}
-    for error in widget.validate_control_values(upgraded):
-        messages.setdefault(pointer("props", *error["loc"]), []).append(
-            error["message"]
-        )
-    if messages:
-        raise WidgetContentError("props", messages)
+    upgraded = checked_props(widget, props, version)
     try:
         denied = newly_unreadable(upgraded, previous)
     except ValueError as ex:
