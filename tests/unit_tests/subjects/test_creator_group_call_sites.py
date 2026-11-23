@@ -234,7 +234,7 @@ def test_dashboard_importer_attaches_default_viewers(app_context) -> None:
             return_value=[viewer],
         ),
     ):
-        result = dashboard_utils.import_dashboard(
+        result, _ = dashboard_utils.import_dashboard(
             {"uuid": "x", "metadata": {}}, ignore_permissions=True
         )
 

@@ -29,6 +29,7 @@ from typing import Any, TYPE_CHECKING
 from dateutil.relativedelta import relativedelta
 from flask import current_app
 from flask_babel import gettext as _, ngettext
+from marshmallow import ValidationError
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -724,7 +725,7 @@ def stricter_errors(
 def clamp_inherited_copy_limits(
     raw: dict[str, Any] | None, stored: dict[str, Any] | None
 ) -> dict[str, Any] | None:
-    """Replace only unchanged stale copy rules with their global limits."""
+    """Replace unchanged stale dashboard rules, validating any replacements."""
     if (policy := parse_written_policy(raw)) is None:
         return raw
     global_limits = load_global_limits() or TimeRangeLimits()
@@ -736,7 +737,35 @@ def clamp_inherited_copy_limits(
         and not _changed(policy, stored, rule)
         and _looser_than(rule, value, limit, "dashboard") is not None
     }
-    return {**(raw or {}), **replacements}
+    if not replacements:
+        return raw
+    clamped = {**(raw or {}), **replacements}
+    if errors := check_stricter_than_global(
+        parse_written_policy(clamped), raw, "dashboard"
+    ):
+        raise ValidationError(errors)
+    return clamped
+
+
+def clamp_imported_dashboard_limits(
+    metadata: dict[str, Any], stored: dict[str, Any] | None
+) -> bool:
+    """Clamp valid inherited rules in import metadata and report changes.
+
+    Import schemas validate supplied policies. When metadata is omitted, an
+    existing policy can predate the import schema or use a disabled time grain.
+    """
+    if stored is None or TIME_RANGE_LIMITS_KEY not in metadata:
+        return False
+    raw = metadata[TIME_RANGE_LIMITS_KEY]
+    try:
+        clamped = clamp_inherited_copy_limits(raw, stored)
+    except TimeRangeLimitsInvalidError:
+        return False
+    if raw == clamped:
+        return False
+    metadata[TIME_RANGE_LIMITS_KEY] = clamped
+    return True
 
 
 def policy_errors(

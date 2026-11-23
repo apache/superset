@@ -47,6 +47,30 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def import_validation_error(
+    model_name: str, exceptions: list[ValidationError]
+) -> CommandInvalidError:
+    """Build the import message and preserve the structured validation errors."""
+    detailed_errors = []
+    for ex in exceptions:
+        if hasattr(ex, "messages") and isinstance(ex.messages, dict):
+            for file_name, errors in ex.messages.items():
+                logger.warning("Validation failed for %s: %s", file_name, errors)
+                detailed_errors.append(f"{file_name}: {errors}")
+        else:
+            logger.warning("Import validation error: %s", ex)
+            detailed_errors.append(str(ex))
+
+    error_summary = "; ".join(detailed_errors)
+    message = f"Error importing {model_name}: {error_summary}"
+    if any(isinstance(ex, ImportFormatValidationError) for ex in exceptions):
+        message += ". " + _(
+            "Re-export the assets from a compatible Superset version, "
+            "then retry with the new file."
+        )
+    return CommandInvalidError(message, exceptions)
+
+
 class ImportModelsCommand(BaseCommand):
     """Import models"""
 
@@ -149,27 +173,7 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
-            detailed_errors = []
-            for ex in exceptions:
-                # Extract detailed error information
-                if hasattr(ex, "messages") and isinstance(ex.messages, dict):
-                    for file_name, errors in ex.messages.items():
-                        logger.warning(
-                            "Validation failed for %s: %s", file_name, errors
-                        )
-                        detailed_errors.append(f"{file_name}: {errors}")
-                else:
-                    logger.warning("Import validation error: %s", ex)
-                    detailed_errors.append(str(ex))
-
-            error_summary = "; ".join(detailed_errors)
-            message = f"Error importing {self.model_name}: {error_summary}"
-            if any(isinstance(ex, ImportFormatValidationError) for ex in exceptions):
-                message += ". " + _(
-                    "Re-export the assets from a compatible Superset version, "
-                    "then retry with the new file."
-                )
-            raise CommandInvalidError(message, exceptions)
+            raise import_validation_error(self.model_name, exceptions)
 
     def _reused_dependency_uuids(self) -> set[str]:
         """

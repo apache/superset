@@ -721,7 +721,7 @@ class TestDashboardRestore(SupersetTestCase):
         }
 
         try:
-            restored = import_dashboard(config, overwrite=False)
+            restored, _ = import_dashboard(config, overwrite=False)
             assert restored.id == original_id, (
                 "Restore-via-import must reuse the soft-deleted row's PK, "
                 "not create a new dashboard"

@@ -80,7 +80,7 @@ def test_import_dashboard(mocker: MockerFixture, session_with_schema: Session) -
         security_manager, "can_access", return_value=True
     )
 
-    dashboard = import_dashboard(dashboard_config)
+    dashboard, _ = import_dashboard(dashboard_config)
     assert dashboard.dashboard_title == "Test dash"
     assert dashboard.description is None
     assert dashboard.is_managed_externally is False
@@ -103,7 +103,7 @@ def test_import_dashboard_managed_externally(
     config = copy.deepcopy(dashboard_config)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_dashboard"
-    dashboard = import_dashboard(config)
+    dashboard, _ = import_dashboard(config)
     assert dashboard.is_managed_externally is True
     assert dashboard.external_url == "https://example.org/my_dashboard"
 
@@ -277,7 +277,7 @@ def test_import_existing_dashboard_does_not_add_importer_as_editor(
     )
 
     with override_user(admin):
-        result = import_dashboard(dashboard_config, overwrite=True)
+        result, _ = import_dashboard(dashboard_config, overwrite=True)
 
     get_user_subject.assert_not_called()
     assert subject not in result.editors
@@ -306,7 +306,7 @@ def test_import_new_dashboard_adds_importer_as_editor(
     )
 
     with override_user(user):
-        result = import_dashboard(dashboard_config)
+        result, _ = import_dashboard(dashboard_config)
 
     get_user_subject.assert_called_once_with(user.id)
     assert subject in result.editors
@@ -383,7 +383,7 @@ def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
     )
 
     with override_user(admin):
-        dashboard = import_dashboard(dashboard_config, overwrite=True)
+        dashboard, _ = import_dashboard(dashboard_config, overwrite=True)
 
     assert dashboard.id == original_id
     assert dashboard.deleted_at is None
@@ -438,7 +438,7 @@ def test_import_soft_deleted_dashboard_non_overwrite_restores_for_editor(
     )
 
     with override_user(admin):
-        dashboard = import_dashboard(dashboard_config, overwrite=False)
+        dashboard, _ = import_dashboard(dashboard_config, overwrite=False)
 
     assert dashboard.id == original_id
     assert dashboard.deleted_at is None
@@ -530,7 +530,7 @@ def test_import_existing_active_dashboard_overwrite_without_can_write_returns_ex
     assert existing is not None
     assert existing.deleted_at is None
 
-    result = import_dashboard(dashboard_config, overwrite=True)
+    result, _ = import_dashboard(dashboard_config, overwrite=True)
 
     assert result.id == existing.id
     assert result.deleted_at is None
@@ -556,7 +556,7 @@ def test_import_soft_deleted_dashboard_ignore_permissions_restores_in_place(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
-    dashboard = import_dashboard(
+    dashboard, _ = import_dashboard(
         dashboard_config, overwrite=True, ignore_permissions=True
     )
 
@@ -885,7 +885,7 @@ def test_import_v1_dashboard_dataset_extra_under_a_bad_global(
     assert count_assets() == (0, 0, 0)
 
 
-def test_import_v1_dashboard_overwrite_keeps_an_unchanged_stale_override(
+def test_import_v1_dashboard_overwrite_clamps_an_unchanged_stale_override(
     session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
 ) -> None:
     from superset import db
@@ -904,19 +904,123 @@ def test_import_v1_dashboard_overwrite_keeps_an_unchanged_stale_override(
     mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
     mocker.patch.object(security_manager, "is_admin", return_value=True)
 
-    ImportDashboardsCommand(bundle(stale), overwrite=True).run()
+    contents = bundle(stale, dataset_limits=span(4))
+    config = yaml.safe_load(contents[DASHBOARD_FILE])
+    config["metadata"]["native_filter_configuration"] = [
+        {
+            "id": "NATIVE_FILTER-time",
+            "filterType": "filter_time",
+            "defaultDataMask": {"filterState": {"value": "Last 20 weeks"}},
+        }
+    ]
+    contents[DASHBOARD_FILE] = yaml.safe_dump(config)
+    ImportDashboardsCommand(contents, overwrite=True).run()
 
     dashboard = db.session.query(Dashboard).one()
     assert dashboard.dashboard_title == "Test dash"
-    assert json.loads(dashboard.json_metadata)["time_range_limits"] == stale
+    metadata = json.loads(dashboard.json_metadata)
+    assert metadata["time_range_limits"] == span(12)
+    mask = metadata["native_filter_configuration"][0]["defaultDataMask"]
+    expected = 'DATEADD(DATETIME("today"), -4, week) : today'
+    assert mask["filterState"]["value"] == expected
+    assert mask["extraFormData"]["time_range"] == expected
 
     with pytest.raises(CommandInvalidError):
         ImportDashboardsCommand(bundle(span(21)), overwrite=True).run()
     db.session.refresh(dashboard)
-    assert json.loads(dashboard.json_metadata)["time_range_limits"] == stale
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == span(12)
 
 
-def test_import_v1_dashboard_restoring_a_soft_deleted_row_keeps_its_stale_override(
+def test_import_v1_dashboard_refuses_a_clamp_to_zero_look_back_and_forward(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    zero_days = {"quantity": 0, "time_grain": "P1D"}
+    global_limits = {**span(12), "max_look_back": zero_days}
+    stale = {
+        **span(12),
+        "max_look_back": {"quantity": 5, "time_grain": "P1D"},
+        "max_look_forward": zero_days,
+    }
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_limits})
+    dashboard = Dashboard(
+        dashboard_title="Stale",
+        uuid=dashboard_config["uuid"],
+        json_metadata=json.dumps({"time_range_limits": stale}),
+    )
+    db.session.add(dashboard)
+    db.session.commit()
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDashboardsCommand(bundle(stale), overwrite=True).run()
+
+    assert excinfo.value.status == 422
+    errors = {
+        "metadata": {
+            "time_range_limits.max_look_forward.quantity": [
+                "Look-back and look-forward can't both be 0: no time range would fit."
+            ]
+        }
+    }
+    assert excinfo.value.message == (
+        f"Error importing dashboard: {DASHBOARD_FILE}: {errors}"
+    )
+    assert excinfo.value.normalized_messages() == {DASHBOARD_FILE: errors}
+    assert dashboard.params_dict["time_range_limits"] == stale
+
+
+def test_import_v1_dashboard_rolls_back_when_the_time_default_cannot_be_fitted(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    stale = span(20)
+    zero_hours = {"quantity": 0, "time_grain": "PT1H"}
+    dataset_limits = {**span(12), "max_look_forward": zero_hours}
+    contents = bundle(stale, dataset_limits=dataset_limits)
+    config = yaml.safe_load(contents[DASHBOARD_FILE])
+    config["metadata"]["native_filter_configuration"] = [
+        {"id": "NATIVE_FILTER-time", "filterType": "filter_time"}
+    ]
+    contents[DASHBOARD_FILE] = yaml.safe_dump(config)
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": stale})
+    ImportDashboardsCommand(contents).run()
+    mocker.patch.dict(
+        current_app.config,
+        {"TIME_RANGE_LIMITS_GLOBAL": {**span(12), "max_look_back": zero_hours}},
+    )
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDashboardsCommand(contents, overwrite=True).run()
+
+    assert excinfo.value.status == 422
+    field = (
+        "json_metadata.native_filter_configuration.NATIVE_FILTER-time.defaultDataMask"
+    )
+    errors = excinfo.value.normalized_messages()[DASHBOARD_FILE]
+    assert set(errors) == {field}
+    assert "No time range fits" in errors[field][0]
+    assert excinfo.value.message == (
+        f"Error importing dashboard: {DASHBOARD_FILE}: {errors}"
+    )
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.params_dict["time_range_limits"] == stale
+
+
+def test_import_v1_dashboard_restoring_a_soft_deleted_row_clamps_its_stale_override(
     session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
 ) -> None:
     from datetime import datetime
@@ -941,14 +1045,44 @@ def test_import_v1_dashboard_restoring_a_soft_deleted_row_keeps_its_stale_overri
     with pytest.raises(CommandInvalidError):
         ImportDashboardsCommand(bundle(span(21)), overwrite=True).run()
 
-    ImportDashboardsCommand(bundle(stale), overwrite=True).run()
+    ImportDashboardsCommand(bundle(stale)).run()
 
     dashboard = db.session.query(Dashboard).one()
     assert dashboard.deleted_at is None
-    assert json.loads(dashboard.json_metadata)["time_range_limits"] == stale
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == span(12)
 
 
-def test_import_v1_dashboard_with_a_fresh_uuid_keeps_the_slug_holders_stale_override(
+def test_import_v1_dashboard_clamps_limits_when_metadata_is_omitted(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from superset import db
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+
+    db.session.add(
+        Dashboard(
+            dashboard_title="Stale",
+            uuid=dashboard_config["uuid"],
+            json_metadata=json.dumps(
+                {"time_range_limits": span(20), "refresh_frequency": 60}
+            ),
+        )
+    )
+    db.session.flush()
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    contents = bundle(None)
+    config = yaml.safe_load(contents[DASHBOARD_FILE])
+    del config["metadata"]
+    contents[DASHBOARD_FILE] = yaml.safe_dump(config)
+
+    ImportDashboardsCommand(contents, overwrite=True).run()
+
+    metadata = db.session.query(Dashboard).one().params_dict
+    assert metadata["time_range_limits"] == span(12)
+    assert metadata["refresh_frequency"] == 60
+
+
+def test_import_v1_dashboard_with_a_fresh_uuid_clamps_the_slug_holders_stale_override(
     session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
 ) -> None:
     from uuid import uuid4
@@ -984,7 +1118,7 @@ def test_import_v1_dashboard_with_a_fresh_uuid_keeps_the_slug_holders_stale_over
 
     dashboard = db.session.query(Dashboard).one()
     assert dashboard.dashboard_title == "Test dash"
-    assert json.loads(dashboard.json_metadata)["time_range_limits"] == stale
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == span(12)
 
 
 def test_import_v1_dashboard_round_trips_without_a_global(

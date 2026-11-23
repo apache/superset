@@ -287,6 +287,7 @@ def test_import_threads_overwrite_flag(mocker: MockerFixture, session: Session) 
     )
     mocked_chart.return_value.viz_type = "table"
     mocked_dash = mocker.patch.object(assets_module, "import_dashboard")
+    mocked_dash.return_value = (mocker.Mock(), False)
     mocker.patch.object(assets_module, "find_chart_uuids", return_value=[])
     mocker.patch.object(assets_module, "update_id_refs", side_effect=lambda c, *_: c)
     mocker.patch.object(assets_module, "migrate_dashboard")
@@ -707,6 +708,27 @@ def test_import_assets_accepts_a_stricter_override(limits: None) -> None:
 
     dashboard = db.session.query(Dashboard).one()
     assert json.loads(dashboard.json_metadata)["time_range_limits"] == span(12)
+
+
+def test_import_assets_overwrite_clamps_an_inherited_override(
+    limits: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.dashboard import Dashboard
+
+    contents = assets_bundle(span(20))
+    global_limits = current_app.config["TIME_RANGE_LIMITS_GLOBAL"]
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": None})
+    ImportAssetsCommand(contents).run()
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.params_dict["time_range_limits"] == span(20)
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_limits})
+    ImportAssetsCommand(contents, overwrite=True).run()
+    assert dashboard.params_dict["time_range_limits"] == span(12)
 
 
 def test_import_assets_flag_off_accepts_a_looser_override(

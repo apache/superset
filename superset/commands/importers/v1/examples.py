@@ -27,6 +27,7 @@ from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
+    fit_imported_dashboard_defaults,
     import_dashboard,
     update_id_refs,
 )
@@ -46,6 +47,7 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.exceptions import QueryClauseValidationException
 from superset.models.core import Database
+from superset.models.dashboard import Dashboard
 from superset.semantic_layers.import_export import (
     dashboard_targets,
     SemanticReferenceError,
@@ -254,6 +256,7 @@ class ImportExamplesCommand(ImportModelsCommand):
 
         # import dashboards
         dashboard_chart_ids: list[tuple[int, int]] = []
+        clamped_dashboards: list[Dashboard] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 try:
@@ -261,13 +264,15 @@ class ImportExamplesCommand(ImportModelsCommand):
                 except KeyError:
                     continue
 
-                dashboard = import_dashboard(
+                dashboard, clamped = import_dashboard(
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
                     default_viewers=default_viewers,
                 )
                 dashboard.published = True
+                if clamped:
+                    clamped_dashboards.append(dashboard)
 
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
@@ -275,3 +280,6 @@ class ImportExamplesCommand(ImportModelsCommand):
 
         # set ref in the dashboard_slices table
         safe_insert_dashboard_chart_relationships(dashboard_chart_ids)
+        for dashboard in clamped_dashboards:
+            db.session.expire(dashboard, ["slices"])
+            fit_imported_dashboard_defaults(dashboard)

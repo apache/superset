@@ -299,7 +299,7 @@ def test_import_passes_ignore_permissions_to_all_importers(
     # Mock dashboard import
     mock_dashboard_obj = MagicMock()
     mock_dashboard_obj.id = 1000
-    mock_import_dashboard.return_value = mock_dashboard_obj
+    mock_import_dashboard.return_value = (mock_dashboard_obj, False)
 
     configs = {
         "databases/examples.yaml": {

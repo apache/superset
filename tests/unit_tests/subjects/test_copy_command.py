@@ -18,12 +18,17 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import current_app
+from pytest_mock import MockerFixture
 
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardInvalidError,
 )
+from superset.models.dashboard import Dashboard
+from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def _make_dashboard() -> MagicMock:
@@ -43,6 +48,39 @@ VALID_DATA = {
     "dashboard_title": "Copied Dashboard",
     "json_metadata": "{}",
 }
+
+
+@with_feature_flags(TIME_RANGE_LIMITS=True)
+def test_copy_dashboard_refuses_a_clamp_to_zero_look_back_and_forward(
+    mocker: MockerFixture,
+) -> None:
+    zero_days = {"quantity": 0, "time_grain": "P1D"}
+    global_limits = {
+        "schema_version": 1,
+        "max_span": None,
+        "max_look_back": zero_days,
+        "max_look_forward": None,
+    }
+    stored = {
+        **global_limits,
+        "max_look_back": {"quantity": 5, "time_grain": "P1D"},
+        "max_look_forward": zero_days,
+    }
+    source = Dashboard(json_metadata=json.dumps({"time_range_limits": stored}))
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_limits})
+    mocker.patch(
+        "superset.commands.dashboard.copy.security_manager.is_editor", return_value=True
+    )
+
+    with pytest.raises(DashboardInvalidError) as excinfo:
+        CopyDashboardCommand(source, VALID_DATA).validate()
+
+    assert excinfo.value.status == 422
+    assert excinfo.value.normalized_messages() == {
+        "json_metadata.time_range_limits.max_look_forward.quantity": [
+            "Look-back and look-forward can't both be 0: no time range would fit."
+        ]
+    }
 
 
 def test_copy_dashboard_validate_non_editor_forbidden():

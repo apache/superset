@@ -33,6 +33,7 @@ from superset.models.dashboard import Dashboard
 from superset.time_range_limits.policy import (
     clamp_inherited_copy_limits,
     json_text_limits_errors,
+    limits_errors,
     stored_limits,
     TIME_RANGE_LIMITS_KEY,
 )
@@ -93,8 +94,16 @@ class CopyDashboardCommand(BaseCommand):
         ):
             raise DashboardInvalidError(exceptions=[ValidationError(errors)])
         if TIME_RANGE_LIMITS_KEY in metadata:
-            metadata[TIME_RANGE_LIMITS_KEY] = clamp_inherited_copy_limits(
-                metadata[TIME_RANGE_LIMITS_KEY],
-                stored_limits(self._original_dash.json_metadata),
-            )
+            try:
+                metadata[TIME_RANGE_LIMITS_KEY] = clamp_inherited_copy_limits(
+                    metadata[TIME_RANGE_LIMITS_KEY],
+                    stored_limits(self._original_dash.json_metadata),
+                )
+            except ValidationError as ex:
+                errors = limits_errors(
+                    "json_metadata.time_range_limits", ex.normalized_messages()
+                )
+                raise DashboardInvalidError(
+                    exceptions=[ValidationError(errors)]
+                ) from ex
         self._properties["json_metadata"] = json.dumps(metadata)

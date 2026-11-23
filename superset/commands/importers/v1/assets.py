@@ -29,6 +29,7 @@ from superset.commands.base import BaseCommand
 from superset.commands.chart.importers.v1.utils import import_charts
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
+    fit_imported_dashboard_defaults,
     import_dashboard,
     update_id_refs,
 )
@@ -216,9 +217,14 @@ class ImportAssetsCommand(BaseCommand):
                     config.get("metadata") or {}, semantic_info
                 )
                 config = update_id_refs(config, chart_ids, dataset_info)
-                dashboard = import_dashboard(
-                    config, overwrite=overwrite, default_viewers=default_viewers
-                )
+                try:
+                    dashboard, clamped = import_dashboard(
+                        config, overwrite=overwrite, default_viewers=default_viewers
+                    )
+                except CommandInvalidError as ex:
+                    raise ImportFailedError(
+                        f"{file_name}: {ex.normalized_messages()}"
+                    ) from ex
 
                 # set ref in the dashboard_slices table
                 # Use ORM-level reassignment instead of Core
@@ -267,6 +273,13 @@ class ImportAssetsCommand(BaseCommand):
 
                 # Migrate any filter-box charts to native dashboard filters.
                 migrate_dashboard(dashboard)
+                if clamped:
+                    try:
+                        fit_imported_dashboard_defaults(dashboard)
+                    except CommandInvalidError as ex:
+                        raise ImportFailedError(
+                            f"{file_name}: {ex.normalized_messages()}"
+                        ) from ex
 
         # Remove all obsolete filter-box charts.
         for chart in charts:

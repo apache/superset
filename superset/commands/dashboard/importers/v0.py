@@ -41,6 +41,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.time_range_limits.policy import (
+    clamp_imported_dashboard_limits,
     limits_errors,
     limits_shape_error,
     parse_written_policy,
@@ -49,6 +50,7 @@ from superset.time_range_limits.policy import (
     TIME_RANGE_LIMITS_KEY,
     TimeRangeLimitsInvalidError,
 )
+from superset.time_range_limits.save_check import fit_copy_filter_defaults
 from superset.utils import json
 from superset.utils.core import get_user
 from superset.utils.dashboard_filter_scopes_converter import (
@@ -395,8 +397,20 @@ def import_dashboard(  # noqa: C901
 
     # override the dashboard
     existing_dashboard = _find_existing_dashboard(dashboard_to_import.id)
+    try:
+        clamped = existing_dashboard is not None and clamp_imported_dashboard_limits(
+            old_json_metadata, stored_limits(existing_dashboard.json_metadata)
+        )
+    except ValidationError as ex:
+        errors = limits_errors(TIME_RANGE_LIMITS_KEY, ex.normalized_messages())
+        raise CommandInvalidError(
+            _("Error importing dashboard"),
+            [ValidationError({"json_metadata": errors})],
+        ) from ex
 
     dashboard_to_import = dashboard_to_import.copy()
+    if clamped:
+        dashboard_to_import.json_metadata = json.dumps(old_json_metadata)
     dashboard_to_import.id = None
     dashboard_to_import.reset_ownership()
     # position_json can be empty for dashboards
@@ -430,6 +444,10 @@ def import_dashboard(  # noqa: C901
     )
     # Migrate any filter-box charts to native dashboard filters.
     migrate_dashboard(dashboard)
+    if clamped and (errors := fit_copy_filter_defaults(dashboard, datetime.now())):
+        raise CommandInvalidError(
+            _("Error importing dashboard"), [ValidationError(errors)]
+        )
     db.session.flush()
     return dashboard.id
 
