@@ -158,7 +158,7 @@ function CanvasList({
         ),
         Header: t('Title'),
         accessor: 'title',
-        size: 'xxl',
+        layout: 'title',
         id: 'title',
       },
       {
@@ -170,7 +170,7 @@ function CanvasList({
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
-        size: 'lg',
+        layout: 'people',
         id: 'editors',
       },
       {
@@ -184,7 +184,7 @@ function CanvasList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on',
       },
       {
@@ -204,7 +204,7 @@ function CanvasList({
         id: 'actions',
         disableSortBy: true,
         hidden: !canWrite,
-        size: 'xl',
+        layout: 'actions',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

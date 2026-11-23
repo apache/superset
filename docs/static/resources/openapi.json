@@ -15769,9 +15769,10 @@
             "type": "object"
           },
           "schema_version": {
-            "default": 1,
+            "default": null,
             "description": "The version of the widget's schema that the props conform to.",
             "minimum": 1,
+            "nullable": true,
             "type": "integer"
           },
           "viewers": {

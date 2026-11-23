@@ -435,6 +435,11 @@ export function useCanvasLayout(
   // Last revision the server acknowledged. Never an optimistic guess, so a
   // write is never based on a revision the server hasn't reached.
   const confirmed = useRef<number>();
+  // A revision an undo or redo moved the draft to, for a write made before
+  // the refetch shows it. Kept apart from `confirmed`: the revision this hook
+  // reports stays the one on screen, which is how the page knows the step
+  // hasn't landed yet.
+  const adopted = useRef<number>();
   // The definition's own revision, for the write that hasn't had a response
   // yet (first drag after a load or a refetch).
   const fetched = useRef(revision);
@@ -512,6 +517,7 @@ export function useCanvasLayout(
     // other.
     generation.current += 1;
     confirmed.current = undefined;
+    adopted.current = undefined;
     acknowledged.current = undefined;
     writing.current = false;
     queued.current.clear();
@@ -540,7 +546,11 @@ export function useCanvasLayout(
       const isRetry = retrying.current;
       retrying.current = false;
       const startedAt = Logger.getTimestamp();
-      const base = Math.max(fetched.current, confirmed.current ?? 0);
+      const base = Math.max(
+        fetched.current,
+        confirmed.current ?? 0,
+        adopted.current ?? 0,
+      );
       const placeOps = [...ops].map(([id, write]) => asOperation(id, write));
       // While a draft is open the layout belongs to the draft, not the
       // published canvas: same operations, but its own route, its own
@@ -762,6 +772,12 @@ export function useCanvasLayout(
               // it asked for.
               ...moved,
               ...pushed.placements,
+              // A swap shows what its gesture drew for both widgets: that
+              // preview already is the exchange, and the local settle above
+              // only guesses at it from stored layouts.
+              ...Object.fromEntries(
+                shownBy(entries.filter(([, entry]) => entry.kind === 'swap')),
+              ),
             },
             gone,
           ),
@@ -872,7 +888,7 @@ export function useCanvasLayout(
   }, []);
 
   const adopt = useCallback((stepped: number) => {
-    confirmed.current = Math.max(confirmed.current ?? 0, stepped);
+    adopted.current = Math.max(adopted.current ?? 0, stepped);
   }, []);
 
   // The refetch after a 409 has landed: reapply the reverted gesture if

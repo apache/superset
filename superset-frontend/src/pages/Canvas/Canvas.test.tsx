@@ -549,11 +549,21 @@ test('a draft opened from the page is named once loaded, and no longer once left
 });
 
 test.each([
-  [500, 'pending', pendingIn('tok-a', 2)],
-  [404, 'no longer named', draftUnnamed(2)],
+  [
+    500,
+    'pending',
+    pendingIn('tok-a', 2),
+    'Draft. Only you can see these changes.',
+  ],
+  [
+    404,
+    'no longer named',
+    draftUnnamed(2),
+    'This draft was published, discarded or expired elsewhere.',
+  ],
 ])(
   'a draft whose refresh answers %i is %s, its definition still shown',
-  async (status, _, expected) => {
+  async (status, _, expected, banner) => {
     // A failure may mean what is on screen is no longer the draft's latest; a
     // 404 or 403 means the draft was published, discarded or expired, or is
     // out of the user's reach.
@@ -571,9 +581,7 @@ test.each([
     await waitFor(() =>
       expect(canvas.getActiveCanvas()).toStrictEqual(expected),
     );
-    expect(
-      screen.getByText('Draft. Only you can see these changes.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText(banner)).toBeInTheDocument();
     expect(seen).toStrictEqual([expected]);
     stop();
   },

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-20 13:18+0300\n"
+"POT-Creation-Date: 2026-11-23 14:11+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -185,14 +185,14 @@ msgstr[1] ""
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
+
 #. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
 #. parameter name except the last one, which is %(lastSuggestion)s.
 #, python-format
 msgid "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
-msgstr ""
-
-#, python-format
-msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
 #, python-format
@@ -10157,10 +10157,6 @@ msgstr ""
 msgid "No records found"
 msgstr ""
 
-#, python-format
-msgid "No renderer for widget type \"%s\""
-msgstr ""
-
 msgid "No results"
 msgstr ""
 
@@ -16273,6 +16269,9 @@ msgid "This dimension is not compatible with the current selections. Select a co
 msgstr ""
 
 msgid "This draft is no longer available"
+msgstr ""
+
+msgid "This draft was published, discarded or expired elsewhere."
 msgstr ""
 
 msgid "This email is already associated with an account. Please choose another one."
