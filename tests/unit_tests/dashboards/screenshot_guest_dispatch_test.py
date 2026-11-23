@@ -321,3 +321,27 @@ def test_screenshot_task_renders_as_guest_only_when_token_is_forwarded(
 
     rendered_as = screenshot_cls.return_value.compute_and_cache.call_args.kwargs["user"]
     assert rendered_as is (guest_user if with_guest_token else executor_user)
+
+
+def test_fresh_dashboard_capture_with_refused_chart_is_dispatched(
+    client: Any,
+    mocker: MockerFixture,
+    dashboard: MagicMock,
+    screenshot_task: MagicMock,
+    request_key_lookup: MagicMock,
+) -> None:
+    """A refused tile must not prevent a fresh dashboard capture from starting."""
+    from superset.models.slice import Slice
+    from superset.semantic_layers.access import is_semantic_image_unavailable
+
+    dashboard.slices = [Slice(viz_type="histogram_v2", datasource_type="semantic_view")]
+    mocker.patch(
+        "superset.semantic_layers.access.is_semantic_layers_enabled", return_value=True
+    )
+    mocker.patch(
+        "superset.dashboards.api.is_semantic_image_unavailable",
+        wraps=is_semantic_image_unavailable,
+    )
+    token: bytes = _guest_token("embedded_viewer")
+    _request_key(client, request_key_lookup, token)
+    screenshot_task.delay.assert_called_once()
