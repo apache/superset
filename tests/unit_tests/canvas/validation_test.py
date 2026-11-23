@@ -134,6 +134,52 @@ def test_a_layout_its_narrowed_grid_no_longer_fits_is_auto_placed() -> None:
     }
 
 
+def test_a_container_grown_past_the_row_span_cap_is_refused() -> None:
+    children = {f"c{i}": node(f"chart-{i}", layout={"rowSpan": 200}) for i in (1, 2)}
+    raw = canvas(
+        {"g": inline("group", children=list(children)), **children},
+        children=["g"],
+    )
+
+    assert issues(raw) == [
+        (
+            "/nodes/g/layout/rowSpan",
+            "its content needs 400 rows, over the 200 a widget can span",
+        )
+    ]
+
+
+def test_a_widget_pushed_past_the_last_row_is_refused() -> None:
+    raw = canvas(
+        {
+            "a": node("chart-1", layout={"col": 1, "row": 900, "rowSpan": 200}),
+            "b": node("chart-2", layout={"col": 1, "row": 900}),
+        }
+    )
+
+    assert issues(raw) == [
+        ("/nodes/b/layout/row", "pushed down to row 1100, past the last row (1000)")
+    ]
+
+
+def test_a_canvas_holds_at_most_max_nodes() -> None:
+    from superset.canvas.definition.schemas import MAX_NODES
+
+    nodes = {f"m{i}": inline("markdown") for i in range(MAX_NODES + 1)}
+
+    assert [path for path, _ in issues(canvas(nodes))] == ["/nodes"]
+
+
+def test_inline_props_are_stored_as_parsed() -> None:
+    from tests.unit_tests.canvas.ops_test import _bound_widget_types
+
+    raw = canvas({"n": inline("note", {"count": "17"})})
+
+    result = normalize_definition(raw, _bound_widget_types(), FakeResolver())
+
+    assert result["nodes"]["n"]["props"] == {"count": 17}
+
+
 def test_inline_props_are_migrated_to_the_widget_version() -> None:
     rules = canvas_widget_types()
     markdown = rules["markdown"]

@@ -132,12 +132,21 @@ def current_props(
 
 
 def bound_datasets(props: dict[str, Any]) -> dict[int, tuple[str, ...]]:
-    """The datasets ``props`` query, by id, with where each is named."""
+    """
+    The datasets ``props`` query, by id, with where each is named.
+
+    Raises ``ValueError`` for a ``datasetId`` that isn't a plain integer: the
+    data path would still run ``17.0`` or ``"17"`` as dataset 17, so letting
+    one through here would skip the access check for it.
+    """
     bound: dict[int, tuple[str, ...]] = {}
     for path, source in (((), props), (("dataBinding",), props.get("dataBinding"))):
         value = source.get("datasetId") if isinstance(source, dict) else None
-        if isinstance(value, int) and not isinstance(value, bool):
-            bound.setdefault(value, (*path, "datasetId"))
+        if value is None:
+            continue
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"datasetId must be an integer, not {value!r}")
+        bound.setdefault(value, (*path, "datasetId"))
     return bound
 
 
@@ -228,7 +237,11 @@ def entity_props(
         )
     if messages:
         raise WidgetContentError("props", messages)
-    if denied := newly_unreadable(upgraded, previous):
+    try:
+        denied = newly_unreadable(upgraded, previous)
+    except ValueError as ex:
+        raise WidgetContentError("props", {"/props": [str(ex)]}) from ex
+    if denied:
         raise WidgetContentError(
             "props",
             {

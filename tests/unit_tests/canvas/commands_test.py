@@ -120,6 +120,28 @@ def test_create_refuses_a_binding_to_a_dataset_the_author_cannot_read(
     }
 
 
+@pytest.mark.parametrize("dataset_id", [17.0, "17", True])
+def test_create_refuses_a_dataset_id_that_is_not_an_integer(
+    create_deps: None, mocker: MockerFixture, dataset_id: Any
+) -> None:
+    from superset.widgets.registry import registry as widget_registry
+    from tests.unit_tests.canvas.ops_test import _bound_widget_types
+
+    mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets", return_value=set()
+    )
+    definition = canvas(
+        {"n": inline("note", {"dataBinding": {"datasetId": dataset_id}})}
+    )
+    command = create_command({"title": "x", "definition": definition})
+
+    with patch.dict(widget_registry, _bound_widget_types()):
+        with pytest.raises(CanvasInvalidError) as excinfo:
+            command.validate()
+
+    assert list(excinfo.value.normalized_messages()["definition"]) == ["/nodes/n/props"]
+
+
 def test_widget_uuids_are_kept_in_one_spelling() -> None:
     from superset.canvas.definition.schemas import AddOp, Node
 

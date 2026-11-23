@@ -1125,6 +1125,19 @@ def test_rewriting_the_template_of_a_bound_widget_needs_dataset_access(
         )
 
 
+@pytest.mark.parametrize("dataset_id", [17.0, "17", True])
+def test_a_dataset_id_that_is_not_an_integer_is_refused(dataset_id: Any) -> None:
+    with pytest.raises(OperationError, match="datasetId must be an integer"):
+        _apply_bound(
+            empty_definition(),
+            {
+                "op": "add",
+                "widgetType": "note",
+                "props": {"dataBinding": {"datasetId": dataset_id}},
+            },
+        )
+
+
 def test_props_are_stored_as_parsed() -> None:
     result, _ = _apply_bound(
         empty_definition(),

@@ -230,10 +230,8 @@ test('renders widgets through their renderers, nested in grid containers', () =>
 test('shows placeholders for unavailable widgets and unregistered types', () => {
   renderGrid();
 
-  expect(screen.getByText('This widget is unavailable')).toBeInTheDocument();
-  expect(
-    screen.getByText('No renderer for widget type "test.unknown"'),
-  ).toBeInTheDocument();
+  // One for the missing widget, one for the type with no renderer.
+  expect(screen.getAllByText('This widget is unavailable')).toHaveLength(2);
 });
 
 test('filter values reach the nodes in the filter scope', () => {

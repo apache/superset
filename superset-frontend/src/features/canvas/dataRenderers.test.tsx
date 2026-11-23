@@ -118,6 +118,7 @@ const layout: CanvasLayout = {
   remove: jest.fn(),
   removed: new Set<string>(),
   dismissError: jest.fn(),
+  adopt: jest.fn(),
 };
 
 const renderTable = () => {

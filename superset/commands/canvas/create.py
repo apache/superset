@@ -118,7 +118,12 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
             props = node.get("props")
             if not isinstance(props, dict):
                 continue
-            for dataset_id, path in newly_unreadable(props, None).items():
+            try:
+                unreadable = newly_unreadable(props, None)
+            except ValueError as ex:
+                denied[f"/nodes/{node_id}/props"] = [str(ex)]
+                continue
+            for dataset_id, path in unreadable.items():
                 pointer = "/".join(("", "nodes", node_id, "props", *path))
                 denied[pointer] = [f"unknown dataset {dataset_id}, or no access to it"]
         return denied

@@ -46,7 +46,9 @@ from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_
 from superset.mcp_service.canvas.tool.canvas_ops_common import (
     absolute_url,
     can_view_query,
+    keeps_own_data,
     query_error,
+    UNREAD_REASON,
 )
 from superset.models.canvas import Canvas
 from superset.utils import json
@@ -116,6 +118,8 @@ def _with_rows(
     """Run the widget's query, if it has one, and record what came back."""
     binding = props.get("dataBinding")
     if not isinstance(binding, dict) or not binding.get("datasetId"):
+        if keeps_own_data(result.get("widget_type")):
+            result.setdefault("warnings", []).append(UNREAD_REASON)
         return []
     data = run_binding(binding, runtime_filters)
     rows = data.rows

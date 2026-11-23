@@ -42,6 +42,7 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
+from superset_core.canvas.base import MAX_GRID_ROW, MAX_GRID_ROW_SPAN
 from superset_core.widgets import Widget
 
 from superset.canvas.definition.grid import Rect, resolve_grid, span_errors
@@ -221,6 +222,9 @@ class _Validator:
                             "place it by widgetId",
                         )
                     if self.wrote_props(node_id):
+                        # Stored as parsed, so the dataset check and every
+                        # reader see the id the controls model reads.
+                        node["props"] = widget.normalize_control_values(node["props"])
                         self._check_props(node_id, widget, node["props"])
                 elif self.props_nodes is not None and node_id in self.props_nodes:
                     stored = self.resolver.widgets({node["widgetId"]})
@@ -357,7 +361,15 @@ class _Validator:
         )
         layout = doc["nodes"][node_id].get("layout")
         if on_grid and isinstance(layout, dict):
-            if (layout.get("rowSpan") or 1) < rows:
+            # Checked here, not only on the layout a write names: a write that
+            # only adds to a container grows it without naming its layout.
+            if rows > MAX_GRID_ROW_SPAN:
+                self.fail(
+                    pointer("nodes", node_id, "layout", "rowSpan"),
+                    f"its content needs {rows} rows, over the {MAX_GRID_ROW_SPAN} "
+                    "a widget can span",
+                )
+            elif (layout.get("rowSpan") or 1) < rows:
                 layout["rowSpan"] = rows
 
     def _resolve_children(
@@ -405,10 +417,21 @@ class _Validator:
         if columns is None or len(layouts) != len(children):
             return []
         rects, stored = resolve_grid(layouts, columns)
+        self._check_rows(children, rects)
         for child_id, layout in zip(children, stored, strict=True):
             if child_id not in kept:
                 doc["nodes"][child_id]["layout"] = layout
         return rects
+
+    def _check_rows(self, children: list[str], rects: list[Rect]) -> None:
+        """Push-down can carry a widget past where any write may place one."""
+        for child_id, rect in zip(children, rects, strict=True):
+            if rect.row > MAX_GRID_ROW:
+                self.fail(
+                    pointer("nodes", child_id, "layout", "row"),
+                    f"pushed down to row {rect.row}, past the last row "
+                    f"({MAX_GRID_ROW})",
+                )
 
     def _size_errors(
         self, node_id: str, layout: dict[str, Any], columns: int

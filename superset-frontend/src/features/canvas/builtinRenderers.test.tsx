@@ -143,6 +143,7 @@ const layoutOf = (canvasResult: CanvasDefinitionResult): CanvasLayout => ({
   remove: jest.fn(),
   removed: new Set<string>(),
   dismissError: jest.fn(),
+  adopt: jest.fn(),
 });
 
 /**

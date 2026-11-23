@@ -61,6 +61,21 @@ def payload_result(
     return {_RESULT_KEYS.get(key, key): value for key, value in ex.to_payload().items()}
 
 
+UNREAD_REASON = (
+    "This widget keeps no dataBinding.datasetId, so its data can't be run "
+    "here; read its props for how it gets its data."
+)
+
+
+def keeps_own_data(widget_type: str | None) -> bool:
+    """
+    Whether ``widget_type`` may get its data some way other than a
+    ``dataBinding``. Built-in types without one have no data to read; an
+    extension's type may still have some.
+    """
+    return widget_type is not None and widget_type.startswith("extensions.")
+
+
 def can_view_query() -> bool:
     """Whether the caller may see a widget's query; classic charts gate "View
     query" on the same permission."""

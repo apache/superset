@@ -53,10 +53,21 @@ const TabsMark = styled.div`
   margin-right: ${CLEAR_OF_REMOVE};
 `;
 
+// The open pane fills the container, so its grid -- and the drop targets in
+// it -- reach the container's bottom edge, and an empty tab still has room
+// to drop into.
+const fullPane = css`
+  & > .ant-tabs-tabpane {
+    height: 100%;
+  }
+`;
+
 const TabsRenderer = ({ childNodes }: Props) => {
   const mark = useCanvasMark();
   return (
     <Tabs
+      fullHeight
+      contentStyle={fullPane}
       items={childNodes.map(child => ({
         key: child.nodeId,
         label: text(child.props?.title) || t('Untitled tab'),

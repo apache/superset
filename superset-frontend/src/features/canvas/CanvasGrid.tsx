@@ -516,9 +516,11 @@ export default function CanvasGrid({
 
     const Renderer = getRenderer(widgetType);
     if (Renderer === undefined) {
+      // Its extension isn't loaded on this page, say: the type id means
+      // nothing to a viewer.
       return (
         <Placeholder>
-          {t('No renderer for widget type "%s"', widgetType)}
+          <span>{t('This widget is unavailable')}</span>
         </Placeholder>
       );
     }

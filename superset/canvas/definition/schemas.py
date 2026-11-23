@@ -44,6 +44,8 @@ SETTINGS_ID = "settings"
 # ``revenue-trend``; agents read and write them far more cheaply than UUIDs.
 NODE_ID_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
 NODE_ID_MAX_LENGTH = 64
+# Every read resolves each grid, so the node count bounds what a read costs.
+MAX_NODES = 500
 RESERVED_IDS = frozenset({ROOT_ID, SETTINGS_ID})
 
 NodeId = Annotated[str, Field(pattern=NODE_ID_PATTERN, max_length=NODE_ID_MAX_LENGTH)]
@@ -199,7 +201,7 @@ SettingsKey = Literal["refresh", "colors", "display", "crossFilters"]
 class CanvasDefinition(_Model):
     version: Literal[1] = 1
     root: Root = Field(default_factory=Root)
-    nodes: dict[NodeId, Node] = Field(default_factory=dict)
+    nodes: dict[NodeId, Node] = Field(default_factory=dict, max_length=MAX_NODES)
     interactions: Interactions = Field(default_factory=Interactions)
     settings: Settings = Field(default_factory=Settings)
 

@@ -40,7 +40,9 @@ from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
 from superset.mcp_service.canvas.tool.canvas_ops_common import (
     absolute_url,
+    keeps_own_data,
     query_error,
+    UNREAD_REASON,
 )
 from superset.utils import json
 
@@ -124,6 +126,17 @@ def _widget_data(
     return entry
 
 
+def _unread(
+    node_id: str, node: dict[str, Any], widget_type: str | None
+) -> list[dict[str, Any]]:
+    """The placement as an ``unread`` entry, when it may have data elsewhere."""
+    if "children" in node or not keeps_own_data(widget_type):
+        return []
+    return [
+        {"placement_id": node_id, "widget_type": widget_type, "reason": UNREAD_REASON}
+    ]
+
+
 def _get_canvas_data_impl(
     canvas_id: int | str,
     draft_token: str | None,
@@ -146,6 +159,7 @@ def _get_canvas_data_impl(
     )
     entries: list[dict[str, Any]] = []
     skipped: list[str] = []
+    unread: list[dict[str, Any]] = []
     for node_id in _in_layout_order(definition):
         if wanted and node_id not in wanted:
             continue
@@ -157,6 +171,7 @@ def _get_canvas_data_impl(
             widget_type, props = widget.widget_type, widget.props
         binding = props.get("dataBinding")
         if not isinstance(binding, dict) or not binding.get("datasetId"):
+            unread.extend(_unread(node_id, node, widget_type))
             continue
         if len(entries) >= max_widgets:
             skipped.append(node_id)
@@ -173,8 +188,13 @@ def _get_canvas_data_impl(
         )
     _fit_rows(entries, MAX_RESPONSE_BYTES)
     result["widgets"] = entries
-    if skipped:
-        result["skipped"] = skipped
+    result.update(
+        {
+            key: value
+            for key, value in (("skipped", skipped), ("unread", unread))
+            if value
+        }
+    )
     return result
 
 
@@ -213,7 +233,8 @@ def get_canvas_data(
     Runs each placement's query as you, in layout order, and returns its
     title, row count, columns and up to ``max_rows`` rows (at most 500);
     rows are trimmed further, marked ``truncated``, to keep the response small.
-    Placements without a query (containers, text, filters) are left out.
+    Placements without a query (containers, text, filters) are left out;
+    an extension widget with no ``dataBinding`` is listed in ``unread``.
     ``placement_ids`` limits it to those placements; ``max_widgets`` (at most
     50) caps how many queries run, and the rest are listed in ``skipped``.
     With ``draft_token``, reads the draft instead of the published canvas.
