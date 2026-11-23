@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import EchartsRenderer from './EchartsRenderer';
 
@@ -53,7 +53,7 @@ const widget = {
   customizations: [],
   colors: { labelColors: {} },
   refreshKey: 0,
-} as unknown as canvasApi.CanvasWidgetProps;
+} as unknown as CanvasRendererProps;
 
 test('the chart opts its canvas out of the widget drag', () => {
   // ECharts paints its own drag targets -- a dataZoom slider, a brush, graph

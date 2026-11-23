@@ -29,9 +29,7 @@ assists people when migrating to a new version.
   dashboard and chart activity already is. The column is nullable with no
   backfill, and `AbstractEventLogger.log()` is unchanged — `canvas_id` is
   passed as a keyword argument, so a custom `EVENT_LOGGER` that predates the
-  column keeps working untouched. Also adds a `telemetry` namespace to
-  `@apache-superset/core`, letting extensions report usage through the
-  existing event pipeline.
+  column keeps working untouched.
 
 - **`superset init` adds Canvas and Widget permissions to the built-in roles.**
   Gamma and Alpha receive `can_read` and `can_write` on `Canvas` and `Widget`,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import {
@@ -30,7 +30,7 @@ import {
 import { useWidgetRows } from './useWidgetRows';
 import WithQuery from './WithQuery';
 
-type Props = canvasApi.CanvasWidgetProps;
+type Props = CanvasRendererProps;
 
 const Tile = styled.div`
   ${({ theme }) => css`

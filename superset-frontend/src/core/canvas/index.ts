@@ -27,8 +27,9 @@ import type { canvas as canvasApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
 import { createValueEventEmitter } from '../utils';
+import type { CanvasRendererProps } from './types';
 
-type WidgetRenderer = ComponentType<canvasApi.CanvasWidgetProps>;
+type WidgetRenderer = ComponentType<CanvasRendererProps>;
 
 const renderers = new Map<string, WidgetRenderer>();
 const listeners = new Set<() => void>();
@@ -39,10 +40,15 @@ const notify = () => {
   listeners.forEach(listener => listener());
 };
 
-const registerWidgetRenderer: typeof canvasApi.registerWidgetRenderer = (
-  widgetType,
-  component,
-) => {
+/**
+ * Registers a renderer. Typed with the host's full props so the built-in
+ * renderers can register here too; an extension's renderer, typed with the
+ * core subset, is assignable to it.
+ */
+export const registerWidgetRenderer = (
+  widgetType: string,
+  component: WidgetRenderer,
+): Disposable => {
   if (renderers.has(widgetType)) {
     logging.warn(
       `Widget renderer "${widgetType}" is already registered. Overwriting the existing renderer.`,
@@ -58,8 +64,9 @@ const registerWidgetRenderer: typeof canvasApi.registerWidgetRenderer = (
   });
 };
 
-const getWidgetRenderer: typeof canvasApi.getWidgetRenderer = widgetType =>
-  renderers.get(widgetType);
+export const getWidgetRenderer = (
+  widgetType: string,
+): WidgetRenderer | undefined => renderers.get(widgetType);
 
 /** Re-renders the caller when widget renderers are registered or removed. */
 export const useWidgetRenderers = (): typeof getWidgetRenderer => {
@@ -101,7 +108,6 @@ export const setActiveCanvas = (value: canvasApi.ActiveCanvas | undefined) => {
 
 export const canvas: typeof canvasApi = {
   registerWidgetRenderer,
-  getWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
 };

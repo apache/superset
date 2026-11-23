@@ -17,7 +17,13 @@
  * under the License.
  */
 import { createContext, ReactNode, useContext, useMemo } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type {
+  CanvasChild,
+  CanvasColors,
+  CanvasEvent,
+  FilterValue,
+  ScopeKind,
+} from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { Tag } from '@superset-ui/core/components';
@@ -34,7 +40,7 @@ import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import { fitPlacements } from './resolveGrid';
 
 /** Current values set by nodes, per scope kind, by node id. */
-export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
+export type ScopeValues = Record<ScopeKind, Record<string, unknown>>;
 
 export const emptyScopeValues = (): ScopeValues => ({
   filter: {},
@@ -45,14 +51,14 @@ export const emptyScopeValues = (): ScopeValues => ({
 /** Current values published under other kinds, by kind, by node id. */
 export type EventValues = Record<string, Record<string, unknown>>;
 
-const SCOPE_KINDS: ReadonlySet<string> = new Set<canvasApi.ScopeKind>([
+const SCOPE_KINDS: ReadonlySet<string> = new Set<ScopeKind>([
   'filter',
   'crossFilter',
   'customization',
 ]);
 
-const NO_VALUES: canvasApi.FilterValue[] = [];
-const NO_EVENTS: canvasApi.CanvasEvent[] = [];
+const NO_VALUES: FilterValue[] = [];
+const NO_EVENTS: CanvasEvent[] = [];
 
 /** The key the root grid's child order is reported under. */
 const ROOT_NODE_ID = 'root';
@@ -61,8 +67,8 @@ const ROOT_NODE_ID = 'root';
 function valuesByNode(
   scopes: Record<string, string[]>,
   values: Record<string, unknown>,
-): Record<string, canvasApi.FilterValue[]> {
-  const byNode: Record<string, canvasApi.FilterValue[]> = {};
+): Record<string, FilterValue[]> {
+  const byNode: Record<string, FilterValue[]> = {};
   Object.entries(scopes).forEach(([filterNodeId, targets]) => {
     if (values[filterNodeId] === undefined) return;
     targets.forEach(nodeId => {
@@ -78,8 +84,8 @@ function valuesByNode(
 function eventsByNode(
   scopes: Record<string, string[]>,
   events: EventValues,
-): Record<string, canvasApi.CanvasEvent[]> {
-  const byNode: Record<string, canvasApi.CanvasEvent[]> = {};
+): Record<string, CanvasEvent[]> {
+  const byNode: Record<string, CanvasEvent[]> = {};
   Object.entries(events).forEach(([kind, values]) => {
     Object.entries(valuesByNode(scopes, values)).forEach(
       ([nodeId, reaching]) => {
@@ -272,11 +278,7 @@ export interface CanvasGridProps {
   canvasId: number;
   result: CanvasDefinitionResult;
   values: ScopeValues;
-  onValueChange: (
-    kind: canvasApi.ScopeKind,
-    nodeId: string,
-    value: unknown,
-  ) => void;
+  onValueChange: (kind: ScopeKind, nodeId: string, value: unknown) => void;
   events?: EventValues;
   onPublish?: (kind: string, nodeId: string, value: unknown) => void;
   /** Per node, how many automatic refreshes have reached it. */
@@ -417,7 +419,7 @@ export default function CanvasGrid({
   };
   const { gap, rowUnit, columns } = definition.root.layout;
   const { colors, display, crossFilters } = definition.settings;
-  const sharedColors = useMemo<canvasApi.CanvasColors>(
+  const sharedColors = useMemo<CanvasColors>(
     () => ({ scheme: colors.scheme, labelColors: colors.labelColors }),
     [colors.scheme, colors.labelColors],
   );
@@ -528,7 +530,7 @@ export default function CanvasGrid({
     // Built on first read: a grid container renders its children through
     // `renderGrid` and never reads `element`, so building it eagerly doubled
     // the work at every level of nesting.
-    const childNodes: canvasApi.CanvasChild[] = childIds.map(childId => {
+    const childNodes: CanvasChild[] = childIds.map(childId => {
       let element: ReactNode | undefined;
       return {
         nodeId: childId,

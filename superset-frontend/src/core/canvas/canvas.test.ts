@@ -17,7 +17,7 @@
  * under the License.
  */
 import { logging } from '@apache-superset/core/utils';
-import { canvas, setActiveCanvas } from 'src/core';
+import { canvas, getWidgetRenderer, setActiveCanvas } from 'src/core';
 
 const Kpi = () => null;
 
@@ -26,11 +26,11 @@ afterEach(() => setActiveCanvas(undefined));
 test('widget renderers register and unregister by type', () => {
   const registration = canvas.registerWidgetRenderer('test.kpi', Kpi);
 
-  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Kpi);
+  expect(getWidgetRenderer('test.kpi')).toBe(Kpi);
 
   registration.dispose();
 
-  expect(canvas.getWidgetRenderer('test.kpi')).toBeUndefined();
+  expect(getWidgetRenderer('test.kpi')).toBeUndefined();
 });
 
 test('replacing a registered renderer warns', () => {
@@ -53,7 +53,7 @@ test('disposing a replaced renderer keeps the newer one', () => {
 
   first.dispose();
 
-  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Other);
+  expect(getWidgetRenderer('test.kpi')).toBe(Other);
   second.dispose();
 });
 

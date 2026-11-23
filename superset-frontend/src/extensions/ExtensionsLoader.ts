@@ -21,7 +21,6 @@ import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
-import { createTelemetry } from 'src/core/telemetry';
 import { createExtensionContext } from './ExtensionContext';
 
 type Extension = core.Extension;
@@ -218,11 +217,6 @@ class ExtensionsLoader {
         ...window.superset.extensions,
         getContext: () => context,
       },
-      // Bound the same way and for the same reason: the extension's id is
-      // stamped by the host, so an event cannot be attributed to another
-      // extension or sent anonymously. The rate limit is per instance too,
-      // so one noisy extension cannot silence another.
-      telemetry: createTelemetry(extension.id),
     };
     // Reuse the version key webpack already resolved for the host's own
     // @apache-superset/core shared module, rather than recomputing it, so

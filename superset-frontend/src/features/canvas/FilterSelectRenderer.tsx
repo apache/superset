@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useContext, useEffect, useMemo, useState } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
@@ -47,7 +47,7 @@ function FilterSelect({
   setFilterValue,
   canvasId,
   nodeId,
-}: canvasApi.CanvasWidgetProps & { datasetId: number; column: string }) {
+}: CanvasRendererProps & { datasetId: number; column: string }) {
   const draftToken = useContext(CanvasDraftContext);
   const versionUuid = useContext(CanvasVersionContext);
   const log = useCanvasLogger(canvasId, {
@@ -161,9 +161,7 @@ function FilterSelect({
  * its scope as `{datasetId, column, values}`, or clears when nothing is
  * selected.
  */
-export default function FilterSelectRenderer(
-  widget: canvasApi.CanvasWidgetProps,
-) {
+export default function FilterSelectRenderer(widget: CanvasRendererProps) {
   const datasetId = Number(widget.props?.datasetId);
   const column =
     typeof widget.props?.column === 'string' ? widget.props.column : '';

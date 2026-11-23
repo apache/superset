@@ -26,7 +26,7 @@
 import type { ComponentProps } from 'react';
 import fetchMock from 'fetch-mock';
 
-import { canvas, setActiveCanvas } from 'src/core';
+import { canvas, registerWidgetRenderer, setActiveCanvas } from 'src/core';
 import {
   fireEvent,
   render,
@@ -95,7 +95,7 @@ const result = {
   canEdit: true,
 } as unknown as CanvasDefinitionResult;
 
-const registration = canvas.registerWidgetRenderer('test.plain', () => (
+const registration = registerWidgetRenderer('test.plain', () => (
   <div>widget</div>
 ));
 afterAll(() => registration.dispose());

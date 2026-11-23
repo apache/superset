@@ -17,7 +17,7 @@
  * under the License.
  */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps, FilterValue } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
 import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
@@ -71,8 +71,8 @@ export function useWidgetRows(
     canvasId,
     nodeId,
     props,
-  }: Pick<canvasApi.CanvasWidgetProps, 'canvasId' | 'nodeId' | 'props'>,
-  filters: canvasApi.FilterValue[],
+  }: Pick<CanvasRendererProps, 'canvasId' | 'nodeId' | 'props'>,
+  filters: FilterValue[],
   refreshKey: number,
 ): WidgetRows {
   const draftToken = useContext(CanvasDraftContext);

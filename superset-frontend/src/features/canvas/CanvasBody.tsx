@@ -18,7 +18,7 @@
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { ScopeKind } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { Button, EmptyState } from '@superset-ui/core/components';
@@ -42,11 +42,7 @@ interface CanvasBodyProps {
   result: CanvasDefinitionResult;
   reload: () => void;
   values: ScopeValues;
-  onValueChange: (
-    kind: canvasApi.ScopeKind,
-    nodeId: string,
-    value: unknown,
-  ) => void;
+  onValueChange: (kind: ScopeKind, nodeId: string, value: unknown) => void;
   /** Values published under kinds other than the three scope kinds. */
   events?: EventValues;
   /** Records a value a widget published, for the nodes its scope reaches. */

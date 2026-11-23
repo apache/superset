@@ -19,7 +19,7 @@
 import { ReactNode, ReactElement, useState } from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { SupersetClient, JsonResponse } from '@superset-ui/core';
 import {
   act,
@@ -87,7 +87,7 @@ const render = (
     ),
   });
 
-const widget: canvasApi.CanvasWidgetProps = {
+const widget: CanvasRendererProps = {
   canvasId: 1,
   nodeId: 'filter',
   widgetType: 'filter.select',

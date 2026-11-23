@@ -32,5 +32,4 @@ export * as theme from './theme';
 export * as translation from './translation';
 export * as components from './components';
 export * as storage from './storage';
-export * as telemetry from './telemetry';
 export * as utils from './utils';

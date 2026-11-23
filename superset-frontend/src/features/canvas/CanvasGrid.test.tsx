@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import {
   fireEvent,
   render as baseRender,
   screen,
   within,
 } from 'spec/helpers/testing-library';
-import { canvas } from 'src/core';
+import { registerWidgetRenderer } from 'src/core';
 import { BUILTIN_RENDERERS } from './builtinRenderers';
 import CanvasGrid, {
   emptyScopeValues,
@@ -114,7 +114,7 @@ const Chart = ({
   colors,
   showTimestamp,
   refreshKey,
-}: canvasApi.CanvasWidgetProps) => (
+}: CanvasRendererProps) => (
   <div>
     <span>{`chart ${props?.title} filters=${JSON.stringify(filters)}`}</span>
     <span>{`cross=${JSON.stringify(crossFilters)}`}</span>
@@ -122,10 +122,7 @@ const Chart = ({
     <span>{`colors=${colors.scheme} timestamp=${showTimestamp} refresh=${refreshKey}`}</span>
   </div>
 );
-const CrossSource = ({
-  setCrossFilter,
-  publish,
-}: canvasApi.CanvasWidgetProps) => (
+const CrossSource = ({ setCrossFilter, publish }: CanvasRendererProps) => (
   <>
     <button type="button" onClick={() => setCrossFilter('France')}>
       cross filter
@@ -138,23 +135,23 @@ const CrossSource = ({
     </button>
   </>
 );
-const Filter = ({ setFilterValue }: canvasApi.CanvasWidgetProps) => (
+const Filter = ({ setFilterValue }: CanvasRendererProps) => (
   <button type="button" onClick={() => setFilterValue('EMEA')}>
     set filter
   </button>
 );
-const Group = ({ renderGrid }: canvasApi.CanvasWidgetProps) => (
+const Group = ({ renderGrid }: CanvasRendererProps) => (
   <section aria-label="group">{renderGrid()}</section>
 );
 
 const registrations = [
-  canvas.registerWidgetRenderer('test.chart', Chart),
-  canvas.registerWidgetRenderer('test.filter', Filter),
-  canvas.registerWidgetRenderer('test.group', Group),
-  canvas.registerWidgetRenderer('test.odd', CrossSource),
+  registerWidgetRenderer('test.chart', Chart),
+  registerWidgetRenderer('test.filter', Filter),
+  registerWidgetRenderer('test.group', Group),
+  registerWidgetRenderer('test.odd', CrossSource),
   // The real containers, for the marks that sit in their own chrome.
   ...['group', 'tabs', 'tab'].map(widgetType =>
-    canvas.registerWidgetRenderer(widgetType, BUILTIN_RENDERERS[widgetType]),
+    registerWidgetRenderer(widgetType, BUILTIN_RENDERERS[widgetType]),
   ),
 ];
 
@@ -1480,7 +1477,7 @@ test('a canvas at rest leaves its container titles no room for absent controls',
 test("an extension's own group keeps its mark in a row of its own", () => {
   // It replaces the built-in renderer and knows nothing of the mark, so the
   // mark must not be handed to it to draw.
-  const override = canvas.registerWidgetRenderer('group', ({ renderGrid }) => (
+  const override = registerWidgetRenderer('group', ({ renderGrid }) => (
     <section aria-label="custom group">{renderGrid()}</section>
   ));
   try {
@@ -1498,6 +1495,6 @@ test("an extension's own group keeps its mark in a row of its own", () => {
     // Disposing removes the type outright rather than restoring the built-in,
     // so put it back for anything that runs after this.
     override.dispose();
-    canvas.registerWidgetRenderer('group', BUILTIN_RENDERERS.group);
+    registerWidgetRenderer('group', BUILTIN_RENDERERS.group);
   }
 });

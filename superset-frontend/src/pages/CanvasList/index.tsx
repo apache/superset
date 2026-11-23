@@ -38,6 +38,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   ModifiedInfo,
   type ListViewActionProps,
+  type ListViewColumn,
   type ListViewFilters,
   type ListViewProps,
 } from 'src/components';
@@ -131,7 +132,7 @@ function CanvasList({
   };
 
   const initialSort = [{ id: 'changed_on', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<CanvasObject>[]>(
     () => [
       {
         Cell: ({

@@ -26,7 +26,7 @@ import {
 import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { ScopeKind } from 'src/core/canvas/types';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   Button,
@@ -152,7 +152,7 @@ function CanvasBodyWithValues(
 ) {
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
   const onValueChange = useCallback(
-    (kind: canvasApi.ScopeKind, nodeId: string, value: unknown) => {
+    (kind: ScopeKind, nodeId: string, value: unknown) => {
       setValues(previous => {
         const next = { ...previous[kind] };
         if (value === undefined) delete next[nodeId];

@@ -17,11 +17,11 @@
  * under the License.
  */
 import type { ComponentType } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { SafeMarkdown, Tabs, Typography } from '@superset-ui/core/components';
-import { canvas } from 'src/core';
+import { registerWidgetRenderer } from 'src/core';
 import { CanvasMarkHost, useCanvasMark } from './CanvasGrid';
 import EchartsRenderer from './echarts/EchartsRenderer';
 import type { DataBinding } from './echarts/chartData';
@@ -31,7 +31,7 @@ import { useWidgetRows } from './useWidgetRows';
 import WithQuery from './WithQuery';
 import FilterSelectRenderer from './FilterSelectRenderer';
 
-type Props = canvasApi.CanvasWidgetProps;
+type Props = CanvasRendererProps;
 
 const text = (value: unknown): string =>
   typeof value === 'string' ? value : '';
@@ -265,6 +265,6 @@ export function registerBuiltinRenderers(): void {
   if (registered) return;
   registered = true;
   Object.entries(BUILTIN_RENDERERS).forEach(([widgetType, component]) =>
-    canvas.registerWidgetRenderer(widgetType, component),
+    registerWidgetRenderer(widgetType, component),
   );
 }

@@ -18,7 +18,7 @@
  */
 import { act, useContext, useEffect } from 'react';
 import fetchMock from 'fetch-mock';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { FeatureFlag, SupersetClient } from '@superset-ui/core';
 import type { CanvasDefinitionResult } from 'src/features/canvas/types';
 import {
@@ -32,7 +32,7 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { canvas } from 'src/core';
+import { canvas, registerWidgetRenderer } from 'src/core';
 import { subscribeRealtime } from 'src/middleware/realtime';
 import CanvasPage from '.';
 
@@ -249,9 +249,9 @@ test('scopes filter values to the actual version-keyed CanvasBody remount', asyn
     .spyOn(versionHistory, 'useCanvasVersionHistory')
     .mockImplementation(() => history);
   const mounts: (string | undefined)[] = [];
-  const dispose = canvas.registerWidgetRenderer(
+  const dispose = registerWidgetRenderer(
     'test.version-chart',
-    function Chart(widget: canvasApi.CanvasWidgetProps) {
+    function Chart(widget: CanvasRendererProps) {
       const version = useContext(CanvasVersionContext);
       useEffect(() => {
         mounts.push(version);
@@ -328,9 +328,9 @@ test.each(['Save', 'Discard'])(
   async action => {
     const current = { ...filteredDefinition(), canEdit: true };
     let mounts = 0;
-    const dispose = canvas.registerWidgetRenderer(
+    const dispose = registerWidgetRenderer(
       'test.version-chart',
-      function Chart(widget: canvasApi.CanvasWidgetProps) {
+      function Chart(widget: CanvasRendererProps) {
         useEffect(() => {
           mounts += 1;
         }, []);

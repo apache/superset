@@ -36,54 +36,15 @@
  * ```
  */
 
-import { ComponentType, ReactNode } from 'react';
+import { ComponentType } from 'react';
 import { Disposable, Event } from '../common';
-
-/**
- * What can drive other widgets: filters, cross-filter sources (charts that
- * filter others when clicked) and customizations (e.g. dynamic group-by).
- */
-export type ScopeKind = 'filter' | 'crossFilter' | 'customization';
 
 /** A value set by a node, as it reaches the widgets its scope includes. */
 export interface FilterValue {
-  /** The node id of the filter, cross-filter source or customization. */
+  /** The node id of the filter or cross-filter source. */
   filterNodeId: string;
   /** The value, in the setting widget's own format. */
   value: unknown;
-}
-
-/**
- * A value published under a kind of the publisher's choosing, as it reaches
- * the widgets in the publisher's auto scope.
- */
-export interface CanvasEvent {
-  /** The kind it was published under, e.g. `acme.highlight`. */
-  kind: string;
-  /** The node id of the publisher. */
-  sourceNodeId: string;
-  value: unknown;
-}
-
-/** Colors shared by every widget on a canvas. */
-export interface CanvasColors {
-  /** Categorical color scheme; the default scheme when unset. */
-  scheme?: string;
-  /** Fixed colors for series labels, e.g. `{ France: '#1f77b4' }`. */
-  labelColors: Record<string, string>;
-}
-
-/** A child node of a container, for containers that arrange children. */
-export interface CanvasChild {
-  nodeId: string;
-  /** The child's widget type, when its widget still resolves. */
-  widgetType?: string;
-  /** The child's props, valid against its widget's schema. */
-  props?: Record<string, unknown>;
-  /** The child's stored layout within this container. */
-  layout: Record<string, unknown>;
-  /** The rendered child. */
-  element: ReactNode;
 }
 
 /** The props the canvas passes to a widget renderer. */
@@ -93,14 +54,11 @@ export interface CanvasWidgetProps {
   nodeId: string;
   /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
   widgetType: string;
-  /** For a widget entity (anything but a container or text): its UUID. */
-  widgetId?: string;
   /**
-   * The widget's props, valid against its schema at `schemaVersion`. Only
-   * explicitly set values; defaults come from the schema.
+   * The widget's props, valid against its schema. Only explicitly set values;
+   * defaults come from the schema.
    */
   props?: Record<string, unknown>;
-  schemaVersion?: number;
   /**
    * The title the canvas shows above this placement, if any. A renderer that
    * draws a title of its own leaves it out while this is set, so the widget
@@ -111,13 +69,6 @@ export interface CanvasWidgetProps {
   filters: FilterValue[];
   /** Values of the cross-filter sources whose scope includes this node. */
   crossFilters: FilterValue[];
-  /** Values of the customizations whose scope includes this node. */
-  customizations: FilterValue[];
-  /**
-   * For filter widgets: publish the filter's value to the widgets it drives.
-   * Pass `undefined` to clear it.
-   */
-  setFilterValue: (value: unknown) => void;
   /**
    * For cross-filter sources: publish a cross-filter, or clear it with
    * `undefined`. Ignored while cross-filters are turned off.
@@ -133,42 +84,18 @@ export interface CanvasWidgetProps {
   setCrossFilter: (value: unknown) => void;
   /** Whether cross-filters are turned on for this canvas. */
   crossFiltersEnabled: boolean;
-  /** For customization widgets: publish the value, or clear it. */
-  setCustomizationValue: (value: unknown) => void;
   /**
-   * Events of any kind published by the nodes whose auto scope includes this
-   * node; a node's latest value per kind.
-   */
-  events: CanvasEvent[];
-  /**
-   * Publish a value under any kind other than a {@link ScopeKind}, or clear it
-   * with `undefined`. It reaches every widget in this node's auto scope.
-   * Namespace the kind, e.g. `acme.highlight`; the scope kinds have their own
-   * setters and are ignored here.
+   * Publish a value under a kind of your choosing, or clear it with
+   * `undefined`. It reaches every widget in this node's auto scope. Namespace
+   * the kind, e.g. `acme.highlight`; `filter`, `crossFilter` and
+   * `customization` are reserved and ignored here.
    */
   publish: (kind: string, value: unknown) => void;
-  /** Colors shared across the canvas. */
-  colors: CanvasColors;
-  /** Whether to show when the widget's data was last refreshed. */
-  showTimestamp: boolean;
   /**
    * Increments on every automatic refresh that reaches this node; refetch
    * data when it changes. Stays 0 for nodes exempt from refresh.
    */
   refreshKey: number;
-  /** For containers: the child nodes, already rendered. */
-  childNodes: CanvasChild[];
-  /**
-   * For grid containers: the children laid out on the container's grid. Other
-   * containers arrange `childNodes` themselves.
-   *
-   * Pass `chromeAbove` when the container draws something of its own above
-   * that grid, such as a title. A container's handles sit at the top right of
-   * its box, so a child in the first row reaching the right edge would paint
-   * over them -- unless the container's own chrome already holds that strip,
-   * in which case there is nothing for the child to clear.
-   */
-  renderGrid: (options?: { chromeAbove?: boolean }) => ReactNode;
 }
 
 /**
@@ -236,13 +163,6 @@ export declare function registerWidgetRenderer(
   widgetType: string,
   component: ComponentType<CanvasWidgetProps>,
 ): Disposable;
-
-/**
- * Returns the renderer registered for a widget type, if any.
- */
-export declare function getWidgetRenderer(
-  widgetType: string,
-): ComponentType<CanvasWidgetProps> | undefined;
 
 /**
  * Returns the canvas the user has open, if any.

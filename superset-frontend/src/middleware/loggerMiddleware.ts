@@ -187,8 +187,7 @@ const loggerMiddleware: Middleware<
     // -- including the `load_chart` and `render_chart` events that shared chart
     // components raise inside one, which otherwise carry no source at all.
     // Imported from the module rather than the `src/core` barrel: the barrel
-    // reaches the telemetry namespace, which imports the store, which applies
-    // this middleware.
+    // reaches modules that import the store, which applies this middleware.
     const activeCanvas = canvas.getActiveCanvas();
     if (activeCanvas) {
       logMetadata = {
