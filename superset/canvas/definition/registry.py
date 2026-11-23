@@ -18,18 +18,24 @@
 Where the canvas looks up widget types and persisted widgets.
 
 Widget types come from the registry, which built-ins and extensions register
-into with ``@widget``; widget entities through a ``WidgetResolver``.
+into with ``@widget``; widget entities through a ``WidgetResolver``. The host
+may turn a registered type off (``widget_type_enabled``).
 """
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 
 from flask import current_app, has_app_context
 from superset_core.canvas import WidgetResolver
 from superset_core.widgets import Widget
 
+logger = logging.getLogger(__name__)
+
 WidgetTypes = Mapping[str, type[Widget]]
+
+TYPE_TURNED_OFF = "this widget type is turned off"
 
 
 def get_widget_types() -> WidgetTypes:
@@ -38,11 +44,39 @@ def get_widget_types() -> WidgetTypes:
     return registry
 
 
-def disabled_widget_types() -> frozenset[str]:
-    """The types ``CANVAS_DISABLED_WIDGET_TYPES`` turns off; none outside an app."""
+def widget_type_enabled(widget_type: str) -> bool:
+    """
+    Whether the host has ``widget_type`` on, asked on every call:
+    ``CANVAS_WIDGET_TYPE_ENABLED_FUNC`` when it is set, otherwise
+    ``CANVAS_DISABLED_WIDGET_TYPES``. Every type is on outside an app.
+
+    A check that raises turns the type off, so a failed lookup never turns on
+    a type the host meant to keep off.
+    """
     if not has_app_context():
-        return frozenset()
-    return frozenset(current_app.config.get("CANVAS_DISABLED_WIDGET_TYPES") or ())
+        return True
+    config = current_app.config
+    if (enabled := config.get("CANVAS_WIDGET_TYPE_ENABLED_FUNC")) is not None:
+        try:
+            return bool(enabled(widget_type))
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "CANVAS_WIDGET_TYPE_ENABLED_FUNC raised for widget_type=%r; "
+                "turning it off",
+                widget_type,
+                exc_info=True,
+            )
+            return False
+    return widget_type not in (config.get("CANVAS_DISABLED_WIDGET_TYPES") or ())
+
+
+def widget_type_available(widget_type: str) -> bool:
+    """
+    Whether a placement of ``widget_type`` may render and serve its data: the
+    type is registered here and the host has it on. What a type this host
+    doesn't know stored was never checked by it, and no page renders it.
+    """
+    return widget_type in get_widget_types() and widget_type_enabled(widget_type)
 
 
 _resolver: WidgetResolver | None = None

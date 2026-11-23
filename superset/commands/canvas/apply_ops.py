@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 from uuid import UUID
 
@@ -31,16 +31,20 @@ from superset import db, security_manager
 from superset.canvas.definition.ops import (
     AppliedOperation,
     apply_operations,
+    checked_props,
     FieldGroup,
     named_touches,
     OperationError,
     overlapping,
     Touch,
+    WidgetContentError,
 )
 from superset.canvas.definition.pending import PendingWidgetResolver
 from superset.canvas.definition.registry import (
-    disabled_widget_types,
     get_widget_resolver,
+    get_widget_types,
+    TYPE_TURNED_OFF,
+    widget_type_enabled,
 )
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import AddOp, Operation
@@ -90,18 +94,19 @@ class ApplyResult:
     widgets: list[str] = field(default_factory=list)
 
 
-_TYPE_TURNED_OFF = "this widget type is turned off"
-
-
 def placement_issues(
     ops: list[Operation], resolver: WidgetResolver | None = None
 ) -> list[Issue]:
-    """Widgets being added that the user may not place, or whose type is off."""
-    disabled = disabled_widget_types()
+    """
+    Widgets being added that the current user may not place, or whose type the
+    host has turned off.
+    """
     issues = [
-        Issue(pointer("ops", index, "widgetType"), _TYPE_TURNED_OFF)
+        Issue(pointer("ops", index, "widgetType"), TYPE_TURNED_OFF)
         for index, op in enumerate(ops)
-        if isinstance(op, AddOp) and op.widget_type in disabled
+        if isinstance(op, AddOp)
+        and op.widget_type is not None
+        and not widget_type_enabled(op.widget_type)
     ]
     added = [
         (index, op.widget_id)
@@ -120,13 +125,15 @@ def placement_issues(
         for index, widget_id in added
         if widget_id not in allowed
     ]
-    if disabled:
-        types = resolver.widget_types({widget_id for _, widget_id in added})
-        issues += [
-            Issue(pointer("ops", index, "widgetId"), _TYPE_TURNED_OFF)
-            for index, widget_id in added
-            if widget_id in allowed and types.get(widget_id) in disabled
-        ]
+    # Only for widgets the user may place, so a hidden one reads the same as
+    # one that doesn't exist.
+    types = resolver.widget_types(allowed) if allowed else {}
+    issues += [
+        Issue(pointer("ops", index, "widgetId"), TYPE_TURNED_OFF)
+        for index, widget_id in added
+        if (widget_type := types.get(widget_id)) is not None
+        and not widget_type_enabled(widget_type)
+    ]
     return issues
 
 
@@ -342,6 +349,42 @@ class ApplyCanvasOperationsCommand(BaseCommand):
             )
 
 
+def checked_widgets(pending: dict[str, StoredWidget]) -> dict[str, StoredWidget]:
+    """
+    ``pending`` with each widget's props at its type's current schema version,
+    as its type's own ``validate_control_values`` accepts them, or
+    ``DefinitionInvalidError`` naming every widget whose type is gone or whose
+    props its type refuses.
+    """
+    widget_types = get_widget_types()
+    checked: dict[str, StoredWidget] = {}
+    issues: list[Issue] = []
+    for widget_id, stored in pending.items():
+        widget = widget_types.get(stored.widget_type)
+        try:
+            if widget is None:
+                raise WidgetContentError(
+                    "widget_type",
+                    {"/widgetType": [f"unknown widget {stored.widget_type!r}"]},
+                )
+            props = checked_props(widget, stored.props, stored.schema_version)
+        except WidgetContentError as ex:
+            issues += [
+                Issue(pointer("widgets", widget_id) + path, message)
+                for path, messages in ex.messages.items()
+                for message in messages
+            ]
+            continue
+        checked[widget_id] = replace(
+            stored, props=props, schema_version=widget.schema_version
+        )
+    if issues:
+        raise DefinitionInvalidError(
+            "The widgets this write saves are invalid", issues=issues
+        )
+    return checked
+
+
 def save_widgets(
     pending: dict[str, StoredWidget],
     canvas: Canvas,
@@ -352,13 +395,18 @@ def save_widgets(
     if nobody saved it since it was loaded. A new widget is edited by the
     canvas's editors and read through the canvases that place it.
 
+    Every widget is checked first by its type (``checked_widgets``): a draft's
+    widgets are written at its commit, which replays none of the operations
+    that changed their props, and their type may have changed or gone since.
+    Raises ``DefinitionInvalidError`` naming each widget refused.
+
     Returns the changes to existing widgets as ``set_props`` and ``rename``
     operations on each placement of them in ``definition``, for the log.
     """
     changed: list[str] = []
     updated: list[str] = []
     changes: list[AppliedOperation] = []
-    for widget_id, widget in pending.items():
+    for widget_id, widget in checked_widgets(pending).items():
         if widget.revision is None:
             db.session.add(
                 Widget(

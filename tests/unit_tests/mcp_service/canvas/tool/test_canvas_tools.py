@@ -262,6 +262,35 @@ def test_preview_without_a_renderer_returns_rows_only() -> None:
     assert result["columns"] == ["revenue"]
 
 
+@pytest.mark.parametrize(
+    ("widget_type", "turned_off"),
+    [("extensions.acme.kpis.board", frozenset()), ("echarts", frozenset({"echarts"}))],
+)
+def test_preview_refuses_a_type_unavailable_here(
+    widget_type: str, turned_off: frozenset[str]
+) -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    node = {
+        "widgetType": widget_type,
+        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+    }
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch(f"{PREVIEW}.run_binding") as run,
+        patch.dict(
+            "superset.canvas.definition.registry.current_app.config",
+            {"CANVAS_DISABLED_WIDGET_TYPES": turned_off},
+        ),
+    ):
+        dao.load.return_value = _preview_canvas(node)
+        result, image = _preview_widget_impl(1, "chart", dark=False)
+
+    run.assert_not_called()
+    assert image is None
+    assert result["error_type"] == "WidgetTypeUnavailableError"
+
+
 def test_preview_warns_about_an_option_with_nothing_to_draw() -> None:
     """Without a renderer the agent can't see empty axes, so say so."""
     from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl

@@ -407,18 +407,23 @@ def test_widgets_the_author_cannot_place_are_rejected(
     ]
 
 
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"chart"})},
+        {"CANVAS_WIDGET_TYPE_ENABLED_FUNC": lambda widget_type: widget_type != "chart"},
+    ],
+)
 def test_widget_types_turned_off_cannot_be_added(
     full_api_access: None,
     canvas: Any,
     published: MagicMock,
     mocker: MockerFixture,
+    config: dict[str, Any],
 ) -> None:
     from superset.commands.canvas.exceptions import DefinitionInvalidError
 
-    mocker.patch.dict(
-        "superset.canvas.definition.registry.current_app.config",
-        {"CANVAS_DISABLED_WIDGET_TYPES": {"chart"}},
-    )
+    mocker.patch.dict("superset.canvas.definition.registry.current_app.config", config)
 
     with pytest.raises(DefinitionInvalidError) as excinfo:
         apply_ops(

@@ -22,11 +22,15 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any
 
-from superset_core.canvas import WidgetResolver
+from superset_core.canvas import StoredWidget, WidgetResolver
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.canvas.data import run_binding, RuntimeFilter
-from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.registry import (
+    get_widget_resolver,
+    widget_type_available,
+    widget_type_enabled,
+)
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.commands.canvas.draft import load_draft
@@ -139,6 +143,23 @@ def _unread(
     ]
 
 
+def _shown(
+    node: dict[str, Any], widgets: dict[str, StoredWidget]
+) -> tuple[str | None, dict[str, Any]] | None:
+    """
+    The widget type and props a placement shows, or ``None`` when it shows
+    nothing to read: its saved widget is gone, or the host turned its type off.
+    """
+    widget_type, props = node.get("widgetType"), node.get("props") or {}
+    if widget_id := node.get("widgetId"):
+        if (widget := widgets.get(widget_id)) is None:
+            return None
+        widget_type, props = widget.widget_type, widget.props
+    if widget_type is not None and not widget_type_enabled(widget_type):
+        return None
+    return widget_type, props
+
+
 def _get_canvas_data_impl(
     canvas_id: int | str,
     draft_token: str | None,
@@ -166,14 +187,16 @@ def _get_canvas_data_impl(
         if wanted and node_id not in wanted:
             continue
         node = nodes[node_id]
-        widget_type, props = node.get("widgetType"), node.get("props") or {}
-        if widget_id := node.get("widgetId"):
-            if (widget := widgets.get(widget_id)) is None:
-                continue
-            widget_type, props = widget.widget_type, widget.props
+        if (shown := _shown(node, widgets)) is None:
+            continue
+        widget_type, props = shown
         binding = props.get("dataBinding")
         if not isinstance(binding, dict) or not binding.get("datasetId"):
             unread.extend(_unread(node_id, node, widget_type))
+            continue
+        # As the placement data route answers: what a type this host doesn't
+        # know stored was never checked by it.
+        if widget_type is None or not widget_type_available(widget_type):
             continue
         if len(entries) >= max_widgets:
             skipped.append(node_id)
@@ -236,9 +259,9 @@ def get_canvas_data(
     Runs each placement's query as you, in layout order, and returns its
     title, row count, columns and up to ``max_rows`` rows (at most 500);
     rows are trimmed further, marked ``truncated``, to keep the response small.
-    Placements without a query (containers, text, filters) are left out;
-    the first 20 extension widgets with no ``dataBinding`` are listed in
-    ``unread``.
+    Placements without a query (containers, text, filters, and widgets of a
+    type unavailable here) are left out; the first 20 extension widgets with
+    no ``dataBinding`` are listed in ``unread``.
     ``placement_ids`` limits it to those placements; ``max_widgets`` (at most
     50) caps how many queries run, and the rest are listed in ``skipped``.
     With ``draft_token``, reads the draft instead of the published canvas.

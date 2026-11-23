@@ -37,21 +37,77 @@ pytestmark = pytest.mark.parametrize(
 )
 
 
-def test_types_leave_out_the_types_turned_off(client, full_api_access) -> None:
-    def listed() -> set[str]:
-        response = client.get("/api/v1/widgets/types")
-        assert response.status_code == 200
-        return {widget_type["id"] for widget_type in response.get_json()["result"]}
+CONFIG = "superset.canvas.definition.registry.current_app.config"
 
-    every_type = listed()
-    with patch.dict(
-        "superset.canvas.definition.registry.current_app.config",
-        {"CANVAS_DISABLED_WIDGET_TYPES": {"markdown"}},
-    ):
-        enabled = listed()
+
+def _listed(client) -> set[str]:
+    response = client.get("/api/v1/widgets/types")
+    assert response.status_code == 200
+    return {widget_type["id"] for widget_type in response.get_json()["result"]}
+
+
+def test_types_leave_out_the_types_turned_off(client, full_api_access) -> None:
+    every_type = _listed(client)
+    with patch.dict(CONFIG, {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"markdown"})}):
+        enabled = _listed(client)
 
     assert "markdown" in every_type
     assert every_type - enabled == {"markdown"}
+
+
+def test_the_per_request_check_is_asked_on_every_request(
+    client, full_api_access
+) -> None:
+    # A host serving several workspaces from one process answers per request.
+    answers = iter([False, True])
+    enabled = Mock(
+        side_effect=lambda widget_type: widget_type != "markdown" or next(answers)
+    )
+
+    with patch.dict(
+        CONFIG,
+        {
+            "CANVAS_WIDGET_TYPE_ENABLED_FUNC": enabled,
+            # Ignored while the check is set.
+            "CANVAS_DISABLED_WIDGET_TYPES": frozenset({"metric-tile"}),
+        },
+    ):
+        first, second = _listed(client), _listed(client)
+
+    assert "markdown" not in first
+    assert "markdown" in second
+    assert "metric-tile" in first
+    assert [call.args for call in enabled.call_args_list].count(("markdown",)) == 2
+
+
+def test_a_check_that_raises_turns_the_type_off(client, full_api_access) -> None:
+    def enabled(widget_type: str) -> bool:
+        if widget_type == "markdown":
+            raise RuntimeError("flag service unavailable")
+        return True
+
+    with patch.dict(CONFIG, {"CANVAS_WIDGET_TYPE_ENABLED_FUNC": enabled}):
+        listed = _listed(client)
+
+    assert "markdown" not in listed
+    assert "metric-tile" in listed
+
+
+def test_a_type_turned_off_has_no_schema_and_no_validation(
+    client, full_api_access
+) -> None:
+    schema = "/api/v1/widgets/type/metric-tile/control-schema"
+    validate = "/api/v1/widgets/type/metric-tile/validate"
+    body = json.dumps({"control_values": {}})
+
+    assert client.get(schema).status_code == 200
+    with patch.dict(
+        CONFIG, {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"metric-tile"})}
+    ):
+        assert client.get(schema).status_code == 404
+        assert (
+            client.post(validate, data=body, content_type="application/json")
+        ).status_code == 404
 
 
 def test_validate_accepts_valid_control_values(client, full_api_access) -> None:

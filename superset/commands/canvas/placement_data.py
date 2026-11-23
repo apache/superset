@@ -28,6 +28,7 @@ from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import (
     get_widget_resolver,
     get_widget_types,
+    widget_type_available,
 )
 from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
 from superset.canvas.versions import version_snapshot
@@ -38,6 +39,7 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
     CanvasPlacementNotFoundError,
     CanvasPlacementUnboundError,
+    WidgetTypeUnavailableError,
 )
 from superset.daos.canvas import CanvasDAO
 
@@ -109,7 +111,8 @@ class GetPlacementDataCommand(BaseCommand):
     definition, the caller's draft of the canvas, or a version of it, as the
     widget type builds them (``widget_queries``); the caller only adds runtime
     filters. Reading needs access to the canvas and to each query's dataset,
-    which the chart data pipeline checks.
+    which the chart data pipeline checks. A placement whose widget type isn't
+    registered here, or that the host turned off, serves no data.
     """
 
     def __init__(
@@ -164,14 +167,18 @@ def widget_queries(
 ) -> dict[str, dict[str, Any]]:
     """
     The bindings a data request for a widget runs, by the name of the dataset
-    each answers, as its widget type builds them; a type the host doesn't know
-    has the default, its props' ``dataBinding``. A query whose binding names
+    each answers, as its widget type builds them. A query whose binding names
     no dataset isn't bound yet and is left out. Every binding a type builds
     gets the same checks, and runs the same way, as the caller.
 
-    Raises ``ValueError`` for a type that builds two queries of one name: each
-    name is a dataset of the answer.
+    Raises ``WidgetTypeUnavailableError`` for a type that isn't registered
+    here, such as one whose extension was removed, or that the host turned
+    off: what such a type stored was never checked by this host, and no page
+    renders it. Raises ``ValueError`` for a type that builds two queries of one
+    name: each name is a dataset of the answer.
     """
+    if widget_type is not None and not widget_type_available(widget_type):
+        raise WidgetTypeUnavailableError()
     widget_cls = get_widget_types().get(widget_type) if widget_type else None
     queries = (widget_cls or Widget).build_queries(request)
     names = [query.name for query in queries]

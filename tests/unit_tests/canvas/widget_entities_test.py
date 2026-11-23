@@ -21,6 +21,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from types import SimpleNamespace
 from typing import Any
+from unittest.mock import patch
 from uuid import UUID
 
 import pytest
@@ -254,11 +255,91 @@ def test_a_widget_saved_during_a_commit_is_a_widget_conflict(
             [],
             strict=True,
             widgets={
-                widget_id: StoredWidget("chart", 1, "Chart", {"a": 1}, revision=1)
+                widget_id: StoredWidget(
+                    "chart", 1, "Chart", {"metric": "revenue"}, revision=1
+                )
             },
         ).run()
 
     assert excinfo.value.widgets == [widget_id]
+
+
+@pytest.mark.parametrize(
+    ("widget_type", "props", "path"),
+    [
+        ("chart", {"bogus": 1}, "/props/bogus"),
+        ("uninstalled", {}, "/widgetType"),
+    ],
+)
+def test_a_draft_commit_checks_the_widgets_it_saves(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    session: Session,
+    widget_type: str,
+    props: dict[str, Any],
+    path: str,
+) -> None:
+    from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+
+    apply_ops(1, {"op": "add", "id": "sales", "widgetType": "chart"})
+    widget_id = json.loads(canvas.definition)["nodes"]["sales"]["widgetId"]
+
+    # A commit replays none of the operations that changed a widget's props,
+    # and the widget's type may have changed or gone since the draft wrote it.
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        ApplyCanvasOperationsCommand(
+            100,
+            2,
+            [],
+            strict=True,
+            widgets={
+                widget_id: StoredWidget(widget_type, 1, "Chart", props, revision=1)
+            },
+        ).run()
+
+    assert [issue.path for issue in excinfo.value.issues] == [
+        f"/widgets/{widget_id}{path}"
+    ]
+    assert saved_widget(session, widget_id).props == {}
+    assert canvas.revision == 2
+
+
+def test_a_draft_commit_doesnt_ask_again_for_the_datasets_its_widgets_bind(
+    canvas: Any, session: Session, mocker: MockerFixture
+) -> None:
+    """
+    Access to a binding is checked when the binding changes: someone retitling
+    a widget another editor bound doesn't need to read its dataset.
+    """
+    from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
+    from superset.widgets.registry import registry as widget_registry
+    from tests.unit_tests.canvas.ops_test import _bound_widget_types
+
+    unreadable = mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets", return_value=set()
+    )
+    bound = {"dataBinding": {"datasetId": 9}}
+    # A context manager, so the swap is undone before the fixture's own one.
+    with patch.dict(widget_registry, _bound_widget_types()):
+        apply_ops(
+            1, {"op": "add", "id": "sales", "widgetType": "bound", "props": bound}
+        )
+        widget_id = json.loads(canvas.definition)["nodes"]["sales"]["widgetId"]
+        # From here on, the committer can read no dataset at all.
+        unreadable.side_effect = lambda ids: set(ids)
+
+        ApplyCanvasOperationsCommand(
+            100,
+            2,
+            [],
+            strict=True,
+            widgets={widget_id: StoredWidget("bound", 1, "Renamed", bound, revision=1)},
+        ).run()
+
+    assert saved_widget(session, widget_id).name == "Renamed"
+    assert canvas.revision == 3
 
 
 def test_publishing_a_draft_resolves_layout_once_per_request(
@@ -326,6 +407,40 @@ def test_publishing_a_draft_resolves_layout_once_per_request(
     # What the draft showed: 'b' was pushed aside and stayed there. Resolving
     # the whole log at once would put it back at row 3.
     assert rows == {"a": 1, "b": 5}
+
+
+def test_a_type_turned_off_after_a_draft_added_it_stops_the_commit(
+    canvas: Any, session: Session, draft_cache: SimpleCache, mocker: MockerFixture
+) -> None:
+    from superset.commands.canvas.draft import (
+        ApplyCanvasDraftOperationsCommand,
+        CommitCanvasDraftCommand,
+        CreateCanvasDraftCommand,
+        load_draft,
+    )
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+    from superset.widgets.models import Widget
+
+    draft = CreateCanvasDraftCommand(canvas.id).run()
+    draft, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops({"op": "add", "id": "sales", "widgetType": "chart"})
+    ).run()
+    mocker.patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": frozenset({"chart"})},
+    )
+
+    # Publishing the draft adds the type to the canvas, as an add would.
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    assert [issue.message for issue in excinfo.value.issues] == [
+        "this widget type is turned off"
+    ]
+    assert canvas.revision == 1
+    assert session.query(Widget).count() == 0
+    # The draft is kept, so its author can remove the placement and publish.
+    assert load_draft(draft.token).revision == draft.revision
 
 
 @pytest.mark.parametrize(

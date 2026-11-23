@@ -86,6 +86,7 @@ from superset.commands.canvas.exceptions import (
     DefinitionInvalidError,
     DraftConflictError,
     DraftStepFailedError,
+    WidgetTypeUnavailableError,
 )
 from superset.commands.canvas.placement_data import GetPlacementDataCommand
 from superset.commands.canvas.restore_version import RestoreCanvasVersionCommand
@@ -225,9 +226,9 @@ def _handle_canvas_errors(
         ) as ex:
             _report_canvas_error(self, ex, ex.status)
             return self.response(ex.status, **ex.to_payload())
-        except CanvasPlacementUnboundError as ex:
-            _report_canvas_error(self, ex, 422)
-            return self.response_422(message=str(ex.message))
+        except (CanvasPlacementUnboundError, WidgetTypeUnavailableError) as ex:
+            _report_canvas_error(self, ex, ex.status)
+            return self.response(ex.status, message=str(ex.message))
         except DefinitionVersionError as ex:
             _report_canvas_error(self, ex, 422)
             return self.response_422(message=str(ex))

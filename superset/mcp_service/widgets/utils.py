@@ -29,11 +29,16 @@ from typing import Any
 
 from superset_core.widgets import Widget
 
+from superset.canvas.definition.registry import widget_type_enabled
 from superset.widgets.registry import registry
 
 
 def valid_widget_types() -> list[str]:
-    return sorted(cls.widget_type for cls in registry.values())
+    return sorted(
+        cls.widget_type
+        for cls in registry.values()
+        if widget_type_enabled(cls.widget_type)
+    )
 
 
 def unknown_widget_type_error(widget_type: str) -> dict[str, Any]:
@@ -51,7 +56,9 @@ def unknown_widget_type_error(widget_type: str) -> dict[str, Any]:
 
 
 def resolve_widget(widget_type: str) -> type[Widget] | None:
-    return registry.get(widget_type)
+    """The registered widget type, unless the host has it turned off."""
+    widget = registry.get(widget_type)
+    return widget if widget is not None and widget_type_enabled(widget_type) else None
 
 
 def unknown_node_error(node_id: str) -> dict[str, Any]:
