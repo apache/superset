@@ -432,9 +432,6 @@ export const countryOptions = Object.keys(countries).map(x => {
   if (x === 'italy_regions') {
     return [x, 'Italy (regions)'];
   }
-  if (x === 'italy_regions_and_autonomous_provinces') {
-    return [x, 'Italy (regions and autonomous provinces)'];
-  }
   if (x === 'france_regions') {
     return [x, 'France (regions)'];
   }
