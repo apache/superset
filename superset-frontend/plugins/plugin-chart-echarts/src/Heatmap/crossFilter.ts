@@ -268,3 +268,44 @@ export function getHeatmapDrillFilters({
 
   return filters;
 }
+
+export function getHeatmapDrillByFilters({
+  xColumn,
+  yColumn,
+  xValue,
+  yValue,
+  coltypeMapping,
+}: {
+  xColumn?: QueryFormColumn | QueryFormColumn[];
+  yColumn?: QueryFormColumn | QueryFormColumn[];
+  xValue?: DataRecordValue;
+  yValue?: DataRecordValue;
+  coltypeMapping?: Record<string, GenericDataType>;
+}): {
+  filters: QueryObjectFilterClause[];
+  xAxisFilters: QueryObjectFilterClause[];
+  groupbyFieldName: string;
+} {
+  const resolvedXColumn = Array.isArray(xColumn) ? xColumn[0] : xColumn;
+  const resolvedYColumn = Array.isArray(yColumn) ? yColumn[0] : yColumn;
+
+  const filters: QueryObjectFilterClause[] = [];
+  if (resolvedYColumn) {
+    filters.push(
+      buildHeatmapDrillFilterClause(resolvedYColumn, yValue, coltypeMapping),
+    );
+  }
+
+  const xAxisFilters: QueryObjectFilterClause[] = [];
+  if (resolvedXColumn) {
+    xAxisFilters.push(
+      buildHeatmapDrillFilterClause(resolvedXColumn, xValue, coltypeMapping),
+    );
+  }
+
+  return {
+    filters,
+    xAxisFilters,
+    groupbyFieldName: 'groupby',
+  };
+}

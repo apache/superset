@@ -259,6 +259,13 @@ test('right-clicking a cell stops browser context menu and invokes onContextMenu
     { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
     { col: 'hour', op: '==', val: 9, formattedVal: '9' },
   ]);
+  expect(payload.drillBy).toEqual({
+    filters: [{ col: 'hour', op: '==', val: 9, formattedVal: '9' }],
+    xAxisFilters: [
+      { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
+    ],
+    groupbyFieldName: 'groupby',
+  });
   const expectedKey = heatmapCellKey('Monday', 9);
   expect(payload.crossFilter).toEqual({
     dataMask: {
@@ -390,6 +397,13 @@ test('context menu drillToDetail emits IS NULL for null and undefined dimensions
     { col: 'day_of_week', op: 'IS NULL', formattedVal: '<NULL>' },
     { col: 'hour', op: 'IS NULL', formattedVal: '<NULL>' },
   ]);
+  expect(payload.drillBy).toEqual({
+    filters: [{ col: 'hour', op: 'IS NULL', formattedVal: '<NULL>' }],
+    xAxisFilters: [
+      { col: 'day_of_week', op: 'IS NULL', formattedVal: '<NULL>' },
+    ],
+    groupbyFieldName: 'groupby',
+  });
 });
 
 test('context menu drillToDetail serializes bigint dimension values', () => {
@@ -415,6 +429,51 @@ test('context menu drillToDetail serializes bigint dimension values', () => {
     op: '==',
     val: '9007199254740995',
     formattedVal: '9007199254740995',
+  });
+  expect(payload.drillBy.xAxisFilters[0]).toEqual({
+    col: 'day_of_week',
+    op: '==',
+    val: '9007199254740995',
+    formattedVal: '9007199254740995',
+  });
+  expect(payload.drillBy.filters[0]).toEqual({
+    col: 'hour',
+    op: '==',
+    val: 9,
+    formattedVal: '9',
+  });
+  expect(payload.drillBy.groupbyFieldName).toBe('groupby');
+});
+
+test('context menu emits drillBy with 2D scope filters and groupbyFieldName groupby', () => {
+  const { eventHandlers, onContextMenu } = setup();
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 'Tuesday',
+      yValue: 10,
+      value: [1, 1, 20],
+    },
+    event: {
+      stop,
+      event: { clientX: 200, clientY: 300 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+  expect(payload.drillBy).toEqual({
+    filters: [{ col: 'hour', op: '==', val: 10, formattedVal: '10' }],
+    xAxisFilters: [
+      {
+        col: 'day_of_week',
+        op: '==',
+        val: 'Tuesday',
+        formattedVal: 'Tuesday',
+      },
+    ],
+    groupbyFieldName: 'groupby',
   });
 });
 

@@ -23,6 +23,7 @@ import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 import {
   getHeatmapCrossFilterDataMask,
+  getHeatmapDrillByFilters,
   getHeatmapDrillFilters,
   getSelectedHeatmapKeys,
 } from './crossFilter';
@@ -102,6 +103,14 @@ export default function Heatmap(props: HeatmapTransformedProps) {
           coltypeMapping,
         }) as NonNullable<ContextMenuFilters['drillToDetail']>;
 
+        const drillBy = getHeatmapDrillByFilters({
+          xColumn: formData.xAxis,
+          yColumn: formData.groupby,
+          xValue,
+          yValue,
+          coltypeMapping,
+        }) as ContextMenuFilters['drillBy'];
+
         const crossFilter =
           emitCrossFilters && setDataMask
             ? getHeatmapCrossFilterDataMask({
@@ -116,6 +125,7 @@ export default function Heatmap(props: HeatmapTransformedProps) {
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillFilters,
+          drillBy,
           ...(crossFilter && { crossFilter }),
         });
       },
