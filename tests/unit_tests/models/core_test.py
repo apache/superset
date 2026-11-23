@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
-from threading import Event
+from threading import Event, Thread
 from typing import Any, Callable, Iterator
 
 import pandas as pd
@@ -5268,6 +5268,88 @@ def test_default_schema_concurrent_lookups_share_inflight_publication(
             release.set()
         assert first.result(timeout=5) == "main"
     assert write.call_count == 1
+
+
+@pytest.mark.parametrize("operation", ["get", "add", "set", "fallback_set"])
+def test_default_schema_hung_cache_is_bounded_and_single_flight(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    operation: str,
+) -> None:
+    """A hung cache costs one bounded wait and at most one background thread."""
+    from superset.models.core import _retire_cached_engines
+
+    cache = shared_default_schema_cache
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        # A get hang must exercise a dialect that has never connected.
+        assert engine.dialect.default_schema_name is None
+        if operation != "get":
+            sqlalchemy.inspect(engine)
+    if operation == "set":
+        mocker.patch.object(cache, "add", return_value=False)
+        mocker.patch.object(cache, "get", return_value="main")
+    elif operation == "fallback_set":
+        mocker.patch.object(cache, "add", side_effect=NotImplementedError)
+    entered = Event()
+    release = Event()
+    finished = Event()
+    actual_operation = "set" if operation == "fallback_set" else operation
+
+    def hang(*args: Any, **kwargs: Any) -> None:
+        """Hold cache I/O until cleanup, without holding a request thread."""
+        entered.set()
+        release.wait()
+        finished.set()
+
+    blocked = mocker.patch.object(cache, actual_operation, side_effect=hang)
+    app_context = current_app.app_context
+
+    def lookup() -> str | None:
+        """Simulate a request with its own app context."""
+        with app_context():
+            return database.get_default_schema_from_engine(None)
+
+    # Start the simulated request pool before spying on cache worker creation.
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(lambda: None).result(timeout=1)
+        start = mocker.spy(Thread, "start")
+        try:
+            first = executor.submit(lookup)
+            assert entered.wait(timeout=1)
+            assert first.result(timeout=0.3) == "main"
+            for elapsed in (60, 120, 3600):
+                clock.return_value = elapsed
+                assert executor.submit(lookup).result(timeout=0.3) == "main"
+                # Different engines must also skip the occupied process-wide slot.
+                _retire_cached_engines(database.id)
+                assert executor.submit(lookup).result(timeout=0.3) == "main"
+            assert blocked.call_count == 1
+            assert start.call_count == 1
+            assert start.call_args.args[0].daemon
+        finally:
+            release.set()
+            assert finished.wait(timeout=1)
+            # Let the cache operation finish before fixtures restore the backend.
+            for call in start.call_args_list:
+                call.args[0].join(timeout=1)
+                assert not call.args[0].is_alive()
+
+
+def test_default_schema_cache_worker_start_failure_releases_slot(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """A failed background start neither breaks discovery nor poisons the slot."""
+    from superset.models.core import _read_default_schema
+
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    start = mocker.patch.object(Thread, "start", side_effect=RuntimeError)
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert start.call_count == 2  # Cold read, then publication after local discovery.
+    mocker.stop(start)
+    shared_default_schema_cache.set("recovered", "main")
+    assert _read_default_schema("recovered") == "main"
 
 
 def test_default_schema_unsuccessful_publication_retries(

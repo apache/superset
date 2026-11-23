@@ -95,7 +95,11 @@ engine parameters. Configure a shared cache backend (such as Redis) so a restart
 or previously unused worker can reuse the discovery during an outage. Cache
 backend failures fall back to the selected engine's local discovery or an inspector
 lookup and are logged at debug level; they do not themselves prevent cache-key
-construction. Cached results remain
+construction. Each shared-schema read or publication waits at most 100 ms for
+cache I/O. A process allows only one background schema-cache operation at a time;
+while it is still running, further lookups skip shared discovery and use the
+engine's local discovery or inspector instead. A hung backend therefore cannot
+accumulate schema-cache threads on subsequent retries. Cached results remain
 available under the same security and template context when that schema (or the
 connection configuration) is sufficient to build the complete key.
 Query execution and metadata inspection retain their engine-specific schema

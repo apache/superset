@@ -153,6 +153,11 @@ _DEFAULT_SCHEMA_NEXT_PUBLISH_AT: weakref.WeakKeyDictionary[Engine, float] = (
 # per interval rather than one per lookup.
 _DEFAULT_SCHEMA_RETRY_INTERVAL = 60
 _DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
+# One process-wide slot for optional cache I/O. A backend without socket timeouts
+# may keep it occupied indefinitely; requests must not queue behind it or spawn
+# replacement threads, even for other engines or after the retry interval.
+_DEFAULT_SCHEMA_CACHE_IO_SLOT = threading.Lock()
+_DEFAULT_SCHEMA_CACHE_WAIT = 0.1
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
 # sign-in on them is logged for administrators (see
@@ -161,6 +166,50 @@ _EMBEDDED_FALLBACK_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
 # Set on an exception once its rejection is logged, so a path that both dispatches
 # ``handle_error`` and catches the error itself logs it once.
 _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
+
+
+def _run_default_schema_cache_operation(operation: Callable[[], T]) -> T | None:
+    """Bound optional cache I/O, skipping it while another operation is stuck."""
+    if not _DEFAULT_SCHEMA_CACHE_IO_SLOT.acquire(blocking=False):
+        return None
+    application = app._get_current_object()
+    completed = threading.Event()
+    result: list[T] = []
+
+    def run() -> None:
+        """Keep the slot until cache I/O returns, even after the caller times out."""
+        try:
+            with application.app_context():
+                result.append(operation())
+        finally:
+            _DEFAULT_SCHEMA_CACHE_IO_SLOT.release()
+            completed.set()
+
+    worker = threading.Thread(target=run, name="default-schema-cache", daemon=True)
+    try:
+        worker.start()
+    except Exception:  # pylint: disable=broad-except
+        _DEFAULT_SCHEMA_CACHE_IO_SLOT.release()
+        logger.debug("Unable to start the default schema cache operation")
+        return None
+    if completed.wait(timeout=_DEFAULT_SCHEMA_CACHE_WAIT) and result:
+        return result[0]
+    return None
+
+
+def _read_default_schema(cache_key: str) -> str | None:
+    """Read shared discovery without holding a request on an unresponsive cache."""
+
+    def read() -> str | None:
+        """Treat backend errors and invalid values as a cache miss."""
+        try:
+            schema = cache_manager.cache.get(cache_key)
+            return schema if isinstance(schema, str) else None
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Unable to read the default schema cache")
+            return None
+
+    return _run_default_schema_cache_operation(read)
 
 
 def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
@@ -202,14 +251,21 @@ def _publish_default_schema_if_due(engine: Engine, cache_key: str, schema: str) 
         _DEFAULT_SCHEMA_NEXT_PUBLISH_AT[engine] = (
             timestamp + _DEFAULT_SCHEMA_RETRY_INTERVAL
         )
-    interval: float = _DEFAULT_SCHEMA_RETRY_INTERVAL
-    try:
-        if _publish_default_schema(cache_key, schema, _DEFAULT_SCHEMA_CACHE_TIMEOUT):
-            interval = _DEFAULT_SCHEMA_CACHE_TIMEOUT / 2
-    except Exception:  # pylint: disable=broad-except
-        logger.debug("Unable to write the default schema cache")
-    with _DEFAULT_SCHEMA_CACHE_LOCK:
-        _DEFAULT_SCHEMA_NEXT_PUBLISH_AT[engine] = timestamp + interval
+
+    def publish() -> None:
+        """Complete publication and backoff bookkeeping outside the request."""
+        interval: float = _DEFAULT_SCHEMA_RETRY_INTERVAL
+        try:
+            if _publish_default_schema(
+                cache_key, schema, _DEFAULT_SCHEMA_CACHE_TIMEOUT
+            ):
+                interval = _DEFAULT_SCHEMA_CACHE_TIMEOUT / 2
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Unable to write the default schema cache")
+        with _DEFAULT_SCHEMA_CACHE_LOCK:
+            _DEFAULT_SCHEMA_NEXT_PUBLISH_AT[engine] = timestamp + interval
+
+    _run_default_schema_cache_operation(publish)
 
 
 def _log_embedded_rejection(
@@ -1209,7 +1265,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         Warm lookups renew shared discovery at most once per half-hour per engine,
         and only while the shared value matches the engine's own; a differing value is
         left to expire. A failed publication is retried after a short backoff, outside
-        the process-wide lock. SSH tunnels do not
+        the process-wide lock. Shared-cache I/O has a bounded wait and one process-wide
+        background slot, retained until the operation returns. SSH tunnels do not
         share discovery because their local connection URLs contain ephemeral ports.
         Cold-engine discovery retains the inspector's OAuth2 retry policy.
         """
@@ -1237,12 +1294,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 )
                 schema = engine.dialect.default_schema_name
                 if schema is None and cache_key is not None:
-                    cached_schema = None
-                    try:
-                        cached_schema = cache_manager.cache.get(cache_key)
-                    except Exception:  # pylint: disable=broad-except
-                        logger.debug("Unable to read the default schema cache")
-                    if isinstance(cached_schema, str):
+                    cached_schema = _read_default_schema(cache_key)
+                    if cached_schema is not None:
                         yield cached_schema
                         return
                 if schema is None:
