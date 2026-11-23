@@ -4140,6 +4140,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database_id: int,
         database_name: str,
     ) -> None:
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+            Database,
+        )
+
         view_menu_name = self.get_database_perm(database_id, database_name)
         # Clean database access permission
         self._delete_pvm_on_sqla_event(
@@ -4156,10 +4160,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.permission_model.name == "catalog_access",
                 )
             )
-            .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
+            .filter(
+                self.viewmenu_model.name.startswith(
+                    f"[{database_name}].[", autoescape=True
+                )
+            )
             .all()
         )
+        # A different database can extend the same bracket-delimited prefix.
+        foreign_prefixes = [
+            f"[{name}]."
+            for (name,) in self.session.query(Database.database_name).filter(
+                Database.id != database_id,
+                Database.database_name.startswith(
+                    f"{database_name}].", autoescape=True
+                ),
+            )
+        ]
         for schema_pvm in schema_pvms:
+            if any(
+                schema_pvm.view_menu.name.startswith(prefix)
+                for prefix in foreign_prefixes
+            ):
+                continue
             self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
 
     def _update_vm_database_access(
@@ -4200,8 +4223,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "New permission [%s] already exists, deleting the previous",
                 new_view_menu_name,
             )
-            # A rename must leave schema/catalog grants for permission sync to
-            # migrate; full database deletion would discard those role grants.
+            # Mapper events cannot flush ORM relationship changes: merge grants
+            # through the event connection before deleting the source PVM.
+            source_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id == db_pvm.id
+                    )
+                ).scalars()
+            )
+            destination_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id
+                        == new_updated_pvm.id
+                    )
+                ).scalars()
+            )
+            for role_id in source_roles - destination_roles:
+                connection.execute(
+                    assoc_permissionview_role.insert().values(
+                        role_id=role_id, permission_view_id=new_updated_pvm.id
+                    )
+                )
+            # Leave schema/catalog grants for permission sync to migrate.
             self._delete_pvm_on_sqla_event(
                 mapper, connection, "database_access", old_view_menu_name
             )

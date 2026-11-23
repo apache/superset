@@ -87,10 +87,12 @@ superset import_datasources -p <path / filename> -u 'admin'
 
 When an overwrite import changes an existing database's name, its dataset and chart
 schema and catalog permission strings follow the new name. Existing role grants
-move to the renamed permissions. If a destination permission already exists, grants
-are combined without removing roles already granted that permission. Case-only
-renames preserve grants on case-insensitive metadata databases. Permissions belonging
-to other databases with overlapping name prefixes are left unchanged.
+move to the renamed permissions. If a destination database, schema or catalog
+permission already exists, grants are combined without removing roles already
+granted that permission. Case-only renames preserve grants on case-insensitive
+metadata databases. Permissions belonging
+to other databases with overlapping name prefixes are left unchanged, including
+when the original database is deleted.
 
 ## Importing a Directory of Assets
 
