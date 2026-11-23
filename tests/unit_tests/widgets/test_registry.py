@@ -330,3 +330,50 @@ def test_widget_registration_does_not_run_enrichers() -> None:
         assert schema["properties"]["options"]["enum"] == ["one"]
     finally:
         registry.pop("runtime-enricher-test-widget", None)
+
+
+def test_an_extension_widget_types_hooks_run_in_its_extension_context() -> None:
+    """The host calls a widget type's hooks while requests run, after loading."""
+    from superset.extensions.context import extension_context, get_context
+    from tests.unit_tests.extensions.storage.conftest import create_manifest
+
+    class _ProbeControls(BaseModel):
+        options: list[str] = Field(
+            default_factory=list,
+            json_schema_extra={"x-dynamic": True},
+        )
+
+    seen: list[str] = []
+
+    def _record(
+        _schema: dict[str, Any],
+        _node: dict[str, Any],
+        _parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
+        seen.append(get_context().extension.id)
+
+    with extension_context(create_manifest("acme", "widgets")):
+
+        @widget(widget_type="probe", name="Probe")
+        class Probe(Widget):
+            controls_class = _ProbeControls
+            enrichers = {"options": _record}
+
+            @classmethod
+            def validate_control_values(
+                cls, control_values: dict[str, Any] | None
+            ) -> list[dict[str, Any]]:
+                return [{"loc": [], "message": get_context().extension.id}]
+
+    try:
+        # A hook the type overrides, and one it inherits, both find it.
+        assert Probe.validate_control_values({}) == [
+            {"loc": [], "message": "acme.widgets"}
+        ]
+        Probe.get_control_schema(None, None)
+        assert seen == ["acme.widgets"]
+        assert registry["extensions.acme.widgets.probe"] is Probe
+    finally:
+        registry.pop("extensions.acme.widgets.probe", None)
