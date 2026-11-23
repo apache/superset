@@ -244,3 +244,51 @@ test('fallback fetch requests only the selected locale and blocks until configur
   expect(window.__SUPERSET_LANGUAGE_PACK__).toEqual(FAKE_PACK);
   fetchSpy.mockRestore();
 });
+
+const SAVED_FILTERS_OF_USER_1 = 'dashboard__native_filters__1__10';
+const SAVED_FILTERS_OF_USER_2 = 'dashboard__native_filters__2__10';
+
+const seedSavedDashboardFilters = () => {
+  localStorage.clear();
+  localStorage.setItem(SAVED_FILTERS_OF_USER_1, '{}');
+  localStorage.setItem(SAVED_FILTERS_OF_USER_2, '{}');
+  localStorage.setItem('unrelated', 'kept');
+};
+
+test("keeps only the signed-in user's saved dashboard filters", async () => {
+  seedSavedDashboardFilters();
+  mockGetBootstrapData.mockReturnValue({
+    ...bootstrapData(),
+    user: { isActive: true, userId: 1 },
+  });
+
+  await runPreamble();
+
+  expect(localStorage.getItem(SAVED_FILTERS_OF_USER_1)).toBe('{}');
+  expect(localStorage.getItem(SAVED_FILTERS_OF_USER_2)).toBeNull();
+  expect(localStorage.getItem('unrelated')).toBe('kept');
+});
+
+test('clears all saved dashboard filters when nobody is signed in', async () => {
+  seedSavedDashboardFilters();
+  mockGetBootstrapData.mockReturnValue(bootstrapData());
+
+  await runPreamble();
+
+  expect(localStorage.getItem(SAVED_FILTERS_OF_USER_1)).toBeNull();
+  expect(localStorage.getItem(SAVED_FILTERS_OF_USER_2)).toBeNull();
+  expect(localStorage.getItem('unrelated')).toBe('kept');
+});
+
+test('leaves saved dashboard filters alone in an embedded dashboard', async () => {
+  seedSavedDashboardFilters();
+  mockGetBootstrapData.mockReturnValue({
+    ...bootstrapData(),
+    embedded: { dashboard_id: 'abc' },
+  });
+
+  await runPreamble();
+
+  expect(localStorage.getItem(SAVED_FILTERS_OF_USER_1)).toBe('{}');
+  expect(localStorage.getItem(SAVED_FILTERS_OF_USER_2)).toBe('{}');
+});
