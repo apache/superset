@@ -31,7 +31,7 @@ from sqlalchemy.engine import Engine
 
 migration = import_module(
     "superset.migrations.versions."
-    "2026-09-15_00-00_f7b3a9c14e02_migrate_clickhouse_to_clickhousedb"
+    "2026-11-23_00-00_f7b3a9c14e02_migrate_clickhouse_to_clickhousedb"
 )
 _migrate_uri = migration._migrate_uri
 

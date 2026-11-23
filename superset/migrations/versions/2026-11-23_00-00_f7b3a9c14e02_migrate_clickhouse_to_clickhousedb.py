@@ -95,8 +95,8 @@ connections created on the ``clickhousedb`` key, are left alone -- and then
 drops the table.
 
 Revision ID: f7b3a9c14e02
-Revises: b8f3a2c91d64
-Create Date: 2026-09-15 00:00:00.000000
+Revises: dfa683969f48
+Create Date: 2026-11-23 00:00:00.000000
 
 """
 
@@ -116,7 +116,7 @@ logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "f7b3a9c14e02"
-down_revision = "b8f3a2c91d64"
+down_revision = "dfa683969f48"
 
 LEGACY_BACKEND = "clickhouse"
 TARGET_SCHEME = "clickhousedb+connect"
