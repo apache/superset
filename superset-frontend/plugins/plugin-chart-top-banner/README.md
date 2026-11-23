@@ -34,13 +34,13 @@ A configurable Apache Superset visualization with:
 Place the directory at:
 
 ```text
-superset-frontend/plugins/superset-plugin-chart-top-banner
+superset-frontend/plugins/plugin-chart-top-banner
 ```
 
 Then run:
 
 ```bash
-cd superset-frontend/plugins/superset-plugin-chart-top-banner
+cd superset-frontend/plugins/plugin-chart-top-banner
 npm install
 npm run build
 ```
