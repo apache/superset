@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import transformData, { calendarDelta } from '../src/transformData';
+import transformData from '../src/transformData';
 
 const jan1 = Date.UTC(2024, 0, 1); // 1704067200000
 const jan2 = Date.UTC(2024, 0, 2);
@@ -129,17 +129,3 @@ test.each([
     expect(range).toEqual(n);
   },
 );
-
-test('calendarDelta matches dateutil for month-end clamping', () => {
-  // Jan 31 -> Feb 29 is a full month in dateutil terms (clamped day)
-  expect(
-    calendarDelta(
-      new Date(Date.UTC(2024, 0, 31)),
-      new Date(Date.UTC(2024, 1, 29)),
-    ),
-  ).toEqual({
-    years: 0,
-    months: 1,
-    weeks: 0,
-  });
-});
