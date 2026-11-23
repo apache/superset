@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-11-04 19:58+0300\n"
+"POT-Creation-Date: 2026-11-20 13:18+0300\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -140,47 +140,12 @@ msgstr " novo"
 msgid " at line %(line)d"
 msgstr " v vrstici %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " , ki mora upoštevati "
-
 msgid " for details."
 msgstr " za podrobnosti."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " blizu '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" standard, s katerim zagotovite, da leksikografsko\n"
-"                      razvrščanje sovpada s kronološkim razvrščanjem. Če\n"
-"                      oblika časovnega žiga ne ustreza standardu ISO "
-"8601,\n"
-"                      boste morali določiti izraz in tip za\n"
-"                      pretvorbo niza v datum ali časovni žig. Opomba:\n"
-"                      časovni pasovi trenutno niso podprti. Če je čas "
-"shranjen\n"
-"                      v obliki epoch, vnesite `epoch_s`, `epoch_ms` ali "
-"`epoch_us`. Če vzorec\n"
-"                      ni podan, se uporabijo neobvezne privzete vrednosti"
-" na ravni\n"
-"                      imena podatkovne baze/stolpca prek parametra extra."
 
 msgid " to add calculated columns"
 msgstr " za dodajanje izračunanih stolpcev"
@@ -259,10 +224,6 @@ msgstr "% vsote vrstice"
 msgid "% of total"
 msgstr "% celote"
 
-#, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "%(alertType)s »%(alertName)s« je bil uspešno sprožen"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -299,6 +260,20 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s ni mogoče uporabiti kot podatkovni vir zaradi varnostnih "
 "razlogov."
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
+"»%(undefinedParameter)s«?"
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
 
 #, python-format
 msgid "%(label)s file"
@@ -395,6 +370,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
+
+#, python-format
+msgid ""
 "%(report_type)s schedule frequency exceeding limit. Please configure a "
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
 "execution."
@@ -406,21 +387,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d vrnjenih vrstic"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s namesto »%(undefinedParameter)s?«"
-msgstr[1] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
-msgstr[2] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
-msgstr[3] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s namesto »%(undefinedParameter)s«?"
 
 #, python-format
 msgid ""
@@ -435,6 +405,10 @@ msgstr ""
 #, python-format
 msgid "%s %s"
 msgstr "%s %s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -539,6 +513,10 @@ msgstr[3] "%s prizadetih grafikonov"
 #, python-format
 msgid "%s aggregates(s)"
 msgstr "Agreg. funkcije: %s"
+
+#, python-format
+msgid "%s change(s)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -935,6 +913,9 @@ msgstr ""
 "-- Opomba: Če ne shranite poizvedbe, se ti zavihki NE bodo ohranili, ko "
 "boste počistili piškote ali zamenjali brskalnik.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 #, python-format
 msgid "... and %d more"
@@ -1339,6 +1320,12 @@ msgstr ""
 "izberite polja ali shranjene vrednosti. Če cilja na drug semantični "
 "pogled, odstranite ta grafikon iz njegovega obsega."
 
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Pri povezavi preko SSH-tunela so potrebna vrata podatkovne baze."
 
@@ -1571,6 +1558,12 @@ msgstr "Berljiv URL za vašo nadzorno ploščo"
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "Sklic na nastavitve za [Čas], ki upošteva granulacijo"
 
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
+
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
 msgstr "Poročilo poimenovano %(name)s že obstaja"
@@ -1582,6 +1575,9 @@ msgstr "Podatkovni set bo shranjen skupaj z grafikonom."
 #, fuzzy
 msgid "A rule with this name already exists."
 msgstr "Pravilo s tem imenom že obstaja."
+
+msgid "A saved query with this name already exists"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -1708,6 +1704,12 @@ msgstr ""
 msgid "A-Z"
 msgstr "A-Ž"
 
+msgid "AI"
+msgstr ""
+
+msgid "AI assistant"
+msgstr ""
+
 msgid "AND"
 msgstr "IN"
 
@@ -1741,6 +1743,21 @@ msgstr "AQE"
 
 msgid "AUG"
 msgstr "AVG"
+
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
 
 msgid "Aborted"
 msgstr "Prekinjeno"
@@ -1779,6 +1796,12 @@ msgstr "Aktivnosti"
 
 msgid "Active"
 msgstr "Aktiven"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Dejanske vrednosti"
@@ -1855,6 +1878,9 @@ msgstr "Dodaj vtičnik"
 
 msgid "Add a dataset"
 msgstr "Dodaj podatkovni set"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Dodaj nov zavihek"
@@ -1972,6 +1998,9 @@ msgstr "Dodaj mapo"
 msgid "Add group"
 msgstr "Dodaj skupino"
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr "Dodaj"
 
@@ -2000,6 +2029,9 @@ msgstr "Dodajte ali uredite kontrolnike zaslona"
 
 msgid "Add or edit filters and controls"
 msgstr "Dodajte ali uredite filtre in kontrolnike"
+
+msgid "Add ranges above to configure their colors here."
+msgstr ""
 
 msgid "Add report"
 msgstr "Dodaj poročilo"
@@ -2902,6 +2934,11 @@ msgstr "Izvoz za to nadzorno ploščo je že v teku."
 msgid "An unexpected error occurred"
 msgstr "Prišlo je do nepričakovane napake"
 
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
+
 msgid "Anchor to"
 msgstr "Sidraj na"
 
@@ -3372,11 +3409,17 @@ msgstr "Povezana opozorila in poročila"
 msgid "Asynchronous query execution"
 msgstr "Asinhroni zagon poizvedb"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Pripisovanje"
 
 msgid "August"
 msgstr "Avgust"
+
+msgid "Authentication method"
+msgstr ""
 
 msgid "Authorization Request URI"
 msgstr "URI zahteve za avtorizacijo"
@@ -3535,6 +3578,9 @@ msgstr "Orientacija stolpcev"
 msgid "Base"
 msgstr "Osnoven"
 
+msgid "Base background"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Osnovni eksponent"
 
@@ -3611,6 +3657,9 @@ msgstr "Praznine"
 #, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "Blok %(block_num)s od %(block_count)s"
+
+msgid "Border"
+msgstr ""
 
 msgid "Border color"
 msgstr "Barva obrobe"
@@ -3713,6 +3762,9 @@ msgstr ""
 
 msgid "Box Plot"
 msgstr "Box Plot"
+
+msgid "Break"
+msgstr ""
 
 msgid "Breakdowns"
 msgstr "Razčlenitev"
@@ -4000,6 +4052,9 @@ msgstr ""
 "šele nato izbrišite podatkovno bazo. Z obnovitvijo (POST "
 "/api/v1/dataset/<uuid>/restore) se podatkovne zbirke ohranijo, vendar "
 "podatkovne baze še vedno ni mogoče izbrisati."
+
+msgid "Cannot delete semantic views"
+msgstr ""
 
 msgid "Cannot delete system themes"
 msgstr "Sistemskih tem ni mogoče izbrisati"
@@ -4537,6 +4592,12 @@ msgstr "Preizkusite ta grafikon: "
 msgid "Check out this dashboard: "
 msgstr "Preizkusite to nadzorno ploščo: "
 
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Check the value transform →"
@@ -4561,6 +4622,9 @@ msgstr ""
 #, fuzzy
 msgid "Checking for affected charts and dashboards…"
 msgstr "Preverjanje prizadetih grafikonov in nadzornih plošč …"
+
+msgid "Checking which charts will be removed…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -5031,6 +5095,20 @@ msgstr "Barva stolpcev na desni strani grafikona"
 msgid "Color for breakpoint"
 msgstr "Barva za prelomno točko"
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 msgid "Color metric"
 msgstr "Mera za barvo"
 
@@ -5047,6 +5125,16 @@ msgstr "Barvna shema"
 #, fuzzy, python-format
 msgid "Color scheme: %s"
 msgstr "Barvna shema: %s"
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5188,6 +5276,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Mapa Stolpci lahko vsebuje samo elemente stolpcev"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "V podatkovnem viru manjkajo stolpci: %(invalid_columns)s"
 
@@ -5230,15 +5322,6 @@ msgstr "Stolpci, po katerih lahko gledalci združujejo grafikone."
 
 msgid "Combine metrics"
 msgstr "Združuj mere"
-
-msgid ""
-"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
-"denote colors from the chosen color scheme and are 1-indexed. Length must"
-" be matching that of interval bounds."
-msgstr ""
-"Z vejico ločene barve za intervale, npr. 1,2,4. Cela števila "
-"predstavljajo barve iz barvne sheme (začnejo se z 1). Dolžina mora "
-"ustrezati mejam intervala."
 
 msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
@@ -5421,6 +5504,9 @@ msgstr "Nastavite nadzorno ploščo za vgradnjo v zunanjo spletno aplikacijo."
 msgid "Configure your how you overlay is displayed here."
 msgstr "Nastavite kako prikazuje vrhnja plast."
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "Potrdi"
 
@@ -5491,6 +5577,9 @@ msgstr "Povezava deluje!"
 #, fuzzy
 msgid "Contact the report owner for error details."
 msgstr "Za podrobnosti o napaki se obrnite na lastnika poročila."
+
+msgid "Container background"
+msgstr ""
 
 msgid "Contains"
 msgstr "Vsebuje"
@@ -5697,14 +5786,14 @@ msgstr ""
 "od izbranih elementov %s. Z brisanjem se lahko grafikoni in nadzorne "
 "plošče pokvarijo."
 
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
+msgstr ""
+
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Neuspešna povezava s podatkovno bazo: \"%(database)s\""
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "Semantičnih pogledov %s ni bilo mogoče izbrisati: %s"
 
 msgid ""
 "Could not enrich the controls for this widget; showing the default form. "
@@ -5718,6 +5807,10 @@ msgstr "Vseh shranjenih grafikonov ni bilo mogoče pridobiti"
 #, fuzzy, python-format
 msgid "Could not find %s"
 msgstr "Elementa %s ni bilo mogoče najti"
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Could not load SQL Lab"
@@ -5738,6 +5831,10 @@ msgid ""
 msgstr ""
 "Metapodatkov za to konfiguracijo ni bilo mogoče naložiti; prikazan je "
 "privzeti obrazec. Podrobnosti so v dnevnikih strežnika."
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -5771,6 +5868,9 @@ msgstr ""
 "Uporabnika, kot katerega naj se predstavlja v povezavi s podatkovno bazo,"
 " ni bilo mogoče določiti. Poizvedba ni bila izvedena, ker bi se sicer "
 "povezala kot napačen uporabnik."
+
+msgid "Could not save this schedule"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -6193,7 +6293,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "IZBRIŠI"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -6219,6 +6319,10 @@ msgstr "Nadzorna plošča"
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Nadzorna plošča %(dashboard_id)s ni bila najdena"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "Filter nadzorne plošče"
@@ -6763,6 +6867,9 @@ msgstr ""
 "Privzeta min. širina stolpca v pikslih. Dejanska širina bo lahko večja, "
 "če drugi stolpci ne potrebujejo veliko prostora"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Privzeta vrednost mora biti določena, če je izbrano \"Filter ima privzeto"
@@ -7028,6 +7135,17 @@ msgstr "Izbriši izbrano"
 msgid "Delete template"
 msgstr "Izbriši predlogo"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Izbriši temo"
 
@@ -7149,6 +7267,14 @@ msgstr "Izbrisano %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "Izbrisanih elementov: %s"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7431,9 +7557,6 @@ msgstr "Za to podatkovno bazo onemogočite vrtanje v podrobnosti."
 msgid "Discard"
 msgstr "Zavrzi"
 
-msgid "Discard and leave"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -7649,13 +7772,16 @@ msgstr ""
 msgid "Draft"
 msgstr "Osnutek"
 
+msgid "Draft dashboard access"
+msgstr ""
+
 msgid "Draft discarded"
 msgstr ""
 
-msgid "Draft mode"
+msgid "Draft published"
 msgstr ""
 
-msgid "Draft published"
+msgid "Draft. Only you can see these changes."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -7873,7 +7999,9 @@ msgstr "Oznaka dinamičnega odseka"
 msgid "Dynamic group by"
 msgstr "Dinamična skupina po"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
 
 msgid "Dynamic section description"
@@ -7977,6 +8105,9 @@ msgstr "Uredi sloj z oznakami"
 msgid "Edit annotation layer properties"
 msgstr "Uredi lastnosti sloja z oznakami"
 
+msgid "Edit canvas"
+msgstr ""
+
 msgid "Edit chart"
 msgstr "Uredi grafikon"
 
@@ -8074,14 +8205,6 @@ msgstr "Ime podatkovne baze je zapisano napačno ali pa ne obstaja."
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr "Uporabniško ime \"%(username)s\" ali geslo sta napačna."
 
-#, python-format
-msgid ""
-"Either the username \"%(username)s\", password, or database name "
-"\"%(database)s\" is incorrect."
-msgstr ""
-"Uporabniško ime \"%(username)s\", geslo ali ime podatkovne baze "
-"\"%(database)s\" so napačni."
-
 msgid "Either the username or the password is wrong."
 msgstr "Uporabniško ime ali/in geslo sta napačna."
 
@@ -8131,6 +8254,26 @@ msgstr ""
 
 msgid "Embedded dashboard could not be deleted."
 msgstr "Vdelane nadzorne plošče ni mogoče izbrisati."
+
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials can't be added or changed while the embedded "
+"credential fallback is turned off. Leave the stored credentials unchanged"
+" or clear them."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
 
 msgid "Embedding deactivated."
 msgstr "Vgrajevanje deaktivirano."
@@ -8278,6 +8421,10 @@ msgid "Ends With"
 msgstr "Konča se z"
 
 #, python-format
+msgid "Ends with %s."
+msgstr ""
+
+#, python-format
 msgid "Ends with (ILIKE %x)"
 msgstr "Konča se z (ILIKE %x)"
 
@@ -8368,6 +8515,12 @@ msgstr "Vnesite ime skupine"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Vnesite potrebne %(dbModelName)s vpisne podatke"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8733,6 +8886,14 @@ msgstr "Eksperimentalno"
 
 msgid "Expired"
 msgstr "Poteklo"
+
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9155,9 +9316,6 @@ msgstr "Napaka pri pridobivanju naprednega tipa"
 msgid "Failed to revoke API key"
 msgstr "Ključa API-ja ni bilo mogoče preklicati"
 
-msgid "Failed to save chart customization"
-msgstr "Prilagajanja grafikona ni bilo mogoče shraniti"
-
 msgid "Failed to save cross-filter scoping"
 msgstr "Shranjevanje dosega medsebojnega filtra ni uspelo"
 
@@ -9192,10 +9350,6 @@ msgstr "Rezultatov poizvedbe ni bilo mogoče shraniti. Prosim poskusite ponovno.
 
 msgid "Failed to tag items"
 msgstr "Napaka pri označevanju elementov"
-
-#, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "%(alertType)s »%(alertName)s« ni bilo mogoče sprožiti: %(error)s"
 
 #, python-format
 msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
@@ -9569,6 +9723,11 @@ msgid "Fix the Extra JSON to edit certification"
 msgstr "Popravite dodatni JSON, da lahko urejate certifikacijo"
 
 msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
+
+msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
 msgstr ""
@@ -9909,6 +10068,9 @@ msgstr ""
 "Pojdite v »Nedavno arhivirano«, da obnovite in znova usmerite arhivirana "
 "sredstva ali jih trajno izbrišete, ali pa se obrnite na skrbnika."
 
+msgid "Go to Secure extra"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Go to Welcome Page"
@@ -9996,6 +10158,12 @@ msgstr "Ime skupine"
 msgid "Group remaining as \"Others\""
 msgstr "Skupina ostane kot »Drugi«"
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -10034,6 +10202,7 @@ msgstr "Gost ne more spreminjati atributov grafikona"
 msgid "HTTP Path"
 msgstr "Pot HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10115,6 +10284,9 @@ msgstr "Najvišja vrednost za vsako obdobje."
 msgid "Histogram"
 msgstr "Histogram"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Domov"
 
@@ -10156,6 +10328,12 @@ msgstr "Urni premik"
 msgid "How do you want to enter service account credentials?"
 msgstr "Kako želite vnesti prijavne podatke servisnega računa?"
 
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
+
 msgid "How many buckets should the data be grouped in."
 msgstr "V koliko razdelkov bodo razvrščeni podatki."
 
@@ -10187,9 +10365,6 @@ msgstr "ISO 3166-2"
 msgid "ISO 3166-2 Codes"
 msgstr "Oznake po ISO 3166-2"
 
-msgid "ISO 8601"
-msgstr "ISO 8601"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "ISO suffix / abbreviation"
@@ -10210,8 +10385,6 @@ msgstr "Id"
 msgid "Id of root node of the tree."
 msgstr "Id korenskega vozlišča drevesa."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
@@ -10220,18 +10393,10 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
-"Pri Presto ali Trino se vse poizvedbe v SQL Labu izvajajo kot trenutno "
-"prijavljeni uporabnik, ki mora imeti dovoljenje zanje. Pri Hive z "
-"omogočenim hive.server2.enable.doAs se poizvedbe izvajajo kot storitveni "
-"račun, trenutno prijavljeni uporabnik pa je posnemán prek lastnosti "
-"hive.server2.proxy.user. Pri Databricks se za overitev kot trenutno "
-"prijavljeni uporabnik uporablja OAuth2. Pri Snowflake ali Google Sheets "
-"se poizvedbe, če je za zbirko podatkov nastavljena overitev OAuth, "
-"izvajajo kot trenutno prijavljeni uporabnik z njegovimi lastnimi "
-"poverilnicami OAuth."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Če je določena mera, bo razvrščanje izvedeno na podlagi vrednosti mere"
@@ -10394,6 +10559,9 @@ msgstr "V tem pogledu si lahko ogledate prvih 25 vrstic. "
 
 msgid "Inactive"
 msgstr "Neaktiven"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Vključi serijo"
@@ -10644,6 +10812,10 @@ msgstr "Neveljaven kumulativni operand: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Neveljavna koda valute v shranjeni meri"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Neveljaven zapis datuma/časa"
 
@@ -10749,6 +10921,10 @@ msgstr "Neveljavna vrednost časovnega filtra za stolpec %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Neveljavna meja časovnega obsega za vzorčenje: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10925,6 +11101,9 @@ msgstr "Ključ"
 msgid "Key Prefix"
 msgstr "Predpona ključa"
 
+msgid "Key pair"
+msgstr ""
+
 msgid "Keyboard shortcuts"
 msgstr "Bližnjice na tipkovnici"
 
@@ -10949,6 +11128,12 @@ msgstr "Označi vsebino"
 
 msgid "Label Line"
 msgstr "Črta oznake"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -11149,9 +11334,6 @@ msgstr "Pustite mejo prazno za neomejen obseg."
 #, fuzzy
 msgid "Leave blank to keep the current password"
 msgstr "Pustite prazno, če želite obdržati trenutno geslo"
-
-msgid "Leave draft mode?"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11421,6 +11603,9 @@ msgstr "Stolpec črt"
 msgid "Lines encoding"
 msgstr "Kodiranje črt"
 
+msgid "Link"
+msgstr ""
+
 msgid "Link Copied!"
 msgstr "Povezava je kopirana!"
 
@@ -11662,6 +11847,9 @@ msgstr "Glavni"
 msgid "Main navigation"
 msgstr "Glavna navigacija"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -11671,6 +11859,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Ustvarite kategorično x-os"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -11814,6 +12005,17 @@ msgstr ""
 "Označuje grafikone, ustvarjene prek geografske pogodbe MCP, da Explore "
 "ohrani njihova preverjanja veljavnosti."
 
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Tip označevanja"
 
@@ -11920,6 +12122,11 @@ msgstr "Maksimalna vrednost"
 
 msgid "Maximum value on the gauge axis"
 msgstr "Največja vrednost na številčnici"
+
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
 
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "Največja širina poti v slikovnih pikah ali metrih."
@@ -12396,6 +12603,9 @@ msgstr "Samo premikanje"
 msgid "Move widget"
 msgstr ""
 
+msgid "Moved"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -12546,6 +12756,11 @@ msgstr "Poimenujte podatkovno bazo"
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr "Poimenujte mapo in jo pozneje uredite s klikom na ime mape"
+
+msgid ""
+"Named instances can't be entered as the host. Enter only the host and the"
+" port the instance listens on, or connect with a SQLAlchemy URI instead."
+msgstr ""
 
 msgid "Native filter column is required"
 msgstr "Potreben je izvorni stolpec filtra"
@@ -12743,6 +12958,9 @@ msgstr "Nobena podatkovna baza ne ustreza iskanju"
 msgid "No description available."
 msgstr "Opisa ni na razpolago."
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 msgid "No entities have this tag currently assigned"
 msgstr "Noben element trenutno nima te oznake"
 
@@ -12906,6 +13124,10 @@ msgstr ""
 "Na voljo vam ni nobenega semantičnega sloja. Prosite skrbnika, naj "
 "nastavi semantični sloj ali vam omogoči dostop do njega."
 
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "No sort (original order)"
@@ -13056,6 +13278,9 @@ msgstr "Vsa zahtevana polja niso izpolnjena. Dopolnite naslednje:"
 msgid "Not available"
 msgstr "Ni razpoložljivo"
 
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Not currently mapped to the partition column."
@@ -13097,6 +13322,9 @@ msgstr "Ni posodobljeno"
 
 msgid "Nothing here yet"
 msgstr "Tukaj še ni ničesar"
+
+msgid "Nothing to save yet"
+msgstr ""
 
 msgid "Nothing triggered"
 msgstr "Ni ni sproženo"
@@ -13261,7 +13489,7 @@ msgstr "ALI"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PREPIŠI"
+msgstr ""
 
 msgid "October"
 msgstr "Oktober"
@@ -13400,6 +13628,10 @@ msgstr "Podprte so le enojne poizvedbe"
 msgid "Only the default catalog is supported for this connection"
 msgstr "Za to povezavo je podprt samo privzeti katalog"
 
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Only the first %s values are listed."
@@ -13422,9 +13654,6 @@ msgid ""
 msgstr ""
 "Navedenih je samo prvih %s vrednosti. Natipkajte iskani niz, da jih "
 "preiščete vse, ali vnesite vrednost, ki ni navedena."
-
-msgid "Only you can see these changes until you publish them."
-msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "Prišlo je do napake!"
@@ -13523,6 +13752,11 @@ msgstr ""
 "Izbirna CA_BUNDLE vsebina, za potrjevanje HTTPS zahtev. Uporablja se samo"
 " pri določenih podatkovnih bazah."
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 msgid "Optional d3 date format string"
 msgstr "Opcijski niz za d3-oblikovanje datuma"
 
@@ -13533,6 +13767,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Izbirna dimenzija, ki grafikon razdeli na več svečniških serij."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -13769,6 +14006,9 @@ msgstr "Dolžina strani"
 msgid "Page navigation"
 msgstr "Navigacija po straneh"
 
+msgid "Page not found"
+msgstr ""
+
 msgid "Paired t-test Table"
 msgstr "Tabela t-testa za odvisne vzorce"
 
@@ -13882,6 +14122,9 @@ msgstr "Prilepi"
 
 msgid "Paste Private Key here"
 msgstr "Prilepite privatni ključ sem"
+
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
 
 msgid "Paste content of service credentials JSON file here"
 msgstr "Sem prilepite vsebino json-datoteke servisnega računa"
@@ -14006,6 +14249,12 @@ msgstr "Fizičen"
 msgid "Physical (table or view)"
 msgstr "Fizičen (tabela ali pogled)"
 
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
+"keep following the chosen color scheme until an interval color is edited."
+msgstr ""
+
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "Izberite dimenzijo, ki bo določala kategorične barve"
 
@@ -14067,6 +14316,22 @@ msgstr "Vrtilni način"
 
 msgid "Pivot Table"
 msgstr "Vrtilna tabela"
+
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
 
 msgid "Pivot operation must include at least one aggregate"
 msgstr "Vrtilna operacija mora vsebovati vsaj en agregat"
@@ -14192,9 +14457,6 @@ msgstr "Navedite obe časovni meji (Od in Do)"
 
 msgid "Please re-enter the password."
 msgstr "Ponovno vpišite geslo."
-
-msgid "Please re-export your file and try importing again"
-msgstr "Ponovno izvozite datoteko in jo nato uvozite"
 
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
@@ -14385,6 +14647,9 @@ msgstr ""
 msgid "Preview"
 msgstr "Predogled"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -14448,6 +14713,12 @@ msgstr "Privatni ključ in geslo"
 msgid "Private Key Password"
 msgstr "Geslo privatnega ključa"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Nadaljuj"
 
@@ -14489,12 +14760,6 @@ msgstr "Javni in zasebni listi v skupni rabi"
 msgid "Publicly shared sheets only"
 msgstr "Samo javno deljeni listi"
 
-msgid "Publish"
-msgstr ""
-
-msgid "Publish and leave"
-msgstr ""
-
 msgid "Published"
 msgstr "Objavljeno"
 
@@ -14509,9 +14774,6 @@ msgstr "Postavim oznake zunaj torte?"
 
 msgid "Put your code here"
 msgstr "Vstavite svojo kodo sem"
-
-msgid "Python datetime string pattern"
-msgstr "Pythonov format zapisa datum-časa"
 
 msgid "Quarter"
 msgstr "Četrtletje"
@@ -14625,6 +14887,9 @@ msgstr "Vhodi obsega"
 msgid "Range Type"
 msgstr "Tip obdobja"
 
+msgid "Range colors"
+msgstr ""
+
 msgid "Range filter"
 msgstr "Filter obdobja"
 
@@ -14663,6 +14928,11 @@ msgstr "Surovi podatki"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -14672,6 +14942,9 @@ msgstr "Ponovno izberi polja"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "Ponovno izberi polja za ta grafikon"
+
+msgid "Read from the token's exp claim."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14792,6 +15065,9 @@ msgstr "Osveževanje grafikonov"
 msgid "Refreshing columns"
 msgstr "Osveževanje stolpcev"
 
+msgid "Region"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Region name"
@@ -14889,6 +15165,9 @@ msgstr "Odstrani prilagajanje"
 msgid "Remove dependency"
 msgstr "Odstrani odvisnost"
 
+msgid "Remove embedded guest credentials"
+msgstr ""
+
 msgid "Remove filter"
 msgstr "Odstranite filter"
 
@@ -14921,6 +15200,12 @@ msgstr "Odstrani poizvedbo iz dnevnika"
 
 msgid "Remove sheet"
 msgstr "Odstrani list"
+
+msgid "Remove widget"
+msgstr ""
+
+msgid "Removed"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15253,6 +15538,11 @@ msgstr "Obvezno, če ima vaš račun že geslo"
 msgid "Required to mirror range filters, including the time range."
 msgstr "Obvezno za zrcaljenje filtrov obsega, vključno s časovnim obsegom."
 
+msgid ""
+"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
+" (Advanced → Security)."
+msgstr ""
+
 msgid "Resample"
 msgstr "Prevzorči"
 
@@ -15317,6 +15607,9 @@ msgstr "Spremeni velikost"
 
 #, python-format
 msgid "Resize widget from the %s corner"
+msgstr ""
+
+msgid "Resized"
 msgstr ""
 
 msgid "Resource already has an attached report."
@@ -15398,6 +15691,23 @@ msgstr ""
 msgid ""
 "Restoring saves a new version, so no history is lost. Drafts started "
 "before the restore can no longer be published."
+msgstr ""
+
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
 msgstr ""
 
 msgid "Results"
@@ -15709,6 +16019,15 @@ msgstr "V teku"
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Teče blok %(block_num)s iz %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "SOB"
@@ -16223,6 +16542,9 @@ msgstr "Sekundarna mera"
 
 msgid "Secondary currency format"
 msgstr "Oblika sekundarne valute"
+
+msgid "Secondary text"
+msgstr ""
 
 msgid "Secondary y-axis Bounds"
 msgstr "Meje sekundarne y-osi"
@@ -16765,6 +17087,9 @@ msgstr "Semantični pogledi"
 #, fuzzy
 msgid "Semantic cache"
 msgstr "Semantični predpomnilnik"
+
+msgid "Semantic colors"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -18047,6 +18372,10 @@ msgstr ""
 "Ključ za shranjevanje presega največjo dovoljeno dolžino %(max_length)d "
 "znakov."
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr "Tok"
 
@@ -18206,6 +18535,11 @@ msgstr "Dokumentacija SDK za vgrajevanje."
 msgid "Superset chart"
 msgstr "Superset grafikon"
 
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
+
 msgid "Superset docs link"
 msgstr "Povezava do dokumentacije Superset"
 
@@ -18237,17 +18571,11 @@ msgstr ""
 "stopničastimi, črtnimi, raztresenimi in stolpčnimi grafikoni. Grafikon "
 "ima širok nabor prilagoditev."
 
-msgid "Switch to draft mode"
-msgstr ""
-
 msgid "Switch to the next tab"
 msgstr "Preklopite na naslednji zavihek"
 
 msgid "Switch to the previous tab"
 msgstr "Preklopite na prejšnji zavihek"
-
-msgid "Switch to view mode"
-msgstr ""
 
 msgid "Symbol"
 msgstr "Simbol"
@@ -18310,7 +18638,7 @@ msgstr "TABELE"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "ČASOVNI_OBSEG"
+msgstr ""
 
 msgid "THU"
 msgstr "ČET"
@@ -18595,8 +18923,11 @@ msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "Agregat %(aggregate)s ni podprt v tej zbirki podatkov"
 
 #, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
-msgstr "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -18725,6 +19056,12 @@ msgstr ""
 "ponazori porazdelitev\n"
 "          vrednosti in transformacijo."
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "V URL-ju manjkata parametra dataset_id ali slice_id."
 
@@ -18744,6 +19081,16 @@ msgstr ""
 #, fuzzy, python-format
 msgid "The `%(field)s` field must be a string."
 msgstr "Polje `%(field)s` mora biti niz."
+
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -18765,8 +19112,21 @@ msgstr "Označba je bila shranjena"
 msgid "The annotation has been updated"
 msgstr "Označba je bila posodobljena"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 msgid "The background color of the charts."
 msgstr "Barva ozadja grafikonov."
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 msgid "The canvas changed since this draft started; start a new draft."
 msgstr ""
@@ -18915,6 +19275,13 @@ msgstr ""
 "Trenutne različice ni bilo mogoče prepoznati. Obnovitev je začasno "
 "nedostopna."
 
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
+
 msgid "The dashboard has been saved"
 msgstr "Nadzorna plošča je bila shranjena"
 
@@ -18942,11 +19309,32 @@ msgstr ""
 "Podatki, na katerih temelji ta različica, niso več na voljo, zato "
 "predogleda ni mogoče prikazati"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr "Stolpec v podatkovni bazi, ki vsebuje podatke črt"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
 msgstr "Podatkovna baza ni bila najdena"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "Podatkovna baza trenutno izvaja preveč poizvedb."
@@ -18960,6 +19348,17 @@ msgid ""
 msgstr ""
 "Podatkovna baza, referencirana v tej poizvedbi, ni bila najdena. "
 "Kontaktirajte administratorja za napotke ali pa poskusite znova."
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "Podatkovna baza je vrnila nepričakovano napako."
@@ -19015,6 +19414,12 @@ msgstr ""
 msgid "The dataset has been saved"
 msgstr "Podatkovni set je shranjen"
 
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19069,8 +19474,17 @@ msgstr ""
 "Trajanje (v sekundah) do razveljavitve predpomnilnika. Nastavite -1, da "
 "onemogočite predpomnjenje."
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 msgid "The encoding format of the lines"
 msgstr "Oblika kodiranja črt"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
@@ -19411,59 +19825,53 @@ msgstr "Ponastavitev gesla je bila uspešna"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Gesla za spodnje podatkovne baze so potrebna za uvoz skupaj z grafikoni. "
-"Sekciji \"Dodatna varnost\" in \"Certifikati\" v nastavitvah podatkovne "
-"baze nista prisotni v izvoženih datotekah in jih je potrebno dodati ročno"
-" po uvozu, če je to potrebno."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Gesla za spodnje podatkovne baze so potrebna za uvoz skupaj z nadzornimi "
-"ploščami. Sekciji \"Dodatna varnost\" in \"Certifikati\" v nastavitvah "
-"podatkovne baze nista prisotni v izvoženih datotekah in jih je potrebno "
-"dodati ročno po uvozu, če je to potrebno."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Gesla za spodnje podatkovne baze so potrebna za uvoz skupaj s "
-"podatkovnimi seti. Sekciji \"Dodatna varnost\" in \"Certifikati\" v "
-"nastavitvah podatkovne baze nista prisotni v izvoženih datotekah in jih "
-"je potrebno dodati ročno po uvozu, če je to potrebno."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Gesla za spodnje podatkovne baze so potrebna za uvoz skupaj s shranjenimi"
-" poizvedbami. Sekciji \"Dodatna varnost\" in \"Certifikati\" v "
-"nastavitvah podatkovne baze nista prisotni v izvoženih datotekah in jih "
-"je potrebno dodati ročno po uvozu, če je to potrebno."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Gesla za spodnje zbirke podatkov so potrebna za njihov uvoz."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Format zapisa časovne značke. Za znakovne nize uporabite "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19513,10 +19921,8 @@ msgstr "Vrata so zaprta."
 msgid "The port number is invalid."
 msgstr "Številka vrat je neveljavna."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Predogleda ni bilo mogoče naložiti."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Primarna mera določa velikost lokov segmentov"
@@ -19720,16 +20126,12 @@ msgstr "Posnetek zaslona je bil prenesen."
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "Ustvarja se zaslonska slika. Ne zapuščajte strani."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
-"Izbrani %(type)s so povezani z %(charts)s na %(dashboards)s. Z "
-"arhiviranjem bodo odvisni grafikoni nedostopni, dokler ne bodo "
-"obnovljeni."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19740,12 +20142,11 @@ msgstr ""
 "Izbrane %(type)s uporablja %(charts)s. Z arhiviranjem bodo odvisni "
 "grafikoni nedostopni, dokler ne bodo obnovljeni."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %s are linked to %s on %s. Deleting them will break those "
+"The selected %s are linked to %s and %s. Deleting them will break those "
 "objects."
-msgstr "Izbrani %s so povezani z %s na %s. Z brisanjem bodo ti objekti pokvarjeni."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19800,6 +20201,22 @@ msgstr "Velikost kvadratne celice v pikslih"
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "Naklon za izračun vseh velikosti. Samo \"LINEARNO\""
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
 
 msgid "The submitted payload failed validation."
 msgstr "Neuspešna validacija podanih podatkov."
@@ -19894,6 +20311,14 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Časovna enota za združevanje blokov"
 
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19963,14 +20388,9 @@ msgstr ""
 "Transformacija se je ujemala z vzorčenimi vrsticami, ne s celotnim "
 "naborom podatkov."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Transformacija je za %(column)s vrnila %(returned)s, kar je %(kind)s. "
-"Zrcaljeni filtri na tej preslikavi bi v zbirki podatkov spodleteli."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19982,6 +20402,9 @@ msgstr ""
 "Transformacija je za %(column)s vrnila %(returned)s, česar ta zbirka "
 "podatkov ne more brez spremembe zapisati v poizvedbo kot vrednost tipa "
 "%(type)s. Filtri na tej preslikavi ne bodo zrcaljeni."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Gesli, ki ste ju vnesli, se ne ujemata!"
@@ -20077,23 +20500,12 @@ msgstr ""
 "seji in rezultat se shrani v predpomnilnik, zato bi ustvarjeni predikat "
 "zamrznil posnetek tistega trenutka."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformacije vrednosti ni bilo mogoče razčleniti. Preslikava je "
-"shranjena, vendar ostane neaktivna, dokler to ne uspe."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformacije vrednosti ni bilo mogoče razčleniti: %(detail)s Preslikava"
-" je shranjena, vendar ostane neaktivna, dokler to ne uspe."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20141,6 +20553,9 @@ msgstr "Način razporeditve oznak na X-osi"
 msgid ""
 "The widget was changed by someone else. Reload it and apply your change "
 "to revision %(revision)s."
+msgstr ""
+
+msgid "The widget's query failed"
 msgstr ""
 
 msgid "The width of the Isoline in pixels"
@@ -20541,14 +20956,11 @@ msgstr ""
 "lahko spreminjajo samo skrbniki; za to spremembo nastavite polje »Izvedi "
 "kot« na svoj račun."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
-"Ta element (%(type)s) je povezan z %(charts)s na %(dashboards)s. Če ga "
-"arhivirate, odvisni grafikoni ne bodo na voljo, dokler ga ne obnovite."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20667,6 +21079,13 @@ msgstr ""
 "To je lahko bodisi IP naslov (npr. 127.0.0.1) bodisi ime domene (npr. "
 "mydatabase.com)."
 
+msgid ""
+"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
+"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
+"host here and the port the instance listens on below, or connect with a "
+"SQLAlchemy URI instead."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "This cannot be undone."
@@ -20700,6 +21119,11 @@ msgid ""
 msgstr ""
 "Ta grafikon medsebojno filtrira grafikone, ki imajo podatkovne sete s "
 "stolpci z istim nazivom."
+
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
 
 #, python-format
 msgid "This chart could not be drawn: %s"
@@ -20741,6 +21165,11 @@ msgstr "Ta grafikon ne obstaja več."
 #, fuzzy
 msgid "This chart only"
 msgstr "Samo ta grafikon"
+
+msgid ""
+"This chart uses legacy color positions past the end of the selected color"
+" scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20803,6 +21232,15 @@ msgstr "Ta grafikon je lahko nekompatibilen s trenutnim podatkovnim setom"
 msgid "This column must contain date/time information."
 msgstr "Ta stolpec mora vsebovati informacijo o datumu/času."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
+msgid ""
+"This connection stores embedded guest credentials, which only apply with "
+"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
+"before turning impersonation off."
+msgstr ""
+
 msgid ""
 "This control filters the whole chart based on the selected time range. "
 "All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. "
@@ -20848,6 +21286,27 @@ msgstr ""
 "Ta nadzorna plošča vsebuje preveč podatkov za neposreden prenos. Prosite "
 "skrbnika, naj omogoči izvoze v ozadju, ali zmanjšajte omejitve vrstic "
 "njenih grafikonov."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -20978,11 +21437,6 @@ msgstr ""
 "Ta dimenzija ni združljiva s trenutnimi izbirami. Izberite združljivo "
 "dimenzijo."
 
-msgid ""
-"This draft has changes that nobody else can see yet. Publish them, or "
-"discard the draft."
-msgstr ""
-
 msgid "This draft is no longer available"
 msgstr ""
 
@@ -21029,6 +21483,11 @@ msgid ""
 msgstr ""
 "To polje se uporablja kot unikaten ID za vključitev mere v grafikon. "
 "Uporablja se tudi kot alias v SQL-poizvedbi."
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 msgid "This filter already exist on the report"
 msgstr "Ta filter že obstaja v poročilu"
@@ -21239,16 +21698,12 @@ msgstr ""
 msgid "This placement has no data binding."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"To poročilo se izvaja kot %(username)s, ki nima dostopa do tega: "
-"%(kind)s. Izberite %(kind)s, do katerega ima ta uporabnik dostop, ali "
-"drugega uporabnika, kot katerega se bo poročilo izvajalo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21258,6 +21713,12 @@ msgid ""
 msgstr ""
 "To shranjeno stanje filtra je starejše od oblike ID-jev članov. "
 "Ponastavite ga in njegove vrednosti znova izrecno izberite."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21373,6 +21834,9 @@ msgid ""
 msgstr ""
 "Ta tema uporablja svetli algoritem. Namesto tega bo prikazana s temnim "
 "algoritmom, zato njene barve morda ne bodo videti, kot je bilo zasnovano."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21562,6 +22026,11 @@ msgstr "Časovni stolpec za časovno obdobje za"
 
 msgid "Time comparison"
 msgstr "Časovna primerjava"
+
+msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
 
 msgid ""
 "Time delta in natural language\n"
@@ -21754,6 +22223,9 @@ msgstr ""
 "Preveč zahtev za predogled tega nabora podatkov. Počakajte trenutek in "
 "poskusite znova."
 
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Too many requests. Please wait and try again."
@@ -21776,6 +22248,12 @@ msgid ""
 msgstr ""
 "Preveč pogledov v eni zahtevi: navedenih %(count)s, dovoljenih je največ "
 "%(limit)s."
+
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Orodna plošča"
@@ -21907,6 +22385,9 @@ msgstr "Sproži zdaj"
 
 msgid "True"
 msgstr "Da"
+
+msgid "Truncate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -22510,6 +22991,10 @@ msgstr ""
 msgid "Unverified"
 msgstr "Nepreverjeno"
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr "Posodobi"
 
@@ -22639,6 +23124,9 @@ msgstr "Uporabi trenutni obseg"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Oblikovanje datuma uporabi tudi, ko vrednost mere ni časovna značka"
 
+msgid "Use default"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22677,6 +23165,9 @@ msgstr "Uporabi mere kot vrhovni nivo grupiranja za stolpce ali vrstice"
 msgid "Use only a single value."
 msgstr "Uporabite le eno vrednost."
 
+msgid "Use scheme colors"
+msgstr ""
+
 msgid "Use the Advanced Analytics options below"
 msgstr "Uporabite spodnje možnosti napredne analitike"
 
@@ -22695,6 +23186,14 @@ msgid ""
 msgstr ""
 "Uporablja se za interno identifikacijo vtičnika. Naj bo nastavljeno na "
 "ime paketa v vtičnikovem package.json"
+
+msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
 
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -23729,6 +24228,9 @@ msgstr "Oblak besed"
 msgid "Word Rotation"
 msgstr "Vrtenje besed"
 
+msgid "Work Group"
+msgstr ""
+
 msgid "Working"
 msgstr "Delam"
 
@@ -23883,6 +24385,9 @@ msgstr "Da, prekini"
 msgid "Yes, overwrite changes"
 msgstr "Da, prepiši spremembe"
 
+msgid "You"
+msgstr ""
+
 #, python-format
 msgid "You are adding tags to %s %ss"
 msgstr "Oznake dodajate %s %ss"
@@ -23981,6 +24486,9 @@ msgstr "Elemente lahko dodate v načinu urejanja."
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Lahko tudi samo kliknete na grafikon za medsebojno filtriranje."
 
+msgid "You can also select an authorized account in Run as."
+msgstr ""
+
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
@@ -24068,6 +24576,11 @@ msgstr "Nimate dovoljenja za urejanje tega grafikona"
 
 msgid "You do not have permission to edit this dashboard"
 msgstr "Nimate dovoljenja za urejanje te nadzorne plošče"
+
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
 
 msgid "You do not have permission to perform this operation"
 msgstr "Nimate dovoljenja za izvedbo te operacije"
@@ -24376,6 +24889,10 @@ msgstr ""
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24409,6 +24926,10 @@ msgstr "Izvoza \"%(title)s\" ni bilo mogoče dokončati."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Vaš izvoz \"%(title)s\" je pripravljen."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24666,7 +25187,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "vijak"
+msgstr ""
 
 msgid "boolean"
 msgstr "logično"
@@ -24738,9 +25259,6 @@ msgstr "koda ISO 3166-1 alpha-3 (cca3)"
 msgid "code International Olympic Committee (cioc)"
 msgstr "koda Mednarodnega olimpijskega komiteja (cioc)"
 
-msgid "color scheme for comparison"
-msgstr "barvna shema za primerjavo"
-
 msgid "color type"
 msgstr "tip barve"
 
@@ -24765,6 +25283,9 @@ msgstr "ustvari"
 
 msgid "create a new chart"
 msgstr "ustvarite nov grafikon"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "ustvari podatkovni set iz SQL-poizvedbe"
@@ -24796,6 +25317,10 @@ msgstr "podatkovne povezave"
 
 msgid "database"
 msgstr "podatkovna baza"
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
 
 msgid "databases"
 msgstr "baze podatkov"
@@ -24838,7 +25363,7 @@ msgstr "deck.gl - plastnice"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl - GeoJson"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl - 3D mreža"
@@ -24892,7 +25417,7 @@ msgstr "dokumentacija"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "datum-čas"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "npr. ********"
@@ -24900,8 +25425,14 @@ msgstr "npr. ********"
 msgid "e.g. 127.0.0.1"
 msgstr "npr. 127.0.0.1"
 
+msgid "e.g. 1433"
+msgstr ""
+
 msgid "e.g. 5432"
 msgstr "npr. 5432"
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
 
 msgid "e.g. AccountAdmin"
 msgstr "npr. AccountAdmin"
@@ -24915,14 +25446,26 @@ msgstr "npr. compute_wh"
 msgid "e.g. default"
 msgstr "npr. privzeto"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "npr. hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "npr. param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "npr. sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "npr. world_population"
@@ -25098,6 +25641,12 @@ msgstr "je neresnično"
 
 #, python-format
 msgid ""
+"is linked to %s charts and %s dashboards. Are you sure you want to "
+"continue? Deleting the dataset will break those objects."
+msgstr ""
+
+#, python-format
+msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
@@ -25106,14 +25655,6 @@ msgstr ""
 "uporabniki imajo %s odprtih zavihkov SQL laboratorija s to podatkovno "
 "bazo. Ali želite nadaljevati? Izbris podatkovne baze bo pokvaril te "
 "objekte."
-
-#, python-format
-msgid ""
-"is linked to %s charts that appear on %s dashboards. Are you sure you "
-"want to continue? Deleting the dataset will break those objects."
-msgstr ""
-"je povezan z grafikoni %s, ki so prisotni na %s nadzornih ploščah. Ali "
-"želite nadaljevati? Izbris podatkovnega seta bo pokvaril te objekte."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -25556,6 +26097,9 @@ msgstr "dokumentacija grafikona Handlebars"
 msgid "theme"
 msgstr "tema"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "časovni žig"
 
@@ -25577,6 +26121,10 @@ msgstr "razveljavitev"
 msgid "unknown type icon"
 msgstr "ikona neznanega tipa"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "nenastavljeno"
 
@@ -25589,6 +26137,9 @@ msgid ""
 msgstr ""
 "zgornji percentil mora biti večji od 0 in manjši od 100 ter mora biti "
 "večji od spodnjega percentila."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "uporaba predloge latest_partition"
@@ -25643,6 +26194,9 @@ msgstr "y: vrednosti so normirane znotraj vsake vrstice"
 
 msgid "year"
 msgstr "leto"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

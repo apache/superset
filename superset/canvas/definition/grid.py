@@ -53,12 +53,46 @@ class Rect:
     col_span: int
     row_span: int
 
-    def cells(self) -> set[tuple[int, int]]:
-        return {
-            (row, col)
-            for row in range(self.row, self.row + self.row_span)
-            for col in range(self.col, self.col + self.col_span)
-        }
+    @property
+    def right(self) -> int:
+        """The first column past this rectangle."""
+        return self.col + self.col_span
+
+    @property
+    def bottom(self) -> int:
+        """The first row past this rectangle."""
+        return self.row + self.row_span
+
+    def overlaps(self, other: Rect) -> bool:
+        return (
+            self.col < other.right
+            and other.col < self.right
+            and self.row < other.bottom
+            and other.row < self.bottom
+        )
+
+
+def _blocker(rect: Rect, placed: list[Rect]) -> Rect | None:
+    return next((other for other in placed if rect.overlaps(other)), None)
+
+
+def _next_row(row: int, row_span: int, placed: list[Rect]) -> int:
+    """
+    The first row past ``row`` where a ``row_span``-tall band can have room
+    that it has none of at ``row``: where something in that band ends.
+
+    Every position blocked at ``row`` stays blocked until its blocker ends, so
+    the rows in between need no checking. Without the jump a tall widget is
+    stepped down one row at a time past everything above it.
+    """
+    return min(
+        (
+            other.bottom
+            for other in placed
+            if other.row < row + row_span and other.bottom > row
+        ),
+        default=row + 1,
+    )
 
 
 def span_errors(layout: dict[str, Any], columns: int) -> list[str]:
@@ -72,6 +106,17 @@ def span_errors(layout: dict[str, Any], columns: int) -> list[str]:
     return []
 
 
+def unpositioned(layout: dict[str, Any], columns: int) -> dict[str, Any]:
+    """``layout`` without its position, to be auto-placed at its size, no wider
+    than ``columns``."""
+    sized: dict[str, Any] = {}
+    if col_span := layout.get("colSpan"):
+        sized["colSpan"] = min(col_span, columns)
+    if row_span := layout.get("rowSpan"):
+        sized["rowSpan"] = row_span
+    return sized
+
+
 def resolve_grid(
     layouts: list[dict[str, Any]], columns: int
 ) -> tuple[list[Rect], list[dict[str, Any]]]:
@@ -81,7 +126,7 @@ def resolve_grid(
     Returns the resolved rectangles and the layouts to store, where explicitly
     placed children that collided carry the ``col``/``row`` they settled on.
     """
-    occupied: set[tuple[int, int]] = set()
+    placed: list[Rect] = []
     cursor_row, cursor_col = 1, 1
     rects: list[Rect] = []
     stored: list[dict[str, Any]] = []
@@ -93,33 +138,38 @@ def resolve_grid(
         if layout.get("col") is not None:
             home = layout["col"]
             rect = Rect(home, layout["row"], col_span, row_span)
-            while rect.cells() & occupied:
-                if rect.col + col_span - 1 < columns:
+            while blocker := _blocker(rect, placed):
+                # Every column short of the blocker's right edge still
+                # overlaps it, so the slide skips straight past it.
+                if blocker.right + col_span - 1 <= columns:
                     # Room beside it on this row: a widget dropped on the left
                     # half of a row should slide its neighbour into the free
                     # right half, not send it to a row of its own and leave
                     # that half empty.
-                    rect = Rect(rect.col + 1, rect.row, col_span, row_span)
+                    rect = Rect(blocker.right, rect.row, col_span, row_span)
                 else:
                     # The row is full to the right, so down it goes -- back at
-                    # the column it asked for, since nothing on the next row
-                    # is in its way yet.
-                    rect = Rect(home, rect.row + 1, col_span, row_span)
+                    # the column it asked for.
+                    row = _next_row(rect.row, row_span, placed)
+                    rect = Rect(home, row, col_span, row_span)
             stored.append({**layout, "col": rect.col, "row": rect.row})
         else:
             row, col = cursor_row, cursor_col
+            # Only a row scanned from its first column is known to be full.
+            whole_row = col == 1
             while True:
                 if col + col_span - 1 > columns:
-                    row, col = row + 1, 1
+                    row = _next_row(row, row_span, placed) if whole_row else row + 1
+                    col, whole_row = 1, True
                     continue
                 rect = Rect(col, row, col_span, row_span)
-                if not rect.cells() & occupied:
+                if (blocker := _blocker(rect, placed)) is None:
                     break
-                col += 1
+                col = blocker.right
             cursor_row, cursor_col = rect.row, rect.col + col_span
             stored.append(dict(layout))
 
-        occupied |= rect.cells()
+        placed.append(rect)
         rects.append(rect)
 
     return rects, stored
@@ -248,7 +298,7 @@ def insert_index(rects: list[Rect], target: Rect) -> int:
     something dropped at its feet.
     """
     for i, rect in enumerate(rects):
-        if rect.cells() & target.cells():
+        if rect.overlaps(target):
             if target.row < rect.row + rect.row_span / 2:
                 return i
             continue

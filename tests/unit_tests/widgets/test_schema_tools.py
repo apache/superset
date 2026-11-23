@@ -25,16 +25,22 @@ from superset.widgets.schema_tools import (
     prune_to_minimal_viable,
     SchemaPathError,
 )
+from tests.unit_tests.widgets.series_widget import (
+    series_widget,  # noqa: F401
+    WIDGET_TYPE,
+)
+
+pytestmark = pytest.mark.usefixtures("series_widget")
 
 
-def _balloons_schema(control_values=None, series=None):
-    widget = registry.get("balloons")
+def _series_schema(control_values=None, series=None):
+    widget = registry.get(WIDGET_TYPE)
     assert widget is not None
     return widget.get_control_schema(control_values, series)
 
 
 def test_prune_surfaces_mandatory_leaves_and_collapses_the_rest() -> None:
-    minimal = prune_to_minimal_viable(_balloons_schema())
+    minimal = prune_to_minimal_viable(_series_schema())
 
     assert minimal["x-disclosure"] == "minimal"
     # No $defs / $ref leak into the minimal view.
@@ -88,7 +94,7 @@ def test_collapsed_marker_is_static_when_no_dynamic_content() -> None:
 
 
 def test_get_subtree_inlines_a_branch() -> None:
-    subtree = get_subtree(_balloons_schema(), "dataBinding")
+    subtree = get_subtree(_series_schema(), "dataBinding")
     props = subtree["properties"]
     assert {"datasetId", "metrics", "dimensions", "rowLimit"} <= set(props)
     # Fully inlined — no dangling refs.
@@ -96,7 +102,7 @@ def test_get_subtree_inlines_a_branch() -> None:
 
 
 def test_get_subtree_reaches_dynamic_series_after_enrichment() -> None:
-    enriched = _balloons_schema(
+    enriched = _series_schema(
         {
             "dataBinding": {
                 "datasetId": 1,
@@ -113,11 +119,11 @@ def test_get_subtree_reaches_dynamic_series_after_enrichment() -> None:
 
 def test_get_subtree_raises_on_bad_path() -> None:
     with pytest.raises(SchemaPathError):
-        get_subtree(_balloons_schema(), "customize/nope")
+        get_subtree(_series_schema(), "customize/nope")
 
 
 def test_get_subtrees_expands_several_paths_in_one_call() -> None:
-    subtrees = get_subtrees(_balloons_schema(), ["dataBinding", "customize"])
+    subtrees = get_subtrees(_series_schema(), ["dataBinding", "customize"])
     assert set(subtrees) == {"dataBinding", "customize"}
     assert "datasetId" in subtrees["dataBinding"]["properties"]
     assert "series" in subtrees["customize"]["properties"]
@@ -125,4 +131,4 @@ def test_get_subtrees_expands_several_paths_in_one_call() -> None:
 
 def test_get_subtrees_raises_on_any_bad_path() -> None:
     with pytest.raises(SchemaPathError):
-        get_subtrees(_balloons_schema(), ["dataBinding", "customize/nope"])
+        get_subtrees(_series_schema(), ["dataBinding", "customize/nope"])

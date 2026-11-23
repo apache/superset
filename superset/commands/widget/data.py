@@ -24,6 +24,7 @@ from uuid import UUID
 from superset_core.widgets import QueryRequest
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
+from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
 from superset.commands.base import BaseCommand
 from superset.commands.canvas.placement_data import widget_queries
 from superset.commands.widget.exceptions import (
@@ -51,10 +52,13 @@ class GetWidgetDataCommand(BaseCommand):
     def run(self) -> dict[str, PlacementData]:
         """Each query's data, by name; one failing query fails them all."""
         self.validate()
-        return {
-            name: run_binding(binding, self._runtime_filters)
-            for name, binding in self._bindings.items()
-        }
+        try:
+            return {
+                name: run_binding(binding, self._runtime_filters)
+                for name, binding in self._bindings.items()
+            }
+        except Exception as ex:  # pylint: disable=broad-except
+            raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
 
     def validate(self) -> None:
         widget = WidgetDAO.find_one_or_none(uuid=self._widget_uuid)

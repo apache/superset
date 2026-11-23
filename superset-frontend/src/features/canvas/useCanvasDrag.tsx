@@ -303,9 +303,17 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
         }
         return false;
       };
+      // Also by the DOM: a tab's grid has no grid item of its own, so the
+      // walk above stops at the tab and misses the Tabs node holding it.
+      const within = (element: HTMLElement): boolean => {
+        for (let el = element.parentElement; el; el = el.parentElement) {
+          if (el.dataset.nodeId === inside) return true;
+        }
+        return false;
+      };
       let found: GridHit | undefined;
       grids.current.forEach(grid => {
-        if (inside && nested(grid.parentId)) return;
+        if (inside && (nested(grid.parentId) || within(grid.element))) return;
         const pinnedGrid =
           snapshot && origin && snapshot.boxes.get(grid.parentId);
         const hit = pinnedGrid

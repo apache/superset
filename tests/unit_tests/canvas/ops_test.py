@@ -1007,3 +1007,171 @@ def test_a_container_stored_at_an_older_version_takes_children() -> None:
     assert result["nodes"]["box"]["schemaVersion"] == 2
     # The caller's copy is left as it was.
     assert doc["nodes"]["box"]["schemaVersion"] == 1
+
+
+def _bound_widget_types() -> dict[str, type[Widget]]:
+    from pydantic import BaseModel, ConfigDict
+    from superset_core.widgets import WidgetBehavior
+
+    from tests.unit_tests.canvas.fixtures import _widget
+
+    class BoundProps(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+
+        title: str = ""
+        count: int = 0
+        dataBinding: dict[str, Any] | None = None  # noqa: N815
+
+    return {
+        **canvas_widget_types(),
+        "bound": _widget("bound", controls=BoundProps),
+        "note": _widget("note", WidgetBehavior(structural=True), BoundProps),
+    }
+
+
+def _apply_bound(
+    canvas: dict[str, Any], *raw: dict[str, Any]
+) -> tuple[dict[str, Any], list[AppliedOperation]]:
+    return apply_operations(
+        canvas,
+        ops(*raw),
+        widget_types=_bound_widget_types(),
+        resolver=FakeResolver(),
+        new_id=sequential_ids(),
+        new_widget_id=sequential_widget_ids(),
+    )
+
+
+def test_binding_a_dataset_the_user_cannot_read_is_refused(mocker: Any) -> None:
+    mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets",
+        side_effect=lambda ids: set(ids),
+    )
+    binding = {"dataBinding": {"datasetId": 9}}
+
+    for op in (
+        {"op": "add", "widgetType": "bound", "props": binding},
+        {"op": "add", "widgetType": "note", "props": binding},
+    ):
+        with pytest.raises(OperationError, match="dataset 9"):
+            _apply_bound(empty_definition(), op)
+
+
+def test_editing_a_widget_bound_by_someone_else_needs_no_dataset_access(
+    mocker: Any,
+) -> None:
+    unreadable = mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets",
+        side_effect=lambda ids: set(ids),
+    )
+    bound = {"title": "a", "dataBinding": {"datasetId": 9}}
+    canvas = empty_definition()
+    canvas["root"]["children"] = ["n"]
+    canvas["nodes"]["n"] = {
+        "widgetType": "note",
+        "schemaVersion": 1,
+        "props": bound,
+        "layout": {},
+    }
+
+    result, _ = _apply_bound(
+        canvas, {"op": "set_props", "id": "n", "props": {**bound, "title": "b"}}
+    )
+
+    assert result["nodes"]["n"]["props"]["title"] == "b"
+    unreadable.assert_not_called()
+
+
+def test_changing_the_query_of_a_binding_needs_dataset_access(mocker: Any) -> None:
+    mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets",
+        side_effect=lambda ids: set(ids),
+    )
+    bound = {"dataBinding": {"datasetId": 9, "metrics": ["count"]}}
+    canvas = empty_definition()
+    canvas["root"]["children"] = ["n"]
+    canvas["nodes"]["n"] = {
+        "widgetType": "note",
+        "schemaVersion": 1,
+        "props": bound,
+        "layout": {},
+    }
+    changed = {"dataBinding": {"datasetId": 9, "metrics": ["SUM(secret)"]}}
+
+    with pytest.raises(OperationError, match="dataset 9"):
+        _apply_bound(canvas, {"op": "set_props", "id": "n", "props": changed})
+
+
+def test_rewriting_the_template_of_a_bound_widget_needs_dataset_access(
+    mocker: Any,
+) -> None:
+    mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets",
+        side_effect=lambda ids: set(ids),
+    )
+    bound = {"count": 1, "dataBinding": {"datasetId": 9}}
+    canvas = empty_definition()
+    canvas["root"]["children"] = ["n"]
+    canvas["nodes"]["n"] = {
+        "widgetType": "note",
+        "schemaVersion": 1,
+        "props": bound,
+        "layout": {},
+    }
+
+    with pytest.raises(OperationError, match="dataset 9"):
+        _apply_bound(
+            canvas, {"op": "set_props", "id": "n", "props": {**bound, "count": 2}}
+        )
+
+
+@pytest.mark.parametrize("dataset_id", [17.0, "17", True])
+def test_a_dataset_id_that_is_not_an_integer_is_refused(dataset_id: Any) -> None:
+    with pytest.raises(OperationError, match="datasetId must be an integer"):
+        _apply_bound(
+            empty_definition(),
+            {
+                "op": "add",
+                "widgetType": "note",
+                "props": {"dataBinding": {"datasetId": dataset_id}},
+            },
+        )
+
+
+def test_props_are_stored_as_parsed() -> None:
+    result, _ = _apply_bound(
+        empty_definition(),
+        {"op": "add", "id": "n", "widgetType": "note", "props": {"count": "17"}},
+    )
+
+    assert result["nodes"]["n"]["props"] == {"count": 17}
+
+
+@pytest.mark.parametrize("col", ["7", 7.0])
+def test_a_grid_layout_is_parsed_before_any_grid_arithmetic(col: Any) -> None:
+    canvas = build(add("chart-1", id="a"), add("chart-2", id="b"))
+
+    with pytest.raises(OperationError, match="invalid layout"):
+        apply(canvas, {"op": "place", "id": "a", "layout": {"col": col, "row": 1}})
+    with pytest.raises(OperationError, match="invalid layout"):
+        apply(
+            canvas,
+            {
+                "op": "move",
+                "id": "a",
+                "parent": "root",
+                "layout": {"col": col, "row": 1},
+            },
+            {"op": "place", "id": "b", "layout": {"col": 1, "row": 1}},
+        )
+
+
+def test_a_placed_layout_is_stored_and_logged_as_parsed() -> None:
+    canvas = build(add("chart-1", id="a"))
+
+    result, applied = apply(
+        canvas, {"op": "place", "id": "a", "layout": {"col": 2, "row": 1, "colSpan": 4}}
+    )
+
+    assert result["nodes"]["a"]["layout"] == {"col": 2, "row": 1, "colSpan": 4}
+    assert applied[0].op["layout"] == {"col": 2, "row": 1, "colSpan": 4}

@@ -29,6 +29,7 @@ from superset.canvas.definition.registry import (
     get_widget_resolver,
     get_widget_types,
 )
+from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
 from superset.canvas.versions import version_snapshot
 from superset.commands.base import BaseCommand
 from superset.commands.canvas.draft import load_draft
@@ -129,10 +130,13 @@ class GetPlacementDataCommand(BaseCommand):
     def run(self) -> dict[str, PlacementData]:
         """Each query's data, by name; one failing query fails them all."""
         self.validate()
-        return {
-            name: run_binding(binding, self._runtime_filters)
-            for name, binding in self._bindings.items()
-        }
+        try:
+            return {
+                name: run_binding(binding, self._runtime_filters)
+                for name, binding in self._bindings.items()
+            }
+        except Exception as ex:  # pylint: disable=broad-except
+            raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
 
     def validate(self) -> None:
         placement = load_placement(

@@ -237,3 +237,25 @@ def test_shared_swap_cases_match_this_implementation() -> None:
         assert exchanged == case["exchanged"], case["name"]
         assert order == case["order"], case["name"]
         assert placements == case["expected"], case["name"]
+
+
+def test_colliding_tall_widgets_resolve_without_stepping_row_by_row() -> None:
+    import time
+
+    started = time.monotonic()
+    rects, _ = resolve_grid(
+        [{"col": 1, "row": 1, "colSpan": 24, "rowSpan": 200}] * 100, 24
+    )
+
+    assert rects[-1] == Rect(1, 99 * 200 + 1, 24, 200)
+    assert time.monotonic() - started < 1
+
+
+def test_auto_placed_tall_widgets_resolve_without_stepping_row_by_row() -> None:
+    import time
+
+    started = time.monotonic()
+    rects, _ = resolve_grid([{"colSpan": 25, "rowSpan": 200}] * 100, 48)
+
+    assert rects[-1] == Rect(1, 99 * 200 + 1, 25, 200)
+    assert time.monotonic() - started < 1

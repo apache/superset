@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import {
@@ -30,7 +30,7 @@ import {
 import { dataFilters, useWidgetRows } from './useWidgetRows';
 import WithQuery from './WithQuery';
 
-type Props = canvasApi.CanvasWidgetProps;
+type Props = CanvasRendererProps;
 
 const Tile = styled.div`
   ${({ theme }) => css`
@@ -54,6 +54,19 @@ const BigNumber = styled.div`
 const text = (value: unknown): string =>
   typeof value === 'string' ? value : '';
 
+/** What each metric of a binding is called in its rows. */
+const metricLabels = (binding: unknown): string[] => {
+  const metrics = (binding as { metrics?: unknown[] } | undefined)?.metrics;
+  if (!Array.isArray(metrics)) return [];
+  return metrics
+    .map(metric =>
+      typeof metric === 'string'
+        ? metric
+        : (metric as { label?: unknown } | null)?.label,
+    )
+    .filter((label): label is string => typeof label === 'string');
+};
+
 /** The first row's value of the tile's metric, as a big number. */
 export function MetricTileRenderer(widget: Props) {
   const { props, refreshKey } = widget;
@@ -65,7 +78,11 @@ export function MetricTileRenderer(widget: Props) {
   if (loading) return <Loading position="inline-centered" />;
   if (error) return <Typography.Text type="danger">{error}</Typography.Text>;
   const row = rows[0] ?? {};
-  const column = Object.keys(row).find(key => typeof row[key] === 'number');
+  // The binding's own metric first: a dimension can be numeric too.
+  const column =
+    metricLabels(props?.dataBinding).find(
+      label => typeof row[label] === 'number',
+    ) ?? Object.keys(row).find(key => typeof row[key] === 'number');
   const value = column ? (row[column] as number) : undefined;
   const decimals = typeof props?.decimals === 'number' ? props.decimals : 0;
   return (

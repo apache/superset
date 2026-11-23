@@ -36,7 +36,7 @@ import { Alert } from '@apache-superset/core/components';
 import DraftDashboardNotice from 'src/features/reports/DraftDashboardNotice';
 import reportErrorMessage from 'src/features/reports/reportErrorMessage';
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { useSelector } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import {
   editReport,
   fetchUISpecificReport,
@@ -90,6 +90,7 @@ import {
 interface ReportProps {
   onHide: () => {};
   addDangerToast: (msg: string) => void;
+  addInfoToast: (msg: string) => void;
   show: boolean;
   userEmail: string;
   ccEmail: string;
@@ -125,6 +126,7 @@ const EMPTY_OBJECT = {};
 
 function ReportModal({
   onHide,
+  addInfoToast,
   show = false,
   dashboardId,
   chart,
@@ -180,6 +182,7 @@ function ReportModal({
   const [executeAsSelf, setExecuteAsSelf] = useState(false);
 
   const dispatch = useAppDispatch();
+  const store = useStore();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
     const isChartReport = creationMethod === CreationMethod.Charts;
@@ -241,6 +244,11 @@ function ReportModal({
       }),
     };
 
+    const resourceId =
+      creationMethod === CreationMethod.Charts ? chart?.id : dashboardId;
+    const filterField =
+      creationMethod === CreationMethod.Charts ? 'chart_id' : 'dashboard_id';
+
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
       if (isEditMode && currentReport.id) {
@@ -271,8 +279,6 @@ function ReportModal({
         // Subscribe path: creation_method, editors, and recipients are set server-side.
         await dispatch(subscribeReport(commonFields as ReportObject));
       }
-      const resourceId =
-        creationMethod === CreationMethod.Charts ? chart?.id : dashboardId;
       if (
         isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
         resourceId != null
@@ -280,10 +286,7 @@ function ReportModal({
         await dispatch(
           fetchUISpecificReport({
             userId: currentUserId,
-            filterField:
-              creationMethod === CreationMethod.Charts
-                ? 'chart_id'
-                : 'dashboard_id',
+            filterField,
             creationMethod,
             resourceId,
           }),
@@ -291,6 +294,37 @@ function ReportModal({
       }
       onHide();
     } catch (e) {
+      if (
+        !isEditMode &&
+        (e as Response)?.status === 409 &&
+        resourceId != null &&
+        currentUserId !== undefined
+      ) {
+        // The user already subscribed to this chart or dashboard, e.g. from
+        // another tab. Load that subscription so the modal switches to editing
+        // it instead of reporting a failure.
+        await dispatch(
+          fetchUISpecificReport({
+            userId: currentUserId,
+            filterField,
+            creationMethod,
+            resourceId,
+          }),
+        );
+        if (reportSelector(store.getState(), creationMethod, resourceId)) {
+          addInfoToast(
+            creationMethod === CreationMethod.Charts
+              ? t(
+                  'You are already subscribed to this chart. Your existing report has been opened for editing.',
+                )
+              : t(
+                  'You are already subscribed to this dashboard. Your existing report has been opened for editing.',
+                ),
+          );
+          setCurrentReport({ isSubmitting: false, custom_width: undefined });
+          return;
+        }
+      }
       const { error } = await getClientErrorObject(e);
       setCurrentReport({ error });
     }

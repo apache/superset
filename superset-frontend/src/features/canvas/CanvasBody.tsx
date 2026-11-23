@@ -18,15 +18,17 @@
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { ScopeKind } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
-import { EmptyState } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
+import { Button, EmptyState } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import CanvasGrid, { EventValues, ScopeValues } from './CanvasGrid';
 import DraftBanner from './DraftBanner';
 import CanvasToolbar from './CanvasToolbar';
 import { useDraftActions } from './useDraftActions';
 import { useDraftHistory } from './useDraftHistory';
+import { usePublishActiveCanvas } from './useActiveCanvas';
 import { useStartDraft } from './useStartDraft';
 import { useCanvasLayout } from './useCanvasLayout';
 import {
@@ -40,11 +42,7 @@ interface CanvasBodyProps {
   result: CanvasDefinitionResult;
   reload: () => void;
   values: ScopeValues;
-  onValueChange: (
-    kind: canvasApi.ScopeKind,
-    nodeId: string,
-    value: unknown,
-  ) => void;
+  onValueChange: (kind: ScopeKind, nodeId: string, value: unknown) => void;
   /** Values published under kinds other than the three scope kinds. */
   events?: EventValues;
   /** Records a value a widget published, for the nodes its scope reaches. */
@@ -52,6 +50,11 @@ interface CanvasBodyProps {
   refreshKeys: Record<string, number>;
   /** Set while a draft is open; layout writes then go to the draft. */
   draftToken?: string;
+  /**
+   * The open draft ended elsewhere -- published by an agent through the same
+   * token, committed or discarded in another tab -- or expired.
+   */
+  draftGone?: boolean;
   /** The version being previewed; widgets read their data from it. */
   versionUuid?: string;
   /** Starts a draft and shows it. */
@@ -68,6 +71,24 @@ interface CanvasBodyProps {
    * lift all of that into the page, the page lends this a node in its header.
    */
   toolbarSlot?: HTMLElement | null;
+  /**
+   * What the page knows about the canvas, for telling extensions which one is
+   * open. Left out while the page has nothing current to say.
+   */
+  active?: {
+    title?: string;
+    /** Revision of the definition the page has loaded. */
+    revision: number;
+    /**
+     * Whether `draftToken`'s own definition has loaded, and the draft has not
+     * since turned out to be gone.
+     */
+    draftLoaded: boolean;
+    /** Whether the last refresh of the draft failed. */
+    draftRefreshFailed: boolean;
+    /** The saved version rendered in place of the canvas, if any. */
+    previewedVersion?: { uuid: string; number: number };
+  };
 }
 
 /**
@@ -85,11 +106,13 @@ export default function CanvasBody({
   onPublish,
   refreshKeys,
   draftToken,
+  draftGone = false,
   versionUuid,
   onDraftOpened,
   onDraftClosed,
   isEmpty,
   toolbarSlot,
+  active,
 }: CanvasBodyProps) {
   const layout = useCanvasLayout(canvasId, result, reload, draftToken);
   const { addDangerToast } = useToasts();
@@ -112,15 +135,46 @@ export default function CanvasBody({
     layout.revision,
     onDraftClosed,
     setCommitting,
+    canvasId,
   );
-  const history = useDraftHistory(draftToken, layout.revision, result, reload);
+  // A step moves the draft on before the refetch shows it, so a gesture made
+  // meanwhile is based on the step's revision rather than conflicting.
+  const history = useDraftHistory(
+    draftToken,
+    layout.revision,
+    result,
+    reload,
+    layout.adopt,
+  );
+  // Here rather than in the page: whether a change to the draft is in flight,
+  // and the revision it has reached, are only known here.
+  usePublishActiveCanvas(
+    active?.title === undefined
+      ? undefined
+      : {
+          id: canvasId,
+          title: active.title,
+          revision: active.revision,
+          draftToken,
+          draftLoaded: active.draftLoaded && !versionUuid,
+          draftRevision: layout.revision,
+          draftPending:
+            active.draftRefreshFailed ||
+            layout.saving ||
+            committing ||
+            history.busy ||
+            Boolean(history.settling),
+          previewedVersion: versionUuid ? active.previewedVersion : undefined,
+        },
+  );
   const { start, starting } = useStartDraft(canvasId, onDraftOpened);
   // Changes are made in a plan; the published canvas is read-only even for
   // someone who may edit it. Editing also stops once a publish starts: the
   // commit names a revision and then deletes the draft, so a change accepted
   // after that read would be replayed by nothing. The single place this
   // policy is decided.
-  const editable = result.canEdit && Boolean(draftToken) && !committing;
+  const editable =
+    result.canEdit && Boolean(draftToken) && !draftGone && !committing;
   // Held here rather than in the grid: `editable` and the placements are
   // already here, and this is above the toolbar as well as the canvas, so an
   // action on the selected widget has somewhere to live later.
@@ -128,10 +182,17 @@ export default function CanvasBody({
     editable,
     placements: layout.placements,
   });
+  // A rejected write is shown at the placement its issue points at.
+  const { errorAt } = layout;
+  const { select } = selection;
+  useEffect(() => {
+    if (errorAt) select(errorAt);
+  }, [errorAt, select]);
   const toolbar = (
     <CanvasToolbar
       canEdit={result.canEdit}
-      draftToken={draftToken}
+      // Undo, redo and their shortcuts go with a draft that is gone.
+      draftToken={draftGone ? undefined : draftToken}
       onEnter={start}
       // Held while a drag or resize is still in flight or queued: a commit
       // then would publish the older revision and delete the draft,
@@ -148,7 +209,27 @@ export default function CanvasBody({
       {/* What the draft holds comes from the layout, which every write
           updates, rather than from the fetched definition, which does not
           catch up until the next poll. */}
-      {draftToken && (
+      {draftToken && draftGone && (
+        <Alert
+          type="info"
+          showIcon
+          closable={false}
+          message={t(
+            'This draft was published, discarded or expired elsewhere.',
+          )}
+          action={
+            <Button
+              buttonStyle="primary"
+              buttonSize="small"
+              onClick={onDraftClosed}
+              data-test="canvas-draft-gone-leave"
+            >
+              {t('Show the published canvas')}
+            </Button>
+          }
+        />
+      )}
+      {draftToken && !draftGone && (
         <DraftBanner
           history={history}
           actions={actions}

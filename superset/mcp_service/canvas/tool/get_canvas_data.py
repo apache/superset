@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Iterator
 from typing import Any
 
@@ -41,13 +40,19 @@ from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
 from superset.mcp_service.canvas.tool.canvas_ops_common import (
     absolute_url,
+    keeps_own_data,
     query_error,
+    UNREAD_REASON,
 )
-
-logger = logging.getLogger(__name__)
+from superset.utils import json
 
 MAX_ROWS = 500
 MAX_WIDGETS = 50
+# Under the MCP response size guard, which fails the whole call when crossed:
+# rows are trimmed to fit instead.
+MAX_RESPONSE_BYTES = 40_000
+# The most ``unread`` entries listed; each repeats the reason.
+MAX_UNREAD = 20
 
 
 def _in_layout_order(definition: dict[str, Any]) -> Iterator[str]:
@@ -113,7 +118,7 @@ def _widget_data(
     try:
         rows = run_binding(props["dataBinding"], runtime_filters).rows
     except Exception as ex:  # pylint: disable=broad-except
-        entry["error"] = query_error(ex)["error"]
+        entry.update(query_error(ex))
         return entry
     entry["row_count"] = len(rows)
     entry["columns"] = list(rows[0]) if rows else []
@@ -121,6 +126,17 @@ def _widget_data(
     if len(rows) > max_rows:
         entry["truncated"] = True
     return entry
+
+
+def _unread(
+    node_id: str, node: dict[str, Any], widget_type: str | None
+) -> list[dict[str, Any]]:
+    """The placement as an ``unread`` entry, when it may have data elsewhere."""
+    if "children" in node or not keeps_own_data(widget_type):
+        return []
+    return [
+        {"placement_id": node_id, "widget_type": widget_type, "reason": UNREAD_REASON}
+    ]
 
 
 def _get_canvas_data_impl(
@@ -145,6 +161,7 @@ def _get_canvas_data_impl(
     )
     entries: list[dict[str, Any]] = []
     skipped: list[str] = []
+    unread: list[dict[str, Any]] = []
     for node_id in _in_layout_order(definition):
         if wanted and node_id not in wanted:
             continue
@@ -156,6 +173,7 @@ def _get_canvas_data_impl(
             widget_type, props = widget.widget_type, widget.props
         binding = props.get("dataBinding")
         if not isinstance(binding, dict) or not binding.get("datasetId"):
+            unread.extend(_unread(node_id, node, widget_type))
             continue
         if len(entries) >= max_widgets:
             skipped.append(node_id)
@@ -170,10 +188,28 @@ def _get_canvas_data_impl(
                 runtime_filters,
             )
         )
+    listed = {
+        key: value
+        for key, value in (("skipped", skipped), ("unread", unread[:MAX_UNREAD]))
+        if value
+    }
+    # The lists share the budget with the rows: trimmed rows alone could still
+    # leave the response past the size guard.
+    _fit_rows(entries, MAX_RESPONSE_BYTES - len(json.dumps(listed)))
     result["widgets"] = entries
-    if skipped:
-        result["skipped"] = skipped
+    result.update(listed)
     return result
+
+
+def _fit_rows(entries: list[dict[str, Any]], budget: int) -> None:
+    """Halve the longest row list until the widgets' data fits ``budget``."""
+    while len(json.dumps(entries, default=str)) > budget:
+        longest = max(entries, key=lambda entry: len(entry.get("rows") or []))
+        rows = longest.get("rows") or []
+        if not rows:
+            return
+        longest["rows"] = rows[: len(rows) // 2]
+        longest["truncated"] = True
 
 
 @tool(
@@ -190,16 +226,19 @@ def get_canvas_data(
     canvas_id: int | str,
     draft_token: str | None = None,
     placement_ids: list[str] | None = None,
-    max_rows: int = 50,
-    max_widgets: int = 20,
+    max_rows: int = 15,
+    max_widgets: int = 10,
     filters: list[RuntimeFilter] | None = None,
 ) -> GetCanvasDataResponse:
     """Get the data behind a canvas's widgets in one call, to answer questions
     about what the canvas shows.
 
     Runs each placement's query as you, in layout order, and returns its
-    title, row count, columns and up to ``max_rows`` rows (at most 500).
-    Placements without a query (containers, text, filters) are left out.
+    title, row count, columns and up to ``max_rows`` rows (at most 500);
+    rows are trimmed further, marked ``truncated``, to keep the response small.
+    Placements without a query (containers, text, filters) are left out;
+    the first 20 extension widgets with no ``dataBinding`` are listed in
+    ``unread``.
     ``placement_ids`` limits it to those placements; ``max_widgets`` (at most
     50) caps how many queries run, and the rest are listed in ``skipped``.
     With ``draft_token``, reads the draft instead of the published canvas.

@@ -30,9 +30,11 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Annotated, Any, Literal, Union
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
+from superset_core.canvas.base import MAX_GRID_COLUMNS
 
 DEFINITION_VERSION = 1
 ROOT_ID = "root"
@@ -42,9 +44,22 @@ SETTINGS_ID = "settings"
 # ``revenue-trend``; agents read and write them far more cheaply than UUIDs.
 NODE_ID_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
 NODE_ID_MAX_LENGTH = 64
+# Every read resolves each grid, so the node count bounds what a read costs.
+MAX_NODES = 500
 RESERVED_IDS = frozenset({ROOT_ID, SETTINGS_ID})
 
 NodeId = Annotated[str, Field(pattern=NODE_ID_PATTERN, max_length=NODE_ID_MAX_LENGTH)]
+
+
+def canonical_widget_id(value: str) -> str:
+    """A widget UUID in the one spelling widgets are looked up by."""
+    try:
+        return str(UUID(value))
+    except ValueError:
+        return value
+
+
+WidgetId = Annotated[str, Field(min_length=1), AfterValidator(canonical_widget_id)]
 
 
 class _Model(BaseModel):
@@ -54,7 +69,7 @@ class _Model(BaseModel):
 
 
 class RootLayout(_Model):
-    columns: int = Field(default=24, ge=1)
+    columns: int = Field(default=24, ge=1, le=MAX_GRID_COLUMNS)
     gap: int = Field(default=16, ge=0)
     row_unit: int = Field(default=40, ge=1)
 
@@ -70,7 +85,7 @@ class Node(_Model):
     widget stored here (``widgetType``, ``schemaVersion``, ``props``).
     """
 
-    widget_id: str | None = Field(default=None, min_length=1)
+    widget_id: WidgetId | None = None
     widget_type: str | None = Field(default=None, min_length=1)
     # The widget type's schema version ``props`` conform to.
     schema_version: int | None = Field(default=None, ge=1)
@@ -186,7 +201,7 @@ SettingsKey = Literal["refresh", "colors", "display", "crossFilters"]
 class CanvasDefinition(_Model):
     version: Literal[1] = 1
     root: Root = Field(default_factory=Root)
-    nodes: dict[NodeId, Node] = Field(default_factory=dict)
+    nodes: dict[NodeId, Node] = Field(default_factory=dict, max_length=MAX_NODES)
     interactions: Interactions = Field(default_factory=Interactions)
     settings: Settings = Field(default_factory=Settings)
 
@@ -218,7 +233,7 @@ class AddOp(_Model):
 
     op: Literal["add"]
     id: NodeId | None = None
-    widget_id: str | None = Field(default=None, min_length=1)
+    widget_id: WidgetId | None = None
     widget_type: str | None = Field(default=None, min_length=1)
     name: str | None = Field(default=None, min_length=1, max_length=250)
     props: dict[str, Any] | None = None
@@ -347,12 +362,16 @@ Operation = Annotated[
 ]
 
 
+# Far more than any one gesture or agent turn sends.
+MAX_OPS_PER_REQUEST = 1000
+
+
 class ApplyOperationsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     # The revision the caller's view of the canvas is based on.
     base_revision: int = Field(ge=0)
-    ops: list[Operation] = Field(min_length=1)
+    ops: list[Operation] = Field(min_length=1, max_length=MAX_OPS_PER_REQUEST)
 
 
 class DraftOperationsRequest(BaseModel):
@@ -360,7 +379,7 @@ class DraftOperationsRequest(BaseModel):
 
     # The draft revision the caller's view is based on.
     revision: int = Field(ge=0)
-    ops: list[Operation] = Field(min_length=1)
+    ops: list[Operation] = Field(min_length=1, max_length=MAX_OPS_PER_REQUEST)
 
 
 class CommitDraftRequest(BaseModel):

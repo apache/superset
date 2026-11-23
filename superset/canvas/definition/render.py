@@ -52,9 +52,9 @@ from pydantic import ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
 from superset_core.widgets import Widget, WidgetUi
 
-from superset.canvas.definition.grid import resolve_grid
+from superset.canvas.definition.grid import resolve_grid, span_errors, unpositioned
 from superset.canvas.definition.pending import widget_payload
-from superset.canvas.definition.placements import placement_types
+from superset.canvas.definition.placements import placement_types, upgrade_entities
 from superset.canvas.definition.registry import (
     get_widget_resolver,
     get_widget_types,
@@ -70,13 +70,13 @@ def render_context(
 ) -> dict[str, Any]:
     nodes = definition["nodes"]
     resolver = resolver or get_widget_resolver()
-    node_types = placement_types(
-        nodes,
-        get_widget_types() if widget_types is None else widget_types,
-        resolver,
-    )
-    widgets = resolver.widgets(
-        {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
+    widget_types = get_widget_types() if widget_types is None else widget_types
+    node_types = placement_types(nodes, widget_types, resolver)
+    widgets = upgrade_entities(
+        resolver.widgets(
+            {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
+        ),
+        widget_types,
     )
     type_ids = {node_id: w.widget_type for node_id, w in node_types.items()}
 
@@ -98,7 +98,7 @@ def render_context(
     stored_layouts: dict[str, dict[str, Any]] = {}
     grid_extents: dict[str, int] = {}
     for parent, children, columns in grids:
-        layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
+        layouts = [_grid_layout(nodes[c]["layout"], columns) for c in children]
         rects, _ = resolve_grid(layouts, columns)
         for child, rect, layout in zip(children, rects, layouts, strict=True):
             placements[child] = {
@@ -223,12 +223,18 @@ def _span_constraints(ui: WidgetUi, content_rows: int = 0) -> dict[str, int]:
     return {name: limit for name, limit in limits.items() if limit is not None}
 
 
-def _grid_layout(layout: dict[str, Any]) -> dict[str, Any]:
-    """A stored layout as grid placement; one kept from another layout model
-    after a container's rules changed is auto-placed instead."""
+def _grid_layout(layout: dict[str, Any], columns: int) -> dict[str, Any]:
+    """A stored layout as grid placement; one kept from another layout model,
+    or that overflows a grid narrowed since, is auto-placed instead -- the
+    latter at the size it had."""
     try:
-        return GridPlacement.model_validate(layout).model_dump(
+        placement = GridPlacement.model_validate(layout).model_dump(
             mode="json", by_alias=True, exclude_none=True
         )
     except ValidationError:
         return {}
+    return (
+        unpositioned(placement, columns)
+        if span_errors(placement, columns)
+        else placement
+    )

@@ -27,7 +27,13 @@ import pytest
 from superset_core.canvas import StoredWidget
 
 from superset.canvas.data import PlacementData
-from superset.mcp_service.canvas.tool.get_canvas_data import _get_canvas_data_impl
+from superset.mcp_service.canvas.tool.canvas_ops_common import UNREAD_REASON
+from superset.mcp_service.canvas.tool.get_canvas_data import (
+    _get_canvas_data_impl,
+    MAX_RESPONSE_BYTES,
+    MAX_UNREAD,
+)
+from superset.utils import json
 
 MODULE = "superset.mcp_service.canvas.tool.get_canvas_data"
 BINDING = {"datasetId": 13, "metrics": ["revenue"]}
@@ -57,7 +63,9 @@ def _canvas() -> dict[str, Any]:
 
 
 def _run(
-    query_error: Exception | None = None, **kwargs: Any
+    query_error: Exception | None = None,
+    definition: dict[str, Any] | None = None,
+    **kwargs: Any,
 ) -> tuple[dict[str, Any], MagicMock]:
     resolver = MagicMock()
     resolver.widgets.return_value = {
@@ -85,7 +93,7 @@ def _run(
         ) as run,
     ):
         dao.find_by_id_or_uuid.return_value = canvas
-        dao.load.return_value = _canvas()
+        dao.load.return_value = definition or _canvas()
         return _get_canvas_data_impl(**args), run
 
 
@@ -99,6 +107,42 @@ def test_returns_data_for_every_bound_placement_in_layout_order() -> None:
     assert kpi["row_count"] == 5
     assert kpi["columns"] == ["revenue"]
     assert run.call_count == 2
+
+
+def test_lists_extension_widgets_it_cannot_read() -> None:
+    definition = _canvas()
+    definition["root"]["children"].append("ext")
+    definition["nodes"]["ext"] = {
+        "widgetType": "extensions.acme.kpis.board",
+        "props": {"bindings": [{"datasetId": 3}]},
+    }
+
+    result, _ = _run(definition=definition)
+
+    assert result["unread"] == [
+        {
+            "placement_id": "ext",
+            "widget_type": "extensions.acme.kpis.board",
+            "reason": UNREAD_REASON,
+        }
+    ]
+    assert "unread" not in _run()[0]
+
+
+def test_a_canvas_full_of_unread_widgets_stays_within_the_size_budget() -> None:
+    definition = _canvas()
+    for index in range(400):
+        node_id = f"extension-widget-number-{index}"
+        definition["root"]["children"].append(node_id)
+        definition["nodes"][node_id] = {
+            "widgetType": "extensions.acme.kpis.board",
+            "props": {},
+        }
+
+    result, _ = _run(definition=definition)
+
+    assert len(result["unread"]) == MAX_UNREAD
+    assert len(json.dumps(result)) < MAX_RESPONSE_BYTES
 
 
 def test_caps_rows_and_widgets() -> None:
@@ -126,7 +170,7 @@ def test_reports_unknown_placements() -> None:
 
 @pytest.mark.parametrize("view_query", [True, False])
 def test_a_failing_query_is_reported_per_widget(view_query: bool) -> None:
-    # Driver errors can echo the SQL, so only who may see the query sees them.
+    # Unexpected driver errors stay generic even with permission to view SQL.
     with patch(
         "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
         return_value=view_query,
@@ -136,9 +180,28 @@ def test_a_failing_query_is_reported_per_widget(view_query: bool) -> None:
     assert all(
         w["error"]
         == (
-            "The widget's query failed: boom"
+            "The widget's query failed: An error occurred while fetching the data."
             if view_query
             else "The widget's query failed."
         )
         for w in result["widgets"]
     )
+
+    assert all(w["error_type"] == "QueryError" for w in result["widgets"])
+    assert all("rows" not in w for w in result["widgets"])
+
+
+def test_rows_are_trimmed_to_fit_the_response_budget() -> None:
+    from superset.mcp_service.canvas.tool.get_canvas_data import _fit_rows
+
+    entries = [
+        {"placement_id": "big", "rows": [{"v": "x" * 100}] * 100},
+        {"placement_id": "small", "rows": [{"v": 1}] * 3},
+    ]
+
+    _fit_rows(entries, 2_000)
+
+    assert len(json.dumps(entries)) <= 2_000
+    assert entries[0]["truncated"] is True
+    assert entries[1]["rows"] == [{"v": 1}] * 3
+    assert "truncated" not in entries[1]

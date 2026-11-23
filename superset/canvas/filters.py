@@ -33,6 +33,7 @@ from superset.subjects.filters import (
 )
 from superset.subjects.models import canvas_editors, canvas_viewers
 from superset.utils.core import get_user_id
+from superset.utils.filters import apply_extra_access_exclusions
 from superset.views.base import BaseFilter
 
 
@@ -45,6 +46,8 @@ class CanvasAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.is_guest_user():
             return query.filter(Canvas.id < 0)
+        # Before the admin short-circuit, as charts and dashboards apply it.
+        query = apply_extra_access_exclusions(query, "canvases", Canvas.id)
         if security_manager.is_admin():
             return query
 

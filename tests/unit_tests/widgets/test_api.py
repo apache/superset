@@ -46,12 +46,12 @@ def test_types_leave_out_the_types_turned_off(client, full_api_access) -> None:
     every_type = listed()
     with patch.dict(
         "superset.canvas.definition.registry.current_app.config",
-        {"CANVAS_DISABLED_WIDGET_TYPES": {"balloons"}},
+        {"CANVAS_DISABLED_WIDGET_TYPES": {"markdown"}},
     ):
         enabled = listed()
 
-    assert "balloons" in every_type
-    assert every_type - enabled == {"balloons"}
+    assert "markdown" in every_type
+    assert every_type - enabled == {"markdown"}
 
 
 def test_validate_accepts_valid_control_values(client, full_api_access) -> None:

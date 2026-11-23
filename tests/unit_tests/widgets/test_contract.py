@@ -46,8 +46,10 @@ def test_built_in_widgets_declare_a_consistent_contract() -> None:
     assert registry["tabs"].behavior.accepted_children == frozenset({"tab"})
     assert registry["filter.bar"].behavior.bounds_filter_scope is False
     assert registry["filter.select"].behavior.filter is True
-    assert registry["filter.select"].behavior.filterable is True
-    assert registry["echarts"].behavior.emits_filters is True
+    # Only what the page implements: no renderer emits a cross-filter, and a
+    # filter's options aren't narrowed by other filters.
+    assert registry["filter.select"].behavior.filterable is False
+    assert not any(widget.behavior.emits_filters for widget in registry.values())
 
 
 @pytest.mark.parametrize(

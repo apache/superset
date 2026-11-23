@@ -39,22 +39,28 @@ from superset.mcp_service.widgets.tool.list_widget_types import (
     _list_widget_types_impl,
 )
 from superset.utils import json
-from superset.widgets.builtin import Balloons
+from tests.unit_tests.widgets.series_widget import (
+    series_widget,  # noqa: F401
+    SeriesWidget,
+    WIDGET_TYPE,
+)
+
+pytestmark = pytest.mark.usefixtures("series_widget")
 
 
 def test_list_widget_types_impl() -> None:
     ids = {b["id"] for b in _list_widget_types_impl()}
-    assert {"metric-tile", "ag-grid-table", "balloons"} <= ids
+    assert {"metric-tile", "ag-grid-table", "echarts"} <= ids
 
 
 def test_list_widget_types_leaves_out_the_types_turned_off() -> None:
     with patch.dict(
         "superset.canvas.definition.registry.current_app.config",
-        {"CANVAS_DISABLED_WIDGET_TYPES": {"balloons"}},
+        {"CANVAS_DISABLED_WIDGET_TYPES": {"markdown"}},
     ):
         ids = {b["id"] for b in _list_widget_types_impl()}
 
-    assert "balloons" not in ids
+    assert "markdown" not in ids
     assert {"metric-tile", "ag-grid-table"} <= ids
 
 
@@ -67,7 +73,7 @@ def test_list_widget_types_names_required_props_and_grid_columns() -> None:
 
 
 def test_get_widget_control_schema_is_minimal() -> None:
-    result = _get_widget_control_schema_impl("balloons")
+    result = _get_widget_control_schema_impl(WIDGET_TYPE)
     assert result["x-disclosure"] == "minimal"
     assert result["properties"]["customize"]["x-collapsed"] is True
     # Mandatory leaves are surfaced inline.
@@ -80,12 +86,12 @@ def test_get_widget_control_schema_is_minimal() -> None:
 def test_get_widget_control_schema_unknown_type_error() -> None:
     result = _get_widget_control_schema_impl("does-not-exist")
     assert result["error"]["error_type"] == "invalid_widget_type"
-    assert "balloons" in result["valid_widget_types"]
+    assert WIDGET_TYPE in result["valid_widget_types"]
 
 
 def test_get_widget_control_schema_drills_into_enriched_series() -> None:
     result = _get_widget_control_schema_impl(
-        "balloons",
+        WIDGET_TYPE,
         paths=["customize/series"],
         control_values={
             "dataBinding": {"datasetId": 1, "metrics": ["count"], "dimensions": ["g"]}
@@ -98,7 +104,7 @@ def test_get_widget_control_schema_drills_into_enriched_series() -> None:
 
 def test_get_widget_control_schema_expands_multiple_paths_at_once() -> None:
     result = _get_widget_control_schema_impl(
-        "balloons", paths=["dataBinding", "customize"]
+        WIDGET_TYPE, paths=["dataBinding", "customize"]
     )
     # Both requested branches come back in one call, keyed by path.
     assert set(result["subtrees"]) == {"dataBinding", "customize"}
@@ -107,7 +113,7 @@ def test_get_widget_control_schema_expands_multiple_paths_at_once() -> None:
 
 
 def test_get_widget_control_schema_bad_path_error() -> None:
-    result = _get_widget_control_schema_impl("balloons", paths=["nope/nope"])
+    result = _get_widget_control_schema_impl(WIDGET_TYPE, paths=["nope/nope"])
     assert result["error"]["error_type"] == "invalid_path"
 
 
@@ -266,20 +272,20 @@ async def test_widget_discovery_requires_canvas_read(app, name, resource) -> Non
 async def test_discovery_versions_follow_the_canonical_contract() -> None:
     # A registered extension may have a different props version from the Canvas
     # definition format. Neither response may substitute a hard-coded version.
-    with patch.object(Balloons, "schema_version", 7):
+    with patch.object(SeriesWidget, "schema_version", 7):
         async with Client(mcp) as client:
             result = await client.call_tool("list_widget_types", {})
             catalog = json.loads(result.content[0].text)
             assert catalog["definition_version"] == DEFINITION_VERSION
             types = {item["id"]: item for item in catalog["widget_types"]}
-            assert types["balloons"]["schema_version"] == 7
+            assert types[WIDGET_TYPE]["schema_version"] == 7
             assert all("properties" not in item for item in types.values())
             for extra in ({}, {"paths": ["customize"]}, {"paths": ["invalid"]}):
                 result = await client.call_tool(
-                    "get_widget_control_schema", {"widget_type": "balloons", **extra}
+                    "get_widget_control_schema", {"widget_type": WIDGET_TYPE, **extra}
                 )
                 detail = json.loads(result.content[0].text)
-                assert detail["widget_type"] == "balloons"
+                assert detail["widget_type"] == WIDGET_TYPE
                 assert detail["schema_version"] == 7
                 assert detail["definition_version"] == catalog["definition_version"]
             result = await client.call_tool(
@@ -320,7 +326,7 @@ async def test_tools_registered_and_callable() -> None:
         # Passing paths returns the requested subtrees instead of the root.
         drilled = await client.call_tool(
             "get_widget_control_schema",
-            {"widget_type": "balloons", "paths": ["dataBinding"]},
+            {"widget_type": WIDGET_TYPE, "paths": ["dataBinding"]},
         )
         drilled_data = json.loads(drilled.content[0].text)
         assert "datasetId" in drilled_data["subtrees"]["dataBinding"]["properties"]

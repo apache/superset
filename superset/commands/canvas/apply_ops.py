@@ -24,6 +24,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
+from sqlalchemy.orm.exc import StaleDataError
 from superset_core.canvas import StoredWidget, WidgetResolver
 
 from superset import db, security_manager
@@ -355,6 +356,7 @@ def save_widgets(
     operations on each placement of them in ``definition``, for the log.
     """
     changed: list[str] = []
+    updated: list[str] = []
     changes: list[AppliedOperation] = []
     for widget_id, widget in pending.items():
         if widget.revision is None:
@@ -388,13 +390,22 @@ def save_widgets(
         row.props = widget.props
         row.schema_version = widget.schema_version
         row.revision = widget.revision + 1
+        updated.append(widget_id)
     if changed:
         raise DraftConflictError(
             canvas.revision,
             widgets=sorted(changed),
             current_canvas_revision=canvas.revision,
         )
-    db.session.flush()
+    # Read before the flush, which leaves the session unusable if it fails.
+    revision = canvas.revision
+    try:
+        db.session.flush()
+    except StaleDataError as ex:
+        # Widget rows aren't locked: one saved after its revision was read.
+        raise DraftConflictError(
+            revision, widgets=sorted(updated), current_canvas_revision=revision
+        ) from ex
     return changes
 
 
@@ -406,21 +417,18 @@ def _widget_changes(
         for node_id, node in definition["nodes"].items()
         if node.get("widgetId") == widget_id
     ]
+    # The widget's content stays out of the log: the changes feed is readable
+    # by anyone who can read the canvas later, including after the widget is
+    # no longer placed, while the widget itself is read through its placements.
     ops: list[dict[str, Any]] = []
     if row.props != widget.props or row.schema_version != widget.schema_version:
         ops += [
-            {
-                "op": "set_props",
-                "id": node_id,
-                "props": widget.props,
-                "schemaVersion": widget.schema_version,
-                "widgetId": widget_id,
-            }
+            {"op": "set_props", "id": node_id, "widgetId": widget_id}
             for node_id in placements
         ]
     if row.name != widget.name:
         ops += [
-            {"op": "rename", "id": node_id, "name": widget.name, "widgetId": widget_id}
+            {"op": "rename", "id": node_id, "widgetId": widget_id}
             for node_id in placements
         ]
     return [

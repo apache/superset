@@ -17,14 +17,17 @@
  * under the License.
  */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps, FilterValue } from 'src/core/canvas/types';
+import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
+import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import {
   DataBinding,
   fetchPlacementData,
   PlacementData,
   runtimeFilters,
 } from './echarts/chartData';
+import { useCanvasLogger } from './useCanvasLogger';
 
 /** The draft a canvas page shows, if any; its placements read from it. */
 export const CanvasDraftContext = createContext<string | undefined>(undefined);
@@ -40,6 +43,24 @@ export interface WidgetRows extends PlacementData {
   datasource?: string;
 }
 
+/** Restrict the shared normalizer to server responses and fixed transport errors. */
+function canNormalizeError(
+  error: unknown,
+): error is Parameters<typeof getClientErrorObject>[0] {
+  if (error instanceof Response) return !error.bodyUsed;
+  return (
+    (error instanceof TypeError && error.message === 'Failed to fetch') ||
+    Boolean(
+      error &&
+      typeof error === 'object' &&
+      'statusText' in error &&
+      error.statusText === 'timeout' &&
+      'timeout' in error &&
+      typeof error.timeout === 'number',
+    )
+  );
+}
+
 /**
  * The values that narrow a widget's data: those of the filters and of the
  * cross-filter sources whose scope includes it.
@@ -47,10 +68,10 @@ export interface WidgetRows extends PlacementData {
 export const dataFilters = ({
   filters,
   crossFilters,
-}: Pick<
-  canvasApi.CanvasWidgetProps,
-  'filters' | 'crossFilters'
->): canvasApi.FilterValue[] => [...filters, ...crossFilters];
+}: Pick<CanvasRendererProps, 'filters' | 'crossFilters'>): FilterValue[] => [
+  ...filters,
+  ...crossFilters,
+];
 
 /**
  * A placement's rows, queried on the server from its stored `dataBinding`,
@@ -62,35 +83,48 @@ export function useWidgetRows(
     canvasId,
     nodeId,
     props,
-  }: Pick<canvasApi.CanvasWidgetProps, 'canvasId' | 'nodeId' | 'props'>,
-  filters: canvasApi.FilterValue[],
+  }: Pick<CanvasRendererProps, 'canvasId' | 'nodeId' | 'props'>,
+  filters: FilterValue[],
   refreshKey: number,
 ): WidgetRows {
   const draftToken = useContext(CanvasDraftContext);
   const versionUuid = useContext(CanvasVersionContext);
+  const log = useCanvasLogger(canvasId, {
+    isDraft: Boolean(draftToken),
+    versionUuid,
+  });
   const binding = props?.dataBinding as DataBinding | undefined;
   const bound = Boolean(binding?.datasetId);
   const selected = runtimeFilters(filters);
   // The binding is in the key so an edit refetches; the server reads it from
   // the stored definition.
   const key = JSON.stringify([
+    canvasId,
+    nodeId,
     binding ?? null,
     selected,
     draftToken ?? null,
     versionUuid ?? null,
   ]);
-  const [state, setState] = useState<WidgetRows>({
-    rows: [],
-    loading: bound,
+  const [state, setState] = useState<{ key: string; value: WidgetRows }>({
+    key,
+    value: { rows: [], loading: bound },
   });
 
   useEffect(() => {
     if (!bound) {
-      setState({ rows: [], loading: false });
+      setState({ key, value: { rows: [], loading: false } });
       return undefined;
     }
     let cancelled = false;
-    setState(previous => ({ ...previous, loading: true }));
+    // Refresh the same request in place; a new binding/context starts empty.
+    setState(previous => ({
+      key,
+      value: {
+        ...(previous.key === key ? previous.value : { rows: [] }),
+        loading: true,
+      },
+    }));
     fetchPlacementData({
       canvasId,
       placementId: nodeId,
@@ -99,13 +133,43 @@ export function useWidgetRows(
       filters: selected,
     })
       .then(data => {
-        if (!cancelled) setState({ ...data, loading: false });
-      })
-      .catch(async e => {
-        if (cancelled) return;
-        const { error } = await getClientErrorObject(e);
         if (!cancelled) {
-          setState({ rows: [], loading: false, error: error ?? String(e) });
+          setState({ key, value: { ...data, loading: false } });
+        }
+      })
+      .catch(async (e: unknown) => {
+        if (cancelled) return;
+        let message = t("The widget's query failed");
+        let status: number | undefined;
+        let errorType: string | undefined;
+        try {
+          // Unwrap HTTP failures without allowing arbitrary message/statusText
+          // fallbacks, including the normalizer's consumed-Response fallback.
+          const input =
+            e && typeof e === 'object' && 'response' in e ? e.response : e;
+          if (canNormalizeError(input)) {
+            const clientError = await getClientErrorObject(input);
+            if (clientError.error) message = clientError.error;
+            status = clientError.status;
+            errorType = clientError.errors?.[0]?.error_type;
+          }
+        } catch {
+          // A malformed transport error must not expose the raw exception.
+        }
+        if (!cancelled) {
+          setState({
+            key,
+            value: { rows: [], loading: false, error: message },
+          });
+          // The backend counts these too, but only the client knows which
+          // placement was on screen. The message is deliberately not sent.
+          log(LOG_ACTIONS_CANVAS_ERROR, {
+            scope: 'widget_data',
+            placement_id: nodeId,
+            status,
+            error_type: errorType,
+            has_err: true,
+          });
         }
       });
     return () => {
@@ -113,9 +177,15 @@ export function useWidgetRows(
     };
     // The key stands in for the binding and filters, recreated every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasId, nodeId, key, refreshKey]);
+  }, [canvasId, log, nodeId, key, refreshKey]);
 
   const datasource = bound ? `${binding?.datasetId}__table` : undefined;
   // Stable between renders, so callers can depend on it in effects.
-  return useMemo(() => ({ ...state, datasource }), [state, datasource]);
+  return useMemo(
+    () => ({
+      ...(state.key === key ? state.value : { rows: [], loading: bound }),
+      datasource,
+    }),
+    [state, key, bound, datasource],
+  );
 }

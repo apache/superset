@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { canvas as canvasApi } from '@apache-superset/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import EchartsRenderer from './EchartsRenderer';
 
 jest.mock('../useWidgetRows', () => ({
@@ -31,9 +31,11 @@ jest.mock('../useWidgetRows', () => ({
   }),
 }));
 
+const mockSetOption = jest.fn();
+
 jest.mock('echarts', () => ({
   init: () => ({
-    setOption: jest.fn(),
+    setOption: mockSetOption,
     dispose: jest.fn(),
     resize: jest.fn(),
     on: jest.fn(),
@@ -51,7 +53,7 @@ const widget = {
   customizations: [],
   colors: { labelColors: {} },
   refreshKey: 0,
-} as unknown as canvasApi.CanvasWidgetProps;
+} as unknown as CanvasRendererProps;
 
 test('the chart opts its canvas out of the widget drag', () => {
   // ECharts paints its own drag targets -- a dataZoom slider, a brush, graph
@@ -63,5 +65,41 @@ test('the chart opts its canvas out of the widget drag', () => {
 
   expect(screen.getByTestId('canvas-echarts')).toHaveAttribute(
     'data-canvas-no-drag',
+  );
+});
+
+beforeEach(() => mockSetOption.mockClear());
+
+const drawnTooltip = async (echartsOptions: Record<string, unknown>) => {
+  render(<EchartsRenderer {...widget} props={{ echartsOptions }} />, {
+    useRedux: true,
+    useRouter: true,
+  });
+  await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+  return mockSetOption.mock.lastCall?.[0].tooltip;
+};
+
+// Canvas cells and groups clip their overflow. Rich-text tooltips are drawn
+// on the chart's own canvas, and ECharts confines them to the chart when
+// `confine` is unset, so a tooltip never spills past the chart into the
+// cell's clipped overflow.
+test('the drawn tooltip is rich text left to ECharts confinement', async () => {
+  const tooltip = await drawnTooltip({ tooltip: { trigger: 'axis' } });
+
+  expect(tooltip).toMatchObject({ trigger: 'axis', renderMode: 'richText' });
+  expect(tooltip).not.toHaveProperty('confine');
+});
+
+test('every drawn tooltip of an array is rich text', async () => {
+  const tooltips = await drawnTooltip({
+    tooltip: [{ trigger: 'axis' }, { trigger: 'item' }],
+  });
+
+  expect(tooltips).toEqual([
+    expect.objectContaining({ trigger: 'axis', renderMode: 'richText' }),
+    expect.objectContaining({ trigger: 'item', renderMode: 'richText' }),
+  ]);
+  tooltips.forEach((tooltip: Record<string, unknown>) =>
+    expect(tooltip).not.toHaveProperty('confine'),
   );
 });

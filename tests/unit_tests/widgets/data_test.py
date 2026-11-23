@@ -27,8 +27,11 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset.canvas.data import PlacementData, RuntimeFilter
+from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
 from superset.commands.widget.data import GetWidgetDataCommand
 from superset.commands.widget.exceptions import WidgetNotFoundError, WidgetUnboundError
+from superset.daos.exceptions import DatasourceNotFound
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils import json
 from superset.utils.core import override_user
@@ -38,6 +41,13 @@ BINDING = {"datasetId": 13, "metrics": ["count"], "dimensions": ["country"]}
 NAMED = {"datasetId": 14, "metrics": ["sum__revenue"], "dimensions": ["region"]}
 DATA = PlacementData([{"country": "FR", "count": 3}], "SELECT country ...", "sql")
 BY_REGION = PlacementData([{"region": "EMEA", "sum__revenue": 12}], None, None)
+NO_ACCESS = SupersetSecurityException(
+    SupersetError(
+        message="no access to the dataset",
+        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+        level=ErrorLevel.ERROR,
+    )
+)
 
 
 @pytest.fixture
@@ -114,6 +124,23 @@ def test_a_widget_types_queries_come_from_its_builder(
     )
 
 
+def test_a_failing_query_fails_classified_as_a_placements_does(
+    tables: Session,
+    make_user: MakeUser,
+    make_widget: MakeWidget,
+    run_binding: MagicMock,
+) -> None:
+    alice_user, alice = make_user("alice", "Gamma")
+    widget = make_widget("Sales", viewers=[alice], props={"dataBinding": BINDING})
+    run_binding.side_effect = NO_ACCESS
+
+    with override_user(alice_user), pytest.raises(CanvasQueryFailedError) as caught:
+        GetWidgetDataCommand(widget.uuid, []).run()
+
+    assert caught.value.__cause__ is NO_ACCESS
+    assert caught.value.error == canvas_query_error(NO_ACCESS)
+
+
 def test_a_widget_without_its_binding_is_unbound(
     tables: Session,
     make_user: MakeUser,
@@ -165,11 +192,13 @@ def test_the_route_answers_the_datasets_envelope(
                     "name": "main",
                     "row_count": 1,
                     "inline_data": [{"country": "FR", "count": 3}],
+                    "coltypes": {},
                 },
                 {
                     "name": "by_region",
                     "row_count": 1,
                     "inline_data": [{"region": "EMEA", "sum__revenue": 12}],
+                    "coltypes": {},
                 },
             ]
         }
@@ -186,7 +215,8 @@ def test_the_route_answers_the_datasets_envelope(
     [
         (WidgetNotFoundError(WIDGET), 404),
         (WidgetUnboundError(), 422),
-        (SupersetSecurityException(MagicMock()), 403),
+        (CanvasQueryFailedError(canvas_query_error(NO_ACCESS)), 403),
+        (CanvasQueryFailedError(canvas_query_error(DatasourceNotFound())), 404),
     ],
 )
 def test_the_route_answers_each_failure(

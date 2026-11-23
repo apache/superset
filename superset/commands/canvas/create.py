@@ -20,13 +20,13 @@ from __future__ import annotations
 
 from functools import partial
 from typing import Any
-from uuid import UUID
 
 from flask import current_app
 from marshmallow import ValidationError
 
+from superset.canvas.definition.ops import newly_unreadable
 from superset.canvas.definition.registry import get_widget_resolver
-from superset.canvas.definition.schemas import empty_definition
+from superset.canvas.definition.schemas import canonical_widget_id, empty_definition
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
@@ -103,9 +103,30 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
                 )
             )
             return
+        if denied := self._unreadable_bindings(definition):
+            exceptions.append(ValidationError(denied, field_name="definition"))
+            return
         self._properties["definition"] = json.dumps(definition)
         self._properties["definition_version"] = definition["version"]
         self._properties["revision"] = 1
+
+    @staticmethod
+    def _unreadable_bindings(definition: dict[str, Any]) -> dict[str, list[str]]:
+        """Inline props binding a dataset the caller can't read, by props path."""
+        denied: dict[str, list[str]] = {}
+        for node_id, node in definition["nodes"].items():
+            props = node.get("props")
+            if not isinstance(props, dict):
+                continue
+            try:
+                unreadable = newly_unreadable(props, None)
+            except ValueError as ex:
+                denied[f"/nodes/{node_id}/props"] = [str(ex)]
+                continue
+            for dataset_id, path in unreadable.items():
+                pointer = "/".join(("", "nodes", node_id, "props", *path))
+                denied[pointer] = [f"unknown dataset {dataset_id}, or no access to it"]
+        return denied
 
     @staticmethod
     def _hidden_widgets(raw: Any) -> dict[str, str]:
@@ -124,12 +145,6 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
         return {
             node_id: widget_id
             for node_id, widget_id in placed.items()
-            if widget_id not in allowed and _canonical(widget_id) not in allowed
+            if widget_id not in allowed
+            and canonical_widget_id(widget_id) not in allowed
         }
-
-
-def _canonical(widget_id: str) -> str:
-    try:
-        return str(UUID(widget_id))
-    except ValueError:
-        return widget_id

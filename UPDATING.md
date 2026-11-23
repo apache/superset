@@ -24,18 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
-- **Canvas definitions have a new `swap` operation.** `{"op": "swap", "id":
-  ..., "partner": ...}` exchanges two siblings' places on their grid, each
-  keeping its own size. It is additive -- nothing that worked before stops
-  working -- but it is written to the canvas and draft operation logs, so
-  anything that reads those logs has to accept it: a client that validates
-  operations against an older schema rejects a log containing one, and a
-  canvas whose log it cannot replay cannot be undone or committed. Two
-  `place` operations are no longer equivalent, because the grid resolves
-  after every operation: sent apart, the second is decided against the grid
-  the first left behind, which is neither of the places the user chose.
-  Canvases are behind the `CANVAS` feature flag, so deployments with the flag
-  off are unaffected.
+- [46276](https://github.com/apache/superset/pull/46276): Adds a `canvas_id`
+  column to the `logs` table so canvas activity can be attributed the way
+  dashboard and chart activity already is. The column is nullable with no
+  backfill, and `AbstractEventLogger.log()` is unchanged — `canvas_id` is
+  passed as a keyword argument, so a custom `EVENT_LOGGER` that predates the
+  column keeps working untouched.
+
+- **`superset init` adds Canvas and Widget permissions to the built-in roles.**
+  Gamma and Alpha receive `can_read` and `can_write` on `Canvas` and `Widget`,
+  even with the `CANVAS` feature flag off: the APIs are registered regardless
+  and answer 404 while the flag is off, so roles are ready before it is turned
+  on. Grant those permissions to custom roles that should use canvases, or
+  remove them from the built-in roles to keep canvases off for those users.
+
+- **`build_configuration_schema` reads a `field_order` class attribute.** A
+  configuration model (or a nested model in its `$defs`) that declares
+  `field_order: ClassVar[list[str]]` has its properties rendered in that order,
+  and the builder raises `ValueError` unless the list is an exact permutation of
+  the model's properties. Models without the attribute are unchanged; rename an
+  unrelated attribute that happens to use the name.
 
 - **`AFTER_ASSET_CREATE` now also fires for canvases.** The hook's `asset_type`
   argument can be `"canvas"` as well as `"chart"` and `"dashboard"`, and a
@@ -82,6 +90,17 @@ assists people when migrating to a new version.
     uninstalled while its permissions remain -- does not recognise the
     resource and hands those permissions back to Gamma and Alpha. Run
     `superset init` with extensions loading as they do in production.
+
+- Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
+
+- Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
+  Period Pivot, Nightingale Rose, Horizon, and Paired t-test charts instead of
+  returning misleading or empty data. This includes saved charts and their cached
+  chart images. Fresh dashboard images/PDFs include the refusal tile; old cached
+  dashboard images may show the old tile until expiry or regeneration. Use Line/Bar
+  for time series or Table with an explicit time dimension;
+  use an explicit count metric in Bar/Table for frequencies. Ordinary datasets
+  are unaffected.
 
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard
@@ -2141,7 +2160,9 @@ Behavior changes to be aware of:
   fail fast at the first phase check rather than erroring at setup.
 - Dashboard reports whose charts have not mounted are no longer captured
   blank: readiness is polled until the deadline, and the report fails loudly
-  if charts never mount. Large tiled reports also retry Chromium screenshot
+  if charts never mount. A dashboard whose layout never renders keeps the
+  whole report budget; once the layout has rendered with zero chart holders
+  mounted, the wait is bounded by `SCREENSHOT_LOAD_WAIT`. Large tiled reports also retry Chromium screenshot
   stalls and suspicious uniform tiles, while persistent screenshot timeouts
   fail loudly. Large tiled thumbnails use the same bounded retries, but retain
   their previous failure contract after a persistent timeout.

@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  canvas,
-  registerBuiltinWidgetRenderer,
-  setActiveCanvas,
-} from 'src/core';
+import { logging } from '@apache-superset/core/utils';
+import { canvas, getWidgetRenderer, setActiveCanvas } from 'src/core';
 
 const Kpi = () => null;
 
@@ -29,49 +26,35 @@ afterEach(() => setActiveCanvas(undefined));
 test('widget renderers register and unregister by type', () => {
   const registration = canvas.registerWidgetRenderer('test.kpi', Kpi);
 
-  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Kpi);
+  expect(getWidgetRenderer('test.kpi')).toBe(Kpi);
 
   registration.dispose();
 
-  expect(canvas.getWidgetRenderer('test.kpi')).toBeUndefined();
+  expect(getWidgetRenderer('test.kpi')).toBeUndefined();
 });
 
-test('a widget type that has a renderer refuses another', () => {
+test('replacing a registered renderer warns', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  const first = canvas.registerWidgetRenderer('test.kpi', Kpi);
+  const second = canvas.registerWidgetRenderer('test.kpi', () => null);
+
+  expect(warn).toHaveBeenCalledWith(
+    expect.stringContaining('"test.kpi" is already registered'),
+  );
+  second.dispose();
+  first.dispose();
+  warn.mockRestore();
+});
+
+test('disposing a replaced renderer keeps the newer one', () => {
   const Other = () => null;
   const first = canvas.registerWidgetRenderer('test.kpi', Kpi);
-
-  expect(() => canvas.registerWidgetRenderer('test.kpi', Other)).toThrow(
-    'Widget type "test.kpi" already has a renderer',
-  );
-  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Kpi);
-
-  // Once its renderer is disposed, the type takes another.
-  first.dispose();
   const second = canvas.registerWidgetRenderer('test.kpi', Other);
-  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Other);
-  second.dispose();
-});
 
-test('an extension cannot take a built-in type, before the canvas loads too', () => {
-  const Builtin = () => null;
-
-  // Extensions load at startup; the built-ins once the Canvas page does.
-  expect(() => canvas.registerWidgetRenderer('echarts', Kpi)).toThrow(
-    'Widget type "echarts" is built in',
-  );
-  const builtin = registerBuiltinWidgetRenderer('echarts', Builtin);
-
-  expect(canvas.getWidgetRenderer('echarts')).toBe(Builtin);
-  builtin.dispose();
-});
-
-test('registering the same renderer again is allowed', () => {
-  const first = canvas.registerWidgetRenderer('test.kpi', Kpi);
-  const again = canvas.registerWidgetRenderer('test.kpi', Kpi);
-
-  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Kpi);
-  again.dispose();
   first.dispose();
+
+  expect(getWidgetRenderer('test.kpi')).toBe(Other);
+  second.dispose();
 });
 
 test('active canvas changes fire only when something changed', () => {
@@ -90,5 +73,58 @@ test('active canvas changes fire only when something changed', () => {
     [undefined],
   ]);
   expect(canvas.getActiveCanvas()).toBeUndefined();
+  subscription.dispose();
+});
+
+test('active canvas changes fire on the open draft and a version preview', () => {
+  const listener = jest.fn();
+  const subscription = canvas.onDidChangeActiveCanvas(listener);
+  const published = { id: 1, title: 'Exec overview', revision: 2 };
+  const settled = (token: string, revision: number) => ({
+    ...published,
+    draft: { token, pending: false as const, revision },
+  });
+  const pending = (token: string) => ({
+    ...published,
+    draft: { token, pending: true as const },
+  });
+  const previewing = (uuid: string, number: number) => ({
+    ...published,
+    previewedVersion: { uuid, number },
+  });
+
+  setActiveCanvas(undefined);
+  setActiveCanvas(published);
+  setActiveCanvas(settled('tok-1', 0));
+  // A fresh object with the same values, draft included, is no change.
+  setActiveCanvas({ ...published, draft: { ...settled('tok-1', 0).draft } });
+  setActiveCanvas(pending('tok-1'));
+  setActiveCanvas(pending('tok-1'));
+  setActiveCanvas(settled('tok-1', 1));
+  setActiveCanvas(settled('tok-2', 1));
+  setActiveCanvas(pending('tok-2'));
+  setActiveCanvas(published);
+  setActiveCanvas(previewing('v-1', 1));
+  setActiveCanvas({ ...previewing('v-1', 1) });
+  setActiveCanvas(previewing('v-2', 2));
+  // Either part of the version changing is a change.
+  setActiveCanvas(previewing('v-2', 3));
+  setActiveCanvas(previewing('v-3', 3));
+  setActiveCanvas(published);
+
+  expect(listener.mock.calls).toEqual([
+    [published],
+    [settled('tok-1', 0)],
+    [pending('tok-1')],
+    [settled('tok-1', 1)],
+    [settled('tok-2', 1)],
+    [pending('tok-2')],
+    [published],
+    [previewing('v-1', 1)],
+    [previewing('v-2', 2)],
+    [previewing('v-2', 3)],
+    [previewing('v-3', 3)],
+    [published],
+  ]);
   subscription.dispose();
 });

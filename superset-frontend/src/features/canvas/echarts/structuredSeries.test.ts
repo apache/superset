@@ -70,3 +70,23 @@ test('a hidden series is left out', () => {
   expect(option.series).toHaveLength(1);
   expect(option.yAxis).toEqual({ type: 'value' });
 });
+
+test('an empty series color sets no explicit color', () => {
+  // Empty means no override: the canvas palette or theme picks the color.
+  const option = applyStructuredSeries(
+    {},
+    {
+      chartType: 'bar',
+      dataBinding: { metrics: ['a'], dimensions: ['d'] },
+      customize: { series: { a: { color: '' } } },
+    },
+  );
+
+  expect(option.series).toEqual([
+    {
+      type: 'bar',
+      name: 'a',
+      data: { $bind: { source: 'metric', alias: 'a' } },
+    },
+  ]);
+});

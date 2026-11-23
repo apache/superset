@@ -33,6 +33,7 @@ from flask import current_app
 from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.session import Session
 from werkzeug.test import TestResponse
 
@@ -2896,6 +2897,34 @@ def test_table_extra_metadata_happy_path(
     )
 
 
+def test_table_extra_metadata_database_error(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_extra_metadata` endpoint when the database itself fails.
+
+    Errors raised by the customer's database should result in a 422 and not be
+    logged as unhandled exceptions.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_extra_table_metadata.side_effect = OperationalError(
+        "SELECT 1", {}, Exception("too many errors talking to a worker node")
+    )
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+    logger = mocker.patch("superset.databases.api.logger")
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
+
+    assert response.status_code == 422
+    assert "too many errors talking to a worker node" in response.json["message"]
+    logger.warning.assert_called_once()
+    logger.exception.assert_not_called()
+    logger.error.assert_not_called()
+
+
 def test_table_extra_metadata_no_table(
     mocker: MockerFixture,
     client: Any,
@@ -3348,6 +3377,49 @@ def test_import_includes_configuration_method(
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
     assert db_obj_api["configuration_method"] == "dynamic_form"
+
+
+@pytest.mark.parametrize(
+    "drivers,expect_parameters",
+    [
+        # every pydruid dialect (`druid`, `druid+http`, `druid+https`) reports "rest"
+        ({"rest"}, True),
+        ({"other"}, False),
+    ],
+)
+def test_available_druid_dynamic_form(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    drivers: set[str],
+    expect_parameters: bool,
+) -> None:
+    """
+    Druid is offered with the dynamic connection form when pydruid's "rest"
+    driver is detected, and falls back to the SQLAlchemy URI box otherwise.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: drivers},
+    )
+
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+
+    (druid,) = response.json["databases"]
+    assert druid["engine"] == "druid"
+    assert druid["default_driver"] == "rest"
+    assert druid["available_drivers"] == sorted(drivers)
+    assert ("parameters" in druid) is expect_parameters
+    if expect_parameters:
+        assert set(druid["parameters"]["required"]) == {"host", "port"}
+        assert "database" not in druid["parameters"]["properties"]
+        assert (
+            druid["sqlalchemy_uri_placeholder"]
+            == "druid://user:password@host:port/druid/v2/sql/"
+        )
 
 
 def test_related_objects_includes_datasets(

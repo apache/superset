@@ -22,11 +22,18 @@ stable metric label, not position)."""
 
 from __future__ import annotations
 
+import re
+from copy import deepcopy
+from typing import Any
+
 import pytest
 
 from superset.utils import json
 from superset.widgets.builtin import _metric_key, Echarts
+from superset.widgets.controls import EchartsControls
 from superset.widgets.registry import registry
+
+HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{3,8}$")
 
 
 def _series_properties(control_values, series=None):
@@ -34,6 +41,21 @@ def _series_properties(control_values, series=None):
     assert widget is not None
     schema = widget.get_control_schema(control_values, series)
     return schema["$defs"]["EchartsCustomization"]["properties"]["series"]
+
+
+def _hex_defaults(node: Any) -> list[str]:
+    """Every hex-color ``default`` anywhere in a JSON Schema fragment."""
+    found: list[str] = []
+    if isinstance(node, dict):
+        default = node.get("default")
+        if isinstance(default, str) and HEX_COLOR.match(default):
+            found.append(default)
+        for value in node.values():
+            found.extend(_hex_defaults(value))
+    elif isinstance(node, list):
+        for item in node:
+            found.extend(_hex_defaults(item))
+    return found
 
 
 def test_metric_key_matches_frontend_getmetriclabel_precedence() -> None:
@@ -77,14 +99,23 @@ def test_chart_type_set_populates_one_entry_per_metric() -> None:
     assert set(series["properties"]) == {"count", "sum__sales"}
     assert "additionalProperties" not in series
     assert series["properties"]["count"]["title"] == "count"
-    assert (
-        series["properties"]["count"]["properties"]["color"]["default"]
-        == Echarts.PALETTE[0]
+    # No schema-invented color: an empty default leaves the renderer's own
+    # palette in charge until the author sets an explicit color.
+    for style in series["properties"].values():
+        assert style["properties"]["color"]["default"] == ""
+    assert _hex_defaults(series) == []
+
+
+def test_base_schema_has_no_invented_color_defaults() -> None:
+    widget = registry.get("echarts")
+    assert widget is not None
+    schema = widget.get_control_schema(None, None)
+    color = schema["$defs"]["SeriesOverride"]["properties"]["color"]
+    assert color["default"] == ""
+    assert color["description"] == (
+        "Empty means no explicit color; the renderer chooses."
     )
-    assert (
-        series["properties"]["sum__sales"]["properties"]["color"]["default"]
-        == Echarts.PALETTE[1]
-    )
+    assert _hex_defaults(schema["$defs"]) == []
 
 
 def test_ad_hoc_metric_keyed_by_its_stable_label() -> None:
@@ -119,6 +150,39 @@ def test_stored_override_for_a_removed_metric_stays_visible() -> None:
         }
     )
     assert set(series["properties"]) == {"count", "sum__sales"}
+
+
+def test_series_color_optional_and_explicit_colors_survive() -> None:
+    widget = registry.get("echarts")
+    assert widget is not None
+    props = {
+        "dataBinding": {"datasetId": 1, "metrics": ["count", "sum__sales"]},
+        "chartType": "bar",
+        "customize": {
+            "series": {
+                # Omitted and empty colors both mean "renderer chooses".
+                "count": {"displayName": "Total"},
+                "sum__sales": {"color": ""},
+                # A stored override for a metric no longer in dataBinding.
+                "avg__price": {"color": "#123456", "visible": False},
+            }
+        },
+    }
+    assert widget.validate_control_values(props) == []
+
+    parsed = EchartsControls.model_validate(props)
+    stored = parsed.customize.series
+    assert stored["count"].color == ""
+    assert stored["sum__sales"].color == ""
+    assert stored["avg__price"].color == "#123456"
+
+    # The orphaned override stays in the enriched schema, and enrichment
+    # neither rewrites nor drops the stored props.
+    snapshot = deepcopy(props)
+    series = _series_properties(props)
+    assert list(series["properties"]) == ["count", "sum__sales", "avg__price"]
+    assert props == snapshot
+    assert _hex_defaults(series) == []
 
 
 def test_series_deduped_and_capped() -> None:

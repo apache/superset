@@ -24,14 +24,14 @@
 
 import { ComponentType, useSyncExternalStore } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
 import { createValueEventEmitter } from '../utils';
-import { BUILTIN_WIDGET_TYPES, BuiltinWidgetType } from './builtinWidgetTypes';
+import type { CanvasRendererProps } from './types';
 
-type WidgetRenderer = ComponentType<canvasApi.CanvasWidgetProps>;
+type WidgetRenderer = ComponentType<CanvasRendererProps>;
 
 const renderers = new Map<string, WidgetRenderer>();
-const builtinTypes: ReadonlySet<string> = new Set(BUILTIN_WIDGET_TYPES);
 const listeners = new Set<() => void>();
 let version = 0;
 
@@ -40,13 +40,19 @@ const notify = () => {
   listeners.forEach(listener => listener());
 };
 
-const register = (
+/**
+ * Registers a renderer. Typed with the host's full props so the built-in
+ * renderers can register here too; an extension's renderer, typed with the
+ * core subset, is assignable to it.
+ */
+export const registerWidgetRenderer = (
   widgetType: string,
   component: WidgetRenderer,
 ): Disposable => {
-  const existing = renderers.get(widgetType);
-  if (existing !== undefined && existing !== component) {
-    throw new Error(`Widget type "${widgetType}" already has a renderer`);
+  if (renderers.has(widgetType)) {
+    logging.warn(
+      `Widget renderer "${widgetType}" is already registered. Overwriting the existing renderer.`,
+    );
   }
   renderers.set(widgetType, component);
   notify();
@@ -58,27 +64,9 @@ const register = (
   });
 };
 
-const registerWidgetRenderer: typeof canvasApi.registerWidgetRenderer = (
-  widgetType,
-  component,
-) => {
-  if (builtinTypes.has(widgetType)) {
-    throw new Error(`Widget type "${widgetType}" is built in`);
-  }
-  return register(widgetType, component);
-};
-
-/**
- * Registers a built-in widget type's renderer. The host's own, which isn't
- * in the namespace extensions get: they can't register a built-in type.
- */
-export const registerBuiltinWidgetRenderer = (
-  widgetType: BuiltinWidgetType,
-  component: WidgetRenderer,
-): Disposable => register(widgetType, component);
-
-const getWidgetRenderer: typeof canvasApi.getWidgetRenderer = widgetType =>
-  renderers.get(widgetType);
+export const getWidgetRenderer = (
+  widgetType: string,
+): WidgetRenderer | undefined => renderers.get(widgetType);
 
 /** Re-renders the caller when widget renderers are registered or removed. */
 export const useWidgetRenderers = (): typeof getWidgetRenderer => {
@@ -96,22 +84,30 @@ const activeCanvas = createValueEventEmitter<
   canvasApi.ActiveCanvas | undefined
 >(undefined);
 
+// Undefined while the draft is pending, so this also tells pending apart.
+const draftRevision = (draft: canvasApi.ActiveCanvasDraft | undefined) =>
+  draft?.pending === false ? draft.revision : undefined;
+
+const sameActiveCanvas = (
+  a: canvasApi.ActiveCanvas | undefined,
+  b: canvasApi.ActiveCanvas | undefined,
+): boolean =>
+  a?.id === b?.id &&
+  a?.title === b?.title &&
+  a?.revision === b?.revision &&
+  a?.draft?.token === b?.draft?.token &&
+  draftRevision(a?.draft) === draftRevision(b?.draft) &&
+  a?.previewedVersion?.uuid === b?.previewedVersion?.uuid &&
+  a?.previewedVersion?.number === b?.previewedVersion?.number;
+
 /** Called by the canvas page as the user opens, updates or leaves a canvas. */
 export const setActiveCanvas = (value: canvasApi.ActiveCanvas | undefined) => {
-  const current = activeCanvas.getCurrent();
-  if (
-    current?.id === value?.id &&
-    current?.title === value?.title &&
-    current?.revision === value?.revision
-  ) {
-    return;
-  }
+  if (sameActiveCanvas(activeCanvas.getCurrent(), value)) return;
   activeCanvas.fire(value);
 };
 
 export const canvas: typeof canvasApi = {
   registerWidgetRenderer,
-  getWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
 };

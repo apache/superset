@@ -229,6 +229,64 @@ post-processing, JSON serialization, network transfer, and background async
 producer execution. Additive optional fields can preserve version 1; a field
 rename, removal, or semantic change requires a new version.
 
+## Tagging queries in the database's query log
+
+Set `QUERY_LOG_COMMENT_FUNC` to tag each query Superset sends with the user,
+dashboard and chart it ran for. ClickHouse (`clickhousedb://`) stores the tag in
+`system.query_log.log_comment`, including on the shard queries of Distributed
+tables, and shows it on running queries in `system.processes`.
+
+```python
+# superset_config.py
+import json
+
+
+def QUERY_LOG_COMMENT_FUNC(database, context):
+    return json.dumps({"app": "superset", **context})
+```
+
+The function receives the `Database` and a dict with whichever of these keys
+apply:
+
+- `user`: the Superset username
+- `dashboard_id` and `chart_id`: from dashboards, Explore, chart exports,
+  reports and cache warm-up
+- `report_id`: the alert or report that ran the query, including its alert SQL,
+  CSV and screenshot queries
+- `sqllab_query_id`: the SQL Lab query
+
+Async chart queries (`GLOBAL_ASYNC_QUERIES`) carry the same context into the
+Celery worker.
+
+It returns the string to send, or `None` to send nothing for that query. The
+setting defaults to `None`, which sends nothing.
+
+```sql
+SELECT
+    event_time,
+    JSONExtractString(log_comment, 'user') AS superset_user,
+    JSONExtractUInt(log_comment, 'dashboard_id') AS dashboard_id,
+    JSONExtractUInt(log_comment, 'chart_id') AS chart_id,
+    JSONExtractUInt(log_comment, 'report_id') AS report_id,
+    query_duration_ms,
+    read_rows
+FROM system.query_log
+WHERE type = 'QueryFinish' AND JSONExtractString(log_comment, 'app') = 'superset'
+ORDER BY event_time DESC
+```
+
+- The user is the logged-in Superset user. The dashboard and chart ids come
+  from the request, so treat them as a hint rather than an audit record.
+- Results served from Superset's cache never reach the database, so the log
+  shows the queries that ran, not every chart view.
+- Metadata queries (schema, table and column lists) are not tagged.
+- ClickHouse refuses the setting for a user with `readonly = 1`, so Superset
+  skips it and logs a warning. To allow only this setting, give the user a
+  settings profile with
+  `SETTINGS readonly = 1, log_comment CHANGEABLE_IN_READONLY`.
+- When the function returns a value, it replaces a `log_comment` set in the
+  connection URI.
+
 ## Specifying a SECRET_KEY
 
 ### Adding an initial SECRET_KEY

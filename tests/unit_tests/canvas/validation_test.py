@@ -14,15 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
+from copy import deepcopy
 from typing import Any
 
 import pytest
+from superset_core.widgets import Widget
 
+from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import empty_definition
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
 )
+from superset.widgets.builtin import Group
 from tests.unit_tests.canvas.fixtures import (
     canvas,
     canvas_widget_types,
@@ -101,6 +106,100 @@ def test_props_from_a_newer_widget_stay_as_a_placeholder() -> None:
 
     assert result["nodes"]["a"]["props"] == {"future": 1}
     assert result["nodes"]["a"]["schemaVersion"] == 2
+
+
+def test_a_layout_its_narrowed_grid_no_longer_fits_is_auto_placed() -> None:
+    from superset.canvas.definition.render import render_context
+
+    layout = {"col": 7, "row": 1, "colSpan": 12, "rowSpan": 2}
+    raw = canvas(
+        {
+            "g": inline("group", layout={"colSpan": 24, "rowSpan": 4}, children=["a"]),
+            "a": node("chart-1", layout=layout),
+        },
+        children=["g"],
+    )
+
+    result = normalize_definition(
+        raw, canvas_widget_types(), FakeResolver(), strict_nodes=[], props_nodes=[]
+    )
+    placed = render_context(result, canvas_widget_types(), FakeResolver())
+
+    assert result["nodes"]["a"]["layout"] == layout
+    assert placed["placements"]["a"] == {
+        "col": 1,
+        "row": 1,
+        "colSpan": 12,
+        "rowSpan": 2,
+    }
+
+
+def test_a_layout_wider_than_its_narrowed_grid_keeps_its_height() -> None:
+    from superset.canvas.definition.render import render_context
+
+    layout = {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 3}
+    raw = canvas(
+        {
+            "g": inline("group", layout={"colSpan": 12, "rowSpan": 4}, children=["a"]),
+            "a": node("chart-1", layout=layout),
+        },
+        children=["g"],
+    )
+
+    result = normalize_definition(
+        raw, canvas_widget_types(), FakeResolver(), strict_nodes=[], props_nodes=[]
+    )
+    placed = render_context(result, canvas_widget_types(), FakeResolver())
+
+    assert result["nodes"]["a"]["layout"] == layout
+    assert placed["placements"]["a"]["rowSpan"] == 3
+    assert placed["placements"]["a"]["colSpan"] <= 12
+
+
+def test_a_container_grown_past_the_row_span_cap_is_refused() -> None:
+    children = {f"c{i}": node(f"chart-{i}", layout={"rowSpan": 200}) for i in (1, 2)}
+    raw = canvas(
+        {"g": inline("group", children=list(children)), **children},
+        children=["g"],
+    )
+
+    assert issues(raw) == [
+        (
+            "/nodes/g/layout/rowSpan",
+            "its content needs 400 rows, over the 200 a widget can span",
+        )
+    ]
+
+
+def test_a_widget_pushed_past_the_last_row_is_refused() -> None:
+    raw = canvas(
+        {
+            "a": node("chart-1", layout={"col": 1, "row": 900, "rowSpan": 200}),
+            "b": node("chart-2", layout={"col": 1, "row": 900}),
+        }
+    )
+
+    assert issues(raw) == [
+        ("/nodes/b/layout/row", "pushed down to row 1100, past the last row (1000)")
+    ]
+
+
+def test_a_canvas_holds_at_most_max_nodes() -> None:
+    from superset.canvas.definition.schemas import MAX_NODES
+
+    nodes = {f"m{i}": inline("markdown") for i in range(MAX_NODES + 1)}
+
+    assert [path for path, _ in issues(canvas(nodes))] == ["/nodes"]
+
+
+def test_inline_props_are_stored_as_parsed() -> None:
+    from tests.unit_tests.canvas.ops_test import _bound_widget_types
+
+    raw = canvas({"n": inline("note", {"count": "17"})})
+
+    result = normalize_definition(raw, _bound_widget_types(), FakeResolver())
+
+    assert result["nodes"]["n"]["props"] == {"count": 17}
 
 
 def test_inline_props_are_migrated_to_the_widget_version() -> None:
@@ -335,3 +434,198 @@ def test_nesting_depth_is_not_capped() -> None:
     result = normalize(canvas(nodes, children=["g0"]))
 
     assert len(result["nodes"]) == 30
+
+
+def real_group_types() -> dict[str, type[Widget]]:
+    """The test widgets, with the builtin ``Group`` (one chrome row for its
+    title) standing in for the simplified, chrome-less test group."""
+    return {**canvas_widget_types(), "group": Group}
+
+
+def normalize_with_real_group(raw: dict[str, Any]) -> dict[str, Any]:
+    return normalize_definition(deepcopy(raw), real_group_types(), FakeResolver())
+
+
+def group(title: str, children: list[str], layout: dict[str, Any]) -> dict[str, Any]:
+    return inline("group", {"title": title}, children=children, layout=layout)
+
+
+def test_the_builtin_group_reserves_a_title_row() -> None:
+    assert Group.ui.chrome_rows == 1
+
+
+@pytest.mark.parametrize("title", ["Revenue KPIs", ""])
+def test_a_group_grows_by_its_title_row_and_pushes_its_sibling_down(
+    title: str,
+) -> None:
+    raw = canvas(
+        {
+            "g": group(title, ["a"], {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 6}),
+            "a": node(
+                "chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}
+            ),
+            "below": node(
+                "chart-2", layout={"col": 1, "row": 7, "colSpan": 24, "rowSpan": 4}
+            ),
+        },
+        children=["g", "below"],
+    )
+
+    result = normalize_with_real_group(raw)
+
+    # Six child rows plus the title row: the group's last row is 7, so the
+    # full-width sibling stored at row 7 moves to row 8 instead of being
+    # drawn over the group's last row.
+    assert result["nodes"]["g"]["layout"]["rowSpan"] == 7
+    assert result["nodes"]["a"]["layout"]["row"] == 1
+    assert result["nodes"]["below"]["layout"]["row"] == 8
+
+    context = render_context(result, real_group_types(), FakeResolver())
+    assert context["chromeRows"] == {"g": 1}
+    assert context["layoutConstraints"]["g"]["minRowSpan"] == 7
+    assert context["placements"]["below"]["row"] == 8
+
+
+def test_an_auto_placed_sibling_lands_below_the_grown_group() -> None:
+    raw = canvas(
+        {
+            "g": group(
+                "Revenue KPIs",
+                ["a"],
+                {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 6},
+            ),
+            "a": node(
+                "chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}
+            ),
+            "below": node("chart-2", layout={"colSpan": 24, "rowSpan": 4}),
+        },
+        children=["g", "below"],
+    )
+
+    result = normalize_with_real_group(raw)
+
+    assert result["nodes"]["g"]["layout"]["rowSpan"] == 7
+    # Automatic placement leaves the stored row absent; only the resolved
+    # placement says where the sibling is drawn.
+    assert "row" not in result["nodes"]["below"]["layout"]
+    placements = render_context(result, real_group_types(), FakeResolver())[
+        "placements"
+    ]
+    assert placements["g"] == {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 7}
+    assert placements["below"] == {"col": 1, "row": 8, "colSpan": 24, "rowSpan": 4}
+
+
+NESTED_GROUPS = canvas(
+    {
+        "outer": group(
+            "Outer", ["inner"], {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 6}
+        ),
+        "inner": group(
+            "Inner", ["a"], {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}
+        ),
+        "a": node("chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}),
+        "below": node("chart-2", layout={"colSpan": 24, "rowSpan": 4}),
+    },
+    children=["outer", "below"],
+)
+
+
+def test_nested_groups_each_add_their_title_row() -> None:
+    result = normalize_with_real_group(NESTED_GROUPS)
+
+    # Six child rows -> seven inner rows -> eight outer rows.
+    assert result["nodes"]["inner"]["layout"]["rowSpan"] == 7
+    assert result["nodes"]["outer"]["layout"]["rowSpan"] == 8
+
+    context = render_context(result, real_group_types(), FakeResolver())
+    assert context["chromeRows"] == {"outer": 1, "inner": 1}
+    assert context["layoutConstraints"]["inner"]["minRowSpan"] == 7
+    assert context["layoutConstraints"]["outer"]["minRowSpan"] == 8
+    assert context["placements"]["below"]["row"] == 9
+
+
+def test_a_group_taller_than_its_content_keeps_its_height() -> None:
+    raw = canvas(
+        {
+            "g": group(
+                "Revenue KPIs",
+                ["a"],
+                {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 10},
+            ),
+            "a": node(
+                "chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}
+            ),
+            "below": node(
+                "chart-2", layout={"col": 1, "row": 11, "colSpan": 24, "rowSpan": 4}
+            ),
+        },
+        children=["g", "below"],
+    )
+
+    result = normalize_with_real_group(raw)
+
+    # Growing never shrinks: an explicitly larger group keeps its rows, and
+    # the sibling already clear of it is not moved.
+    assert result["nodes"]["g"]["layout"]["rowSpan"] == 10
+    assert result["nodes"]["below"]["layout"]["row"] == 11
+
+
+def test_group_sizing_normalization_is_idempotent() -> None:
+    once = normalize_with_real_group(NESTED_GROUPS)
+    twice = normalize_with_real_group(once)
+
+    assert twice == once
+    assert twice["nodes"]["outer"]["layout"]["rowSpan"] == 8
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [{"colSpan": 49}, {"col": 1, "row": 1001}, {"rowSpan": 201}],
+)
+def test_grid_placements_are_bounded(layout: dict[str, Any]) -> None:
+    from pydantic import ValidationError
+    from superset_core.canvas import GridPlacement
+
+    with pytest.raises(ValidationError):
+        GridPlacement.model_validate(layout)
+
+
+def test_a_widget_saved_by_a_newer_version_is_a_placeholder() -> None:
+    from superset.canvas.definition.placements import placement_types
+
+    resolver = FakeResolver()
+    newer = resolver.widgets
+
+    def widgets(ids: Any) -> Any:
+        return {
+            widget_id: dataclasses.replace(widget, schema_version=2)
+            for widget_id, widget in newer(ids).items()
+        }
+
+    resolver.widgets = widgets  # type: ignore[method-assign,assignment]
+
+    assert (
+        placement_types({"a": node("chart-1")}, canvas_widget_types(), resolver) == {}
+    )
+
+
+def test_a_widget_saved_by_an_older_version_is_read_upgraded() -> None:
+    from superset_core.canvas import StoredWidget
+
+    from superset.canvas.definition.placements import upgrade_entities
+
+    rules = canvas_widget_types()
+    chart = rules["chart"]
+    rules["chart"] = type(
+        "ChartV2",
+        (chart,),
+        {
+            "schema_version": 2,
+            "migrators": {1: lambda props: {"metric": props["measure"]}},
+        },
+    )
+    old = StoredWidget("chart", 1, "Sales", {"measure": "sum"})
+
+    upgraded = upgrade_entities({"w": old}, rules)["w"]
+
+    assert (upgraded.schema_version, upgraded.props) == (2, {"metric": "sum"})

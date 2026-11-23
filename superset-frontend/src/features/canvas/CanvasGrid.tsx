@@ -16,23 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useMemo } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import { createContext, ReactNode, useContext, useMemo } from 'react';
+import type {
+  CanvasChild,
+  CanvasColors,
+  CanvasEvent,
+  FilterValue,
+  ScopeKind,
+} from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { Tag } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
-import CanvasGridSurface from './CanvasGridSurface';
+import CanvasGridSurface, { CLEAR_OF_REMOVE_UNITS } from './CanvasGridSurface';
 import type { CanvasLayout } from './useCanvasLayout';
 import { CanvasDefinitionResult, DraftChange } from './types';
 import { MARKS, OUTLINED } from './changeMarks';
 import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 import { CanvasDragProvider } from './useCanvasDrag';
+import { useCanvasLogger } from './useCanvasLogger';
+import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import { fitPlacements } from './resolveGrid';
 
 /** Current values set by nodes, per scope kind, by node id. */
-export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
+export type ScopeValues = Record<ScopeKind, Record<string, unknown>>;
 
 export const emptyScopeValues = (): ScopeValues => ({
   filter: {},
@@ -43,14 +51,14 @@ export const emptyScopeValues = (): ScopeValues => ({
 /** Current values published under other kinds, by kind, by node id. */
 export type EventValues = Record<string, Record<string, unknown>>;
 
-const SCOPE_KINDS: ReadonlySet<string> = new Set<canvasApi.ScopeKind>([
+const SCOPE_KINDS: ReadonlySet<string> = new Set<ScopeKind>([
   'filter',
   'crossFilter',
   'customization',
 ]);
 
-const NO_VALUES: canvasApi.FilterValue[] = [];
-const NO_EVENTS: canvasApi.CanvasEvent[] = [];
+const NO_VALUES: FilterValue[] = [];
+const NO_EVENTS: CanvasEvent[] = [];
 
 /** The key the root grid's child order is reported under. */
 const ROOT_NODE_ID = 'root';
@@ -59,8 +67,8 @@ const ROOT_NODE_ID = 'root';
 function valuesByNode(
   scopes: Record<string, string[]>,
   values: Record<string, unknown>,
-): Record<string, canvasApi.FilterValue[]> {
-  const byNode: Record<string, canvasApi.FilterValue[]> = {};
+): Record<string, FilterValue[]> {
+  const byNode: Record<string, FilterValue[]> = {};
   Object.entries(scopes).forEach(([filterNodeId, targets]) => {
     if (values[filterNodeId] === undefined) return;
     targets.forEach(nodeId => {
@@ -76,8 +84,8 @@ function valuesByNode(
 function eventsByNode(
   scopes: Record<string, string[]>,
   events: EventValues,
-): Record<string, canvasApi.CanvasEvent[]> {
-  const byNode: Record<string, canvasApi.CanvasEvent[]> = {};
+): Record<string, CanvasEvent[]> {
+  const byNode: Record<string, CanvasEvent[]> = {};
   Object.entries(events).forEach(([kind, values]) => {
     Object.entries(valuesByNode(scopes, values)).forEach(
       ([nodeId, reaching]) => {
@@ -93,6 +101,44 @@ function eventsByNode(
   });
   return byNode;
 }
+
+/**
+ * The change mark of the container being rendered, for a container that draws
+ * a title strip of its own to show in that strip; see `CanvasMarkHost`. Null
+ * for every other widget, so a container's mark never reaches the containers
+ * inside it.
+ */
+const CanvasMarkContext = createContext<ReactNode>(null);
+
+/** The change mark this container shows in its own title strip, if any. */
+export const useCanvasMark = (): ReactNode => useContext(CanvasMarkContext);
+
+/**
+ * A renderer that draws a title strip of its own for its change mark to sit
+ * in says so, for the props it is given; see `useCanvasMark`.
+ *
+ * That strip is exactly the row the server keeps for the container's chrome,
+ * and a container clips, so a row of the mark's own above it would push the
+ * container's last row out of its box. Asking the renderer rather than the
+ * widget type keeps an extension's replacement for a built-in container, which
+ * cannot know about the mark, on the row of its own.
+ */
+export type CanvasMarkHost = {
+  hostsMark?: (props: Record<string, unknown> | undefined) => boolean;
+};
+
+/**
+ * Room a container leaves at the right of a strip it shares with its remove
+ * button, set only while editing, when there is one.
+ */
+const GridRoot = styled.div<{ $editable: boolean }>`
+  ${({ theme, $editable }) =>
+    $editable &&
+    css`
+      --canvas-controls-inset: ${theme.sizeUnit * CLEAR_OF_REMOVE_UNITS}px;
+    `}
+`;
+
 const Stack = styled.div`
   ${({ theme }) => css`
     display: flex;
@@ -168,9 +214,8 @@ const TitleRow = styled.div<{
       css`
         /* Clear of the grip, wherever the surface put it. */
         padding-left: var(--canvas-title-inset, ${theme.sizeUnit * 12}px);
-        /* Clear of the remove button, 4 units in and 8 wide; the menu is
-         hidden while editing. */
-        padding-right: ${theme.sizeUnit * 12}px;
+        /* Clear of the remove button; the menu is hidden while editing. */
+        padding-right: ${theme.sizeUnit * CLEAR_OF_REMOVE_UNITS}px;
       `
     }
   `}
@@ -204,6 +249,15 @@ const TitledBody = styled.div`
   min-height: 0;
 `;
 
+/**
+ * A container whose mark sits in its own chrome: the whole cell, with no row
+ * above it. Still the content box's child, where the surface reads the mark
+ * to frame the widget (see `Interactive`).
+ */
+const MarkedInChrome = styled.div`
+  height: 100%;
+`;
+
 const Placeholder = styled.div`
   ${({ theme }) => css`
     height: 100%;
@@ -224,11 +278,7 @@ export interface CanvasGridProps {
   canvasId: number;
   result: CanvasDefinitionResult;
   values: ScopeValues;
-  onValueChange: (
-    kind: canvasApi.ScopeKind,
-    nodeId: string,
-    value: unknown,
-  ) => void;
+  onValueChange: (kind: ScopeKind, nodeId: string, value: unknown) => void;
   events?: EventValues;
   onPublish?: (kind: string, nodeId: string, value: unknown) => void;
   /** Per node, how many automatic refreshes have reached it. */
@@ -266,6 +316,10 @@ export default function CanvasGrid({
   versionUuid,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
+  const log = useCanvasLogger(canvasId, {
+    isDraft: Boolean(draftToken),
+    versionUuid,
+  });
   const {
     definition,
     widgetTypes,
@@ -365,7 +419,7 @@ export default function CanvasGrid({
   };
   const { gap, rowUnit, columns } = definition.root.layout;
   const { colors, display, crossFilters } = definition.settings;
-  const sharedColors = useMemo<canvasApi.CanvasColors>(
+  const sharedColors = useMemo<CanvasColors>(
     () => ({ scheme: colors.scheme, labelColors: colors.labelColors }),
     [colors.scheme, colors.labelColors],
   );
@@ -464,24 +518,49 @@ export default function CanvasGrid({
 
     const Renderer = getRenderer(widgetType);
     if (Renderer === undefined) {
+      // Its extension isn't loaded on this page, say: the type id means
+      // nothing to a viewer.
       return (
         <Placeholder>
-          {t('No renderer for widget type "%s"', widgetType)}
+          <span>{t('This widget is unavailable')}</span>
         </Placeholder>
       );
     }
 
-    const childNodes: canvasApi.CanvasChild[] = childIds.map(childId => ({
-      nodeId: childId,
-      widgetType: widgetTypes[childId],
-      props: contentOf(childId)?.props,
-      layout: definition.nodes[childId].layout,
-      element: renderNode(childId, depth + 1),
-    }));
+    // Built on first read: a grid container renders its children through
+    // `renderGrid` and never reads `element`, so building it eagerly doubled
+    // the work at every level of nesting.
+    const childNodes: CanvasChild[] = childIds.map(childId => {
+      let element: ReactNode | undefined;
+      return {
+        nodeId: childId,
+        widgetType: widgetTypes[childId],
+        props: contentOf(childId)?.props,
+        layout: definition.nodes[childId].layout,
+        get element() {
+          element ??= renderNode(childId, depth + 1);
+          return element;
+        },
+      };
+    });
     const childGridColumns = gridColumns[nodeId];
     const title = titles[nodeId];
     const widget = (
-      <ErrorBoundary>
+      // A widget that throws during render is otherwise reported nowhere:
+      // `ErrorBoundary` renders an alert and tells no one. Only the error's
+      // name and the widget's identity are recorded -- a component stack from
+      // a data-bound widget routinely embeds the values it was rendering.
+      <ErrorBoundary
+        onError={(error: Error) =>
+          log(LOG_ACTIONS_CANVAS_ERROR, {
+            scope: 'widget_render',
+            error_type: error.name,
+            widget_type: widgetType,
+            placement_id: nodeId,
+            has_err: true,
+          })
+        }
+      >
         <Renderer
           canvasId={canvasId}
           nodeId={nodeId}
@@ -489,7 +568,6 @@ export default function CanvasGrid({
           widgetId={node.widgetId}
           props={contentOf(nodeId)?.props}
           schemaVersion={contentOf(nodeId)?.schemaVersion}
-          draftToken={draftToken}
           title={title}
           filters={filtersByNode[nodeId] ?? NO_VALUES}
           crossFilters={crossFiltersByNode[nodeId] ?? NO_VALUES}
@@ -534,23 +612,40 @@ export default function CanvasGrid({
       </ErrorBoundary>
     );
     const mark = marks[nodeId];
+    const tag = mark && mark !== 'removed' && (
+      <Mark color={MARKS[mark].color} data-test="canvas-widget-mark">
+        {MARKS[mark].label()}
+      </Mark>
+    );
+    const frame = mark && OUTLINED.has(mark) ? mark : undefined;
+    const inChrome =
+      Boolean(mark) &&
+      !title &&
+      Boolean(
+        (Renderer as CanvasMarkHost).hostsMark?.(contentOf(nodeId)?.props),
+      );
+    // Every widget sets it, so a container's mark stops at its own chrome.
+    const body = (
+      <CanvasMarkContext.Provider value={inChrome ? tag : null}>
+        {widget}
+      </CanvasMarkContext.Provider>
+    );
+    if (inChrome) {
+      return <MarkedInChrome data-canvas-mark={frame}>{body}</MarkedInChrome>;
+    }
     // A widget with neither a name nor a change has no row to draw.
-    if (!title && !mark) return widget;
+    if (!title && !mark) return body;
     return (
-      <Titled data-canvas-mark={mark && OUTLINED.has(mark) ? mark : undefined}>
+      <Titled data-canvas-mark={frame}>
         <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
           {title && (
             <WidgetTitle title={title} data-test="canvas-widget-title">
               {title}
             </WidgetTitle>
           )}
-          {mark && mark !== 'removed' && (
-            <Mark color={MARKS[mark].color} data-test="canvas-widget-mark">
-              {MARKS[mark].label()}
-            </Mark>
-          )}
+          {tag}
         </TitleRow>
-        <TitledBody>{widget}</TitledBody>
+        <TitledBody>{body}</TitledBody>
       </Titled>
     );
   }
@@ -561,7 +656,7 @@ export default function CanvasGrid({
           its container is a conversation between two of them. */}
       <CanvasDragProvider>
         <CanvasVersionContext.Provider value={versionUuid}>
-          <div data-test="canvas-grid">
+          <GridRoot data-test="canvas-grid" $editable={editable}>
             {renderGrid(
               ROOT_NODE_ID,
               orderOf(ROOT_NODE_ID, definition.root.children),
@@ -569,7 +664,7 @@ export default function CanvasGrid({
               renderNode,
               0,
             )}
-          </div>
+          </GridRoot>
         </CanvasVersionContext.Provider>
       </CanvasDragProvider>
     </CanvasDraftContext.Provider>

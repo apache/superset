@@ -257,6 +257,22 @@ class Widget:
         return schema
 
     @classmethod
+    def normalize_control_values(cls, control_values: dict[str, Any]) -> dict[str, Any]:
+        """
+        ``control_values`` as ``controls_class`` parses them, keeping only the
+        values that were set, so every reader sees ``17`` where ``"17"`` was
+        sent. Values the model refuses are returned as given, for
+        ``validate_control_values`` to report.
+        """
+        try:
+            parsed = cls.controls_class.model_validate(control_values)
+        except ValidationError:
+            return control_values
+        if _unknown_keys(parsed, control_values):
+            return control_values
+        return parsed.model_dump(mode="json", by_alias=True, exclude_unset=True)
+
+    @classmethod
     def validate_control_values(
         cls,
         control_values: dict[str, Any] | None,

@@ -8871,6 +8871,10 @@
             "nullable": true,
             "type": "string"
           },
+          "canvas_id": {
+            "nullable": true,
+            "type": "integer"
+          },
           "dashboard_id": {
             "nullable": true,
             "type": "integer"
@@ -8935,6 +8939,10 @@
             "maxLength": 512,
             "nullable": true,
             "type": "string"
+          },
+          "canvas_id": {
+            "nullable": true,
+            "type": "integer"
           },
           "dashboard_id": {
             "nullable": true,
@@ -15761,9 +15769,10 @@
             "type": "object"
           },
           "schema_version": {
-            "default": 1,
+            "default": null,
             "description": "The version of the widget's schema that the props conform to.",
             "minimum": 1,
+            "nullable": true,
             "type": "integer"
           },
           "viewers": {
@@ -30489,6 +30498,46 @@
           }
         ],
         "summary": "Update the current user",
+        "tags": [
+          "Current User"
+        ]
+      }
+    },
+    "/api/v1/me/api_key_scopes/": {
+      "get": {
+        "description": "Lists the ``superset:<resource>:<action>`` API-key scopes the current user is allowed to put on a new API key, i.e. the subset of the scope catalog that does not exceed the user's own permissions. Returns a 401 error if the user is unauthenticated.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The allowed scopes"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the self-issuable API-key scopes",
         "tags": [
           "Current User"
         ]

@@ -34,6 +34,10 @@ from typing import Any, Protocol
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
+MAX_GRID_COLUMNS = 48
+MAX_GRID_ROW = 1000
+MAX_GRID_ROW_SPAN = 200
+
 
 class GridPlacement(BaseModel):
     """
@@ -48,10 +52,11 @@ class GridPlacement(BaseModel):
         extra="forbid", alias_generator=to_camel, populate_by_name=True
     )
 
-    col: int | None = Field(default=None, ge=1)
-    row: int | None = Field(default=None, ge=1)
-    col_span: int | None = Field(default=None, ge=1)
-    row_span: int | None = Field(default=None, ge=1)
+    # Bounded because resolving a grid walks every cell its children cover.
+    col: int | None = Field(default=None, ge=1, le=MAX_GRID_COLUMNS)
+    row: int | None = Field(default=None, ge=1, le=MAX_GRID_ROW)
+    col_span: int | None = Field(default=None, ge=1, le=MAX_GRID_COLUMNS)
+    row_span: int | None = Field(default=None, ge=1, le=MAX_GRID_ROW_SPAN)
 
     @model_validator(mode="after")
     def _col_and_row_together(self) -> GridPlacement:

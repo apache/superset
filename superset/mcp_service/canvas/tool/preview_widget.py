@@ -46,7 +46,9 @@ from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_
 from superset.mcp_service.canvas.tool.canvas_ops_common import (
     absolute_url,
     can_view_query,
+    keeps_own_data,
     query_error,
+    UNREAD_REASON,
 )
 from superset.models.canvas import Canvas
 from superset.utils import json
@@ -55,6 +57,12 @@ logger = logging.getLogger(__name__)
 
 SAMPLE_ROWS = 10
 RENDER_TIMEOUT_SECONDS = 15
+MAX_RENDER_WARNINGS = 10
+MAX_RENDER_WARNING_LENGTH = 500
+RENDERER_FAILURE_MESSAGE = (
+    "No image: the renderer could not verify the chart. The chart was not checked "
+    "visually; don't report it as verified."
+)
 # The canvas page's content width and grid, for sizing a placement in pixels.
 PAGE_WIDTH = 1360
 GAP = 16
@@ -110,6 +118,8 @@ def _with_rows(
     """Run the widget's query, if it has one, and record what came back."""
     binding = props.get("dataBinding")
     if not isinstance(binding, dict) or not binding.get("datasetId"):
+        if keeps_own_data(result.get("widget_type")):
+            result.setdefault("warnings", []).append(UNREAD_REASON)
         return []
     data = run_binding(binding, runtime_filters)
     rows = data.rows
@@ -137,20 +147,45 @@ def _with_render(
     warnings = result.setdefault("warnings", [])
     try:
         rendered = _render(url, props, rows, definition, size, dark)
-    except requests.RequestException as ex:
-        logger.warning("Canvas widget renderer failed: %s", ex)
+    except (requests.RequestException, ValueError) as ex:
+        # Renderer URLs, response bodies and exception strings are not public.
+        logger.warning("Canvas widget renderer failed (%s)", type(ex).__name__)
         result["rendered"] = False
-        warnings.append(
-            f"No image: the renderer failed ({ex}). The chart was not checked "
-            "visually; don't report it as verified."
-        )
+        warnings.append(RENDERER_FAILURE_MESSAGE)
+        return None
+    if not isinstance(rendered, dict):
+        logger.warning("Canvas widget renderer returned an unsuccessful result")
+        result["rendered"] = False
+        warnings.append(RENDERER_FAILURE_MESSAGE)
+        return None
+    if error := rendered.get("error"):
+        result["rendered"] = False
+        if isinstance(error, str) and error.strip():
+            # The operator's renderer supplies application diagnostics for
+            # repairing the chart, even when no image could be produced.
+            result["error"] = error[:MAX_RENDER_WARNING_LENGTH]
+            result["error_type"] = "RendererError"
+            if isinstance(rendered.get("option"), dict):
+                result["option"] = rendered["option"]
+        else:
+            logger.warning("Canvas widget renderer returned a malformed error")
+            warnings.append(RENDERER_FAILURE_MESSAGE)
         return None
     result["rendered"] = True
-    result["option"] = rendered.get("option")
-    warnings.extend(rendered.get("warnings", []))
-    if rendered.get("error"):
-        result["error"] = rendered["error"]
-        result["error_type"] = "RendererError"
+    if isinstance(rendered.get("option"), dict):
+        result["option"] = rendered["option"]
+    # The operator's renderer may return repair hints with a valid render.
+    # Bound their size and accept strings only, never stringify arbitrary data.
+    render_warnings = rendered.get("warnings")
+    if isinstance(render_warnings, list):
+        warnings.extend(
+            warning[:MAX_RENDER_WARNING_LENGTH]
+            for warning in [
+                warning
+                for warning in render_warnings
+                if isinstance(warning, str) and warning
+            ][:MAX_RENDER_WARNINGS]
+        )
     image = rendered.get("png")
     if image:
         width, height = rendered.get("width"), rendered.get("height")

@@ -16,10 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, renderHook, waitFor } from '@testing-library/react';
+import {
+  act,
+  renderHook as baseRenderHook,
+  waitFor,
+} from '@testing-library/react';
+import { createWrapper } from 'spec/helpers/testing-library';
+
 import fetchMock from 'fetch-mock';
 import { useCanvasLayout } from './useCanvasLayout';
 import type { CanvasDefinitionResult, GridPlacement } from './types';
+
+// The hook reports each gesture through redux, so every case needs a store.
+// Shadowing `renderHook` keeps that out of the ~30 call sites below.
+const wrapper = createWrapper({ useRedux: true });
+const renderHook: typeof baseRenderHook = (callback, options) =>
+  baseRenderHook(callback, { wrapper, ...options });
 
 const endpoint = 'glob:*/api/v1/canvas/7/definition';
 
@@ -148,16 +160,143 @@ test('a failed write snaps back and explains itself', async () => {
   expect(result.current.error).toBeUndefined();
 });
 
-test('a conflicting write reloads the canvas and says so', async () => {
-  fetchMock.patch(endpoint, 409);
+test('a conflicting write reloads the canvas and reapplies the gesture', async () => {
+  fetchMock.patch(endpoint, 409, { repeat: 1 });
+  fetchMock.patch(endpoint, {
+    result: { revision: 5, ops: [], placements: { kpi: MOVED, trend: TREND } },
+  });
   const reload = jest.fn();
-  const { result } = renderHook(() => useCanvasLayout(7, resultAt(3), reload));
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), reload),
+    { initialProps: { revision: 3 } },
+  );
 
   act(() => result.current.place('kpi', MOVED));
 
   await waitFor(() => expect(reload).toHaveBeenCalled());
-  expect(result.current.error).toContain('changed while you were editing');
+  expect(result.current.error).toBeUndefined();
+  // The refetch has the draft an agent moved on.
+  rerender({ revision: 4 });
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+  const retried = fetchMock.callHistory.calls()[1];
+  expect(JSON.parse(retried.options.body as string)).toEqual({
+    base_revision: 4,
+    ops: [{ op: 'place', id: 'kpi', layout: MOVED }],
+  });
+  await waitFor(() => expect(result.current.placements.kpi).toEqual(MOVED));
+});
+
+test('a gesture made while a conflict refetches wins over the retry', async () => {
+  const LATER: GridPlacement = { col: 13, row: 1, colSpan: 6, rowSpan: 4 };
+  fetchMock.patch(endpoint, 409, { repeat: 1 });
+  fetchMock.patch(endpoint, {
+    result: { revision: 5, ops: [], placements: { kpi: LATER, trend: TREND } },
+  });
+  const reload = jest.fn();
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), reload),
+    { initialProps: { revision: 3 } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+  // Dropped again before the refetch is back: held until it is, rather than
+  // sent on the revision that conflicted.
+  act(() => result.current.place('kpi', LATER));
+  expect(fetchMock.callHistory.calls()).toHaveLength(1);
+
+  rerender({ revision: 4 });
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+  expect(
+    JSON.parse(fetchMock.callHistory.calls()[1].options.body as string),
+  ).toEqual({
+    base_revision: 4,
+    ops: [{ op: 'place', id: 'kpi', layout: LATER }],
+  });
+  await waitFor(() => expect(result.current.saving).toBe(false));
+  expect(result.current.placements.kpi).toEqual(LATER);
+});
+
+test('a drop right after an undo holds when the undo is fetched', async () => {
+  fetchMock.patch(endpoint, new Promise(() => {}));
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), jest.fn()),
+    { initialProps: { revision: 3 } },
+  );
+
+  // An undo stepped the canvas to revision 4 before any fetch saw it.
+  act(() => result.current.adopt(4));
+  act(() => result.current.place('kpi', MOVED));
+  rerender({ revision: 4 });
+
+  // The fetch is of the undo, not of this drop, which is still in flight.
+  expect(result.current.placements.kpi).toEqual(MOVED);
+});
+
+test('a conflict that repeats on the reapplied gesture says so', async () => {
+  fetchMock.patch(endpoint, 409);
+  const reload = jest.fn();
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), reload),
+    { initialProps: { revision: 3 } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+  rerender({ revision: 4 });
+
+  await waitFor(() =>
+    expect(result.current.error).toContain('changed while you were editing'),
+  );
   expect(result.current.placements.kpi).toEqual(KPI);
+});
+
+test('a gesture whose widget the refetch no longer has is not reapplied', async () => {
+  fetchMock.patch(endpoint, 409);
+  const reload = jest.fn();
+  const { result, rerender } = renderHook(
+    ({ placements }: { placements: Record<string, GridPlacement> }) =>
+      useCanvasLayout(
+        7,
+        resultAt(placements.kpi ? 3 : 4, true, placements),
+        reload,
+      ),
+    { initialProps: { placements: { kpi: KPI, trend: TREND } } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+  rerender({ placements: { trend: TREND } });
+
+  await waitFor(() =>
+    expect(result.current.error).toContain('changed while you were editing'),
+  );
+  expect(fetchMock.callHistory.calls()).toHaveLength(1);
+});
+
+test('a rejected write names the placement its issue points at', async () => {
+  fetchMock.patch(endpoint, {
+    status: 422,
+    body: {
+      message: 'The operations produce an invalid definition',
+      errors: [{ path: '/nodes/kpi/layout', message: 'colSpan 30 exceeds' }],
+      operation: 0,
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() => expect(result.current.error).toBe('colSpan 30 exceeds'));
+  expect(result.current.errorAt).toBe('kpi');
 });
 
 test('a refused write names permission as the reason', async () => {
@@ -1065,6 +1204,69 @@ test('a failed removal puts the widget back', async () => {
 
   await waitFor(() => expect(result.current.error).toBeDefined());
   expect(result.current.removed.has('kpi')).toBe(false);
+});
+
+test('a removal undone before a fetch saw it gone shows the widget again', async () => {
+  fetchMock.patch(endpoint, {
+    result: { revision: 4, ops: [], placements: { trend: TREND } },
+  });
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), jest.fn()),
+    { initialProps: { revision: 3 } },
+  );
+
+  act(() => result.current.remove('kpi'));
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  await waitFor(() => expect(result.current.saving).toBe(false));
+  expect(result.current.removed.has('kpi')).toBe(true);
+
+  // Undone: the next fetch is past the removal and still holds the widget.
+  rerender({ revision: 5 });
+
+  expect(result.current.removed.has('kpi')).toBe(false);
+});
+
+test('switching surface brings back a widget removed on the other one', async () => {
+  fetchMock.patch(endpoint, {
+    result: { revision: 4, ops: [], placements: { trend: TREND } },
+  });
+  const { result, rerender } = renderHook(
+    ({ token, revision }: { token?: string; revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), jest.fn(), token),
+    { initialProps: { token: undefined as string | undefined, revision: 3 } },
+  );
+
+  act(() => result.current.remove('kpi'));
+  await waitFor(() => expect(result.current.saving).toBe(false));
+  expect(result.current.removed.has('kpi')).toBe(true);
+
+  // A draft counts from zero, so its revision never passes the one the
+  // removal was confirmed at: only the reset clears it.
+  rerender({ token: 'tok-123', revision: 0 });
+
+  expect(result.current.removed.has('kpi')).toBe(false);
+});
+
+test('a drop the settle pushes off its cell shows where it settled', () => {
+  fetchMock.patch(endpoint, new Promise(() => {}));
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  // Onto the lower half of 'trend', which orders it after 'trend' and so
+  // pushes it below rather than pushing 'trend' aside.
+  act(() =>
+    result.current.place('kpi', { col: 1, row: 10, colSpan: 6, rowSpan: 4 }),
+  );
+
+  expect(result.current.placements.trend).toEqual(TREND);
+  expect(result.current.placements.kpi).toEqual({
+    col: 1,
+    row: 13,
+    colSpan: 6,
+    rowSpan: 4,
+  });
 });
 
 test('a grid added after the first render is still settled locally', () => {

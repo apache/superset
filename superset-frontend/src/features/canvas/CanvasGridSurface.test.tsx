@@ -19,7 +19,11 @@
 
 import { ReactNode, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render as baseRender,
+  screen,
+} from 'spec/helpers/testing-library';
 import CanvasGridSurface, { stepsAside } from './CanvasGridSurface';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 import { CanvasDragProvider, useCanvasDrag } from './useCanvasDrag';
@@ -29,6 +33,10 @@ import {
 } from './useCanvasSelection';
 import { RESIZE_CORNERS } from './gridGeometry';
 import type { GridPlacement, SpanConstraints } from './types';
+
+// The layout hook reports gestures through redux.
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, { useRedux: true, ...options });
 
 // jsdom lays nothing out, so the grid is told how wide it is: 1000px over 24
 // columns with 16px gaps gives a 42.33px column pitch and a 56px row pitch.
@@ -234,12 +242,16 @@ test('dragging a widget persists the cells it was dropped on', () => {
 
   drag(handles('Move widget')[0], COL_PITCH * 4, ROW_PITCH * 2);
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 5,
-    row: 3,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 5,
+      row: 3,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('resizing a widget persists the new spans and leaves its origin alone', () => {
@@ -247,12 +259,16 @@ test('resizing a widget persists the new spans and leaves its origin alone', () 
 
   drag(corners(onPlace.container)[0], COL_PITCH * 3, ROW_PITCH);
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 1,
-    row: 1,
-    colSpan: 9,
-    rowSpan: 5,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 1,
+      colSpan: 9,
+      rowSpan: 5,
+    },
+    expect.anything(),
+  );
 });
 
 test('a resize stops at the span limits the widget declares', () => {
@@ -260,12 +276,16 @@ test('a resize stops at the span limits the widget declares', () => {
 
   drag(corners(onPlace.container)[0], COL_PITCH * 10, 0);
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 1,
-    row: 1,
-    colSpan: 8,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 1,
+      colSpan: 8,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('a gesture too small to reach the next cell changes nothing', () => {
@@ -308,12 +328,16 @@ test('arrow keys move a widget a cell at a time', () => {
 
   fireEvent.keyDown(handles('Move widget')[0], { key: 'ArrowRight' });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 2,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 2,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('arrow keys on the resize corner resize a cell at a time', () => {
@@ -321,12 +345,16 @@ test('arrow keys on the resize corner resize a cell at a time', () => {
 
   fireEvent.keyDown(corners(onPlace.container)[0], { key: 'ArrowDown' });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 1,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 5,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 5,
+    },
+    expect.anything(),
+  );
 });
 
 test('a non-primary button does not start a gesture', () => {
@@ -361,12 +389,16 @@ test('the drop lands where the pointer was released, not where it last moved', (
   // The pointer travels further before the release reports its own position.
   pointer(handle, 'pointerup', { clientX: COL_PITCH * 5, clientY: 0 });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 6,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 6,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('a cancel from a different pointer leaves the gesture alone', () => {
@@ -392,12 +424,16 @@ test('a cancel from a different pointer leaves the gesture alone', () => {
     clientY: 0,
   });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 5,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 5,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('a write landing mid-gesture does not move the ground under the pointer', () => {
@@ -418,12 +454,16 @@ test('a write landing mid-gesture does not move the ground under the pointer', (
   pointer(handle, 'pointerup', { clientX: 0, clientY: ROW_PITCH * 2 });
 
   // The drop is two rows from where the user grabbed it, not from row 9.
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 1,
-    row: 3,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 3,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('a click on a handle does not revert a write that landed mid-hold', () => {
@@ -492,12 +532,16 @@ test('a second pointer cannot steal a live gesture', () => {
   });
 
   expect(onPlace).toHaveBeenCalledTimes(1);
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 5,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 5,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 /** A widget holding its own state, as filter.select and tabs do. */
@@ -558,12 +602,16 @@ test('a gesture is released when editing stops mid-drag', () => {
   onPlace.setEditable(true);
   drag(handles('Move widget')[0], COL_PITCH * 4, 0);
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 5,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 5,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('a gesture is released when its node stops being placeable', () => {
@@ -584,12 +632,16 @@ test('a gesture is released when its node stops being placeable', () => {
   expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
   // The surviving widget is still draggable.
   drag(handles('Move widget')[0], 0, ROW_PITCH);
-  expect(onPlace).toHaveBeenCalledWith('trend', {
-    col: 1,
-    row: 10,
-    colSpan: 24,
-    rowSpan: 8,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'trend',
+    {
+      col: 1,
+      row: 10,
+      colSpan: 24,
+      rowSpan: 8,
+    },
+    expect.anything(),
+  );
 });
 
 test('a gesture is released when its node moves to another grid', () => {
@@ -616,12 +668,16 @@ test('a gesture is released when its node moves to another grid', () => {
   expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
   // And this grid still works.
   drag(handles('Move widget')[0], 0, ROW_PITCH);
-  expect(onPlace).toHaveBeenCalledWith('trend', {
-    col: 1,
-    row: 10,
-    colSpan: 24,
-    rowSpan: 8,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'trend',
+    {
+      col: 1,
+      row: 10,
+      colSpan: 24,
+      rowSpan: 8,
+    },
+    expect.anything(),
+  );
 });
 
 test('an abandoned gesture lets the shared drag state go too', () => {
@@ -791,12 +847,16 @@ test('a drag follows the content when it scrolls under the pointer', () => {
   // Released at the same screen position, two rows further down the content.
   pointer(handle, 'pointerup', { clientX: 0, clientY: 0 });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 1,
-    row: 3,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 3,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('each widget wrapper is marked so the innermost one can be detected', () => {
@@ -842,6 +902,7 @@ test('a drop onto one widget exchanges places with it, before the drop', () => {
     'trend',
     // 'trend' keeps its own size in the slot 'kpi' left.
     { col: 1, row: 1, colSpan: 24, rowSpan: 8 },
+    'drag',
   );
 });
 
@@ -898,12 +959,16 @@ test('a release inside the sticky band lands on the cell that was shown', () => 
 
   pointer(handle, 'pointerup', { clientX: 0, clientY: boundary + 2 });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 1,
-    row: 3,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 3,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('a drop that only partly covers a widget still trades with it', () => {
@@ -932,6 +997,7 @@ test('a drop that only partly covers a widget still trades with it', () => {
     { col: 1, row: 9, colSpan: 6, rowSpan: 4 },
     'trend',
     { col: 1, row: 1, colSpan: 24, rowSpan: 8 },
+    expect.anything(),
   );
 });
 
@@ -971,12 +1037,16 @@ test('a drop straddling two widgets pushes them down instead', () => {
   const handle = handles('Move widget')[0];
   drag(handle, 0, ROW_PITCH * 3);
 
-  expect(onPlace).toHaveBeenCalledWith('a', {
-    col: 1,
-    row: 4,
-    colSpan: 24,
-    rowSpan: 2,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'a',
+    {
+      col: 1,
+      row: 4,
+      colSpan: 24,
+      rowSpan: 2,
+    },
+    expect.anything(),
+  );
 });
 
 test('neighbours go back when a gesture is abandoned', () => {
@@ -1019,12 +1089,16 @@ test('the widget body itself can be dragged in a plan', () => {
   pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
   pointer(body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 5,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 5,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 /** Widgets lift while being dragged, which is how "is it dragging" is read. */
@@ -1139,12 +1213,16 @@ test('the body is not a drag source on a published canvas', () => {
 const recover = (onPlace: jest.Mock & { container: HTMLElement }) => {
   drag(handles('Move widget')[1], 0, ROW_PITCH * 2);
 
-  expect(onPlace).toHaveBeenCalledWith('trend', {
-    col: 1,
-    row: 11,
-    colSpan: 24,
-    rowSpan: 8,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'trend',
+    {
+      col: 1,
+      row: 11,
+      colSpan: 24,
+      rowSpan: 8,
+    },
+    expect.anything(),
+  );
 };
 
 test('a press released away from the widget still frees the grid', () => {
@@ -1199,12 +1277,16 @@ test('a drag that leaves the widget before the threshold still arms', () => {
   pointer(document.body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
   pointer(document.body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 5,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 5,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 const controls: [string, (nodeId: string) => ReactNode][] = [
@@ -1296,12 +1378,16 @@ test('a press inside a tall widget still drags it', () => {
   pointer(content, 'pointermove', { clientX: 10 + COL_PITCH * 4, clientY: 50 });
   pointer(content, 'pointerup', { clientX: 10 + COL_PITCH * 4, clientY: 50 });
 
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 5,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 5,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('text in a widget is not selectable while a plan is open', () => {
@@ -1352,12 +1438,16 @@ test('a north-west drag on a widget away from the edge grows up and left', () =>
   drag(corners(onPlace.container, 'nw')[0], -COL_PITCH * 2, -ROW_PITCH * 1);
 
   // Bottom-right stays at col 15, row 8.
-  expect(onPlace).toHaveBeenCalledWith('mid', {
-    col: 8,
-    row: 4,
-    colSpan: 8,
-    rowSpan: 5,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'mid',
+    {
+      col: 8,
+      row: 4,
+      colSpan: 8,
+      rowSpan: 5,
+    },
+    expect.anything(),
+  );
 });
 
 test('all four corners sit at the widget corners, none singled out', () => {
@@ -1576,12 +1666,16 @@ test('the preview follows a scroll made without moving the pointer', () => {
   pointer(handle, 'pointerup', { clientX: 0, clientY: ROW_PITCH });
 
   // And the drop matches what was previewed.
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 1,
-    row: 4,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 4,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    expect.anything(),
+  );
 });
 
 test('a press held while scrolling is not turned into a drag', () => {
@@ -1855,12 +1949,16 @@ test('a resize that grows over a neighbour is not an offer to trade places', () 
   pointer(corner, 'pointerup', { clientX: 0, clientY: ROW_PITCH * 8 });
 
   expect(onSwap).not.toHaveBeenCalled();
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 1,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 12,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 12,
+    },
+    expect.anything(),
+  );
 });
 
 /**
@@ -1977,20 +2075,28 @@ test('arrow keys move the selected widget, Shift resizes it', () => {
   expect(pressed(container, 'kpi')).toBe('true');
 
   fireEvent.keyDown(body, { key: 'ArrowRight' });
-  expect(onPlace).toHaveBeenCalledWith('kpi', {
-    col: 2,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 4,
-  });
+  expect(onPlace).toHaveBeenCalledWith(
+    'kpi',
+    {
+      col: 2,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 4,
+    },
+    'keyboard',
+  );
 
   fireEvent.keyDown(body, { key: 'ArrowDown', shiftKey: true });
-  expect(onPlace).toHaveBeenLastCalledWith('kpi', {
-    col: 1,
-    row: 1,
-    colSpan: 6,
-    rowSpan: 5,
-  });
+  expect(onPlace).toHaveBeenLastCalledWith(
+    'kpi',
+    {
+      col: 1,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 5,
+    },
+    'keyboard',
+  );
 
   fireEvent.keyDown(body, { key: 'Escape' });
   expect(pressed(container, 'kpi')).toBe('false');

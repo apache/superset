@@ -125,9 +125,74 @@ def current_props(
 ) -> dict[str, Any]:
     """``props`` written at ``version`` (default current), at the current one."""
     try:
-        return widget.upgrade_props(props, version or widget.schema_version)
+        upgraded = widget.upgrade_props(props, version or widget.schema_version)
     except PropsVersionError as ex:
         raise ValueError(str(ex)) from ex
+    return widget.normalize_control_values(upgraded)
+
+
+def bound_datasets(props: dict[str, Any]) -> dict[int, tuple[str, ...]]:
+    """
+    The datasets ``props`` query, by id, with where each is named.
+
+    Raises ``ValueError`` for a ``datasetId`` that isn't a plain integer: the
+    data path would still run ``17.0`` or ``"17"`` as dataset 17, so letting
+    one through here would skip the access check for it.
+    """
+    bound: dict[int, tuple[str, ...]] = {}
+    for path, source in (((), props), (("dataBinding",), props.get("dataBinding"))):
+        value = source.get("datasetId") if isinstance(source, dict) else None
+        if value is None:
+            continue
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"datasetId must be an integer, not {value!r}")
+        bound.setdefault(value, (*path, "datasetId"))
+    return bound
+
+
+def unreadable_datasets(dataset_ids: Iterable[int]) -> set[int]:
+    """Those of ``dataset_ids`` that don't exist or the current user can't read."""
+    # pylint: disable=import-outside-toplevel
+    from superset import db, security_manager
+    from superset.connectors.sqla.models import SqlaTable
+
+    wanted = set(dataset_ids)
+    if not wanted:
+        return set()
+    found = {
+        dataset.id: dataset
+        for dataset in db.session.query(SqlaTable).filter(SqlaTable.id.in_(wanted))
+    }
+    return {
+        dataset_id
+        for dataset_id in wanted
+        if dataset_id not in found
+        or not security_manager.can_access_datasource(found[dataset_id])
+    }
+
+
+def newly_unreadable(
+    props: dict[str, Any], previous: dict[str, Any] | None
+) -> dict[int, tuple[str, ...]]:
+    """
+    Datasets ``props`` binds that the user can't read, unless only the title
+    changed from ``previous``.
+
+    Every other prop counts as part of the binding: its metrics and filters are
+    SQL run as every viewer, and the rest (a markdown template, a chart option)
+    decides where the rows end up. Someone retitling a widget another editor
+    bound doesn't need access to its dataset.
+    """
+    bound = bound_datasets(props)
+    if not bound or (
+        previous is not None and _without_title(props) == _without_title(previous)
+    ):
+        return {}
+    return {dataset_id: bound[dataset_id] for dataset_id in unreadable_datasets(bound)}
+
+
+def _without_title(props: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in props.items() if key != "title"}
 
 
 class WidgetContentError(ValueError):
@@ -146,12 +211,14 @@ def entity_props(
     props: dict[str, Any],
     version: int | None,
     widget_types: WidgetTypes | None = None,
+    previous: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
     """
     ``props`` for a widget entity of ``widget_type``, upgraded to the type's
     current schema version and checked as ``add`` and ``set_props`` check them,
     so a widget saved outside a canvas is one a canvas can place and render.
-    Returns the props and the version they are at.
+    ``previous`` is what the widget held, so a retitle alone skips the dataset
+    access check. Returns the props and the version they are at.
     """
     widget_types = get_widget_types() if widget_types is None else widget_types
     widget = widget_types.get(widget_type)
@@ -170,6 +237,18 @@ def entity_props(
         )
     if messages:
         raise WidgetContentError("props", messages)
+    try:
+        denied = newly_unreadable(upgraded, previous)
+    except ValueError as ex:
+        raise WidgetContentError("props", {"/props": [str(ex)]}) from ex
+    if denied:
+        raise WidgetContentError(
+            "props",
+            {
+                pointer("props", *path): ["unknown dataset, or no access to it"]
+                for path in denied.values()
+            },
+        )
     return upgraded, widget.schema_version
 
 
@@ -317,19 +396,32 @@ class _Applier:
 
     def place(self, op: PlaceOp, logged: dict[str, Any]) -> AppliedOperation:
         node = self.node(op.id)
-        # Ordering the siblings reads the layout as a whole grid placement,
-        # before the definition is validated.
-        if self.grid_columns(self.parent_of(op.id)) is not None:
-            try:
-                GridPlacement.model_validate(op.layout)
-            except ValidationError as ex:
-                raise ValueError(
-                    f"invalid layout for {op.id!r}: "
-                    + "; ".join(error["msg"] for error in ex.errors())
-                ) from ex
-        node["layout"] = op.layout
-        self.bring_forward(op.id, op.layout)
-        return AppliedOperation(logged, [Touch(op.id, FieldGroup.LAYOUT)])
+        layout = self.grid_layout(op.id, self.parent_of(op.id), op.layout)
+        node["layout"] = layout
+        self.bring_forward(op.id, layout)
+        return AppliedOperation(
+            {**logged, "layout": layout}, [Touch(op.id, FieldGroup.LAYOUT)]
+        )
+
+    def grid_layout(
+        self, node_id: str, parent_id: str, layout: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        ``layout`` as stored, parsed as a grid placement when ``parent_id`` is
+        a grid: ordering siblings does arithmetic on it before the definition
+        is validated, so ``"7"`` must not get that far.
+        """
+        if self.grid_columns(parent_id) is None:
+            return layout
+        try:
+            return GridPlacement.model_validate(layout, strict=True).model_dump(
+                mode="json", by_alias=True, exclude_none=True
+            )
+        except ValidationError as ex:
+            raise ValueError(
+                f"invalid layout for {node_id!r}: "
+                + "; ".join(error["msg"] for error in ex.errors())
+            ) from ex
 
     def set_scope(self, op: SetScopeOp, logged: dict[str, Any]) -> AppliedOperation:
         self.node(op.id)
@@ -417,7 +509,9 @@ class _Applier:
         widget = self.widget_types.get(node.get("widgetType") or "")
         if widget is None:
             raise ValueError(f"{op.id!r} does not hold a registered widget")
-        node["props"] = current_props(widget, op.props, op.schema_version)
+        props = current_props(widget, op.props, op.schema_version)
+        self.check_bindings(props, node.get("props"))
+        node["props"] = props
         node["schemaVersion"] = widget.schema_version
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.PROPS)])
 
@@ -433,10 +527,10 @@ class _Applier:
             raise ValueError(
                 f"you may not change widget {widget_id!r}, which {op.id!r} holds"
             )
+        props = current_props(widget, op.props, op.schema_version)
+        self.check_bindings(props, stored.props)
         self.pending[widget_id] = dataclasses.replace(
-            stored,
-            props=current_props(widget, op.props, op.schema_version),
-            schema_version=widget.schema_version,
+            stored, props=props, schema_version=widget.schema_version
         )
         return AppliedOperation(
             {**logged, "widgetId": widget_id},
@@ -519,6 +613,7 @@ class _Applier:
             if widget is None:
                 raise ValueError(f"unknown widget {op.widget_type!r}")
             props = current_props(widget, op.props or {}, op.schema_version)
+            self.check_bindings(props, None)
             title = props.get("title")
             name = title if isinstance(title, str) and title.strip() else widget.name
             node: dict[str, Any]
@@ -556,12 +651,21 @@ class _Applier:
         if node_id in self.nodes:
             raise ValueError(f"node {node_id!r} already exists")
         self.insert(self.children(op.parent), node_id, op.index)
-        layout = self.default_layout(widget, op.parent, op.layout)
+        layout = self.default_layout(
+            widget, op.parent, self.grid_layout(node_id, op.parent, op.layout)
+        )
         self.nodes[node_id] = {**node, "layout": layout}
         touched = [Touch(node_id, FieldGroup.TREE)]
         if op.widget_type is not None:
             touched.append(Touch(node_id, FieldGroup.PROPS))
         return AppliedOperation({**logged, "id": node_id}, touched)
+
+    @staticmethod
+    def check_bindings(props: dict[str, Any], previous: dict[str, Any] | None) -> None:
+        if denied := newly_unreadable(props, previous):
+            raise ValueError(
+                f"unknown dataset {min(denied)}, or no access to it",
+            )
 
     def widget_of(self, node_id: str) -> tuple[str, StoredWidget]:
         widget_id = self.node(node_id)["widgetId"]
@@ -627,7 +731,8 @@ class _Applier:
         self._siblings(old_parent).remove(op.id)
         self.insert(new_children, op.id, op.index)
         if op.layout is not None:
-            node["layout"] = op.layout
+            node["layout"] = self.grid_layout(op.id, op.parent, op.layout)
+            logged["layout"] = node["layout"]
         elif op.parent != old_parent:
             # Placement is relative to the parent; re-flow in the new one.
             node["layout"] = {}

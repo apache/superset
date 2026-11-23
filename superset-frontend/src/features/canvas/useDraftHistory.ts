@@ -29,6 +29,12 @@ export interface DraftHistory {
   redo: () => void;
   /** Whether a step is in flight. */
   busy: boolean;
+  /**
+   * Whether a step has moved the draft past what is on screen, which catches
+   * up once the refetch the step triggers lands. Neither step is offered
+   * until then.
+   */
+  settling?: boolean;
 }
 
 /**
@@ -46,6 +52,8 @@ export function useDraftHistory(
   /** What the draft reported when it was last fetched. */
   fetched: { canUndo?: boolean; canRedo?: boolean },
   reload: () => void,
+  /** Told the revision each step produced, before the refetch shows it. */
+  onStepped?: (revision: number) => void,
 ): DraftHistory {
   const { addDangerToast } = useToasts();
   const [state, setState] = useState({
@@ -53,6 +61,12 @@ export function useDraftHistory(
     canRedo: Boolean(fetched.canRedo),
   });
   const [busy, setBusy] = useState(false);
+  // The revision the last step produced, and the draft it was taken on: a
+  // step that answers after the user moved to another draft says nothing
+  // about that one, which counts its revisions from zero.
+  const [stepped, setStepped] = useState<{ token: string; revision: number }>();
+  const currentToken = useRef(token);
+  currentToken.current = token;
   // The revision this state describes. A write moves the draft on, which
   // makes a step available and discards anything undone -- the server says
   // so too, but not until something asks it.
@@ -75,9 +89,16 @@ export function useDraftHistory(
     setState({ canUndo: true, canRedo: false });
   }, [revision]);
 
+  const settling =
+    stepped !== undefined &&
+    stepped.token === token &&
+    revision < stepped.revision;
+
   const step = useCallback(
     async (direction: 'undo' | 'redo') => {
-      if (!token) return;
+      // Until the last step is on screen, `revision` is the one it started
+      // from, and a step naming that would be rejected as a conflict.
+      if (!token || settling) return;
       setBusy(true);
       try {
         const { json } = await SupersetClient.post({
@@ -85,7 +106,16 @@ export function useDraftHistory(
           headers: { [DRAFT_TOKEN_HEADER]: token },
           jsonPayload: { revision },
         });
+        // The user moved to another draft while the step was in flight: what
+        // it answered describes the draft they left.
+        if (currentToken.current !== token) return;
         const result = json?.result ?? {};
+        // Before `busy` clears, so the draft is never taken as settled at
+        // the revision the step started from.
+        if (typeof result.revision === 'number') {
+          setStepped({ token, revision: result.revision });
+          onStepped?.(result.revision);
+        }
         setState({
           canUndo: Boolean(result.canUndo),
           canRedo: Boolean(result.canRedo),
@@ -97,6 +127,10 @@ export function useDraftHistory(
         reload();
       } catch (response) {
         const { message, error } = await getClientErrorObject(response);
+        // As above: a failure answering for the draft the user left is no
+        // news about the one they are on. Asked after reading the error,
+        // which can still be arriving when they leave.
+        if (currentToken.current !== token) return;
         addDangerToast(
           message || error || t('That change could not be undone.'),
         );
@@ -105,14 +139,15 @@ export function useDraftHistory(
         setBusy(false);
       }
     },
-    [token, revision, reload, addDangerToast],
+    [token, revision, settling, reload, addDangerToast, onStepped],
   );
 
   return {
-    canUndo: state.canUndo,
-    canRedo: state.canRedo,
+    canUndo: state.canUndo && !settling,
+    canRedo: state.canRedo && !settling,
     undo: useCallback(() => step('undo'), [step]),
     redo: useCallback(() => step('redo'), [step]),
     busy,
+    settling,
   };
 }

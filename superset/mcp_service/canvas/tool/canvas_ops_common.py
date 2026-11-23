@@ -23,23 +23,18 @@ import logging
 from typing import Any
 
 from superset import security_manager
+from superset.canvas.query_errors import canvas_query_error
 from superset.commands.canvas.exceptions import (
     DefinitionConflictError,
     DefinitionInvalidError,
     DraftConflictError,
 )
-from superset.daos.exceptions import DatasourceNotFound
-from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message_from_url,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
-
-_ACCESS_ERRORS = {
-    SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-    SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
-    SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
-}
 
 # How MCP results, which are snake_case, name the keys of a REST error body.
 # The body's ``widgets`` lists changed widgets, while a draft result's
@@ -66,6 +61,21 @@ def payload_result(
     return {_RESULT_KEYS.get(key, key): value for key, value in ex.to_payload().items()}
 
 
+UNREAD_REASON = (
+    "This widget keeps no dataBinding.datasetId, so its data can't be run "
+    "here; read its props for how it gets its data."
+)
+
+
+def keeps_own_data(widget_type: str | None) -> bool:
+    """
+    Whether ``widget_type`` may get its data some way other than a
+    ``dataBinding``. Built-in types without one have no data to read; an
+    extension's type may still have some.
+    """
+    return widget_type is not None and widget_type.startswith("extensions.")
+
+
 def can_view_query() -> bool:
     """Whether the caller may see a widget's query; classic charts gate "View
     query" on the same permission."""
@@ -78,25 +88,32 @@ def query_error(ex: Exception) -> dict[str, str]:
 
     A refusal gets a fixed message: the exception's own names the datasource,
     and a missing dataset must read the same as one the caller cannot see.
-    Driver errors tend to echo the SQL, so they are shown only to whoever may
-    see the query itself.
+    Known query diagnostics use the shared principal-sensitive sanitizer and
+    require permission to see the query. Unexpected failures remain generic.
     """
-    if isinstance(ex, (SupersetSecurityException, DatasourceNotFound)):
+    error = canvas_query_error(ex)
+    if error.status >= 500:
+        logger.warning("Canvas widget query failed", exc_info=True)
+    if (
+        error.error_type == "DatasetNotAccessible"
+        or error.reason == "missing_datasource"
+    ):
         logger.info("Canvas widget query refused: %s", ex)
-        if isinstance(ex, DatasourceNotFound) or ex.error.error_type in _ACCESS_ERRORS:
-            return {
-                "error": "The widget's dataset does not exist, or you have no "
-                "access to it.",
-                "error_type": "DatasetNotAccessible",
-            }
         return {
-            "error": f"The widget's query was refused ({ex.error.error_type.value}).",
-            "error_type": "QueryError",
+            "error": "The widget's dataset does not exist, or you have no "
+            "access to it.",
+            "error_type": "DatasetNotAccessible",
         }
-    logger.warning("Canvas widget query failed", exc_info=True)
-    return {
-        "error": f"The widget's query failed: {ex}"
-        if can_view_query()
-        else "The widget's query failed.",
-        "error_type": "QueryError",
-    }
+    if error.reason == "security_refusal":
+        logger.info("Canvas widget query refused: %s", ex)
+        return {
+            "error": f"The widget's query was refused ({error.security_error_type}).",
+            "error_type": error.error_type,
+        }
+    if error.oauth_redirect_url is not None:
+        message = build_oauth2_redirect_message_from_url(error.oauth_redirect_url)
+    elif can_view_query():
+        message = f"The widget's query failed: {error.message}"
+    else:
+        message = "The widget's query failed."
+    return {"error": message, "error_type": error.error_type}

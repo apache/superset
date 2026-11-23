@@ -75,6 +75,7 @@ import {
   type GridState,
   resolve,
 } from './dragStates';
+import type { LayoutGesture } from './useCanvasLayout';
 import { useCanvasDrag } from './useCanvasDrag';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 import { useCanvasSelection } from './useCanvasSelection';
@@ -780,6 +781,15 @@ const Selected = styled.div<{ depth: number }>`
  * on the way to it would be too easy to hit. No confirmation, because the
  * change is only in the draft and Undo in the banner reverses it.
  */
+/** The remove button's size, and how far in from the right edge it sits. */
+const REMOVE_SIZE_UNITS = 8;
+const REMOVE_INSET_UNITS = 4;
+/**
+ * Room, in theme size units, that a strip sharing the top-right corner with
+ * the remove button leaves at its right to stay clear of it.
+ */
+export const CLEAR_OF_REMOVE_UNITS = REMOVE_INSET_UNITS + REMOVE_SIZE_UNITS;
+
 const Remove = styled.button<{ depth: number; offset: number }>`
   ${({ theme, depth, offset }) => css`
     position: absolute;
@@ -787,12 +797,12 @@ const Remove = styled.button<{ depth: number; offset: number }>`
     z-index: ${3 + depth};
     /* In the top-right corner, level with the grip on the left: the widget's
        own controls are hidden while editing, so nothing else is there. */
-    right: ${theme.sizeUnit * 4}px;
+    right: ${theme.sizeUnit * REMOVE_INSET_UNITS}px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: ${theme.sizeUnit * 8}px;
-    height: ${theme.sizeUnit * 8}px;
+    width: ${theme.sizeUnit * REMOVE_SIZE_UNITS}px;
+    height: ${theme.sizeUnit * REMOVE_SIZE_UNITS}px;
     padding: 0;
     border: none;
     background: none;
@@ -949,7 +959,11 @@ export interface CanvasGridSurfaceProps {
   isContainer?: (nodeId: string) => boolean;
   /** What to call a widget out loud, for the selection's accessible name. */
   labelOf?: (nodeId: string) => string;
-  onPlace: (nodeId: string, placement: GridPlacement) => void;
+  onPlace: (
+    nodeId: string,
+    placement: GridPlacement,
+    gesture?: LayoutGesture,
+  ) => void;
   /**
    * Persist two widgets exchanging places, which is what a drop landing
    * squarely on one widget does.
@@ -959,6 +973,7 @@ export interface CanvasGridSurfaceProps {
     placement: GridPlacement,
     partnerId: string,
     partnerPlacement: GridPlacement,
+    gesture?: LayoutGesture,
   ) => void;
   /**
    * Persist a widget dragged into this grid from another one. `index` is
@@ -971,6 +986,7 @@ export interface CanvasGridSurfaceProps {
     parent: string,
     index: number,
     placement: GridPlacement,
+    gesture?: LayoutGesture,
   ) => void;
   renderNode: (nodeId: string) => ReactNode;
 }
@@ -1010,13 +1026,16 @@ export default function CanvasGridSurface({
   const snapshot = useCallback(() => contents.current, []);
   useEffect(() => {
     if (!gridNode) return undefined;
+    const node = gridNode.closest<HTMLElement>('[data-test="canvas-node"]');
+    // A tab has no grid item: its box is its pane, not the whole Tabs widget,
+    // and a hidden pane measures as nothing so drops land in the visible one.
+    const pane = gridNode.closest<HTMLElement>('[role="tabpanel"]');
     return drag.register({
       parentId,
       element: gridNode,
       // The container this grid fills, whose box is the whole of what counts
       // as "inside" it. The root grid has no container and is its own.
-      bounds:
-        gridNode.closest<HTMLElement>('[data-test="canvas-node"]') ?? gridNode,
+      bounds: (pane && node?.contains(pane) ? pane : node) ?? gridNode,
       columns,
       gap,
       rowUnit,
@@ -1086,7 +1105,7 @@ export default function CanvasGridSurface({
         index: insertIndex(resolved, placement),
       };
     },
-    [drag, parentId],
+    [columns, drag, parentId],
   );
 
   /**
@@ -1197,6 +1216,14 @@ export default function CanvasGridSurface({
       snap: GridPlacement | undefined,
       aim: Aim,
       held?: string,
+      // Last on purpose: `held` is positional at the release call site, and
+      // slipping a parameter in ahead of it silently binds the held candidate
+      // to the wrong name -- which is the preview/commit disagreement the
+      // comment below exists to rule out.
+      //
+      // A keyboard nudge reaches this through the same path as a drop, so
+      // without it the nudge would be reported as a drag.
+      via: 'pointer' | 'keyboard' = 'pointer',
     ) => {
       const placement = placements[nodeId];
       if (!snap || !placement) return;
@@ -1214,6 +1241,10 @@ export default function CanvasGridSurface({
       // where the widget already sits.
       if (!chosen || !changesAnything(chosen, origin, placement)) return;
       const { drop } = chosen;
+      // The surface calls a pointer drag a "move"; the event says "drag", so
+      // it cannot be confused with the `move` operation.
+      const gesture: LayoutGesture =
+        via === 'keyboard' ? 'keyboard' : kind === 'resize' ? 'resize' : 'drag';
       if (drop.kind === 'swap' && drop.partner) {
         // Both halves of the exchange, where the grid settled them -- so the
         // drop holds still instead of jumping while the write is in flight.
@@ -1222,10 +1253,11 @@ export default function CanvasGridSurface({
           chosen.placements[nodeId],
           drop.partner,
           chosen.placements[drop.partner],
+          gesture,
         );
         return;
       }
-      onPlace(nodeId, drop.target);
+      onPlace(nodeId, drop.target, gesture);
     },
     [onPlace, onSwap, placements, gridState],
   );
@@ -1417,7 +1449,13 @@ export default function CanvasGridSurface({
       if (landed) {
         // It left its container, which the server takes as a different
         // operation: the layout alone cannot say where a widget now lives.
-        onMove(landed.nodeId, landed.parentId, landed.index, landed.placement);
+        onMove(
+          landed.nodeId,
+          landed.parentId,
+          landed.index,
+          landed.placement,
+          'drag',
+        );
         return;
       }
       const at = originOf(current);
@@ -1525,7 +1563,15 @@ export default function CanvasGridSurface({
       // there is no fraction for the readings to be told apart by, and a
       // nudge onto a neighbour's own slot trades places with it just as a
       // drop there does.
-      commit(nodeId, kind, placement, target, aimAt(target, 0, 0));
+      commit(
+        nodeId,
+        kind,
+        placement,
+        target,
+        aimAt(target, 0, 0),
+        undefined,
+        'keyboard',
+      );
     },
     [placements, commit, columns, constraints, aimAt],
   );

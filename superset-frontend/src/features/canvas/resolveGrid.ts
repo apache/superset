@@ -46,18 +46,35 @@ import type { GridLayout, GridPlacement } from './types';
 
 export type { GridLayout };
 
-const cells = (rect: GridPlacement): string[] => {
-  const out: string[] = [];
-  for (let { row } = rect; row < rect.row + rect.rowSpan; row += 1) {
-    for (let { col } = rect; col < rect.col + rect.colSpan; col += 1) {
-      out.push(`${row}:${col}`);
-    }
-  }
-  return out;
-};
+const overlaps = (a: GridPlacement, b: GridPlacement): boolean =>
+  a.col < b.col + b.colSpan &&
+  b.col < a.col + a.colSpan &&
+  a.row < b.row + b.rowSpan &&
+  b.row < a.row + a.rowSpan;
 
-const clear = (rect: GridPlacement, occupied: Set<string>): boolean =>
-  cells(rect).every(cell => !occupied.has(cell));
+const blocker = (
+  rect: GridPlacement,
+  placed: GridPlacement[],
+): GridPlacement | undefined => placed.find(other => overlaps(rect, other));
+
+/**
+ * The first row past `row` where a `rowSpan`-tall band can have room that it
+ * has none of at `row`: where something in that band ends. Mirrors the
+ * server's `_next_row`.
+ */
+const nextRow = (
+  row: number,
+  rowSpan: number,
+  placed: GridPlacement[],
+): number => {
+  let next = Infinity;
+  placed.forEach(other => {
+    const bottom = other.row + other.rowSpan;
+    if (other.row < row + rowSpan && bottom > row)
+      next = Math.min(next, bottom);
+  });
+  return Number.isFinite(next) ? next : row + 1;
+};
 
 /**
  * Where each child lands on a grid of `columns` columns, in reading order.
@@ -69,7 +86,7 @@ export function resolveGrid(
   layouts: GridLayout[],
   columns: number,
 ): GridPlacement[] {
-  const occupied = new Set<string>();
+  const placed: GridPlacement[] = [];
   const resolved: GridPlacement[] = [];
   let cursorRow = 1;
   let cursorCol = 1;
@@ -82,38 +99,50 @@ export function resolveGrid(
     if (layout.col !== undefined && layout.col !== null) {
       const home = layout.col;
       rect = { col: home, row: layout.row as number, colSpan, rowSpan };
-      while (!clear(rect, occupied)) {
-        if (rect.col + colSpan - 1 < columns) {
+      for (
+        let found = blocker(rect, placed);
+        found;
+        found = blocker(rect, placed)
+      ) {
+        const right = found.col + found.colSpan;
+        if (right + colSpan - 1 <= columns) {
           // Room beside it on this row: a widget dropped on the left half of
           // a row slides its neighbour into the free right half, rather than
           // sending it to a row of its own and leaving that half empty.
-          rect = { ...rect, col: rect.col + 1 };
+          rect = { ...rect, col: right };
         } else {
           // The row is full to the right, so down it goes -- back at the
-          // column it asked for, since the next row is clear of everything
-          // placed so far.
-          rect = { ...rect, col: home, row: rect.row + 1 };
+          // column it asked for.
+          rect = {
+            ...rect,
+            col: home,
+            row: nextRow(rect.row, rowSpan, placed),
+          };
         }
       }
     } else {
       let row = cursorRow;
       let col = cursorCol;
+      // Only a row scanned from its first column is known to be full.
+      let wholeRow = col === 1;
       for (;;) {
         if (col + colSpan - 1 > columns) {
-          row += 1;
+          row = wholeRow ? nextRow(row, rowSpan, placed) : row + 1;
           col = 1;
+          wholeRow = true;
           // eslint-disable-next-line no-continue
           continue;
         }
         rect = { col, row, colSpan, rowSpan };
-        if (clear(rect, occupied)) break;
-        col += 1;
+        const found = blocker(rect, placed);
+        if (!found) break;
+        col = found.col + found.colSpan;
       }
       cursorRow = rect.row;
       cursorCol = rect.col + colSpan;
     }
 
-    cells(rect).forEach(cell => occupied.add(cell));
+    placed.push(rect);
     resolved.push(rect);
   });
 
@@ -139,9 +168,8 @@ export function insertIndex(
   rects: GridPlacement[],
   target: GridPlacement,
 ): number {
-  const targetCells = new Set(cells(target));
   const found = rects.findIndex(rect => {
-    if (cells(rect).some(cell => targetCells.has(cell))) {
+    if (overlaps(rect, target)) {
       return target.row < rect.row + rect.rowSpan / 2;
     }
     return (

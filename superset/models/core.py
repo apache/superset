@@ -1886,7 +1886,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         label_expected = label or sqla_col.name
         # add quotes to tables
         if self.db_engine_spec.get_allows_alias_in_select(self):
-            label = self.db_engine_spec.make_label_compatible(label_expected)
+            label = self.db_engine_spec.make_label_compatible(label_expected, self)
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
@@ -2295,6 +2295,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     dashboard_id = Column(Integer)
     slice_id = Column(Integer)
+    canvas_id = Column(Integer)
     json = Column(utils.MediumText())
     user = relationship(
         security_manager.user_model, backref="logs", foreign_keys=[user_id]

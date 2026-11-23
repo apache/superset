@@ -50,11 +50,10 @@ def _create_canvas_draft_impl(canvas_id: int | str) -> dict[str, Any]:
     ),
 )
 def create_canvas_draft(canvas_id: int | str) -> CanvasDraftResponse:
-    """Start a private draft of a canvas (by id or UUID) and return its token.
-
-    Make changes in the draft with ``apply_canvas_draft_ops``; nobody else sees
-    them until ``commit_canvas_draft`` publishes them. Give the person the
-    returned ``url`` so they can watch and review the draft in the browser.
-    Prefer a draft for anything beyond a one-off fix.
+    """Every canvas content change goes through a draft, published only when
+    the user explicitly asks. Start one by canvas id or UUID and give the user
+    its review URL. Edit with ``apply_canvas_draft_ops``. Publish with
+    ``commit_canvas_draft``, if available; otherwise the user publishes in the
+    UI.
     """
     return CanvasDraftResponse.model_validate(_create_canvas_draft_impl(canvas_id))

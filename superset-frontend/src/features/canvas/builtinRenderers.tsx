@@ -17,12 +17,12 @@
  * under the License.
  */
 import type { ComponentType } from 'react';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { SafeMarkdown, Tabs, Typography } from '@superset-ui/core/components';
-import { registerBuiltinWidgetRenderer } from 'src/core';
-import type { BuiltinWidgetType } from 'src/core/canvas/builtinWidgetTypes';
+import { registerWidgetRenderer } from 'src/core';
+import { CanvasMarkHost, useCanvasMark } from './CanvasGrid';
 import EchartsRenderer from './echarts/EchartsRenderer';
 import type { DataBinding } from './echarts/chartData';
 import { renderTemplate } from './markdownTemplate';
@@ -31,20 +31,54 @@ import { useWidgetRows } from './useWidgetRows';
 import WithQuery from './WithQuery';
 import FilterSelectRenderer from './FilterSelectRenderer';
 
-type Props = canvasApi.CanvasWidgetProps;
+type Props = CanvasRendererProps;
 
 const text = (value: unknown): string =>
   typeof value === 'string' ? value : '';
 
-const TabsRenderer = ({ childNodes }: Props) => (
-  <Tabs
-    items={childNodes.map(child => ({
-      key: child.nodeId,
-      label: text(child.props?.title) || t('Untitled tab'),
-      children: child.element,
-    }))}
-  />
-);
+/**
+ * Room at the right of a strip a container shares with its handles, set from
+ * `CLEAR_OF_REMOVE_UNITS` while editing.
+ */
+const CLEAR_OF_REMOVE = 'var(--canvas-controls-inset, 0px)';
+
+/**
+ * Where tabs show their change mark: in the tab bar, after the overflow menu,
+ * so the bar gives up the room rather than the mark sitting on a tab or the
+ * menu. Clear of the remove button, which floats over the bar's right end.
+ */
+const TabsMark = styled.div`
+  display: flex;
+  align-items: center;
+  margin-right: ${CLEAR_OF_REMOVE};
+`;
+
+// The open pane fills the container, so its grid -- and the drop targets in
+// it -- reach the container's bottom edge, and an empty tab still has room
+// to drop into.
+const fullPane = css`
+  & > .ant-tabs-tabpane {
+    height: 100%;
+  }
+`;
+
+const TabsRenderer = ({ childNodes }: Props) => {
+  const mark = useCanvasMark();
+  return (
+    <Tabs
+      fullHeight
+      contentStyle={fullPane}
+      items={childNodes.map(child => ({
+        key: child.nodeId,
+        label: text(child.props?.title) || t('Untitled tab'),
+        children: child.element,
+      }))}
+      tabBarExtraContent={
+        mark ? { right: <TabsMark>{mark}</TabsMark> } : undefined
+      }
+    />
+  );
+};
 
 /**
  * A container's box, with its grid filling whatever its own chrome leaves.
@@ -79,14 +113,37 @@ const GroupTitle = styled(Typography.Title)`
      */
     && {
       height: var(--canvas-chrome-rows, ${theme.sizeUnit * 14}px);
+      /* Kept whole by the grid below it, which takes what is left. */
+      flex: none;
+      min-width: 0;
       box-sizing: border-box;
       margin-top: 0;
       margin-bottom: 0;
+      /* Clear of the remove button, and the change mark beside the name. */
+      padding-right: ${CLEAR_OF_REMOVE};
+      /*
+       * Clear of the frame of a child in the first row: the surface draws a
+       * widget's frame and selection 2 units outside its box (see
+       * Interactive), which puts that line in the bottom of this strip.
+       */
+      padding-bottom: ${theme.sizeUnit * 2 + theme.lineWidth}px;
       /* Sat at the bottom of the strip, clear of the grip at the top of it. */
       display: flex;
       align-items: flex-end;
+      gap: ${theme.sizeUnit * 2}px;
     }
   `}
+`;
+
+/**
+ * The name inside the strip, cut short to fit it. The strip lays out as a
+ * row, which text-overflow does not apply to, so the cut is made here.
+ */
+const GroupTitleText = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const Container = styled.section`
@@ -102,9 +159,16 @@ const GridRenderer = ({ renderGrid }: Props) => (
 
 const GroupRenderer = ({ props, renderGrid }: Props) => {
   const title = text(props?.title);
+  // Shown beside the name; an untitled group's mark has a row of its own.
+  const mark = useCanvasMark();
   return (
     <Container>
-      {title && <GroupTitle level={5}>{title}</GroupTitle>}
+      {title && (
+        <GroupTitle level={5}>
+          <GroupTitleText title={title}>{title}</GroupTitleText>
+          {mark}
+        </GroupTitle>
+      )}
       {/* A title takes the strip the group's own handles sit in, so no child
           of it has handles to clear; see `stepsAside`. */}
       {renderGrid({ chromeAbove: Boolean(title) })}
@@ -176,11 +240,13 @@ const MarkdownRenderer = (widget: Props) => {
   );
 };
 
+(TabsRenderer as CanvasMarkHost).hostsMark = () => true;
+// The same condition the renderer draws its title on.
+(GroupRenderer as CanvasMarkHost).hostsMark = props =>
+  text(props?.title) !== '';
+
 /** Renderers for the core containers, filters, text and the ECharts widget. */
-export const BUILTIN_RENDERERS: Record<
-  BuiltinWidgetType,
-  ComponentType<Props>
-> = {
+export const BUILTIN_RENDERERS: Record<string, ComponentType<Props>> = {
   tabs: TabsRenderer,
   tab: GridRenderer,
   group: GroupRenderer,
@@ -198,7 +264,7 @@ let registered = false;
 export function registerBuiltinRenderers(): void {
   if (registered) return;
   registered = true;
-  (Object.keys(BUILTIN_RENDERERS) as BuiltinWidgetType[]).forEach(widgetType =>
-    registerBuiltinWidgetRenderer(widgetType, BUILTIN_RENDERERS[widgetType]),
+  Object.entries(BUILTIN_RENDERERS).forEach(([widgetType, component]) =>
+    registerWidgetRenderer(widgetType, component),
   );
 }

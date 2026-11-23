@@ -30,58 +30,21 @@
  * ```typescript
  * import { canvas } from '@apache-superset/core';
  *
- * canvas.registerWidgetRenderer('my_ext.kpi', KpiTile);
+ * // Extension widget types are namespaced by the backend as
+ * // `extensions.<publisher>.<extension>.<type>`.
+ * canvas.registerWidgetRenderer('extensions.acme.kpi.kpi', KpiTile);
  * ```
  */
 
-import { ComponentType, ReactNode } from 'react';
+import { ComponentType } from 'react';
 import { Disposable, Event } from '../common';
-
-/**
- * What can drive other widgets: filters, cross-filter sources (charts that
- * filter others when clicked) and customizations (e.g. dynamic group-by).
- */
-export type ScopeKind = 'filter' | 'crossFilter' | 'customization';
 
 /** A value set by a node, as it reaches the widgets its scope includes. */
 export interface FilterValue {
-  /** The node id of the filter, cross-filter source or customization. */
+  /** The node id of the filter or cross-filter source. */
   filterNodeId: string;
   /** The value, in the setting widget's own format. */
   value: unknown;
-}
-
-/**
- * A value published under a kind of the publisher's choosing, as it reaches
- * the widgets in the publisher's auto scope.
- */
-export interface CanvasEvent {
-  /** The kind it was published under, e.g. `acme.highlight`. */
-  kind: string;
-  /** The node id of the publisher. */
-  sourceNodeId: string;
-  value: unknown;
-}
-
-/** Colors shared by every widget on a canvas. */
-export interface CanvasColors {
-  /** Categorical color scheme; the default scheme when unset. */
-  scheme?: string;
-  /** Fixed colors for series labels, e.g. `{ France: '#1f77b4' }`. */
-  labelColors: Record<string, string>;
-}
-
-/** A child node of a container, for containers that arrange children. */
-export interface CanvasChild {
-  nodeId: string;
-  /** The child's widget type, when its widget still resolves. */
-  widgetType?: string;
-  /** The child's props, valid against its widget's schema. */
-  props?: Record<string, unknown>;
-  /** The child's stored layout within this container. */
-  layout: Record<string, unknown>;
-  /** The rendered child. */
-  element: ReactNode;
 }
 
 /** The props the canvas passes to a widget renderer. */
@@ -91,20 +54,11 @@ export interface CanvasWidgetProps {
   nodeId: string;
   /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
   widgetType: string;
-  /** For a widget entity (anything but a container or text): its UUID. */
-  widgetId?: string;
   /**
-   * The widget's props, valid against its schema at `schemaVersion`. Only
-   * explicitly set values; defaults come from the schema.
+   * The widget's props, valid against its schema. Only explicitly set values;
+   * defaults come from the schema.
    */
   props?: Record<string, unknown>;
-  schemaVersion?: number;
-  /**
-   * The token of the canvas draft the page shows, if it shows one. A renderer
-   * that fetches its placement's data sends it as the `X-Canvas-Draft`
-   * header, so that the placement is read from the draft.
-   */
-  draftToken?: string;
   /**
    * The title the canvas shows above this placement, if any. A renderer that
    * draws a title of its own leaves it out while this is set, so the widget
@@ -115,13 +69,6 @@ export interface CanvasWidgetProps {
   filters: FilterValue[];
   /** Values of the cross-filter sources whose scope includes this node. */
   crossFilters: FilterValue[];
-  /** Values of the customizations whose scope includes this node. */
-  customizations: FilterValue[];
-  /**
-   * For filter widgets: publish the filter's value to the widgets it drives.
-   * Pass `undefined` to clear it.
-   */
-  setFilterValue: (value: unknown) => void;
   /**
    * For cross-filter sources: publish a cross-filter, or clear it with
    * `undefined`. Ignored while cross-filters are turned off.
@@ -137,63 +84,80 @@ export interface CanvasWidgetProps {
   setCrossFilter: (value: unknown) => void;
   /** Whether cross-filters are turned on for this canvas. */
   crossFiltersEnabled: boolean;
-  /** For customization widgets: publish the value, or clear it. */
-  setCustomizationValue: (value: unknown) => void;
   /**
-   * Events of any kind published by the nodes whose auto scope includes this
-   * node; a node's latest value per kind.
-   */
-  events: CanvasEvent[];
-  /**
-   * Publish a value under any kind other than a {@link ScopeKind}, or clear it
-   * with `undefined`. It reaches every widget in this node's auto scope.
-   * Namespace the kind, e.g. `acme.highlight`; the scope kinds have their own
-   * setters and are ignored here.
+   * Publish a value under a kind of your choosing, or clear it with
+   * `undefined`. It reaches every widget in this node's auto scope. Namespace
+   * the kind, e.g. `acme.highlight`; `filter`, `crossFilter` and
+   * `customization` are reserved and ignored here.
    */
   publish: (kind: string, value: unknown) => void;
-  /** Colors shared across the canvas. */
-  colors: CanvasColors;
-  /** Whether to show when the widget's data was last refreshed. */
-  showTimestamp: boolean;
   /**
    * Increments on every automatic refresh that reaches this node; refetch
    * data when it changes. Stays 0 for nodes exempt from refresh.
    */
   refreshKey: number;
-  /** For containers: the child nodes, already rendered. */
-  childNodes: CanvasChild[];
-  /**
-   * For grid containers: the children laid out on the container's grid. Other
-   * containers arrange `childNodes` themselves.
-   *
-   * Pass `chromeAbove` when the container draws something of its own above
-   * that grid, such as a title. A container's handles sit at the top right of
-   * its box, so a child in the first row reaching the right edge would paint
-   * over them -- unless the container's own chrome already holds that strip,
-   * in which case there is nothing for the child to clear.
-   */
-  renderGrid: (options?: { chromeAbove?: boolean }) => ReactNode;
 }
 
-/** The canvas the user has open. */
+/**
+ * The draft open on the active canvas. Its `token` authorizes reading,
+ * changing, publishing and discarding the draft as the current user: treat it
+ * as a credential, never log it or send it anywhere the user hasn't asked for.
+ * `pending` is true while a change to the draft is in flight or its last
+ * refresh failed, and `revision` is there only once it has settled.
+ */
+export type ActiveCanvasDraft =
+  | {
+      readonly token: string;
+      readonly pending: true;
+      readonly revision?: undefined;
+    }
+  | {
+      readonly token: string;
+      readonly pending: false;
+      /**
+       * The draft revision on screen, and the one a publish must name. A
+       * present token alone is no evidence the user has seen any revision.
+       * If a publish naming it is rejected with a conflict, don't retry with
+       * a revision the user hasn't seen; wait for the next value.
+       */
+      readonly revision: number;
+    };
+
+/** A saved version, as version history names it. */
+export interface ActiveCanvasVersion {
+  readonly uuid: string;
+  readonly number: number;
+}
+
+/** The canvas the user has open. Values are frozen snapshots. */
 export interface ActiveCanvas {
-  id: number;
-  title: string;
-  revision: number;
+  readonly id: number;
+  readonly title: string;
+  /**
+   * Revision of the canvas or draft definition the page last fetched; a
+   * version preview doesn't change it, and a draft's layout edits move past
+   * it until the next fetch. To publish a draft, name `draft.revision`.
+   */
+  readonly revision: number;
+  /**
+   * The draft open in the page, present once its own definition has loaded
+   * and until the user leaves it, or the draft turns out to be gone. Absent
+   * during a version preview.
+   */
+  readonly draft?: ActiveCanvasDraft;
+  /** The saved version on screen, while one is previewed. */
+  readonly previewedVersion?: ActiveCanvasVersion;
 }
 
 /**
  * Registers the component that renders a widget type on a canvas.
  *
- * A widget type has one renderer: registering another component for a type
- * that has one throws, as registering a taken widget type does on the
- * server, and so does registering a built-in type, whose renderer is the
- * host's. Registering the same component again is allowed.
+ * Registering a type that already has a renderer replaces it, with a warning.
  *
- * @param widgetType The widget type, as the widget provider names it.
+ * @param widgetType The widget type, as the backend names it; an extension's
+ *   is `extensions.<publisher>.<extension>.<type>`.
  * @param component The renderer.
  * @returns A Disposable that unregisters the renderer when disposed.
- * @throws Error if the widget type has another renderer, or is built in.
  */
 export declare function registerWidgetRenderer(
   widgetType: string,
@@ -201,18 +165,14 @@ export declare function registerWidgetRenderer(
 ): Disposable;
 
 /**
- * Returns the renderer registered for a widget type, if any.
- */
-export declare function getWidgetRenderer(
-  widgetType: string,
-): ComponentType<CanvasWidgetProps> | undefined;
-
-/**
  * Returns the canvas the user has open, if any.
  */
 export declare function getActiveCanvas(): ActiveCanvas | undefined;
 
 /**
- * Fires when the user opens or leaves a canvas, or the open canvas changes.
+ * Fires when the user opens or leaves a canvas, or the open canvas changes:
+ * entering or leaving a draft, a draft change starting or settling, and
+ * entering, leaving or switching a version preview. To tell a switch to
+ * another canvas apart, compare `id`.
  */
 export declare const onDidChangeActiveCanvas: Event<ActiveCanvas | undefined>;

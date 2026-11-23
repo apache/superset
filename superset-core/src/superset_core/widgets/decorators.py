@@ -61,7 +61,7 @@ def widget(
 
     Args:
         widget_type: Unique widget type identifier (e.g., "metric-tile",
-            "balloons"), matching the dashboard node's ``type``. Used as the key
+            "echarts"), matching the dashboard node's ``type``. Used as the key
             in the widget registry.
         name: Human-readable display name (e.g., "Metric Tile"). Shown in the UI
             when listing available widget types.

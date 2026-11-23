@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ComponentProps,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import type { canvas as canvasApi } from '@apache-superset/core';
+import type { ScopeKind } from 'src/core/canvas/types';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   Button,
@@ -44,6 +50,12 @@ import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
 import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
+import { useCanvasLogger } from 'src/features/canvas/useCanvasLogger';
+import {
+  Logger,
+  LOG_ACTIONS_CANVAS_CHAT_PANEL,
+  LOG_ACTIONS_CANVAS_MOUNT,
+} from 'src/logger/LogUtils';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
 import CanvasBody from 'src/features/canvas/CanvasBody';
 import CanvasVersionHistory from 'src/features/canvas/versionHistory/CanvasVersionHistory';
@@ -109,15 +121,20 @@ const Description = styled.p`
  * Opens the registered chat as a side panel once, when a canvas is shown and a
  * chat is available. Canvas is AI-first: changes come from the chat.
  */
-function useOpenChatPanel() {
+function useOpenChatPanel(canvasId: number) {
   const { chat: registeredChat } = useChat();
   const opened = useRef(false);
+  const log = useCanvasLogger(canvasId);
   useEffect(() => {
     if (!registeredChat || opened.current) return;
     opened.current = true;
     chat.setDisplayMode('panel');
     chat.open();
-  }, [registeredChat]);
+    // Panel open/close is the host's, so it is the one part of the assistant
+    // story this repo can observe. What is said in it belongs to the
+    // extension.
+    log(LOG_ACTIONS_CANVAS_CHAT_PANEL, { open: true, trigger: 'auto' });
+  }, [log, registeredChat]);
 }
 
 const notFound = (
@@ -126,6 +143,29 @@ const notFound = (
     title={t('This canvas does not exist, or you do not have access to it')}
   />
 );
+
+// Interaction values have the same lifetime as the body that publishes them.
+// A version preview remounts both, so its first query cannot inherit a hidden
+// selection from the previously displayed version. Drafts keep this key.
+function CanvasBodyWithValues(
+  props: Omit<ComponentProps<typeof CanvasBody>, 'values' | 'onValueChange'>,
+) {
+  const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
+  const onValueChange = useCallback(
+    (kind: ScopeKind, nodeId: string, value: unknown) => {
+      setValues(previous => {
+        const next = { ...previous[kind] };
+        if (value === undefined) delete next[nodeId];
+        else next[nodeId] = value;
+        return { ...previous, [kind]: next };
+      });
+    },
+    [],
+  );
+  return (
+    <CanvasBody {...props} values={values} onValueChange={onValueChange} />
+  );
+}
 
 function CanvasContent({ id }: { id: number }) {
   const metadata = useApiV1Resource<CanvasMetadata>(`/api/v1/canvas/${id}`);
@@ -136,9 +176,9 @@ function CanvasContent({ id }: { id: number }) {
   const history = useCanvasVersionHistory(
     metadata.result?.uuid,
     !draft.token && isFeatureEnabled(FeatureFlag.VersionHistory),
+    id,
   );
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
   // The header's right-hand side, handed to the body so its toolbar lands on
   // the title row. State rather than a ref: the body renders into the node, so
   // it has to re-render once the node exists.
@@ -148,17 +188,6 @@ function CanvasContent({ id }: { id: number }) {
     state.status === 'complete' ? state.result.definition : undefined,
   );
 
-  const onValueChange = useCallback(
-    (kind: canvasApi.ScopeKind, nodeId: string, value: unknown) => {
-      setValues(previous => {
-        const next = { ...previous[kind] };
-        if (value === undefined) delete next[nodeId];
-        else next[nodeId] = value;
-        return { ...previous, [kind]: next };
-      });
-    },
-    [],
-  );
   const onPublish = useCallback(
     (kind: string, nodeId: string, value: unknown) => {
       setEvents(previous => {
@@ -171,7 +200,7 @@ function CanvasContent({ id }: { id: number }) {
     [],
   );
 
-  useOpenChatPanel();
+  useOpenChatPanel(id);
 
   const customCss = metadata.result?.css;
   useEffect(
@@ -182,12 +211,56 @@ function CanvasContent({ id }: { id: number }) {
   const title = metadata.result?.title;
   const revision =
     state.status === 'complete' ? state.result.revision : undefined;
+  const previewed = history.preview?._version;
+  const active =
+    title !== undefined &&
+    revision !== undefined &&
+    state.status === 'complete' &&
+    state.canvasId === id &&
+    (state.result.canvasId ?? id) === id &&
+    metadata.result?.id === id
+      ? {
+          title,
+          revision,
+          draftLoaded:
+            Boolean(draft.token) &&
+            state.draftToken === draft.token &&
+            state.refreshFailed !== 'gone',
+          draftRefreshFailed: state.refreshFailed === 'failed',
+          previewedVersion: previewed && {
+            uuid: previewed.version_uuid,
+            number: previewed.version_number,
+          },
+        }
+      : undefined;
+  const hasActive = active !== undefined;
   useEffect(() => {
-    if (title !== undefined && revision !== undefined) {
-      setActiveCanvas({ id, title, revision });
-    }
-  }, [id, title, revision]);
+    if (!hasActive) setActiveCanvas(undefined);
+  }, [hasActive]);
   useEffect(() => () => setActiveCanvas(undefined), [id]);
+
+  // Raised once the canvas is actually on screen -- both the metadata and the
+  // definition have arrived -- rather than when the component first renders,
+  // so `mount_duration` measures what the user waited for.
+  const log = useCanvasLogger(id, { isDraft: Boolean(draft.token) });
+  const mounted = useRef(false);
+  const nodeCount =
+    state.status === 'complete'
+      ? Object.keys(state.result.definition.nodes).length
+      : undefined;
+  useEffect(() => {
+    if (mounted.current || nodeCount === undefined || revision === undefined) {
+      return;
+    }
+    mounted.current = true;
+    log(LOG_ACTIONS_CANVAS_MOUNT, {
+      revision,
+      widget_count: nodeCount,
+      is_empty: nodeCount === 0,
+      is_version_preview: Boolean(history.preview),
+      mount_duration: Logger.getTimestamp(),
+    });
+  }, [log, nodeCount, revision, history.preview]);
 
   if (draft.token && state.status === 'error') {
     return (
@@ -265,22 +338,26 @@ function CanvasContent({ id }: { id: number }) {
             onClose={history.showCurrent}
           />
         )}
-        <CanvasBody
-          key={preview?._version.version_uuid ?? 'current'}
+        <CanvasBodyWithValues
+          key={`${id}:${preview?._version.version_uuid ?? 'current'}`}
           canvasId={id}
           result={shown}
           reload={reload}
-          values={values}
-          onValueChange={onValueChange}
           events={events}
           onPublish={onPublish}
           refreshKeys={refreshKeys}
           draftToken={draft.token}
+          draftGone={
+            Boolean(draft.token) &&
+            state.draftToken === draft.token &&
+            state.refreshFailed === 'gone'
+          }
           onDraftOpened={draft.open}
           onDraftClosed={draft.clear}
           isEmpty={isEmpty}
           toolbarSlot={toolbarSlot}
           versionUuid={preview?._version.version_uuid}
+          active={active}
         />
         <CanvasVersionHistory
           open={historyOpen}
@@ -297,5 +374,9 @@ export default function CanvasPage() {
   const canvasId = useCanvasId(idOrSlug);
   if (canvasId.status === 'error') return notFound;
   if (canvasId.status === 'loading') return <Loading />;
-  return <CanvasContent id={canvasId.id} />;
+  // Keyed: another canvas is another thing. Without this the SPA reuses the
+  // instance, so per-canvas state and refs -- filter values, the chosen
+  // version, whether the mount event has fired -- survive the move and the
+  // first render of the new canvas sees the old one's definition.
+  return <CanvasContent key={canvasId.id} id={canvasId.id} />;
 }

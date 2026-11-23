@@ -29,7 +29,7 @@ each as a dataset of its name; bindings stand in for SIP-231's
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -37,6 +37,8 @@ from pydantic import BaseModel, ConfigDict, Field
 if TYPE_CHECKING:
     from flask import Response
     from flask_appbuilder.api import BaseApi
+
+    from superset.canvas.query_errors import CanvasQueryFailedError
 
 # Values a select filter publishes.
 FilterScalar = str | int | float | bool
@@ -64,6 +66,9 @@ class PlacementData:
     # The query that produced the rows, as the datasource ran it.
     query: str | None
     language: str | None
+    # Each column's ``GenericDataType``, by name: rows carry temporal values as
+    # epoch milliseconds, which only the type tells apart from a number.
+    coltypes: dict[str, int] = field(default_factory=dict)
 
 
 def datasets_payload(
@@ -79,6 +84,7 @@ def datasets_payload(
             "name": name,
             "row_count": len(data.rows),
             "inline_data": data.rows,
+            "coltypes": data.coltypes,
         }
         if data.query and with_query:
             dataset["query"] = data.query
@@ -88,35 +94,34 @@ def datasets_payload(
 
 
 def data_response(
-    api: BaseApi, run: Callable[[], Mapping[str, PlacementData]]
+    api: BaseApi,
+    run: Callable[[], Mapping[str, PlacementData]],
+    on_error: Callable[[CanvasQueryFailedError, int], None] | None = None,
 ) -> Response:
     """
     A data endpoint's answer to ``run``, which runs a widget's queries as
-    ``run_binding`` does: their datasets, or the error the caller may see of
-    what it raises. One failing query fails them all.
+    ``run_binding`` does and raises ``CanvasQueryFailedError`` for one that
+    fails: their datasets, or that failure as ``canvas_query_error`` classifies
+    it for the caller. One failing query fails them all. ``on_error`` is told
+    of each failure, with the status it is answered with.
     """
     # pylint: disable=import-outside-toplevel
     from flask import Response
 
-    from superset.commands.chart.exceptions import ChartDataQueryFailedError
-    from superset.daos.exceptions import DatasourceNotFound
-    from superset.exceptions import (
-        QueryObjectValidationError,
-        SupersetSecurityException,
-    )
+    from superset.canvas.query_errors import CanvasQueryFailedError
     from superset.extensions import security_manager
     from superset.utils import json
 
-    # TODO: classify failures through canvas_query_error once
-    # https://github.com/apache/superset/pull/46250 merges.
     try:
         datasets = run()
-    except DatasourceNotFound:
-        return api.response_404()
-    except SupersetSecurityException:
-        return api.response_403()
-    except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
-        return api.response_400(message=str(ex.message))
+    except CanvasQueryFailedError as ex:
+        error = ex.error
+        missing = error.reason == "missing_datasource"
+        if on_error is not None:
+            on_error(ex, 404 if missing else error.status)
+        if missing:
+            return api.response_404()
+        return api.response(error.status, **error.rest_payload())
     # Classic charts gate "View query" on the same permission.
     payload = datasets_payload(
         datasets,
@@ -214,4 +219,12 @@ def run_binding(
         rows=result.get("data") or [],
         query=result.get("query") or None,
         language=getattr(query_context.datasource, "query_language", None),
+        coltypes={
+            name: int(coltype)
+            for name, coltype in zip(
+                result.get("colnames") or [],
+                result.get("coltypes") or [],
+                strict=False,
+            )
+        },
     )

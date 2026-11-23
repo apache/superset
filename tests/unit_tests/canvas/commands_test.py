@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -27,7 +27,7 @@ from superset.commands.canvas.exceptions import (
 )
 from superset.exceptions import SupersetSecurityException
 from superset.utils import json
-from tests.unit_tests.canvas.fixtures import canvas, FakeResolver, node
+from tests.unit_tests.canvas.fixtures import canvas, FakeResolver, inline, node
 
 
 @pytest.fixture
@@ -91,6 +91,66 @@ def test_create_reveals_nothing_about_a_widget_placed_where_it_cannot_go(
     assert excinfo.value.normalized_messages() == {
         "definition": {"/nodes/a/widgetId": ["unknown widget, or no access to it"]}
     }
+
+
+def test_create_refuses_a_binding_to_a_dataset_the_author_cannot_read(
+    create_deps: None, mocker: MockerFixture
+) -> None:
+    from superset.widgets.registry import registry as widget_registry
+    from tests.unit_tests.canvas.ops_test import _bound_widget_types
+
+    mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets",
+        side_effect=lambda ids: set(ids),
+    )
+    definition = canvas({"n": inline("note", {"dataBinding": {"datasetId": 9}})})
+    command = create_command({"title": "x", "definition": definition})
+
+    # A context manager, so the swap is undone before the fixture's own one.
+    with patch.dict(widget_registry, _bound_widget_types()):
+        with pytest.raises(CanvasInvalidError) as excinfo:
+            command.validate()
+
+    assert excinfo.value.normalized_messages() == {
+        "definition": {
+            "/nodes/n/props/dataBinding/datasetId": [
+                "unknown dataset 9, or no access to it"
+            ]
+        }
+    }
+
+
+@pytest.mark.parametrize("dataset_id", [17.0, "17", True])
+def test_create_refuses_a_dataset_id_that_is_not_an_integer(
+    create_deps: None, mocker: MockerFixture, dataset_id: Any
+) -> None:
+    from superset.widgets.registry import registry as widget_registry
+    from tests.unit_tests.canvas.ops_test import _bound_widget_types
+
+    mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets", return_value=set()
+    )
+    definition = canvas(
+        {"n": inline("note", {"dataBinding": {"datasetId": dataset_id}})}
+    )
+    command = create_command({"title": "x", "definition": definition})
+
+    with patch.dict(widget_registry, _bound_widget_types()):
+        with pytest.raises(CanvasInvalidError) as excinfo:
+            command.validate()
+
+    assert list(excinfo.value.normalized_messages()["definition"]) == ["/nodes/n/props"]
+
+
+def test_widget_uuids_are_kept_in_one_spelling() -> None:
+    from superset.canvas.definition.schemas import AddOp, Node
+
+    upper = "1B4E28BA-2FA1-11D2-883F-0016D3CCA427"
+
+    assert Node.model_validate({"widgetId": upper}).widget_id == upper.lower()
+    assert AddOp.model_validate({"op": "add", "widgetId": upper}).widget_id == (
+        upper.lower()
+    )
 
 
 def test_create_reports_definition_issues(create_deps: None) -> None:
