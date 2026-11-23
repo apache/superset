@@ -377,6 +377,31 @@ def inject_widget_implementations() -> None:
     import superset.widgets.builtin  # noqa: F401  pylint: disable=unused-import
 
 
+def inject_canvas_draft_implementations() -> None:
+    """
+    Replace the abstract canvas draft API in ``superset_core.canvas.drafts``
+    with the host's: who hears of canvas draft events, the handlers of the
+    steps recorded in a draft's history, and the recording itself.
+    """
+    import superset_core.canvas.drafts as core_drafts_module
+    from superset_core.canvas.drafts import DraftNotFoundError, DraftStep, StepAuthor
+
+    from superset.canvas import draft_hooks
+
+    def record_step(token: str, step: DraftStep, *, by: StepAuthor = "user") -> int:
+        from superset.commands.canvas.draft import RecordCanvasDraftStepCommand
+        from superset.commands.exceptions import ForbiddenError, ObjectNotFoundError
+
+        try:
+            return RecordCanvasDraftStepCommand(token, step, by=by).run().revision
+        except (ObjectNotFoundError, ForbiddenError) as ex:
+            raise DraftNotFoundError() from ex
+
+    core_drafts_module.on_draft_event = draft_hooks.on_draft_event
+    core_drafts_module.register_step_handler = draft_hooks.register_step_handler
+    core_drafts_module.record_step = record_step
+
+
 def inject_storage_implementations() -> None:
     """
     Replace abstract storage classes in superset_core.extensions.storage with concrete
@@ -426,5 +451,6 @@ def initialize_core_api_dependencies() -> None:
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
     inject_widget_implementations()
+    inject_canvas_draft_implementations()
     inject_storage_implementations()
     inject_extension_context()

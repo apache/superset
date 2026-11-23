@@ -166,6 +166,23 @@ class DraftConflictError(CommandException):
         return payload
 
 
+class DraftStepFailedError(CommandException):
+    """
+    A step recorded by whatever keeps a widget's content couldn't be undone or
+    redone; the draft is as it was.
+    """
+
+    status = 409
+    recovery_type = "DraftStepFailed"
+    message = _("That change could not be undone or redone; reload the draft.")
+
+    def __init__(self, message: str | None = None) -> None:
+        super().__init__(message or "")
+
+    def to_payload(self) -> dict[str, Any]:
+        return {"message": str(self.message), "error_type": self.recovery_type}
+
+
 class DefinitionInvalidError(CommandException):
     """An operation could not apply, or its result is not a valid definition."""
 

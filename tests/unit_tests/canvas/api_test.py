@@ -599,6 +599,52 @@ def test_draft_conflict_response_preserves_legacy_fields_and_revision_provenance
     assert response.json == expected
 
 
+@pytest.mark.parametrize("recorded", ["chart-1", None])
+def test_a_step_names_the_widget_whose_recorded_step_it_moved(
+    client: Any, full_api_access: None, mocker: MockerFixture, recorded: str | None
+) -> None:
+    """The page fetches again what a recorded step changed, which the
+    definition doesn't show."""
+    from superset_core.canvas.drafts import DraftStep
+
+    command = mocker.patch("superset.canvas.api.RewindCanvasDraftCommand")
+    command.return_value.recorded = (
+        DraftStep(kind="extensions.acme.notes.edit", widget_id=recorded)
+        if recorded
+        else None
+    )
+    mocker.patch("superset.canvas.api.draft_payload", return_value={"revision": 5})
+
+    response = client.post(
+        f"{BASE}/draft/undo", json={"revision": 4}, headers={"X-Canvas-Draft": "token"}
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"] == {
+        "revision": 5,
+        "steppedWidgetIds": [recorded] if recorded else [],
+    }
+
+
+def test_a_recorded_step_that_cant_be_stepped_is_a_conflict(
+    client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    from superset.commands.canvas.exceptions import DraftStepFailedError
+
+    command = mocker.patch("superset.canvas.api.RewindCanvasDraftCommand")
+    command.return_value.run.side_effect = DraftStepFailedError("The notes changed")
+
+    response = client.post(
+        f"{BASE}/draft/redo", json={"revision": 4}, headers={"X-Canvas-Draft": "token"}
+    )
+
+    assert response.status_code == 409
+    assert response.json == {
+        "message": "The notes changed",
+        "error_type": "DraftStepFailed",
+    }
+
+
 @pytest.mark.parametrize("unavailable", [True, False])
 def test_draft_and_canvas_not_found_responses_remain_distinct(
     client: Any, full_api_access: None, mocker: MockerFixture, unavailable: bool
