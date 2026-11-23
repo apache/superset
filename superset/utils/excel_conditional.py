@@ -893,7 +893,7 @@ def _columns_skipping_default_bars(
     rules: list[dict[str, Any]],
     verbose_map: Optional[Mapping[str, Any]] = None,
 ) -> set[int]:
-    """Columns that already have background/CELL_BAR CF and must not get default bars."""
+    """Columns with background/CELL_BAR CF that must not get default bars."""
     skipped: set[int] = set()
     for rule in rules:
         if not isinstance(rule, dict) or not _rule_hides_default_bars(rule):

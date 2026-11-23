@@ -58,7 +58,7 @@ def test_d3_time_to_excel_common_patterns() -> None:
 
 
 def test_styles_from_table_form_data_generated_config() -> None:
-    """Table column_config yields number formats and alignment only for listed headers."""
+    """Table column_config yields formats and alignment only for listed headers."""
     styles = styles_from_table_form_data(
         ["revenue", "when"],
         {
