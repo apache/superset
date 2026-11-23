@@ -807,3 +807,7 @@ test.each([true, false])(
     }
   },
 );
+
+test('treats import errors without extra metadata as terminal', () => {
+  expect(hasTerminalValidation([{ message: 'Import failed' }])).toBe(true);
+});

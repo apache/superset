@@ -378,7 +378,10 @@ ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
 
 # Screenshot-specific waits continue to apply to thumbnails and other
 # standalone screenshot calls. Scheduled reports derive their waits from the
-# shared execution deadline above.
+# shared execution deadline above, with one exception: once a dashboard layout
+# has rendered but no chart holder has mounted (for example a tab that renders
+# no charts), the report waits at most SCREENSHOT_LOAD_WAIT before failing.
+# A dashboard that is still loading its layout keeps the whole report budget.
 SCREENSHOT_LOCATE_WAIT = 100
 SCREENSHOT_LOAD_WAIT = 600
 
@@ -427,6 +430,26 @@ ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
 ```
 
 Please refer to `ExecutorType` in the codebase for other executor types.
+
+#### Draft dashboard access
+
+Alerts and reports can include draft dashboards, but the account that runs the
+schedule must be an Admin or an editor of the dashboard. Access held by the person
+who creates the schedule does not give the execution account access. Dashboard
+viewer membership and dataset access alone do not grant access to a draft.
+
+Use an execution account with the required access, or publish the dashboard when
+it is ready to share. Where the **Run as** control is enabled, select an authorized
+account. Otherwise, ask an administrator to check `ALERT_REPORTS_EXECUTORS`.
+The dashboard selector marks drafts. Both the schedule form and the dashboard
+header report form show guidance only for a selected draft dashboard. Administrators
+can see the configured fixed execution account. A schedule that runs as the current
+user shows guidance for that user.
+
+Save and execution errors explain how to restore access. Before making a published
+dashboard a draft, a confirmation warns that active schedules may stop delivering.
+Check the execution accounts before confirming; the warning does not count affected
+schedules.
 
 #### Per-schedule "Run As" executor
 

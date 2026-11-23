@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getExtensionsRegistry } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -376,6 +377,9 @@ test('an unavailable current-version probe explains and withholds restore', asyn
     currentVersionStatus: 'unavailable',
   });
   render(<VersionHistoryPanel {...props} />);
+  expect(
+    screen.queryAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(0);
 
   expect(
     screen.getByText(
@@ -390,6 +394,35 @@ test('an unavailable current-version probe explains and withholds restore', asyn
   expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
 });
 
+test.each<VersionedEntityType>(['chart', 'dashboard'])(
+  '%s starting snapshot remains previewable when the current-version probe fails',
+  async entityType => {
+    const starting = group({ records: [], creationKind: 'pre_tracking' });
+    const props = defaultProps([starting], entityType);
+    props.activity = activity([starting], {
+      newestGroup: null,
+      currentVersionStatus: 'unavailable',
+    });
+    render(<VersionHistoryPanel {...props} />);
+
+    expect(
+      screen.getByText(
+        'The current version could not be identified. Restore is temporarily unavailable.',
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Preview this version' }),
+    );
+    expect(props.onPreview).toHaveBeenCalledWith(starting);
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(
+      await screen.findByText(`Open as new ${entityType}`),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+    expect(props.onRestore).not.toHaveBeenCalled();
+  },
+);
+
 test('a loading current-version probe withholds restore without an error', async () => {
   const { newest, older } = dashboardPair();
   const props = defaultProps([newest, older], 'dashboard');
@@ -398,6 +431,9 @@ test('a loading current-version probe withholds restore without an error', async
     currentVersionStatus: 'loading',
   });
   render(<VersionHistoryPanel {...props} />);
+  expect(
+    screen.queryAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(0);
 
   expect(
     screen.queryByText(/current version could not be identified/i),
@@ -406,6 +442,39 @@ test('a loading current-version probe withholds restore without an error', async
     screen.getAllByRole('button', { name: 'More actions' })[1],
   );
   expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+});
+
+test('header preview follows current-version probe transitions', () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  const { rerender } = render(
+    <VersionHistoryPanel
+      {...props}
+      activity={activity([newest, older], {
+        newestGroup: null,
+        currentVersionStatus: 'loading',
+      })}
+    />,
+  );
+  expect(
+    screen.queryAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(0);
+  rerender(<VersionHistoryPanel {...props} />);
+  expect(
+    screen.getAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(1);
+  rerender(
+    <VersionHistoryPanel
+      {...props}
+      activity={activity([newest, older], {
+        newestGroup: null,
+        currentVersionStatus: 'unavailable',
+      })}
+    />,
+  );
+  expect(
+    screen.queryAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(0);
 });
 
 // Search is server-side: the panel forwards the term to the container, which
@@ -648,4 +717,78 @@ test('exactly one group is highlighted: the previewed one while previewing, else
   // Closing the preview returns the single highlight to the current group.
   rerender(<VersionHistoryPanel {...props} previewedTransactionId={null} />);
   expect(groupBackgrounds()).toEqual([activeBg, restingBg]);
+});
+
+const footerRegistry = getExtensionsRegistry();
+
+afterEach(() => {
+  footerRegistry.set('versionHistory.panel.footer', undefined);
+});
+
+test.each(['chart', 'dashboard'] as const)(
+  'renders the optional footer after empty %s history',
+  entityType => {
+    footerRegistry.set(
+      'versionHistory.panel.footer',
+      ({ entityType: kind }) => (
+        <div role="note">Extra {kind} history information</div>
+      ),
+    );
+    render(<VersionHistoryPanel {...defaultProps([], entityType)} />);
+    const empty = screen.getByText('No history yet');
+    const footer = screen.getByRole('note');
+    expect(footer).toHaveTextContent(`Extra ${entityType} history information`);
+    expect(
+      empty.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  },
+);
+
+test('renders the optional footer below history pagination', () => {
+  footerRegistry.set('versionHistory.panel.footer', () => (
+    <div role="note">Extra history information</div>
+  ));
+  const props = defaultProps([group()]);
+  props.activity.hasMore = true;
+  render(<VersionHistoryPanel {...props} />);
+  const more = screen.getByRole('button', { name: 'Load more' });
+  expect(
+    more.compareDocumentPosition(screen.getByRole('note')) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+test('keeps the empty history visible when a footer extension throws', () => {
+  footerRegistry.set('versionHistory.panel.footer', () => {
+    throw new Error('Footer failed');
+  });
+  render(<VersionHistoryPanel {...defaultProps([])} />);
+  expect(screen.getByText('No history yet')).toBeInTheDocument();
+});
+
+test('leaves the panel unchanged when no footer is registered', () => {
+  footerRegistry.set('versionHistory.panel.footer', undefined);
+  render(<VersionHistoryPanel {...defaultProps([])} />);
+  expect(screen.getByText('No history yet')).toBeInTheDocument();
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
+});
+
+test('an archive-only dashboard shows activity without a fabricated content version', () => {
+  const timeline = buildTimeline([
+    record({
+      source: 'related',
+      kind: '__archive__',
+      operation: 'announce',
+      version_uuid: null,
+      entity_deletion_state: 'soft_deleted',
+      path: null,
+      to_value: null,
+    }),
+  ]);
+  render(<VersionHistoryPanel {...defaultProps(timeline, 'dashboard')} />);
+  expect(screen.getByText('Chart archived: My chart')).toBeInTheDocument();
+  expect(screen.queryByText('No history yet')).not.toBeInTheDocument();
+  expect(screen.queryByText('Original version')).not.toBeInTheDocument();
+  expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+  expect(screen.queryByText('Preview')).not.toBeInTheDocument();
 });

@@ -57,6 +57,9 @@ categories:
     - name: Ontruck
       url: https://www.ontruck.com/
 
+    - name: Rentapa
+      url: https://rentapa.pt/
+
   Financial Services:
     - name: Aadhar Housing Finance Limited
       url: https://www.aadharhousing.com
@@ -402,6 +405,10 @@ categories:
       url: https://showmax.com
       contributors: ["@bobek"]
 
+    - name: SkanAI
+      url: https://skan.ai
+      contributors: ["@bhardwajambuj"]
+
     - name: SingleStore
       url: https://www.singlestore.com/
 
@@ -464,6 +471,10 @@ categories:
     - name: WinWin Network马上赢
       url: https://brandct.cn/
       contributors: ["@wenbinye"]
+
+    - name: Wordfully
+      url: https://wordfully.ai
+      contributors: ["@vlbaluk"]
 
     - name: XNET
       url: https://xnetmobile.com/

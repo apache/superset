@@ -91,33 +91,31 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   });
 
   const callsBeforeSort = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
   await userEvent.click(nameHeader);
 
   // Wait for sort-triggered refetch to complete before applying filter
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
     ).toBeGreaterThan(callsBeforeSort);
   });
 
   // 2. Apply a filter using selectPillOption helper (compact pill UI)
   const beforeFilterCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
   await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(beforeFilterCallCount);
   });
 
   // 3. Verify the final API call contains ALL three state pieces merged correctly
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -219,7 +217,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   // Capture datasets call count before confirming
   const datasetsCallCountBeforeDelete = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   const confirmButton = within(modal)
@@ -243,7 +241,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   // Wait for datasets refetch after delete
   await waitFor(() => {
     const datasetsCallCount = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
+      API_ENDPOINTS.DATASETS,
     ).length;
     expect(datasetsCallCount).toBeGreaterThan(datasetsCallCountBeforeDelete);
   });
@@ -329,7 +327,7 @@ test('bulk delete confirm names the charts and dashboards that will break', asyn
   expect(within(modal).getByText('Chart A')).toBeInTheDocument();
   expect(within(modal).getByText('Chart B')).toBeInTheDocument();
   expect(within(modal).getByText('Executive Dashboard')).toBeInTheDocument();
-  expect(modal).toHaveTextContent(/linked to 2 charts on 1 dashboard\./i);
+  expect(modal).toHaveTextContent(/linked to 2 charts and 1 dashboard\./i);
 
   // The whole selection goes out in one lookup.
   const [lookup] = fetchMock.callHistory.calls(
@@ -354,7 +352,7 @@ test('bulk delete confirm counts dependents the user cannot see', async () => {
   const modal = await openBulkDeleteConfirm([mockDatasets[0], mockDatasets[1]]);
 
   expect(await within(modal).findByText('Chart A')).toBeInTheDocument();
-  expect(modal).toHaveTextContent(/linked to 2 charts on 1 dashboard\./i);
+  expect(modal).toHaveTextContent(/linked to 2 charts and 1 dashboard\./i);
   expect(modal).toHaveTextContent(/1 additional restricted chart/i);
   expect(modal).toHaveTextContent(/1 additional restricted dashboard/i);
   expect(modal).not.toHaveTextContent(/no charts or dashboards depend on/i);
@@ -384,6 +382,7 @@ test('bulk delete confirm never claims a semantic view has no dependents', async
     id: 99,
     table_name: 'orders_semantic',
     kind: 'semantic_view',
+    can_modify: true,
   };
   fetchMock.get(
     API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
@@ -470,7 +469,7 @@ async function expectMixedBulkArchiveKeepsDangerTreatment(semanticView: {
   try {
     setupBulkDeleteMocks();
     mockDatasetListEndpoints({
-      result: [mockDatasets[0], semanticView],
+      result: [mockDatasets[0], { ...semanticView, can_modify: true }],
       count: 2,
     });
 
@@ -569,7 +568,7 @@ test.each([0, 2])(
       const modal = await screen.findByRole('dialog');
       expect(modal).not.toHaveTextContent('Deleting');
       if (count) {
-        expect(modal).toHaveTextContent('2 charts on 1 dashboard');
+        expect(modal).toHaveTextContent('2 charts and 1 dashboard');
         expect(modal).toHaveTextContent(
           'Archiving it will make dependent charts unavailable until it is recovered.',
         );

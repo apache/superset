@@ -18,19 +18,22 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from collections.abc import Callable
+from functools import wraps
+from typing import Any, ParamSpec
 
-from flask import Blueprint, current_app, make_response, request, Response
-from flask_appbuilder import AppBuilder
-from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
+from flask import current_app, make_response, request, Response
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
+from superset_core.semantic_layers.transport import ProviderRequestError
 
-from superset import db, event_logger, is_feature_enabled, security_manager
+from superset import db, event_logger, security_manager
 from superset.commands.semantic_layer.create import (
     CreateSemanticLayerCommand,
     CreateSemanticViewCommand,
@@ -67,7 +70,12 @@ from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
-from superset.semantic_layers.masking import mask_configuration
+from superset.semantic_layers.dimension_resolution import grain_preference
+from superset.semantic_layers.exceptions import (
+    log_provider_failure,
+    provider_request_message,
+)
+from superset.semantic_layers.masking import credential_readiness, mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.semantic_layers.schemas import (
@@ -76,6 +84,7 @@ from superset.semantic_layers.schemas import (
     SemanticViewPostSchema,
     SemanticViewPutSchema,
 )
+from superset.semantic_layers.transport import build_provider_transport
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.views.base_api import (
@@ -120,28 +129,26 @@ def _log_bulk_create_timeouts(timed_out: int, total: int) -> None:
         )
 
 
-def _refuse_disabled_semantic_layers() -> FlaskResponse | None:
-    """Refuse semantic API dispatch before authentication or handler side effects."""
-    if not is_semantic_layers_enabled():
-        return BaseSupersetApi.response(404, message="Not found")
-    return None
+P = ParamSpec("P")
 
 
-class _RuntimeGuardedApiMixin(BaseApi):
-    """Install the same runtime guard on both semantic API blueprints."""
+def _requires_semantic_layers(
+    function: Callable[P, FlaskResponse],
+) -> Callable[P, FlaskResponse]:
+    """Check runtime availability after the endpoint's permission decorator.
 
-    def create_blueprint(
-        self,
-        appbuilder: AppBuilder,
-        endpoint: str | None = None,
-        static_folder: str | None = None,
-    ) -> Blueprint:
-        """Register all routes behind a runtime feature-availability guard."""
-        blueprint: Blueprint = super().create_blueprint(
-            appbuilder, endpoint, static_folder
-        )
-        blueprint.before_request(_refuse_disabled_semantic_layers)
-        return blueprint
+    Apply to every exposed handler directly below protect/protect_read and above
+    safe, metrics, parsing, and event logging. Keep the handler in the registered
+    route matrix in api_guard_order_test.py so a missing guard fails a test.
+    """
+
+    @wraps(function)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> FlaskResponse:
+        if not is_semantic_layers_enabled():
+            return BaseSupersetApi.response(404, message="Not found")
+        return function(*args, **kwargs)
+
+    return wrapped
 
 
 def _mask_configuration(layer: SemanticLayer, config: dict[str, Any]) -> dict[str, Any]:
@@ -247,7 +254,7 @@ def _parse_partial_config(
         return None
 
 
-class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
+class SemanticViewRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SemanticView)
 
     resource_name = "semantic_view"
@@ -268,6 +275,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/structure", methods=("GET",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -300,9 +308,6 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         view = db.session.query(SemanticView).filter_by(id=pk).first()
         if not view:
             return self.response_404()
@@ -320,9 +325,11 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                     "definition": dim.definition,
                     "description": dim.description,
                     "grain": dim.grain.name if dim.grain else None,
+                    "verbose_name": dim.verbose_name,
                 }
                 for dim in sorted(
-                    view.implementation.get_dimensions(), key=lambda d: d.name
+                    view.implementation.get_dimensions(),
+                    key=lambda d: (d.name, grain_preference(d)),
                 )
             ]
             metrics = [
@@ -338,13 +345,17 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             ]
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
-        except Exception:  # pylint: disable=broad-except
-            logger.exception(
-                "Error fetching structure for semantic view %d",
-                pk,
+        except Exception as ex:  # pylint: disable=broad-except
+            log_provider_failure(
+                "Error fetching semantic view structure",
+                ex,
+                view_id=pk,
+                layer_uuid=view.semantic_layer_uuid,
             )
             return self.response_422(
-                message=t("Unable to fetch semantic view structure.")
+                message=provider_request_message(ex)
+                if isinstance(ex, ProviderRequestError)
+                else t("Unable to fetch semantic view structure.")
             )
 
         return self.response(
@@ -363,6 +374,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -410,9 +422,6 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         body = request.json or {}
         views_data = body.get("views", [])
         if refusal := _bulk_create_refusal(views_data):
@@ -473,6 +482,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/<int:pk>", methods=("PUT",))
     @protect()
+    @_requires_semantic_layers
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
@@ -546,6 +556,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/<int:pk>", methods=("DELETE",))
     @protect()
+    @_requires_semantic_layers
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
@@ -592,7 +603,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                         maxItems: 20
                         items:
                           type: object
-                          required: [type, id, name]
+                          required: [type, id, name, archived]
                           properties:
                             type:
                               type: string
@@ -601,19 +612,20 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                               type: integer
                             name:
                               type: string
+                            archived:
+                              type: boolean
                       inaccessible_count:
                         type: integer
                       archived_count:
                         type: integer
                         description: >-
-                          Archived dependents are included in inaccessible_count;
-                          these counts overlap and must not be added together.
+                          Archived dependents are named only to users who could
+                          restore them from Recently Archived; the others are
+                          included in inaccessible_count. The counts overlap and
+                          must not be added together.
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         try:
             DeleteSemanticViewCommand(pk).run()
             return self.response(200, message="OK")
@@ -640,6 +652,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/", methods=("DELETE",))
     @protect()
+    @_requires_semantic_layers
     @statsd_metrics
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
@@ -696,7 +709,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                         maxItems: 20
                         items:
                           type: object
-                          required: [type, id, name]
+                          required: [type, id, name, archived]
                           properties:
                             type:
                               type: string
@@ -705,19 +718,64 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                               type: integer
                             name:
                               type: string
+                            archived:
+                              type: boolean
                       inaccessible_count:
                         type: integer
                       archived_count:
                         type: integer
                         description: >-
-                          Archived dependents are included in inaccessible_count;
-                          these counts overlap and must not be added together.
+                          Archived dependents are named only to users who could
+                          restore them from Recently Archived; the others are
+                          included in inaccessible_count. The counts overlap and
+                          must not be added together.
+                      blocked_view_ids:
+                        type: array
+                        items:
+                          type: integer
+                        description: >-
+                          The selected views that have dependents. Nothing is
+                          deleted; the others can be deleted in a new request.
+                      blocked_views:
+                        type: array
+                        description: >-
+                          Caller-visible dependency details for each blocked view.
+                        items:
+                          type: object
+                          required:
+                            - id
+                            - total
+                            - dependents
+                            - inaccessible_count
+                            - archived_count
+                          properties:
+                            id:
+                              type: integer
+                            total:
+                              type: integer
+                            inaccessible_count:
+                              type: integer
+                            archived_count:
+                              type: integer
+                            dependents:
+                              type: array
+                              maxItems: 20
+                              items:
+                                type: object
+                                required: [type, id, name, archived]
+                                properties:
+                                  type:
+                                    type: string
+                                    enum: [chart, dashboard, alert, report]
+                                  id:
+                                    type: integer
+                                  name:
+                                    type: string
+                                  archived:
+                                    type: boolean
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         item_ids: list[int] = kwargs["rison"]
         try:
             BulkDeleteSemanticViewCommand(item_ids).run()
@@ -741,6 +799,8 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 dependents=ex.dependents,
                 inaccessible_count=ex.inaccessible_count,
                 archived_count=ex.archived_count,
+                blocked_view_ids=ex.blocked_view_ids,
+                blocked_views=ex.blocked_views,
             )
         except SemanticViewDeleteFailedError as ex:
             logger.error(
@@ -751,7 +811,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
 
 
-class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
+class SemanticLayerRestApi(BaseSupersetApi):
     resource_name = "semantic_layer"
     allow_browser_login = True
     class_permission_name = "SemanticLayer"
@@ -775,6 +835,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/types", methods=("GET",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def types(self) -> FlaskResponse:
@@ -796,6 +857,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/schema/configuration", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @requires_json
@@ -835,30 +897,43 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         # configuring a layer, so it requires write access; read-only callers
         # get the static schema.
         parsed_config = None
-        if (config := body.get("configuration")) and security_manager.can_access(
-            "can_write", "SemanticLayer"
-        ):
+        readiness: SemanticCredentialReadiness = SemanticCredentialReadiness.UNRESOLVED
+        config: Any
+        if isinstance(
+            config := body.get("configuration"), dict
+        ) and security_manager.can_access("can_write", "SemanticLayer"):
+            readiness = credential_readiness(config)
             parsed_config = _parse_partial_config(cls, config)
+            if parsed_config is None:
+                readiness = SemanticCredentialReadiness.UNRESOLVED
 
         warning: str | None = None
         try:
-            schema = cls.get_configuration_schema(parsed_config)
-        except Exception:  # pylint: disable=broad-except
-            # Show a stable, user-friendly message in the UI; the exception
-            # detail goes to the server log below.
+            schema: dict[str, Any] = cls.get_configuration_schema(
+                parsed_config, transport=build_provider_transport(), readiness=readiness
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            # Keep public guidance stable; unknown diagnostics require DEBUG logs.
             warning = str(
                 t(
                     "Could not load metadata for this configuration; "
                     "showing the default form. See the server logs for details."
                 )
             )
-            logger.exception(
-                "Error enriching semantic layer configuration schema for type %s",
-                sl_type,
+            log_provider_failure(
+                "Error enriching semantic layer configuration schema",
+                ex,
+                # Preview has no persisted view or layer; never use submitted IDs.
+                view_id=None,
+                layer_uuid=None,
             )
             # Connection or query failures during schema enrichment should not
             # prevent the form from rendering — return the base schema instead.
-            schema = cls.get_configuration_schema(None)
+            schema = cls.get_configuration_schema(
+                None,
+                transport=build_provider_transport(),
+                readiness=SemanticCredentialReadiness.UNRESOLVED,
+            )
 
         payload: dict[str, Any] = {"result": schema}
         if warning:
@@ -869,6 +944,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>/schema/runtime", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def runtime_schema(self, uuid: str) -> FlaskResponse:
@@ -899,9 +975,6 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
@@ -919,24 +992,31 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             return self.response_400(message=f"Unknown type: {layer.type}")
 
         try:
-            schema = cls.get_runtime_schema(
+            schema: dict[str, Any] = cls.get_runtime_schema(
                 layer.implementation.configuration,  # type: ignore[attr-defined]
                 runtime_data,
+                transport=build_provider_transport(),
+                readiness=credential_readiness(json.loads(layer.configuration)),
             )
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
-        except Exception:  # pylint: disable=broad-except
-            logger.exception(
-                "Error fetching runtime schema for semantic layer %s", uuid
+        except Exception as ex:  # pylint: disable=broad-except
+            log_provider_failure(
+                "Error fetching semantic layer runtime schema",
+                ex,
+                layer_uuid=layer.uuid,
             )
             return self.response_400(
-                message=t("Unable to fetch semantic layer runtime schema.")
+                message=provider_request_message(ex)
+                if isinstance(ex, ProviderRequestError)
+                else t("Unable to fetch semantic layer runtime schema.")
             )
 
         return self.response(200, result=schema)
 
     @expose("/<uuid>/views", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def views(self, uuid: str) -> FlaskResponse:
@@ -967,9 +1047,6 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
@@ -1020,6 +1097,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @requires_json
@@ -1075,6 +1153,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>", methods=("PUT",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @requires_json
@@ -1141,6 +1220,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>/clear_cache", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @requires_json
@@ -1176,8 +1256,6 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
         if request.get_json(silent=True) != {}:
             return self.response_400(message="Expected an empty JSON object")
         try:
@@ -1192,6 +1270,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>", methods=("DELETE",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def delete(self, uuid: str) -> FlaskResponse:
@@ -1235,7 +1314,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                         maxItems: 20
                         items:
                           type: object
-                          required: [type, id, name]
+                          required: [type, id, name, archived]
                           properties:
                             type:
                               type: string
@@ -1244,13 +1323,17 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                               type: integer
                             name:
                               type: string
+                            archived:
+                              type: boolean
                       inaccessible_count:
                         type: integer
                       archived_count:
                         type: integer
                         description: >-
-                          Archived dependents are included in inaccessible_count;
-                          these counts overlap and must not be added together.
+                          Archived dependents are named only to users who could
+                          restore them from Recently Archived; the others are
+                          included in inaccessible_count. The counts overlap and
+                          must not be added together.
             422:
               $ref: '#/components/responses/422'
         """
@@ -1280,6 +1363,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/connections/", methods=("GET",))
     @protect_read("Database", "SemanticLayer")
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @rison(get_list_schema)
@@ -1317,9 +1401,6 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         filters = args.get("filters", [])
 
         source_type, name_filter = self._parse_connection_filters(filters)
-
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
 
         all_items = self._fetch_connection_items(source_type, name_filter)
 
@@ -1495,6 +1576,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/", methods=("GET",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def get_list(self) -> FlaskResponse:
@@ -1508,15 +1590,13 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         layers = SemanticLayerDAO.find_all()
         result = [_serialize_layer(layer) for layer in layers]
         return self.response(200, result=result)
 
     @expose("/<uuid>", methods=("GET",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def get(self, uuid: str) -> FlaskResponse:
@@ -1539,9 +1619,6 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()

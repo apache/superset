@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import { ComponentProps } from 'react';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   render,
   screen,
@@ -26,7 +28,9 @@ import {
 } from 'spec/helpers/testing-library';
 import { Comparator } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
-import ConditionalFormattingControl from './ConditionalFormattingControl';
+import ConditionalFormattingControl, {
+  CloseButton,
+} from './ConditionalFormattingControl';
 import { ConditionalFormattingConfig } from './types';
 
 const columnOptions = [
@@ -156,16 +160,23 @@ const editTargetValue = async (formatterLabel: string, value: string) => {
   await userEvent.click(screen.getByText('Apply'));
 };
 
-// The popover Selects render their options inline next to the trigger, so
-// scope the option lookup to the Select that was opened.
+// The popover Selects portal their dropdown to <body>, and antd keeps a
+// hidden node around for every dropdown that has been closed, so scope the
+// option lookup to the dropdown that is actually open rather than to the
+// trigger's parent or to the first list in the document.
 const pickColumn = async (optionLabel: string) => {
   const trigger = await screen.findByRole('combobox', {
     name: 'Select column',
   });
-  const container = trigger.closest('.ant-select')!
-    .parentElement as HTMLElement;
   await userEvent.click(trigger);
-  await userEvent.click(await within(container).findByText(optionLabel));
+  const dropdown = await waitFor(() => {
+    const open = Array.from(
+      document.querySelectorAll<HTMLElement>('.ant-select-dropdown'),
+    ).filter(el => !el.classList.contains('ant-select-dropdown-hidden'));
+    expect(open.length).toBeGreaterThan(0);
+    return open[open.length - 1];
+  });
+  await userEvent.click(await within(dropdown).findByText(optionLabel));
 };
 
 test('opens the add formatter popover from the add label', async () => {
@@ -429,4 +440,13 @@ test('reports adding and then removing a formatter on an unset value', async () 
   );
   await userEvent.click(screen.getByLabelText('close'));
   expect(lastChange(onChange)).toEqual([]);
+});
+
+test('close button shows a visible focus ring when focused with the keyboard', () => {
+  render(<CloseButton aria-label="Remove" />);
+  expect(screen.getByRole('button', { name: 'Remove' })).toHaveStyleRule(
+    'outline',
+    `2px solid ${supersetTheme.colorPrimary}`,
+    { target: ':focus-visible' },
+  );
 });

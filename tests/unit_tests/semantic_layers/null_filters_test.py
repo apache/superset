@@ -53,6 +53,11 @@ def _matches(expression: FilterExpression, value: str | None) -> bool:
     """Evaluate leaf SQL truth independently; grouped children are disjunctions."""
     if isinstance(expression, OrFilter):
         return any(_matches(child, value) for child in expression.filters)
+    if expression.operator in {Operator.IN, Operator.NOT_IN} and (
+        expression.value == frozenset()
+    ):
+        # SQL: x IN () is FALSE and x NOT IN () is TRUE, even when x is NULL.
+        return expression.operator == Operator.NOT_IN
     if expression.operator == Operator.IS_NULL:
         return value is None
     if expression.operator == Operator.IS_NOT_NULL:
@@ -91,9 +96,13 @@ def _matches(expression: FilterExpression, value: str | None) -> bool:
         ("IN", [None, "a", None, "a"], [None, "a"]),
         ("NOT IN", [None, "a", None, "a"], ["b"]),
         ("IN", ["a"], ["a"]),
-        ("NOT IN", ["a"], ["b"]),
+        ("NOT IN", ["a"], [None, "b"]),
+        ("NOT IN", ["a", "b"], [None]),
+        ("NOT IN", ["<empty string>"], [None, "a", "b"]),
         ("==", "a", ["a"]),
-        ("!=", "a", ["b"]),
+        ("!=", "a", [None, "b"]),
+        ("IN", [], []),
+        ("NOT IN", [], [None, "a", "b"]),
     ],
 )
 def test_null_filter_row_membership(
@@ -111,20 +120,75 @@ def test_null_filter_row_membership(
     assert actual == expected
 
 
+@pytest.mark.parametrize(
+    "operator,expected",
+    [("IN", Operator.IN), ("NOT IN", Operator.NOT_IN)],
+)
+def test_empty_membership_is_a_constant_predicate(
+    operator: str, expected: Operator
+) -> None:
+    """Empty membership reaches providers as one empty-set leaf, not an error."""
+    assert _convert_query_object_filter(
+        {"col": "category", "op": operator, "val": []}, {"category": CATEGORY}
+    ) == {Filter(PredicateType.WHERE, CATEGORY, expected, frozenset())}
+
+
 @pytest.mark.parametrize("operator", ["IN", "NOT IN"])
-def test_empty_membership_is_rejected(operator: str) -> None:
-    """Empty membership is a query validation error, never dialect-specific SQL."""
-    with pytest.raises(QueryObjectValidationError, match="empty"):
-        _convert_query_object_filter(
-            {"col": "category", "op": operator, "val": []}, {"category": CATEGORY}
-        )
+def test_provider_receives_empty_membership_beside_other_filters(
+    operator: str,
+) -> None:
+    """The constant applies where it sits: ANDed with the query's other filters."""
+    datasource: MagicMock = MagicMock()
+    datasource.implementation.features = frozenset()
+    datasource.implementation.get_dimensions.return_value = {CATEGORY}
+    datasource.implementation.get_metrics.return_value = set()
+    datasource.implementation.get_table.return_value = SemanticResult(
+        requests=[], results=pa.table({"category": pa.array([], pa.string())})
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["category"],
+        filters=[
+            {"col": "category", "op": operator, "val": []},
+            {"col": "category", "op": "!=", "val": "b"},
+        ],
+    )
+    get_results(query)
+    mapped: SemanticQuery = datasource.implementation.get_table.call_args.args[0]
+    assert mapped.filters == {
+        Filter(PredicateType.WHERE, CATEGORY, Operator(operator), frozenset()),
+        OrFilter(
+            frozenset(
+                {
+                    Filter(PredicateType.WHERE, CATEGORY, Operator.NOT_EQUALS, "b"),
+                    Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None),
+                }
+            )
+        ),
+    }
 
 
 @pytest.mark.parametrize("is_rowcount", [False, True])
+@pytest.mark.parametrize("is_extra", [False, True])
+@pytest.mark.parametrize(
+    "operator,value",
+    [
+        ("IN", ["a", None]),
+        ("NOT IN", ["a"]),
+        ("!=", "a"),
+        ("NOT LIKE", "a%"),
+        ("NOT ILIKE", "A%"),
+        ("NOT LIKE", ""),
+        ("NOT ILIKE", ""),
+    ],
+)
 def test_provider_receives_mixed_null_membership_without_opt_in(
     is_rowcount: bool,
+    is_extra: bool,
+    operator: str,
+    value: FilterValues,
 ) -> None:
-    """Grouped predicates are mandatory for table and row-count execution."""
+    """User exclusions reach table and row-count providers as flat NULL groups."""
     datasource: MagicMock = MagicMock()
     datasource.implementation.features = frozenset()
     datasource.implementation.get_dimensions.return_value = {CATEGORY}
@@ -138,7 +202,14 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=datasource,
         columns=["category"],
-        filters=[{"col": "category", "op": "IN", "val": ["a", None]}],
+        filters=[
+            {
+                "col": "category",
+                "op": operator,
+                "val": value,
+                "isExtra": is_extra,
+            }
+        ],
     )
     query.is_rowcount = is_rowcount
     get_results(query)
@@ -154,7 +225,12 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
             frozenset(
                 {
                     Filter(
-                        PredicateType.WHERE, CATEGORY, Operator.IN, frozenset({"a"})
+                        PredicateType.WHERE,
+                        CATEGORY,
+                        Operator(operator),
+                        frozenset({"a"})
+                        if operator in {"IN", "NOT IN"}
+                        else cast(str, value),
                     ),
                     Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None),
                 }
@@ -176,7 +252,7 @@ def test_or_group_is_hashable_and_keeps_predicate_stage(stage: PredicateType) ->
     assert len({group, OrFilter(frozenset({null, leaf}))}) == 1
     assert {child.type for child in group.filters} == {stage}
     with pytest.raises(FrozenInstanceError):
-        group.filters = frozenset()  # type: ignore[misc]  # Exercise runtime freezing.
+        setattr(group, "filters", frozenset())  # noqa: B010
 
 
 @pytest.mark.parametrize(

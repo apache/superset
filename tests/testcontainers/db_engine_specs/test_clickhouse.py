@@ -43,7 +43,9 @@ test run rather than constructing a second one.
 
 import threading
 import time
+import uuid
 from collections.abc import Iterator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy import (
@@ -59,7 +61,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import Engine
 
+from superset.errors import SupersetError
 from superset.sql.parse import Table
+from superset.utils import json
 from superset.utils.core import GenericDataType
 
 pytestmark = pytest.mark.testcontainers
@@ -133,6 +137,47 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
         assert spec is not None
         assert spec.generic_type == GenericDataType.NUMERIC
         assert isinstance(spec.sqla_type, Integer)
+
+
+def test_physical_table_metadata_serializes_expression_columns(
+    engine: Engine,
+) -> None:
+    from tests.integration_tests.test_app import app
+
+    with app.app_context():
+        from superset.connectors.sqla.utils import get_physical_table_metadata
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+        from superset.utils import json
+
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE pilot_expressions ("
+                "ts DateTime, price Float64, qty UInt32, "
+                "total Float64 ALIAS price * qty, "
+                "day Date MATERIALIZED toDate(ts), "
+                "note String DEFAULT 'x'"
+                ") ENGINE = MergeTree ORDER BY ts"
+            )
+        )
+
+    database = MagicMock()
+    database.db_engine_spec = ClickHouseConnectEngineSpec
+    database.get_dialect.return_value = engine.dialect
+    database.get_extra.return_value = {}
+    database.get_columns.side_effect = (
+        lambda table: ClickHouseConnectEngineSpec.get_columns(inspect(engine), table)
+    )
+
+    columns = get_physical_table_metadata(
+        database, Table("pilot_expressions"), normalize_columns=False
+    )
+
+    by_name = {col["column_name"]: dict(col) for col in columns}
+    assert by_name["total"]["clickhouse_alias"] == "price * qty"
+    assert by_name["day"]["clickhouse_materialized"] == "toDate(ts)"
+    assert by_name["note"]["server_default"] == "'x'"
+    json.dumps(columns, default=json.json_int_dttm_ser, ignore_nan=True)
 
 
 def test_group_by_all_groups_correctly(engine: Engine) -> None:
@@ -289,3 +334,218 @@ def test_cancel_query_actually_stops_the_query_server_side(engine: Engine) -> No
     assert elapsed_seconds[0] < 15
 
     assert _processes_count_for(engine, cancel_query_id) == 0
+
+
+def _execute_failing_statement(
+    engine: Engine, sql: str
+) -> tuple[Exception, str, list[SupersetError]]:
+    """
+    Run ``sql``, expected to fail, the way SQL Lab does: through
+    ``ClickHouseConnectEngineSpec.execute_with_cursor`` on a raw DB-API cursor.
+
+    Returns the exception the engine spec raised, the string SQL Lab stores on
+    ``Query.error_message`` (``extract_error_message``) and the structured errors
+    SQL Lab returns to the UI (``extract_errors``).
+    """
+    from tests.integration_tests.test_app import app
+
+    with app.app_context():
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+        database = MagicMock()
+        database.is_oauth2_enabled.return_value = False
+        database.db_engine_spec = ClickHouseConnectEngineSpec
+        query = MagicMock(id=1, database=database)
+
+        connection = engine.raw_connection()
+        try:
+            with pytest.raises(Exception) as excinfo:  # noqa: PT011
+                ClickHouseConnectEngineSpec.execute_with_cursor(
+                    connection.cursor(), sql, query
+                )
+        finally:
+            connection.close()
+        exception = excinfo.value
+        return (
+            exception,
+            ClickHouseConnectEngineSpec.extract_error_message(exception),
+            ClickHouseConnectEngineSpec.extract_errors(exception),
+        )
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected_fragments"),
+    [
+        (
+            "SELECT * FROM pilot_missing_table",
+            ["Code: 60", "(UNKNOWN_TABLE)", "pilot_missing_table"],
+        ),
+        (
+            "SELECT pilot_missing_column FROM system.one",
+            ["Code: 47", "(UNKNOWN_IDENTIFIER)", "pilot_missing_column"],
+        ),
+        (
+            "SELEC 1",
+            ["Code: 62", "Syntax error", "(SYNTAX_ERROR)"],
+        ),
+        (
+            "SELECT toInt32('not a number')",
+            ["Code: 6", "Cannot parse string", "(CANNOT_PARSE_TEXT)"],
+        ),
+    ],
+    ids=["unknown_table", "unknown_column", "syntax_error", "failing_cast"],
+)
+def test_failed_query_error_carries_server_error_text(
+    engine: Engine, sql: str, expected_fragments: list[str]
+) -> None:
+    """
+    A statement the server rejects must surface ClickHouse's own error (code,
+    exception name and the offending identifier) through the engine spec, in
+    both the legacy ``extract_error_message`` string SQL Lab stores on
+    ``Query.error_message`` and the structured ``extract_errors`` result, rather
+    than a generic message. Mocked tests only assume the driver's error shape.
+    """
+    _, legacy_message, errors = _execute_failing_statement(engine, sql)
+
+    assert legacy_message.startswith("clickhousedb error: ")
+    assert len(errors) == 1
+    for fragment in expected_fragments:
+        assert fragment in legacy_message
+        assert fragment in errors[0].message
+    assert "The ClickHouse server returned an error" not in legacy_message
+
+
+def test_error_raised_mid_result_stream_carries_server_error_text(
+    engine: Engine,
+) -> None:
+    """
+    A runtime error raised by the server after it has already started producing
+    result blocks (millions of rows in, with small blocks so earlier blocks are
+    sent first) must still report ClickHouse's own error text.
+
+    ``clickhouse-connect`` reads the whole response inside ``cursor.execute``, so
+    this surfaces from the execute step; a failure during the later
+    ``fetch_data`` step cannot be provoked against a real server, which is why the
+    fetch step is covered with a stand-in cursor in
+    ``tests/unit_tests/sql_lab_clickhouse_errors_test.py``.
+    """
+    _, legacy_message, errors = _execute_failing_statement(
+        engine,
+        "SELECT number, throwIf(number = 3000000, 'pilot late failure') "
+        "FROM numbers(5000000) SETTINGS max_block_size = 1000",
+    )
+
+    assert "Code: 395" in legacy_message
+    assert "pilot late failure" in legacy_message
+    assert "(FUNCTION_THROW_IF_VALUE_IS_NON_ZERO)" in legacy_message
+    (error,) = errors
+    assert "pilot late failure" in error.message
+
+
+def test_failed_query_error_is_generic_when_show_clickhouse_errors_is_false(
+    engine: Engine,
+) -> None:
+    """
+    Characterization, not desired behavior: with ``show_clickhouse_errors=false``
+    in the connection URI, ``clickhouse-connect`` withholds the server's error
+    text and raises only "The ClickHouse server returned an error". The engine
+    spec has nothing more to show, so the generic text is exactly what
+    ``extract_error_message`` and ``extract_errors`` report.
+    """
+    hidden_errors_engine = create_engine(
+        engine.url.update_query_dict({"show_clickhouse_errors": "false"})
+    )
+    try:
+        exception, legacy_message, errors = _execute_failing_statement(
+            hidden_errors_engine, "SELECT * FROM pilot_missing_table"
+        )
+    finally:
+        hidden_errors_engine.dispose()
+
+    assert str(exception) == "The ClickHouse server returned an error"
+    assert legacy_message == (
+        "clickhousedb error: The ClickHouse server returned an error"
+    )
+    (error,) = errors
+    assert error.message == "The ClickHouse server returned an error"
+    assert "pilot_missing_table" not in error.message
+
+
+def _logged_comment(engine: Engine, marker: str) -> str:
+    with engine.connect() as connection:
+        connection.execute(text("SYSTEM FLUSH LOGS"))
+        return connection.execute(
+            text(
+                "SELECT log_comment FROM system.query_log "
+                "WHERE type = 'QueryFinish' AND startsWith(query, :sql)"
+            ),
+            {"sql": f"SELECT '{marker}'"},
+        ).scalar_one()
+
+
+def test_log_comment_tags_dashboard_chart_queries(engine: Engine) -> None:
+    from tests.integration_tests.test_app import app
+
+    marker = uuid.uuid4().hex
+    with app.app_context():
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+        with (
+            patch.dict(
+                app.config,
+                {"QUERY_LOG_COMMENT_FUNC": lambda database, ctx: json.dumps(ctx)},
+            ),
+            app.test_request_context(
+                "/api/v1/chart/data?dashboard_id=3",
+                method="POST",
+                json={"form_data": {"slice_id": 12}},
+            ),
+        ):
+            connection = engine.raw_connection()
+            try:
+                ClickHouseConnectEngineSpec.execute(
+                    connection.cursor(), f"SELECT '{marker}'", MagicMock()
+                )
+            finally:
+                connection.close()
+
+    assert json.loads(_logged_comment(engine, marker)) == {
+        "dashboard_id": 3,
+        "chart_id": 12,
+    }
+
+
+def test_log_comment_tags_sqllab_queries_next_to_query_id(engine: Engine) -> None:
+    from tests.integration_tests.test_app import app
+
+    marker = uuid.uuid4().hex
+    with app.app_context():
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+        from superset.models.sql_lab import Query
+
+        query = Query()
+        query.id = 42
+        query.set_extra_json_key("cancel_query", str(uuid.uuid4()))
+        with patch.dict(
+            app.config,
+            {"QUERY_LOG_COMMENT_FUNC": lambda database, ctx: json.dumps(ctx)},
+        ):
+            connection = engine.raw_connection()
+            try:
+                ClickHouseConnectEngineSpec.execute_with_cursor(
+                    connection.cursor(), f"SELECT '{marker}'", query
+                )
+            finally:
+                connection.close()
+
+    with engine.connect() as connection:
+        connection.execute(text("SYSTEM FLUSH LOGS"))
+        query_id = connection.execute(
+            text(
+                "SELECT query_id FROM system.query_log "
+                "WHERE type = 'QueryFinish' AND startsWith(query, :sql)"
+            ),
+            {"sql": f"SELECT '{marker}'"},
+        ).scalar_one()
+    assert query_id == query.extra["cancel_query"]
+    assert json.loads(_logged_comment(engine, marker)) == {"sqllab_query_id": 42}
