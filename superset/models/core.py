@@ -192,13 +192,15 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     value = Column(utils.MediumText(), nullable=False)
 
 
-class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
+class CssTemplate(AuditMixinNullable, ImportExportMixin, Model):
     """CSS templates for dashboards"""
 
     __tablename__ = "css_templates"
     id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
     css = Column(utils.MediumText(), default="")
+
+    export_fields = ["template_name", "css"]
 
 
 class Theme(AuditMixinNullable, ImportExportMixin, Model):

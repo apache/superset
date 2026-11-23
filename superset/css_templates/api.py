@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from io import BytesIO
 from typing import Any
 
-from flask import Response
+from flask import Response, send_file
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -27,10 +28,13 @@ from superset.commands.css.exceptions import (
     CssTemplateDeleteFailedError,
     CssTemplateNotFoundError,
 )
+from superset.commands.css.export_css import ExportCssTemplatesCommand
+from superset.commands.export.models import METADATA_FILE_NAME
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.css_templates.filters import CssTemplateAllTextFilter
 from superset.css_templates.schemas import (
     get_delete_ids_schema,
+    get_export_ids_schema,
     openapi_spec_methods_override,
 )
 from superset.extensions import event_logger
@@ -49,6 +53,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(CssTemplate)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.EXPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
@@ -92,6 +97,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
+        "get_export_ids_schema": get_export_ids_schema,
     }
     openapi_spec_tag = "CSS Templates"
     openapi_spec_methods = openapi_spec_methods_override
@@ -158,3 +164,71 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except CssTemplateDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/export/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
+        log_to_statsd=False,
+    )
+    @parse_rison(get_export_ids_schema)
+    def export(self, **kwargs: Any) -> Response:
+        """Download a CSS template as a .css file.
+        ---
+        get:
+          summary: Download a CSS template as a .css file
+          description: >-
+            Exports a single CSS template. The `q` parameter must contain
+            exactly one id.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_export_ids_schema'
+          responses:
+            200:
+              description: CSS template export
+              content:
+                text/css:
+                  schema:
+                    type: string
+                    format: binary
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        requested_ids = kwargs["rison"]
+        if len(requested_ids) != 1:
+            return self.response_400(
+                message="Exactly one CSS template id must be provided"
+            )
+
+        try:
+            file_name, file_content = next(
+                (name, content)
+                for name, content in ExportCssTemplatesCommand(requested_ids).run()
+                if name != METADATA_FILE_NAME
+            )
+        except CssTemplateNotFoundError:
+            return self.response_404()
+
+        response = send_file(
+            BytesIO(file_content().encode()),
+            mimetype="text/css",
+            as_attachment=True,
+            download_name=file_name,
+            max_age=0,
+        )
+        response.cache_control.no_store = True
+        response.cache_control.no_cache = True
+        response.cache_control.must_revalidate = True
+        return response
