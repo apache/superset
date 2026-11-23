@@ -159,7 +159,7 @@
     "antd": "^6.6.8",
     "chrono-node": "^2.10.2",
     "classnames": "^2.2.5",
-    "colord": "^2.13.0",
+    "colord": "^2.14.0",
     "content-disposition": "^3.0.0",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.23",

@@ -93,6 +93,12 @@ test('getDivergingColor parses string color endpoints', () => {
   ).toEqual('#ff8080');
 });
 
+test('getDivergingColor parses rgb() mixing percentages and numbers', () => {
+  expect(
+    getDivergingColor(25, 0, 50, 100, 'rgb(100% 0 0)', '#ffffff', '#008000'),
+  ).toEqual('#ff8080');
+});
+
 test('getDivergingColor returns the segment endpoint outright when its range has zero width', () => {
   expect(
     getDivergingColor(10, 10, 10, 20, '#ff0000', '#ffffff', '#008000'),

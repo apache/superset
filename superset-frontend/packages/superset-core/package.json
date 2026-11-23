@@ -93,7 +93,7 @@
     "type": "npx tsc --noEmit"
   },
   "dependencies": {
-    "colord": "^2.13.0",
+    "colord": "^2.14.0",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {

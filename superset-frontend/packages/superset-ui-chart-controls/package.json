@@ -29,7 +29,7 @@
   "dependencies": {
     "@apache-superset/core": "*",
     "@types/react": "*",
-    "colord": "^2.13.0",
+    "colord": "^2.14.0",
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1"
   },
