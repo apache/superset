@@ -22,6 +22,7 @@ import type { editors } from '@apache-superset/core';
 import { EditorHost } from 'src/core/editors';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
+import { Select } from '@superset-ui/core/components'
 
 type EditorAnnotation = editors.EditorAnnotation;
 
@@ -52,6 +53,9 @@ interface AdvancedSectionProps {
   jsonAnnotations: any[];
   validationStatus: ValidationObject;
   onJsonMetadataChange: (value: string) => void;
+  customTimePresets: string[];
+  onCustomTimePresetsChange: (value: string[]) => void;
+  customTimePresetsError?: string;
 }
 
 const AdvancedSection = ({
@@ -59,8 +63,31 @@ const AdvancedSection = ({
   jsonAnnotations,
   validationStatus,
   onJsonMetadataChange,
+  customTimePresets,
+  onCustomTimePresetsChange,
+  customTimePresetsError,
 }: AdvancedSectionProps) => (
   <>
+    <ModalFormField
+      label={t('Custom Time Presets')}
+      testId="dashboard-custom-time-presets"
+      helperText={t(
+        'Enter custom relative time ranges (e.g., "Last 5 minutes", "Last 2 hours")',
+      )}
+      error={customTimePresetsError}
+    >
+      <Select
+        mode="multiple"
+        allowNewOptions
+        ariaLabel={t('Custom time presets')}
+        placeholder={t('e.g., Last 5 minutes')}
+        value={customTimePresets}
+        onChange={value => onCustomTimePresetsChange(value as string[])}
+        options={[]}
+        tokenSeparators={[',']}
+        status={customTimePresetsError ? 'error' : undefined}
+      />
+    </ModalFormField>
     <ModalFormField
       label={t('JSON Metadata')}
       testId="dashboard-metadata-field"
