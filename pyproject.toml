@@ -162,8 +162,8 @@ crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 # engine spec lives in superset/db_engine_specs/d1.py, and sqlalchemy-d1
 # gets its DBAPI from sqlalchemy-cloudflare-d1.
 d1 = ["sqlalchemy-d1>=0.2.2, <1"]
-# Materialize supports only some tables in Postgres' pg_catalog, and 
-# this dialect enables those functionalities by querying supported 
+# Materialize supports only some tables in Postgres' pg_catalog, and
+# this dialect enables those functionalities by querying supported
 # tables in mz_catalog (Materialize's pg_catalog)
 materialize = [
     "sqlalchemy-materialize>=0.1.4",

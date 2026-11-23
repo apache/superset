@@ -36,6 +36,8 @@ from superset.db_engine_specs.postgres import (
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine import Inspector
+
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -176,17 +178,17 @@ class MaterializeEngineSpec(PostgresEngineSpec):
         return None
 
     @classmethod
-    def get_cancel_query_id(cls, cursor, query) -> str | None:
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
         """Get the connection ID used to cancel a Materialize query."""
         # Materialize pins a transaction to the cluster of its first statement;
         # end it so the user's query isn't stuck on mz_catalog_server.
         cursor.execute("SELECT pg_backend_pid()")
         row = cursor.fetchone()
-        cursor.connection.commit()
+        cursor.connection.commit()  # pylint: disable=consider-using-transaction
         return row[0]
 
     @classmethod
-    def get_schema_names(cls, inspector) -> set[str]:
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
         """List user schemas, excluding PostgreSQL and Materialize system schemas."""
         with inspector.engine.connect() as conn:
             return {
