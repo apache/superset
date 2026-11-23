@@ -14929,6 +14929,9 @@ msgstr ""
 msgid "The following charts were omitted because an error occurred while exporting them:"
 msgstr ""
 
+msgid "The following charts were omitted because their chart type is not yet supported on semantic views. To include them, switch each chart to a supported type such as Table, Bar or Line."
+msgstr ""
+
 msgid "The following charts were omitted because their size cannot be determined before they run. Ask an administrator to enable background exports to include them."
 msgstr ""
 

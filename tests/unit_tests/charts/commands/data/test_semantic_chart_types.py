@@ -360,3 +360,40 @@ def test_saved_get_stamps_chart_id_for_semantic_views(
         assert sent == {"viz_type": "table", "slice_id": 1}
     else:
         assert sent == form_data
+
+
+def test_saved_get_uses_chart_type_over_stale_context(full_api_access: None) -> None:
+    """A saved context still claiming a supported type can't bypass the refusal."""
+    api: ChartDataRestApi = ChartDataRestApi()
+    chart: Slice = Slice(
+        id=1,
+        viz_type="histogram_v2",
+        datasource_type="semantic_view",
+        query_context=json.dumps(
+            {
+                "datasource": {"id": 1, "type": "semantic_view"},
+                "queries": [{}],
+                "form_data": {"viz_type": "table"},
+            }
+        ),
+    )
+    api.datamodel = Mock()
+    api.datamodel.get.return_value = chart
+    api._base_filters = []
+    context: Mock = _context("table")
+
+    def build(json_body: dict[str, object]) -> Mock:
+        context.form_data = json_body["form_data"]
+        return context
+
+    response: Response
+    get_data: Mock
+    with (
+        current_app.test_request_context("/api/v1/chart/1/data/"),
+        patch.object(api, "_create_query_context_from_form", side_effect=build),
+        patch.object(api, "_get_data_response") as get_data,
+    ):
+        response = api.get_data(1)
+    assert response.status_code == 400
+    assert "Histogram" in response.get_json()["message"]
+    get_data.assert_not_called()
