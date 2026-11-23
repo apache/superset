@@ -108,8 +108,9 @@ Semantic-view rows in the combined datasource list include `can_modify`. The
 datasets list uses it for Edit, Delete, and bulk-delete eligibility. It requires
 `can_write` on `SemanticView`, access to the view, and the write commands' shared
 modification rule: administrator, editor granted through `EXTRA_EDITORS_RESOLVER`,
-or creator. The response exposes a boolean, not editor or creator identities.
-This is a UI affordance, not a write authorization token: commands recheck access,
+or creator. `can_modify` is a boolean and does not list editors; the row's
+existing `changed_by` still names the last editor, which is the creator until the
+view is first edited. This is a UI affordance, not a write authorization token: commands recheck access,
 and dependent assets can still prevent deletion. A missing flag does not grant
 modification permission.
 
