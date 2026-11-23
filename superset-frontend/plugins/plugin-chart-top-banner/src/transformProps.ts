@@ -21,11 +21,16 @@ import { ChartProps } from '@superset-ui/core';
 import { TopBannerChartProps, TopBannerFormData } from './types.js';
 import { useTheme } from '@apache-superset/core/theme';
 
-
-
-function numberValue(value: unknown, fallback: number, min: number, max: number): number {
+function numberValue(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+  return Number.isFinite(parsed)
+    ? Math.min(max, Math.max(min, parsed))
+    : fallback;
 }
 
 function textValue(value: unknown, fallback: string): string {
@@ -42,12 +47,17 @@ export default function transformProps(
     width,
     height,
     bannerTitle: textValue(formData.bannerTitle, 'Hello'),
-    bannerSubtitle: textValue(formData.bannerSubtitle, 'Typing your subtitle here...'),
+    bannerSubtitle: textValue(
+      formData.bannerSubtitle,
+      'Typing your subtitle here...',
+    ),
     bannerIcon: textValue(formData.bannerIcon, '😶‍🌫️'),
     showIcon: formData.showIcon ?? true,
     showClock: formData.showClock ?? true,
     clockPosition: formData.clockPosition ?? 'right',
-    timezone: textValue(formData.timezone, 'America/Los_Angeles').trim() || 'America/Los_Angeles',
+    timezone:
+      textValue(formData.timezone, 'America/Los_Angeles').trim() ||
+      'America/Los_Angeles',
     locale: textValue(formData.locale, 'en-GB').trim() || 'en-GB',
     datePattern: formData.datePattern ?? 'weekday',
     showDate: formData.showDate ?? true,

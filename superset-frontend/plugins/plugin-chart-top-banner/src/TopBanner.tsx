@@ -31,10 +31,20 @@ function getDateOptions(pattern: DatePattern): Intl.DateTimeFormatOptions {
     case 'long':
       return { year: 'numeric', month: 'long', day: '2-digit' };
     case 'full':
-      return { weekday: 'long', year: 'numeric', month: 'long', day: '2-digit' };
+      return {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: '2-digit',
+      };
     case 'weekday':
     default:
-      return { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit' };
+      return {
+        weekday: 'short',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      };
   }
 }
 
@@ -72,7 +82,8 @@ export default function TopBanner({
 
   const resolvedBackground = backgroundColor?.trim() || 'transparent';
   const resolvedTitleColor = titleColor?.trim() || theme.colorText;
-  const resolvedSubtitleColor = subtitleColor?.trim() || theme.colorTextSecondary;
+  const resolvedSubtitleColor =
+    subtitleColor?.trim() || theme.colorTextSecondary;
   const resolvedClockColor = clockColor?.trim() || theme.colorText;
   const resolvedAccentColor = accentColor?.trim() || theme.colorPrimary;
 
@@ -113,64 +124,119 @@ export default function TopBanner({
   const clockOnLeft = clockPosition === 'left';
 
   const containerStyle: CSSProperties = {
-    boxSizing: 'border-box', width, height, minWidth: 0, minHeight: 0,
-    padding: `${verticalPadding}px ${horizontalPadding}px`, display: 'flex',
-    flexDirection: clockOnLeft ? 'row-reverse' : 'row', alignItems: 'center',
-    justifyContent: 'space-between', gap: 24, overflow: 'hidden',
-    background: resolvedBackground, borderRadius: `${borderRadius}px`,
-    borderBottom: showBottomBorder ? `3px solid ${resolvedAccentColor}` : 'none',
+    boxSizing: 'border-box',
+    width,
+    height,
+    minWidth: 0,
+    minHeight: 0,
+    padding: `${verticalPadding}px ${horizontalPadding}px`,
+    display: 'flex',
+    flexDirection: clockOnLeft ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 24,
+    overflow: 'hidden',
+    background: resolvedBackground,
+    borderRadius: `${borderRadius}px`,
+    borderBottom: showBottomBorder
+      ? `3px solid ${resolvedAccentColor}`
+      : 'none',
   };
 
-  const brandingStyle: CSSProperties = { minWidth: 0, display: 'flex', alignItems: 'center', gap: 14 };
+  const brandingStyle: CSSProperties = {
+    minWidth: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+  };
 
   const iconStyle: CSSProperties = {
-    flex: '0 0 auto', width: iconFontSize + 22, height: iconFontSize + 22,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    borderRadius: 10, color: theme.colorTextLightSolid, background: resolvedAccentColor, fontSize: `${iconFontSize}px`,
+    flex: '0 0 auto',
+    width: iconFontSize + 22,
+    height: iconFontSize + 22,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    color: theme.colorTextLightSolid,
+    background: resolvedAccentColor,
+    fontSize: `${iconFontSize}px`,
   };
 
-  const textStyle: CSSProperties = { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 };
+  const textStyle: CSSProperties = {
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 3,
+  };
 
   const titleStyle: CSSProperties = {
-    overflow: 'hidden', color: resolvedTitleColor, fontSize: `${titleFontSize}px`,
-    fontWeight: 700, lineHeight: 1.2, textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: resolvedTitleColor,
+    fontSize: `${titleFontSize}px`,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   };
 
   const subtitleStyle: CSSProperties = {
-    overflow: 'hidden', color: resolvedSubtitleColor, fontSize: `${subtitleFontSize}px`,
-    lineHeight: 1.25, textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: resolvedSubtitleColor,
+    fontSize: `${subtitleFontSize}px`,
+    lineHeight: 1.25,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   };
 
-
   const clockAreaStyle: CSSProperties = {
-    flex: '0 0 auto', display: 'flex', flexDirection: 'column',
+    flex: '0 0 auto',
+    display: 'flex',
+    flexDirection: 'column',
     alignItems: clockOnLeft ? 'flex-start' : 'flex-end',
-    textAlign: clockOnLeft ? 'left' : 'right', color: resolvedClockColor,
+    textAlign: clockOnLeft ? 'left' : 'right',
+    color: resolvedClockColor,
   };
 
   const dateStyle: CSSProperties = {
     fontSize: `${Math.max(11, Math.round(clockFontSize * 0.42))}px`,
-    opacity: 0.75, lineHeight: 1.2, whiteSpace: 'nowrap',
+    opacity: 0.75,
+    lineHeight: 1.2,
+    whiteSpace: 'nowrap',
   };
   const clockStyle: CSSProperties = {
-    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-    fontSize: `${clockFontSize}px`, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1.1, whiteSpace: 'nowrap',
+    fontFamily:
+      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+    fontSize: `${clockFontSize}px`,
+    fontWeight: 700,
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1.1,
+    whiteSpace: 'nowrap',
   };
-  const errorStyle: CSSProperties = { color: theme.colorError, fontSize: 12, lineHeight: 1.4 };
+  const errorStyle: CSSProperties = {
+    color: theme.colorError,
+    fontSize: 12,
+    lineHeight: 1.4,
+  };
 
   return (
     <div style={containerStyle}>
       <div style={brandingStyle}>
-        {showIcon && bannerIcon.trim() !== '' && <div style={iconStyle}>{bannerIcon}</div>}
+        {showIcon && bannerIcon.trim() !== '' && (
+          <div style={iconStyle}>{bannerIcon}</div>
+        )}
         <div style={textStyle}>
-          {bannerTitle.trim() !== '' && <div style={titleStyle}>{bannerTitle}</div>}
-          {bannerSubtitle.trim() !== '' && <div style={subtitleStyle}>{bannerSubtitle}</div>}
+          {bannerTitle.trim() !== '' && (
+            <div style={titleStyle}>{bannerTitle}</div>
+          )}
+          {bannerSubtitle.trim() !== '' && (
+            <div style={subtitleStyle}>{bannerSubtitle}</div>
+          )}
         </div>
       </div>
 
-      {showClock && (
-        formatters === null ? (
+      {showClock &&
+        (formatters === null ? (
           <div style={errorStyle}>
             {t('Invalid locale or time zone.')}
             <br />
@@ -178,12 +244,14 @@ export default function TopBanner({
           </div>
         ) : (
           <div style={clockAreaStyle}>
-            {showDate && <div style={dateStyle}>{formatters.date.format(now)}</div>}
-            <time style={clockStyle} dateTime={now.toISOString()}>{formatters.time.format(now)}</time>
+            {showDate && (
+              <div style={dateStyle}>{formatters.date.format(now)}</div>
+            )}
+            <time style={clockStyle} dateTime={now.toISOString()}>
+              {formatters.time.format(now)}
+            </time>
           </div>
-        )
-      )}
+        ))}
     </div>
   );
 }
-
