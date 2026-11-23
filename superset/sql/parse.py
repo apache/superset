@@ -1779,9 +1779,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 )
                 try:
                     statements = sqlglot.parse(script, dialect=Dialects.MYSQL)
-                except sqlglot.errors.ParseError:
-                    # If MySQL dialect also fails, raise the original error
-                    pass
+                except Exception:  # pylint: disable=broad-except
+                    # If MySQL dialect also fails (including bare, unmodeled
+                    # exceptions that escape sqlglot), raise the original error
+                    logger.debug("MySQL dialect fallback also failed", exc_info=True)
                 else:
                     return _collect_sql_statements(statements)
 
@@ -3045,6 +3046,15 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             )
             raise SupersetParseError(predicate, self.engine, **kwargs) from ex
         except sqlglot.errors.SqlglotError as ex:
+            raise SupersetParseError(
+                predicate,
+                self.engine,
+                message="Unable to parse predicate",
+            ) from ex
+        except Exception as ex:
+            # Same as `_parse`: dialect-specific sqlglot transforms can raise
+            # bare exceptions (AttributeError, IndexError, ...) on malformed
+            # input instead of a SqlglotError subclass.
             raise SupersetParseError(
                 predicate,
                 self.engine,
