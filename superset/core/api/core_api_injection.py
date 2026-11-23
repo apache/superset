@@ -35,7 +35,7 @@ from superset.extensions.context import (
 from superset.extensions.permissions import register_extension_resource
 
 if TYPE_CHECKING:
-    from superset_core.common.models import Database
+    from superset_core.common.models import Database, Dataset
     from superset_core.rest_api.api import RestApi
 
 
@@ -511,6 +511,21 @@ def inject_extension_context() -> None:
     core_context.get_context = get_context
 
 
+def inject_security_implementations() -> None:
+    """
+    Replace the abstract access decisions in ``superset_core.security`` with
+    the security manager's.
+    """
+    import superset_core.security as core_security_module
+
+    def can_access_datasource(datasource: "Dataset") -> bool:
+        from superset import security_manager
+
+        return security_manager.can_access_datasource(datasource)
+
+    core_security_module.can_access_datasource = can_access_datasource
+
+
 def initialize_core_api_dependencies() -> None:
     """
     Initialize all dependency injections for the superset-core API.
@@ -528,5 +543,6 @@ def initialize_core_api_dependencies() -> None:
     inject_widget_implementations()
     inject_canvas_implementations()
     inject_canvas_draft_implementations()
+    inject_security_implementations()
     inject_storage_implementations()
     inject_extension_context()

@@ -251,6 +251,23 @@ class DatasetReferencesAPI(RestApi):
         return self.response(200, result={"databases": databases})
 ```
 
+#### Checking whether a user may read a dataset
+
+A DAO's list shows what its filter lets through, which is not the whole access
+decision: Superset also counts a dataset's editors, schema and database access,
+and the datasets a guest token grants. Before an extension binds, queries or
+shows a dataset on someone's behalf, it asks Superset with the decision its
+chart data and SQL paths enforce:
+
+```python
+from superset_core.common.daos import DatasetDAO
+from superset_core.security import can_access_datasource
+
+dataset = DatasetDAO.find_one_or_none(uuid=dataset_uuid)
+if dataset is None or not can_access_datasource(dataset):
+    return self.response_404()
+```
+
 #### Python SQL query results
 
 Extensions using `Database.execute_async()` receive SELECT results as pandas
