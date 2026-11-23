@@ -34,7 +34,9 @@ from sqlalchemy.types import (
 from urllib3.connection import HTTPConnection
 from urllib3.exceptions import NewConnectionError
 
+from superset.utils import json
 from superset.utils.core import GenericDataType
+from tests.conftest import with_config
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
@@ -911,6 +913,83 @@ def test_execute_with_cursor_dispatches_normally_when_not_stopped() -> None:
         spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
 
     cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: "chart 12"})
+@pytest.mark.parametrize("server_settings", [{"log_comment": Mock(readonly=0)}, {}])
+def test_execute_sends_log_comment(server_settings: dict[str, Any]) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+
+    cursor_mock = Mock()
+    cursor_mock.client.server_settings = server_settings
+
+    spec.execute(cursor_mock, "SELECT 1", Mock(), settings={"query_id": "abc"})
+
+    cursor_mock.execute.assert_called_once_with(
+        "SELECT 1",
+        settings={"log_comment": "chart 12", "query_id": "abc"},
+    )
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: "chart 12"})
+def test_execute_keeps_explicit_log_comment() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+
+    cursor_mock = Mock()
+    cursor_mock.client.server_settings = {"log_comment": Mock(readonly=0)}
+
+    spec.execute(cursor_mock, "SELECT 1", Mock(), settings={"log_comment": "mine"})
+
+    cursor_mock.execute.assert_called_once_with(
+        "SELECT 1", settings={"log_comment": "mine"}
+    )
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: "chart 12"})
+def test_execute_skips_log_comment_when_readonly(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+
+    cursor_mock = Mock()
+    cursor_mock.client.server_settings = {"log_comment": Mock(readonly=1)}
+    database = Mock()
+    database.database_name = "analytics"
+
+    spec.execute(cursor_mock, "SELECT 1", database)
+
+    cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
+    assert "read-only for the user of database analytics" in caplog.text
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: json.dumps(context)})
+def test_execute_with_cursor_sends_sqllab_query_id_in_log_comment() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 7
+    query.set_extra_json_key("cancel_query", "d14b9e5b-47ec-478e-bc7c-f8b56be98576")
+    cursor_mock = Mock()
+    cursor_mock.client.server_settings = {"log_comment": Mock(readonly=0)}
+
+    spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    cursor_mock.execute.assert_called_once_with(
+        "SELECT 1",
+        settings={
+            "log_comment": '{"sqllab_query_id": 7}',
+            "query_id": "d14b9e5b-47ec-478e-bc7c-f8b56be98576",
+        },
+    )
 
 
 def test_cancel_query_issues_kill_query_sync_for_the_recorded_id() -> None:

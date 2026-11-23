@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   cleanup,
   render,
@@ -262,4 +264,16 @@ test('updates search text when typing in the search input', async () => {
   await userEvent.type(searchInput, 'Chart');
 
   expect(searchInput).toHaveValue('Chart');
+});
+
+test('tree node titles show a visible keyboard focus ring', () => {
+  const { container } = render(<FilterScopeSelector {...defaultProps} />, {
+    useRedux: true,
+  });
+
+  expect(container.querySelector('.filters-scope-selector')).toHaveStyleRule(
+    'outline',
+    `2px solid ${supersetTheme.colorPrimary}`,
+    { target: '.rct-node-clickable:focus-visible' },
+  );
 });

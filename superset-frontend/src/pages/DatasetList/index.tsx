@@ -170,6 +170,7 @@ type Dataset = {
   } | null;
   kind: 'physical' | 'virtual' | 'semantic_view';
   source_type?: 'database' | 'semantic_layer';
+  can_modify?: boolean;
   explore_url: string;
   id: number;
   editors: Array<Subject>;
@@ -748,10 +749,32 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const canModifySemanticView = datasets.some(
+    dataset => isSemanticView(dataset) && dataset.can_modify === true,
+  );
   // When soft-delete is on, deleting archives the dataset (recoverable), so the
   // confirmation drops the type-DELETE friction and explains the archive (the
   // linked charts/dashboards warning is preserved).
   const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
+  const deletePermissionError = useCallback(
+    (dataset: Dataset): string | undefined => {
+      if (isSemanticView(dataset)) {
+        return dataset.can_modify === true
+          ? undefined
+          : t('You do not have permission to modify this semantic view.');
+      }
+      if (canDelete && isUserEditorOrAdmin(user, dataset.editors))
+        return undefined;
+      return softDelete
+        ? t(
+            'You must be a dataset editor in order to archive. Please reach out to a dataset editor to request modifications or edit access.',
+          )
+        : t(
+            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
+          );
+    },
+    [user, softDelete, canDelete],
+  );
   // The bulk confirm may promise recovery only when soft-delete is on AND
   // nothing in the selection routes to the hard-deleting semantic_view API.
   const bulkIsRecoverable = softDelete && pendingBulkSemanticCount === 0;
@@ -1131,21 +1154,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Cell: ({ row: { original } }: CellProps<Dataset>) => {
-          const allowEdit = isUserEditorOrAdmin(user, original.editors);
+          const allowEdit = isSemanticView(original)
+            ? original.can_modify === true
+            : isUserEditorOrAdmin(user, original.editors);
+          const deleteError = deletePermissionError(original);
 
           // Semantic view: show edit and delete buttons
           if (isSemanticView(original)) {
-            if (!canEdit && !canDelete) return null;
+            if (!canEdit && !canDelete && !allowEdit) return null;
             return (
               <Actions className="actions">
-                {canDelete && (
+                {(canDelete || allowEdit) && (
                   <ActionButton
                     label={t('Delete')}
-                    tooltip={
-                      allowEdit
-                        ? t('Delete')
-                        : t('Only admins can delete semantic views.')
-                    }
+                    tooltip={deleteError ?? t('Delete')}
                     placement="bottom"
                     icon={<Icons.DeleteOutlined iconSize="l" />}
                     dataTest="dataset-row-delete"
@@ -1153,13 +1175,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     onClick={() => handleSemanticViewDelete(original)}
                   />
                 )}
-                {canEdit && (
+                {(canEdit || allowEdit) && (
                   <ActionButton
                     label={t('Edit')}
                     tooltip={
                       allowEdit
                         ? t('Edit')
-                        : t('Only admins can edit semantic views.')
+                        : t(
+                            'You do not have permission to modify this semantic view.',
+                          )
                     }
                     placement="bottom"
                     icon={<Icons.EditOutlined iconSize="l" />}
@@ -1226,17 +1250,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canDelete && (
                 <ActionButton
                   label={deleteActionLabel()}
-                  tooltip={
-                    allowEdit
-                      ? deleteActionLabel()
-                      : softDelete
-                        ? t(
-                            'You must be a dataset editor in order to archive. Please reach out to a dataset editor to request modifications or edit access.',
-                          )
-                        : t(
-                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
-                          )
-                  }
+                  tooltip={deleteError ?? deleteActionLabel()}
                   placement="bottom"
                   icon={<Icons.DeleteOutlined iconSize="l" />}
                   dataTest="dataset-row-delete"
@@ -1254,7 +1268,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Actions'),
         id: 'actions',
         layout: 'actions',
-        hidden: !canEdit && !canDelete && !canDuplicate,
+        hidden:
+          !canEdit && !canDelete && !canDuplicate && !canModifySemanticView,
         disableSortBy: true,
       },
       {
@@ -1266,6 +1281,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [
       canEdit,
       canDelete,
+      canModifySemanticView,
+      deletePermissionError,
       canExport,
       canDuplicate,
       openDatasetEditModal,
@@ -1464,7 +1481,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     });
   }
 
-  if (canDelete || canExport) {
+  if (canDelete || canModifySemanticView || canExport) {
     buttonArr.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
@@ -2061,11 +2078,28 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = [];
-          if (canDelete) {
+          if (canDelete || canModifySemanticView) {
             bulkActions.push({
               key: 'delete',
               name: deleteActionLabel(),
               onSelect: (selected: Dataset[]) => {
+                const reasons = [
+                  ...new Set(
+                    selected
+                      .filter(dataset => isSemanticView(dataset) || !canDelete)
+                      .map(deletePermissionError)
+                      .filter(Boolean),
+                  ),
+                ];
+                if (reasons.length) {
+                  addDangerToast(
+                    [
+                      ...reasons,
+                      t('Deselect the items you cannot modify and try again.'),
+                    ].join(' '),
+                  );
+                  return;
+                }
                 setPendingBulkSemanticCount(
                   selected.filter(isSemanticView).length,
                 );
