@@ -44,6 +44,7 @@ def _split_cluster_option(options: str) -> tuple[str | None, str]:
     """Extract the last cluster setting, preserving other startup arguments."""
     # Cluster has its own form input, so separate it from the options kept in
     # the additional parameters field.
+    # Startup arguments use backslash escapes for whitespace and backslashes.
     tokens = re.findall(r"(?:\\[\s\S]|[^\s\\]|\\$)+", options)
     remaining: list[str] = []
     cluster: str | None = None
@@ -82,6 +83,8 @@ class MaterializeParametersSchema(PostgresParametersSchema):
 
 
 class MaterializeEngineSpec(PostgresEngineSpec):
+    """Adapt PostgreSQL connections and catalog queries for Materialize."""
+
     engine = "materialize"
     engine_name = "Materialize"
 
@@ -93,8 +96,10 @@ class MaterializeEngineSpec(PostgresEngineSpec):
     )
 
     metadata = {
-        # Required fields
-        "description": "A brief description of the database.",
+        "description": (
+            "Materialize is a streaming SQL database that maintains"
+            "up-to-date query results as underlying data changes."
+        ),
         "categories": [
             DatabaseCategory.CLOUD_AWS,
             DatabaseCategory.TRADITIONAL_RDBMS,
@@ -105,7 +110,6 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             "materialize+psycopg2://{username}:{password}@{host}:{port}/{database}"
             "?options=--cluster%3D{cluster}"
         ),
-        # Recommended fields
         "homepage_url": "https://materialize.com/",
         "default_port": 6875,
     }
@@ -120,7 +124,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
         parameters: BasicParametersType,
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
-        """Merge the form's cluster with the additional startup options."""
+        """Merge startup options, giving the form's nonempty cluster precedence."""
         if cluster := parameters.get("materializedb_cluster"):
             query = dict(parameters.get("query", {}))
             _, options = _split_cluster_option(query.get("options", ""))
@@ -151,7 +155,6 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             }
         return parameters
 
-    
     @classmethod
     def prepare_connection(cls, connection: Any) -> None:
         """Run statements independently unless an explicit transaction is opened."""
@@ -174,6 +177,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
 
     @classmethod
     def get_cancel_query_id(cls, cursor, query) -> str | None:
+        """Get the connection ID used to cancel a Materialize query."""
         # Materialize pins a transaction to the cluster of its first statement;
         # end it so the user's query isn't stuck on mz_catalog_server.
         cursor.execute("SELECT pg_backend_pid()")
@@ -183,6 +187,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
 
     @classmethod
     def get_schema_names(cls, inspector) -> set[str]:
+        """List user schemas, excluding PostgreSQL and Materialize system schemas."""
         with inspector.engine.connect() as conn:
             return {
                 name
@@ -204,21 +209,10 @@ class MaterializeEngineSpec(PostgresEngineSpec):
         """
         Resolve unqualified relation names using Materialize's system catalog.
 
-        Read the effective schema search order from ``current_schemas(true)``
-        and find matching relations in ``mz_catalog.mz_relations`` within the
-        current database or shared schemas. For each spelling produced by
-        ``_table_spellings``, select the first matching schema on the path.
-        Multiple spellings account for parsed names whose original quoting is
-        unknown; each table maps to the distinct schemas resolving its spellings.
-
-        Append configured schema names from ``_named_schemas`` to the returned
-        path, including schemas that do not exist yet. Relation lookup uses only
-        the effective path; a later statement may create a configured schema.
-
-        :param database: The Superset database configuration
-        :param catalog: The database to connect to
-        :param tables: Relation names referenced without a schema
-        :return: The schema search path and schemas resolving each found name
+        Return the search path and the first matching schemas for each table's
+        quoted and unquoted spellings. Relations come from the current database
+        or shared schemas. Include configured but nonexistent schemas in the
+        returned path, but use only the effective path for relation lookup.
         """
 
         names = {table: _table_spellings(table) for table in tables}
@@ -231,7 +225,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             )
             row = cursor.fetchone()
             if not row or not isinstance(row[0], list):
-                # reported as an empty path, it would match no table's rules
+                # An invalid result must not be treated as an empty search path.
                 raise ValueError(f"Unexpected search path: {row!r}")
             schemas: list[str] = utils.remove_duplicates(
                 row[0] + _named_schemas(row[1], row[2])
@@ -258,10 +252,8 @@ class MaterializeEngineSpec(PostgresEngineSpec):
 
             resolved: dict[str, list[str]] = {}
 
-            # Find the first schema appeared in 'schemas' that also appear in 'holders'
             for table, spellings in names.items():
                 for name in spellings:
-                    # first schema on the search path holding this name
                     schema = next((s for s in schemas if (s, name) in holders), None)
                     if schema and schema not in resolved.get(table, []):
                         resolved.setdefault(table, []).append(schema)
