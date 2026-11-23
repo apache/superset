@@ -205,3 +205,7 @@ test('a participant that fails fails the whole publish, before anything is publi
   first.dispose();
   broken.dispose();
 });
+
+test('extensions get the widget host with the rest of the canvas namespace', () => {
+  expect(typeof canvas.WidgetHost).toBe('function');
+});

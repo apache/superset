@@ -258,7 +258,8 @@ const MarkedInChrome = styled.div`
   height: 100%;
 `;
 
-const Placeholder = styled.div`
+/** Where a widget that can't render would be. */
+export const WidgetPlaceholder = styled.div`
   ${({ theme }) => css`
     height: 100%;
     display: flex;
@@ -273,6 +274,44 @@ const Placeholder = styled.div`
     text-align: center;
   `}
 `;
+
+/**
+ * A widget under its title row: the name the canvas gives it, and the tag of
+ * what a draft did to it. The widget host titles a saved widget with it too,
+ * so a widget reads the same on a canvas and on its own.
+ */
+export function TitledWidget({
+  title,
+  tag,
+  frame,
+  align = 'left',
+  inset = false,
+  children,
+}: {
+  title?: string;
+  /** What a draft did to the widget, beside its name. */
+  tag?: ReactNode;
+  /** The change the surface frames the widget for (see `Interactive`). */
+  frame?: DraftChange['kind'];
+  align?: 'left' | 'center' | 'right';
+  /** Clear of the handles, which only a canvas being arranged draws. */
+  inset?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Titled data-canvas-mark={frame}>
+      <TitleRow $align={align} $inset={inset}>
+        {title && (
+          <WidgetTitle title={title} data-test="canvas-widget-title">
+            {title}
+          </WidgetTitle>
+        )}
+        {tag}
+      </TitleRow>
+      <TitledBody>{children}</TitledBody>
+    </Titled>
+  );
+}
 
 export interface CanvasGridProps {
   canvasId: number;
@@ -503,7 +542,7 @@ export default function CanvasGrid({
 
     if (widgetType === undefined) {
       return (
-        <Placeholder>
+        <WidgetPlaceholder>
           <span>{t('This widget is unavailable')}</span>
           {childIds.length > 0 && (
             <Stack>
@@ -512,7 +551,7 @@ export default function CanvasGrid({
               ))}
             </Stack>
           )}
-        </Placeholder>
+        </WidgetPlaceholder>
       );
     }
 
@@ -521,9 +560,9 @@ export default function CanvasGrid({
       // Its extension isn't loaded on this page, say: the type id means
       // nothing to a viewer.
       return (
-        <Placeholder>
+        <WidgetPlaceholder>
           <span>{t('This widget is unavailable')}</span>
-        </Placeholder>
+        </WidgetPlaceholder>
       );
     }
 
@@ -636,17 +675,15 @@ export default function CanvasGrid({
     // A widget with neither a name nor a change has no row to draw.
     if (!title && !mark) return body;
     return (
-      <Titled data-canvas-mark={frame}>
-        <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
-          {title && (
-            <WidgetTitle title={title} data-test="canvas-widget-title">
-              {title}
-            </WidgetTitle>
-          )}
-          {tag}
-        </TitleRow>
-        <TitledBody>{body}</TitledBody>
-      </Titled>
+      <TitledWidget
+        title={title}
+        tag={tag}
+        frame={frame}
+        align={display.titleAlign ?? 'left'}
+        inset={editable}
+      >
+        {body}
+      </TitledWidget>
     );
   }
 
