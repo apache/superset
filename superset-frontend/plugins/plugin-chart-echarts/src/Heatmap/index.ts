@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
 import example1 from './images/example1.png';
@@ -31,6 +31,7 @@ import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  behaviors: [Behavior.InteractiveChart],
   category: t('Correlation'),
   description: t(
     'Visualize a related metric across pairs of groups. Heatmaps excel at showcasing the correlation or strength between two groups. Color is used to emphasize the strength of the link between each pair of groups.',
