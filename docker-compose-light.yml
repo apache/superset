@@ -65,6 +65,11 @@ x-superset-volumes: &superset-volumes
   - ./docker:/app/docker
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
+  # Both are installed editable, so without these an edit to the extension
+  # contract is invisible in the container while the import still succeeds
+  # against the copy baked into the image.
+  - ./superset-core:/app/superset-core
+  - ./superset-extensions-cli:/app/superset-extensions-cli
   - superset_home_light:/app/superset_home
   - ./tests:/app/tests
 x-common-build: &common-build

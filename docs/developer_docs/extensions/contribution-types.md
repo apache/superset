@@ -45,6 +45,29 @@ views.registerView(
 );
 ```
 
+#### Where a view can go
+
+A location is a dotted string naming where the view renders:
+`sqllab.panels` is the panel area of SQL Lab, `global.page` a page of its
+own. It is passed to `registerView`; nothing about it is declared in
+`extension.json`, which carries no contributions at all.
+
+| Location | Where it renders |
+| --- | --- |
+| `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) |
+
+A contributed component is rendered with no props: whatever it needs, it
+fetches for itself.
+
+Every location renders nothing at all until an extension contributes to it, so
+a Superset with no extensions installed is laid out exactly as before. Several
+extensions may contribute to one location; they are rendered in the order they
+registered.
+
+Locations outside SQL Lab are added alongside the code that renders them, so
+this table lists what a deployment can actually show today rather than what is
+planned.
+
 ### Commands
 
 Extensions can define custom commands that can be executed within the host application, such as context-aware actions or menu options. Each command specifies a unique identifier, a title, an optional icon, and a description. Commands can be invoked by users through menus, keyboard shortcuts, or other UI elements.
@@ -128,6 +151,160 @@ chat.registerChat(
 ```
 
 See [Chat](./extension-points/chat.md) for implementation details.
+
+### Pages
+
+Extensions can add a page of their own: a whole screen at its own URL, as
+opposed to a view that occupies a slot inside a screen Superset already ships.
+
+A page is a view registered at a reserved location. There is nothing to
+declare in `extension.json`: like every other contribution, a page is
+registered in code.
+
+```typescript
+import { views } from '@apache-superset/core';
+import ReviewQueue from './ReviewQueue';
+
+views.registerView(
+  { id: 'acme.tools.review-queue', name: 'Review queue' },
+  views.PAGE_LOCATION,
+  ReviewQueue,
+);
+```
+
+#### Choosing an id
+
+You name the page; Superset decides where it is served. The host serves it at
+`/extensions/pages/<id>` — so `acme.tools.review-queue` above is at
+`/extensions/pages/acme.tools.review-queue`. Every page lives under that one
+host-owned prefix, so a page id cannot reach an address Superset already
+answers.
+
+Prefix the id with your extension's own id, as above. Ids are global across
+every installed extension, and a duplicate replaces the earlier registration
+with a warning, the same as a duplicate command.
+
+The id becomes a single path segment, so it cannot contain `/`, `?`, `#` or
+`%`. Registering one that does throws, because the route would never match it
+and the page would never open.
+
+#### Appearing in the navigation
+
+A page has no entry until you register a menu item for it. The item names the
+page it opens; its label is that page's `name`.
+
+```typescript
+import { menus } from '@apache-superset/core';
+
+menus.registerMenuItem(
+  { page: 'acme.tools.review-queue', icon: 'DatabaseOutlined' },
+  menus.NAVBAR_LOCATION,
+  'primary',
+);
+```
+
+For an administrative screen, use the Settings dropdown and name the group it
+belongs in:
+
+```typescript
+menus.registerMenuItem(
+  { page: 'acme.tools.review-queue', section: 'Manage' },
+  menus.SETTINGS_MENU_LOCATION,
+  'primary',
+);
+```
+
+A group Superset did not render is not invented — the item is simply absent,
+the same as one whose page nothing registered. Use `order` to place an item
+among its siblings; without it the order is whichever bundle finished loading
+first, which is network timing rather than anything you chose.
+
+#### Restricting who may open a page
+
+Name a permission on the registration and the page is left out of the
+navigation, and refuses to open, for anyone who does not hold it.
+
+```typescript
+views.registerView(
+  { id: 'acme.tools.review-queue', name: 'Review queue' },
+  views.PAGE_LOCATION,
+  ReviewQueue,
+  { classPermissionName: 'AcmeReview', methodPermissionName: 'read' },
+);
+```
+
+The permission must be one that already exists. The usual choice is the one
+your own `@api` class defines through `class_permission_name` and
+`method_permission_name`, so the page is guarded by the same permission as the
+data behind it and the two cannot come apart. A host permission works too, as
+`{ classPermissionName: 'Dashboard', methodPermissionName: 'read' }`.
+
+Nothing is created for the page. That has two consequences worth knowing:
+
+- Set `class_permission_name` explicitly on your API class. It defaults to the
+  Python class name, so renaming the class would quietly close the page.
+- Nothing is granted to other roles at install. A permission your own `@api`
+  class defines reaches Admin when the class registers — FAB grants a newly
+  created permission to the administrator role — and a host permission is
+  already Admin's. Anyone else needs it granted to a role of your own in the
+  Roles screen; until then the page refuses them.
+
+This gates reachability and advertisement, not data. The page's own endpoints
+are the security boundary and check the same permission server-side; the shell
+route is login-gated and serves the shell for every page id.
+
+Omit the permission and the page is open to any signed-in user.
+
+#### Hiding a page behind a feature flag
+
+There is no feature-flag field. A page that should disappear with a flag is
+one you do not register:
+
+```typescript
+if (isEnabled) {
+  views.registerView(/* ... */);
+  menus.registerMenuItem(/* ... */);
+}
+```
+
+With nothing registered there is no navigation entry, and the page's URL shows
+"not found" — the same screen a misspelled id gets. Registering late is fine:
+the navigation and the page host both subscribe, so an entry appears the
+moment it is registered.
+
+#### Owning addresses beneath your own
+
+Everything below a page's address belongs to that page. Read the current
+address from the `navigation` namespace and take the part after your own id:
+
+```typescript
+import { navigation } from '@apache-superset/core';
+
+const root = '/extensions/pages/acme.tools.review-queue';
+const subPath = navigation.getLocation().pathname.slice(root.length);
+
+navigation.navigateTo(`${root}/42`); // a client-side transition
+```
+
+`pathname` is relative to the application root, and so is the path you hand
+`navigateTo`. On a Superset served under a prefix — `/analytics`, say — that
+page still reports `/extensions/pages/acme.tools.review-queue`, not
+`/analytics/extensions/...`, so the code above works unchanged wherever the
+deployment is mounted. Where you need the prefix, as when calling the API with
+`fetch`, ask for it:
+
+```typescript
+const root = navigation.getApplicationRoot(); // '/analytics', or '' at the domain root
+const response = await fetch(`${root}/extensions/acme/tools/reviews/`);
+```
+
+`onDidChangeLocation` reports every move, including between two addresses
+inside one page — which `getPage` cannot, since both are `'extension'`. These
+are plain functions and an event rather than React hooks, so they work in a
+command handler or anywhere else outside a component.
+
+To open a page from elsewhere, run the host's own command:
+`commands.executeCommand('core.navigation.openPage', 'acme.tools.review-queue')`.
 
 ## Backend
 
