@@ -628,6 +628,31 @@ async def test_worker_audit_identity_reaches_caller(app: Any) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [True, False])
+async def test_an_extension_tool_runs_in_its_extension_context(
+    app: Any, is_async: bool
+) -> None:
+    """An extension registers a tool while it loads, and it runs much later."""
+    from superset.extensions.context import extension_context, get_context
+    from tests.unit_tests.extensions.storage.conftest import create_manifest
+
+    user = Mock(id=7, username="worker-user", is_active=True)
+
+    def whoami() -> str:
+        """The extension the call runs as."""
+        return get_context().extension.id
+
+    async def whoami_async() -> str:
+        """The extension the call runs as."""
+        return whoami()
+
+    with patch("superset.mcp_service.auth.get_user_from_request", return_value=user):
+        with extension_context(create_manifest("acme", "tools")):
+            wrapped = mcp_auth_hook(whoami_async if is_async else whoami)
+        assert await wrapped() == "acme.tools"
+
+
+@pytest.mark.asyncio
 async def test_request_worker_reloads_user_and_preserves_request_context(
     app: Any,
 ) -> None:

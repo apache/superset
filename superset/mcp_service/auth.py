@@ -1308,6 +1308,9 @@ def mcp_auth_hook(  # noqa: C901
     skips only those checks for resources and prompts, not authentication or
     RBAC. Tools must register through @tool, which supplies this identity.
 
+    A handler wrapped while an extension loads runs in that extension's
+    context on every call, as ``get_context()`` and extension storage need.
+
     Supports both sync and async tool functions.
     """
     import functools
@@ -1436,10 +1439,20 @@ def mcp_auth_hook(  # noqa: C901
 
         inner_wrapper = sync_wrapper
 
+    from superset.extensions.context import (
+        get_current_extension_context,
+        restore_context,
+    )
+
+    # An extension registers its tools while it loads, and they run much later,
+    # with no extension context set, which get_context() and storage need.
+    extension = get_current_extension_context()
+
     async def invoke(*args: Any, **kwargs: Any) -> Any:
         """Invoke either tool kind inside the worker-owned lifecycle."""
-        result = inner_wrapper(*args, **kwargs)
-        return await result if is_async else result
+        with restore_context(extension):
+            result = inner_wrapper(*args, **kwargs)
+            return await result if is_async else result
 
     from superset.mcp_service.worker import METADATA_ONLY_TOOLS
 
