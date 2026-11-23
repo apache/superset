@@ -22,6 +22,10 @@ import { Comparator, ConditionalFormattingConfig } from '../../src/types';
 // Regression guard for #36098: bounded-range conditional formatting operators
 // must render a gradient (opacity proportional to where the value falls in the
 // range), not a flat color, when "Use gradient" is on.
+// Colors come back as #RRGGBBAA; read the trailing alpha byte.
+const alphaOf = (color: string | undefined): number =>
+  parseInt(color?.slice(7, 9) ?? '', 16);
+
 const VALUES = [1, 10, 30, 50, 60];
 const BOUNDED_OPERATORS = [
   Comparator.Between, // < x <
@@ -41,8 +45,10 @@ test.each(BOUNDED_OPERATORS)(
       useGradient: true,
     };
     const fn = getColorFunction(config, VALUES);
-    // All three must be distinct, so it's a real gradient, not a flat fill.
-    expect(new Set([fn(10), fn(30), fn(50)]).size).toBe(3);
+    // Opacity must rise with the value's position in the range, not be flat.
+    const [a10, a30, a50] = [10, 30, 50].map(v => alphaOf(fn(v)));
+    expect(a10).toBeLessThan(a30);
+    expect(a30).toBeLessThan(a50);
   },
 );
 
@@ -57,7 +63,9 @@ test('bounded operator renders a gradient with string-typed bounds (form inputs)
     useGradient: true,
   } as unknown as ConditionalFormattingConfig;
   const fn = getColorFunction(config, VALUES);
-  expect(new Set([fn(10), fn(30), fn(50)]).size).toBe(3);
+  const [a10, a30, a50] = [10, 30, 50].map(v => alphaOf(fn(v)));
+  expect(a10).toBeLessThan(a30);
+  expect(a30).toBeLessThan(a50);
 });
 
 test('useGradient=false produces a solid color for bounded operators', () => {
