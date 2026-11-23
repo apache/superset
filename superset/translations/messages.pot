@@ -16849,6 +16849,9 @@ msgstr ""
 msgid "Time range limits are on. Save the filter to load its values here, or set a pre-filter time range."
 msgstr ""
 
+msgid "Time range limits could not be checked for some charts. Only those charts are paused."
+msgstr ""
+
 msgid "Time range limits could not be checked for this chart."
 msgstr ""
 

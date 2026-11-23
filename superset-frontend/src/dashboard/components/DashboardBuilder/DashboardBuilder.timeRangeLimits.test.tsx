@@ -226,6 +226,10 @@ const ALERT_TEXT =
   'This link opened a time range longer than this dashboard allows (90 days).';
 const CHART_ALERT_TEXT =
   'A chart on this dashboard uses a time range longer than this dashboard allows (90 days).';
+const LIMITS_FAILED_TEXT =
+  'Time range limits could not be loaded. Queries are paused to protect the database.';
+const CHARTS_UNCHECKED_TEXT =
+  'Time range limits could not be checked for some charts. Only those charts are paused.';
 
 const limitSpies: jest.SpyInstance[] = [];
 
@@ -375,7 +379,7 @@ test('limits failed: the limits-failed alert with Retry, one GET per click', asy
   expect(fetchMock.callHistory.calls('alert-limits')).toHaveLength(2);
 });
 
-test('chart ranges could not be checked: the limits-failed alert, Retry checks those charts again once per click', async () => {
+test('chart ranges could not be checked: the alert says only those charts are paused, Retry checks them again once per click', async () => {
   prepareLimits();
   fetchMock.get(
     LIMITS_GET,
@@ -404,11 +408,11 @@ test('chart ranges could not be checked: the limits-failed alert, Retry checks t
     },
   });
 
-  expect(
-    screen.getByText(
-      'Time range limits could not be loaded. Queries are paused to protect the database.',
-    ),
-  ).toBeInTheDocument();
+  expect(screen.getByText(CHARTS_UNCHECKED_TEXT)).toHaveAttribute(
+    'id',
+    LIMITS_FAILED_TEXT_ID,
+  );
+  expect(screen.queryByText(LIMITS_FAILED_TEXT)).not.toBeInTheDocument();
 
   try {
     const retry = screen.getByRole('button', { name: 'Retry' });
@@ -422,6 +426,7 @@ test('chart ranges could not be checked: the limits-failed alert, Retry checks t
       ),
     );
     expect(screen.getByRole('button', { name: 'Retry' })).toBe(retry);
+    expect(screen.getByText(CHARTS_UNCHECKED_TEXT)).toBeInTheDocument();
 
     await userEvent.click(retry);
     await waitFor(() =>
@@ -504,6 +509,9 @@ test('a dataset level that could not be read: Retry loads the limits again, then
     },
   });
 
+  expect(screen.getByText(CHARTS_UNCHECKED_TEXT)).toBeInTheDocument();
+  expect(screen.queryByText(LIMITS_FAILED_TEXT)).not.toBeInTheDocument();
+
   try {
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() =>
@@ -514,15 +522,125 @@ test('a dataset level that could not be read: Retry loads the limits again, then
     expect(fetchMock.callHistory.calls('alert-limits')).toHaveLength(1);
     expect(fetchMock.callHistory.calls('alert-chart-ranges')).toHaveLength(1);
     await waitFor(() =>
-      expect(
-        screen.queryByText(
-          'Time range limits could not be loaded. Queries are paused to protect the database.',
-        ),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByText(CHARTS_UNCHECKED_TEXT)).not.toBeInTheDocument(),
     );
+    expect(screen.queryByText(LIMITS_FAILED_TEXT)).not.toBeInTheDocument();
   } finally {
     fetchMock.removeRoute('alert-chart-ranges');
   }
+});
+
+test('Retry from a held chart: the limits-failed text while the limits reload, only those charts are paused while the chart is checked again', async () => {
+  prepareLimits();
+  let releaseLimits: () => void = () => {};
+  let releaseChartRanges: () => void = () => {};
+  fetchMock.get(
+    LIMITS_GET,
+    () =>
+      new Promise(resolve => {
+        releaseLimits = () =>
+          resolve({
+            result: { global: NO_RULES, dashboard: SPAN_90_DAYS, datasets: [] },
+          });
+      }),
+    { name: 'alert-limits' },
+  );
+  fetchMock.post(
+    'glob:*/api/v1/time_range_limits/chart_ranges/',
+    () =>
+      new Promise(resolve => {
+        releaseChartRanges = () => resolve({ status: 500, body: {} });
+      }),
+    { name: 'alert-chart-ranges' },
+  );
+  const state = limitsDashboardState({
+    value: 'Last week',
+    holds: {
+      [sliceId]: {
+        signature: JSON.stringify(chartQueries[sliceId].form_data),
+        status: 'unavailable',
+      },
+    },
+  });
+  const store = renderLimitsDashboard({
+    ...state,
+    charts: {
+      ...state.charts,
+      [sliceId]: { ...state.charts[sliceId], triggerQuery: true },
+    },
+  });
+  const retry = screen.getByRole('button', { name: 'Retry' });
+
+  try {
+    await userEvent.click(retry);
+
+    await waitFor(() => expect(retry).toHaveClass('ant-btn-loading'));
+    expect(store.getState().timeRangeLimits.status).toBe('loading');
+    expect(screen.getByText(LIMITS_FAILED_TEXT)).toHaveAttribute(
+      'id',
+      LIMITS_FAILED_TEXT_ID,
+    );
+    expect(screen.queryByText(CHARTS_UNCHECKED_TEXT)).not.toBeInTheDocument();
+    expect(fetchMock.callHistory.calls('alert-chart-ranges')).toHaveLength(0);
+
+    releaseLimits();
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('alert-chart-ranges')).toHaveLength(1),
+    );
+    expect(store.getState().timeRangeLimits.status).toBe('loaded');
+    expect(retry).toHaveClass('ant-btn-loading');
+    expect(screen.getByText(CHARTS_UNCHECKED_TEXT)).toHaveAttribute(
+      'id',
+      LIMITS_FAILED_TEXT_ID,
+    );
+    expect(screen.queryByText(LIMITS_FAILED_TEXT)).not.toBeInTheDocument();
+
+    releaseChartRanges();
+    await waitFor(() => expect(retry).not.toHaveClass('ant-btn-loading'));
+    expect(store.getState().timeRangeLimits.charts[sliceId].status).toBe(
+      'unavailable',
+    );
+    expect(screen.getByText(CHARTS_UNCHECKED_TEXT)).toBeInTheDocument();
+    expect(screen.queryByText(LIMITS_FAILED_TEXT)).not.toBeInTheDocument();
+  } finally {
+    fetchMock.removeRoute('alert-chart-ranges');
+  }
+});
+
+test('a held chart whose Retry finds the limits failing: the limits-failed text while they reload and after', async () => {
+  prepareLimits();
+  fetchMock.get(
+    LIMITS_GET,
+    () => new Promise(resolve => setTimeout(() => resolve(500), 200)),
+    { name: 'alert-limits' },
+  );
+  const state = limitsDashboardState({
+    value: 'Last week',
+    holds: {
+      [sliceId]: {
+        signature: JSON.stringify(chartQueries[sliceId].form_data),
+        status: 'unavailable',
+      },
+    },
+  });
+  const store = renderLimitsDashboard(state);
+  const retry = screen.getByRole('button', { name: 'Retry' });
+
+  await userEvent.click(retry);
+
+  await waitFor(() => expect(retry).toHaveClass('ant-btn-loading'));
+  expect(store.getState().timeRangeLimits.status).toBe('loading');
+  expect(screen.getByText(LIMITS_FAILED_TEXT)).toBeInTheDocument();
+  expect(screen.queryByText(CHARTS_UNCHECKED_TEXT)).not.toBeInTheDocument();
+
+  await waitFor(() => expect(retry).not.toHaveClass('ant-btn-loading'));
+  expect(screen.getByText(LIMITS_FAILED_TEXT)).toHaveAttribute(
+    'id',
+    LIMITS_FAILED_TEXT_ID,
+  );
+  expect(store.getState().timeRangeLimits.status).toBe('failed');
+  expect(screen.queryByText(CHARTS_UNCHECKED_TEXT)).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls('alert-limits')).toHaveLength(1);
 });
 
 test('limits loading: the dashboard content is busy and has no alert', async () => {
@@ -1220,6 +1338,30 @@ test('Retry keeps focus: the alert stays with a loading Retry, and focus stays o
   expect(retry).toHaveFocus();
   expect(document.activeElement).not.toBe(document.body);
   expect(fetchMock.callHistory.calls('alert-limits')).toHaveLength(1);
+});
+
+test('Retry after the limits failed: the limits-failed text stays while they load again and after another failure', async () => {
+  prepareLimits();
+  fetchMock.get(
+    LIMITS_GET,
+    () => new Promise(resolve => setTimeout(() => resolve(500), 200)),
+    { name: 'alert-limits' },
+  );
+  const store = renderLimitsDashboard(
+    limitsDashboardState({ status: 'failed' }),
+  );
+  const retry = screen.getByRole('button', { name: 'Retry' });
+
+  await userEvent.click(retry);
+
+  await waitFor(() => expect(retry).toHaveClass('ant-btn-loading'));
+  expect(store.getState().timeRangeLimits.status).toBe('loading');
+  expect(screen.getByText(LIMITS_FAILED_TEXT)).toBeInTheDocument();
+  expect(screen.queryByText(CHARTS_UNCHECKED_TEXT)).not.toBeInTheDocument();
+  await waitFor(() => expect(retry).not.toHaveClass('ant-btn-loading'));
+  expect(store.getState().timeRangeLimits.status).toBe('failed');
+  expect(screen.getByText(LIMITS_FAILED_TEXT)).toBeInTheDocument();
+  expect(screen.queryByText(CHARTS_UNCHECKED_TEXT)).not.toBeInTheDocument();
 });
 
 test('after a Retry that loads the limits, focus goes to the first time range filter when the bar is open', async () => {

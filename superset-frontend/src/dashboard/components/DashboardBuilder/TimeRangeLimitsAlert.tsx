@@ -601,7 +601,13 @@ export default function TimeRangeLimitsAlert({
           </Button>
         }
       >
-        <span id={LIMITS_FAILED_TEXT_ID}>{limitsUnavailableMessage()}</span>
+        <span id={LIMITS_FAILED_TEXT_ID}>
+          {mode === 'failed' || mode === 'loading'
+            ? limitsUnavailableMessage()
+            : t(
+                'Time range limits could not be checked for some charts. Only those charts are paused.',
+              )}
+        </span>
       </Alert>
     );
   }
