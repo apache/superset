@@ -577,3 +577,25 @@ class TestTaskWrapperCall:
         # Should work without task_key (generates random UUID)
         private_task(123)
         mock_submit_run_with_info.assert_called_once()
+
+
+def test_an_extension_task_runs_in_its_extension_context() -> None:
+    """A worker runs an extension's task long after the extension loaded."""
+    from superset.extensions.context import extension_context, get_context
+    from tests.unit_tests.extensions.storage.conftest import create_manifest
+
+    seen: list[str] = []
+
+    def probe() -> None:
+        seen.append(get_context().extension.id)
+
+    with patch.dict(TaskRegistry._tasks, clear=True):
+        with extension_context(create_manifest("acme", "jobs")):
+            task(probe)
+            # Registering the same function again stays allowed, though each
+            # registration binds it in a wrapper of its own.
+            task(probe)
+        name = "extensions.acme.jobs.probe"
+        TaskRegistry.get_executor(name)()
+
+    assert seen == ["acme.jobs"]

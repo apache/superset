@@ -16,6 +16,7 @@
 # under the License.
 """Task registry for the Global Task Framework (GTF)"""
 
+import inspect
 import logging
 from typing import Any, Callable, TYPE_CHECKING
 
@@ -62,7 +63,9 @@ class TaskRegistry:
         """
         if task_name in cls._tasks:
             existing_func = cls._tasks[task_name]
-            if existing_func is not func:
+            # An extension's task is registered bound to its extension's
+            # context, in a wrapper of its own each time it is decorated.
+            if inspect.unwrap(existing_func) is not inspect.unwrap(func):
                 raise ValueError(
                     f"Task '{task_name}' is already registered with a different "
                     "function. "

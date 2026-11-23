@@ -148,7 +148,10 @@ def task(
         base_task_name = name if name is not None else f.__name__
 
         # Apply ambient context detection for ID prefixing (like MCP decorators)
-        from superset.extensions.context import get_current_extension_context
+        from superset.extensions.context import (
+            bind_context,
+            get_current_extension_context,
+        )
 
         if context := get_current_extension_context():
             # Extension context: prefix task name to prevent collisions
@@ -173,11 +176,14 @@ def task(
                 f"Use get_context() instead for ambient context access."
             )
 
-        TaskRegistry.register(task_name, f, subscription_policy=subscription_policy)
+        # A worker, or an inline call, runs an extension's task long after the
+        # extension loaded: it gets the extension's context back on each run.
+        run = bind_context(f, context)
+        TaskRegistry.register(task_name, run, subscription_policy=subscription_policy)
 
         # Create wrapper with schedule() method, default options, scope, and timeout
         wrapper = TaskWrapper(
-            task_name, f, default_options, scope, timeout, subscription_policy
+            task_name, run, default_options, scope, timeout, subscription_policy
         )
 
         # Preserve signature for introspection
