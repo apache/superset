@@ -125,43 +125,12 @@ msgstr "新規作成"
 msgid " at line %(line)d"
 msgstr "%(line)d 行目"
 
-msgid " expression which needs to adhere to the "
-msgstr "準拠すべき式"
-
 msgid " for details."
 msgstr "をご覧ください。"
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr "「%(highlight)s」付近"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" 標準に従うことで、辞書順が時系列順と一致するようにします。\n"
-"                      タイムスタンプの形式が ISO 8601 標準に準拠していない場合は、\n"
-"                      文字列を日付またはタイムスタンプに変換するための\n"
-"                      式と型を定義する必要があります。なお、\n"
-"                      現在タイムゾーンはサポートされていません。時刻がエポック形式で\n"
-"                      保存されている場合は、`epoch_s`、`epoch_ms`、または `epoch_us` "
-"を指定してください。パターンが\n"
-"                      指定されていない場合は、extra パラメータを介して、\n"
-"                      データベース/列名ごとに設定された任意のデフォルト値を使用します。"
 
 msgid " to add calculated columns"
 msgstr "計算列を追加する"
@@ -266,6 +235,14 @@ msgstr[0] "依存アセット %(count)s 件がアーカイブされています�
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s は、セキュリティ上の理由からデータソースとして使用できません。"
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s ファイル"
@@ -356,12 +333,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d 行が返されました"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "「%(undefinedParameter)s」の代わりに「%(suggestion)s」を使用しますか？"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "「%(undefinedParameter)s」の代わりに「%(suggestion)s」を使用しますか？"
 
 #, python-format
 msgid ""
@@ -1952,6 +1927,10 @@ msgstr "サマリー行に使用する集計方法です。デフォルトでは
 
 msgid "Alert"
 msgstr "アラート"
+
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "アラート「%(alertName)s」が正常に実行されました"
 
 msgid "Alert Triggered, In Grace Period"
 msgstr "アラート発生(猶予期間中)"
@@ -5485,7 +5464,7 @@ msgstr "12月"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "削除"
+msgstr ""
 
 msgid "DML"
 msgstr "データ操作言語 (DML)"
@@ -6944,7 +6923,7 @@ msgstr "ECharts オプション (JS オブジェクトリテラル)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "メールレポートのCTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "エラー"
@@ -8154,6 +8133,14 @@ msgstr "項目へのタグ付けに失敗しました"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s 「%(alertName)s」のトリガーに失敗しました：%(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "アラート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "レポート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
 msgid "Failed to update report"
 msgstr "レポートの更新に失敗しました"
 
@@ -8712,7 +8699,7 @@ msgstr "各メトリックの表示方法をさらに詳細に設定"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "グループ化"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "ガントチャート"
@@ -8896,6 +8883,7 @@ msgstr "ゲストユーザーはチャートのデータ(ペイロード)を変�
 msgid "HTTP Path"
 msgstr "HTTPパス"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -8975,6 +8963,9 @@ msgstr "各期間の高値。"
 msgid "Histogram"
 msgstr "ヒストグラム"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "ホーム"
 
@@ -9041,9 +9032,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2コード"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9224,6 +9212,9 @@ msgstr "このビューでは最初の25行をプレビューできます。"
 
 msgid "Inactive"
 msgstr "非アクティブ"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "系列を含める"
@@ -11147,7 +11138,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "グループ化なし"
+msgstr ""
 
 msgid "NOV"
 msgstr "11月"
@@ -11863,7 +11854,7 @@ msgstr "または"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "上書き"
+msgstr ""
 
 msgid "October"
 msgstr "10月"
@@ -12873,6 +12864,9 @@ msgstr "Explore で保存する際も、生成されたダッシュボード時�
 msgid "Preview"
 msgstr "プレビュー"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -12981,9 +12975,6 @@ msgstr "ラベルを円の外側に配置しますか？"
 
 msgid "Put your code here"
 msgstr "ここにコードを入力してください"
-
-msgid "Python datetime string pattern"
-msgstr "Python の日時文字列パターン"
 
 msgid "Quarter"
 msgstr "四半期"
@@ -13448,6 +13439,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "レポート"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "レポート「%(alertName)s」が正常に実行されました"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -16394,7 +16389,7 @@ msgstr "テーブル"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "時間範囲"
+msgstr ""
 
 msgid "THU"
 msgstr "木"
@@ -17341,8 +17336,22 @@ msgstr "保存済みクエリと一緒にインポートするには、以下の
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "以下のデータベースをインポートするには、それぞれのパスワードが必要です。"
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "タイムスタンプ形式のパターン。文字列の場合は以下を使用してください "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -17387,10 +17396,8 @@ msgstr "ポートが閉じています。"
 msgid "The port number is invalid."
 msgstr "ポート番号が無効です。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "プレビューを読み込めませんでした。"
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主要メトリックは、円セグメントのサイズを定義するために使用されます"
@@ -17759,14 +17766,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "変換はデータセット全体ではなく、サンプリングされた行に一致しました。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"変換は %(column)s に対して %(returned)s を返しましたが、これは %(kind)s "
-"です。このマッピングでミラーリングされたフィルターは、データベースで失敗します。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -17777,6 +17779,9 @@ msgid ""
 msgstr ""
 "変換は %(column)s に対して %(returned)s を返しましたが、このデータベースでは、これを変更せずに %(type)s "
 "値としてクエリに書き込むことができません。このマッピングのフィルターはミラーリングされません。"
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "入力された2つのパスワードが一致しません！"
@@ -17861,19 +17866,12 @@ msgstr ""
 "値の変換は %(functions)s "
 "を呼び出しており、その結果は実行される時間と場所に依存します。変換は別セッションで評価され、結果はキャッシュされるため、出力される述語はその時点のスナップショットで固定されてしまいます。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr "値の変換を解析できませんでした。マッピングは保存されますが、解析できるようになるまで無効のままです。"
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr "値の変換を解析できませんでした: %(detail)s マッピングは保存されますが、解析できるようになるまで無効のままです。"
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19211,6 +19209,9 @@ msgstr "トークンリクエスト URI"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "このデータセットに対するプレビューリクエストが多すぎます。しばらく待ってからもう一度お試しください。"
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21755,7 +21756,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "ボルト"
+msgstr ""
 
 msgid "boolean"
 msgstr "真偽値"
@@ -21911,7 +21912,7 @@ msgstr "deck.gl 等高線"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl グリッド"
@@ -22026,7 +22027,7 @@ msgstr "件"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "エラーメッセージ"
+msgstr ""
 
 msgid "every"
 msgstr "毎"
@@ -22367,7 +22368,7 @@ msgstr "固定リンクの状態が見つかりません"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "ピボットエクセル"
+msgstr ""
 
 msgid "pixels"
 msgstr "ピクセル"
@@ -22467,7 +22468,7 @@ msgstr "スケジュール \"%s\" が最小間隔より高い頻度で実行さ�
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "スキーマ1、スキーマ2"
+msgstr ""
 
 msgid "seconds"
 msgstr "秒"
@@ -22512,7 +22513,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "sql"
-msgstr "SQL"
+msgstr ""
 
 msgid "square"
 msgstr "正方形"
@@ -22602,6 +22603,10 @@ msgstr "元に戻す"
 msgid "unknown type icon"
 msgstr "不明な種類のアイコン"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "未設定"
 
@@ -22612,6 +22617,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "上位パーセンタイルは 0 より大きく 100 未満であり、且つ下位パーセンタイルより大きい値である必要があります。"
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "latest_partition テンプレートを使用"

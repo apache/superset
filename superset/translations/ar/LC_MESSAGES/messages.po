@@ -148,9 +148,6 @@ msgstr " واحدة جديدة"
 msgid " at line %(line)d"
 msgstr " في السطر %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " التعبير الذي يحتاج إلى الالتزام بـ "
-
 #, fuzzy
 msgid " for details."
 msgstr "التفاصيل"
@@ -160,38 +157,6 @@ msgstr "التفاصيل"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " بالقرب من '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" المعياري لضمان أن الترتيب المعجمي\n"
-"                      يتوافق مع الترتيب الزمني. إذا لم يكن\n"
-"                      تنسيق الطابع الزمني متوافقًا مع معيار ISO 8601\n"
-"                      فستحتاج إلى تحديد تعبير ونوع من أجل\n"
-"                      تحويل السلسلة النصية إلى تاريخ أو طابع زمني. "
-"ملاحظة:\n"
-"                      المناطق الزمنية غير مدعومة حاليًا. إذا كان الوقت "
-"مخزّنًا\n"
-"                      بتنسيق epoch، فاستخدم `epoch_s` أو `epoch_ms` أو "
-"`epoch_us`. وإذا لم يتم تحديد نمط\n"
-"                      فسيتم الرجوع إلى استخدام القيم الافتراضية "
-"الاختيارية لكل\n"
-"                      اسم قاعدة بيانات/عمود عبر المعامل الإضافي extra."
 
 msgid " to add calculated columns"
 msgstr " لإضافة أعمدة محسوبة"
@@ -314,6 +279,16 @@ msgstr[5] "%(count)s أصل تابع مؤرشف."
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "لا يمكن استخدام %(dialect)s كمصدر بيانات لأسباب أمنية."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s أو %(lastSuggestion)s بدلاً من "
+"\"%(undefinedParameter)s\"؟"
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
 #, fuzzy, python-format
@@ -430,27 +405,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d الصفوف التي تم إرجاعها"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
-# mi, ro, ru, sl, sr, sr_Latn, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s بدلاً من \"%(undefinedParameter)s؟\""
-msgstr[1] "%(suggestion)s بدلاً من \"%(undefinedParameter)s؟\""
-msgstr[2] ""
-"%(firstSuggestions)s أو %(lastSuggestion)s بدلاً من "
-"\"%(undefinedParameter)s\"؟"
-msgstr[3] ""
-"%(firstSuggestions)s أو %(lastSuggestion)s بدلاً من "
-"\"%(undefinedParameter)s\"؟"
-msgstr[4] ""
-"%(firstSuggestions)s أو %(lastSuggestion)s بدلاً من "
-"\"%(undefinedParameter)s\"؟"
-msgstr[5] ""
-"%(firstSuggestions)s أو %(lastSuggestion)s بدلاً من "
-"\"%(undefinedParameter)s\"؟"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s بدلاً من \"%(undefinedParameter)s\"؟"
 
 #, python-format
 msgid ""
@@ -6557,7 +6515,7 @@ msgstr "ديسمبر"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "حذف"
+msgstr ""
 
 msgid "DML"
 msgstr "دي إم إل"
@@ -8412,7 +8370,7 @@ msgstr "تحديد أعمدة التجميع ديناميكيًا من مجمو�
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "الرسوم البيانية الإلكترونية"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -8422,7 +8380,7 @@ msgstr "خيارات ECharts (قيم كائنات JS)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "تقارير_البريد الإلكتروني_CTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "خطأ"
@@ -10538,7 +10496,7 @@ msgstr "قم بتخصيص المزيد من كيفية عرض كل مقياس"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "مجموعة حسب"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10754,8 +10712,9 @@ msgstr "لا يمكن للمستخدم الضيف تعديل حمولة المخ
 msgid "HTTP Path"
 msgstr "مسار HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
-msgstr "المقاود"
+msgstr ""
 
 msgid "Handlebars Template"
 msgstr "قالب المقاود"
@@ -10843,6 +10802,9 @@ msgstr "أعلى قيمة لكل فترة."
 msgid "Histogram"
 msgstr "الرسم البياني"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Home"
 
@@ -10915,9 +10877,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "رموز أيزو 3166-2"
-
-msgid "ISO 8601"
-msgstr "أيزو 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11135,6 +11094,9 @@ msgstr "في هذا العرض يمكنك معاينة أول 25 صفاً. "
 #, fuzzy
 msgid "Inactive"
 msgstr "نشط"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "قم بتضمين السلسلة"
@@ -13355,7 +13317,7 @@ msgstr "غير متاح"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "لم يتم تجميعها بواسطة"
+msgstr ""
 
 msgid "NOV"
 msgstr "نوفمبر"
@@ -14174,7 +14136,7 @@ msgstr "أو"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "الكتابة الفوقية"
+msgstr ""
 
 msgid "October"
 msgstr "اكتوبر"
@@ -15356,6 +15318,9 @@ msgstr "يحافظ على موضوع شرط وقت لوحة المعلومات �
 msgid "Preview"
 msgstr "استطلاع"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -15480,9 +15445,6 @@ msgstr "ضع الملصقات خارج الفطيرة؟"
 
 msgid "Put your code here"
 msgstr "ضع الكود الخاص بك هنا"
-
-msgid "Python datetime string pattern"
-msgstr "نمط سلسلة التاريخ والوقت في بايثون"
 
 msgid "Quarter"
 msgstr "الربع"
@@ -19541,7 +19503,7 @@ msgstr "الجداول"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "نطاق_زمني"
+msgstr ""
 
 msgid "THU"
 msgstr "الخميس"
@@ -20740,8 +20702,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "كلمات المرور لقواعد البيانات أدناه مطلوبة لاستيرادها."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "نمط تنسيق الطابع الزمني. لاستخدام السلاسل "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20791,10 +20767,8 @@ msgstr "المنفذ مغلق."
 msgid "The port number is invalid."
 msgstr "رقم المنفذ غير صالح."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "تعذر تحميل المعاينة."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "يتم استخدام المقياس الأساسي لتحديد أحجام مقاطع القوس"
@@ -21251,14 +21225,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "طابق التحويل الصفوف المعاينة فقط، وليس مجموعة البيانات بأكملها."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"أعاد التحويل %(returned)s للعمود %(column)s، وهو %(kind)s. ستفشل المرشحات"
-" المنعكسة على هذا التعيين في قاعدة البيانات."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21270,6 +21239,9 @@ msgstr ""
 "أعاد التحويل %(returned)s للعمود %(column)s، وهو ما لا يمكن لقاعدة "
 "البيانات هذه كتابته في الاستعلام كقيمة من نوع %(type)s دون تغييره. لن "
 "تنعكس المرشحات المطبقة على هذا التعيين."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -21372,23 +21344,12 @@ msgstr ""
 "يُقيَّم التحويل في جلسة منفصلة وتُخزَّن النتيجة مؤقتًا، لذا سيجمّد المسند"
 " الناتج لقطة من تلك اللحظة."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"تعذر تحليل تحويل القيمة. يتم حفظ التعيين لكنه يبقى غير نشط إلى أن ينجح "
-"ذلك."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"تعذر تحليل تحويل القيمة: %(detail)s يتم حفظ التعيين لكنه يبقى غير نشط إلى"
-" أن ينجح ذلك."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23101,6 +23062,9 @@ msgstr "عنوان URI لطلب الرمز"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "طلبات معاينة كثيرة جدًا لمجموعة البيانات هذه. انتظر قليلًا وحاول مرة أخرى."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26154,7 +26118,7 @@ msgstr "حشو"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "بولت"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26255,9 +26219,8 @@ msgid "create dataset from SQL query"
 msgstr "إنشاء مجموعة بيانات من استعلام SQL"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "العد"
+msgstr ""
 
 msgid "css"
 msgstr "CSS"
@@ -26331,7 +26294,7 @@ msgstr "ديك.gl كونتور"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl جيونسون"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "شبكة deck.gl"
@@ -26387,7 +26350,7 @@ msgstr "التوثيق"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "dtm"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "على سبيل المثال ********"
@@ -26466,7 +26429,7 @@ msgstr "إدخالات"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "رسالة خطأ"
+msgstr ""
 
 msgid "every"
 msgstr "كل"
@@ -26840,7 +26803,7 @@ msgstr "دقة القيمة الاحتمالية"
 
 #. do-not-translate
 msgid "p1"
-msgstr "P1"
+msgstr ""
 
 #. do-not-translate
 msgid "p5"
@@ -26848,11 +26811,11 @@ msgstr "p5"
 
 #. do-not-translate
 msgid "p95"
-msgstr "ص 95"
+msgstr ""
 
 #. do-not-translate
 msgid "p99"
-msgstr "ص 99"
+msgstr ""
 
 msgid "pending"
 msgstr "المعلقه"
@@ -26868,9 +26831,8 @@ msgid "permalink state not found"
 msgstr "لم يتم العثور على حالة الرابط الثابت"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "ممحور"
+msgstr ""
 
 msgid "pixels"
 msgstr "بكسل"
@@ -27127,6 +27089,10 @@ msgstr "التراجع"
 msgid "unknown type icon"
 msgstr "رمز نوع غير معروف"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "حزيران (يونيو)"
@@ -27143,6 +27109,9 @@ msgid ""
 msgstr ""
 "يجب أن تكون النسبة المئوية العليا أكبر من 0 وأقل من 100. يجب أن تكون أعلى"
 " من النسبة المئوية الأقل."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "استخدم أحدث قالب_التقسيم"

@@ -49,6 +49,7 @@ import AdhocFilter, {
   isDictionaryForAdhocFilter,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { toQueryString } from 'src/utils/urlUtils';
+import { getSemanticMemberLabels } from 'src/components/SemanticMemberLabel';
 import { Clauses, ExpressionTypes } from '../types';
 
 interface ColumnMeta {
@@ -108,6 +109,10 @@ interface FilterOption {
 const { warning } = Modal;
 
 function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
+  const memberLabels =
+    props.datasource?.type === 'semantic_view'
+      ? getSemanticMemberLabels(props.columns || [])
+      : undefined;
   const options = [
     ...(props.columns || []),
     ...ensureIsArray(props.selectedMetrics).map(
@@ -133,6 +138,7 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
         results.push({
           ...filterOption,
           filterOptionName: `_col_${filterOption.column_name}`,
+          semanticMemberLabel: memberLabels?.get(filterOption.column_name),
         });
       } else if (option instanceof AdhocMetric) {
         results.push({
@@ -177,8 +183,9 @@ function AdhocFilterControl({
         columns,
         selectedMetrics,
         savedMetrics,
+        datasource,
       }),
-    [columns, selectedMetrics, savedMetrics],
+    [columns, selectedMetrics, savedMetrics, datasource?.type],
   );
 
   useEffect(() => {

@@ -134,49 +134,12 @@ msgstr " ein neues"
 msgid " at line %(line)d"
 msgstr " in Zeile %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " die dem "
-
 msgid " for details."
 msgstr " finden Sie weitere Informationen."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " in der Nähe von '%(highlight)s'"
-
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" Standard, damit die lexikographische Reihenfolge\n"
-"                      mit der chronologischen Reihenfolge übereinstimmt. "
-"Wenn das\n"
-"                      Zeitstempelformat nicht dem ISO-8601-Standard "
-"entspricht,\n"
-"                      müssen Sie einen Ausdruck und einen Typ definieren,"
-" um\n"
-"                      die Zeichenfolge in ein Datum oder einen "
-"Zeitstempel umzuwandeln. Hinweis:\n"
-"                      Zeitzonen werden derzeit nicht unterstützt. Wenn "
-"die Zeit\n"
-"                      im Epoch-Format gespeichert ist, geben Sie "
-"`epoch_s`, `epoch_ms` oder `epoch_us` an. Wenn kein Muster\n"
-"                      angegeben ist, werden die optionalen Standardwerte "
-"pro\n"
-"                      Datenbank-/Spaltenname über den Parameter „extra“ "
-"verwendet."
 
 msgid " to add calculated columns"
 msgstr ", um berechnete Spalten hinzuzufügen"
@@ -280,6 +243,16 @@ msgstr ""
 "%(dialect)s kann aus Sicherheitsgründen nicht als Datenquelle verwendet "
 "werden."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s oder %(lastSuggestion)s anstelle von "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s Datei"
@@ -374,15 +347,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d Zeilen zurückgegeben"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(lastSuggestion)s anstelle von \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s oder %(lastSuggestion)s anstelle von "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s anstelle von \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -2065,6 +2033,10 @@ msgstr ""
 
 msgid "Alert"
 msgstr "Alarm"
+
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Alarm „%(alertName)s“ erfolgreich ausgelöst"
 
 msgid "Alert Triggered, In Grace Period"
 msgstr "Alarm ausgelöst, in Karenzzeit"
@@ -5686,7 +5658,7 @@ msgstr "DEZ"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "LÖSCHEN"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -8453,6 +8425,14 @@ msgstr "Artikel konnten nicht getaggt werden"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Alarm „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Bericht „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
+
 msgid "Failed to update report"
 msgstr "Fehler beim Aktualisieren des Berichts"
 
@@ -8605,7 +8585,7 @@ msgid "Filter menu"
 msgstr "Filter-Menü"
 
 msgid "Filter name"
-msgstr "Tabellenname"
+msgstr "Filtername"
 
 msgid "Filter only displays values relevant to selections made in other filters."
 msgstr ""
@@ -9032,7 +9012,7 @@ msgstr "Passen Sie weiter an, wie die einzelnen Metriken angezeigt werden sollen
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GRUPPIEREN NACH"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Gantt-Diagramm"
@@ -9220,6 +9200,7 @@ msgstr "Gastbenutzer*in kann keine Daten in den Diagrammen ändern"
 msgid "HTTP Path"
 msgstr "HTTP-Pfad"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -9363,9 +9344,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "ISO-3166-2-Codes"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 msgid "ISO suffix / abbreviation"
 msgstr "ISO-Suffix / Abkürzung"
@@ -11410,7 +11388,7 @@ msgstr "k.A."
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NICHT GRUPPIERT NACH"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -12132,7 +12110,7 @@ msgstr "ODER"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "ÜBERSCHREIBEN"
+msgstr ""
 
 msgid "October"
 msgstr "Oktober"
@@ -13300,9 +13278,6 @@ msgstr "Sollen die Beschriftungen außerhalb der Torte dargestellt werden?"
 msgid "Put your code here"
 msgstr "Geben Sie Ihren Code hier ein"
 
-msgid "Python datetime string pattern"
-msgstr "Python Datetime-Zeichenfolge"
-
 msgid "Quarter"
 msgstr "Quartal"
 
@@ -13739,6 +13714,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Bericht"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Bericht „%(alertName)s“ erfolgreich ausgelöst"
 
 #, python-format
 msgid "Report Failed - All Retries Exhausted: %(name)s"
@@ -14869,7 +14848,7 @@ msgid "Select Database and Schema"
 msgstr "Datenbank und Schema auswählen"
 
 msgid "Select Delivery Method"
-msgstr "Übermittlungsmethode hinzufügen"
+msgstr "Übermittlungsmethode auswählen"
 
 msgid "Select Filter"
 msgstr "Filter auswählen"
@@ -17857,8 +17836,33 @@ msgstr ""
 "Zum Importieren der unten aufgeführten Datenbanken werden die "
 "entsprechenden Passwörter benötigt."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Das Muster des Zeitstempelformats. Verwenden Sie für Zeichenfolgen eine "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
+"Das Muster des Zeitstempelformats. Verwenden Sie für Zeichenfolgen ein "
+"[Python-Datetime-Zeichenfolgenmuster](%(python_url)s), das dem Standard "
+"[ISO 8601](%(iso_url)s) entsprechen muss, damit die lexikographische "
+"Reihenfolge mit der chronologischen Reihenfolge übereinstimmt. Wenn das "
+"Zeitstempelformat nicht dem ISO-8601-Standard entspricht, müssen Sie "
+"einen Ausdruck und einen Typ definieren, um die Zeichenfolge in ein Datum"
+" oder einen Zeitstempel umzuwandeln. Hinweis: Zeitzonen werden derzeit "
+"nicht unterstützt. Wenn die Zeit im Epoch-Format gespeichert ist, geben "
+"Sie `epoch_s`, `epoch_ms` oder `epoch_us` an. Wenn kein Muster angegeben "
+"ist, werden die optionalen Standardwerte pro Datenbank-/Spaltenname über "
+"den Parameter „extra“ verwendet."
 
 msgid ""
 "The periodicity over which to pivot time. Each period becomes\n"
@@ -22725,7 +22729,7 @@ msgstr "Bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "Riegel"
+msgstr ""
 
 msgid "boolean"
 msgstr "Wahrheitswert"
@@ -22881,7 +22885,7 @@ msgstr "Deck.gl - Kontur"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Deck.gl - Raster"
@@ -22994,7 +22998,7 @@ msgstr "Einträge"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "Fehlermeldung"
+msgstr ""
 
 msgid "every"
 msgstr "jeden"
@@ -23302,19 +23306,19 @@ msgstr "p-Wert-Präzision"
 
 #. do-not-translate
 msgid "p1"
-msgstr "P1"
+msgstr ""
 
 #. do-not-translate
 msgid "p5"
-msgstr "P5"
+msgstr ""
 
 #. do-not-translate
 msgid "p95"
-msgstr "P95"
+msgstr ""
 
 #. do-not-translate
 msgid "p99"
-msgstr "P99"
+msgstr ""
 
 msgid "pending"
 msgstr "ausstehend"
@@ -23621,7 +23625,7 @@ msgstr "Jahr"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "dein-projekt-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "Zoombereich"

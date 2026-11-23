@@ -635,7 +635,7 @@ def test_semantic_view_get_extra_cache_keys(
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
     query: QueryObject = QueryObject(
         columns=["category"],
-        filters=[{"col": "category", "op": "IN", "val": ["a", "<NULL>"]}],
+        filters=[{"col": "category", "op": "NOT IN", "val": ["a"]}],
     )
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         composed_key: str = query.cache_key(
@@ -643,10 +643,13 @@ def test_semantic_view_get_extra_cache_keys(
         )
         expected: list[Hashable] = [
             view.metadata_generation,
-            "semantic-null-filters-v1",
+            "semantic-null-filters-v2",
         ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))
+        assert composed_key != query.cache_key(
+            extra_cache_keys=[expected[0], "semantic-null-filters-v1", *expected[2:]]
+        )
         assert view.get_extra_cache_keys({}) == expected
         assert composed_key != query.cache_key(extra_cache_keys=expected[1:])
         assert composed_key != query.cache_key(
@@ -658,7 +661,7 @@ def test_semantic_view_get_extra_cache_keys(
                 extra_cache_keys=[("semantic-result-version", "fixture", version)]
             )
             assert composed_key != query.cache_key(
-                extra_cache_keys=["semantic-null-filters-v1"]
+                extra_cache_keys=["semantic-null-filters-v2"]
             )
         assert composed_key == query.cache_key(
             extra_cache_keys=view.get_extra_cache_keys({})
@@ -3003,7 +3006,7 @@ def test_result_generation_reads_class_without_provider_construction(
         assert view.result_cache_version == version
         expected: list[Hashable] = [
             view.metadata_generation,
-            "semantic-null-filters-v1",
+            "semantic-null-filters-v2",
         ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))

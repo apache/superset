@@ -30,7 +30,7 @@ from superset.commands.annotation_layer.importers import v1
 from superset.commands.annotation_layer.importers.dispatcher import (
     ImportAnnotationLayersCommand,
 )
-from superset.commands.exceptions import CommandInvalidError, ImportFailedError
+from superset.commands.exceptions import CommandInvalidError, ForbiddenError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.utils import json
@@ -709,8 +709,12 @@ class TestImportAnnotationLayersCommand(SupersetTestCase):
                 }
             ),
         }
-        with pytest.raises(ImportFailedError):
+        with pytest.raises(
+            ForbiddenError,
+            match="Annotation layer import requires can_write permission on Annotation",
+        ) as exc_info:
             ImportAnnotationLayersCommand(contents).run()
+        assert exc_info.value.status == 403
         assert (
             db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).first() is None
         )
