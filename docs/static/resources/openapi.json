@@ -18171,7 +18171,7 @@
         },
         "responses": {
           "200": {
-            "description": "The draft after the step, as the definition response"
+            "description": "The draft after the step, as the definition response, with `steppedWidgetIds`: the saved widget whose content a step recorded for it moved, which the step doesn't show otherwise"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -18180,7 +18180,7 @@
             "$ref": "#/components/responses/404"
           },
           "409": {
-            "description": "The draft or the canvas changed"
+            "description": "The draft or the canvas changed, or a step recorded for a widget's content couldn't be undone or redone"
           }
         },
         "security": [
@@ -18220,7 +18220,7 @@
         },
         "responses": {
           "200": {
-            "description": "The draft after the step, as the definition response"
+            "description": "The draft after the step, as the definition response, with `steppedWidgetIds`: the saved widget whose content a step recorded for it moved, which the step doesn't show otherwise"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -18229,7 +18229,7 @@
             "$ref": "#/components/responses/404"
           },
           "409": {
-            "description": "The draft or the canvas changed"
+            "description": "The draft or the canvas changed, or a step recorded for a widget's content couldn't be undone or redone"
           }
         },
         "security": [
