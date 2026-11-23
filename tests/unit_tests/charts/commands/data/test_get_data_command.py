@@ -473,3 +473,32 @@ def test_database_error_while_building_the_query_is_a_failed_query(entry: str) -
         getattr(ChartDataCommand(mock_query_context), entry)()
 
     assert "Incorrect username or password" in excinfo.value.message
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_database_error_rolls_back_the_session(entry: str) -> None:
+    """
+    Regression test for SUPERSET-PYTHON-1CHQ: a SQLAlchemyError raised while
+    building/running the query must be followed by a session rollback.
+
+    Without this, the scoped session's transaction is left "invalid"; the
+    *next* statement on that same session (often not until request teardown
+    calls session.close()) raises PendingRollbackError instead of the real
+    error, which hides the original failure and surfaces as an unhandled 500.
+    """
+    from sqlalchemy.exc import OperationalError
+
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    error = OperationalError("connect", {}, Exception("connection failed"))
+    mock_query_context.get_payload.side_effect = error
+    mock_query_context.get_payload_result.side_effect = error
+    database = Mock()
+    database.db_engine_spec.extract_error_message.return_value = "connection failed"
+    mock_query_context.datasource = Mock(database=database)
+
+    with patch("superset.commands.chart.data.get_data_command.db") as mock_db:
+        with pytest.raises(ChartDataQueryFailedError):
+            getattr(ChartDataCommand(mock_query_context), entry)()
+
+        mock_db.session.rollback.assert_called_once()
