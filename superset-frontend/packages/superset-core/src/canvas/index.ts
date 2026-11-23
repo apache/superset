@@ -233,6 +233,16 @@ export interface CanvasDraftPublish {
   widgets: CanvasDraftWidget[];
 }
 
+/** What publishing a part did, for the confirmation to tell the person. */
+export interface CanvasPublishPartResult {
+  /**
+   * What the person should know of how it went out, a sentence each, such as
+   * a check it was published without: the confirmation shows them under the
+   * part once the canvas is published.
+   */
+  notices?: string[];
+}
+
 /** Something published with a canvas draft, which its confirmation lists. */
 export interface CanvasPublishPart {
   /** What is published, heading its lines in the confirmation. */
@@ -241,10 +251,12 @@ export interface CanvasPublishPart {
   lines: string[];
   /**
    * Publishes it once the person confirmed, before the canvas itself is
-   * published. A rejection stops the publish: its message is shown, and the
-   * canvas stays unpublished.
+   * published, and may answer what the person should know of it. A rejection
+   * stops the publish: its message is shown under the part, and the canvas
+   * stays unpublished. When the person then publishes again from the
+   * confirmation, a part that was published isn't asked again.
    */
-  publish: () => Promise<void>;
+  publish: () => Promise<CanvasPublishPartResult | void>;
 }
 
 /** Takes part in publishing canvas drafts from the canvas page. */
@@ -263,10 +275,14 @@ export interface CanvasPublishParticipant {
  * published; a draft with no parts is published at once, as without
  * participants. Once the person confirms, the page publishes the parts one
  * after another, then the canvas. The first part that fails stops the
- * publish, with its message shown.
+ * publish, with its message shown. When parts went out and the canvas didn't,
+ * the confirmation stays open and says which: publishing again from there
+ * publishes the parts that didn't go out, then the canvas.
  *
- * Only the page's publish asks: a draft that an agent commits through its
- * tool is published without the parts, which wait for the person.
+ * Only the page's publish asks. A commit that skips the page, such as an
+ * agent's through its tool, publishes no part: a server-side commit
+ * participant (`superset_core.canvas.drafts.register_commit_participant`)
+ * refuses it while a part waits.
  *
  * @param participant What it publishes with each draft.
  * @returns A Disposable that ends its part when disposed.
