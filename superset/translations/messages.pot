@@ -164,6 +164,10 @@ msgid "% of total"
 msgstr ""
 
 #, python-format
+msgid "%(children)s shown per %(parent)s"
+msgstr ""
+
+#, python-format
 msgid "%(column)s is an array column, which cannot be compared against the single value a transform returns. Mirrored filters on this mapping would fail at the database. Map a scalar partition column instead."
 msgstr ""
 
@@ -244,6 +248,10 @@ msgid "%(num)d second"
 msgid_plural "%(num)d seconds"
 msgstr[0] ""
 msgstr[1] ""
+
+#, python-format
+msgid "%(number)s %(name)s"
+msgstr ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -448,6 +456,10 @@ msgid "%s imported"
 msgstr ""
 
 #, python-format
+msgid "%s is required"
+msgstr ""
+
+#, python-format
 msgid "%s item"
 msgid_plural "%s items"
 msgstr[0] ""
@@ -565,6 +577,14 @@ msgstr ""
 
 #, python-format
 msgid "%s updated"
+msgstr ""
+
+#, python-format
+msgid "%s · ascending"
+msgstr ""
+
+#, python-format
+msgid "%s · descending"
 msgstr ""
 
 #, python-format
@@ -1415,6 +1435,9 @@ msgid "Add interval bounds above to configure colors here."
 msgstr ""
 
 msgid "Add item"
+msgstr ""
+
+msgid "Add level"
 msgstr ""
 
 msgid "Add metric"
@@ -2355,10 +2378,16 @@ msgstr ""
 msgid "Apply custom CSS to the dashboard. Use class names or element selectors to target specific components."
 msgstr ""
 
+msgid "Apply date filter to children"
+msgstr ""
+
 msgid "Apply filters"
 msgstr ""
 
 msgid "Apply metrics on"
+msgstr ""
+
+msgid "Apply the level 1 date range to this level's time column."
 msgstr ""
 
 msgid "April"
@@ -3525,6 +3554,9 @@ msgstr ""
 msgid "Choose how many X-Axis labels to show"
 msgstr ""
 
+msgid "Choose how many children to load at a time for each parent."
+msgstr ""
+
 msgid "Choose index column"
 msgstr ""
 
@@ -3550,7 +3582,28 @@ msgstr ""
 msgid "Choose the annotation layer type"
 msgstr ""
 
+msgid "Choose the column at this level that matches the parent level's ID."
+msgstr ""
+
+msgid "Choose the column that identifies an item at this level."
+msgstr ""
+
+msgid "Choose the columns shown in this level's table."
+msgstr ""
+
+msgid "Choose the date or time column that \"Apply date filter to children\" uses for this level."
+msgstr ""
+
+msgid "Choose the date or time column used to filter this level."
+msgstr ""
+
+msgid "Choose the fields shown when an item is expanded."
+msgstr ""
+
 msgid "Choose the format for legend values"
+msgstr ""
+
+msgid "Choose the initial row order for this level."
 msgstr ""
 
 msgid "Choose the position of the legend"
@@ -5254,6 +5307,9 @@ msgstr ""
 msgid "Default schema (database) to connect to"
 msgstr ""
 
+msgid "Default sort"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 
@@ -5621,6 +5677,9 @@ msgid "Design with"
 msgstr ""
 
 msgid "Detach or delete them first."
+msgstr ""
+
+msgid "Detail fields"
 msgstr ""
 
 msgid "Details"
@@ -7931,6 +7990,9 @@ msgstr ""
 msgid "Huge"
 msgstr ""
 
+msgid "ID column"
+msgstr ""
+
 msgid "ISO 3166-2"
 msgstr ""
 
@@ -8821,6 +8883,14 @@ msgstr ""
 msgid "Less than (<)"
 msgstr ""
 
+#, python-format
+msgid "Level %(number)s"
+msgstr ""
+
+#, python-format
+msgid "Level %(number)s: %(field)s can't be the level's own ID column."
+msgstr ""
+
 msgid "Liberty (OpenFreeMap)"
 msgstr ""
 
@@ -8915,6 +8985,13 @@ msgid "Link"
 msgstr ""
 
 msgid "Link Copied!"
+msgstr ""
+
+#, python-format
+msgid "Linked to %(parent)s by"
+msgstr ""
+
+msgid "Linked to parent by"
 msgstr ""
 
 msgid "List"
@@ -9768,6 +9845,9 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
+msgid "Name a group of items at this level."
+msgstr ""
+
 msgid "Name is required"
 msgstr ""
 
@@ -9793,6 +9873,9 @@ msgid "Name of the target nodes"
 msgstr ""
 
 msgid "Name of your tag"
+msgstr ""
+
+msgid "Name one item at this level."
 msgstr ""
 
 msgid "Name used for the candlestick series in the legend and tooltip when no series dimension is set."
@@ -11142,6 +11225,9 @@ msgstr ""
 msgid "Plugins"
 msgstr ""
 
+msgid "Plural name"
+msgstr ""
+
 msgid "Point Cluster Map"
 msgstr ""
 
@@ -11706,6 +11792,13 @@ msgstr ""
 msgid "Remove item"
 msgstr ""
 
+msgid "Remove level"
+msgstr ""
+
+#, python-format
+msgid "Remove level %s"
+msgstr ""
+
 msgid "Remove mapping"
 msgstr ""
 
@@ -12244,6 +12337,9 @@ msgid "Rows (vertical layout)"
 msgstr ""
 
 msgid "Rows per page, 0 means no pagination"
+msgstr ""
+
+msgid "Rows shown per parent"
 msgstr ""
 
 msgid "Rows subtotal position"

@@ -37,6 +37,7 @@ export {
   convertSortModel,
   convertColumnState,
 } from './stateConversion';
+export type { TreeLevel, TreeMirrors } from './TreeTable/types';
 
 const metadata = new ChartMetadata({
   behaviors: [
