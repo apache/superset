@@ -19,8 +19,8 @@
 
 /**
  * @fileoverview Host implementation of the `canvas` extension namespace:
- * widget renderers by type, the canvas the user has open, and what the
- * canvas page does to its draft.
+ * widget renderers by type, the canvas the user has open, what the canvas
+ * page does to its draft, and what is published with a draft.
  */
 
 import { ComponentType, useSyncExternalStore } from 'react';
@@ -127,9 +127,34 @@ const onDidChangeDraft: typeof canvasApi.onDidChangeDraft = (
     }
   });
 
+const publishParticipants = new Set<canvasApi.CanvasPublishParticipant>();
+
+const registerPublishParticipant: typeof canvasApi.registerPublishParticipant =
+  participant => {
+    publishParticipants.add(participant);
+    return new Disposable(() => {
+      publishParticipants.delete(participant);
+    });
+  };
+
+/**
+ * What publishing `draft` also publishes, as every participant answers it.
+ * One that fails fails them all: what it would have published can't be
+ * listed, so nothing may be published.
+ */
+export const preparePublish = async (
+  draft: canvasApi.CanvasDraftPublish,
+): Promise<canvasApi.CanvasPublishPart[]> => {
+  const answers = await Promise.all(
+    [...publishParticipants].map(participant => participant.prepare(draft)),
+  );
+  return answers.flat();
+};
+
 export const canvas: typeof canvasApi = {
   registerWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
   onDidChangeDraft,
+  registerPublishParticipant,
 };

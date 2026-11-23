@@ -208,3 +208,69 @@ export interface CanvasDraftEvent {
  * (`superset_core.canvas.drafts`) hear of every end.
  */
 export declare const onDidChangeDraft: Event<CanvasDraftEvent>;
+
+/** A saved widget that a canvas draft places. */
+export interface CanvasDraftWidget {
+  /** The placement's node id. */
+  nodeId: string;
+  /** The saved widget's UUID. */
+  widgetId: string;
+  /** Its widget type, when the widget resolves. */
+  widgetType?: string;
+  /** The title the canvas shows above the placement, if any. */
+  title?: string;
+}
+
+/** The canvas draft about to be published, as a publish participant reads it. */
+export interface CanvasDraftPublish {
+  canvasId: number;
+  /**
+   * The draft's token: send it only as the `X-Canvas-Draft` header of the
+   * requests that name the draft, and never log it.
+   */
+  token: string;
+  /** The saved widgets the draft places, which publishing it shows viewers. */
+  widgets: CanvasDraftWidget[];
+}
+
+/** Something published with a canvas draft, which its confirmation lists. */
+export interface CanvasPublishPart {
+  /** What is published, heading its lines in the confirmation. */
+  title: string;
+  /** What the person should know before they confirm, a sentence each. */
+  lines: string[];
+  /**
+   * Publishes it once the person confirmed, before the canvas itself is
+   * published. A rejection stops the publish: its message is shown, and the
+   * canvas stays unpublished.
+   */
+  publish: () => Promise<void>;
+}
+
+/** Takes part in publishing canvas drafts from the canvas page. */
+export interface CanvasPublishParticipant {
+  /**
+   * What publishing `draft` also publishes: none, for a draft it has nothing
+   * in. A rejection stops the publish before anything is published.
+   */
+  prepare: (draft: CanvasDraftPublish) => Promise<CanvasPublishPart[]>;
+}
+
+/**
+ * Takes part in publishing canvas drafts. When the person publishes a draft
+ * from the canvas page, the page asks every participant what publishing it
+ * also publishes, and lists every part in a confirmation before anything is
+ * published; a draft with no parts is published at once, as without
+ * participants. Once the person confirms, the page publishes the parts one
+ * after another, then the canvas. The first part that fails stops the
+ * publish, with its message shown.
+ *
+ * Only the page's publish asks: a draft that an agent commits through its
+ * tool is published without the parts, which wait for the person.
+ *
+ * @param participant What it publishes with each draft.
+ * @returns A Disposable that ends its part when disposed.
+ */
+export declare function registerPublishParticipant(
+  participant: CanvasPublishParticipant,
+): Disposable;

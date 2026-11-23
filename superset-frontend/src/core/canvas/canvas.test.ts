@@ -22,6 +22,7 @@ import {
   canvas,
   fireDraftEvent,
   getWidgetRenderer,
+  preparePublish,
   setActiveCanvas,
 } from 'src/core';
 
@@ -157,4 +158,50 @@ test('what the page does to its draft reaches every listener, past one that thro
   expect(logged).toHaveBeenCalled();
   failing.dispose();
   logged.mockRestore();
+});
+
+const draft: canvasApi.CanvasDraftPublish = {
+  canvasId: 7,
+  token: 'tok-123',
+  widgets: [{ nodeId: 'notes', widgetId: 'w-1', widgetType: 'acme.notes' }],
+};
+
+const part = (title: string): canvasApi.CanvasPublishPart => ({
+  title,
+  lines: [`${title} goes public`],
+  publish: () => Promise.resolve(),
+});
+
+test('publish participants say what a draft publishes, until disposed', async () => {
+  const notes = canvas.registerPublishParticipant({
+    prepare: async ({ widgets }) =>
+      widgets.some(widget => widget.widgetType === 'acme.notes')
+        ? [part('Notes')]
+        : [],
+  });
+  const quiet = canvas.registerPublishParticipant({
+    prepare: async () => [],
+  });
+
+  expect((await preparePublish(draft)).map(({ title }) => title)).toEqual([
+    'Notes',
+  ]);
+
+  notes.dispose();
+  quiet.dispose();
+  expect(await preparePublish(draft)).toEqual([]);
+});
+
+test('a participant that fails fails the whole publish, before anything is published', async () => {
+  const fine = jest.fn(async () => [part('Notes')]);
+  const first = canvas.registerPublishParticipant({ prepare: fine });
+  const broken = canvas.registerPublishParticipant({
+    prepare: () => Promise.reject(new Error('Notes are unreachable')),
+  });
+
+  await expect(preparePublish(draft)).rejects.toThrow('Notes are unreachable');
+  expect(fine).toHaveBeenCalledWith(draft);
+
+  first.dispose();
+  broken.dispose();
 });
