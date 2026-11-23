@@ -26,7 +26,7 @@ import {
   isCustomControlItem,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { QueryMode } from '@superset-ui/core';
+import { QueryMode, FeatureFlag, DatasourceType } from '@superset-ui/core';
 import config from '../src/controlPanel';
 
 function resolveControl(
@@ -41,7 +41,7 @@ function resolveControl(
   };
 }
 
-function state(mode: QueryMode, serverPagination: boolean) {
+function state(mode: QueryMode | 'tree', serverPagination: boolean) {
   return {
     controls: {
       query_mode: { value: mode },
@@ -98,11 +98,150 @@ test.each([QueryMode.Aggregate, QueryMode.Raw])(
         }));
       expect({ mode, serverPagination, visible }).toMatchSnapshot();
     }
-    expect(findControl('server_page_length').label).toBe('Server Page Length');
+    const { label } = findControl('server_page_length');
+    expect(
+      typeof label === 'function'
+        ? label(state(mode, false), {} as ControlState)
+        : label,
+    ).toBe('Server Page Length');
     expect(findControl('server_page_length').default).toBe(10);
     expect(findControl('row_limit').default).toBe(10000);
   },
 );
+
+test.each([false, true])(
+  'Tree row limit ignores retained server pagination %s',
+  serverPagination => {
+    const props = state('tree', serverPagination);
+    props.form_data.server_pagination = serverPagination;
+    props.common = {
+      conf: { SQL_MAX_ROW: 100000, TABLE_VIZ_MAX_ROW_SERVER: 500000 },
+    } as ControlPanelState['common'];
+    const control = findControl('row_limit');
+    const mapped = control.mapStateToProps?.(props, {} as ControlState, {
+      queriesResponse: null,
+    });
+    const validationState = { ...control, ...mapped } as ControlState;
+    const errors = control.validators
+      ?.map(validate => validate(150000, validationState))
+      .filter(Boolean);
+    expect(errors).toEqual([
+      'Lower the row limit to SQL_MAX_ROW (100000) or less.',
+    ]);
+    expect(
+      mapped?.choices.every(([value]: [number, string]) => value <= 100000),
+    ).toBe(true);
+    expect(
+      control.validators
+        ?.map(validate => validate(100000, validationState))
+        .filter(Boolean),
+    ).toEqual([]);
+  },
+);
+
+test('Tree page length stays enabled on a datasource without server pagination', () => {
+  const props = state('tree', false);
+  props.datasource!.type = DatasourceType.SemanticView;
+  props.form_data.datasource = '1__semantic_view';
+  const control = findControl('tree_server_page_length');
+  expect(control.disabled ?? false).toBe(false);
+  expect(
+    findControl('server_page_length').visibility?.(props, {} as ControlState),
+  ).toBe(false);
+  props.controls.query_mode.value = QueryMode.Aggregate;
+  expect(
+    findControl('server_page_length').mapStateToProps?.(
+      props,
+      {} as ControlState,
+      {
+        queriesResponse: null,
+      },
+    )?.disabled,
+  ).toBe(true);
+});
+
+test('Tree option respects the flag and saved mode, with Tree-only controls', () => {
+  const flags = window.featureFlags;
+  const mode = findControl('query_mode');
+  const resolve = (queryMode: QueryMode | 'tree') =>
+    mode.mapStateToProps?.(state(queryMode, false), {} as ControlState, {
+      queriesResponse: null,
+    });
+  try {
+    window.featureFlags = {
+      ...flags,
+      [FeatureFlag.TableV2TreeModeEnabled]: false,
+    };
+    expect(resolve('tree')?.options).toEqual([
+      ['aggregate', 'Aggregate'],
+      ['raw', 'Raw records'],
+      ['tree', 'Tree'],
+    ]);
+    expect(resolve('tree')?.value).toBe('tree');
+    window.featureFlags = {
+      ...flags,
+      [FeatureFlag.TableV2TreeModeEnabled]: true,
+    };
+    expect(resolve(QueryMode.Aggregate)?.options).toEqual([
+      ['aggregate', 'Aggregate'],
+      ['raw', 'Raw records'],
+      ['tree', 'Tree'],
+    ]);
+    const props = state('tree', false);
+    const visibleSections = config.controlPanelSections.filter(
+      section => section && section.visibility?.(props, {}) !== false,
+    );
+    expect(visibleSections.map(section => section?.label)).toEqual([
+      'Query',
+      'Levels',
+    ]);
+    const queryControls = visibleSections[0]?.controlSetRows
+      .flat()
+      .filter(item => {
+        const control = resolveControl(item);
+        return (
+          control &&
+          !control.hidden &&
+          control.type !== 'HiddenControl' &&
+          control.visibility?.(props, {} as ControlState) !== false
+        );
+      })
+      .map(item =>
+        typeof item === 'string'
+          ? item
+          : item && 'name' in item
+            ? item.name
+            : '',
+      );
+    expect(queryControls).toEqual([
+      'query_mode',
+      'adhoc_filters',
+      'tree_server_page_length',
+      'row_limit',
+    ]);
+    const pageLength = findControl('tree_server_page_length');
+    expect(pageLength.label).toBe('Page length');
+    expect(pageLength.freeForm).toBe(false);
+    expect(pageLength.choices).toEqual([
+      [10, '10'],
+      [20, '20'],
+      [50, '50'],
+      [100, '100'],
+      [200, '200'],
+    ]);
+    expect(
+      pageLength.mapStateToProps?.(props, {} as ControlState, {
+        queriesResponse: null,
+      })?.default,
+    ).toBe(50);
+    expect(findControl('server_pagination').resetOnHide).toBe(false);
+    expect(findControl('query_mode').rerender).toContain('levels');
+    expect(findControl('levels').default).toBeUndefined();
+    expect(findControl('row_limit').default).toBe(10000);
+  } finally {
+    window.featureFlags = flags;
+  }
+});
 
 test.each([QueryMode.Aggregate, QueryMode.Raw])(
   '%s radio offers exactly Aggregate and Raw records with flags off',

@@ -2225,3 +2225,37 @@ def test_first_n_per_group_returns_capped_rows_and_sql_rowcount(
     ]
     assert result["rowcount"] == 4
     assert result["sql_rowcount"] == 10
+
+
+@with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
+def test_chart_data_results_type_is_sync_with_async_queries(
+    test_client, login_as_admin, physical_query_context
+):
+    physical_query_context["async_mode"] = True
+    with mock.patch.object(
+        ChartDataRestApi, "_run_async", return_value=Response(status=202)
+    ) as run_async:
+        rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+        assert rv.status_code == 202
+        run_async.assert_called_once()
+        run_async.reset_mock()
+
+        physical_query_context["result_type"] = ChartDataResultType.RESULTS
+        rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+        assert rv.status_code == 200
+        run_async.assert_not_called()
+        assert len(rv.json["result"][0]["data"]) == 10
+
+
+@with_feature_flags(GLOBAL_ASYNC_QUERIES=False)
+def test_chart_data_results_type_is_sync_without_async_queries(
+    test_client, login_as_admin, physical_query_context
+):
+    physical_query_context["async_mode"] = True
+    with mock.patch.object(ChartDataRestApi, "_run_async") as run_async:
+        for result_type in (ChartDataResultType.FULL, ChartDataResultType.RESULTS):
+            physical_query_context["result_type"] = result_type
+            rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+            assert rv.status_code == 200
+            assert len(rv.json["result"][0]["data"]) == 10
+        run_async.assert_not_called()

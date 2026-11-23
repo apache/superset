@@ -22,8 +22,69 @@ import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import { getControlsState } from 'src/explore/store';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
 import { getFormDataFromControls } from './getFormDataFromControls';
+import levelsToMirrors from '../../../plugins/plugin-chart-ag-grid-table/src/TreeTable/levelsToMirrors';
+
+const treeFormData = {
+  viz_type: VizType.TableAgGrid,
+  query_mode: 'tree',
+  datasource: '1__table',
+  row_limit: 1000,
+  levels: [
+    {
+      key: 'parent',
+      name: 'Parent',
+      id_column: 'parent',
+      columns: ['value'],
+      detail_fields: [],
+      time_column: 'ds',
+    },
+    {
+      key: 'child',
+      name: 'Child',
+      id_column: 'child',
+      parent_column: 'parent',
+      columns: ['value'],
+      detail_fields: [],
+    },
+  ],
+};
 
 new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid }).register();
+
+test('reopening a saved Tree chart preserves its mirrors and Aggregate metrics', () => {
+  const input = {
+    ...treeFormData,
+    ...levelsToMirrors(treeFormData.levels!),
+    metrics: ['count'],
+  };
+  const state = {
+    datasource: {
+      type: 'table',
+      columns: ['parent', 'child', 'value', 'ds'].map(column_name => ({
+        column_name,
+        is_dttm: column_name === 'ds',
+      })),
+      metrics: [],
+    },
+    form_data: input,
+    controls: Object.fromEntries(
+      Object.entries(input).map(([key, value]) => [key, { value }]),
+    ),
+  };
+  const hydrate = (formData: QueryFormData) =>
+    getFormDataFromControls(
+      getControlsState(state, formData) as ControlStateMapping,
+    );
+  const baseline = hydrate(input);
+  const reopened = hydrate(baseline);
+  expect(getChartFormDiffs(baseline, reopened)).toEqual({});
+  expect(reopened.metrics).toEqual(['count']);
+  expect(reopened.levels).toEqual(treeFormData.levels);
+  for (const [key, value] of Object.entries(
+    levelsToMirrors(treeFormData.levels!),
+  ))
+    expect(reopened[key]).toEqual(value);
+});
 
 test.each([QueryMode.Aggregate, QueryMode.Raw])(
   'saved Table V2 %s hydration preserves its baseline and adds no Tree values',
@@ -67,6 +128,7 @@ test.each([QueryMode.Aggregate, QueryMode.Raw])(
       'tree_columns',
       'tree_metrics',
       'tree_orderby',
+      'tree_server_page_length',
     ]) {
       expect(reopened[name]).toBeUndefined();
     }

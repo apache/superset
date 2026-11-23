@@ -1051,6 +1051,61 @@ test('Should show row count warning for non-table chart when row limit is reache
   mockUseUiConfig.mockRestore();
 });
 
+test.each([
+  ['warns when the parent count reaches the limit', 1000, true],
+  ['hides the warning when the parent count is below the limit', 120, false],
+] as const)('Tree mode %s', (_label, total, warned) => {
+  const treeTable = {
+    ...createProps().formData,
+    viz_type: VizType.TableAgGrid,
+    query_mode: 'tree',
+    row_limit: 1000,
+  };
+  const props = createProps({
+    formData: treeTable,
+    slice: {
+      ...createProps().slice,
+      form_data: { ...createProps().slice.form_data, ...treeTable },
+      viz_type: VizType.TableAgGrid,
+      query_mode: 'tree',
+    },
+  });
+  const treeTableState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          { sql_rowcount: 50, data: Array(50).fill({}) },
+          { data: [{ rowcount: total }] },
+        ],
+      },
+    },
+  };
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: treeTableState,
+  });
+
+  expect(screen.queryByTestId('warning') !== null).toBe(warned);
+
+  mockUseUiConfig.mockRestore();
+});
+
 test('Should show row count warning for ag-grid table chart with server pagination when limit is reached', () => {
   const props = createProps({
     formData: {

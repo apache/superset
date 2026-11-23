@@ -28,9 +28,106 @@ import buildQuery from '../src/buildQuery';
 import transformProps from '../src/transformProps';
 import { TableChartFormData } from '../src/types';
 import testData from '../../plugin-chart-table/test/testData';
+import { treeFormData, retainedTableControls } from './treeModeFixtures';
+import treeBuildQuery from '../src/TreeTable/buildQuery';
+import treeTransformProps from '../src/TreeTable/transformProps';
+import transformPropsByMode from '../src/transformPropsByMode';
+import { TreeTableChartProps } from '../src/TreeTable/types';
 
 const key = 'table-v2-dispatch-regression';
 new AgGridTableChartPlugin().configure({ key }).register();
+
+test('registered Tree parent page and count ignore retained Table V2 controls', () => {
+  const registered = getChartBuildQueryRegistry().get(key);
+  if (typeof registered !== 'function')
+    throw new Error('Builder is not registered');
+  const expected = treeBuildQuery(treeFormData);
+  const actual = registered({ ...treeFormData, ...retainedTableControls });
+  expect(actual.queries).toEqual(expected.queries);
+  expect(actual.queries).toHaveLength(2);
+  expect(actual.form_data).not.toHaveProperty('server_pagination');
+  expect(actual.form_data).not.toHaveProperty('server_page_length');
+  expect(expected.form_data).not.toHaveProperty('server_pagination');
+  expect(registered(treeFormData)).toEqual(expected);
+});
+
+test('Tree transform dispatch preserves raw input and forwards chart-state hook', () => {
+  const props = {
+    ...testData.basic,
+    formData: treeFormData,
+    rawFormData: treeFormData,
+    hooks: { onChartStateChange: jest.fn() },
+  } as unknown as TreeTableChartProps;
+  const { columns: actualColumns, ...actual } = transformPropsByMode(props);
+  const { columns: expectedColumns, ...expected } = treeTransformProps(props);
+  expect(actual).toEqual({
+    ...expected,
+    queryMode: 'tree',
+    onChartStateChange: props.hooks.onChartStateChange,
+  });
+  const formattedColumns = (columns: typeof expectedColumns) =>
+    columns.map(({ formatter, ...column }) => ({
+      ...column,
+      formatted: formatter?.(42),
+    }));
+  expect(formattedColumns(actualColumns as typeof expectedColumns)).toEqual(
+    formattedColumns(expectedColumns),
+  );
+});
+
+test.each([
+  [undefined, 50],
+  [20, 20],
+  [25, 50],
+] as const)(
+  'Tree page setting %s controls the parent query and pager independently of Table V2',
+  (treePageLength, expectedSize) => {
+    const formData = {
+      ...treeFormData,
+      tree_server_page_length: treePageLength,
+      server_page_length: 25,
+    };
+    const context = treeBuildQuery(formData);
+    expect(context.queries[0]).toMatchObject({
+      row_limit: expectedSize,
+      row_offset: 0,
+    });
+    expect(context.queries[1].row_limit).toBe(treeFormData.row_limit);
+    expect(context.form_data).not.toHaveProperty('server_page_length');
+    const props = {
+      ...testData.basic,
+      formData,
+      rawFormData: formData,
+    } as unknown as TreeTableChartProps;
+    expect(treeTransformProps(props)).toMatchObject({
+      pageSize: expectedSize,
+      serverPageLength: expectedSize,
+    });
+  },
+);
+
+test('viewer Tree page-size changes override the Tree author setting without writing either form value', () => {
+  const formData = {
+    ...treeFormData,
+    tree_server_page_length: 20,
+    server_page_length: 25,
+  };
+  const ownState = { pageSize: 100, currentPage: 1 };
+  expect(treeBuildQuery(formData, { ownState }).queries[0]).toMatchObject({
+    row_limit: 100,
+    row_offset: 100,
+  });
+  expect(
+    treeTransformProps({
+      ...testData.basic,
+      formData,
+      rawFormData: formData,
+      ownState,
+    } as unknown as TreeTableChartProps),
+  ).toMatchObject({ pageSize: 100, serverPageLength: 20 });
+  expect(formData.tree_server_page_length).toBe(20);
+  expect(formData.server_page_length).toBe(25);
+});
 
 const base: TableChartFormData = {
   viz_type: VizType.TableAgGrid,

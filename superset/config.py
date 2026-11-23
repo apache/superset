@@ -822,6 +822,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Shows the Tree query mode in Table V2 (AG Grid table)
+    # @lifecycle: development
+    "TABLE_V2_TREE_MODE_ENABLED": False,
     # Enables chart and dashboard version history panels and their supporting
     # API endpoints.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;

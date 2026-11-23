@@ -68,6 +68,8 @@ export interface TreeTableColumn {
 }
 
 export interface TreeTableTransformedProps {
+  /** Dataset storage formats keyed by temporal link column name. */
+  linkDateFormats?: ReadonlyMap<string, string>;
   onChartStateChange?: (chartState: JsonObject) => void;
   width: number;
   height: number;
@@ -94,6 +96,7 @@ export interface TreeTableChildRequest {
   level: number;
   /** Each parent row's path, from level 1 down to the parent. */
   paths: string[][];
+  linkDateFormats?: ReadonlyMap<string, string>;
   sort?: [string, boolean];
   offset?: number;
 }
