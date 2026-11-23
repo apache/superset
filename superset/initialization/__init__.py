@@ -855,6 +855,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # at the same restart is the cheap, observability-positive shape.
         self._warn_if_retention_beat_missing()
 
+        # Register archive scope metadata even when capture is disabled.
+        from superset.versioning import lifecycle_table  # noqa: F401
+
         if not self.config.get("ENABLE_VERSIONING_CAPTURE", False):
             logger.warning(
                 "versioning: ENABLE_VERSIONING_CAPTURE is False; "
