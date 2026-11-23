@@ -92,26 +92,11 @@ msgstr ""
 msgid " at line %(line)d"
 msgstr ""
 
-msgid " expression which needs to adhere to the "
-msgstr ""
-
 msgid " for details."
 msgstr ""
 
 #, python-format
 msgid " near '%(highlight)s'"
-msgstr ""
-
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. Note\n"
-"                      currently time zones are not supported. If time is stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional defaults on a per\n"
-"                      database/column name level via the extra parameter."
 msgstr ""
 
 msgid " to add calculated columns"
@@ -200,6 +185,12 @@ msgstr[1] ""
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr ""
+
 #, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
@@ -278,11 +269,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr ""
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
-msgstr[0] ""
-msgstr[1] ""
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -4564,7 +4554,7 @@ msgstr ""
 msgid "Cross-filter column"
 msgstr ""
 
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
+msgid "Cross-filter will be applied to the charts in this chart's cross-filtering scope."
 msgstr ""
 
 msgid "Cross-filtering is not enabled for this dashboard."
@@ -5625,6 +5615,9 @@ msgid "Description text that shows up below your Big Number"
 msgstr ""
 
 msgid "Deselect all"
+msgstr ""
+
+msgid "Deselect the items you cannot modify and try again."
 msgstr ""
 
 msgid "Design with"
@@ -6919,6 +6912,9 @@ msgstr ""
 msgid "Expression evaluated — data not checked"
 msgstr ""
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 #, python-format
 msgid "Extension '%(extension_id)s' has exceeded its persistent storage quota of %(quota)d bytes."
 msgstr ""
@@ -7796,6 +7792,7 @@ msgstr ""
 msgid "HTTPS will be used to connect to the Trino coordinator."
 msgstr ""
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr ""
 
@@ -7941,9 +7938,6 @@ msgid "ISO 3166-2"
 msgstr ""
 
 msgid "ISO 3166-2 Codes"
-msgstr ""
-
-msgid "ISO 8601"
 msgstr ""
 
 msgid "ISO suffix / abbreviation"
@@ -10514,12 +10508,6 @@ msgstr ""
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
 msgstr ""
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 msgid "Oops! An error occurred!"
 msgstr ""
 
@@ -11388,9 +11376,6 @@ msgid "Put the labels outside of the pie?"
 msgstr ""
 
 msgid "Put your code here"
-msgstr ""
-
-msgid "Python datetime string pattern"
 msgstr ""
 
 msgid "Quarter"
@@ -14649,6 +14634,9 @@ msgstr ""
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr ""
 
+msgid "The X-axis is a SQL expression, so time range filtering is not applied automatically. Without a time filter, queries may scan the entire table. Add a filter on your dataset's time column in the Filters section to limit the rows read."
+msgstr ""
+
 msgid "The X-axis is not on the filters list"
 msgstr ""
 
@@ -15127,7 +15115,11 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr ""
 
-msgid "The pattern of timestamp format. For strings use "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid "The pattern of timestamp format. For strings use [Python datetime string pattern](%(python_url)s) expression which needs to adhere to the [ISO 8601](%(iso_url)s) standard to ensure that the lexicographical ordering coincides with the chronological ordering. If the timestamp format does not adhere to the ISO 8601 standard you will need to define an expression and type for transforming the string into a date or timestamp. Note currently time zones are not supported. If time is stored in epoch format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is specified we fall back to using the optional defaults on a per database/column name level via the extra parameter."
 msgstr ""
 
 msgid ""
@@ -15960,6 +15952,9 @@ msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This chart's cross-filtering scope doesn't include any other charts."
 msgstr ""
 
 msgid "This column holds the mapping instead of the default datetime column."
@@ -18117,6 +18112,12 @@ msgstr ""
 msgid "You are adding tags to %s %ss"
 msgstr ""
 
+msgid "You are already subscribed to this chart. Your existing report has been opened for editing."
+msgstr ""
+
+msgid "You are already subscribed to this dashboard. Your existing report has been opened for editing."
+msgstr ""
+
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -18214,6 +18215,9 @@ msgid "You do not have permission to edit this dashboard"
 msgstr ""
 
 msgid "You do not have permission to import this asset. Ask its owner or an administrator for the required access, then retry."
+msgstr ""
+
+msgid "You do not have permission to modify this semantic view."
 msgstr ""
 
 msgid "You do not have permission to perform this operation"
@@ -18483,6 +18487,9 @@ msgid "Z-A"
 msgstr ""
 
 msgid "ZIP file contains multiple file types"
+msgstr ""
+
+msgid "ZIP file contains no data files"
 msgstr ""
 
 msgid "Zebra striping"
