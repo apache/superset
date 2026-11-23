@@ -931,3 +931,60 @@ test('clamps the total anchor into the arc box for narrow arcs', () => {
   expect(graphic.x).toBe(400);
   expect(graphic.y).toBeCloseTo(421.37, 1);
 });
+
+// The Cartodiagram transforms props without a size and renders each pie at
+// a zoom-dependent size later.
+const getUnsizedAngleChartProps = (
+  donut: boolean,
+  sweptAngle: number,
+  startAngle?: number,
+) =>
+  ({
+    ...getAngleChartProps(donut, sweptAngle, startAngle),
+    width: null,
+    height: null,
+  }) as unknown as EchartsPieChartProps;
+
+test('centers a full pie with percentages when the chart size is unknown', () => {
+  const series = getSeries(getUnsizedAngleChartProps(false, 360, 90));
+  expect(series[0].center).toEqual(['50%', '50%']);
+  expect(series[0].radius).toEqual(['0%', '70%']);
+});
+
+test('recenters a top half-donut with percentages when the chart size is unknown', () => {
+  // Laid out in a square rect: the 2x1 box doesn't scale, and the origin
+  // shifts down by half the box height (0.5 * 70% of the 50% basis).
+  const series = getSeries(getUnsizedAngleChartProps(true, 180, 180));
+  expect(series[0].center).toEqual(['50%', '67.5%']);
+  expect(series[0].radius).toEqual(['30%', '70%']);
+});
+
+test('lets ECharts center the total when the chart size is unknown', () => {
+  const donutGraphic = getGraphic(
+    transformProps(getUnsizedAngleChartProps(true, 360, 90)),
+  );
+  expect(donutGraphic).toMatchObject({ left: 'center', top: 'middle' });
+  expect(donutGraphic).not.toHaveProperty('x');
+
+  const pieGraphic = getGraphic(
+    transformProps(getUnsizedAngleChartProps(false, 360, 90)),
+  );
+  expect(pieGraphic).toMatchObject({ left: 'center', top: 0 });
+  expect(pieGraphic.style.verticalAlign).toBe('top');
+});
+
+test('getPieLayout has no total anchor when the chart size is unknown', () => {
+  const layout = getPieLayout({
+    width: null,
+    height: null,
+    padding: { top: 0, bottom: 0, left: 0, right: 0 },
+    startAngle: 90,
+    sweptAngle: 360,
+    donut: true,
+    innerRadius: 30,
+    outerRadius: 70,
+  });
+  expect(layout.center).toEqual(['50%', '50%']);
+  expect(layout.radius).toEqual(['30%', '70%']);
+  expect(layout.totalAnchor).toBeNull();
+});
