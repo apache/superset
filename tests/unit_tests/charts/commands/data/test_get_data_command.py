@@ -497,7 +497,8 @@ def test_database_error_while_building_the_query_is_a_failed_query(entry: str) -
     ],
 )
 def test_adhoc_column_probe_error_is_a_failed_query_not_a_500(
-    entry: str, raised_exception: Exception
+    entry: str,
+    raised_exception: ColumnNotFoundException | SupersetGenericDBErrorException,
 ) -> None:
     """
     Regression test for Sentry issue 7863520932.
