@@ -727,3 +727,78 @@ def test_extensions_take_part_in_commits_through_superset_core(
     finally:
         unregister()
     assert len(refusing.asked) == 1
+
+
+def test_what_an_extension_registers_runs_in_its_extension_context(
+    store: Store,
+    widget_types: FakeResolver,
+    mocker: MockerFixture,
+) -> None:
+    """
+    An extension registers its listener, step handler and participant while
+    it loads, and a draft's requests call each much later, in that extension's
+    context; the host's own run as they are.
+    """
+    from superset.canvas import draft_hooks
+    from superset.commands.canvas import draft as drafts
+    from superset.extensions.context import (
+        extension_context,
+        get_context,
+        get_current_extension_context,
+    )
+    from tests.unit_tests.extensions.storage.conftest import create_manifest
+
+    seen: list[tuple[str, str]] = []
+    host: list[object] = []
+
+    def heard(what: str) -> None:
+        seen.append((what, get_context().extension.id))
+
+    class Steps:
+        def undo(self, _recorded: DraftStep, _token: str) -> None:
+            heard("undo")
+
+        def redo(self, _recorded: DraftStep, _token: str) -> None:
+            heard("redo")
+
+    steps = Steps()
+    with extension_context(create_manifest("acme", "notes")):
+        removals = [
+            draft_hooks.on_draft_event(lambda event: heard(event.kind)),
+            draft_hooks.register_step_handler(KIND, steps),
+            draft_hooks.register_commit_participant(lambda _commit: heard("asked")),
+        ]
+    removals.append(
+        draft_hooks.on_draft_event(
+            lambda _event: host.append(get_current_extension_context())
+        )
+    )
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    command.return_value.run.return_value = MagicMock(revision=4)
+    try:
+        draft = placed_draft()
+        draft = drafts.RecordCanvasDraftStepCommand(draft.token, step("v1")).run()
+        draft = drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
+        draft = drafts.RewindCanvasDraftCommand(
+            draft.token, draft.revision, forward=True
+        ).run()
+        drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+        # The same handler again is the registration it already has.
+        draft_hooks.register_step_handler(KIND, steps)
+    finally:
+        for remove in removals:
+            remove()
+
+    acme = "acme.notes"
+    assert seen == [
+        ("undo", acme),
+        ("undone", acme),
+        ("redo", acme),
+        ("redone", acme),
+        ("asked", acme),
+        ("committed", acme),
+    ]
+    assert host == [None, None, None]
+    assert get_current_extension_context() is None
+    assert draft_hooks.step_handler(KIND) is None
+    assert not draft_hooks.has_commit_participants()

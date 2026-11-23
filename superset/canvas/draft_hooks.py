@@ -19,6 +19,12 @@ The host's side of ``superset_core.canvas.drafts``: who listens to canvas
 draft events, which handler undoes and redoes each kind of recorded step, and
 who is asked before a commit. The draft commands
 (``superset.commands.canvas.draft``) read all three.
+
+An extension registers them while it loads, and a draft's requests call them
+much later, when no extension context is set: each runs in the context of the
+extension that registered it, made afresh for each call (``bind_context``), so
+that ``get_context()`` and extension storage find that extension. What the
+host registers runs as it is.
 """
 
 from __future__ import annotations
@@ -31,7 +37,15 @@ from superset_core.canvas.drafts import (
     CanvasDraftEvent,
     CommitRefusedError,
     DraftCommit,
+    DraftStep,
     DraftStepHandler,
+)
+
+from superset.extensions.context import (
+    bind_context,
+    ConcreteExtensionContext,
+    get_current_extension_context,
+    restore_context,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,15 +58,41 @@ _handlers: dict[str, DraftStepHandler] = {}
 _participants: list[Callable[[DraftCommit], None]] = []
 
 
+class _ExtensionStepHandler:
+    """A step handler an extension registered, run in that extension's context."""
+
+    def __init__(
+        self, handler: DraftStepHandler, context: ConcreteExtensionContext
+    ) -> None:
+        self.handler = handler
+        self._context = context
+
+    def undo(self, step: DraftStep, token: str) -> None:
+        with restore_context(self._context):
+            self.handler.undo(step, token)
+
+    def redo(self, step: DraftStep, token: str) -> None:
+        with restore_context(self._context):
+            self.handler.redo(step, token)
+
+
+def _registered(handler: DraftStepHandler) -> DraftStepHandler:
+    """The handler as it was registered, without the context it runs in."""
+    if isinstance(handler, _ExtensionStepHandler):
+        return handler.handler
+    return handler
+
+
 def on_draft_event(
     listener: Callable[[CanvasDraftEvent], None],
 ) -> Callable[[], None]:
     """Call ``listener`` after each canvas draft event; answer its unsubscribe."""
-    _listeners.append(listener)
+    bound = bind_context(listener, get_current_extension_context())
+    _listeners.append(bound)
 
     def unsubscribe() -> None:
-        if listener in _listeners:
-            _listeners.remove(listener)
+        if bound in _listeners:
+            _listeners.remove(bound)
 
     return unsubscribe
 
@@ -74,12 +114,17 @@ def register_step_handler(kind: str, handler: DraftStepHandler) -> Callable[[], 
     if not kind:
         raise ValueError("A recorded step's kind can't be empty")
     existing = _handlers.get(kind)
-    if existing is not None and existing is not handler:
+    if existing is None:
+        context = get_current_extension_context()
+        _handlers[kind] = (
+            handler if context is None else _ExtensionStepHandler(handler, context)
+        )
+    elif _registered(existing) is not handler:
         raise ValueError(f"Recorded steps of kind {kind!r} have a handler already")
-    _handlers[kind] = handler
 
     def unregister() -> None:
-        if _handlers.get(kind) is handler:
+        current = _handlers.get(kind)
+        if current is not None and _registered(current) is handler:
             del _handlers[kind]
 
     return unregister
@@ -94,11 +139,12 @@ def register_commit_participant(
     participant: Callable[[DraftCommit], None],
 ) -> Callable[[], None]:
     """Ask ``participant`` before each commit; answer its removal."""
-    _participants.append(participant)
+    bound = bind_context(participant, get_current_extension_context())
+    _participants.append(bound)
 
     def unregister() -> None:
-        if participant in _participants:
-            _participants.remove(participant)
+        if bound in _participants:
+            _participants.remove(bound)
 
     return unregister
 
