@@ -174,7 +174,10 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if isinstance(sqla_type, DateTime):
             dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
-            return f"CAST('{dttm_formatted}' AS TIMESTAMP)"
+            timestamp_type = (
+                "TIMESTAMPTZ" if dttm.utcoffset() is not None else "TIMESTAMP"
+            )
+            return f"CAST('{dttm_formatted}' AS {timestamp_type})"
         return None
 
     @classmethod

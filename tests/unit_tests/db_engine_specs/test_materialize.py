@@ -17,7 +17,7 @@
 
 import re
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from unittest.mock import call, MagicMock
 
 import pytest
@@ -236,6 +236,19 @@ def test_convert_dttm(target_type: str, expected: str | None) -> None:
     assert_convert_dttm(
         spec, target_type, expected, datetime(2019, 1, 2, 3, 4, 5, 678900)
     )
+
+
+@pytest.mark.parametrize("target_type", ["DateTime", "Timestamp"])
+@pytest.mark.parametrize("offset", [0, 330, -300])
+def test_convert_dttm_preserves_timezone(target_type: str, offset: int) -> None:
+    """Aware filter boundaries retain their offset through a TIMESTAMPTZ cast."""
+    dttm = datetime(
+        2019, 1, 2, 3, 4, 5, 678900, tzinfo=timezone(timedelta(minutes=offset))
+    )
+    expected = (
+        f"CAST('{dttm.isoformat(sep=' ', timespec='microseconds')}' AS TIMESTAMPTZ)"
+    )
+    assert_convert_dttm(spec, target_type, expected, dttm)
 
 
 def test_get_schema_names() -> None:
