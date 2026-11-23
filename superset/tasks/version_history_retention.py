@@ -72,7 +72,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class ShadowTables:
-    """The four Continuum-managed Table objects the prune walks.
+    """The content shadows and activity tables the prune walks.
 
     Bundled here so the prune helper's signature stays at two arguments
     instead of five. The shape is set once at task entry by
@@ -83,6 +83,7 @@ class ShadowTables:
     child: list[sa.Table]
     m2m: sa.Table | None
     transaction: sa.Table
+    archive_scope: sa.Table | None = None
 
 
 def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
@@ -143,6 +144,11 @@ def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
         child=child_tables,
         m2m=m2m_table,
         transaction=tx_table,
+        archive_scope=(
+            metadata.tables.get("version_chart_archive_scope")
+            if metadata is not None
+            else None
+        ),
     )
 
 
@@ -435,6 +441,20 @@ def _run_prune_pass(
                 if tables.m2m is not None
                 else 0
             )
+
+            # Scope rows do not anchor live content. Explicit cleanup also
+            # covers metadata-created schemas without the migration's FK.
+            if (
+                tx_ids
+                and tables.archive_scope is not None
+                and sa.inspect(conn).has_table(tables.archive_scope.name)
+            ):
+                for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
+                    conn.execute(
+                        sa.delete(tables.archive_scope).where(
+                            tables.archive_scope.c.transaction_id.in_(chunk)
+                        )
+                    )
 
             # Drop the version_transaction rows themselves. ON DELETE
             # CASCADE on version_changes.transaction_id removes the

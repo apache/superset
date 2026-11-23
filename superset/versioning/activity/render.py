@@ -59,13 +59,16 @@ from superset.versioning.activity.kinds import (
     USER_FACING_KIND,
 )
 from superset.versioning.activity.queries import (
+    archive_entity_uuid,
     check_entity_tombstones,
     resolve_historical_entity_snapshots,
 )
 from superset.versioning.activity.visibility import resolve_editorship
+from superset.versioning.lifecycle import CHART_ARCHIVE_KIND
 from superset.versioning.queries import derive_version_uuid
 
 _SUMMARY_VERBS: dict[str, str] = {
+    CHART_ARCHIVE_KIND: "archived",
     # The kind taxonomy mapped to past-tense verbs for the
     # "<entity_label> <verb>: <entity_name>" headline. "field" is
     # the fallback for scalar changes that don't map to a named verb.
@@ -132,6 +135,9 @@ def apply_record_decoration(
         historical_uuid, snapshot_tx = historical_snapshots.get(
             (api_kind, entity_id, record["transaction_id"]), (None, None)
         )
+        is_archive = record.get("kind") == CHART_ARCHIVE_KIND
+        if is_archive:
+            historical_uuid = archive_entity_uuid(record)
         reused_identity = (
             live_uuid is not None
             and historical_uuid is not None
@@ -140,7 +146,8 @@ def apply_record_decoration(
         entity_uuid = historical_uuid or live_uuid
         if tombstone["deleted"] or reused_identity:
             entity_uuid = None
-        if reused_identity:
+        if reused_identity or (is_archive and historical_uuid is None):
+            entity_uuid = None
             tombstone = {"deleted": True, "deletion_state": None}
         is_self = api_kind == path_kind and entity_id == path_id
 

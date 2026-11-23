@@ -446,6 +446,15 @@ def finalize_change_records(session: Session) -> None:
     against an isolated session; it depends only on the session and the
     module helpers, never on the registered entity classes.
     """
+    from sqlalchemy_continuum import versioning_manager
+
+    from superset.versioning.lifecycle import (
+        capture_chart_archives,
+        collect_chart_archives,
+    )
+
+    if not versioning_manager.options["versioning"]:
+        return
     if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
         return
     if not capture_for_write(session):
@@ -475,16 +484,15 @@ def finalize_change_records(session: Session) -> None:
             logger.exception("version_changes: transaction lookup failed")
             incr_capture_error("transaction_lookup")
             return
-        if tx_id is None:
-            return
+        if tx_id is not None:
+            _stamp_action_kind_on_transaction(session, tx_id)
+            _append_child_records_to_buffer(session, tx_id, buffer)
+            _inject_action_meta_record(session, buffer)
 
-        _stamp_action_kind_on_transaction(session, tx_id)
-        _append_child_records_to_buffer(session, tx_id, buffer)
-        _inject_action_meta_record(session, buffer)
-
-        if buffer:
-            _persist_buffered_records(session, tx_id, buffer)
-        reconcile_parent_snapshots(session, tx_id)
+            if buffer:
+                _persist_buffered_records(session, tx_id, buffer)
+            reconcile_parent_snapshots(session, tx_id)
+        capture_chart_archives(session, collect_chart_archives(session, initial_states))
     finally:
         session.info.pop(_FINALIZING_KEY, None)
         if start is not None:

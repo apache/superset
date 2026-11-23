@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard history records related chart archives using the new
+  `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
+  new archive writes with versioning capture enabled. During a rollout, activity
+  reads tolerate a missing scope table and continue returning content history;
+  archive capture skipped before the migration cannot be reconstructed or
+  backfilled. Archive activity adds no content version and does not change
+  recovery or content-restore behavior. Downgrade removes archive scopes and
+  archive records but leaves content history intact; empty activity transactions
+  may remain until normal history retention removes them.
+
 - Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
 
 - Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series

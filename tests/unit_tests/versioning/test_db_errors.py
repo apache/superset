@@ -92,6 +92,14 @@ def test_mysql_no_such_table_is_missing_table() -> None:
     assert is_missing_table_error(error) is True
 
 
+def test_mysql_missing_table_with_sqlstate_uses_errno() -> None:
+    """MySQL drivers exposing both diagnostics retain their errno semantics."""
+    error = OperationalError(
+        "SELECT 1", {}, _FakeDriverError(1146, "missing table", sqlstate="42S02")
+    )
+    assert is_missing_table_error(error)
+
+
 def test_mysql_lock_wait_timeout_is_not_missing_table() -> None:
     error = _wrap(
         OperationalError,

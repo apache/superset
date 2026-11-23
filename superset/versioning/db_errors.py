@@ -168,16 +168,17 @@ def is_missing_table_error(exc: DBAPIError) -> bool:
     """
     orig = getattr(exc, "orig", None)
 
+    # MySQL/MariaDB drivers can also expose SQLSTATE; their numeric errno
+    # takes precedence over the PostgreSQL SQLSTATE vocabulary.
+    args = getattr(orig, "args", ())
+    if args and isinstance(args[0], int):
+        return args[0] == _MYSQL_NO_SUCH_TABLE
+
     # PostgreSQL via psycopg2. (psycopg 3 spells it ``sqlstate``; checked
     # too so a driver swap doesn't silently widen the swallow.)
     pgcode = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
     if pgcode is not None:
         return pgcode == _PG_UNDEFINED_TABLE
-
-    # MySQL/MariaDB drivers put the numeric errno first in args.
-    args = getattr(orig, "args", ())
-    if args and isinstance(args[0], int):
-        return args[0] == _MYSQL_NO_SUCH_TABLE
 
     # SQLite has no error codes on OperationalError; the message is the
     # documented, stable signal.

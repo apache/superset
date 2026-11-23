@@ -3323,6 +3323,10 @@ msgstr ""
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr ""
 
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
+
 msgid "Chart cache timeout"
 msgstr ""
 
