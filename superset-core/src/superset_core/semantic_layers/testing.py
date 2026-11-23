@@ -133,7 +133,7 @@ class SemanticProviderConformance:
                 assert isinstance(preferred, str), (
                     "preferred_temporal_dimension must be a string or None"
                 )
-                selected: Dimension | None = min(
+                selected = min(
                     (
                         dimension
                         for dimension in view.get_dimensions()

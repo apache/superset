@@ -153,12 +153,34 @@ chart requires access to its datasource; overwriting an existing chart also
 requires chart edit permission. SQL Lab queries must first be saved as datasets
 before they can be used as persistent chart datasources.
 
+Histogram, Calendar Heatmap, Time-series Table, Time-series Period Pivot,
+Nightingale Rose, Horizon, and Paired t-test are not supported on semantic views.
+These charts require raw observations or a time-series query shape that semantic
+views do not supply. Running one, including a saved chart on a dashboard, returns
+an explanatory message instead of chart data. Use a Line or Bar chart for time
+series, or a Table chart with an explicit time dimension. For frequency counts,
+use a Bar or Table chart with an explicit count metric defined by the semantic
+view. Cached chart images are also refused. Fresh dashboard images and PDFs can
+include the refusal message tile; dashboard images cached before this policy are
+allowed and may show the old tile until expiry or regeneration. These restrictions do not apply to ordinary
+datasets.
+
 For a semantic view, Pivot Table hides **Series limit** because it has no series
 columns to limit. Existing Pivot Table charts with a saved Series limit still
 run without applying that limit. Programmatic semantic-view queries with a
 positive `series_limit` and no series columns run without a series limit.
 Timeseries queries with metrics and at least one `columns` value infer series
 columns from `columns` and keep the limit.
+
+Pivot Table queries on semantic views use a bounded Cell limit and at most nine
+rollup levels. Two row dimensions and two column dimensions with totals and
+subtotals can need nine levels; requests needing more levels are refused. If a
+level reaches the limit, the chart refuses it even when that level may be
+complete, because it cannot confirm whether more rows exist. Add filters or
+remove dimensions.
+
+Date rows and columns can use a supported Time Grain. Custom SQL dimensions,
+saved row offsets, and result aggregation remain unsupported for semantic views.
 
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
@@ -297,6 +319,10 @@ Once you’re done, publish the chart in your Tutorial Dashboard.
 
 Graph charts display SQL `NULL` categories as `<NULL>` and the literal string `<NULL>` as
 `"<NULL>"`, with independently selectable legend entries.
+
+Treemap tooltips display SQL `NULL` dimensions as `<NULL>`, including in nested
+hierarchies. Dimension names containing angle brackets or ampersands are shown
+as literal text in the tooltip title.
 
 ### Markup
 
@@ -503,6 +529,14 @@ Time ranges include the start timestamp and exclude the end timestamp. If both
 endpoints resolve to the same timestamp, the picker warns that the range is empty;
 you can still apply it. To include a full day, use midnight on that day as the
 start and midnight on the following day as the end.
+
+### Drill By Categories in Mixed Charts
+
+On a Mixed Timeseries chart with a categorical x-axis, **Drill by** keeps the
+clicked category for the selected query (A or B), for datasets and semantic views.
+If the point also belongs to a series group, both filters apply by default; the
+scope selector lets you choose the category or the series instead. The other
+query's controls and cross-filter behavior are unchanged.
 
 ### Drill By Time Buckets
 

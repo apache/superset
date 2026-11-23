@@ -147,9 +147,6 @@ msgstr " he mea hou"
 msgid " at line %(line)d"
 msgstr " i te rārangi %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " kīanga e hāngai ana ki te "
-
 #, fuzzy
 msgid " for details."
 msgstr "Taipitopito"
@@ -157,37 +154,6 @@ msgstr "Taipitopito"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " tata ki '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" paerewa kia ōrite ai te raupapa pū-ā-kupu\n"
-"                      ki te raupapa wā. Mēnā kāore te whakatakotoranga\n"
-"                      tohu-wā e whai ana i te paerewa ISO 8601\n"
-"                      me tautuhi he kīanga me tētahi momo hei\n"
-"                      huri i te aho hei rā, hei tohu-wā rānei. Kia mōhio:"
-"\n"
-"                      kāore ano ngā rohe wā e tautokona i tēnei wā. Mēnā "
-"kua rongoātia te wā\n"
-"                      ki te whakatakotoranga epoch, tāurua `epoch_s`, "
-"`epoch_ms`, `epoch_us` rānei. Mēnā kāore he tauira\n"
-"                      i tohua, ka hoki mātou ki ngā taunoa kōwhiri mō ia\n"
-"                      pātengi raraunga/ingoa tīwae mā te tawhā extra."
 
 msgid " to add calculated columns"
 msgstr " hei tāpiri i ngā tīwae tatau"
@@ -309,6 +275,16 @@ msgstr ""
 "Kāore e taea te whakamahi i te %(dialect)s hei puna raraunga mō ngā take "
 "haumaru."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s, %(lastSuggestion)s rānei hei utu mō "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "kōnae %(label)s"
@@ -413,15 +389,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d rārangi i whakahokia mai"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(lastSuggestion)s hei utu mō \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s, %(lastSuggestion)s rānei hei utu mō "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s hei utu mō \"%(undefinedParameter)s\"?"
 
 # Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
 # placeholder]
@@ -6355,7 +6326,7 @@ msgstr "HAK"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "MUKU"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10148,7 +10119,7 @@ msgstr "Whakarerekē atu me pēhea te whakaatu i ia ine"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "RŌPŪ MĀ"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10366,6 +10337,7 @@ msgstr "Kāore e taea e te kaiwhakamahi manuhiri te whakarereke i te uta kauwhat
 msgid "HTTP Path"
 msgstr "Ara HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10450,6 +10422,9 @@ msgstr "Te uara teitei mō ia wā."
 msgid "Histogram"
 msgstr "Kauwhata Auau"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Kāinga"
 
@@ -10522,9 +10497,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Waehere ISO 3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10743,6 +10715,9 @@ msgstr "I tēnei tirohanga ka taea e koe te mātakitaki i ngā rārangi 25 tuata
 #, fuzzy
 msgid "Inactive"
 msgstr "Hohe"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Whakauru Raupapa"
@@ -12899,7 +12874,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "KĀORE I RŌPŪNGIA MĀ"
+msgstr ""
 
 msgid "NOV"
 msgstr "WHI"
@@ -13718,7 +13693,7 @@ msgstr "rānei"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "TUHIRUA"
+msgstr ""
 
 msgid "October"
 msgstr "Oketopa"
@@ -14887,6 +14862,9 @@ msgstr "Ka pupuri i te kaupapa ā-wā papatohu kua hangaia mā ngā penapena Exp
 msgid "Preview"
 msgstr "Arokite"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -15009,9 +14987,6 @@ msgstr "Whakatū i ngā tapanga ki waho o te pai?"
 
 msgid "Put your code here"
 msgstr "Whakatū tō waehere ki konei"
-
-msgid "Python datetime string pattern"
-msgstr "Tauira aho datetime Python"
 
 msgid "Quarter"
 msgstr "Hautakiwā"
@@ -20212,8 +20187,22 @@ msgstr ""
 "Ko ngā kupuhipa mō ngā pātengi raraunga o raro nei e hiahiatia ana ki te "
 "kawemai i a rātou."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Te tauira o te hōputu waitohu. Mō ngā aho whakamahi "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20266,10 +20255,8 @@ msgstr "Kua katia te tauranga."
 msgid "The port number is invalid."
 msgstr "He muhu te tau tauranga."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Kāore i taea te uta i te arokite."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Ka whakamahia te ine matua hei tautuhi i ngā rahi wāhanga kopeka"
@@ -20733,14 +20720,9 @@ msgstr ""
 "I ōrite te panoni ki ngā rārangi tauira, ehara ki te huinga raraunga "
 "katoa."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"I whakahoki te panoni i a %(returned)s mō %(column)s, he %(kind)s tērā. "
-"Ka rahua ngā tātari whakaata o tēnei mahere i te pātengi raraunga."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20752,6 +20734,9 @@ msgstr ""
 "I whakahoki te panoni i a %(returned)s mō %(column)s, e kore e taea e "
 "tēnei pātengi raraunga te tuhi ki tētahi pātai hei uara %(type)s me te "
 "kore e whakarereke. E kore e whakaatatia ngā tātari o tēnei mahere."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -20861,23 +20846,12 @@ msgstr ""
 "wāhanga motuhake, ka rongoātia te hua, nā reira ka tārewa te kupu "
 "whakaaturanga i puta i tētahi whakaahua o taua wā."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Kāore i taea te tātari i te panoni uara. Ka tiakina te mahere engari ka "
-"noho whakahaerehia kore tae noa ki te wā ka taea."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Kāore i taea te tātari i te panoni uara: %(detail)s Ka tiakina te mahere "
-"engari ka noho whakahaerehia kore tae noa ki te wā ka taea."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22571,6 +22545,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "He nui rawa ngā tono arokite mō tēnei huinga raraunga. Tatari mō tētahi "
 "wā poto, ka whakamātau anō."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25613,7 +25590,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "pākurutete"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25909,7 +25886,7 @@ msgstr "urunga"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "karere_hapa"
+msgstr ""
 
 msgid "every"
 msgstr "ia"
@@ -26302,9 +26279,8 @@ msgid "permalink state not found"
 msgstr "kāore i kitea te tūnga hononga-ā-mau"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Māmā"
+msgstr ""
 
 msgid "pixels"
 msgstr "pika"
@@ -26559,6 +26535,10 @@ msgstr "wete"
 msgid "unknown type icon"
 msgstr "tohu momo kāore e mōhiotia"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "kāore i tautuhia"
 
@@ -26571,6 +26551,9 @@ msgid ""
 msgstr ""
 "me rahi ake te ōrau ōwehenga runga i te 0, ā, me iti ake i te 100. Me "
 "teitei ake i te ōrau ōwehenga raro."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "whakamahi tauira latest_partition"
