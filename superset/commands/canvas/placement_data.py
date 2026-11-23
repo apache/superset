@@ -22,7 +22,7 @@ from typing import Any
 from uuid import UUID
 
 from superset_core.canvas import StoredWidget
-from superset_core.widgets import QueryRequest, Widget
+from superset_core.widgets import QueryRequest, Widget, WidgetQueryRefusedError
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import (
@@ -174,13 +174,18 @@ def widget_queries(
     Raises ``WidgetTypeUnavailableError`` for a type that isn't registered
     here, such as one whose extension was removed, or that the host turned
     off: what such a type stored was never checked by this host, and no page
-    renders it. Raises ``ValueError`` for a type that builds two queries of one
-    name: each name is a dataset of the answer.
+    renders it. Raises ``CanvasQueryFailedError`` for a type that refuses the
+    request (``WidgetQueryRefusedError``), with the type's code and message,
+    and ``ValueError`` for a type that builds two queries of one name: each
+    name is a dataset of the answer.
     """
     if widget_type is not None and not widget_type_available(widget_type):
         raise WidgetTypeUnavailableError()
     widget_cls = get_widget_types().get(widget_type) if widget_type else None
-    queries = (widget_cls or Widget).build_queries(request)
+    try:
+        queries = (widget_cls or Widget).build_queries(request)
+    except WidgetQueryRefusedError as ex:
+        raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
     names = [query.name for query in queries]
     if len(set(names)) != len(names):
         raise ValueError(f"widget type {widget_type!r} names a query twice: {names}")

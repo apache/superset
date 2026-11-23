@@ -342,6 +342,54 @@ def test_one_failing_query_fails_the_request(
     assert client.post(URL.format("chart"), json={}).status_code == 403
 
 
+@pytest.mark.parametrize("status", [409, 403])
+def test_a_widget_type_refuses_with_its_code_and_message(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+    status: int,
+) -> None:
+    from superset_core.widgets import WidgetQueryRefusedError
+
+    from superset.widgets.registry import registry
+
+    mocker.patch.object(
+        registry["chart"],
+        "build_queries",
+        MagicMock(
+            side_effect=WidgetQueryRefusedError(
+                "CONTENT_CHANGED", "This widget changed: reload it", status
+            )
+        ),
+    )
+    report = mocker.patch("superset.canvas.api._report_canvas_error")
+
+    response = client.post(URL.format("chart"), json={})
+
+    assert response.status_code == status
+    assert response.json == {
+        "message": "This widget changed: reload it",
+        "error_type": "WidgetQueryRefused",
+        "code": "CONTENT_CHANGED",
+    }
+    run_binding.assert_not_called()
+    assert report.call_args.args[2] == status
+
+
+def test_an_already_classified_failure_keeps_its_classification() -> None:
+    from superset.canvas.query_errors import (
+        canvas_query_error,
+        CanvasQueryError,
+        CanvasQueryFailedError,
+    )
+
+    error = CanvasQueryError(403, "DatasetNotAccessible", "No access")
+
+    assert canvas_query_error(CanvasQueryFailedError(error)) is error
+
+
 def test_a_widget_type_learns_the_placement_comes_from_the_callers_draft(
     client: Any,
     full_api_access: None,
