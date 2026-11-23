@@ -916,4 +916,4 @@ def test_get_native_filters_params_tolerates_unreadable_dashboard_metadata():
         result, warnings = report_schedule.get_native_filters_params()
 
         assert "NATIVE_FILTER-2" in result
-        assert len(warnings) <= 1
+        assert warnings == []
