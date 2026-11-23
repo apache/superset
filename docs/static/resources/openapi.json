@@ -18547,7 +18547,7 @@
     },
     "/api/v1/canvas/{id_or_uuid}/placement/{placement_id}/data": {
       "post": {
-        "description": "Runs the query the placement's stored `dataBinding` describes, as the caller, narrowed by `runtime_filters` on the binding's dataset. With the `X-Canvas-Draft` header, reads the placement from the caller's draft of this canvas; with `X-Canvas-Version`, from that version of it, which only its editors can read. Each dataset includes the query that ran when the caller can view queries.",
+        "description": "Runs every query the placement's widget type builds from its stored props, by default the `dataBinding` as the dataset `main`, as the caller, each narrowed by `runtime_filters` on its dataset, and answers each as a dataset of its name. One failing query fails the request. With the `X-Canvas-Draft` header, reads the placement from the caller's draft of this canvas; with `X-Canvas-Version`, from that version of it, which only its editors can read. Each dataset includes the query that ran when the caller can view queries.",
         "parameters": [
           {
             "in": "path",
@@ -41793,6 +41793,83 @@
           }
         ],
         "summary": "Update a widget",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
+    "/api/v1/widget/{widget_uuid}/data": {
+      "post": {
+        "description": "Runs every query the widget's type builds from its stored props, by default the `dataBinding` as the dataset `main`, as the caller, each narrowed by `runtime_filters` on its dataset, without a canvas, and answers each as a dataset of its name. One failing query fails the request. Each dataset includes the query that ran when the caller can view queries.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "runtime_filters": {
+                    "items": {
+                      "properties": {
+                        "column": {
+                          "type": "string"
+                        },
+                        "datasetId": {
+                          "type": "integer"
+                        },
+                        "values": {
+                          "items": {},
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The widget's datasets"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a saved widget's data",
         "tags": [
           "Widgets"
         ]
