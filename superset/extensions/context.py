@@ -21,16 +21,19 @@ Extension Context Management - provides ambient context for extensions.
 This module provides a context system using Python's contextvars that allows
 extensions to access their context (metadata and scoped resources) via get_context().
 
-The context is set during extension loading and when extension callbacks are invoked.
-Uses ContextVar for thread-safe and async-safe context management with automatic
+The context is set during extension loading, and again whenever the host later
+calls code an extension registered while loading (see ``bind_context``). Uses
+ContextVar for thread-safe and async-safe context management with automatic
 save/restore for nested contexts.
 """
 
 from __future__ import annotations
 
+import functools
+import typing
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 from superset_core.extensions.types import BaseExtension, Manifest
 
@@ -61,6 +64,11 @@ class ConcreteExtensionContext:
     @property
     def extension(self) -> BaseExtension:
         """Extension metadata."""
+        return self._manifest
+
+    @property
+    def manifest(self) -> Manifest:
+        """The manifest the context was created from."""
         return self._manifest
 
     @property
@@ -132,3 +140,40 @@ def extension_context(manifest: Manifest) -> Iterator[ConcreteExtensionContext]:
     ctx = ConcreteExtensionContext(manifest)
     with use_context(ctx):
         yield ctx
+
+
+_P = typing.ParamSpec("_P")
+_R = typing.TypeVar("_R")
+
+
+@contextmanager
+def restore_context(ctx: ConcreteExtensionContext | None) -> Iterator[None]:
+    """
+    Run in the context of the extension ``ctx`` belongs to, or as is for the
+    host's own code (``None``).
+
+    The host calls what an extension registered while loading long after it
+    loaded, when no context is set, so ``get_context()`` and extension storage
+    would not find the extension. Each call gets a context of its own, made
+    from the extension's manifest.
+    """
+    if ctx is None:
+        yield
+        return
+    with extension_context(ctx.manifest):
+        yield
+
+
+def bind_context(
+    func: Callable[_P, _R], ctx: ConcreteExtensionContext | None
+) -> Callable[_P, _R]:
+    """``func``, run in ``restore_context(ctx)``; ``func`` itself for ``None``."""
+    if ctx is None:
+        return func
+
+    @functools.wraps(func)
+    def bound(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        with restore_context(ctx):
+            return func(*args, **kwargs)
+
+    return bound
