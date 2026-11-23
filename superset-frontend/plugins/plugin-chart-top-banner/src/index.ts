@@ -17,5 +17,5 @@
  * under the License.
  */
 
-export { default } from './plugin/index.js';
-export * from './types.js';
+export { default } from './plugin';
+export * from './types';
