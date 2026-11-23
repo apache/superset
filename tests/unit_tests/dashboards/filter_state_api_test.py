@@ -28,6 +28,7 @@ from superset.commands.dashboard.filter_state.update import UpdateFilterStateCom
 from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
 from superset.extensions import cache_manager
 from superset.temporary_cache.api import TemporaryCacheRestApi
+from superset.temporary_cache.utils import cache_key
 from superset.utils import json
 
 
@@ -120,3 +121,33 @@ def test_delete_forwards_tab_id_and_clears_contextual_mapping(
     response = client.post("/api/v1/dashboard/1/filter_state?tab_id=1", json=payload)
     assert response.status_code == 201
     assert response.json["key"] != key
+
+
+def test_get_looks_up_the_dashboard_once(
+    client: Any, app_context: None, mocker: MockerFixture, full_api_access: None
+) -> None:
+    """
+    GET takes the filter names from the dashboard its access check loaded.
+
+    Looking the dashboard up again repeats the access check and its queries.
+    """
+    filter_id = "NATIVE_FILTER-1"
+    dashboard = mocker.MagicMock(
+        json_metadata=json.dumps(
+            {"native_filter_configuration": [{"id": filter_id, "name": "Region"}]}
+        )
+    )
+    get_by_id_or_slug = mocker.patch(
+        "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+        return_value=dashboard,
+    )
+    cache = _DictCache()
+    mocker.patch.object(cache_manager, "_filter_state_cache", cache)
+    value = json.dumps({filter_id: {"filterState": {"value": ["EMEA"]}}})
+    cache.set(cache_key(1, "some-key"), {"owner": 1, "value": value})
+
+    response = client.get("/api/v1/dashboard/1/filter_state/some-key")
+
+    assert response.status_code == 200
+    assert response.json == {"value": value, "names": {filter_id: "Region"}}
+    get_by_id_or_slug.assert_called_once_with("1")

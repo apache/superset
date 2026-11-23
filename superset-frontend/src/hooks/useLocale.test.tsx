@@ -49,6 +49,20 @@ jest.mock('dayjs/locale/ko', () => ({}), { virtual: true });
 jest.mock('dayjs/locale/sk', () => ({}), { virtual: true });
 jest.mock('dayjs/locale/sl', () => ({}), { virtual: true });
 jest.mock('dayjs/locale/nl', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/ar', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/ca', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/fa', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/fi', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/lv', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/mi', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/pl', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/ro', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/sr-cyrl', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/sr', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/ta', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/th', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/tr', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/uk', () => ({}), { virtual: true });
 
 // Mock antd locale modules — __esModule: true ensures locale.default resolves correctly
 // under Jest's CommonJS/ESM interop
@@ -176,6 +190,14 @@ test('toDayjsLocale maps pt_BR to pt-br via normalization', () => {
 
 test('toDayjsLocale passes already-normalized codes through unchanged', () => {
   expect(toDayjsLocale('fr')).toBe('fr');
+});
+
+test('toDayjsLocale maps each Serbian script to the dayjs name for that script', () => {
+  // dayjs and Babel name the two scripts the other way around, so normalizing
+  // 'sr' would hand the Cyrillic catalog the Latin locale, and 'sr_Latn' would
+  // normalize to 'sr-latn', which dayjs does not ship.
+  expect(toDayjsLocale('sr')).toBe('sr-cyrl');
+  expect(toDayjsLocale('sr_Latn')).toBe('sr');
 });
 
 // ── useLocale hook ──────────────────────────────────────────────────────────

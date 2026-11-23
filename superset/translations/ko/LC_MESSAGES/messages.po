@@ -147,13 +147,6 @@ msgstr " 새로 만들기"
 msgid " at line %(line)d"
 msgstr " %(line)d번째 줄에서"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid " expression which needs to adhere to the "
-msgstr " 규칙을 준수해야 하는 표현식"
-
 #, fuzzy
 msgid " for details."
 msgstr "저장된 Query"
@@ -163,35 +156,6 @@ msgstr "저장된 Query"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " '%(highlight)s' 근처"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" 표준을 사용하여 사전식 정렬이\n"
-"                      시간순 정렬과 일치하도록 합니다. 타임스탬프 형식이\n"
-"                      ISO 8601 표준을 따르지 않는 경우\n"
-"                      문자열을 날짜 또는 타임스탬프로 변환하기 위한\n"
-"                      표현식과 유형을 정의해야 합니다. 참고:\n"
-"                      현재 시간대는 지원되지 않습니다. 시간이 epoch 형식으로\n"
-"                      저장된 경우 `epoch_s`, `epoch_ms` 또는 `epoch_us`를 입력하세요. "
-"패턴이\n"
-"                      지정되지 않으면 extra 매개변수를 통해 데이터베이스/열 이름\n"
-"                      단위의 선택적 기본값을 사용합니다."
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -328,6 +292,14 @@ msgstr[0] "종속된 자산 %(count)s개가 보관되었습니다."
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s은(는) 보안상의 이유로 데이터 소스로 사용할 수 없습니다."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
@@ -437,14 +409,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d개 행이 반환되었습니다"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
-# mi, ro, ru, sl, sr, sr_Latn, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s 대신 \"%(undefinedParameter)s?\""
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s 대신 \"%(undefinedParameter)s?\""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10628,9 +10596,8 @@ msgid "Dynamically select grouping columns from a dataset"
 msgstr "데이터셋에서 그룹화 열을 동적으로 선택"
 
 #. do-not-translate
-#, fuzzy
 msgid "ECharts"
-msgstr "차트"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13730,6 +13697,7 @@ msgstr "HTTP 경로"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
+#. do-not-translate
 #, fuzzy
 msgid "Handlebars"
 msgstr "Handlebars"
@@ -13857,6 +13825,9 @@ msgstr "각 기간의 고가."
 msgid "Histogram"
 msgstr "히스토그램"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13981,13 +13952,6 @@ msgstr "ISO 3166-2"
 #, fuzzy
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 코드"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14254,6 +14218,9 @@ msgstr "이 보기에서 처음 25개 행을 미리 볼 수 있습니다. "
 #, fuzzy
 msgid "Inactive"
 msgstr "차트 유형"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20114,6 +20081,9 @@ msgstr "Explore에서 저장할 때 생성된 대시보드 시간 조건의 주�
 msgid "Preview"
 msgstr "데이터 미리보기"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -20301,13 +20271,6 @@ msgstr "파이 차트 외부에 레이블을 표시하시겠습니까?"
 #, fuzzy
 msgid "Put your code here"
 msgstr "여기에 코드를 입력하세요"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
-msgid "Python datetime string pattern"
-msgstr "Python 날짜/시간 문자열 패턴"
 
 msgid "Quarter"
 msgstr "분기"
@@ -27099,12 +27062,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "아래 데이터베이스를 가져오려면 비밀번호가 필요합니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid "The pattern of timestamp format. For strings use "
-msgstr "타임스탬프 형식의 패턴입니다. 문자열의 경우 다음을 사용하세요 "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27163,10 +27136,8 @@ msgstr "포트가 닫혀 있습니다."
 msgid "The port number is invalid."
 msgstr "차트의 파라미터가 부적절합니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "미리 보기를 불러올 수 없습니다."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -27725,14 +27696,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "변환이 전체 데이터셋이 아닌 샘플링된 행과 일치했습니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"변환이 %(column)s에 대해 %(returned)s을(를) 반환했으며, 이는 %(kind)s입니다. 이 매핑의 미러링된 필터는"
-" 데이터베이스에서 실패하게 됩니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -27743,6 +27709,9 @@ msgid ""
 msgstr ""
 "변환이 %(column)s에 대해 %(returned)s을(를) 반환했으며, 이 데이터베이스는 이를 변경 없이 %(type)s "
 "값으로 쿼리에 작성할 수 없습니다. 이 매핑의 필터는 미러링되지 않습니다."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -27865,19 +27834,12 @@ msgstr ""
 "값 변환이 %(functions)s을(를) 호출하며, 그 결과는 실행되는 시점과 위치에 따라 달라집니다. 변환은 별도의 세션에서 "
 "평가되고 결과가 캐시되므로, 생성된 조건식은 해당 시점의 스냅샷으로 고정됩니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr "값 변환을 파싱할 수 없습니다. 매핑은 저장되지만 파싱이 가능해질 때까지 비활성 상태로 유지됩니다."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr "값 변환을 파싱할 수 없습니다: %(detail)s 매핑은 저장되지만 파싱이 가능해질 때까지 비활성 상태로 유지됩니다."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -29887,6 +29849,9 @@ msgstr "토큰 요청 URI"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "이 데이터셋에 대한 미리보기 요청이 너무 많습니다. 잠시 기다린 후 다시 시도하세요."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -34206,9 +34171,8 @@ msgid "create dataset from SQL query"
 msgstr "SQL 쿼리에서 데이터셋 만들기"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "컬럼 추가"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -34412,7 +34376,7 @@ msgstr "주석"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "날짜/시간"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -34530,9 +34494,8 @@ msgid "entries"
 msgstr "저장된 Query"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "에러 메시지"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -35068,9 +35031,8 @@ msgid "permalink state not found"
 msgstr "CSS 템플릿을 찾을수 없습니다."
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "테이블 수정"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -35430,6 +35392,10 @@ msgstr "실행 취소"
 msgid "unknown type icon"
 msgstr "알 수 없는 에러"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "컬럼 추가"
@@ -35446,6 +35412,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "상위 백분위수는 0보다 크고 100보다 작아야 합니다. 하위 백분위수보다 높아야 합니다."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
