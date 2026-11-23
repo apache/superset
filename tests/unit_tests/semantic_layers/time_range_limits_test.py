@@ -527,7 +527,7 @@ def test_filters_dashboard_id_applies_the_dashboard_limit_to_a_saved_chart(
     as_user(mocker, "admin")
     mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": None})
     use_dashboard(mocker, semantic_dashboard(policy(back=5)))
-    saved = MagicMock(id=11, params="{}")
+    saved = MagicMock(id=11, params="{}", viz_type="table")
     request_body = body(columns=[X_AXIS], filters=[tr("order_date", RECENT)])
     request_body["form_data"] = {"slice_id": 11}
     saved.query_context = json.dumps(request_body)

@@ -864,23 +864,23 @@ def test_query_datasource_never_reads_main_dttm_col(mocker: MockerFixture) -> No
     from superset.models.sql_lab import Query
 
     use_datasource(mocker, make_query_datasource())
+    set_limits(mocker, policy(max_span=(90, "P1D")))
+
+    bounded = make_context(
+        [{"filters": [tr("Last week")], "columns": ["name"]}], datasource_type="query"
+    )
+    not_temporal = make_context(
+        [{"granularity": "name", "time_range": "Last week", "columns": ["name"]}],
+        datasource_type="query",
+    )
     mocker.patch.object(
         Query,
         "main_dttm_col",
         new_callable=mocker.PropertyMock,
         side_effect=AssertionError("main_dttm_col"),
     )
-    set_limits(mocker, policy(max_span=(90, "P1D")))
-
-    bounded = make_context(
-        [{"filters": [tr("Last week")], "columns": ["name"]}], datasource_type="query"
-    )
     assert ranges_of(bounded) == [LAST_WEEK]
     check(bounded)
-    not_temporal = make_context(
-        [{"granularity": "name", "time_range": "Last week", "columns": ["name"]}],
-        datasource_type="query",
-    )
     assert reason_of(not_temporal) == "UNBOUNDED_RANGE"
 
 

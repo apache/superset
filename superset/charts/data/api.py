@@ -269,6 +269,8 @@ class ChartDataRestApi(ChartRestApi):
             if dashboard_filter_context is not None:
                 # get_dashboard_filter_context checked the chart is on it.
                 query_context.limit_dashboard_id = filters_dashboard_id
+            if query_context.datasource.type == "semantic_view":
+                query_context.slice_ = chart
             command = ChartDataCommand(query_context)
             with timed("chart_data.query_context.validate"):
                 command.validate()

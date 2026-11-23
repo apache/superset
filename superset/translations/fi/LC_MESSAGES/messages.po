@@ -164,12 +164,6 @@ msgstr " uusi"
 msgid " at line %(line)d"
 msgstr " rivillä %(line)d"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid " expression which needs to adhere to the "
-msgstr " lauseke, jonka on noudatettava "
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -181,38 +175,6 @@ msgstr " lisätietoja varten."
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " lähellä '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" -standardia, jotta leksikografinen järjestys\n"
-"                      vastaa kronologista järjestystä. Jos\n"
-"                      aikaleiman muoto ei noudata ISO 8601 -standardia,\n"
-"                      sinun on määritettävä lauseke ja tyyppi\n"
-"                      merkkijonon muuntamiseksi päivämääräksi tai "
-"aikaleimaksi. Huomaa:\n"
-"                      aikavyöhykkeitä ei tällä hetkellä tueta. Jos aika "
-"on tallennettu\n"
-"                      epoch-muodossa, anna `epoch_s`, `epoch_ms` tai "
-"`epoch_us`. Jos mallia\n"
-"                      ei ole määritetty, käytetään valinnaisia "
-"oletusarvoja tietokanta-/sarakekohtaisesti\n"
-"                      extra-parametrin kautta."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -358,6 +320,16 @@ msgstr[1] "%(count)s riippuvaista kohdetta on arkistoitu."
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s ei sovellu tietolähteeksi turvallisuussyistä."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s tai %(lastSuggestion)s \"%(undefinedParameter)s\":n "
+"sijaan?"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
@@ -475,17 +447,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Palautettu %(rows)d riviä"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
-# mi, ru, sl, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s \"%(undefinedParameter)s\":n sijaan?"
-msgstr[1] ""
-"%(firstSuggestions)s tai %(lastSuggestion)s \"%(undefinedParameter)s\":n "
-"sijaan?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s \"%(undefinedParameter)s\":n sijaan?"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -15318,6 +15283,7 @@ msgstr "HTTP-polku"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. do-not-translate
 #, fuzzy
 msgid "Handlebars"
 msgstr "Handlebars"
@@ -15460,6 +15426,9 @@ msgstr "Ylin arvo kullekin jaksolle."
 msgid "Histogram"
 msgstr "Histogrammi"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -15580,12 +15549,6 @@ msgstr "ISO 3166-2"
 #, fuzzy
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 -koodit"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15891,6 +15854,9 @@ msgstr "Tässä näkymässä voit esikatsella 25 ensimmäistä riviä. "
 #, fuzzy
 msgid "Inactive"
 msgstr "Aktiivinen"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -22177,6 +22143,9 @@ msgstr "Säilyttää luodun kojelaudan aikaehdon kohteen Explore-tallennusten yl
 msgid "Preview"
 msgstr "Esikatselu"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -22367,12 +22336,6 @@ msgstr "Sijoitetaanko merkinnät piirakan ulkopuolelle?"
 #, fuzzy
 msgid "Put your code here"
 msgstr "Laita koodisi tähän"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Python datetime string pattern"
-msgstr "Pythonin datetime-merkkijonokaava"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29974,11 +29937,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Alla olevien tietokantojen salasanat tarvitaan niiden tuomiseksi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Aikaleiman muodon kaava. Merkkijonoille käytä "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -30042,10 +30016,8 @@ msgstr "Portti on suljettu."
 msgid "The port number is invalid."
 msgstr "Porttinumero on virheellinen."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Esikatselua ei voitu ladata."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30634,15 +30606,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Muunnos vastasi otosrivejä, ei koko tietojoukkoa."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Muunnos palautti arvon %(returned)s sarakkeelle %(column)s, joka on "
-"%(kind)s. Tämän vastaavuuden peilatut suodattimet epäonnistuisivat "
-"tietokannassa."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -30654,6 +30620,9 @@ msgstr ""
 "Muunnos palautti arvon %(returned)s sarakkeelle %(column)s, jota tämä "
 "tietokanta ei voi kirjoittaa kyselyyn %(type)s-arvona muuttamatta sitä. "
 "Tämän vastaavuuden suodattimia ei peilata."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -30791,24 +30760,12 @@ msgstr ""
 "istunnossa ja tulos tallennetaan välimuistiin, joten muodostettu "
 "predikaatti jäädyttäisi kyseisen hetken tilannekuvan."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Arvomuunnosta ei voitu jäsentää. Yhdistämismääritys tallennetaan, mutta "
-"se pysyy ei-aktiivisena, kunnes jäsentäminen onnistuu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Arvomuunnosta ei voitu jäsentää: %(detail)s Yhdistämismääritys "
-"tallennetaan, mutta se pysyy ei-aktiivisena, kunnes jäsentäminen "
-"onnistuu."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -33013,6 +32970,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Liian monta esikatselupyyntöä tälle tietojoukolle. Odota hetki ja yritä "
 "uudelleen."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -38903,6 +38863,10 @@ msgstr "kumoa"
 msgid "unknown type icon"
 msgstr "tuntemattoman tyypin kuvake"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -38924,6 +38888,9 @@ msgid ""
 msgstr ""
 "ylemmän persentiilin täytyy olla suurempi kuin 0 ja pienempi kuin 100. "
 "Sen täytyy olla suurempi kuin alempi persentiili."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

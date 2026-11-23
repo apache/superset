@@ -77,6 +77,9 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
     extra_form_data,
   } = formData;
   const queryMode = getQueryMode(formData);
+  const isSemanticView = formData.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  );
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
@@ -203,6 +206,7 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
+            ...(isSemanticView ? { isColumnReference: true } : {}),
           } as AdhocColumn;
           temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
