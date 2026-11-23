@@ -381,7 +381,8 @@ def inject_canvas_draft_implementations() -> None:
     """
     Replace the abstract canvas draft API in ``superset_core.canvas.drafts``
     with the host's: who hears of canvas draft events, the handlers of the
-    steps recorded in a draft's history, and the recording itself.
+    steps recorded in a draft's history, the recording itself, and who is
+    asked before a commit.
     """
     import superset_core.canvas.drafts as core_drafts_module
     from superset_core.canvas.drafts import DraftNotFoundError, DraftStep, StepAuthor
@@ -400,6 +401,9 @@ def inject_canvas_draft_implementations() -> None:
     core_drafts_module.on_draft_event = draft_hooks.on_draft_event
     core_drafts_module.register_step_handler = draft_hooks.register_step_handler
     core_drafts_module.record_step = record_step
+    core_drafts_module.register_commit_participant = (
+        draft_hooks.register_commit_participant
+    )
 
 
 def inject_storage_implementations() -> None:

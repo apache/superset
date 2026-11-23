@@ -561,6 +561,37 @@ def test_apply_draft_ops_echoes_ids_but_not_props() -> None:
     assert result["ops"] == [{"op": "add", "widgetType": "markdown", "id": "markdown"}]
 
 
+def test_a_refused_commit_says_why_and_publishes_nothing() -> None:
+    """The agent's commit is its own, and a refusal comes back as data."""
+    from superset.commands.canvas.draft import BY_AI
+    from superset.commands.canvas.exceptions import DraftCommitRefusedError
+    from superset.mcp_service.canvas.schemas import CanvasDraftResponse
+    from superset.mcp_service.canvas.tool.commit_canvas_draft import (
+        _commit_canvas_draft_impl,
+    )
+
+    module = "superset.mcp_service.canvas.tool.commit_canvas_draft"
+    with (
+        patch(f"{module}.load_draft"),
+        patch(f"{module}.CommitCanvasDraftCommand") as command,
+    ):
+        command.return_value.run.side_effect = DraftCommitRefusedError(
+            "Have the person publish the canvas from its page.",
+            "NOTES_UNPUBLISHED",
+            draft_revision=4,
+        )
+        result = _commit_canvas_draft_impl("tok", 4)
+
+    command.assert_called_once_with("tok", 4, by=BY_AI)
+    assert result == {
+        "error": "Have the person publish the canvas from its page.",
+        "error_type": "DraftCommitRefused",
+        "refusal_code": "NOTES_UNPUBLISHED",
+        "draft_revision": 4,
+    }
+    assert CanvasDraftResponse.model_validate(result).model_dump() == result
+
+
 def test_commit_returns_the_canvas_url_and_revision() -> None:
     from superset.mcp_service.canvas.tool.commit_canvas_draft import (
         _commit_canvas_draft_impl,

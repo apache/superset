@@ -31,8 +31,10 @@ canvas on commit; a widget created in a draft that is discarded never exists.
 
 A widget whose content lives elsewhere, with a draft of its own, follows the
 canvas draft through ``superset_core.canvas.drafts``: its owner hears of the
-draft's discard, commit, undo and redo (``draft_hooks.emit``), and records its
-own steps in the draft's history, which undo and redo then reach.
+draft's discard, commit, undo and redo (``draft_hooks.emit``), records its
+own steps in the draft's history, which undo and redo then reach, and is
+asked before each commit (``draft_hooks.check_commit``), which it refuses
+while the canvas would go out without what has to go with it.
 """
 
 from __future__ import annotations
@@ -51,9 +53,12 @@ from pydantic import TypeAdapter
 from superset_core.canvas import StoredWidget
 from superset_core.canvas.drafts import (
     CanvasDraftEvent,
+    CommitRefusedError,
+    DraftCommit,
     DraftEventKind,
     DraftStep,
     DraftStepError,
+    StepAuthor,
 )
 
 from superset import security_manager
@@ -79,6 +84,7 @@ from superset.commands.canvas.exceptions import (
     CanvasForbiddenError,
     CanvasNotFoundError,
     DefinitionInvalidError,
+    DraftCommitRefusedError,
     DraftConflictError,
     DraftStepFailedError,
 )
@@ -740,16 +746,45 @@ class RewindCanvasDraftCommand:
         return draft, True
 
 
+def _check_commit(draft: CanvasDraft, by: str) -> None:
+    """
+    Ask the commit participants whether ``draft`` may go out as it stands;
+    a refusal is the commit's.
+    """
+    if not draft_hooks.has_commit_participants():
+        return
+    placed = _placed(draft.definition)
+    # Every placement, whoever may see it: what the canvas shows its viewers.
+    resolver = PendingWidgetResolver(get_widget_resolver(), draft.widgets)
+    author: StepAuthor = "ai" if by == BY_AI else "user"
+    try:
+        draft_hooks.check_commit(
+            DraftCommit(
+                canvas_id=draft.canvas_id,
+                token=draft.token,
+                widget_types=resolver.widget_types(placed) if placed else {},
+                steps=_all_recorded(draft),
+                by=author,
+            )
+        )
+    except CommitRefusedError as ex:
+        raise DraftCommitRefusedError(
+            ex.message, ex.code, draft_revision=draft.revision
+        ) from ex
+
+
 class CommitCanvasDraftCommand:
     """
     Publish a draft: save its widgets and replay its operations on the canvas,
     neither of which may have changed since the draft started, then delete the
-    draft.
+    draft. Whatever has to be published with the canvas is asked first
+    (``_check_commit``), and may refuse.
     """
 
-    def __init__(self, token: str, revision: int) -> None:
+    def __init__(self, token: str, revision: int, by: str = BY_USER) -> None:
         self._token = token
         self._revision = revision
+        self._by = by
 
     def run(self) -> CommitResult:
         with _draft_write_lock(self._token):
@@ -764,7 +799,19 @@ class CommitCanvasDraftCommand:
         # Groups that replay nothing and change no widget, as recorded steps
         # are, leave the canvas as it is: writing it would publish a revision
         # and a version that change nothing.
-        if any(draft.ops) or draft.widgets:
+        writes = any(draft.ops) or bool(draft.widgets)
+        if writes and draft.canvas.revision != draft.base_revision:
+            # The write checks this again under the canvas's lock. Checked here
+            # too, before the participants: a refusal of theirs would have the
+            # caller publish what goes with a canvas that can't go out at all.
+            raise DraftConflictError(
+                draft.canvas.revision,
+                canvas_changed=True,
+                draft_revision=draft.revision,
+                current_canvas_revision=draft.canvas.revision,
+            )
+        _check_commit(draft, self._by)
+        if writes:
             batches = [OPERATIONS.validate_python(group) for group in draft.ops]
             try:
                 applied = ApplyCanvasOperationsCommand(
