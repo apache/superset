@@ -25,6 +25,7 @@ import builtins
 import logging
 import textwrap
 import threading
+import time
 import weakref
 from ast import literal_eval
 from collections.abc import Collection
@@ -37,6 +38,7 @@ from contextlib import (
     suppress,
 )
 from copy import deepcopy
+from dataclasses import dataclass, field
 from functools import lru_cache
 from inspect import signature
 from time import monotonic
@@ -153,11 +155,23 @@ _DEFAULT_SCHEMA_NEXT_PUBLISH_AT: weakref.WeakKeyDictionary[Engine, float] = (
 # per interval rather than one per lookup.
 _DEFAULT_SCHEMA_RETRY_INTERVAL = 60
 _DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
-# One process-wide slot for optional cache I/O. A backend without socket timeouts
-# may keep it occupied indefinitely; requests must not queue behind it or spawn
-# replacement threads, even for other engines or after the retry interval.
-_DEFAULT_SCHEMA_CACHE_IO_SLOT = threading.Lock()
-_DEFAULT_SCHEMA_CACHE_WAIT = 0.1
+# One process-wide flight bounds background threads, even across engines. Reads
+# join a matching flight or wait for other cache I/O within the same deadline.
+_DEFAULT_SCHEMA_CACHE_IO_CONDITION = threading.Condition()
+_DEFAULT_SCHEMA_CACHE_WAIT = 0.2
+
+
+@dataclass
+class _DefaultSchemaCacheFlight:
+    """Share a read's result and deadline without retaining it after completion."""
+
+    cache_key: str | None
+    deadline: float
+    completed: threading.Event = field(default_factory=threading.Event)
+    result: str | None = None
+
+
+_DEFAULT_SCHEMA_CACHE_FLIGHT: _DefaultSchemaCacheFlight | None = None
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
 # sign-in on them is logged for administrators (see
@@ -168,32 +182,58 @@ _EMBEDDED_FALLBACK_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
 _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
 
 
-def _run_default_schema_cache_operation(operation: Callable[[], T]) -> T | None:
-    """Bound optional cache I/O, skipping it while another operation is stuck."""
-    if not _DEFAULT_SCHEMA_CACHE_IO_SLOT.acquire(blocking=False):
-        return None
+def _run_default_schema_cache_operation(
+    operation: Callable[[], str | None], *, cache_key: str | None = None
+) -> str | None:
+    """Coalesce reads within a bounded deadline; skip contended publications."""
+    global _DEFAULT_SCHEMA_CACHE_FLIGHT  # pylint: disable=global-statement
+
     application = app._get_current_object()
-    completed = threading.Event()
-    result: list[T] = []
+    deadline = time.monotonic() + _DEFAULT_SCHEMA_CACHE_WAIT
+    with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
+        while _DEFAULT_SCHEMA_CACHE_FLIGHT is not None:
+            pending = _DEFAULT_SCHEMA_CACHE_FLIGHT
+            if cache_key is None:
+                # Warm engines already have a schema; publication is best effort.
+                return None
+            remaining = min(deadline, pending.deadline) - time.monotonic()
+            if not _DEFAULT_SCHEMA_CACHE_IO_CONDITION.wait_for(
+                pending.completed.is_set, timeout=max(0, remaining)
+            ):
+                return None
+            if pending.cache_key == cache_key:
+                return pending.result
+        if time.monotonic() >= deadline:
+            return None
+        flight = _DefaultSchemaCacheFlight(cache_key, deadline)
+        _DEFAULT_SCHEMA_CACHE_FLIGHT = flight
+
+    def finish() -> None:
+        """Release the flight only after I/O returns, including after a timeout."""
+        global _DEFAULT_SCHEMA_CACHE_FLIGHT  # pylint: disable=global-statement
+
+        with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
+            _DEFAULT_SCHEMA_CACHE_FLIGHT = None
+            flight.completed.set()
+            _DEFAULT_SCHEMA_CACHE_IO_CONDITION.notify_all()
 
     def run() -> None:
-        """Keep the slot until cache I/O returns, even after the caller times out."""
+        """Keep the result available to every request that joined this flight."""
         try:
             with application.app_context():
-                result.append(operation())
+                flight.result = operation()
         finally:
-            _DEFAULT_SCHEMA_CACHE_IO_SLOT.release()
-            completed.set()
+            finish()
 
     worker = threading.Thread(target=run, name="default-schema-cache", daemon=True)
     try:
         worker.start()
     except Exception:  # pylint: disable=broad-except
-        _DEFAULT_SCHEMA_CACHE_IO_SLOT.release()
+        finish()
         logger.debug("Unable to start the default schema cache operation")
         return None
-    if completed.wait(timeout=_DEFAULT_SCHEMA_CACHE_WAIT) and result:
-        return result[0]
+    if flight.completed.wait(timeout=max(0, deadline - time.monotonic())):
+        return flight.result
     return None
 
 
@@ -209,7 +249,7 @@ def _read_default_schema(cache_key: str) -> str | None:
             logger.debug("Unable to read the default schema cache")
             return None
 
-    return _run_default_schema_cache_operation(read)
+    return _run_default_schema_cache_operation(read, cache_key=cache_key)
 
 
 def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
