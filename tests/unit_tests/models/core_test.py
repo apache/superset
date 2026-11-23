@@ -1517,9 +1517,9 @@ def test_prequeries_execute_on_real_connections(
     with database.get_raw_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE name = 'prequery_marker'")
-        assert (
-            cursor.fetchone() is not None
-        ), "prequery did not run on the new connection"
+        assert cursor.fetchone() is not None, (
+            "prequery did not run on the new connection"
+        )
     assert _ENGINE_CACHE == {}
 
 
@@ -3308,6 +3308,70 @@ def test_get_raw_connection_rolls_back_a_session_deactivated_by_a_failed_flush(
     assert session.query(Database).count() == 0
 
 
+def test_get_inspector_leaves_a_failed_flush_to_the_caller(
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_inspector`` must not roll back: the executor's prepare path reads
+    the deactivated session to keep the original error text.
+    """
+    Database.metadata.create_all(session.get_bind())
+
+    def failing_flush(*args: Any, **kwargs: Any) -> None:
+        session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+        session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+        session.flush()
+
+    database = Database(database_name="login_db", sqlalchemy_uri="snowflake://")
+    database.id = 1
+    mocker.patch.object(Database, "_get_sqla_engine", side_effect=failing_flush)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(Database, "get_oauth2_config", return_value={"id": "client-id"})
+    g = mocker.MagicMock()
+    g.user.id = 2
+    mocker.patch("superset.models.core.g", g)
+    mocker.patch("superset.utils.oauth2.g", g)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        with database.get_inspector():
+            pass
+
+    assert not session.is_active
+    session.rollback()
+
+
+def test_rollback_deactivated_session_does_not_mask_the_original_error(
+    mocker: MockerFixture,
+) -> None:
+    """A failing rollback is logged, not raised over the flush failure."""
+    db_mock = mocker.patch("superset.models.core.db")
+    db_mock.session.is_active = False
+    db_mock.session.rollback.side_effect = RuntimeError("connection lost")
+
+    Database._rollback_deactivated_session()
+
+    db_mock.session.rollback.assert_called_once_with()
+
+
+def test_get_df_rolls_back_a_session_deactivated_by_a_failed_engine_flush(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A staged refresh flushed by get_df's own engine lookup is rolled back."""
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        Database, "get_sqla_engine", side_effect=RuntimeError("flush failed")
+    )
+    rollback = mocker.patch.object(Database, "_rollback_deactivated_session")
+
+    with pytest.raises(RuntimeError, match="flush failed"):
+        database.get_df("SELECT 1")
+
+    rollback.assert_called_once_with()
+
+
 def test_get_raw_connection_without_oauth2_is_unchanged(
     app_context: None,
     mocker: MockerFixture,
@@ -4906,6 +4970,6 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     upper = sql.upper()
     assert "OFFSET" in upper
     assert "LIMIT" in upper
-    assert upper.rfind("OFFSET") < upper.rfind(
-        "LIMIT"
-    ), f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    )

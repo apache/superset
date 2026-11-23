@@ -1080,13 +1080,33 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         self.db_engine_spec.prepare_connection(conn.dbapi_connection)
                         yield conn
 
-        with self._open_with_oauth2_retry(open_connection) as conn:
+        with self._open_with_oauth2_retry(
+            open_connection, rollback_failed_flush=True
+        ) as conn:
             yield conn
+
+    @staticmethod
+    def _rollback_deactivated_session() -> None:
+        """
+        Roll back the request-scoped session if a failed flush deactivated it.
+
+        Opening a connection can refresh and stage an OAuth2 token, and a failed
+        flush of it leaves the session unusable: later ORM access in the same
+        request would raise ``PendingRollbackError`` in place of the real error.
+        The rollback itself must not replace the error being raised.
+        """
+        if db.session.is_active:
+            return
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to roll back the session", exc_info=True)
 
     @contextmanager
     def _open_with_oauth2_retry(
         self,
         open_context: Callable[[], AbstractContextManager[T]],
+        rollback_failed_flush: bool = False,
     ) -> Iterator[T]:
         """
         Enter ``open_context()``, refreshing a rejected OAuth2 token once.
@@ -1097,6 +1117,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         again. Only entering the context is retried: the caller's block has not run,
         so nothing has been executed on the database. Errors raised by the caller's
         block are not retried here.
+
+        ``rollback_failed_flush`` rolls back a session deactivated by a failed
+        flush before the error propagates. Callers whose own error handling
+        reads the deactivated session (``get_inspector`` under the executor)
+        leave it off.
         """
         user_id = getattr(getattr(g, "user", None), "id", None)
         if user_id is None or not self.is_oauth2_enabled() or is_oauth2_retry_active():
@@ -1112,15 +1137,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     lambda: stack.enter_context(open_context()),
                 )
             except Exception:
-                # Opening the connection can refresh and stage an OAuth2 token,
-                # and a failed flush of it deactivates the request-scoped
-                # session. Nothing on this path owns a rollback, so later ORM
-                # access in the same request would raise PendingRollbackError
-                # in place of the real error. (Other callers of
-                # ``execute_with_oauth2_retry`` own the rollback themselves and
-                # inspect ``db.session.is_active`` first.)
-                if not db.session.is_active:
-                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                if rollback_failed_flush:
+                    self._rollback_deactivated_session()
                 raise
             yield value
 
@@ -1283,8 +1301,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
 
-        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
-            engine_url = engine.url
+        try:
+            with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+                engine_url = engine.url
+        except Exception:
+            # With Redis locking, a refresh staged by an earlier engine call is
+            # flushed here, outside ``get_raw_connection``'s own rollback.
+            self._rollback_deactivated_session()
+            raise
 
         log_query = app.config["QUERY_LOGGER"]
 
