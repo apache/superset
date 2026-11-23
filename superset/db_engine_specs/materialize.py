@@ -1,34 +1,74 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 from __future__ import annotations
 
+import re
 from collections.abc import Collection
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
+from marshmallow import fields
 from sqlalchemy import text
 from sqlalchemy.types import Date, DateTime
 
-from superset.db_engine_specs.base import DatabaseCategory
+from superset.db_engine_specs.base import BasicParametersType, DatabaseCategory
 from superset.db_engine_specs.postgres import (
     _named_schemas,
     _table_spellings,
     PostgresEngineSpec,
+    PostgresParametersSchema,
 )
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
-from marshmallow import fields
 
-from superset.db_engine_specs.base import (
-    BaseEngineSpec,
-    BasicParametersType,
-    DatabaseCategory,
-)
-from superset.db_engine_specs.postgres import (
-    PostgresEngineSpec,
-    PostgresParametersSchema,
-)
+
+def _split_cluster_option(options: str) -> tuple[str | None, str]:
+    """Extract the last cluster setting, preserving other startup arguments."""
+    # Cluster has its own form input, so separate it from the options kept in
+    # the additional parameters field.
+    tokens = re.findall(r"(?:\\[\s\S]|[^\s\\]|\\$)+", options)
+    remaining: list[str] = []
+    cluster: str | None = None
+    index = 0
+    while index < len(tokens):
+        argument = tokens[index]
+        setting = argument
+        count = 1
+        if argument == "-c" and index + 1 < len(tokens):
+            setting = tokens[index + 1]
+            count = 2
+        elif argument.startswith("--"):
+            setting = argument[2:]
+        elif argument.startswith("-c"):
+            setting = argument[2:]
+        else:
+            remaining.append(argument)
+            index += 1
+            continue
+        if setting.startswith("cluster="):
+            cluster = re.sub(r"\\([\s\S])", r"\1", setting[len("cluster=") :])
+        else:
+            remaining.extend(tokens[index : index + count])
+        index += count
+    return cluster, " ".join(remaining)
 
 
 class MaterializeParametersSchema(PostgresParametersSchema):
@@ -44,28 +84,14 @@ class MaterializeParametersSchema(PostgresParametersSchema):
 class MaterializeEngineSpec(PostgresEngineSpec):
     engine = "materialize"
     engine_name = "Materialize"
-    
+
     default_driver = "psycopg2"
-    
-    parameters_schema = MaterializeParametersSchema()
-    
-    @classmethod
-    def build_sqlalchemy_uri(
-        cls,
-        parameters: BasicParametersType,
-        encrypted_extra: dict[str, str] | None = None,
-    ) -> str:
-        """Pass the form's cluster to Materialize as ``options=--cluster=<name>``."""
-        if cluster := parameters.get("materializedb_cluster"):
-            query = {**parameters.get("query", {}), "options": f"--cluster={cluster}"}
-            parameters = {**parameters, "query": query}
-        return super().build_sqlalchemy_uri(parameters, encrypted_extra)
-    
+
     sqlalchemy_uri_placeholder = (
         "materialize+psycopg2://username:password@host:port/database"
         "?options=--cluster%3Dquickstart"
     )
-    
+
     metadata = {
         # Required fields
         "description": "A brief description of the database.",
@@ -74,26 +100,64 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        
-        "pypi_packages": ["psycopg2", "sqlalchemy-materialize"],
+        "pypi_packages": ["sqlalchemy-materialize"],
         "connection_string": (
             "materialize+psycopg2://{username}:{password}@{host}:{port}/{database}"
             "?options=--cluster%3D{cluster}"
         ),
-
         # Recommended fields
         "homepage_url": "https://materialize.com/",
         "default_port": 6875,
     }
-    
+
     supports_file_upload = False
+
+    parameters_schema = MaterializeParametersSchema()
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """Merge the form's cluster with the additional startup options."""
+        if cluster := parameters.get("materializedb_cluster"):
+            query = dict(parameters.get("query", {}))
+            _, options = _split_cluster_option(query.get("options", ""))
+            escaped_cluster = re.sub(r"([\s\\])", r"\\\1", cluster)
+            query["options"] = " ".join(
+                value for value in (options, f"--cluster={escaped_cluster}") if value
+            )
+            parameters = {**parameters, "query": query}
+        return super().build_sqlalchemy_uri(parameters, encrypted_extra)
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: dict[str, Any] | None = None
+    ) -> BasicParametersType:
+        """Move the cluster to its form field and retain other startup options."""
+        parameters = super().get_parameters_from_uri(uri, encrypted_extra)
+        query = dict(parameters.get("query", {}))
+        cluster, options = _split_cluster_option(query.get("options", ""))
+        if cluster is not None:
+            if options:
+                query["options"] = options
+            else:
+                query.pop("options", None)
+            parameters = {
+                **parameters,
+                "query": query,
+                "materializedb_cluster": cluster,
+            }
+        return parameters
+
     
     @classmethod
     def prepare_connection(cls, connection: Any) -> None:
         """Run statements independently unless an explicit transaction is opened."""
         if not connection.autocommit:
             connection.autocommit = True
-            
+
     @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
@@ -108,7 +172,6 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             return f"CAST('{dttm_formatted}' AS TIMESTAMP)"
         return None
 
-
     @classmethod
     def get_cancel_query_id(cls, cursor, query) -> str | None:
         # Materialize pins a transaction to the cluster of its first statement;
@@ -117,7 +180,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
         row = cursor.fetchone()
         cursor.connection.commit()
         return row[0]
-    
+
     @classmethod
     def get_schema_names(cls, inspector) -> set[str]:
         with inspector.engine.connect() as conn:
@@ -126,7 +189,9 @@ class MaterializeEngineSpec(PostgresEngineSpec):
                 for (name,) in conn.execute(
                     text("SELECT nspname FROM pg_namespace ORDER BY nspname")
                 )
-                if not name.startswith("pg_") and not name.startswith("mz_") and name != "information_schema"
+                if not name.startswith("pg_")
+                and not name.startswith("mz_")
+                and name != "information_schema"
             }
 
     @classmethod
@@ -155,7 +220,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
         :param tables: Relation names referenced without a schema
         :return: The schema search path and schemas resolving each found name
         """
-        
+
         names = {table: _table_spellings(table) for table in tables}
 
         with database.get_raw_connection(catalog=catalog) as connection:
@@ -192,7 +257,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
                 holders = set(cursor.fetchall())  # {(schema, spelling), ...}
 
             resolved: dict[str, list[str]] = {}
-            
+
             # Find the first schema appeared in 'schemas' that also appear in 'holders'
             for table, spellings in names.items():
                 for name in spellings:
@@ -202,7 +267,6 @@ class MaterializeEngineSpec(PostgresEngineSpec):
                         resolved.setdefault(table, []).append(schema)
 
             return schemas, resolved
-
 
     @classmethod
     def cancel_query(
