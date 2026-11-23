@@ -61,43 +61,6 @@ test('buildQuery queries a target that equals the measure only once', () => {
   expect(query.metrics).toEqual(['sales']);
 });
 
-test('buildQuery computes all marker line metrics in one ungrouped query', () => {
-  const { queries } = buildQuery({
-    ...formData,
-    orderby: [['sales', false]],
-    marker_line_metrics: ['avg_rate', 'median_rate', 'avg_rate'],
-  });
-  expect(queries).toHaveLength(2);
-  expect(queries[0].metrics).toEqual(['sales']);
-  expect(queries[1].columns).toEqual([]);
-  // duplicates by label are queried only once
-  expect(queries[1].metrics).toEqual(['avg_rate', 'median_rate']);
-  expect(queries[1].orderby).toEqual([]);
-});
-
-test('buildQuery skips the marker line query without marker line metrics', () => {
-  const { queries } = buildQuery({ ...formData, marker_line_metrics: [] });
-  expect(queries).toHaveLength(1);
-});
-
-test('buildQuery computes marker metrics in the same ungrouped query as marker lines', () => {
-  const { queries } = buildQuery({
-    ...formData,
-    marker_line_metrics: ['avg_rate'],
-    marker_metrics: ['median_rate', 'avg_rate'],
-  });
-  expect(queries).toHaveLength(2);
-  expect(queries[1].columns).toEqual([]);
-  // a metric used as both a line and a marker is queried only once
-  expect(queries[1].metrics).toEqual(['avg_rate', 'median_rate']);
-});
-
-test('buildQuery adds the ungrouped query for marker metrics alone', () => {
-  const { queries } = buildQuery({ ...formData, marker_metrics: ['avg_rate'] });
-  expect(queries).toHaveLength(2);
-  expect(queries[1].metrics).toEqual(['avg_rate']);
-});
-
 test('each row gets a target tick at its own target value', () => {
   const { series, xAxis } = options({ targetMetric: 'quota', ranges: '50' });
   const targets = series.find((s: any) => s.name === 'quota');
@@ -115,86 +78,6 @@ test('rows without a target value get no target tick', () => {
   ]);
   const targets = series.find((s: any) => s.name === 'quota');
   expect(targets.data).toHaveLength(1);
-});
-
-test('each marker line metric draws a chart-wide line labelled by the metric', () => {
-  const { series, xAxis } = options(
-    {
-      markerLines: '50',
-      markerLineLabels: 'floor',
-      markerLineMetrics: ['avg_rate', 'median_rate'],
-    },
-    [{ data: rows }, { data: [{ avg_rate: 95, median_rate: 40 }] }],
-  );
-  const lines = series.filter((s: any) => s.type === 'line');
-  expect(lines.map((s: any) => s.markLine.data[0].xAxis)).toEqual([50, 95, 40]);
-  expect(lines.map((s: any) => s.markLine.data[0].label.formatter())).toEqual([
-    'floor',
-    'avg_rate',
-    'median_rate',
-  ]);
-  expect(xAxis.max).toBe(95);
-});
-
-test('marker line metrics without a value draw no line', () => {
-  const { series } = options(
-    { markerLineMetrics: ['avg_rate', 'median_rate'] },
-    [{ data: rows }, { data: [{ avg_rate: null, median_rate: 40 }] }],
-  );
-  const lines = series.filter((s: any) => s.type === 'line');
-  expect(lines.map((s: any) => s.markLine.data[0].xAxis)).toEqual([40]);
-});
-
-test('each marker metric draws a triangle on every row labelled by the metric', () => {
-  const { series, xAxis } = options(
-    {
-      markers: '50',
-      markerLabels: 'floor',
-      markerMetrics: ['avg_rate', 'median_rate'],
-    },
-    [{ data: rows }, { data: [{ avg_rate: 95, median_rate: 40 }] }],
-  );
-  const markers = series.filter((s: any) => s.symbol === 'triangle');
-  expect(markers.map((s: any) => s.data.map((d: any) => d.value))).toEqual([
-    [
-      [50, 0],
-      [50, 1],
-    ],
-    [
-      [95, 0],
-      [95, 1],
-    ],
-    [
-      [40, 0],
-      [40, 1],
-    ],
-  ]);
-  expect(markers.map((s: any) => s.label.formatter())).toEqual([
-    'floor',
-    'avg_rate',
-    'median_rate',
-  ]);
-  expect(xAxis.max).toBe(95);
-});
-
-test('marker metrics without a value draw no marker', () => {
-  const { series } = options({ markerMetrics: ['avg_rate', 'median_rate'] }, [
-    { data: rows },
-    { data: [{ avg_rate: null, median_rate: 40 }] },
-  ]);
-  const markers = series.filter((s: any) => s.symbol === 'triangle');
-  expect(markers.map((s: any) => s.data[0].value[0])).toEqual([40]);
-});
-
-test('markers and marker lines read the same metric from the shared query', () => {
-  const { series } = options(
-    { markerMetrics: ['avg_rate'], markerLineMetrics: ['avg_rate'] },
-    [{ data: rows }, { data: [{ avg_rate: 95 }] }],
-  );
-  const markers = series.filter((s: any) => s.symbol === 'triangle');
-  const lines = series.filter((s: any) => s.type === 'line');
-  expect(markers[0].data[0].value[0]).toBe(95);
-  expect(lines[0].markLine.data[0].xAxis).toBe(95);
 });
 
 test('relative ranges scale with each row target', () => {

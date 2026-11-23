@@ -50,10 +50,6 @@ export type EchartsBulletFormData = QueryFormData & {
   markerLineLabels?: string;
   /** Metric drawn as a target tick on each row, using that row's value */
   targetMetric?: QueryFormMetric | null;
-  /** Metrics computed over all rows, each drawn as a chart-wide marker line */
-  markerLineMetrics?: QueryFormMetric[] | null;
-  /** Metrics computed over all rows, each drawn as a marker on every row */
-  markerMetrics?: QueryFormMetric[] | null;
   /** Read ranges as percentages of each row's target */
   rangesRelative?: boolean;
   yAxisFormat?: string;

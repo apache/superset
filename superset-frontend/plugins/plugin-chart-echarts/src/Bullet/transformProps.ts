@@ -22,18 +22,13 @@ import {
   getMetricLabel,
   getNumberFormatter,
   JsonObject,
-  removeDuplicates,
   sanitizeHtml,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { CustomSeriesRenderItem } from 'echarts';
 import { Refs } from '../types';
-import {
-  EchartsBulletChartProps,
-  EchartsBulletFormData,
-  BulletChartTransformedProps,
-} from './types';
+import { EchartsBulletChartProps, BulletChartTransformedProps } from './types';
 import { sanitizeHtml as escapeHtml } from '../utils/series';
 import {
   getColorLuminance,
@@ -107,8 +102,6 @@ export default function transformProps(
     markerLines: rawMarkerLines,
     markerLineLabels: rawMarkerLineLabels,
     targetMetric,
-    markerLineMetrics,
-    markerMetrics,
     rangesRelative,
     yAxisFormat,
     showLabels,
@@ -156,44 +149,10 @@ export default function transformProps(
       : ranges.map(percent => (target * percent) / 100);
   });
   const rangeLabels = tokenizeToStringArray(rawRangeLabels) ?? [];
-  // Metric-driven markers and marker lines all come from the single row of
-  // the second, ungrouped query and join their typed counterparts, each
-  // labelled with its metric name. Metrics without a value draw nothing.
-  const chartWideRow = queriesData[1]?.data?.[0];
-  const withMetricValues = (
-    typedValues: number[],
-    typedLabels: string[],
-    metrics: EchartsBulletFormData['markerMetrics'],
-  ) => {
-    const fromMetrics = removeDuplicates(
-      ensureIsArray(metrics),
-      getMetricLabel,
-    ).flatMap(boundMetric => {
-      const value = getMetricValue(chartWideRow, boundMetric);
-      return value === undefined
-        ? []
-        : [{ value, label: getMetricLabel(boundMetric) }];
-    });
-    return {
-      values: [...typedValues, ...fromMetrics.map(({ value }) => value)],
-      labels: fromMetrics.length
-        ? [
-            ...typedValues.map((_, i) => typedLabels[i] ?? ''),
-            ...fromMetrics.map(({ label }) => label),
-          ]
-        : typedLabels,
-    };
-  };
-  const { values: markers, labels: markerLabels } = withMetricValues(
-    tokenizeToNumericArray(rawMarkers) ?? [],
-    tokenizeToStringArray(rawMarkerLabels) ?? [],
-    markerMetrics,
-  );
-  const { values: markerLines, labels: markerLineLabels } = withMetricValues(
-    tokenizeToNumericArray(rawMarkerLines) ?? [],
-    tokenizeToStringArray(rawMarkerLineLabels) ?? [],
-    markerLineMetrics,
-  );
+  const markers = tokenizeToNumericArray(rawMarkers) ?? [];
+  const markerLabels = tokenizeToStringArray(rawMarkerLabels) ?? [];
+  const markerLines = tokenizeToNumericArray(rawMarkerLines) ?? [];
+  const markerLineLabels = tokenizeToStringArray(rawMarkerLineLabels) ?? [];
 
   const formatter = getNumberFormatter(yAxisFormat);
 

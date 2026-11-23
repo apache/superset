@@ -19,7 +19,6 @@
 import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
-  sharedControls,
   ControlPanelState,
 } from '@superset-ui/chart-controls';
 import { boundMetricControl } from '../utils/metricBounds';
@@ -42,40 +41,6 @@ const config: ControlPanelConfig = {
                 "that row's own value, e.g. a per-region quota.",
             ),
           ),
-        ],
-        [
-          {
-            name: 'marker_line_metrics',
-            config: {
-              ...sharedControls.metrics,
-              label: t('Marker lines from metrics'),
-              description: t(
-                'Optional metrics, each computed once over all rows and ' +
-                  'drawn as a line across the whole chart, e.g. the overall ' +
-                  'conversion rate. They are not split by Group by, so pick ' +
-                  'metrics on the same scale as each row.',
-              ),
-              default: [],
-              validators: [],
-            },
-          },
-        ],
-        [
-          {
-            name: 'marker_metrics',
-            config: {
-              ...sharedControls.metrics,
-              label: t('Markers from metrics'),
-              description: t(
-                'Optional metrics, each computed once over all rows and ' +
-                  'marked with a triangle on every row, e.g. the overall ' +
-                  'average. They are not split by Group by, so pick metrics ' +
-                  'on the same scale as each row.',
-              ),
-              default: [],
-              validators: [],
-            },
-          },
         ],
         ['groupby'],
         ['adhoc_filters'],
