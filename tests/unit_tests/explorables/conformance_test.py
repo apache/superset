@@ -47,7 +47,7 @@ class SourceExpectations:
 
 @pytest.fixture
 def conformance_database(app: Flask) -> Iterator[Database]:
-    """Isolate engine discovery while retaining the real host metadata projection."""
+    """Stub engine grains and database metadata; source projections stay real."""
     database: Database = Database(
         id=1, database_name="Examples", sqlalchemy_uri="sqlite://"
     )
@@ -103,6 +103,7 @@ def paired_source(
         )
         expectations = SourceExpectations("semantic_view", None, "", True)
     with (
+        # Stubbed: the table select_star check covers pass-through, not SQL generation.
         patch.object(
             SqlaTable,
             "select_star",
@@ -156,7 +157,7 @@ def test_global_grains_keep_source_owned_compilation(
 def test_empty_drill_input_documents_an_existing_difference(
     paired_source: tuple[SqlaTable | SemanticView, SourceExpectations],
 ) -> None:
-    """Freeze the inherited empty-list behavior without endorsing it as a grant."""
+    """Pin the existing empty-list behavior without endorsing it as a grant."""
     source: SqlaTable | SemanticView
     expected: SourceExpectations
     source, expected = paired_source
