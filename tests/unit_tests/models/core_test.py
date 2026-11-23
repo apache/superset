@@ -3355,21 +3355,78 @@ def test_rollback_deactivated_session_does_not_mask_the_original_error(
     db_mock.session.rollback.assert_called_once_with()
 
 
+def _stage_failing_flush(session: Session) -> None:
+    """Stage two rows that violate a unique constraint on the next flush."""
+    session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+    session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+
+
+@pytest.fixture
+def persisted_database(session: Session) -> Database:
+    Database.metadata.create_all(session.get_bind())
+    database = Database(database_name="login_db", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.commit()
+    return database
+
+
+def test_compile_sqla_query_rolls_back_a_session_deactivated_by_a_failed_flush(
+    persisted_database: Database,
+    session: Session,
+    app_context: None,
+) -> None:
+    """
+    Chart data compiles its query right after building it, and a refreshed
+    OAuth2 token staged by the earlier engine lookup is flushed here. The failed
+    flush must leave the session usable, or the caller's next ORM read raises
+    ``PendingRollbackError`` in place of the real error.
+    """
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_database.compile_sqla_query(select(1))
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
+
+
 def test_get_df_rolls_back_a_session_deactivated_by_a_failed_engine_flush(
+    persisted_database: Database,
+    session: Session,
+    app_context: None,
+) -> None:
+    """A staged refresh flushed by get_df's own engine lookup is rolled back."""
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_database.get_df("SELECT 1")
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
+
+
+def test_get_df_keeps_the_flush_error_when_oauth2_is_checked_on_a_dead_session(
+    persisted_database: Database,
+    session: Session,
     app_context: None,
     mocker: MockerFixture,
 ) -> None:
-    """A staged refresh flushed by get_df's own engine lookup is rolled back."""
-    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
-    mocker.patch.object(
-        Database, "get_sqla_engine", side_effect=RuntimeError("flush failed")
-    )
-    rollback = mocker.patch.object(Database, "_rollback_deactivated_session")
+    """
+    A flush that fails inside the engine's OAuth2 check must surface as itself:
+    the check reads the database, which a deactivated session cannot load.
+    """
 
-    with pytest.raises(RuntimeError, match="flush failed"):
-        database.get_df("SELECT 1")
+    def failing_engine(*args: Any, **kwargs: Any) -> None:
+        _stage_failing_flush(session)
+        session.flush()
 
-    rollback.assert_called_once_with()
+    mocker.patch.object(Database, "_get_sqla_engine", side_effect=failing_engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_database.get_df("SELECT 1")
+
+    assert session.is_active
 
 
 def test_get_raw_connection_without_oauth2_is_unchanged(

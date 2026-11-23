@@ -1086,6 +1086,22 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             yield conn
 
     @staticmethod
+    @contextmanager
+    def _rolling_back_failed_flush() -> Iterator[None]:
+        """
+        Roll back a session deactivated by a failed flush before re-raising.
+
+        For callers that look up the engine outside ``get_raw_connection``, such
+        as chart data compiling its query: a refreshed OAuth2 token staged by an
+        earlier engine lookup is flushed by the next ORM read, wherever that is.
+        """
+        try:
+            yield
+        except Exception:
+            Database._rollback_deactivated_session()
+            raise
+
+    @staticmethod
     def _rollback_deactivated_session() -> None:
         """
         Roll back the request-scoped session if a failed flush deactivated it.
@@ -1299,16 +1315,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         :return: Tuple of (cursor, rows, description) where rows and description
         are None if not fetching.
         """
-        script = SQLScript(sql, self.db_engine_spec.engine)
-
-        try:
+        # With Redis locking, a refresh staged by an earlier engine call is
+        # flushed by the first ORM read here, outside ``get_raw_connection``'s
+        # own rollback.
+        with self._rolling_back_failed_flush():
+            script = SQLScript(sql, self.db_engine_spec.engine)
             with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
                 engine_url = engine.url
-        except Exception:
-            # With Redis locking, a refresh staged by an earlier engine call is
-            # flushed here, outside ``get_raw_connection``'s own rollback.
-            self._rollback_deactivated_session()
-            raise
 
         log_query = app.config["QUERY_LOGGER"]
 
@@ -1463,7 +1476,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         schema: str | None = None,
         is_virtual: bool = False,
     ) -> str:
-        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+        # A refresh staged by get_sqla_query's engine lookup is flushed here.
+        with (
+            self._rolling_back_failed_flush(),
+            self.get_sqla_engine(catalog=catalog, schema=schema) as engine,
+        ):
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
 
             # pylint: disable=protected-access
