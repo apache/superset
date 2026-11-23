@@ -100,9 +100,15 @@ def pin_saved_chart_type(
     """Stamp a refused saved chart's type onto a replayed query context.
 
     A saved query context is replayed verbatim, so its ``form_data.viz_type``
-    can be stale after the chart's type changed. Only refused types are
-    stamped, so supported charts keep their saved export post-processing.
+    can be stale after the chart's type changed. Only a refused saved type, or
+    a refused stale type in the context, is overwritten, so other supported
+    charts keep their saved export post-processing.
     """
-    if semantic_chart_refusal(datasource_type, viz_type) is None:
+    saved_form_data: dict[str, Any] = payload.get("form_data") or {}
+    if (
+        semantic_chart_refusal(datasource_type, viz_type) is None
+        and semantic_chart_refusal(datasource_type, saved_form_data.get("viz_type"))
+        is None
+    ):
         return
-    payload["form_data"] = {**(payload.get("form_data") or {}), "viz_type": viz_type}
+    payload["form_data"] = {**saved_form_data, "viz_type": viz_type}

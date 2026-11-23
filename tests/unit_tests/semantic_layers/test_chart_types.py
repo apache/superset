@@ -16,6 +16,7 @@
 # under the License.
 
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -23,6 +24,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.chart_types import (
     pin_saved_chart_type,
     semantic_chart_refusal,
+    validate_query_context_chart_type,
     validate_semantic_chart_type,
 )
 
@@ -111,3 +113,20 @@ def test_pin_saved_chart_type_leaves_other_charts_alone(
     payload: dict[str, Any] = {"queries": [{}]}
     pin_saved_chart_type(payload, datasource_type, viz_type)
     assert payload == {"queries": [{}]}
+
+
+def test_pin_saved_chart_type_replaces_a_stale_refused_request_type() -> None:
+    """A chart switched to a supported type isn't replayed under its old type."""
+    payload: dict[str, Any] = {"form_data": {"viz_type": "rose", "x": 1}}
+    pin_saved_chart_type(payload, "semantic_view", "table")
+    assert payload["form_data"] == {"viz_type": "table", "x": 1}
+
+
+def test_query_context_chart_type_falls_back_to_the_saved_chart() -> None:
+    """Without a request type, the saved chart's type is validated."""
+    query_context = MagicMock()
+    query_context.datasource.type = "semantic_view"
+    query_context.form_data = {}
+    query_context.slice_.viz_type = "rose"
+    with pytest.raises(QueryObjectValidationError, match="Nightingale Rose"):
+        validate_query_context_chart_type(query_context)
