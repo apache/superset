@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-20 08:54+1100\n"
+"POT-Creation-Date: 2026-11-23 23:56+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -185,14 +185,14 @@ msgstr[1] ""
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
+
 #. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
 #. parameter name except the last one, which is %(lastSuggestion)s.
 #, python-format
 msgid "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
-msgstr ""
-
-#, python-format
-msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
 #, python-format
@@ -2500,6 +2500,10 @@ msgid "Area charts are similar to line charts in that they represent variables w
 msgstr ""
 
 msgid "Arrow"
+msgstr ""
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
 msgstr ""
 
 msgid "Assign a set of parameters as"
@@ -9986,6 +9990,9 @@ msgstr ""
 msgid "No entities have this tag currently assigned"
 msgstr ""
 
+msgid "No extension provides a page with this name."
+msgstr ""
+
 msgid "No filter"
 msgstr ""
 
@@ -10204,6 +10211,9 @@ msgid "Not added to any dashboard"
 msgstr ""
 
 msgid "Not all required fields are complete. Please provide the following:"
+msgstr ""
+
+msgid "Not authorized"
 msgstr ""
 
 msgid "Not available"
@@ -10550,6 +10560,9 @@ msgstr ""
 msgid "Open in SQL lab"
 msgstr ""
 
+msgid "Open page"
+msgstr ""
+
 msgid "Open price"
 msgstr ""
 
@@ -10557,6 +10570,9 @@ msgid "Open query in SQL Lab"
 msgstr ""
 
 msgid "Opening value for each period."
+msgstr ""
+
+msgid "Opens a page contributed by an extension."
 msgstr ""
 
 msgid "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information."
@@ -14607,10 +14623,7 @@ msgid ""
 "          value distribution and transformation."
 msgstr ""
 
-msgid ""
-"The Snowflake connection could not be established. Check the account "
-"identifier, connection address, network access, and authentication "
-"settings, then retry the import."
+msgid "The Snowflake connection could not be established. Check the account identifier, connection address, network access, and authentication settings, then retry the import."
 msgstr ""
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
@@ -14649,10 +14662,7 @@ msgstr ""
 msgid "The annotation has been updated"
 msgstr ""
 
-msgid ""
-"The asset configuration is invalid. Review this file's fields and "
-"references. Re-export the assets from a compatible Superset version, then"
-" retry with the new file."
+msgid "The asset configuration is invalid. Review this file's fields and references. Re-export the assets from a compatible Superset version, then retry with the new file."
 msgstr ""
 
 msgid "The background color of the charts."
@@ -14884,6 +14894,9 @@ msgstr ""
 
 #, python-format
 msgid "The extension %(id)s could not be loaded."
+msgstr ""
+
+msgid "The extension may not be installed, may be switched off, or may have failed to load. Check the browser console and the Extensions screen."
 msgstr ""
 
 msgid "The extent of the map on application start. FIT DATA automatically sets the extent so that all data points are included in the viewport. CUSTOM allows users to define the extent manually."
@@ -16064,9 +16077,7 @@ msgstr ""
 msgid "This field is used as a unique identifier to attach the metric to charts. It is also used as the alias in the SQL query."
 msgstr ""
 
-msgid ""
-"This file is not a supported dashboard export. Re-export the dashboard "
-"from a compatible Superset version, then retry with the new ZIP file."
+msgid "This file is not a supported dashboard export. Re-export the dashboard from a compatible Superset version, then retry with the new ZIP file."
 msgstr ""
 
 msgid "This filter already exist on the report"
@@ -18191,6 +18202,9 @@ msgid "You do not have permission to import this asset. Ask its owner or an admi
 msgstr ""
 
 msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
 msgstr ""
 
 msgid "You do not have permission to perform this operation"

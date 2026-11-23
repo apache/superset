@@ -124,6 +124,11 @@ export interface Dashboard {
   changed_by: string;
   changed_on?: string;
   dashboard_title: string;
+  // Title resolved for the viewer's locale (read-only). The server always
+  // sends it when the column is selected, mirroring dashboard_title when
+  // translation is off or no translation exists -- so it is a display value,
+  // not a signal that a translation was found.
+  localized_title?: string | null;
   id: number;
   published: boolean;
   url: string;
@@ -145,6 +150,7 @@ const Actions = styled.div`
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
   'dashboard_title',
+  'localized_title',
   'published',
   'url',
   'slug',
@@ -284,6 +290,7 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name: changedByName,
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle = '',
+                localized_title: localizedTitle,
                 slug = '',
                 description = '',
                 json_metadata: jsonMetadata = '',
@@ -300,6 +307,9 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name: changedByName,
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle,
+                // Refreshed alongside the canonical title: a translation of the
+                // previous title would otherwise keep displaying over the new one.
+                localized_title: localizedTitle,
                 slug,
                 description,
                 json_metadata: jsonMetadata,
@@ -402,43 +412,48 @@ function DashboardList(props: DashboardListProps) {
             original: {
               id,
               url,
-              dashboard_title: dashboardTitle,
+              dashboard_title: canonicalTitle,
+              localized_title: localizedTitle,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
               description,
             },
           },
-        }: any) => (
-          <ListViewTitleCell
-            trailing={
-              <>
-                {description && <InfoTooltip tooltip={description} />}
-                {/* Beside the name rather than in a column of its own:
-                    anything an extension shows here is absent for most
-                    rows most of the time, and an always-empty column
-                    costs every reader width. `trailing` keeps it clear
-                    of the title's ellipsis, which is what the wrapper
-                    used to do. */}
-                <ViewListExtension
-                  viewId={ViewLocations.listView.dashboard.nameCell}
-                  viewProps={{ assetId: id }}
-                />
-              </>
-            }
-          >
-            <Link to={url} title={dashboardTitle}>
-              {certifiedBy && (
+        }: any) => {
+          // Master's i18n hook supplies `localized_title`; the link and its
+          // tooltip both read the localized one when there is one.
+          const dashboardTitle = localizedTitle ?? canonicalTitle;
+          return (
+            <ListViewTitleCell
+              trailing={
                 <>
-                  <CertifiedBadge
-                    certifiedBy={certifiedBy}
-                    details={certificationDetails}
-                  />{' '}
+                  {description && <InfoTooltip tooltip={description} />}
+                  {/* Beside the name rather than in a column of its own:
+                      anything an extension shows here is absent for most
+                      rows most of the time, and an always-empty column
+                      costs every reader width. `trailing` places it
+                      outside the title's ellipsis. */}
+                  <ViewListExtension
+                    viewId={ViewLocations.listView.dashboard.nameCell}
+                    viewProps={{ assetId: id }}
+                  />
                 </>
-              )}
-              {dashboardTitle}
-            </Link>
-          </ListViewTitleCell>
-        ),
+              }
+            >
+              <Link to={url} title={dashboardTitle}>
+                {certifiedBy && (
+                  <>
+                    <CertifiedBadge
+                      certifiedBy={certifiedBy}
+                      details={certificationDetails}
+                    />{' '}
+                  </>
+                )}
+                {dashboardTitle}
+              </Link>
+            </ListViewTitleCell>
+          );
+        },
         Header: t('Name'),
         accessor: 'dashboard_title',
         layout: 'title',

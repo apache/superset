@@ -699,32 +699,156 @@ test('archive fallback respects the application root', async () => {
   }
 });
 
-describe('navbar.right view location', () => {
-  const disposables: Array<{ dispose: () => void }> = [];
+test('a contributed Settings item that runs a command runs it when clicked', async () => {
+  // A render-level test on purpose. The data transform in `Menu.tsx` sets
+  // `onClick` on this child, and for a while this menu built only
+  // `{key, label}` from it -- so the item rendered as `href=""`, which
+  // reloads the page and never runs the command. A transform-level test
+  // cannot see that, because the transform was right.
+  const ran = jest.fn();
+  const mockedProps = createProps();
+  resetUseSelectorMock();
 
-  afterEach(() => {
-    disposables.forEach(d => d.dispose());
-    disposables.length = 0;
+  render(
+    <RightMenu
+      {...mockedProps}
+      settings={[
+        {
+          label: 'Manage',
+          name: 'Manage',
+          childs: [
+            {
+              label: 'Run the thing',
+              name: 'extension:acme.tools.run',
+              onClick: ran,
+            },
+          ],
+        },
+      ]}
+    />,
+    { useRedux: true, useRouter: true, useQueryParams: true, useTheme: true },
+  );
+
+  await userEvent.hover(await screen.findByText(/Settings/i));
+  const item = await screen.findByText('Run the thing');
+  // No address: an anchor here would be the bug this test exists for.
+  expect(item.closest('a')).toBeNull();
+
+  await userEvent.click(item);
+  await waitFor(() => expect(ran).toHaveBeenCalledTimes(1));
+});
+
+test('a contributed Settings item that opens a page still renders as a link', async () => {
+  // The other half: a page must keep a real `href` so middle-click and
+  // open-in-new-tab work.
+  const mockedProps = createProps();
+  resetUseSelectorMock();
+
+  render(
+    <RightMenu
+      {...mockedProps}
+      settings={[
+        {
+          label: 'Manage',
+          name: 'Manage',
+          childs: [
+            {
+              label: 'Review queue',
+              name: 'extension:acme.tools.queue',
+              url: '/extensions/pages/acme.tools.queue',
+            },
+          ],
+        },
+      ]}
+    />,
+    { useRedux: true, useRouter: true, useQueryParams: true, useTheme: true },
+  );
+
+  await userEvent.hover(await screen.findByText(/Settings/i));
+  const item = await screen.findByText('Review queue');
+  expect(item.closest('a')).not.toBeNull();
+});
+
+test("a host Settings entry's Font Awesome class name never renders as text", async () => {
+  // The same defect as the navbar's, one file over. Superset's own Settings
+  // entries carry FA class names from FAB -- `fa-puzzle-piece`, `fa-css3`,
+  // `fa-palette`, `fa-clock-o` in `initialization` -- and this dropdown is
+  // built by `buildSettingsMenuItems` here, not by `Menu.tsx`'s
+  // `buildMenuItem`. Guarding only one of the two is how it shipped twice.
+  const mockedProps = createProps();
+  resetUseSelectorMock();
+
+  render(
+    <RightMenu
+      {...mockedProps}
+      settings={[
+        {
+          label: 'Manage',
+          name: 'Manage',
+          childs: [
+            {
+              label: 'CSS Templates',
+              name: 'CSS Templates',
+              icon: 'fa-css3',
+              url: '/csstemplatemodelview/list/',
+            },
+          ],
+        },
+      ]}
+    />,
+    { useRedux: true, useRouter: true, useQueryParams: true, useTheme: true },
+  );
+
+  await userEvent.hover(await screen.findByText(/Settings/i));
+  const item = await screen.findByText('CSS Templates');
+  const group = item.closest('.ant-menu-item-group') ?? item.parentElement;
+  expect(group?.textContent ?? '').not.toMatch(/fa-/);
+});
+
+const disposables: Array<{ dispose: () => void }> = [];
+
+afterEach(() => {
+  disposables.forEach(d => d.dispose());
+  disposables.length = 0;
+});
+
+const renderRightMenu = () => {
+  resetUseSelectorMock();
+  render(<RightMenu {...createProps()} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
   });
+};
 
-  const renderRightMenu = () => {
-    resetUseSelectorMock();
-    render(<RightMenu {...createProps()} />, {
-      useRedux: true,
-      useQueryParams: true,
-      useRouter: true,
-      useTheme: true,
-    });
-  };
+test('contributes nothing to the navigation bar by default', async () => {
+  renderRightMenu();
 
-  test('contributes nothing to the navigation bar by default', async () => {
-    renderRightMenu();
+  expect(await screen.findByText('Settings')).toBeInTheDocument();
+  expect(screen.queryByText('Contributed control')).not.toBeInTheDocument();
+});
 
-    expect(await screen.findByText('Settings')).toBeInTheDocument();
-    expect(screen.queryByText('Contributed control')).not.toBeInTheDocument();
-  });
+test('renders a view registered at navbar.right', async () => {
+  disposables.push(
+    views.registerView(
+      { id: 'acme.reviews.navbar', name: 'Reviews' },
+      ViewLocations.navbar.right,
+      () => <span>Contributed control</span>,
+    ),
+  );
 
-  test('renders a view registered at navbar.right', async () => {
+  renderRightMenu();
+
+  expect(await screen.findByText('Contributed control')).toBeInTheDocument();
+});
+
+test('a view registered after the first render still appears', async () => {
+  renderRightMenu();
+  expect(await screen.findByText('Settings')).toBeInTheDocument();
+  expect(screen.queryByText('Contributed control')).not.toBeInTheDocument();
+
+  act(() => {
     disposables.push(
       views.registerView(
         { id: 'acme.reviews.navbar', name: 'Reviews' },
@@ -732,27 +856,7 @@ describe('navbar.right view location', () => {
         () => <span>Contributed control</span>,
       ),
     );
-
-    renderRightMenu();
-
-    expect(await screen.findByText('Contributed control')).toBeInTheDocument();
   });
 
-  test('a view registered after the first render still appears', async () => {
-    renderRightMenu();
-    expect(await screen.findByText('Settings')).toBeInTheDocument();
-    expect(screen.queryByText('Contributed control')).not.toBeInTheDocument();
-
-    act(() => {
-      disposables.push(
-        views.registerView(
-          { id: 'acme.reviews.navbar', name: 'Reviews' },
-          ViewLocations.navbar.right,
-          () => <span>Contributed control</span>,
-        ),
-      );
-    });
-
-    expect(await screen.findByText('Contributed control')).toBeInTheDocument();
-  });
+  expect(await screen.findByText('Contributed control')).toBeInTheDocument();
 });
