@@ -155,23 +155,26 @@ _DEFAULT_SCHEMA_NEXT_PUBLISH_AT: weakref.WeakKeyDictionary[Engine, float] = (
 # per interval rather than one per lookup.
 _DEFAULT_SCHEMA_RETRY_INTERVAL = 60
 _DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
-# One process-wide flight bounds background threads, even across engines. Reads
-# join a matching flight or wait for other cache I/O within the same deadline.
+# Reads coalesce per key, independently of unrelated reads and publications.
+# Bound occupied slots even when a backend never returns, across retry windows.
 _DEFAULT_SCHEMA_CACHE_IO_CONDITION = threading.Condition()
 _DEFAULT_SCHEMA_CACHE_WAIT = 0.2
+_DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS = 16
 
 
 @dataclass
 class _DefaultSchemaCacheFlight:
-    """Share a read's result and deadline without retaining it after completion."""
+    """Share a read's deadline and retain late results for the next lookup."""
 
     cache_key: str | None
     deadline: float
     completed: threading.Event = field(default_factory=threading.Event)
     result: str | None = None
+    publication_key: str | None = None
+    expires_at: float = 0
 
 
-_DEFAULT_SCHEMA_CACHE_FLIGHT: _DefaultSchemaCacheFlight | None = None
+_DEFAULT_SCHEMA_CACHE_FLIGHTS: dict[str | None, _DefaultSchemaCacheFlight] = {}
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
 # sign-in on them is logged for administrators (see
@@ -182,38 +185,87 @@ _EMBEDDED_FALLBACK_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
 _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
 
 
+def _default_schema_cache_has_room() -> bool:
+    """Evict completed results, never occupied slots, before admitting another key.
+
+    The caller holds ``_DEFAULT_SCHEMA_CACHE_IO_CONDITION``.
+    """
+    if len(_DEFAULT_SCHEMA_CACHE_FLIGHTS) >= _DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS:
+        for key, pending in list(_DEFAULT_SCHEMA_CACHE_FLIGHTS.items()):
+            if pending.completed.is_set():
+                del _DEFAULT_SCHEMA_CACHE_FLIGHTS[key]
+    return len(_DEFAULT_SCHEMA_CACHE_FLIGHTS) < _DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS
+
+
+def _reserve_default_schema_cache_flight(
+    cache_key: str | None, deadline: float, publication_key: str | None
+) -> tuple[_DefaultSchemaCacheFlight | None, bool]:
+    """Select or reserve a flight under ``_DEFAULT_SCHEMA_CACHE_IO_CONDITION``."""
+    if cache_key is None and any(
+        not pending.completed.is_set()
+        for pending in _DEFAULT_SCHEMA_CACHE_FLIGHTS.values()
+    ):
+        # Warm engines already have a schema; publication is best effort.
+        return None, False
+    pending = _DEFAULT_SCHEMA_CACHE_FLIGHTS.get(cache_key)
+    if pending is None:
+        publishing = _DEFAULT_SCHEMA_CACHE_FLIGHTS.get(None)
+        if publishing is not None and publishing.publication_key == cache_key:
+            # Do not duplicate I/O for an identity already being published. Unlike
+            # a read flight, publication does not supply another worker's schema.
+            pending = publishing
+    if pending is not None:
+        if not pending.completed.is_set():
+            return pending, False
+        # Consume a late result once, without retaining stale discovery.
+        del _DEFAULT_SCHEMA_CACHE_FLIGHTS[cache_key]
+        if time.monotonic() < pending.expires_at:
+            return pending, False
+    if time.monotonic() >= deadline or not _default_schema_cache_has_room():
+        return None, False
+    flight = _DefaultSchemaCacheFlight(
+        cache_key, deadline, publication_key=publication_key
+    )
+    _DEFAULT_SCHEMA_CACHE_FLIGHTS[cache_key] = flight
+    return flight, True
+
+
 def _run_default_schema_cache_operation(
-    operation: Callable[[], str | None], *, cache_key: str | None = None
+    operation: Callable[[], str | None],
+    *,
+    cache_key: str | None = None,
+    publication_key: str | None = None,
 ) -> str | None:
     """Coalesce reads within a bounded deadline; skip contended publications."""
-    global _DEFAULT_SCHEMA_CACHE_FLIGHT  # pylint: disable=global-statement
-
     application = app._get_current_object()
     deadline = time.monotonic() + _DEFAULT_SCHEMA_CACHE_WAIT
     with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
-        while _DEFAULT_SCHEMA_CACHE_FLIGHT is not None:
-            pending = _DEFAULT_SCHEMA_CACHE_FLIGHT
-            if cache_key is None:
-                # Warm engines already have a schema; publication is best effort.
-                return None
+        flight, start = _reserve_default_schema_cache_flight(
+            cache_key, deadline, publication_key
+        )
+        if flight is None:
+            return None
+        if not start:
+            pending = flight
             remaining = min(deadline, pending.deadline) - time.monotonic()
-            if not _DEFAULT_SCHEMA_CACHE_IO_CONDITION.wait_for(
+            if _DEFAULT_SCHEMA_CACHE_IO_CONDITION.wait_for(
                 pending.completed.is_set, timeout=max(0, remaining)
             ):
-                return None
-            if pending.cache_key == cache_key:
                 return pending.result
-        if time.monotonic() >= deadline:
             return None
-        flight = _DefaultSchemaCacheFlight(cache_key, deadline)
-        _DEFAULT_SCHEMA_CACHE_FLIGHT = flight
 
     def finish() -> None:
-        """Release the flight only after I/O returns, including after a timeout."""
-        global _DEFAULT_SCHEMA_CACHE_FLIGHT  # pylint: disable=global-statement
-
+        """Release completed I/O slots, preserving successful reads that ran late."""
         with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
-            _DEFAULT_SCHEMA_CACHE_FLIGHT = None
+            completed_at = time.monotonic()
+            if (
+                cache_key is None
+                or flight.result is None
+                or completed_at <= flight.deadline
+            ):
+                del _DEFAULT_SCHEMA_CACHE_FLIGHTS[cache_key]
+            else:
+                flight.expires_at = completed_at + _DEFAULT_SCHEMA_RETRY_INTERVAL
             flight.completed.set()
             _DEFAULT_SCHEMA_CACHE_IO_CONDITION.notify_all()
 
@@ -305,7 +357,7 @@ def _publish_default_schema_if_due(engine: Engine, cache_key: str, schema: str) 
         with _DEFAULT_SCHEMA_CACHE_LOCK:
             _DEFAULT_SCHEMA_NEXT_PUBLISH_AT[engine] = timestamp + interval
 
-    _run_default_schema_cache_operation(publish)
+    _run_default_schema_cache_operation(publish, publication_key=cache_key)
 
 
 def _log_embedded_rejection(
@@ -1305,8 +1357,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         Warm lookups renew shared discovery at most once per half-hour per engine,
         and only while the shared value matches the engine's own; a differing value is
         left to expire. A failed publication is retried after a short backoff, outside
-        the process-wide lock. Shared-cache I/O has a bounded wait and one process-wide
-        background slot, retained until the operation returns. SSH tunnels do not
+        the process-wide lock. Shared-cache reads have independent per-key flights,
+        bounded waits and a process-wide slot limit. Late results survive for the next
+        lookup; hung operations retain their slots until I/O returns. SSH tunnels do not
         share discovery because their local connection URLs contain ephemeral ports.
         Cold-engine discovery retains the inspector's OAuth2 retry policy.
         """

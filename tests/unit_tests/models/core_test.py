@@ -4950,6 +4950,7 @@ def shared_default_schema_cache(
     cache.init_app(current_app._get_current_object())
     mocker.patch.object(cache_manager, "_cache", cache)
     mocker.patch("superset.models.core.security_manager.find_user", return_value=None)
+    mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_FLIGHTS", {}, create=True)
     _retire_cached_engines(987654)
     _retire_cached_engines(987655)
     yield cache
@@ -5322,12 +5323,12 @@ def test_default_schema_concurrent_cold_engines_use_shared_cache(
 
 
 @pytest.mark.parametrize("pending_operation", ["read", "publish"])
-def test_default_schema_read_waits_for_unrelated_cache_io(
+def test_default_schema_read_is_independent_of_unrelated_cache_io(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     pending_operation: str,
 ) -> None:
-    """A contended cold read waits without borrowing another identity's schema."""
+    """An unrelated read or renewal cannot consume a cold read's budget."""
     from superset.models.core import (
         _publish_default_schema_if_due,
         _read_default_schema,
@@ -5350,6 +5351,8 @@ def test_default_schema_read_waits_for_unrelated_cache_io(
         if key == "first":
             entered.set()
             assert release.wait(timeout=5)
+        else:
+            Event().wait(0.15)
         return real_get(key)
 
     def slow_add(key: str, value: str, timeout: int) -> bool:
@@ -5381,8 +5384,7 @@ def test_default_schema_read_waits_for_unrelated_cache_io(
         try:
             assert entered.wait(timeout=1)
             second = executor.submit(second_lookup)
-            with pytest.raises(TimeoutError):
-                second.result(timeout=0.02)
+            assert second.result(timeout=0.19) == "second_schema"
         finally:
             release.set()
         assert first.result(timeout=1) == (
@@ -5451,7 +5453,7 @@ def test_default_schema_hung_cache_is_bounded_and_single_flight(
             for elapsed in (60, 120, 3600):
                 clock.return_value = elapsed
                 assert executor.submit(lookup).result(timeout=0.3) == "main"
-                # Different engines must also skip the occupied process-wide slot.
+                # Recreated engines reuse the occupied flight for the same identity.
                 _retire_cached_engines(database.id)
                 assert executor.submit(lookup).result(timeout=0.3) == "main"
             assert blocked.call_count == 1
@@ -5648,3 +5650,264 @@ def test_default_schema_cache_outage_does_not_flood_warning_log(
     ]
     assert len(messages) == failed.call_count
     assert all(record.levelname == "DEBUG" for record in messages)
+
+
+@pytest.mark.parametrize("key_count", [2, 3])
+def test_default_schema_concurrent_keys_have_independent_budgets(
+    shared_default_schema_cache: Cache, mocker: MockerFixture, key_count: int
+) -> None:
+    """Every database can read its cached schema within one network round trip."""
+    from superset.models.core import _retire_cached_engines
+
+    databases = [
+        Database(
+            id=987654 + index, database_name="analytic", sqlalchemy_uri="sqlite://"
+        )
+        for index in range(key_count)
+    ]
+    connections = []
+    for index, database in enumerate(databases):
+        with database.get_sqla_engine() as engine:
+            sqlalchemy.inspect(engine)
+            engine.dialect.default_schema_name = f"schema_{index}"
+        assert database.get_default_schema_from_engine(None) == f"schema_{index}"
+        _retire_cached_engines(database.id)
+        with database.get_sqla_engine() as engine:
+            connections.append(
+                mocker.patch.object(
+                    engine,
+                    "raw_connection",
+                    side_effect=ConnectionError("database unreachable"),
+                )
+            )
+    real_get = shared_default_schema_cache.get
+
+    def slow_get(key: str) -> str | None:
+        """Spend most of each key's independent request budget in the cache."""
+        Event().wait(0.15)
+        return real_get(key)
+
+    read = mocker.patch.object(shared_default_schema_cache, "get", side_effect=slow_get)
+    barrier = Barrier(8)
+    app_context = current_app.app_context
+
+    def lookup(index: int) -> str | None:
+        """Simulate eight simultaneous cold requests spread across databases."""
+        with app_context():
+            barrier.wait(timeout=5)
+            return databases[index % key_count].get_default_schema_from_engine(None)
+
+    try:
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            requests = [executor.submit(lookup, index) for index in range(8)]
+            assert [request.result(timeout=5) for request in requests] == [
+                f"schema_{index % key_count}" for index in range(8)
+            ]
+        assert read.call_count == key_count
+        for connect in connections:
+            connect.assert_not_called()
+    finally:
+        for database in databases:
+            _retire_cached_engines(database.id)
+
+
+def test_default_schema_late_read_is_available_to_next_lookup(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """A bounded-out request must not discard its eventual successful cache read."""
+    from superset.models.core import _read_default_schema
+
+    shared_default_schema_cache.set("slow", "public")
+    real_get = shared_default_schema_cache.get
+
+    def slow_get(key: str) -> str | None:
+        """Finish after the request has exhausted its 200 ms budget."""
+        Event().wait(0.25)
+        return real_get(key)
+
+    read = mocker.patch.object(shared_default_schema_cache, "get", side_effect=slow_get)
+    start = mocker.spy(Thread, "start")
+    assert _read_default_schema("slow") is None
+    start.call_args.args[0].join(timeout=1)
+    assert not start.call_args.args[0].is_alive()
+    assert _read_default_schema("slow") == "public"
+    read.assert_called_once()
+
+
+def test_default_schema_busy_publication_does_not_wait_or_start_io(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """A warm engine must skip publication immediately while cache I/O is busy."""
+    from superset.models.core import (
+        _DEFAULT_SCHEMA_CACHE_IO_CONDITION,
+        _read_default_schema,
+        _run_default_schema_cache_operation,
+    )
+
+    entered = Event()
+    release = Event()
+    app_context = current_app.app_context
+
+    def blocked_read(key: str) -> str | None:
+        """Keep an unrelated cache flight occupied until cleanup."""
+        entered.set()
+        assert release.wait(timeout=5)
+        return None
+
+    def lookup() -> str | None:
+        """Start the occupied cache flight in a separate request."""
+        with app_context():
+            return _read_default_schema("busy")
+
+    mocker.patch.object(shared_default_schema_cache, "get", side_effect=blocked_read)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        pending = executor.submit(lookup)
+        try:
+            assert entered.wait(timeout=1)
+            wait = mocker.spy(_DEFAULT_SCHEMA_CACHE_IO_CONDITION, "wait_for")
+            publish = mocker.Mock(return_value=None)
+            start = mocker.spy(Thread, "start")
+            assert _run_default_schema_cache_operation(publish) is None
+            wait.assert_not_called()
+            start.assert_not_called()
+            publish.assert_not_called()
+        finally:
+            release.set()
+        assert pending.result(timeout=1) is None
+
+
+def test_default_schema_joiner_uses_original_flight_deadline(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """Joining near expiry cannot prolong a hung flight by a fresh full budget."""
+    from superset.models.core import (
+        _DEFAULT_SCHEMA_CACHE_IO_CONDITION,
+        _read_default_schema,
+    )
+
+    entered = Event()
+    release = Event()
+    app_context = current_app.app_context
+    clock = mocker.patch("superset.models.core.time.monotonic", return_value=0)
+
+    def blocked_read(key: str) -> str | None:
+        """Leave the first flight incomplete while another request joins it."""
+        entered.set()
+        assert release.wait(timeout=5)
+        return None
+
+    def lookup() -> str | None:
+        """Start a cache read with a known original deadline of 200 ms."""
+        with app_context():
+            return _read_default_schema("deadline")
+
+    mocker.patch.object(shared_default_schema_cache, "get", side_effect=blocked_read)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        pending = executor.submit(lookup)
+        try:
+            assert entered.wait(timeout=1)
+            clock.return_value = 0.15
+            wait = mocker.patch.object(
+                _DEFAULT_SCHEMA_CACHE_IO_CONDITION, "wait_for", return_value=False
+            )
+            assert _read_default_schema("deadline") is None
+            assert wait.call_count == 1
+            assert wait.call_args.kwargs["timeout"] == pytest.approx(0.05)
+        finally:
+            release.set()
+        assert pending.result(timeout=1) is None
+
+
+@pytest.mark.parametrize("elapsed", [0.25, 61])
+def test_default_schema_late_result_is_consumed_or_expires(
+    shared_default_schema_cache: Cache, mocker: MockerFixture, elapsed: float
+) -> None:
+    """A retained late result is single-use and cannot outlive the retry interval."""
+    from superset.models.core import (
+        _DEFAULT_SCHEMA_CACHE_FLIGHTS,
+        _DefaultSchemaCacheFlight,
+        _read_default_schema,
+    )
+
+    pending = _DefaultSchemaCacheFlight("retained", 0.2, result="old", expires_at=60.25)
+    pending.completed.set()
+    _DEFAULT_SCHEMA_CACHE_FLIGHTS["retained"] = pending
+    shared_default_schema_cache.set("retained", "fresh")
+    mocker.patch("superset.models.core.time.monotonic", return_value=elapsed)
+    read = mocker.spy(shared_default_schema_cache, "get")
+    assert _read_default_schema("retained") == ("old" if elapsed < 60 else "fresh")
+    assert read.call_count == (0 if elapsed < 60 else 1)
+    assert _read_default_schema("retained") == "fresh"
+    assert read.call_count == (1 if elapsed < 60 else 2)
+
+
+def test_default_schema_flight_limit_bounds_hung_distinct_keys(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """Independent deadlines must not allow unbounded hung workers across keys."""
+    from superset.models.core import _read_default_schema
+
+    mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS", 2)
+    entered = {key: Event() for key in ("first", "second")}
+    release = Event()
+    app_context = current_app.app_context
+
+    def blocked_read(key: str) -> str | None:
+        """Leave both admitted cache operations hung through multiple retries."""
+        if key in entered:
+            entered[key].set()
+            assert release.wait(timeout=10)
+        return None
+
+    def lookup(key: str) -> str | None:
+        """Use a separate application context for each cold request."""
+        with app_context():
+            return _read_default_schema(key)
+
+    read = mocker.patch.object(
+        shared_default_schema_cache, "get", side_effect=blocked_read
+    )
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        # Exclude request-pool startup from the cache-worker count.
+        ready = Barrier(3)
+        workers = [executor.submit(ready.wait, timeout=5) for _ in range(2)]
+        ready.wait(timeout=5)
+        for worker in workers:
+            worker.result(timeout=1)
+        start = mocker.spy(Thread, "start")
+        requests = [executor.submit(lookup, key) for key in entered]
+        try:
+            for event in entered.values():
+                assert event.wait(timeout=1)
+            for request in requests:
+                assert request.result(timeout=0.3) is None
+            for index in range(5):
+                assert _read_default_schema(f"additional-{index}") is None
+            assert read.call_count == 2
+            assert start.call_count == 2
+            with current_app.test_client() as client:
+                assert client.get("/health").status_code == 200
+        finally:
+            release.set()
+            for call in start.call_args_list:
+                call.args[0].join(timeout=1)
+                assert not call.args[0].is_alive()
+
+
+def test_default_schema_completed_results_do_not_starve_other_keys(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """Evict completed late results before refusing a flight for a new identity."""
+    from superset.models.core import (
+        _DEFAULT_SCHEMA_CACHE_FLIGHTS,
+        _DefaultSchemaCacheFlight,
+        _read_default_schema,
+    )
+
+    mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS", 1)
+    pending = _DefaultSchemaCacheFlight("old", 0.2, result="old_schema")
+    pending.completed.set()
+    _DEFAULT_SCHEMA_CACHE_FLIGHTS["old"] = pending
+    shared_default_schema_cache.set("new", "new_schema")
+    assert _read_default_schema("new") == "new_schema"
+    assert not _DEFAULT_SCHEMA_CACHE_FLIGHTS

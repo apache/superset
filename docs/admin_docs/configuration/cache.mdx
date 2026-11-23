@@ -96,14 +96,17 @@ or previously unused worker can reuse the discovery during an outage. Cache
 backend failures fall back to the selected engine's local discovery or an inspector
 lookup and are logged at debug level; they do not themselves prevent cache-key
 construction. Each shared-schema read or publication waits at most 200 ms for
-cache I/O, including contention. A process allows only one background schema-cache
-operation at a time. Concurrent reads of the same entry share its result; reads of
-other entries wait for the flight before attempting their own read within their
-remaining budget. Warm engines skip contended publications. Once a flight exceeds
-its deadline, further lookups fall back to local discovery or an inspector without
-waiting for that flight. The flight retains its slot until I/O returns, so a hung
-backend cannot accumulate schema-cache threads on subsequent retries. A cache read
-that exceeds the budget can still require a live database for a cold engine. Cached results remain
+cache I/O. Reads of different entries run independently, including while an
+unrelated engine renews its discovery. Concurrent reads of the same entry share
+its result and original deadline. Warm engines skip publications while cache I/O
+is busy. Once a flight exceeds its deadline, further lookups fall back to local
+discovery or an inspector without waiting for that flight. A successful late read
+is retained for the next lookup for up to 60 seconds, then consumed or discarded.
+A process retains at most 16 schema-cache flights (including completed late
+results, which can be evicted to admit other keys). Hung operations retain their
+slots until I/O returns, so retries cannot accumulate unbounded background
+threads. A cache read that exceeds the budget can still require a live database
+for the first cold-engine lookup. Cached results remain
 available under the same security and template context when that schema (or the
 connection configuration) is sufficient to build the complete key.
 Query execution and metadata inspection retain their engine-specific schema
