@@ -8253,6 +8253,10 @@ msgstr ""
 msgid "Invalid color"
 msgstr ""
 
+#, python-format
+msgid "Invalid column or metric name: %(column)s"
+msgstr ""
+
 msgid "Invalid connection string, a valid string usually follows: backend+driver://user:password@database-host/database-name"
 msgstr ""
 
