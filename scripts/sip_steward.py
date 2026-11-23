@@ -761,6 +761,22 @@ class Steward:
                 continue  # closed as approved once; a reopen is deliberate
             self.move(issue, target, stages)
 
+    @staticmethod
+    def _unrelated_thread(
+        email: Email, number: Optional[int], issues: dict[int, Issue], has_cands: bool
+    ) -> bool:
+        """A non-SIP thread that merely links an issue or is not about the match."""
+        if "SIP" in email.subject.upper():
+            return False
+        if number is None:
+            return not has_cands
+        return (
+            similarity(
+                classify_subject(email.subject)[3], strip_title(issues[number].title)
+            )
+            < STRONG_SIMILARITY
+        )
+
     def _collect_evidence(
         self, issues: dict[int, Issue], emails: list[Email]
     ) -> dict[int, dict[int, tuple[Email, Optional[Email]]]]:
@@ -784,26 +800,14 @@ class Steward:
                 match.issue if match.issue is not None else (vote[1] if vote else None)
             )
             how = match.how if match.issue is not None else "its vote thread"
-            if (
-                number is None
-                and "SIP" not in email.subject.upper()
-                and not match.candidates
-            ):
-                continue  # a non-SIP thread that merely links some issue
+            if self._unrelated_thread(email, number, issues, bool(match.candidates)):
+                continue  # a non-SIP thread that is not about any SIP
             if number is None:
                 cands = ", ".join(f"#{n}" for n in match.candidates) or "none"
                 self.report.attention.append(
                     f"{label}: not matched ({match.how}; candidates: {cands})"
                 )
                 continue
-            if "SIP" not in email.subject.upper() and (
-                similarity(
-                    classify_subject(email.subject)[3],
-                    strip_title(issues[number].title),
-                )
-                < STRONG_SIMILARITY
-            ):
-                continue  # a non-SIP thread that is not about this SIP
             self.report.matched.append(f"{label} -> #{number} ({how})")
             if kind == "VOTE":
                 vote_by_thread[email.id] = (email, number)
