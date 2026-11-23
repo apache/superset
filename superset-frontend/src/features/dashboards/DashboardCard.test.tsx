@@ -23,6 +23,7 @@ import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
 
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -335,7 +336,7 @@ describe('thumbnail URL construction', () => {
     );
   });
 
-  test('renders no thumbnail when both changed_on_utc and changed_on are absent', () => {
+  test('renders no thumbnail when both changed_on_utc and changed_on are absent', async () => {
     renderCard({
       id: 4,
       changed_by_name: '',
@@ -344,6 +345,12 @@ describe('thumbnail URL construction', () => {
       published: false,
       url: '/dashboard/4',
       editors: [aliceEditor, bobEditor],
+    });
+
+    // The thumbnail request starts asynchronously (after auth), so drain
+    // pending effects and promises before asserting nothing was fetched.
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     expect(fetchSpy).not.toHaveBeenCalled();
