@@ -29,7 +29,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
-from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.limiting_factor import PADDED_LIMIT_FACTORS
 
 
 class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
@@ -141,12 +141,7 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
             limit = script.statements[-1].get_limit_value()
 
         # Adjust limit based on limiting factor
-        if limit is not None and limiting_factor in {
-            LimitingFactor.QUERY,
-            LimitingFactor.DROPDOWN,
-            LimitingFactor.QUERY_AND_DROPDOWN,
-            LimitingFactor.MEMORY,
-        }:
+        if limit is not None and limiting_factor in PADDED_LIMIT_FACTORS:
             # remove extra row from `increased_limit`
             limit -= 1
 

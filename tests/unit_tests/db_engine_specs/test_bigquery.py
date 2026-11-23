@@ -1115,17 +1115,20 @@ def test_fetch_data_memory_cap_can_be_disabled(
 
     assert result == rows
     assert flask_g.bq_memory_limited is False
-    assert BigQueryEngineSpec.has_fetch_memory_cap() is False
 
 
-def test_has_fetch_memory_cap(mocker: MockerFixture) -> None:
-    """Only engines that truncate fetches report a memory cap."""
+@pytest.mark.parametrize("max_mb", [200, None, 0])
+def test_has_fetch_memory_cap(mocker: MockerFixture, max_mb: int | None) -> None:
+    """
+    Engines that can truncate fetches report a memory cap whatever its current
+    setting, so cached results stay keyed apart from downloads when it changes.
+    """
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
     _, app = _patch_bq_fetch_deps(mocker)
     mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
-    app.config = {"BQ_FETCH_MAX_MB": 200}
+    app.config = {"BQ_FETCH_MAX_MB": max_mb}
 
     assert BigQueryEngineSpec.has_fetch_memory_cap() is True
     assert BaseEngineSpec.has_fetch_memory_cap() is False

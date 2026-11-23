@@ -162,18 +162,20 @@ def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
 
 
 @pytest.mark.parametrize(
-    ("result_format", "engine_has_cap", "keyed_apart"),
+    ("result_format", "is_download", "engine_has_cap", "keyed_apart"),
     [
-        (ChartDataResultFormat.CSV, True, True),
-        (ChartDataResultFormat.XLSX, True, True),
-        (ChartDataResultFormat.JSON, True, False),
-        (ChartDataResultFormat.ARROW, True, False),
-        (ChartDataResultFormat.CSV, False, False),
+        (ChartDataResultFormat.CSV, False, True, True),
+        (ChartDataResultFormat.XLSX, False, True, True),
+        (ChartDataResultFormat.JSON, True, True, True),
+        (ChartDataResultFormat.JSON, False, True, False),
+        (ChartDataResultFormat.ARROW, False, True, False),
+        (ChartDataResultFormat.CSV, False, False, False),
     ],
 )
 def test_query_cache_key_separates_uncapped_downloads(
     processor: QueryContextProcessor,
     result_format: ChartDataResultFormat,
+    is_download: bool,
     engine_has_cap: bool,
     keyed_apart: bool,
 ) -> None:
@@ -182,6 +184,7 @@ def test_query_cache_key_separates_uncapped_downloads(
     they must not share a cache entry with capped on-screen results.
     """
     processor._query_context.result_format = result_format
+    processor._query_context.is_download = is_download
     datasource = cast(MagicMock, processor._qc_datasource)
     db_engine_spec = datasource.database.db_engine_spec
     db_engine_spec.has_fetch_memory_cap.return_value = engine_has_cap
@@ -199,26 +202,30 @@ def test_query_cache_key_separates_uncapped_downloads(
 
 
 @pytest.mark.parametrize(
-    ("result_format", "cap_disabled"),
+    ("result_format", "is_download", "cap_disabled"),
     [
-        (ChartDataResultFormat.CSV, True),
-        (ChartDataResultFormat.XLSX, True),
-        (ChartDataResultFormat.JSON, False),
-        (ChartDataResultFormat.ARROW, False),
+        (ChartDataResultFormat.CSV, False, True),
+        (ChartDataResultFormat.XLSX, False, True),
+        # "Export to .JSON" is a download of a JSON result.
+        (ChartDataResultFormat.JSON, True, True),
+        (ChartDataResultFormat.JSON, False, False),
+        (ChartDataResultFormat.ARROW, False, False),
     ],
 )
 def test_execute_query_object_skips_fetch_memory_cap_for_downloads(
     processor: QueryContextProcessor,
     result_format: ChartDataResultFormat,
+    is_download: bool,
     cap_disabled: bool,
 ) -> None:
     """
-    CSV/XLSX downloads are not rendered in the browser, so the datasource query
-    runs without the engine fetch memory cap; rendered formats keep it.
+    Downloads are not rendered in the browser, so the datasource query runs
+    without the engine fetch memory cap; rendered results keep it.
     """
     from superset.utils.fetch_memory_cap import is_fetch_memory_cap_disabled
 
     processor._query_context.result_format = result_format
+    processor._query_context.is_download = is_download
     seen: list[bool] = []
 
     def get_query_result(_: Any) -> MagicMock:

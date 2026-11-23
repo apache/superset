@@ -1527,6 +1527,37 @@ def test_get_data_route_passes_loaded_chart_to_data_response(
     assert mock_response.call_args.kwargs["slice_"] is chart
 
 
+@pytest.mark.parametrize("submitted_as_form", [True, False])
+def test_data_marks_form_submitted_exports_as_downloads(
+    app: SupersetApp, submitted_as_form: bool
+) -> None:
+    """
+    File exports (e.g. "Export to .JSON") post form data and are not rendered,
+    so engine fetch memory caps must not apply; JSON bodies are rendered.
+    """
+    body = {"result_format": "json", "result_type": "results"}
+    request_kwargs: dict[str, Any] = (
+        {"data": {"form_data": json.dumps(body)}}
+        if submitted_as_form
+        else {"json": body}
+    )
+    api = ChartDataRestApi()
+    data = inspect.unwrap(ChartDataRestApi.data)
+
+    with (
+        app.test_request_context("/api/v1/chart/data", method="POST", **request_kwargs),
+        patch.object(
+            ChartDataRestApi, "_create_query_context_from_form"
+        ) as create_query_context,
+        patch("superset.charts.data.api.ChartDataCommand"),
+        patch.object(ChartDataRestApi, "_should_run_async", return_value=False),
+        patch.object(ChartDataRestApi, "_get_data_response"),
+    ):
+        data(api)
+
+    assert create_query_context.return_value.is_download is submitted_as_form
+
+
 def test_create_query_context_from_form_converts_value_error_to_400() -> None:
     """
     A ValueError raised while loading the query context (e.g. a reversed date

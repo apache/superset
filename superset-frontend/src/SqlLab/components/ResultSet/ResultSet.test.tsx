@@ -601,22 +601,34 @@ describe('ResultSet', () => {
   });
 
   test.each([
-    [
-      true,
-      'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads include all rows up to the query limit.',
-    ],
-    [
-      false,
-      'The number of rows displayed is limited to 42 due to memory constraints.',
-    ],
+    {
+      csv: true,
+      canExport: true,
+      message:
+        'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads include all rows up to the query limit.',
+    },
+    {
+      csv: true,
+      canExport: false,
+      message:
+        'The number of rows displayed is limited to 42 due to memory constraints.',
+    },
+    {
+      csv: false,
+      canExport: true,
+      message:
+        'The number of rows displayed is limited to 42 due to memory constraints.',
+    },
   ])(
-    'should warn when rows were dropped by a memory cap (csv: %s)',
-    async (csv, message) => {
+    'should warn when rows were dropped by a memory cap (csv: $csv, canExport: $canExport)',
+    async ({ csv, canExport, message }) => {
       setup(
         { ...mockedProps, csv },
         mockStore({
           ...initialState,
-          user,
+          user: canExport
+            ? { ...user, roles: { sql_lab: [['can_export_csv', 'SQLLab']] } }
+            : user,
           sqlLab: {
             ...initialState.sqlLab,
             queries: {
@@ -631,6 +643,42 @@ describe('ResultSet', () => {
       expect(
         await screen.findByText(`42 rows returned. ${message}`),
       ).toBeInTheDocument();
+    },
+  );
+
+  test.each([
+    { limitingFactor: 'MEMORY', expectedRows: undefined },
+    { limitingFactor: 'NOT_LIMITED', expectedRows: 5000 },
+  ])(
+    'streaming export expects $expectedRows rows for a $limitingFactor result',
+    async ({ limitingFactor, expectedRows }) => {
+      // A memory-capped result shows fewer rows than the export streams.
+      const largeQuery = {
+        ...queries[0],
+        rows: 5000,
+        queryLimit: 100000,
+        limitingFactor,
+      };
+      const { getByTestId } = setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: { ...user, roles: { sql_lab: [['can_export_csv', 'SQLLab']] } },
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: { [largeQuery.id]: largeQuery },
+          },
+          common: { conf: { CSV_STREAMING_ROW_THRESHOLD: 1000 } },
+        }),
+      );
+
+      await waitFor(() => {
+        expect(getByTestId('export-csv-button')).toBeInTheDocument();
+      });
+      fireEvent.click(getByTestId('export-csv-button'));
+
+      expect(mockStartExport).toHaveBeenCalledTimes(1);
+      expect(mockStartExport.mock.calls[0][0].expectedRows).toBe(expectedRows);
     },
   );
 

@@ -19,8 +19,8 @@ Scope control for engine-level fetch memory caps.
 
 Some engine specs (e.g. BigQuery, see ``BQ_FETCH_MAX_MB``) stop fetching rows
 once an estimated memory budget is reached, to keep results that are rendered
-in the browser small. Downloads such as CSV/XLSX exports are not rendered, so
-they run inside :func:`fetch_memory_cap_disabled` to fetch every row up to the
+in the browser small. Downloads such as file exports are not rendered, so they
+run inside :func:`fetch_memory_cap_disabled` to fetch every row up to the
 query's own row limit.
 """
 

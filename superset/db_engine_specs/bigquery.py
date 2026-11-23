@@ -431,7 +431,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     @classmethod
     def has_fetch_memory_cap(cls) -> bool:
-        return cls._fetch_max_mb() is not None
+        """
+        BigQuery fetches may stop at ``BQ_FETCH_MAX_MB``.
+
+        This holds even while the setting is ``None``/``0``, so results cached
+        before an operator changes it stay keyed apart from downloads.
+        """
+        return True
 
     @classmethod
     def _fetch_all_data(
@@ -457,8 +463,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         Errors after consuming rows propagate instead of returning partial data.
 
         The budget is skipped when ``BQ_FETCH_MAX_MB`` is ``None``/``0`` and
-        for fetches that are not rendered in the browser (CSV/XLSX exports),
-        which run inside ``fetch_memory_cap_disabled``.
+        for fetches that are not rendered in the browser (file exports), which
+        run inside ``fetch_memory_cap_disabled``.
         """
         max_mb = cls._fetch_max_mb()
         if max_mb is None or is_fetch_memory_cap_disabled():

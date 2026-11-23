@@ -171,3 +171,36 @@ def test_csv_export_reruns_memory_truncated_results_without_cap(
         assert result["count"] == 3
         assert cap_disabled == [True]
     assert is_fetch_memory_cap_disabled() is False
+
+
+def test_csv_export_never_reruns_mutating_memory_truncated_scripts(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Rerunning a memory-truncated script that mutates data would apply the
+    mutation again, so its stored rows are exported instead.
+    """
+    results_backend = mocker.patch("superset.commands.sql_lab.export.results_backend")
+    results_backend.get.return_value = b"blob"
+    mocker.patch(
+        "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
+    )
+    mocker.patch(
+        "superset.commands.sql_lab.export._deserialize_results_payload",
+        return_value={"data": [{"n": 1}], "columns": [{"name": "n"}]},
+    )
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+    query = MagicMock()
+    query.results_key = "key"
+    query.select_sql = None
+    query.executed_sql = "INSERT INTO log VALUES (1);\nSELECT n FROM t LIMIT 4"
+    query.limiting_factor = LimitingFactor.MEMORY
+    query.database.db_engine_spec.engine = "bigquery"
+    mock_db = mocker.patch("superset.commands.sql_lab.export.db")
+    query_result = mock_db.session.query.return_value.filter_by.return_value
+    query_result.one_or_none.return_value = query
+
+    result = SqlResultExportCommand("client_id").run()
+
+    assert result["count"] == 1
+    query.database.get_df.assert_not_called()

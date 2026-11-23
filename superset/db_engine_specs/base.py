@@ -1818,9 +1818,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         Engines that return ``True`` honor
         ``superset.utils.fetch_memory_cap.fetch_memory_cap_disabled`` so callers
-        that do not render the result (e.g. CSV/XLSX exports) can fetch every
-        row. Callers also use this to keep capped and uncapped results apart
-        in the results cache.
+        that do not render the result (e.g. downloads) can fetch every row.
+        Callers also use this to keep capped and uncapped results apart in the
+        results cache, so return ``True`` whenever the engine can be configured
+        to cap, even while the cap is turned off.
         """
         return False
 

@@ -436,7 +436,12 @@ const ResultSet = ({
                     payload: { client_id: query.id },
                     exportType: 'csv',
                     exportSource: 'sqllab',
-                    expectedRows: rows,
+                    // A memory-capped result shows fewer rows than the
+                    // uncapped export streams, so its count is no estimate.
+                    expectedRows:
+                      query.limitingFactor === LimitingFactor.Memory
+                        ? undefined
+                        : rows,
                   });
                 } else {
                   handleDownloadCsv(e);
@@ -528,15 +533,16 @@ const ResultSet = ({
         { rows },
       );
     } else if (limitingFactor === LimitingFactor.Memory) {
-      limitMessage = csv
-        ? t(
-            'The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads include all rows up to the query limit.',
-            { rows },
-          )
-        : t(
-            'The number of rows displayed is limited to %(rows)d due to memory constraints.',
-            { rows },
-          );
+      limitMessage =
+        csv && canExportData
+          ? t(
+              'The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads include all rows up to the query limit.',
+              { rows },
+            )
+          : t(
+              'The number of rows displayed is limited to %(rows)d due to memory constraints.',
+              { rows },
+            );
     } else if (shouldUseDefaultDropdownAlert) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the dropdown.',

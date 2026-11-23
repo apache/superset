@@ -26,3 +26,15 @@ class LimitingFactor(StrEnum):
     # (e.g. ``BQ_FETCH_MAX_MB``), so rows were dropped below the row limit.
     MEMORY = "MEMORY"
     UNKNOWN = "UNKNOWN"
+
+
+# Limiting factors whose executed SQL carries the ``limit + 1`` probe row, so an
+# export that reruns it has to drop that row again.
+PADDED_LIMIT_FACTORS = frozenset(
+    {
+        LimitingFactor.QUERY,
+        LimitingFactor.DROPDOWN,
+        LimitingFactor.QUERY_AND_DROPDOWN,
+        LimitingFactor.MEMORY,
+    }
+)

@@ -596,9 +596,12 @@ class QueryContextProcessor:
                 emit_timing(key, value)
         emit_timing("chart_data.query.total", elapsed_ms(started_ns))
 
-    def _is_download_result_format(self) -> bool:
-        """Whether the result is downloaded (CSV/XLSX) rather than rendered."""
-        return self._query_context.result_format in ChartDataResultFormat.table_like()
+    def _is_download(self) -> bool:
+        """Whether the result is downloaded rather than rendered."""
+        return (
+            self._query_context.result_format in ChartDataResultFormat.table_like()
+            or getattr(self._query_context, "is_download", False) is True
+        )
 
     def _datasource_has_fetch_cap(self) -> bool:
         """Whether the datasource's engine may truncate fetches to save memory."""
@@ -624,7 +627,7 @@ class QueryContextProcessor:
         # ``_execute_query_object``), so key them apart: a capped on-screen
         # result must not be served as an export, and an uncapped export must
         # not reach the browser.
-        if self._is_download_result_format() and self._datasource_has_fetch_cap():
+        if self._is_download() and self._datasource_has_fetch_cap():
             kwargs["fetch_memory_cap"] = False
 
         cache_key = (
@@ -770,11 +773,7 @@ class QueryContextProcessor:
         """
         if chart_query_cancel_requested(self._query_context.client_id):
             return self._stopped_query_result()
-        with (
-            fetch_memory_cap_disabled()
-            if self._is_download_result_format()
-            else nullcontext()
-        ):
+        with fetch_memory_cap_disabled() if self._is_download() else nullcontext():
             result = self._qc_datasource.get_query_result(query_object)
         # A Stop that kills a statement the datasource ran internally (e.g. a
         # time-offset subquery) leaves a partial frame behind with a SUCCESS
