@@ -23,6 +23,7 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { canvas } from 'src/core';
 import { useDraftActions } from './useDraftActions';
 
 const commitEndpoint = 'glob:*/api/v1/canvas/draft/commit';
@@ -138,4 +139,64 @@ test('busy is reported false again when a commit fails', async () => {
   await waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(false));
   // And the draft stays open: its changes are still only in the draft.
   expect(onClosed).not.toHaveBeenCalled();
+});
+
+function PlacedHarness({ onClosed }: { onClosed: () => void }) {
+  const actions = useDraftActions('tok-123', 4, onClosed, undefined, 7);
+  return (
+    <>
+      <button type="button" onClick={actions.publish}>
+        Publish
+      </button>
+      <button type="button" onClick={actions.discard}>
+        Discard
+      </button>
+    </>
+  );
+}
+
+test.each([
+  [
+    'Publish',
+    'committed',
+    () => fetchMock.post(commitEndpoint, { result: {} }),
+  ],
+  [
+    'Discard',
+    'discarded',
+    () => fetchMock.delete(draftEndpoint, { result: {} }),
+  ],
+])(
+  'what the page did to its draft is told to its listeners: %s',
+  async (button, kind, respond) => {
+    respond();
+    const events = jest.fn();
+    const listening = canvas.onDidChangeDraft(events);
+    const onClosed = jest.fn();
+    render(<PlacedHarness onClosed={onClosed} />, { useRedux: true });
+
+    click(button);
+
+    await waitFor(() => expect(onClosed).toHaveBeenCalled());
+    expect(events).toHaveBeenCalledWith({
+      kind,
+      canvasId: 7,
+      token: 'tok-123',
+      steppedWidgetIds: [],
+    });
+    listening.dispose();
+  },
+);
+
+test('a draft that stays open tells its listeners nothing', async () => {
+  fetchMock.post(commitEndpoint, 409);
+  const events = jest.fn();
+  const listening = canvas.onDidChangeDraft(events);
+  render(<PlacedHarness onClosed={jest.fn()} />, { useRedux: true });
+
+  click('Publish');
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  expect(events).not.toHaveBeenCalled();
+  listening.dispose();
 });

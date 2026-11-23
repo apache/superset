@@ -20,6 +20,7 @@ import { useCallback, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { fireDraftEvent } from 'src/core';
 import {
   LOG_ACTIONS_CANVAS_DRAFT_END,
   LOG_ACTIONS_CANVAS_ERROR,
@@ -70,6 +71,14 @@ export function useDraftActions(
         // this event, which is why the outcome is a field rather than two
         // separate names.
         log(LOG_ACTIONS_CANVAS_DRAFT_END, { outcome, revision });
+        if (canvasId !== undefined && token) {
+          fireDraftEvent({
+            kind: outcome === 'commit' ? 'committed' : 'discarded',
+            canvasId,
+            token,
+            steppedWidgetIds: [],
+          });
+        }
         onClosed();
       } catch (response) {
         const error = await getClientErrorObject(response);
@@ -87,7 +96,16 @@ export function useDraftActions(
         onBusyChange?.(false);
       }
     },
-    [addSuccessToast, addDangerToast, log, onClosed, onBusyChange, revision],
+    [
+      addSuccessToast,
+      addDangerToast,
+      log,
+      onClosed,
+      onBusyChange,
+      revision,
+      canvasId,
+      token,
+    ],
   );
 
   const headers = { [DRAFT_TOKEN_HEADER]: token ?? '' };

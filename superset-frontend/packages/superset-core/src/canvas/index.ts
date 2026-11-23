@@ -176,3 +176,35 @@ export declare function getActiveCanvas(): ActiveCanvas | undefined;
  * another canvas apart, compare `id`.
  */
 export declare const onDidChangeActiveCanvas: Event<ActiveCanvas | undefined>;
+
+/** What the canvas page did to the draft it shows. */
+export type CanvasDraftEventKind =
+  | 'discarded'
+  | 'committed'
+  | 'undone'
+  | 'redone';
+
+/** Something the canvas page did to the draft it shows. */
+export interface CanvasDraftEvent {
+  kind: CanvasDraftEventKind;
+  canvasId: number;
+  /**
+   * The draft's token, which only its owner can use: compare it, and never
+   * log it or send it anywhere but the requests that name the draft.
+   */
+  token: string;
+  /**
+   * For `undone` and `redone`: the saved widgets whose content a step
+   * recorded on the server (`superset_core.canvas.drafts`) moved, which the
+   * canvas's definition doesn't show. Their renderers fetch it again.
+   */
+  steppedWidgetIds: string[];
+}
+
+/**
+ * Fires after the canvas page discarded, published, undid or redid the draft
+ * it shows. Only what the page itself did: a draft that an agent's tool or
+ * another tab ends fires nothing here, while the server's listeners
+ * (`superset_core.canvas.drafts`) hear of every end.
+ */
+export declare const onDidChangeDraft: Event<CanvasDraftEvent>;

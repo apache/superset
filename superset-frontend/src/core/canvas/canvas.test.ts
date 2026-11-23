@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { canvas as canvasApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
-import { canvas, getWidgetRenderer, setActiveCanvas } from 'src/core';
+import {
+  canvas,
+  fireDraftEvent,
+  getWidgetRenderer,
+  setActiveCanvas,
+} from 'src/core';
 
 const Kpi = () => null;
 
@@ -127,4 +133,28 @@ test('active canvas changes fire on the open draft and a version preview', () =>
     [published],
   ]);
   subscription.dispose();
+});
+
+test('what the page does to its draft reaches every listener, past one that throws', () => {
+  const logged = jest.spyOn(logging, 'error').mockImplementation(() => {});
+  const failing = canvas.onDidChangeDraft(() => {
+    throw new Error('listener bug');
+  });
+  const listener = jest.fn();
+  const subscription = canvas.onDidChangeDraft(listener);
+  const event: canvasApi.CanvasDraftEvent = {
+    kind: 'undone',
+    canvasId: 7,
+    token: 'tok-123',
+    steppedWidgetIds: ['w-1'],
+  };
+
+  fireDraftEvent(event);
+  subscription.dispose();
+  fireDraftEvent({ ...event, kind: 'redone' });
+
+  expect(listener.mock.calls).toEqual([[event]]);
+  expect(logged).toHaveBeenCalled();
+  failing.dispose();
+  logged.mockRestore();
 });

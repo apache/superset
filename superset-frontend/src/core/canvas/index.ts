@@ -19,14 +19,15 @@
 
 /**
  * @fileoverview Host implementation of the `canvas` extension namespace:
- * widget renderers by type, and the canvas the user has open.
+ * widget renderers by type, the canvas the user has open, and what the
+ * canvas page does to its draft.
  */
 
 import { ComponentType, useSyncExternalStore } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
-import { createValueEventEmitter } from '../utils';
+import { createEventEmitter, createValueEventEmitter } from '../utils';
 import type { CanvasRendererProps } from './types';
 
 type WidgetRenderer = ComponentType<CanvasRendererProps>;
@@ -106,8 +107,29 @@ export const setActiveCanvas = (value: canvasApi.ActiveCanvas | undefined) => {
   activeCanvas.fire(value);
 };
 
+const draftChanges = createEventEmitter<canvasApi.CanvasDraftEvent>();
+
+/** Called by the canvas page once it discarded, published or stepped its draft. */
+export const fireDraftEvent = (event: canvasApi.CanvasDraftEvent) =>
+  draftChanges.fire(event);
+
+// Listeners are extensions': one that throws mustn't keep the others from
+// hearing, or the page from finishing the publish or discard it reports.
+const onDidChangeDraft: typeof canvasApi.onDidChangeDraft = (
+  listener,
+  thisArgs,
+) =>
+  draftChanges.subscribe(event => {
+    try {
+      listener.call(thisArgs, event);
+    } catch (error) {
+      logging.error('A canvas draft listener threw; continuing.', error);
+    }
+  });
+
 export const canvas: typeof canvasApi = {
   registerWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
+  onDidChangeDraft,
 };

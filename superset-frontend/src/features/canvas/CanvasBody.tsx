@@ -145,6 +145,7 @@ export default function CanvasBody({
     result,
     reload,
     layout.adopt,
+    canvasId,
   );
   // Here rather than in the page: whether a change to the draft is in flight,
   // and the revision it has reached, are only known here.
