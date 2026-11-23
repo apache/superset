@@ -4742,6 +4742,7 @@ def test_working_state_timeout_resets_to_noop_and_retries(
     assert cas_update.call_args.args[0] == {
         ReportSchedule.execution_owner: str(state._execution_id),
         ReportSchedule.execution_window: normalize_window(state._scheduled_dttm),
+        ReportSchedule.last_eval_dttm: mock.ANY,
     }
     create_log.assert_called_once_with(
         REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
