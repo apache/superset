@@ -32,8 +32,10 @@ from superset.common.chart_data_timing import (
 )
 from superset.common.query_context import QueryContext
 from superset.exceptions import (
+    ColumnNotFoundException,
     QueryObjectValidationError,
     QueryObjectValidationMessage,
+    SupersetGenericDBErrorException,
 )
 
 
@@ -473,3 +475,49 @@ def test_database_error_while_building_the_query_is_a_failed_query(entry: str) -
         getattr(ChartDataCommand(mock_query_context), entry)()
 
     assert "Incorrect username or password" in excinfo.value.message
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+@pytest.mark.parametrize(
+    "raised_exception",
+    [
+        pytest.param(
+            ColumnNotFoundException(message="Column not found"),
+            id="ColumnNotFoundException",
+        ),
+        pytest.param(
+            SupersetGenericDBErrorException(
+                message=(
+                    "Database Execution Error: One or more Primary key is "
+                    "required for 'sdk_asset_size_cohorts_enabled_base' cube"
+                )
+            ),
+            id="SupersetGenericDBErrorException",
+        ),
+    ],
+)
+def test_adhoc_column_probe_error_is_a_failed_query_not_a_500(
+    entry: str, raised_exception: Exception
+) -> None:
+    """
+    Regression test for Sentry issue 7863520932.
+
+    Building the query for an adhoc GROUP BY/axis column can run a zero-row
+    probe against the underlying database to resolve its type
+    (``adhoc_column_to_sqla`` / ``get_columns_description``). A data-shaped
+    failure there -- e.g. a ClickHouse "cube" table with no primary key --
+    already raises a typed Superset exception (``ColumnNotFoundException`` or
+    ``SupersetGenericDBErrorException``), but nothing converted it into the
+    chart-data command's typed failed-query error, so it escaped all the way
+    up as an unhandled 500 and paged Sentry instead of surfacing as a normal
+    failed-query (400) response.
+    """
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.get_payload.side_effect = raised_exception
+    mock_query_context.get_payload_result.side_effect = raised_exception
+
+    with pytest.raises(ChartDataQueryFailedError) as excinfo:
+        getattr(ChartDataCommand(mock_query_context), entry)()
+
+    assert raised_exception.message in excinfo.value.message
