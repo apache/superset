@@ -2646,8 +2646,11 @@ class ReportWorkingState(BaseReportState):
         ):
             return None
         stuck_execution_id = self._stuck_execution_id(last_working)
-        if stuck_execution_id is not None and ReportScheduleDAO.find_stuck_reset_log(
-            self._report_schedule, stuck_execution_id
+        if stuck_execution_id == self._execution_id or (
+            stuck_execution_id is not None
+            and ReportScheduleDAO.find_stuck_reset_log(
+                self._report_schedule, stuck_execution_id
+            )
         ):
             return None
         return replace(self._report_execution_context, execution_claimed=True)
@@ -2688,6 +2691,7 @@ class ReportWorkingState(BaseReportState):
                     ReportSchedule.execution_window: normalize_window(
                         self._scheduled_dttm
                     ),
+                    ReportSchedule.last_eval_dttm: naive_utcnow(),
                 }
             with db.session.no_autoflush:
                 recovered = (
