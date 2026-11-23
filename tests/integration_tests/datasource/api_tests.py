@@ -443,6 +443,26 @@ class TestDatasourceApi(SupersetTestCase):
         assert response["errors"][0]["error_type"] == "GENERIC_DB_ENGINE_ERROR"
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_database_unavailable_guest_sanitized(self):
+        """Guests get generic errors, not the compiled query quoted by the engine."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        leaky = "Too many connections; SELECT DISTINCT col1 FROM (SELECT secret_sql)"
+        error = OperationalError("SELECT 1", {}, Exception(1040, leaky))
+        with (
+            patch.object(SqlaTable, "values_for_column", side_effect=error),
+            patch(
+                "superset.utils.error_sanitization.is_sanitization_required",
+                return_value=True,
+            ),
+        ):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col1/values/?force=true"
+            )
+        assert rv.status_code == 500
+        assert "secret_sql" not in rv.data.decode("utf-8")
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_query_error_not_treated_as_unavailable(self):
         """Query-level OperationalErrors are not reported as a DB outage."""
         self.login(ADMIN_USERNAME)

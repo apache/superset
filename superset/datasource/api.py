@@ -68,7 +68,10 @@ from superset.utils.core import (
     parse_boolean_string,
     SqlExpressionType,
 )
-from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.error_sanitization import (
+    sanitize_error_message,
+    sanitize_superset_errors,
+)
 from superset.utils.hashing import hash_from_dict
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
@@ -79,8 +82,8 @@ logger = logging.getLogger(__name__)
 # connect, 2006 server gone away, 2013 lost connection during query).
 _CONNECTION_FAILURE_DB_CODES = {1040, 2002, 2003, 2006, 2013}
 _CONNECTION_FAILURE_PATTERN = re.compile(
-    r"too many connections|could not connect|can't connect|connection refused|"
-    r"connection timed out|server closed the connection|"
+    r"too many connections|too many clients|could not connect|can't connect|"
+    r"connection refused|connection timed out|server closed the connection|"
     r"lost connection|server has gone away|remaining connection slots",
     re.IGNORECASE,
 )
@@ -486,9 +489,12 @@ class DatasourceRestApi(BaseSupersetApi):
             errors = database.db_engine_spec.extract_errors(
                 ex, database_name=database.database_name
             )
+            # The engine error can quote the compiled query (virtual dataset
+            # SQL / WHERE), so serialize the guest-sanitized list.
+            errors = sanitize_superset_errors(errors)
             return self.response(
                 500,
-                message=sanitize_error_message(errors[0].message),
+                message=errors[0].message,
                 errors=[error.to_dict() for error in errors],
             )
 

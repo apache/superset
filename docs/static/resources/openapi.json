@@ -26979,7 +26979,25 @@
             "$ref": "#/components/responses/404"
           },
           "500": {
-            "$ref": "#/components/responses/500"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "errors": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Unexpected error, or the analytics database refused or dropped the connection (the response then carries a typed `errors` list). Deliberately not 502/503/504, which SupersetClient retries."
           }
         },
         "security": [

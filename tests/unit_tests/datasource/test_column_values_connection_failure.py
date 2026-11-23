@@ -32,6 +32,7 @@ from superset.datasource.api import _is_connection_failure
             True,
         ),
         (Exception("server closed the connection unexpectedly"), False, True),
+        (Exception("FATAL: sorry, too many clients already"), False, True),
         (Exception("anything"), True, True),
         (Exception("no such column: nope"), False, False),
         (Exception(1054, "Unknown column 'x' in 'field list'"), False, False),
