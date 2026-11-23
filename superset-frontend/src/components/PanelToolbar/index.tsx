@@ -44,7 +44,12 @@ const PanelToolbar = ({
     () =>
       primaryItems
         .map(item => {
-          const command = commands.getCommand(item.command)!;
+          // A menu item is a page item or a command item. A toolbar runs
+          // commands, so a page item here has nothing to run and is skipped
+          // rather than resolved to `undefined`.
+          const command = item.command
+            ? commands.getCommand(item.command)
+            : undefined;
           if (!command?.icon) {
             return null;
           }
@@ -74,7 +79,12 @@ const PanelToolbar = ({
     () =>
       secondaryItems
         .map(item => {
-          const command = commands.getCommand(item.command)!;
+          // A menu item is a page item or a command item. A toolbar runs
+          // commands, so a page item here has nothing to run and is skipped
+          // rather than resolved to `undefined`.
+          const command = item.command
+            ? commands.getCommand(item.command)
+            : undefined;
           if (!command) {
             return null;
           }
