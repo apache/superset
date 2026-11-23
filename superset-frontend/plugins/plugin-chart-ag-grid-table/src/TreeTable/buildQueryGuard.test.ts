@@ -106,3 +106,76 @@ test.each([
               }
           }
 });
+
+const s4: TreeLevel[] = [
+  {
+    key: 'queue',
+    name: 'Queue',
+    id_column: 'queue',
+    time_column: 'start_local',
+    columns: [],
+    detail_fields: [],
+  },
+  {
+    key: 'agent',
+    name: 'Agent',
+    id_column: 'agent',
+    parent_column: 'queue',
+    columns: [],
+    detail_fields: [],
+    sort: ['agent', true],
+  },
+  {
+    key: 'interaction',
+    name: 'Interaction',
+    id_column: 'interaction_id',
+    parent_column: 'agent',
+    columns: ['channel', 'segment_count'],
+    detail_fields: ['source_phone'],
+    sort: ['segment_count', false],
+  },
+  {
+    key: 'segment',
+    name: 'Segment',
+    id_column: 'segment_id',
+    parent_column: 'interaction_id',
+    time_column: 'segment_start',
+    columns: ['segment_no', 'segment_start'],
+    detail_fields: ['disposition'],
+    sort: ['segment_no', false],
+    apply_date_filter: true,
+  },
+];
+
+test.each([[session, step], [session, step, action], s4])(
+  'the export query fits the saved mirrors (%s)',
+  (...levels) => {
+    const mirrors = levelsToMirrors(levels);
+    const frozenMirrors = freeze(mirrors);
+    for (const id of sortableColumns(levels[0]))
+      for (const desc of [true, false])
+        for (const result_format of ['csv', 'xlsx', 'json']) {
+          const exported = buildQuery(
+            {
+              datasource: '1__table',
+              viz_type: VizType.TableAgGrid,
+              query_mode: 'tree',
+              levels,
+              row_limit: 120,
+              time_range: 'Last week',
+              result_format,
+            },
+            { ownState: { sortBy: [{ id, key: id, desc }] } },
+          ).form_data?.tree_export;
+          const { query } = exported;
+          expect(query.metrics).toEqual([]);
+          expect(query.orderby[0]).toEqual([id, !desc]);
+          for (const key of ['columns', 'orderby'] as const)
+            for (const value of query[key])
+              expect(mirrors[`tree_${key}`].map(freeze)).toContain(
+                freeze(value),
+              );
+        }
+    expect(freeze(levelsToMirrors(levels))).toBe(frozenMirrors);
+  },
+);

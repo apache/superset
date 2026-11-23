@@ -37,13 +37,16 @@ import { TreeTableChartProps } from '../src/TreeTable/types';
 const key = 'table-v2-dispatch-regression';
 new AgGridTableChartPlugin().configure({ key }).register();
 
-test('registered Tree parent page and count ignore retained Table V2 controls', () => {
+test('registered Tree parent page, count and export ignore retained Table V2 controls', () => {
   const registered = getChartBuildQueryRegistry().get(key);
   if (typeof registered !== 'function')
     throw new Error('Builder is not registered');
   const expected = treeBuildQuery(treeFormData);
   const actual = registered({ ...treeFormData, ...retainedTableControls });
   expect(actual.queries).toEqual(expected.queries);
+  expect(actual.form_data?.tree_export).toEqual(
+    expected.form_data?.tree_export,
+  );
   expect(actual.queries).toHaveLength(2);
   expect(actual.form_data).not.toHaveProperty('server_pagination');
   expect(actual.form_data).not.toHaveProperty('server_page_length');
@@ -94,6 +97,9 @@ test.each([
     });
     expect(context.queries[1].row_limit).toBe(treeFormData.row_limit);
     expect(context.form_data).not.toHaveProperty('server_page_length');
+    expect(context.form_data?.tree_export).toEqual(
+      treeBuildQuery(treeFormData).form_data?.tree_export,
+    );
     const props = {
       ...testData.basic,
       formData,

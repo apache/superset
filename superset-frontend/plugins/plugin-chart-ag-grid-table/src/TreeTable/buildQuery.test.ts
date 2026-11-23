@@ -28,6 +28,7 @@ import TimeFilterPlugin from 'src/filters/components/Time/TimeFilterPlugin';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import buildQuery from './buildQuery';
 import buildChildrenQuery from './buildChildrenQuery';
+import { TreeTableExportSpec } from './exportQuery';
 import { TreeTableFormData, TreeLevel } from './types';
 
 const session: TreeLevel = {
@@ -278,13 +279,21 @@ const dateQueries = (form: Partial<TreeTableFormData>) => {
       op: string;
       val: unknown;
     }[];
+  const exportSpec: TreeTableExportSpec = context.form_data?.tree_export;
+  const [step] = exportSpec.query.post_processing ?? [];
+  const { options } = step as {
+    options: { time_ranges: string[]; levels: { time_column?: string }[] };
+  };
   return {
     parents: ranges(context.queries[0].filters),
     children: ranges(children.queries[0].filters),
+    exported: ranges(exportSpec.query.filters),
+    timeRanges: options.time_ranges,
+    childTime: options.levels[1].time_column,
   };
 };
 
-test('the chart range moves to level 1; a hand-made range on another column keeps its column on parents and children', () => {
+test('the chart range moves to level 1; a hand-made range on another column keeps its column on parents, children and export', () => {
   const own = {
     col: 'session_started_at',
     op: 'TEMPORAL_RANGE',
@@ -305,6 +314,9 @@ test('the chart range moves to level 1; a hand-made range on another column keep
   ).toEqual({
     parents: [own, handMade],
     children: [own, handMade, { ...own, col: 'step_started_at' }],
+    exported: [own, handMade],
+    timeRanges: ['Last week'],
+    childTime: 'step_started_at',
   });
 });
 
@@ -324,6 +336,7 @@ test('a dashboard time range and a dashboard date range move to level 1; the cha
     ['session_started_at', 'Last week'],
     ['session_started_at', 'Last day'],
   ]);
+  expect(result.timeRanges).toEqual(['Last week', 'Last day']);
 });
 
 test('a hand-made range on the legacy granularity column moves; one on another column does not bound children', () => {
@@ -345,14 +358,15 @@ test('a hand-made range on the legacy granularity column moves; one on another c
       .filter(filter => filter.col === 'step_started_at')
       .map(filter => filter.val),
   ).toEqual(['Last week', 'Last day']);
+  expect(result.timeRanges).toEqual(['Last week', 'Last day']);
 });
 
 test.each([
-  ['a finite dashboard range', '2026-03-01 : 2026-04-01'],
-  ['no dashboard range', undefined],
+  ['a finite dashboard range', '2026-03-01 : 2026-04-01', 'step_started_at'],
+  ['no dashboard range', undefined, 'step_started_at'],
 ] as const)(
-  '%s against the chart range and a hand-made range on parents and children',
-  (_, dashboard) => {
+  '%s against the chart range and a hand-made range on parents, children and export',
+  (_, dashboard, childTime) => {
     const range = dashboard ?? '2026-01-01 : 2026-02-01';
     const on = (col: string, val: string) => ({
       col,
@@ -375,14 +389,17 @@ test.each([
       on('other_date', 'Last year'),
     ];
     expect(sorted(result.parents)).toEqual(sorted(parents));
+    expect(sorted(result.exported)).toEqual(sorted(parents));
     expect(sorted(result.children)).toEqual(
       sorted([...parents, on('step_started_at', range)]),
     );
+    expect(result.timeRanges).toEqual([range]);
+    expect(result.childTime).toBe(childTime);
   },
 );
 
 test.each([undefined, NO_TIME_RANGE])(
-  'a cleared native time filter keeps the saved chart range on parents and children: %s',
+  'a cleared native time filter keeps the saved chart range on parents, children and export: %s',
   value => {
     const setDataMask = jest.fn<void, [DataMask]>();
     render(
@@ -430,10 +447,13 @@ test.each([undefined, NO_TIME_RANGE])(
     expect(result.children).toEqual(
       expect.arrayContaining([parentRange, childRange]),
     );
+    expect(result.exported).toEqual([parentRange]);
+    expect(result.timeRanges).toEqual(['Last week']);
+    expect(result.childTime).toBe('step_started_at');
   },
 );
 
-test('an explicit No filter chart range beats a legacy time range on parents and children', () => {
+test('an explicit No filter chart range beats a legacy time range on parents, children and export', () => {
   expect(
     dateQueries({
       time_range: '2026-11-08 : 2026-11-09',
@@ -448,6 +468,11 @@ test('an explicit No filter chart range beats a legacy time range on parents and
       op: 'TEMPORAL_RANGE',
       val: 'No filter',
     })),
+    exported: [
+      { col: 'session_started_at', op: 'TEMPORAL_RANGE', val: 'No filter' },
+    ],
+    timeRanges: ['No filter'],
+    childTime: undefined,
   });
 });
 
@@ -577,6 +602,75 @@ test('child date options leave the parent queries unchanged with native and char
     op: 'TEMPORAL_RANGE',
     val: 'Last week',
   });
+});
+
+test.each([
+  ['json', undefined],
+  ['csv', undefined],
+  ['xlsx', undefined],
+  ['json', { currentPage: 2, searchColumn: 'channel', searchText: 'Vo' }],
+  ['csv', { currentPage: 2, searchColumn: 'channel', searchText: 'Vo' }],
+  ['xlsx', { currentPage: 2, searchColumn: 'channel', searchText: 'Vo' }],
+] as const)(
+  'carries the export query for %s (ownState %o)',
+  (result_format, ownState) => {
+    const formData: TreeTableFormData = {
+      ...baseFormData,
+      levels: [session, step],
+      result_format,
+    };
+    const frozen = JSON.stringify(formData);
+    const context = buildQuery(formData, ownState ? { ownState } : undefined);
+    const exported = context.form_data?.tree_export;
+    expect(exported.query.columns).toEqual([
+      'session_id',
+      'channel',
+      'duration_ms',
+      'inbound_number',
+      'step_id',
+      'step_name',
+      'step_detail',
+    ]);
+    expect(exported.query.post_processing[0].operation).toBe('tree_rows');
+    expect(context.queries).toHaveLength(2);
+    expect(context.queries[0].columns).toEqual([
+      'session_id',
+      'channel',
+      'duration_ms',
+      'inbound_number',
+    ]);
+    expect(JSON.stringify(formData)).toBe(frozen);
+    expect(formData).not.toHaveProperty('tree_export');
+  },
+);
+
+test('the export query leaves the page and count queries as they were', () => {
+  const formData = {
+    ...baseFormData,
+    levels: [session, step],
+    row_limit: 120,
+    tree_server_page_length: 50,
+  };
+  const context = buildQuery(formData, { ownState: { currentPage: 1 } });
+  expect(context.form_data?.tree_export).toBeDefined();
+  expect(context.queries[0]).not.toHaveProperty('tree_export');
+  expect(context.queries[0]).toMatchObject({
+    row_offset: 50,
+    row_limit: 50,
+    metrics: [],
+  });
+  expect(context.queries[1]).toMatchObject({
+    is_rowcount: true,
+    row_limit: 120,
+  });
+});
+
+test('no export query when level 1 has no ID column', () => {
+  expect(
+    buildQuery({ ...baseFormData, levels: [{ ...session, id_column: '' }] })
+      .form_data,
+  ).not.toHaveProperty('tree_export');
+  expect(buildQuery(baseFormData).form_data).not.toHaveProperty('tree_export');
 });
 
 test('an ID-only parent keeps a single sort pair', () => {

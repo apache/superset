@@ -5340,6 +5340,14 @@ def test_apply_pivot_number_formats_auto_currency_without_detection() -> None:
     assert df[("sales",)].tolist() == ["1,234.50"]
 
 
+def test_apply_client_processing_preserves_tree_mode_raw_results() -> None:
+    """Tree reports bypass the ordinary Table V2 JSON formatter."""
+    result = {"queries": [{"result_format": "json", "data": [{"amount": 1234.5}]}]}
+    form_data = {"viz_type": "ag-grid-table", "query_mode": "tree"}
+    assert apply_client_processing(result, form_data) is result
+    assert result["queries"][0]["data"] == [{"amount": 1234.5}]
+
+
 def test_apply_client_processing_formats_an_ag_grid_table() -> None:
     """
     An AG Grid table report is formatted, not sent out with raw numbers.

@@ -8341,6 +8341,9 @@ msgstr ""
 msgid "Invalid SQL: %(error)s"
 msgstr ""
 
+msgid "Invalid Tree export parent ID column"
+msgstr ""
+
 #, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
 msgstr ""
@@ -16796,6 +16799,9 @@ msgid "Tree"
 msgstr ""
 
 msgid "Tree Chart"
+msgstr ""
+
+msgid "Tree export parent query failed"
 msgstr ""
 
 msgid "Tree layout"

@@ -25,6 +25,7 @@ import {
 import { TreeTableFormData, TreeLevel, TreeTableOwnState } from './types';
 import { defaultSort, rowColumns, sortableColumns } from './levelsToMirrors';
 import { normalizePage, normalizePageSize, pageLimit } from './pageState';
+import { buildExportSpec } from './exportQuery';
 import normalizeTreeFormData from './normalizeTreeFormData';
 
 /**
@@ -92,54 +93,79 @@ export default function buildQuery(
 ): QueryContext {
   const level = formData.levels?.[0];
   const ownState = options?.ownState ?? {};
-  return buildQueryContext(normalizeTreeFormData(formData), baseQueryObject => {
-    if (!level?.id_column) {
-      return [{ ...baseQueryObject, columns: [], metrics: [], orderby: [] }];
-    }
-    const pageSize = normalizePageSize(
-      ownState.pageSize,
-      formData.tree_server_page_length,
-    );
-    const page = normalizePage(
-      ownState.currentPage,
-      pageSize,
-      formData.row_limit,
-    );
-    const sortable = sortableColumns(level);
-    const sort = ownState.sortBy?.[0];
-    const orderby: [string, boolean] =
-      sort && sortable.includes(sort.id)
-        ? [sort.id, !sort.desc]
-        : defaultSort(level);
-    const filters = parentDateFilters(
-      baseQueryObject,
-      level,
-      formData.extra_form_data?.time_range,
-    );
-    const pageQuery: QueryObject = {
-      ...baseQueryObject,
-      granularity: undefined,
-      columns: rowColumns(level),
-      metrics: [],
-      orderby: [
-        orderby,
-        ...sortable
-          .filter(column => column !== orderby[0])
-          .map((column): [string, boolean] => [column, true]),
-      ],
-      filters,
-      ...pageLimit(page, pageSize, formData.row_limit),
-    };
-    return [
-      pageQuery,
-      {
-        ...pageQuery,
-        row_limit: Number(formData.row_limit ?? 0),
-        row_offset: 0,
-        orderby: [],
-        post_processing: [],
-        is_rowcount: true,
-      },
-    ];
-  });
+  let exportSpec: ReturnType<typeof buildExportSpec>;
+  const context = buildQueryContext(
+    normalizeTreeFormData(formData),
+    baseQueryObject => {
+      if (!level?.id_column) {
+        return [{ ...baseQueryObject, columns: [], metrics: [], orderby: [] }];
+      }
+      const pageSize = normalizePageSize(
+        ownState.pageSize,
+        formData.tree_server_page_length,
+      );
+      const page = normalizePage(
+        ownState.currentPage,
+        pageSize,
+        formData.row_limit,
+      );
+      const sortable = sortableColumns(level);
+      const sort = ownState.sortBy?.[0];
+      const orderby: [string, boolean] =
+        sort && sortable.includes(sort.id)
+          ? [sort.id, !sort.desc]
+          : defaultSort(level);
+      const filters = parentDateFilters(
+        baseQueryObject,
+        level,
+        formData.extra_form_data?.time_range,
+      );
+      const pageQuery: QueryObject = {
+        ...baseQueryObject,
+        granularity: undefined,
+        columns: rowColumns(level),
+        metrics: [],
+        orderby: [
+          orderby,
+          ...sortable
+            .filter(column => column !== orderby[0])
+            .map((column): [string, boolean] => [column, true]),
+        ],
+        filters,
+        ...pageLimit(page, pageSize, formData.row_limit),
+      };
+      exportSpec = buildExportSpec(
+        pageQuery,
+        {
+          ...baseQueryObject,
+          filters: parentDateFilters(
+            baseQueryObject,
+            level,
+            formData.extra_form_data?.time_range,
+          ),
+        },
+        formData.levels ?? [],
+      );
+      return [
+        pageQuery,
+        {
+          ...pageQuery,
+          row_limit: Number(formData.row_limit ?? 0),
+          row_offset: 0,
+          orderby: [],
+          post_processing: [],
+          is_rowcount: true,
+        },
+      ];
+    },
+  );
+  return exportSpec
+    ? {
+        ...context,
+        form_data: {
+          ...(context.form_data ?? formData),
+          tree_export: exportSpec,
+        },
+      }
+    : context;
 }

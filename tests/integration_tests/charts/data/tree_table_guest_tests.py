@@ -24,6 +24,8 @@ guest payload check (``query_context_modified``) only through the hidden
 """
 
 import copy
+import csv
+import io
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -383,6 +385,34 @@ class TestTreeTableGuestChartData(SupersetTestCase):
             ],
         )
         self._assert_payload_rejected(self._post(payload))
+
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_forged_tree_export_on_stored_aggregate_chart_is_rejected(self) -> None:
+        """The export swap still passes through the stored-chart subset check."""
+        self.chart_a.params = json.dumps(
+            {**self.chart_a.params_dict, "query_mode": "aggregate"}
+        )
+        db.session.commit()
+        role = security_manager.find_role(self.app.config["GUEST_ROLE_NAME"])
+        can_csv = security_manager.find_permission_view_menu("can_csv", "Superset")
+        granted = can_csv not in role.permissions
+        if granted:
+            security_manager.add_permission_role(role, can_csv)
+        try:
+            payload = self._payload(self.chart_a, MIRRORS, [LEVEL_1_QUERY])
+            payload["result_format"] = "csv"
+            payload["form_data"]["tree_export"] = {
+                "query": {
+                    "columns": ["state", "num_boys"],
+                    "metrics": [],
+                    "orderby": [["state", True]],
+                    "post_processing": [],
+                }
+            }
+            self._assert_payload_rejected(self._post(payload))
+        finally:
+            if granted:
+                security_manager.del_permission_role(role, can_csv)
 
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_guest_payload_check_uses_the_mirrors(self) -> None:
@@ -757,3 +787,106 @@ class TestTreeTableGuestChartData(SupersetTestCase):
             rows["orderby"] = [["state", True], ["gender", True]]
             rows["extras"] = {"where": "num_boys > 0", "having": ""}
             self._assert_payload_rejected(self._post(payload))
+
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_guest_csv_export(self) -> None:
+        """The Tree table CSV query keeps guest RLS and the payload check."""
+        self._assert_no_broad_grant()
+        # Pasted from superset-frontend/plugins/plugin-chart-ag-grid-table/src/
+        # TreeTable/exportQuery.test.ts: "birth_names three-level CSV body for
+        # the guest HTTP test".
+        export: dict[str, Any] = {
+            "query": {
+                "time_range": "No filter",
+                "filters": [],
+                "extras": {"having": "", "where": ""},
+                "applied_time_extras": {},
+                "annotation_layers": [],
+                "series_limit": 0,
+                "group_others_when_limit_reached": False,
+                "order_desc": True,
+                "url_params": {},
+                "custom_params": {},
+                "custom_form_data": {},
+                "columns": ["state", "gender", "name", "num"],
+                "metrics": [],
+                "orderby": [["state", True], ["gender", True], ["name", True]],
+                "row_limit": 0,
+                "row_offset": 0,
+                "post_processing": [
+                    {
+                        "operation": "tree_rows",
+                        "options": {
+                            "levels": [
+                                {"id_column": "state", "columns": ["state"]},
+                                {"id_column": "gender", "columns": ["gender"]},
+                                {"id_column": "name", "columns": ["name", "num"]},
+                            ],
+                            "time_ranges": [],
+                        },
+                    }
+                ],
+            },
+            "child_filters": [],
+        }
+        with self.app.test_request_context():
+            self.token = security_manager.create_guest_access_token(
+                {"username": "tree-table-csv-guest"},
+                [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(self.embedded.uuid),
+                    }
+                ],
+                [{"dataset": self.table.id, "clause": "gender = 'boy'"}],
+            )
+        role = security_manager.find_role(self.app.config["GUEST_ROLE_NAME"])
+        can_csv = security_manager.find_permission_view_menu("can_csv", "Superset")
+        granted = can_csv not in role.permissions
+        if granted:
+            security_manager.add_permission_role(role, can_csv)
+        try:
+            for stored_sql in (False, True):
+                params = json.loads(self.chart_c.params)
+                context = json.loads(self.chart_c.query_context)
+                body: dict[str, Any] = copy.deepcopy(export)
+                body["query"]["filters"] = [
+                    {"col": "gender", "op": "IN", "val": ["boy"]}
+                ]
+                if stored_sql:
+                    params["adhoc_filters"] = [
+                        {
+                            "expressionType": "SQL",
+                            "clause": "WHERE",
+                            "sqlExpression": "num > 0",
+                        }
+                    ]
+                    context["queries"][0]["extras"] = {"where": "(num > 0)"}
+                    body["query"]["extras"] = {"having": "", "where": "(num > 0)"}
+                self.chart_c.params = json.dumps(params)
+                self.chart_c.query_context = json.dumps(context)
+                db.session.commit()
+                payload = self._payload(self.chart_c, MIRRORS_3, context["queries"])
+                payload["form_data"].update(params)
+                payload["form_data"]["tree_export"] = body
+                payload["result_format"] = "csv"
+                self._prime_cached_user()
+                response = self._assert_allowed(self._post(payload))
+                assert response.mimetype == "text/csv"
+                header, *rows = csv.reader(
+                    io.StringIO(response.data.decode("utf-8-sig"))
+                )
+                assert header == ["state", "gender", "name", "num"]
+                assert rows
+                assert {row[1] for row in rows} == {"boy"}
+
+                body["query"]["columns"] = [*body["query"]["columns"], "num_boys"]
+                self._prime_cached_user()
+                self._assert_payload_rejected(self._post(payload))
+                body["query"]["columns"] = body["query"]["columns"][:-1]
+                body["query"]["extras"] = {"having": "", "where": "num_boys > 0"}
+                self._prime_cached_user()
+                self._assert_payload_rejected(self._post(payload))
+        finally:
+            if granted:
+                security_manager.del_permission_role(role, can_csv)
