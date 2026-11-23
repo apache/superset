@@ -87,6 +87,7 @@ def test_raise_for_access_viewer_published_allows(app_context):
 
     with (
         patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "can_access_all_dashboards", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_viewer", return_value=True),
         patch.object(sm, "is_guest_user", return_value=False),
@@ -125,6 +126,7 @@ def test_raise_for_access_no_viewers_dataset_fallback(app_context):
 
     with (
         patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "can_access_all_dashboards", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_guest_user", return_value=False),
         patch.object(sm, "can_access_datasource", return_value=True),
@@ -145,6 +147,7 @@ def test_raise_for_access_no_viewers_no_charts_allows(app_context):
 
     with (
         patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "can_access_all_dashboards", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_guest_user", return_value=False),
         patch(
@@ -162,6 +165,7 @@ def test_raise_for_access_legacy_when_viewers_off(app_context):
 
     with (
         patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "can_access_all_dashboards", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_guest_user", return_value=False),
         patch.object(sm, "can_access_datasource", return_value=True),
@@ -180,6 +184,7 @@ def test_raise_for_access_dashboard_viewers_override_implicit_access(app_context
 
     with (
         patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "can_access_all_dashboards", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_viewer", return_value=False),
         patch.object(sm, "is_guest_user", return_value=False),
@@ -212,6 +217,7 @@ def test_raise_for_access_chart_viewer_allows(app_context):
 
     with (
         patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "can_access_all_charts", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_viewer", return_value=True),
         patch(
@@ -229,6 +235,7 @@ def test_raise_for_access_chart_viewer_denied_without_match(app_context):
 
     with (
         patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "can_access_all_charts", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "can_access_datasource", return_value=False),
         patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
@@ -245,6 +252,7 @@ def test_raise_for_access_chart_viewers_override_datasource_access(app_context):
 
     with (
         patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "can_access_all_charts", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_viewer", return_value=False),
         patch.object(sm, "can_access_datasource", return_value=True),
