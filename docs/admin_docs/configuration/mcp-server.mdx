@@ -55,7 +55,8 @@ error; it does not queue requests behind slow queries.
 
 Tools that only read Superset's metadata database (the `list_*` and
 `get_*_info` tools, `get_schema`, `get_instance_info`, `health_check`, and
-similar) are admitted under a separate bound, `MCP_METADATA_TOOL_WORKERS`, so
+similar, and an extension's tools that declare `@tool(metadata_only=True)`) are
+admitted under a separate bound, `MCP_METADATA_TOOL_WORKERS`, so
 they keep answering while slow warehouse queries fill `MCP_TOOL_WORKERS`. A
 metadata-only tool that does reach a warehouse must first take a
 `MCP_TOOL_WORKERS` slot, and reports **MCP server busy** if none is free.
