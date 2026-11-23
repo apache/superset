@@ -1474,7 +1474,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
         Historically a TableColumn object (from an ORM perspective) was tightly bound to
         a SqlaTable object, however with the introduction of the Query datasource this
-        is no longer true, i.e., the SqlaTable relationship is optional.
+        is no longer true, i.e., the SqlaTable relationship is optional. Tableless
+        Query columns retain exact result-set names, just like virtual dataset columns.
 
         Now the TableColumn is either directly associated with the Database object (
         which is unknown to the ORM) or indirectly via the SqlaTable object (courtesy of
@@ -1636,7 +1637,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             col = column(
                 db_engine_spec.prepare_identifier(
                     cast(str, self.column_name),
-                    exact_case=bool(self.table and self.table.is_virtual),
+                    exact_case=not self.table or self.table.is_virtual,
                 ),
                 type_=type_,
             )
@@ -1676,7 +1677,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             sqla_col = column(
                 db_engine_spec.prepare_identifier(
                     cast(str, self.column_name),
-                    exact_case=bool(self.table and self.table.is_virtual),
+                    exact_case=not self.table or self.table.is_virtual,
                 ),
                 type_=type_,
             )
@@ -1723,7 +1724,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             col = column(
                 db_engine_spec.prepare_identifier(
                     cast(str, self.column_name),
-                    exact_case=bool(self.table and self.table.is_virtual),
+                    exact_case=not self.table or self.table.is_virtual,
                 ),
                 type_=type_,
             )
