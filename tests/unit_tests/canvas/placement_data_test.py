@@ -149,6 +149,185 @@ def test_unknown_and_unbound_placements(
     run_binding.assert_not_called()
 
 
+NAMED = {"datasetId": 14, "metrics": ["revenue"], "dimensions": ["region"]}
+BY_REGION = PlacementData([{"region": "EMEA", "revenue": 12}], None, None)
+
+
+def test_every_query_the_widget_type_builds_answers_as_a_named_dataset(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    can_view_query: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.widgets import QueryRequest, WidgetQuery
+
+    from superset.widgets.registry import registry
+
+    build = MagicMock(
+        return_value=[WidgetQuery("main", BINDING), WidgetQuery("by_region", NAMED)]
+    )
+    mocker.patch.object(registry["chart"], "build_queries", build)
+    run_binding.side_effect = [DATA, BY_REGION]
+    filters = [{"datasetId": 14, "column": "region", "values": ["EMEA"]}]
+
+    response = client.post(URL.format("chart"), json={"runtime_filters": filters})
+
+    assert response.status_code == 200
+    datasets = response.json["result"]["datasets"]
+    assert [(d["name"], d["inline_data"]) for d in datasets] == [
+        ("main", DATA.rows),
+        ("by_region", BY_REGION.rows),
+    ]
+    runtime = [RuntimeFilter.model_validate(f) for f in filters]
+    assert [call.args for call in run_binding.call_args_list] == [
+        (BINDING, runtime),
+        (NAMED, runtime),
+    ]
+    build.assert_called_once_with(
+        QueryRequest(
+            canvas_id="100",
+            placement_id="chart",
+            props={"dataBinding": BINDING},
+            widget_id="chart-1",
+        )
+    )
+
+
+@pytest.mark.parametrize("binding", ["by_region", None])
+def test_the_caller_cannot_pick_a_query(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    binding: Any,
+) -> None:
+    response = client.post(URL.format("chart"), json={"binding": binding})
+
+    assert response.status_code == 400
+    run_binding.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "unbound",
+    [{"metrics": ["count"]}, {"datasetId": "13"}, ["datasetId", 13]],
+    ids=["no-dataset", "dataset-not-an-id", "not-a-binding"],
+)
+def test_a_built_query_is_checked_like_one_from_the_props(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    can_view_query: MagicMock,
+    mocker: MockerFixture,
+    unbound: Any,
+) -> None:
+    from superset_core.widgets import WidgetQuery
+
+    from superset.widgets.registry import registry
+
+    build = MagicMock(return_value=[WidgetQuery("draft", unbound)])
+    mocker.patch.object(registry["chart"], "build_queries", build)
+
+    # A widget none of whose queries is bound has no data.
+    assert client.post(URL.format("chart"), json={}).status_code == 422
+    run_binding.assert_not_called()
+
+    build.return_value = [WidgetQuery("draft", unbound), WidgetQuery("main", NAMED)]
+    response = client.post(URL.format("chart"), json={})
+
+    assert [d["name"] for d in response.json["result"]["datasets"]] == ["main"]
+    assert run_binding.call_args.args[0] == NAMED
+
+
+def test_a_widget_type_that_names_a_query_twice_fails(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.widgets import WidgetQuery
+
+    from superset.widgets.registry import registry
+
+    mocker.patch.object(
+        registry["chart"],
+        "build_queries",
+        MagicMock(return_value=[WidgetQuery("main", BINDING)] * 2),
+    )
+
+    assert client.post(URL.format("chart"), json={}).status_code == 500
+    run_binding.assert_not_called()
+
+
+def test_one_failing_query_fails_the_request(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.widgets import WidgetQuery
+
+    from superset.widgets.registry import registry
+
+    mocker.patch.object(
+        registry["chart"],
+        "build_queries",
+        MagicMock(
+            return_value=[WidgetQuery("main", BINDING), WidgetQuery("secret", NAMED)]
+        ),
+    )
+    run_binding.side_effect = [
+        DATA,
+        SupersetSecurityException(
+            SupersetError(
+                message="no access to the dataset",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    ]
+
+    assert client.post(URL.format("chart"), json={}).status_code == 403
+
+
+def test_a_widget_type_learns_the_placement_comes_from_the_callers_draft(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    widget_types: FakeResolver,
+    run_binding: MagicMock,
+    can_view_query: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.widgets import Widget
+
+    from superset.widgets.registry import registry
+
+    build = MagicMock(side_effect=Widget.build_queries)
+    mocker.patch.object(registry["chart"], "build_queries", build)
+    mocker.patch(
+        "superset.commands.canvas.placement_data.load_draft",
+        return_value=MagicMock(
+            canvas_id=100,
+            definition={"nodes": {"chart": {"widgetId": "chart-1"}}},
+            resolver=lambda: widget_types,
+        ),
+    )
+
+    headers = {"X-Canvas-Draft": "token"}
+
+    response = client.post(URL.format("chart"), json={}, headers=headers)
+
+    assert response.status_code == 200
+    [request] = [call.args[0] for call in build.call_args_list]
+    assert request.draft_token == headers["X-Canvas-Draft"]
+    assert request.widget_id == "chart-1"
+
+
 @pytest.mark.parametrize(
     "caller, status",
     [("viewer", 200), ("stranger", 404), ("guest", 404)],
@@ -553,6 +732,62 @@ def test_replaced_draft_dimension_queries_effective_widget_props(
     assert published_state(session) == before
 
 
+def test_a_built_query_runs_as_the_caller_with_their_dataset_access(
+    client: Any,
+    full_api_access: None,
+    aggregate_canvas: Canvas,
+    aggregate_table: SqlaTable,
+    session: Session,
+    mocker: MockerFixture,
+    can_view_query: MagicMock,
+) -> None:
+    """A widget type builds the query; the chart data pipeline still runs it as
+    the caller, and checks their access to its dataset."""
+    from superset_core.widgets import QueryRequest, WidgetQuery
+
+    from superset.extensions import security_manager
+    from superset.widgets.registry import registry
+
+    top_two = {
+        "datasetId": aggregate_table.id,
+        "metrics": ["total_amount"],
+        "dimensions": ["category"],
+        "orderBy": [{"field": "total_amount", "descending": True}],
+        "rowLimit": 2,
+    }
+
+    def build(request: QueryRequest) -> list[WidgetQuery]:
+        return [WidgetQuery("top_two", top_two)]
+
+    mocker.patch.object(registry["ag-grid-table"], "build_queries", build)
+    url = f"/api/v1/canvas/{aggregate_canvas.id}/placement/amounts/data"
+    before = published_state(session)
+
+    response = client.post(url, json={})
+
+    assert response.status_code == 200
+    [dataset] = response.json["result"]["datasets"]
+    assert dataset["name"] == "top_two"
+    assert dataset["inline_data"] == [
+        {"category": "B", "total_amount": 100},
+        {"category": "F", "total_amount": 90},
+    ]
+    denied = mocker.patch.object(
+        security_manager,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="no access to the dataset",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    assert client.post(url, json={}).status_code == 403
+    assert denied.call_args.kwargs["query_context"].datasource.id == aggregate_table.id
+    assert published_state(session) == before
+
+
 @pytest.mark.parametrize(
     "title, ops, error_path",
     [
@@ -655,9 +890,10 @@ def test_command_query_failure_retains_classification_and_original_traceback(
     mocker.patch("superset.security_manager.is_guest_user", return_value=False)
     validated = False
 
-    def validate() -> None:
+    def validate(command: GetPlacementDataCommand) -> None:
         nonlocal validated
         validated = True
+        command._bindings = {"main": {"datasetId": 13}}
 
     error = SupersetParseError("SELECT broken", message="Repair the saved expression")
 
@@ -665,7 +901,9 @@ def test_command_query_failure_retains_classification_and_original_traceback(
         assert validated
         raise error
 
-    mocker.patch.object(GetPlacementDataCommand, "validate", side_effect=validate)
+    mocker.patch.object(
+        GetPlacementDataCommand, "validate", autospec=True, side_effect=validate
+    )
     mocker.patch(
         "superset.commands.canvas.placement_data.run_binding", side_effect=query
     )

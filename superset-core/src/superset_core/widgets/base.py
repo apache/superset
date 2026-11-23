@@ -53,6 +53,7 @@ from superset_core.widgets.enrichment import (
     run_enrichers,
     toposort_or_raise,
 )
+from superset_core.widgets.queries import QueryRequest, WidgetQuery
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,16 @@ class Widget:
     migrators: ClassVar[Mapping[int, PropsMigrator]] = {}
     behavior: ClassVar[WidgetBehavior] = WidgetBehavior()
     ui: ClassVar[WidgetUi] = WidgetUi()
+
+    @classmethod
+    def build_queries(cls, request: QueryRequest) -> list[WidgetQuery]:
+        """
+        The widget's queries, whose results the host serves as its datasets
+        (see ``superset_core.widgets.queries``): by default the props'
+        ``dataBinding``, as ``main``.
+        """
+        binding = request.props.get("dataBinding")
+        return [WidgetQuery("main", binding)] if isinstance(binding, Mapping) else []
 
     @classmethod
     def validate_contract(cls) -> None:
