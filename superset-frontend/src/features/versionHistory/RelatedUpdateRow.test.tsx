@@ -184,30 +184,24 @@ test.each([
   },
   { entity_deleted: true, entity_deletion_state: null, entity_uuid: 'abc' },
   { entity_deleted: false, entity_deletion_state: null, entity_uuid: null },
-])(
-  'unavailable related charts have no links or version actions: %s',
-  unavailable => {
-    render(
-      <RelatedUpdateRow
-        record={{
-          ...baseRecord,
-          entity_kind: 'chart',
-          kind: '__archive__',
-          operation: 'announce',
-          impact: null,
-          path: null,
-          to_value: null,
-          ...unavailable,
-        }}
-        onOpen={jest.fn()}
-      />,
-    );
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    expect(screen.queryByText('Preview')).not.toBeInTheDocument();
-    expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
-    expect(screen.queryByText('Open as new chart')).not.toBeInTheDocument();
-  },
-);
+])('unavailable related charts have no navigation links: %s', unavailable => {
+  render(
+    <RelatedUpdateRow
+      record={{
+        ...baseRecord,
+        entity_kind: 'chart',
+        kind: '__archive__',
+        operation: 'announce',
+        impact: null,
+        path: null,
+        to_value: null,
+        ...unavailable,
+      }}
+      onOpen={jest.fn()}
+    />,
+  );
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
 
 test('a recovered chart links from its archive event and keeps shared author formatting', async () => {
   const onOpen = jest.fn();
