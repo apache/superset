@@ -64,7 +64,7 @@ class ChartDataCommand(BaseCommand):
         # same session — often not until teardown calls session.close() —
         # raises sqlalchemy's PendingRollbackError instead, which masks the
         # real error and surfaces as an unhandled 500 (see SUPERSET-PYTHON-1CHQ).
-        db.session.rollback()
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         database = getattr(self._query_context.datasource, "database", None)
         message = (
             database.db_engine_spec.extract_error_message(ex)
