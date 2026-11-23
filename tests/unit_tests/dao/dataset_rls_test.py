@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
+
+import pytest
 from sqlalchemy.orm.session import Session
 
 from superset.daos.dataset import DatasetDAO
@@ -334,6 +337,32 @@ def test_parse_tables_from_virtual_datasets_bad_sql() -> None:
     )
     assert 1 not in ds_to_tables
     assert ds_db_map[1] == 10
+
+
+def test_parse_tables_from_virtual_datasets_bad_sql_does_not_warn(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Unparseable SQL is an expected, handled condition: it must not emit WARNING
+    (or higher) records on every call, and other datasets are still mapped.
+    """
+    with caplog.at_level(logging.DEBUG, logger="superset.daos.dataset"):
+        ds_to_tables, ds_db_map = DatasetDAO._parse_tables_from_virtual_datasets(
+            [
+                (1, "SELECT * FROM (", "main", 10),
+                (2, "SELECT * FROM orders", "main", 10),
+            ],
+            db_engines={10: ""},
+        )
+
+    assert 1 not in ds_to_tables
+    assert {t.table for t in ds_to_tables[2]} == {"orders"}
+    assert ds_db_map == {1: 10, 2: 10}
+    assert [r for r in caplog.records if r.levelno >= logging.WARNING] == []
+    assert any(
+        r.levelno == logging.DEBUG and "virtual dataset 1" in r.getMessage()
+        for r in caplog.records
+    )
 
 
 def test_schema_isolation_prevents_wrong_rls(session: Session) -> None:

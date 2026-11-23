@@ -17,9 +17,21 @@
  * under the License.
  */
 import { matchPath } from 'react-router-dom';
+// Imported statically, and before './routes', so both hold the same page
+// registry. A dynamic import here would resolve against a module registry an
+// earlier `jest.resetModules()` has since replaced.
+import { PAGE_LOCATION, registerView } from 'src/core/views';
 import { isFrontendRoute, routes } from './routes';
 
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
+
+// The contributed-pages cases below mock the feature flag and re-import
+// `./routes`, so the mock and the module registry are cleared after every
+// test. The statically imported bindings above are unaffected by either.
+afterEach(() => {
+  jest.dontMock('@superset-ui/core');
+  jest.resetModules();
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('isFrontendRoute', () => {
@@ -90,4 +102,82 @@ test('password recovery pages are matched before the /login/ prefix route', () =
     const firstMatch = routes.find(r => matchPath(pathname, { path: r.path }));
     expect(firstMatch?.path).toBe(pathname);
   });
+});
+
+/**
+ * The route that serves contributed pages is one concrete host route.
+ *
+ * It matches a single prefix the host owns and forms every page's address
+ * from the page's id, so a contributed page cannot be reached at a path
+ * Superset already answers and its position in `routes` carries no
+ * guarantee. These cases pin that: one such route, under a prefix no host
+ * screen sits beneath.
+ */
+const EXTENSION_PAGE_ROUTE = '/extensions/pages/:pageId';
+
+const routesWithExtensions = async () => {
+  jest.resetModules();
+  jest.doMock('@superset-ui/core', () => ({
+    ...jest.requireActual('@superset-ui/core'),
+    isFeatureEnabled: (flag: string) => flag === 'ENABLE_EXTENSIONS',
+  }));
+  const { routes: scoped } = await import('./routes');
+  return scoped;
+};
+
+test('no host route is shadowed by the contributed-pages route', async () => {
+  // The route matches one prefix the host owns, so no host screen can be
+  // reached through it.
+  const scoped = await routesWithExtensions();
+  const hostPaths = scoped
+    .map(r => r.path)
+    .filter(
+      path =>
+        typeof path === 'string' &&
+        path !== EXTENSION_PAGE_ROUTE &&
+        !path.includes(':'),
+    );
+
+  hostPaths.forEach(pathname => {
+    const firstMatch = scoped.find(r => matchPath(pathname, { path: r.path }));
+    expect(firstMatch?.path).not.toBe(EXTENSION_PAGE_ROUTE);
+  });
+});
+
+test('the root path is left to the welcome redirect', async () => {
+  const scoped = await routesWithExtensions();
+
+  expect(matchPath('/', { path: EXTENSION_PAGE_ROUTE })).toBeNull();
+  const firstMatch = scoped.find(r => matchPath('/', { path: r.path }));
+  expect(firstMatch?.path).not.toBe(EXTENSION_PAGE_ROUTE);
+});
+
+test('the contributed-pages route does not exist when extensions are switched off', async () => {
+  jest.resetModules();
+  const { routes: scoped } = await import('./routes');
+
+  expect(scoped.map(r => r.path)).not.toContain(EXTENSION_PAGE_ROUTE);
+});
+
+test('isFrontendRoute recognises a contributed page and its sub-paths', () => {
+  // Answered on the prefix the host owns, so it stays right for a page that
+  // registers after this module was evaluated. Without it the menu would
+  // full-page-reload to reach a contributed page.
+  const registration = registerView(
+    { id: 'acme.tools.review-queue', name: 'Queue' },
+    PAGE_LOCATION,
+    () => null,
+  );
+
+  try {
+    expect(isFrontendRoute('/extensions/pages/acme.tools.review-queue')).toBe(
+      true,
+    );
+    expect(
+      isFrontendRoute('/extensions/pages/acme.tools.review-queue/42/edit'),
+    ).toBe(true);
+    expect(isFrontendRoute('/nothing-claims-this')).toBe(false);
+  } finally {
+    registration.dispose();
+  }
 });

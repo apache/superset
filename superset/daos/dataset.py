@@ -1110,9 +1110,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                         table_refs.add(table_ref.qualify(schema=default_schema))
                 if table_refs:
                     ds_to_tables[ds_id] = table_refs
-            except Exception:  # noqa: BLE001
-                logger.warning(
-                    "Failed to parse SQL for virtual dataset %d", ds_id, exc_info=True
+            except Exception as ex:  # noqa: BLE001
+                # Unparseable SQL is an expected, handled condition (the dataset
+                # simply gets no inherited RLS) and this runs on every list load,
+                # so keep it out of WARNING-level logs.
+                logger.debug(
+                    "Failed to parse SQL for virtual dataset %d: %s", ds_id, ex
                 )
         return ds_to_tables, ds_db_map
 
