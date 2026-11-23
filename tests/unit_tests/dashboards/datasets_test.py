@@ -1915,6 +1915,33 @@ def test_chart_display_labels_exclude_hidden_table_controls(
     }
 
 
+@pytest.mark.parametrize(
+    "query_mode, expected",
+    [
+        ("aggregate", {"region": "Region", "revenue": "Revenue"}),
+        ("raw", {"metro": "Metro area"}),
+    ],
+)
+def test_table_v2_display_labels_ignore_retained_tree_mirrors(
+    query_mode: str, expected: dict[str, str]
+) -> None:
+    """Dormant Tree settings do not change Aggregate/Raw display labels."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        query_mode=query_mode,
+        all_columns=["metro"],
+        groupby=["region"],
+        metrics=["revenue"],
+        tree_columns=["cost_center"],
+        tree_metrics=["margin"],
+        tree_orderby=[["cost_center", True]],
+    )
+    chart.viz_type = "ag-grid-table"
+    assert saved_chart_display_labels(table, chart) == expected
+
+
 @pytest.mark.parametrize("model_viz_type", [None, "tree_chart", "table"])
 def test_chart_display_labels_share_saved_viz_type_resolution(
     model_viz_type: str | None,

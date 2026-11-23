@@ -1,0 +1,243 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`aggregate visible controls and sections with pagination on/off 1`] = `
+{
+  "mode": "aggregate",
+  "serverPagination": false,
+  "visible": [
+    {
+      "controls": [
+        "query_mode",
+        "groupby",
+        "temporal_columns_lookup",
+        "metrics",
+        "percent_metrics",
+        "adhoc_filters",
+        "timeseries_limit_metric",
+        "server_pagination",
+        "row_limit",
+        "percent_metric_calculation",
+      ],
+      "label": "Query",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "table_timestamp_format",
+        "page_length",
+        "include_search",
+        "allow_rearrange_columns",
+        "allow_render_html",
+        "json_in_cell",
+      ],
+      "label": "Options",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "header_groups",
+      ],
+      "label": "Multi-level header",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "show_totals",
+        "show_numbered_column",
+        "zebra_striping",
+        "column_config",
+        "show_cell_bars",
+        "align_pn",
+        "color_pn",
+        "conditional_formatting",
+      ],
+      "label": "Visual formatting",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "time_compare",
+        "comparison_range_label",
+      ],
+      "label": "Time Comparison",
+      "visible": true,
+    },
+  ],
+}
+`;
+
+exports[`aggregate visible controls and sections with pagination on/off 2`] = `
+{
+  "mode": "aggregate",
+  "serverPagination": true,
+  "visible": [
+    {
+      "controls": [
+        "query_mode",
+        "groupby",
+        "temporal_columns_lookup",
+        "metrics",
+        "percent_metrics",
+        "adhoc_filters",
+        "timeseries_limit_metric",
+        "server_pagination",
+        "server_page_length",
+        "row_limit",
+        "percent_metric_calculation",
+      ],
+      "label": "Query",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "table_timestamp_format",
+        "include_search",
+        "allow_rearrange_columns",
+        "allow_render_html",
+        "json_in_cell",
+      ],
+      "label": "Options",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "header_groups",
+      ],
+      "label": "Multi-level header",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "show_totals",
+        "show_numbered_column",
+        "zebra_striping",
+        "column_config",
+        "show_cell_bars",
+        "align_pn",
+        "color_pn",
+        "conditional_formatting",
+      ],
+      "label": "Visual formatting",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "time_compare",
+        "comparison_range_label",
+      ],
+      "label": "Time Comparison",
+      "visible": true,
+    },
+  ],
+}
+`;
+
+exports[`raw visible controls and sections with pagination on/off 1`] = `
+{
+  "mode": "raw",
+  "serverPagination": false,
+  "visible": [
+    {
+      "controls": [
+        "query_mode",
+        "temporal_columns_lookup",
+        "all_columns",
+        "adhoc_filters",
+        "order_by_cols",
+        "server_pagination",
+        "row_limit",
+      ],
+      "label": "Query",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "table_timestamp_format",
+        "page_length",
+        "include_search",
+        "allow_rearrange_columns",
+        "allow_render_html",
+        "json_in_cell",
+      ],
+      "label": "Options",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "header_groups",
+      ],
+      "label": "Multi-level header",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "show_totals",
+        "show_numbered_column",
+        "zebra_striping",
+        "column_config",
+        "show_cell_bars",
+        "align_pn",
+        "color_pn",
+        "conditional_formatting",
+      ],
+      "label": "Visual formatting",
+      "visible": true,
+    },
+  ],
+}
+`;
+
+exports[`raw visible controls and sections with pagination on/off 2`] = `
+{
+  "mode": "raw",
+  "serverPagination": true,
+  "visible": [
+    {
+      "controls": [
+        "query_mode",
+        "temporal_columns_lookup",
+        "all_columns",
+        "adhoc_filters",
+        "order_by_cols",
+        "server_pagination",
+        "server_page_length",
+        "row_limit",
+      ],
+      "label": "Query",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "table_timestamp_format",
+        "include_search",
+        "allow_rearrange_columns",
+        "allow_render_html",
+        "json_in_cell",
+      ],
+      "label": "Options",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "header_groups",
+      ],
+      "label": "Multi-level header",
+      "visible": true,
+    },
+    {
+      "controls": [
+        "show_totals",
+        "show_numbered_column",
+        "zebra_striping",
+        "column_config",
+        "show_cell_bars",
+        "align_pn",
+        "color_pn",
+        "conditional_formatting",
+      ],
+      "label": "Visual formatting",
+      "visible": true,
+    },
+  ],
+}
+`;
