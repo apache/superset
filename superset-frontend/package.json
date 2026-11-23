@@ -144,6 +144,7 @@
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
     "@superset-ui/plugin-chart-world-map": "file:./plugins/plugin-chart-world-map",
     "@superset-ui/preset-chart-deckgl": "file:./plugins/preset-chart-deckgl",
+    "@superset-ui/plugin-chart-top-banner" : "file:./plugins/plugin-chart-top-banner",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
     "@types/d3-selection": "^3.0.12",
     "@types/d3-time-format": "^4.0.3",
