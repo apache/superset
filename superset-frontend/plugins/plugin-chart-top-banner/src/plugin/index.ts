@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,13 +17,13 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   ChartMetadata,
   ChartPlugin,
   ChartProps,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core/translation';
 
 import TopBanner from '../TopBanner';
 import transformProps from '../transformProps';
@@ -40,7 +40,12 @@ const thumbnail =
       height="260"
       viewBox="0 0 400 260"
     >
-      <rect width="400" height="260" rx="28" fill="#f8fafc"/>
+      <rect
+        width="400"
+        height="260"
+        rx="28"
+        fill="#f8fafc"
+      />
       <rect
         x="28"
         y="70"
@@ -65,7 +70,7 @@ const thumbnail =
         text-anchor="middle"
         font-size="30"
       >
-        \ud83d\ude36\u200d\ud83c\udf2b\ufe0f
+        😶‍🌫️
       </text>
       <rect
         x="132"
