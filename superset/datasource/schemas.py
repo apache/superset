@@ -21,9 +21,12 @@ from __future__ import annotations
 from marshmallow import fields, Schema, validates_schema, ValidationError
 from marshmallow.validate import OneOf, Range
 
+from superset import security_manager
 from superset.charts.schemas import ChartDataFilterSchema
+from superset.commands.utils import current_user_can_modify_object
 from superset.common.chart_data import ChartDataResultFormat
 from superset.connectors.sqla.models import SqlaTable
+from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.schemas import SubjectResponseSchema
 
@@ -112,11 +115,22 @@ class SemanticViewListSchema(Schema):
     is_sqllab_view = fields.Constant(False)
     is_managed_externally = fields.Constant(False)
     editors = fields.Constant([])
+    can_modify: fields.Method = fields.Method("get_can_modify")
     changed_by_name = fields.String()
     changed_by = fields.Method("get_changed_by")
     changed_on_delta_humanized = fields.Method("get_changed_on_delta_humanized")
     changed_on_utc = fields.Method("get_changed_on_utc")
     cache_timeout = fields.Integer(allow_none=True)
+
+    def get_can_modify(self, obj: SemanticView) -> bool:
+        """Expose write eligibility; commands still recheck access and dependencies."""
+        if not security_manager.can_access("can_write", "SemanticView"):
+            return False
+        try:
+            obj.raise_for_access()
+        except SupersetSecurityException:
+            return False
+        return current_user_can_modify_object(obj)
 
     def get_uuid(self, obj: SemanticView) -> str:
         return str(obj.uuid)
