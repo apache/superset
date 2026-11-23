@@ -763,13 +763,13 @@ class Steward:
 
     @staticmethod
     def _unrelated_thread(
-        email: Email, number: Optional[int], issues: dict[int, Issue], has_cands: bool
+        email: Email, number: Optional[int], issues: dict[int, Issue]
     ) -> bool:
         """A non-SIP thread that merely links an issue or is not about the match."""
         if "SIP" in email.subject.upper():
             return False
         if number is None:
-            return not has_cands
+            return True  # a non-SIP thread that links no SIP issue
         return (
             similarity(
                 classify_subject(email.subject)[3], strip_title(issues[number].title)
@@ -800,7 +800,7 @@ class Steward:
                 match.issue if match.issue is not None else (vote[1] if vote else None)
             )
             how = match.how if match.issue is not None else "its vote thread"
-            if self._unrelated_thread(email, number, issues, bool(match.candidates)):
+            if self._unrelated_thread(email, number, issues):
                 continue  # a non-SIP thread that is not about any SIP
             if number is None:
                 cands = ", ".join(f"#{n}" for n in match.candidates) or "none"
@@ -930,11 +930,16 @@ def main() -> int:
     key = os.environ.get("LLMAO_KEY", "")
     model = Model(key, os.environ.get("LLMAO_MODEL") or DEFAULT_MODEL) if key else None
     comments = parse_comments(COMMENTS_PATH.read_text(encoding="utf-8"))
-    report = Steward(gh, model, live, comments).run()
-    print(report)
-    if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(summary, "a", encoding="utf-8") as fh:
-            fh.write(report + "\n")
+    steward = Steward(gh, model, live, comments)
+    try:
+        steward.run()
+    finally:
+        # A failed write mid-run must not lose the record of earlier moves.
+        report = steward.report.render()
+        print(report)
+        if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+            with open(summary, "a", encoding="utf-8") as fh:
+                fh.write(report + "\n")
     return 0
 
 
