@@ -86,6 +86,18 @@ def add(widget: str, **extra: Any) -> dict[str, Any]:
     return {"op": "add", "widgetId": widget, **extra}
 
 
+def bind_placement(mocker: MockerFixture) -> None:
+    """Skip the placement's lookup, leaving it one binding for its query."""
+    from superset.commands.canvas.placement_data import GetPlacementDataCommand
+
+    def validate(command: GetPlacementDataCommand) -> None:
+        command._bindings = {"main": {"datasetId": 13}}
+
+    mocker.patch.object(
+        GetPlacementDataCommand, "validate", autospec=True, side_effect=validate
+    )
+
+
 def test_create_and_read_a_canvas(
     client: Any,
     full_api_access: None,
@@ -732,9 +744,7 @@ def test_placement_and_preview_query_error_contract(
         "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
         return_value=True,
     )
-    mocker.patch(
-        "superset.commands.canvas.placement_data.GetPlacementDataCommand.validate"
-    )
+    bind_placement(mocker)
     mocker.patch(
         "superset.commands.canvas.placement_data.run_binding", side_effect=error
     )
@@ -913,9 +923,7 @@ def test_structured_query_errors_preserve_diagnostics_and_oauth_contract(
         "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
         return_value=True,
     )
-    mocker.patch(
-        "superset.commands.canvas.placement_data.GetPlacementDataCommand.validate"
-    )
+    bind_placement(mocker)
     mocker.patch(
         "superset.commands.canvas.placement_data.run_binding", side_effect=error
     )
@@ -1042,9 +1050,7 @@ def test_unexpected_query_failures_keep_traceback_only_in_server_logs(
     mocker: MockerFixture,
     caplog: Any,
 ) -> None:
-    mocker.patch(
-        "superset.commands.canvas.placement_data.GetPlacementDataCommand.validate"
-    )
+    bind_placement(mocker)
     mocker.patch(
         "superset.commands.canvas.placement_data.run_binding",
         side_effect=RuntimeError("private-server-diagnostic"),
