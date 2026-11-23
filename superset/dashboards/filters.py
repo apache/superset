@@ -18,8 +18,9 @@ from typing import Any
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql import CompoundSelect
 from sqlalchemy.sql.elements import ColumnElement
 
 from superset import db, security_manager
@@ -113,6 +114,17 @@ class DashboardTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-m
     model = Dashboard
 
 
+def _get_user_subject_id() -> CompoundSelect | None:
+    """Subject-ID subquery for the logged-in user, or ``None`` when anonymous.
+
+    Without a user the subquery would match every role and group subject.
+    """
+    from superset.subjects.utils import get_user_subject_ids_subquery
+
+    user_id = get_user_id()
+    return get_user_subject_ids_subquery(user_id) if user_id else None
+
+
 class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     List dashboards with the following criteria:
@@ -140,18 +152,27 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if security_manager.is_admin():
             return query
 
-        if security_manager.can_access_all_dashboards():
-            # Ensure that users who have read all dashboards permission
-            # can't access draft dashboards
-            return query.filter(Dashboard.published)
+        if (
+            security_manager.can_access_all_dashboards()
+            and (subject_subquery := _get_user_subject_id()) is not None
+        ):
+            # Logged-in users who can read all dashboards see every published
+            # dashboard, and drafts only when they are an editor of them.
+            return query.filter(
+                or_(
+                    Dashboard.published,
+                    Dashboard.id.in_(
+                        select(dashboard_editors.c.dashboard_id).where(
+                            dashboard_editors.c.subject_id.in_(subject_subquery)
+                        )
+                    ),
+                )
+            )
 
         return self._apply_viewers(query)
 
     def _apply_viewers(self, query: Query) -> Query:
-        from superset.subjects.utils import get_user_subject_ids_subquery
-
-        user_id = get_user_id()
-        subject_subquery = get_user_subject_ids_subquery(user_id) if user_id else None
+        subject_subquery = _get_user_subject_id()
 
         filters: list[Any] = []
 

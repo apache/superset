@@ -96,6 +96,7 @@ from tests.integration_tests.fixtures.dashboard_access import (
     ALPHA_USER1,
     GAMMA_USER1,
     GAMMA_USER2,
+    ALPHA_DRAFT_DASHBOARD_SLUG,
     CHART_NAME,
     PUBLISHED_DASHBOARD_SLUG,
     UNPUBLISHED_DASHBOARD_SLUG,
@@ -9732,6 +9733,7 @@ class TestAlphaRoleViewAccess(SupersetTestCase):
 
         List view - check that earlier dataset based access holds:
         - alpha_user1 sees the published dashboard but not the unpublished one.
+        - alpha_user1 sees the unpublished dashboard they edit.
         - gamma_user1 sees the published dashboard.
         - gamma_user2 does not see the published dashboard.
         """
@@ -9741,6 +9743,7 @@ class TestAlphaRoleViewAccess(SupersetTestCase):
             alpha_slugs = self._list_dashboard_slugs(ALPHA_USER1)
             assert PUBLISHED_DASHBOARD_SLUG in alpha_slugs
             assert UNPUBLISHED_DASHBOARD_SLUG not in alpha_slugs
+            assert ALPHA_DRAFT_DASHBOARD_SLUG in alpha_slugs
             assert PUBLISHED_DASHBOARD_SLUG in self._list_dashboard_slugs(GAMMA_USER1)
             assert PUBLISHED_DASHBOARD_SLUG not in self._list_dashboard_slugs(
                 GAMMA_USER2
@@ -9810,6 +9813,7 @@ class TestAlphaRoleViewAccess(SupersetTestCase):
 
         List view:
         - alpha_user1 sees the dashboard due to all_dashboards_view permission.
+        - alpha_user1 sees the unpublished dashboard they edit.
         - gamma_user1 does not see it, as the dataset fallback no longer applies.
         - gamma_user2 sees it due to being a viewer
         """
@@ -9821,6 +9825,7 @@ class TestAlphaRoleViewAccess(SupersetTestCase):
         with patch.dict(feature_flag_manager._feature_flags, {"ENABLE_VIEWERS": True}):
             alpha_slugs = self._list_dashboard_slugs(ALPHA_USER1)
             assert PUBLISHED_DASHBOARD_SLUG in alpha_slugs
+            assert ALPHA_DRAFT_DASHBOARD_SLUG in alpha_slugs
             assert PUBLISHED_DASHBOARD_SLUG not in self._list_dashboard_slugs(
                 GAMMA_USER1
             )

@@ -16,8 +16,13 @@
 # under the License.
 """Fixture for tests that need a dashboard, its chart and users with varied access.
 
-Creates two dashboards (one published, one unpublished), each holding the same
-"Big Number" chart that sits on a small virtual dataset with a ``count`` metric,
+Creates three dashboards, each holding the same "Big Number" chart that sits on a
+small virtual dataset with a ``count`` metric:
+
+* a published dashboard, edited by admin
+* an unpublished dashboard, edited by admin
+* an unpublished dashboard, edited by ``alpha_user1``
+
 plus these users and roles:
 
 * ``alpha_user1``: Alpha user
@@ -46,6 +51,7 @@ DATASET_NAME = "test_dataset"
 CHART_NAME = "test_chart"
 PUBLISHED_DASHBOARD_SLUG = "test-dashboard"
 UNPUBLISHED_DASHBOARD_SLUG = "test-dashboard-unpublished"
+ALPHA_DRAFT_DASHBOARD_SLUG = "test-dashboard-alpha-draft"
 DATASET_READER_ROLE = "dataset_reader"
 ALPHA_USER1 = "alpha_user1"
 GAMMA_USER1 = "gamma_user1"
@@ -97,15 +103,18 @@ def _create_chart(dataset: SqlaTable) -> Slice:
 class DashboardAccessFixture(NamedTuple):
     published_dashboard: Dashboard
     unpublished_dashboard: Dashboard
+    alpha_draft_dashboard: Dashboard
 
 
-def _create_dashboard(chart: Slice, slug: str, published: bool) -> Dashboard:
+def _create_dashboard(
+    chart: Slice, slug: str, published: bool, editor: str = "admin"
+) -> Dashboard:
     dashboard = Dashboard(
         dashboard_title=slug,
         slug=slug,
         published=published,
         slices=[chart],
-        editors=subjects_from_users([security_manager.find_user("admin")]),
+        editors=subjects_from_users([security_manager.find_user(editor)]),
     )
     db.session.add(dashboard)
     db.session.commit()
@@ -132,9 +141,16 @@ def dashboard_with_chart_and_users(
         _add_user(GAMMA_USER1, ["Gamma", DATASET_READER_ROLE]),
         _add_user(GAMMA_USER2, ["Gamma"]),
     ]
+    alpha_draft_dashboard = _create_dashboard(
+        chart, ALPHA_DRAFT_DASHBOARD_SLUG, False, editor=ALPHA_USER1
+    )
 
-    yield DashboardAccessFixture(published_dashboard, unpublished_dashboard)
+    yield DashboardAccessFixture(
+        published_dashboard, unpublished_dashboard, alpha_draft_dashboard
+    )
 
+    db.session.delete(alpha_draft_dashboard)
+    db.session.commit()
     for user in users:
         db.session.delete(user)
     db.session.delete(dataset_reader_role)
