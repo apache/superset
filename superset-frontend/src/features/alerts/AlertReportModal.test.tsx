@@ -17,7 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { ErrorTypeEnum } from '@superset-ui/core';
+import rison from 'rison';
+import {
+  ErrorTypeEnum,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import {
   act,
   render,
@@ -42,8 +47,12 @@ import {
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: () => true,
+  isFeatureEnabled: jest.fn(() => true),
 }));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+  typeof isFeatureEnabled
+>;
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
@@ -240,7 +249,34 @@ const reportDashboardEndpoint = 'glob:*/api/v1/report/related/dashboard?*';
 const reportChartEndpoint = 'glob:*/api/v1/report/related/chart?*';
 const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
 
-fetchMock.get('glob:*/api/v1/dashboard/1', { result: { published: false } });
+const span = (days: number | null) => ({
+  max_span: days === null ? null : { quantity: days, time_grain: 'P1D' },
+  max_look_back: null,
+  max_look_forward: null,
+});
+const dashboardLimits = (
+  datasets: { id: number; days: number }[] = [],
+  global: number | null = 365,
+) => ({
+  result: {
+    global: span(global),
+    dashboard: span(null),
+    datasets: datasets.map(({ id, days }) => ({
+      id,
+      name: `dataset ${id}`,
+      policy: span(days),
+    })),
+    timezone: 'UTC',
+    needs_review: [],
+    eligible_time_grains: [],
+  },
+});
+const dashboardOneEndpoint = 'glob:*/api/v1/dashboard/1';
+fetchMock.get(
+  dashboardOneEndpoint,
+  { result: { published: false } },
+  { name: dashboardOneEndpoint },
+);
 fetchMock.get(editorsEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 // Named so tests can removeRoute() + re-register an override (an unnamed route
@@ -3228,6 +3264,11 @@ test.each(['new', 'saved'])(
       },
       { name: 'time-filter-preview' },
     );
+    fetchMock.get(
+      'glob:*/api/v1/dashboard/1/time_range_limits/',
+      dashboardLimits([], null),
+      { name: 'time-filter-no-limits' },
+    );
     try {
       render(
         <AlertReportModal
@@ -3288,6 +3329,7 @@ test.each(['new', 'saved'])(
       fetchMock.removeRoute('get-time-filter-report');
       fetchMock.removeRoute('put-time-filter-report');
       fetchMock.removeRoute('time-filter-preview');
+      fetchMock.removeRoute('time-filter-no-limits');
     }
   },
 );
@@ -4760,4 +4802,685 @@ test('dashboard picker marks drafts without marking published dashboards', async
   expect(
     screen.queryByText('Published example (Draft)'),
   ).not.toBeInTheDocument();
+});
+
+const TWO_YEARS = '2024-11-23T00:00:00 : 2026-11-23T00:00:00';
+const LIMIT_ERROR_ID = 'NATIVE_FILTER-time-limit-error';
+const RESOLVED_RANGES: Record<string, { since: string; until: string }> = {
+  [TWO_YEARS]: { since: '2024-11-23T00:00:00', until: '2026-11-23T00:00:00' },
+  'Last month': { since: '2026-10-23T00:00:00', until: '2026-11-23T00:00:00' },
+  'today : now': { since: '2026-11-23T00:00:00', until: '2026-11-23T12:00:00' },
+};
+const limitedTimeFilter = {
+  ...tabsWithFilters.result.native_filters.all[0],
+  id: 'NATIVE_FILTER-time',
+  name: 'Time range',
+  filterType: 'filter_time',
+  chartsInScope: [11],
+};
+
+type LimitedChart = { id: number; form_data: { datasource?: string } };
+
+async function renderLimitedTimeFilterReport({
+  stored,
+  filters = [limitedTimeFilter],
+  limits = dashboardLimits(),
+  charts = [],
+  anchor,
+  positionJson = null,
+  dashboard,
+  isReport = true,
+}: {
+  stored: string | string[];
+  filters?: (typeof limitedTimeFilter)[];
+  limits?: ReturnType<typeof dashboardLimits> | { status: number };
+  charts?: LimitedChart[] | { status: number } | object;
+  anchor?: string;
+  positionJson?: string | null;
+  dashboard?: object;
+  isReport?: boolean;
+}) {
+  const values = Array.isArray(stored) ? stored : [stored];
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(
+    tabsEndpoint,
+    {
+      result: {
+        ...tabsWithFilters.result,
+        native_filters: { all: filters, TAB_1: filters },
+      },
+    },
+    { name: tabsEndpoint },
+  );
+  fetchMock.get(
+    'glob:*/api/v1/report/97',
+    {
+      result: {
+        ...generateMockPayload(true),
+        id: 97,
+        type: isReport ? 'Report' : 'Alert',
+        extra: {
+          dashboard: {
+            ...(anchor && { anchor }),
+            nativeFilters: filters.map((filter, index) => ({
+              nativeFilterId: filter.id,
+              filterType: 'filter_time',
+              filterName: filter.name,
+              columnName: filter.name,
+              filterValues: [values[index]],
+            })),
+          },
+        },
+      },
+    },
+    { name: 'get-limited-report' },
+  );
+  fetchMock.get('glob:*/api/v1/dashboard/1/time_range_limits/', limits, {
+    name: 'dashboard-limits',
+  });
+  fetchMock.get(
+    'glob:*/api/v1/dashboard/1/charts',
+    Array.isArray(charts) ? { result: charts } : charts,
+    { name: 'dashboard-charts' },
+  );
+  fetchMock.removeRoute(dashboardOneEndpoint);
+  fetchMock.get(
+    dashboardOneEndpoint,
+    dashboard ?? { result: { published: true, position_json: positionJson } },
+    { name: dashboardOneEndpoint },
+  );
+  fetchMock.get(
+    'glob:*/api/v1/time_range/*',
+    ({ url }: { url: string }) => {
+      const query = rison.decode(
+        decodeURIComponent(new URL(url).searchParams.get('q') ?? ''),
+      ) as string | { timeRange: string }[];
+      const ranges = Array.isArray(query)
+        ? query
+        : [{ timeRange: String(query) }];
+      return {
+        result: ranges.map(
+          ({ timeRange }) =>
+            RESOLVED_RANGES[timeRange] ?? { since: '', until: '' },
+        ),
+      };
+    },
+    { name: 'limited-time-range' },
+  );
+  render(
+    <AlertReportModal
+      {...generateMockedProps(isReport, true)}
+      alert={{ ...validAlert, id: 97 }}
+    />,
+    { useRedux: true, initialState: { user: adminUser } },
+  );
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+}
+
+const removeLimitedRoutes = () => {
+  for (const name of [
+    'get-limited-report',
+    'dashboard-limits',
+    'dashboard-charts',
+    'limited-time-range',
+    'put-limited-report',
+  ]) {
+    try {
+      fetchMock.removeRoute(name);
+    } catch {
+      // route may not exist when the test failed before adding it
+    }
+  }
+  fetchMock.removeRoute(dashboardOneEndpoint);
+  fetchMock.get(
+    dashboardOneEndpoint,
+    { result: { published: false } },
+    { name: dashboardOneEndpoint },
+  );
+  mockedIsFeatureEnabled.mockImplementation(() => true);
+};
+
+test('with limits on, a stored report time range over the limit is flagged under the picker', async () => {
+  try {
+    await renderLimitedTimeFilterReport({ stored: TWO_YEARS });
+
+    const message = await screen.findByText('Longer than 365 days');
+    expect(message).toHaveAttribute('role', 'alert');
+    expect(message).toHaveAttribute('id', LIMIT_ERROR_ID);
+    expect(
+      within(screen.getByTestId('time-range-trigger')).getByRole('button'),
+    ).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining(LIMIT_ERROR_ID),
+    );
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test('with limits on, the report time range picker hides No filter and shows the dashboard limit line', async () => {
+  try {
+    await renderLimitedTimeFilterReport({ stored: 'Last month' });
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls('dashboard-limits').length,
+      ).toBeGreaterThan(0),
+    );
+
+    await userEvent.click(await screen.findByTestId('time-range-trigger'));
+
+    expect(
+      await screen.findByText(
+        "No filter isn't offered while time range limits are on.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('Limit on this dashboard: up to 365 days'),
+    ).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Range type' }));
+    expect(
+      screen.queryByRole('option', { name: 'No filter' }),
+    ).not.toBeInTheDocument();
+    expect(document.getElementById(LIMIT_ERROR_ID)).toBeNull();
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test('with limits on, a stored No filter is flagged under the picker', async () => {
+  try {
+    await renderLimitedTimeFilterReport({ stored: 'No filter' });
+
+    expect(
+      await screen.findByText(
+        'Choose a start and an end date. Time range limits are on.',
+      ),
+    ).toHaveAttribute('id', LIMIT_ERROR_ID);
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test('the report time range picker takes only the limits of datasets in the filter scope', async () => {
+  try {
+    await renderLimitedTimeFilterReport({
+      stored: 'Last month',
+      limits: dashboardLimits([
+        { id: 5, days: 30 },
+        { id: 6, days: 7 },
+      ]),
+      charts: [
+        { id: 11, form_data: { datasource: '5__table' } },
+        { id: 12, form_data: { datasource: '6__table' } },
+      ],
+    });
+
+    expect(await screen.findByText('Longer than 30 days')).toHaveAttribute(
+      'id',
+      LIMIT_ERROR_ID,
+    );
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test.each(['off', 'on without a rule'])(
+  'with time range limits %s, the report time range picker keeps No filter and flags nothing',
+  async mode => {
+    if (mode === 'off') {
+      mockedIsFeatureEnabled.mockImplementation(
+        flag => flag !== FeatureFlag.TimeRangeLimits,
+      );
+    }
+    try {
+      await renderLimitedTimeFilterReport({
+        stored: TWO_YEARS,
+        limits: dashboardLimits([], mode === 'off' ? 365 : null),
+      });
+
+      await userEvent.click(await screen.findByTestId('time-range-trigger'));
+      fireEvent.mouseDown(
+        await screen.findByRole('combobox', { name: 'Range type' }),
+      );
+      expect(
+        await screen.findByRole('option', { name: 'No filter' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          "No filter isn't offered while time range limits are on.",
+        ),
+      ).not.toBeInTheDocument();
+      expect(document.getElementById(LIMIT_ERROR_ID)).toBeNull();
+      expect(fetchMock.callHistory.calls('dashboard-limits')).toHaveLength(
+        mode === 'off' ? 0 : 1,
+      );
+    } finally {
+      removeLimitedRoutes();
+    }
+  },
+);
+
+const twoTabLayout = JSON.stringify({
+  DASHBOARD_VERSION_KEY: 'v2',
+  ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
+  GRID_ID: { type: 'GRID', id: 'GRID_ID', children: ['TABS-1'] },
+  'TABS-1': { type: 'TABS', id: 'TABS-1', children: ['TAB_1', 'TAB_2'] },
+  TAB_1: { type: 'TAB', id: 'TAB_1', children: ['CHART-11'] },
+  TAB_2: { type: 'TAB', id: 'TAB_2', children: ['CHART-12'] },
+  'CHART-11': { type: 'CHART', id: 'CHART-11', meta: { chartId: 11 } },
+  'CHART-12': { type: 'CHART', id: 'CHART-12', meta: { chartId: 12 } },
+});
+const twoTabCharts = [
+  { id: 11, form_data: { datasource: '5__table' } },
+  { id: 12, form_data: { datasource: '6__table' } },
+];
+const bothTabsFilter = { ...limitedTimeFilter, chartsInScope: [11, 12] };
+
+test.each([
+  [undefined, 'Longer than 30 days'],
+  ['TAB_1', 'Longer than 30 days'],
+  ['TAB_2', 'Longer than 7 days'],
+])(
+  'with the report on tab %s, only the charts it renders set the time range limit',
+  async (anchor, expected) => {
+    try {
+      await renderLimitedTimeFilterReport({
+        stored: 'Last month',
+        filters: [bothTabsFilter],
+        anchor,
+        positionJson: twoTabLayout,
+        limits: dashboardLimits([
+          { id: 5, days: 30 },
+          { id: 6, days: 7 },
+        ]),
+        charts: twoTabCharts,
+      });
+
+      expect(await screen.findByText(expected)).toHaveAttribute(
+        'id',
+        LIMIT_ERROR_ID,
+      );
+    } finally {
+      removeLimitedRoutes();
+    }
+  },
+);
+
+test('time range limits that fail to load show the unavailable alert, and Retry loads them', async () => {
+  try {
+    await renderLimitedTimeFilterReport({
+      stored: 'Last month',
+      limits: { status: 500 },
+    });
+
+    expect(
+      await screen.findByText(
+        'Time range limits could not be loaded. Queries are paused to protect the database.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('time-range-trigger')).not.toBeInTheDocument();
+
+    fetchMock.removeRoute('dashboard-limits');
+    fetchMock.get(
+      'glob:*/api/v1/dashboard/1/time_range_limits/',
+      dashboardLimits(),
+      { name: 'dashboard-limits' },
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await userEvent.click(await screen.findByTestId('time-range-trigger'));
+    expect(
+      await screen.findByText('Limit on this dashboard: up to 365 days'),
+    ).toBeInTheDocument();
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+const gridLayout = JSON.stringify({
+  ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
+  GRID_ID: { type: 'GRID', id: 'GRID_ID', children: ['CHART-11', 'CHART-12'] },
+  'CHART-11': { type: 'CHART', id: 'CHART-11', meta: { chartId: 11 } },
+  'CHART-12': { type: 'CHART', id: 'CHART-12', meta: { chartId: 12 } },
+});
+
+test.each([
+  ['the charts request fails', { charts: { status: 500 } }],
+  ['the charts answer has no result', { charts: {} }],
+  [
+    'the charts answer leaves out a rendered chart in scope',
+    {
+      charts: [{ id: 12, form_data: { datasource: '6__table' } }],
+      positionJson: gridLayout,
+    },
+  ],
+  [
+    'a rendered chart in scope has no datasource',
+    {
+      charts: [
+        { id: 11, form_data: {} },
+        { id: 12, form_data: { datasource: '6__table' } },
+      ],
+    },
+  ],
+  [
+    'a rendered chart in scope has a malformed datasource',
+    {
+      charts: [
+        { id: 11, form_data: { datasource: 'table' } },
+        { id: 12, form_data: { datasource: '6__table' } },
+      ],
+    },
+  ],
+  [
+    'the dashboard answer has no layout field',
+    { charts: twoTabCharts, dashboard: { result: { published: true } } },
+  ],
+  [
+    'the dashboard answer has no result',
+    { charts: twoTabCharts, dashboard: {} },
+  ],
+  [
+    'the limits answer has no datasets',
+    {
+      limits: {
+        result: { global: span(365), dashboard: span(null), timezone: 'UTC' },
+      },
+    },
+  ],
+])(
+  'when %s, the report time range shows the unavailable alert',
+  async (_case, options) => {
+    try {
+      await renderLimitedTimeFilterReport({
+        stored: 'Last month',
+        limits: dashboardLimits([{ id: 6, days: 7 }]),
+        ...(options as Partial<
+          Parameters<typeof renderLimitedTimeFilterReport>[0]
+        >),
+      });
+
+      expect(
+        await screen.findByRole('button', { name: 'Retry' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('time-range-trigger'),
+      ).not.toBeInTheDocument();
+    } finally {
+      removeLimitedRoutes();
+    }
+  },
+);
+
+test.each([
+  [5, true],
+  [6, false],
+])(
+  'a dataset policy that failed to load on dataset %s makes the time range unavailable: %s',
+  async (failedDataset, unavailable) => {
+    const limits = dashboardLimits([
+      { id: 5, days: 30 },
+      { id: 6, days: 7 },
+    ]);
+    limits.result.datasets = limits.result.datasets.map(dataset =>
+      dataset.id === failedDataset
+        ? {
+            ...dataset,
+            policy: span(null),
+            error: {
+              message: 'Time range limits could not be verified.',
+              error_type: 'TIME_RANGE_LIMIT_ERROR',
+            },
+          }
+        : dataset,
+    );
+    try {
+      await renderLimitedTimeFilterReport({
+        stored: 'Last month',
+        limits,
+        charts: twoTabCharts,
+      });
+
+      if (unavailable) {
+        expect(
+          await screen.findByRole('button', { name: 'Retry' }),
+        ).toBeInTheDocument();
+      } else {
+        expect(await screen.findByText('Longer than 30 days')).toBeVisible();
+      }
+    } finally {
+      removeLimitedRoutes();
+    }
+  },
+);
+
+test('a scoped chart without a layout node or a charts row makes the time range unavailable', async () => {
+  try {
+    await renderLimitedTimeFilterReport({
+      stored: 'Last month',
+      positionJson: null,
+      limits: dashboardLimits([{ id: 5, days: 30 }], null),
+      charts: [],
+    });
+
+    expect(
+      await screen.findByRole('button', { name: 'Retry' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('time-range-trigger')).not.toBeInTheDocument();
+    expect(screen.queryByText('No filter')).not.toBeInTheDocument();
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test('a chart on a datasource that is not a table takes no dataset limit', async () => {
+  try {
+    await renderLimitedTimeFilterReport({
+      stored: 'Last month',
+      limits: dashboardLimits([{ id: 5, days: 7 }]),
+      charts: [{ id: 11, form_data: { datasource: '5__query' } }],
+    });
+
+    await userEvent.click(await screen.findByTestId('time-range-trigger'));
+    expect(
+      await screen.findByText('Limit on this dashboard: up to 365 days'),
+    ).toBeInTheDocument();
+    expect(document.getElementById(LIMIT_ERROR_ID)).toBeNull();
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test('a dashboard alert with both flags on keeps the plain time range picker', async () => {
+  try {
+    await renderLimitedTimeFilterReport({
+      stored: TWO_YEARS,
+      isReport: false,
+    });
+
+    await userEvent.click(await screen.findByTestId('time-range-trigger'));
+    fireEvent.mouseDown(
+      await screen.findByRole('combobox', { name: 'Range type' }),
+    );
+    expect(
+      await screen.findByRole('option', { name: 'No filter' }),
+    ).toBeInTheDocument();
+    expect(document.getElementById(LIMIT_ERROR_ID)).toBeNull();
+    expect(fetchMock.callHistory.calls('dashboard-limits')).toHaveLength(0);
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test.each([
+  ['with time range limits off', false],
+  ['with an active rule the value keeps to', true],
+])('a report time range edit saves %s', async (_case, limitsOn) => {
+  if (!limitsOn) {
+    mockedIsFeatureEnabled.mockImplementation(
+      flag => flag !== FeatureFlag.TimeRangeLimits,
+    );
+  }
+  fetchMock.put(
+    'glob:*/api/v1/report/97',
+    { id: 97, result: {} },
+    { name: 'put-limited-report' },
+  );
+  try {
+    await renderLimitedTimeFilterReport({ stored: TWO_YEARS });
+
+    await userEvent.click(await screen.findByTestId('time-range-trigger'));
+    const rangeType = await screen.findByRole('combobox', {
+      name: 'Range type',
+    });
+    fireEvent.mouseDown(rangeType);
+    await userEvent.click(await screen.findByRole('option', { name: 'Last' }));
+    await userEvent.click(await screen.findByLabelText('Last month'));
+    const apply = screen.getByRole('button', { name: 'Apply' });
+    await waitFor(() => expect(apply).toBeEnabled());
+    await userEvent.click(apply);
+    await waitFor(() =>
+      expect(document.getElementById(LIMIT_ERROR_ID)).toBeNull(),
+    );
+
+    const save = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(save);
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('put-limited-report')).toHaveLength(1),
+    );
+    const body = JSON.parse(
+      fetchMock.callHistory.calls('put-limited-report')[0].options
+        .body as string,
+    );
+    expect(body.extra.dashboard.nativeFilters).toEqual([
+      expect.objectContaining({ filterValues: ['Last month'] }),
+    ]);
+    expect(fetchMock.callHistory.calls('dashboard-limits').length > 0).toBe(
+      limitsOn,
+    );
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test('two report time filters get their own picker names', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag !== FeatureFlag.TimeRangeLimits,
+  );
+  try {
+    await renderLimitedTimeFilterReport({
+      stored: ['Last month', 'Last month'],
+      filters: [
+        limitedTimeFilter,
+        { ...limitedTimeFilter, id: 'NATIVE_FILTER-time2', name: 'Time 2' },
+      ],
+    });
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId('time-range-trigger')).toHaveLength(2),
+    );
+    const described = Array.from(
+      document.querySelectorAll('[aria-describedby^="date-label-"]'),
+    ).map(element => element.getAttribute('aria-describedby'));
+    expect(described).toEqual([
+      'date-label-NATIVE_FILTER-time',
+      'date-label-NATIVE_FILTER-time2',
+    ]);
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test('with both flags off, repeated save errors under different fields all stay', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag =>
+      flag !== FeatureFlag.TimeRangeLimits &&
+      flag !== FeatureFlag.AlertReportsFilter,
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/97',
+    {
+      status: 422,
+      body: {
+        message: {
+          name: ['Field is required.'],
+          crontab: ['Field is required.'],
+        },
+      },
+    },
+    { name: 'put-limited-report' },
+  );
+  try {
+    fetchMock.get(
+      'glob:*/api/v1/report/97',
+      { result: { ...generateMockPayload(true), id: 97, type: 'Report' } },
+      { name: 'get-limited-report' },
+    );
+    render(
+      <AlertReportModal
+        {...generateMockedProps(true, true)}
+        alert={{ ...validAlert, id: 97 }}
+      />,
+      { useRedux: true, initialState: { user: adminUser } },
+    );
+    const save = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(save);
+
+    expect(
+      await screen.findByText('Field is required. Field is required.'),
+    ).toBeVisible();
+  } finally {
+    removeLimitedRoutes();
+  }
+});
+
+test('a refused report save shows the time range reason in plain words', async () => {
+  fetchMock.put(
+    'glob:*/api/v1/report/97',
+    {
+      status: 422,
+      body: {
+        message: {
+          extra: ["Range can't be longer than 365 days. This one is 730 days."],
+        },
+      },
+    },
+    { name: 'put-limited-report' },
+  );
+  const addDangerToast = jest.fn();
+  try {
+    fetchMock.get(
+      'glob:*/api/v1/report/97',
+      { result: { ...generateMockPayload(true), id: 97, type: 'Report' } },
+      { name: 'get-limited-report' },
+    );
+    render(
+      <AlertReportModal
+        {...generateMockedProps(true, true)}
+        addDangerToast={addDangerToast}
+        alert={{ ...validAlert, id: 97 }}
+      />,
+      { useRedux: true, initialState: { user: adminUser } },
+    );
+    const save = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(save);
+
+    expect(
+      await screen.findByText('Could not save this schedule'),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Range can't be longer than 365 days. This one is 730 days.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText(/"extra"/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/fetching/i)).not.toBeInTheDocument();
+    expect(addDangerToast).not.toHaveBeenCalled();
+  } finally {
+    removeLimitedRoutes();
+  }
 });

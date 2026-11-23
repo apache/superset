@@ -1,0 +1,350 @@
+{
+  "about": "Charts a dashboard report renders, read by tests/unit_tests/utils/test_report_rendered_charts_parity.py (server, report_state_charts) and src/features/alerts/reportRenderedCharts.test.ts (browser), so both sides must give every case the same charts. A case names a layout from layouts (serialized as position_json) or gives position_json as raw text, the dashboard's chart ids (slices), the report's extra.dashboard (state), whether ALERT_REPORT_TABS is on (tabs_enabled) and the expected chart ids in slices order.",
+  "layouts": {
+    "nested": {
+      "ROOT_ID": { "type": "ROOT", "id": "ROOT_ID", "children": ["TABS-ROOT"] },
+      "TABS-ROOT": {
+        "type": "TABS",
+        "id": "TABS-ROOT",
+        "children": ["TAB-A", "TAB-B"]
+      },
+      "TAB-A": { "type": "TAB", "id": "TAB-A", "children": ["CHART-1"] },
+      "TAB-B": {
+        "type": "TAB",
+        "id": "TAB-B",
+        "children": ["CHART-2", "TABS-NEST"]
+      },
+      "TABS-NEST": {
+        "type": "TABS",
+        "id": "TABS-NEST",
+        "children": ["TAB-B1", "TAB-B2"]
+      },
+      "TAB-B1": { "type": "TAB", "id": "TAB-B1", "children": ["CHART-3"] },
+      "TAB-B2": { "type": "TAB", "id": "TAB-B2", "children": ["CHART-4"] },
+      "CHART-1": { "type": "CHART", "id": "CHART-1", "meta": { "chartId": 1 } },
+      "CHART-2": { "type": "CHART", "id": "CHART-2", "meta": { "chartId": 2 } },
+      "CHART-3": { "type": "CHART", "id": "CHART-3", "meta": { "chartId": 3 } },
+      "CHART-4": { "type": "CHART", "id": "CHART-4", "meta": { "chartId": 4 } }
+    },
+    "grid_tabs": {
+      "ROOT_ID": { "type": "ROOT", "id": "ROOT_ID", "children": ["GRID_ID"] },
+      "GRID_ID": { "type": "GRID", "id": "GRID_ID", "children": ["TABS-1"] },
+      "TABS-1": {
+        "type": "TABS",
+        "id": "TABS-1",
+        "children": ["TAB-A", "TAB-B"]
+      },
+      "TAB-A": { "type": "TAB", "id": "TAB-A", "children": ["CHART-1"] },
+      "TAB-B": { "type": "TAB", "id": "TAB-B", "children": ["CHART-2"] },
+      "CHART-1": { "type": "CHART", "id": "CHART-1", "meta": { "chartId": 1 } },
+      "CHART-2": { "type": "CHART", "id": "CHART-2", "meta": { "chartId": 2 } }
+    },
+    "mixed_tab_children": {
+      "ROOT_ID": { "type": "ROOT", "id": "ROOT_ID", "children": ["TABS-ROOT"] },
+      "TABS-ROOT": {
+        "type": "TABS",
+        "id": "TABS-ROOT",
+        "children": [null, "TAB-A", "TAB-B"]
+      },
+      "TAB-A": { "type": "TAB", "id": "TAB-A", "children": ["CHART-1"] },
+      "TAB-B": { "type": "TAB", "id": "TAB-B", "children": ["CHART-2"] },
+      "CHART-1": { "type": "CHART", "id": "CHART-1", "meta": { "chartId": 1 } },
+      "CHART-2": { "type": "CHART", "id": "CHART-2", "meta": { "chartId": 2 } }
+    },
+    "mixed_root_children": {
+      "ROOT_ID": {
+        "type": "ROOT",
+        "id": "ROOT_ID",
+        "children": [null, "TABS-ROOT"]
+      },
+      "TABS-ROOT": {
+        "type": "TABS",
+        "id": "TABS-ROOT",
+        "children": ["TAB-A", "TAB-B"]
+      },
+      "TAB-A": { "type": "TAB", "id": "TAB-A", "children": ["CHART-1"] },
+      "TAB-B": { "type": "TAB", "id": "TAB-B", "children": ["CHART-2"] },
+      "CHART-1": { "type": "CHART", "id": "CHART-1", "meta": { "chartId": 1 } },
+      "CHART-2": { "type": "CHART", "id": "CHART-2", "meta": { "chartId": 2 } }
+    },
+    "repeated_chart": {
+      "ROOT_ID": { "type": "ROOT", "id": "ROOT_ID", "children": ["TABS-ROOT"] },
+      "TABS-ROOT": {
+        "type": "TABS",
+        "id": "TABS-ROOT",
+        "children": ["TAB-A", "TAB-B"]
+      },
+      "TAB-A": { "type": "TAB", "id": "TAB-A", "children": ["CHART-1"] },
+      "TAB-B": {
+        "type": "TAB",
+        "id": "TAB-B",
+        "children": ["CHART-1-COPY", "CHART-2"]
+      },
+      "CHART-1": { "type": "CHART", "id": "CHART-1", "meta": { "chartId": 1 } },
+      "CHART-1-COPY": {
+        "type": "CHART",
+        "id": "CHART-1-COPY",
+        "meta": { "chartId": 1 }
+      },
+      "CHART-2": { "type": "CHART", "id": "CHART-2", "meta": { "chartId": 2 } }
+    },
+    "repeated_node": {
+      "ROOT_ID": { "type": "ROOT", "id": "ROOT_ID", "children": ["TABS-ROOT"] },
+      "TABS-ROOT": {
+        "type": "TABS",
+        "id": "TABS-ROOT",
+        "children": ["TAB-A", "TAB-B"]
+      },
+      "TAB-A": { "type": "TAB", "id": "TAB-A", "children": ["CHART-1"] },
+      "TAB-B": {
+        "type": "TAB",
+        "id": "TAB-B",
+        "children": ["CHART-1", "CHART-2"]
+      },
+      "CHART-1": { "type": "CHART", "id": "CHART-1", "meta": { "chartId": 1 } },
+      "CHART-2": { "type": "CHART", "id": "CHART-2", "meta": { "chartId": 2 } }
+    }
+  },
+  "cases": [
+    {
+      "name": "no anchor: the first tab of each group, an unplaced chart in the first tab",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": {},
+      "tabs_enabled": true,
+      "expected": [1, 5]
+    },
+    {
+      "name": "tabs flag off: the anchor is ignored",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "TAB-B" },
+      "tabs_enabled": false,
+      "expected": [1, 5]
+    },
+    {
+      "name": "root tab anchor, first nested tab",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [2, 3]
+    },
+    {
+      "name": "nested tab anchor",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "TAB-B2" },
+      "tabs_enabled": true,
+      "expected": [2, 4]
+    },
+    {
+      "name": "legacy hash",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "hash": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [2, 3]
+    },
+    {
+      "name": "an anchor key, even null, hides the hash",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": null, "hash": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [1, 5]
+    },
+    {
+      "name": "nested active tab",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "TAB-B", "activeTabs": ["TAB-B2"] },
+      "tabs_enabled": true,
+      "expected": [2, 4]
+    },
+    {
+      "name": "root active tab is not used",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "activeTabs": ["TAB-B"] },
+      "tabs_enabled": true,
+      "expected": [1, 5]
+    },
+    {
+      "name": "active tabs that aren't all strings are not used",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "TAB-B", "activeTabs": ["TAB-B2", 3] },
+      "tabs_enabled": true,
+      "expected": [2, 3]
+    },
+    {
+      "name": "multi-page anchors",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "[\"TAB-A\", \"TAB-B\"]" },
+      "tabs_enabled": true,
+      "expected": [1, 2, 3, 5]
+    },
+    {
+      "name": "multi-page anchors drop active tabs",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "[\"TAB-B\"]", "activeTabs": ["TAB-B2"] },
+      "tabs_enabled": true,
+      "expected": [2, 3]
+    },
+    {
+      "name": "multi-page anchors with a non-string entry",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "[7, \"TAB-B2\"]" },
+      "tabs_enabled": true,
+      "expected": [1, 2, 4, 5]
+    },
+    {
+      "name": "unknown anchor counts as no anchor",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": "TAB-GONE" },
+      "tabs_enabled": true,
+      "expected": [1, 5]
+    },
+    {
+      "name": "non-string anchor",
+      "layout": "nested",
+      "slices": [1, 2, 3, 4, 5],
+      "state": { "anchor": 5 },
+      "tabs_enabled": true,
+      "expected": [1, 5]
+    },
+    {
+      "name": "tab group under the grid, second tab; an unplaced chart sits in the grid",
+      "layout": "grid_tabs",
+      "slices": [1, 2, 3],
+      "state": { "anchor": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [2, 3]
+    },
+    {
+      "name": "tab group under the grid, active tab",
+      "layout": "grid_tabs",
+      "slices": [1, 2, 3],
+      "state": { "activeTabs": ["TAB-B"] },
+      "tabs_enabled": true,
+      "expected": [2, 3]
+    },
+    {
+      "name": "mixed tab children: no anchor shows no tab",
+      "layout": "mixed_tab_children",
+      "slices": [1, 2, 3],
+      "state": {},
+      "tabs_enabled": true,
+      "expected": []
+    },
+    {
+      "name": "mixed tab children: an unplaced chart falls into the first string tab",
+      "layout": "mixed_tab_children",
+      "slices": [1, 2, 3],
+      "state": { "anchor": "TAB-A" },
+      "tabs_enabled": true,
+      "expected": [1, 3]
+    },
+    {
+      "name": "mixed tab children: anchored to the second tab",
+      "layout": "mixed_tab_children",
+      "slices": [1, 2, 3],
+      "state": { "anchor": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [2]
+    },
+    {
+      "name": "mixed root children: the root group takes active tabs",
+      "layout": "mixed_root_children",
+      "slices": [1, 2, 3],
+      "state": { "activeTabs": ["TAB-B"] },
+      "tabs_enabled": true,
+      "expected": [2]
+    },
+    {
+      "name": "missing charts: a layout chart that isn't on the dashboard is not rendered",
+      "layout": "nested",
+      "slices": [1, 2],
+      "state": {},
+      "tabs_enabled": true,
+      "expected": [1]
+    },
+    {
+      "name": "repeated chart id keeps the last walked node",
+      "layout": "repeated_chart",
+      "slices": [1, 2],
+      "state": { "anchor": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [1, 2]
+    },
+    {
+      "name": "repeated chart id with the other tab",
+      "layout": "repeated_chart",
+      "slices": [1, 2],
+      "state": { "anchor": "TAB-A" },
+      "tabs_enabled": true,
+      "expected": []
+    },
+    {
+      "name": "repeated node: every chart",
+      "layout": "repeated_node",
+      "slices": [1, 2, 3],
+      "state": { "anchor": "TAB-A" },
+      "tabs_enabled": true,
+      "expected": [1, 2, 3]
+    },
+    {
+      "name": "fractional chart id is not a chart",
+      "position_json": "{\"ROOT_ID\": {\"type\": \"ROOT\", \"children\": [\"TABS-ROOT\"]}, \"TABS-ROOT\": {\"type\": \"TABS\", \"children\": [\"TAB-A\", \"TAB-B\"]}, \"TAB-A\": {\"type\": \"TAB\", \"children\": []}, \"TAB-B\": {\"type\": \"TAB\", \"children\": [\"CHART-1\"]}, \"CHART-1\": {\"type\": \"CHART\", \"meta\": {\"chartId\": 1.0}}}",
+      "slices": [1],
+      "state": {},
+      "tabs_enabled": true,
+      "expected": [1]
+    },
+    {
+      "name": "boolean chart id counts as 1",
+      "position_json": "{\"ROOT_ID\": {\"type\": \"ROOT\", \"children\": [\"TABS-ROOT\"]}, \"TABS-ROOT\": {\"type\": \"TABS\", \"children\": [\"TAB-A\", \"TAB-B\"]}, \"TAB-A\": {\"type\": \"TAB\", \"children\": []}, \"TAB-B\": {\"type\": \"TAB\", \"children\": [\"CHART-1\"]}, \"CHART-1\": {\"type\": \"CHART\", \"meta\": {\"chartId\": true}}}",
+      "slices": [1],
+      "state": {},
+      "tabs_enabled": true,
+      "expected": []
+    },
+    {
+      "name": "prototype key names are plain ids",
+      "position_json": "{\"ROOT_ID\": {\"type\": \"ROOT\", \"children\": [\"constructor\", \"GRID_ID\"]}, \"GRID_ID\": {\"type\": \"GRID\", \"children\": [\"CHART-1\"]}, \"CHART-1\": {\"type\": \"CHART\", \"meta\": {\"chartId\": 1}}}",
+      "slices": [1],
+      "state": {},
+      "tabs_enabled": true,
+      "expected": [1]
+    },
+    {
+      "name": "unreadable layout: every chart",
+      "position_json": "not json",
+      "slices": [1, 2],
+      "state": { "anchor": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [1, 2]
+    },
+    {
+      "name": "layout that isn't an object: every chart",
+      "position_json": "[]",
+      "slices": [1, 2],
+      "state": { "anchor": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [1, 2]
+    },
+    {
+      "name": "no layout: every chart",
+      "position_json": null,
+      "slices": [1, 2],
+      "state": { "anchor": "TAB-B" },
+      "tabs_enabled": true,
+      "expected": [1, 2]
+    }
+  ]
+}

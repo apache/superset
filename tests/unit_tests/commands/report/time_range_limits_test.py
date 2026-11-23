@@ -2964,7 +2964,7 @@ def test_create_refuses_a_stored_value_over_the_limits(
 
     errors = save_errors(time_board(), stored_time_filter(BAD)["dashboard"])
 
-    assert messages(errors) == [f"Calls by day: {GUARD}"]
+    assert messages(errors) == [GUARD]
     assert sql_runs == []
 
 
@@ -2976,7 +2976,45 @@ def test_create_refuses_a_stored_no_filter(
 
     errors = save_errors(time_board(), stored_time_filter("No filter")["dashboard"])
 
-    assert messages(errors) == [f"Calls by day: {OPEN}"]
+    assert messages(errors) == [OPEN]
+
+
+@freeze_time(NOW)
+def test_create_names_one_reason_shared_by_every_chart_once(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(
+        chart(11, time_range=GOOD),
+        chart(12, time_range=GOOD),
+        native_filters=[time_filter(GOOD)],
+    )
+
+    errors = save_errors(board, stored_time_filter(BAD)["dashboard"])
+
+    assert messages(errors) == [GUARD]
+
+
+@freeze_time(NOW)
+def test_create_names_each_distinct_reason_once_with_its_charts(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    agents = chart(12, time_range=GOOD)
+    on_limited_dataset(mocker, agents, 30)
+    board = dashboard(
+        chart(11, time_range=GOOD),
+        agents,
+        chart(13, time_range=GOOD, name="Calls by queue"),
+        native_filters=[time_filter(GOOD)],
+    )
+
+    errors = save_errors(board, stored_time_filter(BAD)["dashboard"])
+
+    assert messages(errors) == [
+        f"Calls by day, Calls by queue: {GUARD}",
+        "Calls by agent: Range can't be longer than 30 days. This one is 365 days.",
+    ]
 
 
 @freeze_time(NOW)
@@ -3015,7 +3053,7 @@ def test_update_refuses_a_changed_stored_value(
 
     errors = save_errors(board, stored_time_filter(BAD)["dashboard"], previous=previous)
 
-    assert messages(errors) == [f"Calls by day: {GUARD}"]
+    assert messages(errors) == [GUARD]
 
 
 @freeze_time(NOW)
@@ -3069,7 +3107,7 @@ def test_update_to_another_dashboard_checks_every_stored_value(
         new_board, stored_time_filter(BAD)["dashboard"], previous=previous
     )
 
-    assert messages(errors) == [f"Calls by day: {GUARD}"]
+    assert messages(errors) == [GUARD]
 
 
 @freeze_time(NOW)
@@ -3121,7 +3159,7 @@ def test_create_with_duplicate_stored_ids_uses_the_last_entry(
 
     errors = save_errors(time_board(), stored)
 
-    assert messages(errors) == ([f"Calls by day: {GUARD}"] if fails else [])
+    assert messages(errors) == ([GUARD] if fails else [])
 
 
 TIME_BAD = ("NATIVE_FILTER-time", "filter_time", BAD)
@@ -3162,7 +3200,7 @@ def test_update_judges_a_chart_with_every_stored_value(
         board, stored_filters(TIME_BAD, grain("P1W")), previous=previous
     )
 
-    assert messages(errors) == [f"Calls by day: {GUARD}"]
+    assert messages(errors) == [GUARD]
 
 
 @freeze_time(NOW)

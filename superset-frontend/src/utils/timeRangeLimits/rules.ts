@@ -17,7 +17,13 @@
  * under the License.
  */
 import { t, tn } from '@apache-superset/core/translation';
-import type { Level, Policy, Rule, Source } from '@superset-ui/core';
+import type {
+  Level,
+  Policy,
+  Rule,
+  Source,
+  TimeRangeLimits,
+} from '@superset-ui/core';
 import { Dayjs, extendedDayjs } from '@superset-ui/core/utils/dates';
 
 /*
@@ -690,6 +696,28 @@ export function dashboardLimitLevels(payload: {
     })),
     { source: 'dashboard', policy: payload.dashboard },
   ];
+}
+
+/**
+ * The limits a dashboard Time Range filter's picker checks against: the
+ * levels of `GET /api/v1/dashboard/{id}/time_range_limits/` with only the
+ * datasets in `datasetIds`, or every dataset when it is `null`.
+ */
+export function dashboardFilterLimits(
+  payload: Parameters<typeof dashboardLimitLevels>[0],
+  dashboardId: number | undefined,
+  datasetIds: Set<number | null> | null,
+): TimeRangeLimits {
+  return {
+    levels: dashboardLimitLevels({
+      ...payload,
+      datasets: (payload.datasets ?? []).filter(
+        dataset => !datasetIds || datasetIds.has(dataset.id),
+      ),
+    }),
+    dashboardId,
+    timezone: payload.timezone,
+  };
 }
 
 /**

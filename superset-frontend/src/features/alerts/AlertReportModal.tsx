@@ -123,6 +123,8 @@ import { AlertReportCronScheduler } from './components/AlertReportCronScheduler'
 import { NotificationMethod } from './components/NotificationMethod';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import { useReportConfiguration } from './hooks/useReportConfiguration';
+import useDashboardFilterLimits from './hooks/useDashboardFilterLimits';
+import ReportTimeRangeFilter from './components/ReportTimeRangeFilter';
 
 const EXECUTOR_TYPE_OPTIONS = [
   { value: 'fixed_user', label: t('Specific user') },
@@ -1374,6 +1376,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   );
 
   const dashboard = currentAlert?.dashboard;
+  const {
+    limitsFor: dashboardFilterLimits,
+    retry: retryDashboardFilterLimits,
+  } = useDashboardFilterLimits(
+    filtersEnabled && isReport && dashboard?.value
+      ? Number(dashboard.value)
+      : undefined,
+    currentAlert?.extra?.dashboard,
+    tabsEnabled,
+  );
   useEffect(() => {
     if (!tabsEnabled && !filtersEnabled) return;
 
@@ -2025,8 +2037,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     let mode = 'multiple';
     if (filterType === 'filter_time') {
       return (
-        <DateFilterComponent
-          name="time_range"
+        <ReportTimeRangeFilter
+          DateFilterComponent={DateFilterComponent}
+          filterId={filter.nativeFilterId ?? `time_range-${idx}`}
+          limits={dashboardFilterLimits(
+            Object.values(tabNativeFilters)
+              .flatMap(filters => filters ?? [])
+              .find(({ id }) => id === filter.nativeFilterId)?.chartsInScope,
+          )}
+          onRetry={retryDashboardFilterLimits}
           onChange={timeRange => {
             setNativeFilterData(
               nativeFilterData.map((f: any) =>

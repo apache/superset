@@ -456,10 +456,7 @@ def test_report_create_refuses_an_over_limit_stored_range(
         created = admin_client.post("/api/v1/report/", json=inside, headers=JSON)
 
         assert refused.status_code == 422, refused.json
-        assert refused.json["message"]["extra"] == [
-            f"Calls by day: {GUARD}",
-            f"Calls by agent: {GUARD}",
-        ]
+        assert refused.json["message"]["extra"] == [GUARD]
         assert created.status_code == 201, created.json
         assert not db.session.query(ReportSchedule).filter_by(name=names[0]).count()
     finally:

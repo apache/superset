@@ -86,6 +86,20 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+def time_range_messages(charts_by_reason: dict[str, list[str]]) -> list[str]:
+    """
+    The messages of a refused report save, one per time range limit reason:
+    the reason alone when every chart gives the same one, else the reason
+    after the names of the charts that give it.
+    """
+    if len(charts_by_reason) == 1:
+        return list(charts_by_reason)
+    return [
+        f"{', '.join(names)}: {reason}" for reason, names in charts_by_reason.items()
+    ]
+
+
 # Matches balanced Jinja blocks so templated alert SQL can be recognized and
 # its static validation deferred to execution time.
 _JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
@@ -532,6 +546,8 @@ class BaseReportScheduleCommand(BaseCommand):
         a chart the report renders break the time range limits. A value
         unchanged from the stored one isn't checked again: the report's next
         send is. A chart whose query can't be built is left to the send check.
+        Each reason is given once; the charts are named only when the reasons
+        differ.
 
         :raises TimeRangeLimitsUnavailableError: when the limits can't be loaded
         """
@@ -558,7 +574,7 @@ class BaseReportScheduleCommand(BaseCommand):
             }
         if not changed:
             return
-        messages: list[str] = []
+        charts_by_reason: dict[str, list[str]] = {}
         for chart in report_state_charts(
             dashboard, dashboard_state, is_feature_enabled("ALERT_REPORT_TABS")
         ):
@@ -567,8 +583,9 @@ class BaseReportScheduleCommand(BaseCommand):
             try:
                 check_chart_date_ranges(chart, dashboard=dashboard, data_mask=stored)
             except TimeRangeLimitError as ex:
-                name = chart.slice_name or f"Chart {chart.id}"
-                messages.append(f"{name}: {ex.error.message}")
+                charts_by_reason.setdefault(ex.error.message, []).append(
+                    chart.slice_name or f"Chart {chart.id}"
+                )
             except TimeRangeLimitsUnavailableError:
                 raise
             except Exception:  # pylint: disable=broad-except
@@ -578,9 +595,11 @@ class BaseReportScheduleCommand(BaseCommand):
                     chart.id,
                     exc_info=True,
                 )
-        if messages:
-            # One error for every chart: the 422 keeps one error per field.
-            exceptions.append(ValidationError(messages, "extra"))
+        if charts_by_reason:
+            # One error for every reason: the 422 keeps one error per field.
+            exceptions.append(
+                ValidationError(time_range_messages(charts_by_reason), "extra")
+            )
 
     def validate_report_frequency(
         self,

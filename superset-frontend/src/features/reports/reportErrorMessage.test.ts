@@ -28,6 +28,19 @@ test.each([
     'This report runs as "report_bot".',
   ],
   ['A plain error', 'A plain error'],
+  [
+    { name: ['Field is required.'], crontab: ['Field is required.'] },
+    'Field is required. Field is required.',
+  ],
+  [
+    {
+      extra: [
+        "Sales: Range can't be longer than 90 days. This one is 730 days.",
+        "Orders: Range can't be longer than 365 days. This one is 730 days.",
+      ],
+    },
+    "Sales: Range can't be longer than 90 days. This one is 730 days. Orders: Range can't be longer than 365 days. This one is 730 days.",
+  ],
   [null, ''],
 ])('renders validation errors as text: %p', (error, expected) => {
   expect(reportErrorMessage(error)).toBe(expected);

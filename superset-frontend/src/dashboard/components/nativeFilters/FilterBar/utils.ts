@@ -40,7 +40,7 @@ import {
 } from 'src/dashboard/actions/timeRangeLimits';
 import type { ChartHoldStatus } from 'src/dashboard/reducers/timeRangeLimits';
 import {
-  dashboardLimitLevels,
+  dashboardFilterLimits,
   describeFailure,
   describeLimit,
   type ChartRangeFailure,
@@ -346,16 +346,7 @@ export const selectFilterTimeRangeLimits = (
   const datasetIds = chartsInScope
     ? new Set(chartsInScope.map(chartId => datasetIdOfChart(state, chartId)))
     : null;
-  return {
-    levels: dashboardLimitLevels({
-      ...payload,
-      datasets: (payload.datasets ?? []).filter(
-        dataset => !datasetIds || datasetIds.has(dataset.id),
-      ),
-    }),
-    dashboardId: dashboardId ?? undefined,
-    timezone: payload.timezone,
-  };
+  return dashboardFilterLimits(payload, dashboardId ?? undefined, datasetIds);
 };
 
 export const useFilterTimeRangeLimits = (
