@@ -150,6 +150,19 @@ for how the column should be treated in the Explore workflow:
 
 <img src={useBaseUrl('/img/tutorial/tutorial_column_properties.png')} />
 
+#### Snowflake column name casing
+
+For physical Snowflake datasets, Superset uses the dialect's automatic identifier
+quoting, regardless of **Normalize column names**. Lowercase metadata such as
+`species` is referenced unquoted and resolves to Snowflake's uppercase `SPECIES`.
+Uppercase and mixed-case names retain the dialect's quoting. If a physical column
+was created with a case-sensitive lowercase name, use a calculated column with an
+explicitly quoted expression such as `"species"`.
+
+Virtual datasets and SQL Lab query datasources preserve the exact column names
+returned by the query. Superset quotes these names verbatim, so an alias such as
+`SELECT species AS "species" FROM iris` remains case-sensitive in chart queries.
+
 ### Superset semantic layer
 
 Superset has a thin semantic layer that adds many quality of life improvements for analysts.

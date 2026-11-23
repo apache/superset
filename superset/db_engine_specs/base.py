@@ -3693,6 +3693,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return name
 
     @classmethod
+    def prepare_identifier(cls, name: str, exact_case: bool = False) -> str:
+        """
+        Prepare a column name for SQLAlchemy ``column()`` construction.
+
+        ``exact_case`` is True when the stored name is known to be the exact
+        identifier returned by the database cursor (virtual datasets and SQL Lab
+        queries). The default keeps SQLAlchemy's automatic identifier quoting.
+        """
+        return name
+
+    @classmethod
     def quote_table(cls, table: Table, dialect: Dialect) -> str:
         """
         Fully quote a table name, including the schema and catalog.

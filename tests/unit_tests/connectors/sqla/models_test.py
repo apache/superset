@@ -122,6 +122,48 @@ def test_get_sqla_col_quotes_snowflake_uppercase_column() -> None:
     assert _compile_snowflake(tbl_column.get_sqla_col()) == '"SPECIES"'
 
 
+@pytest.mark.parametrize("normalize_columns", [False, True])
+def test_get_sqla_col_quotes_snowflake_virtual_column(normalize_columns: bool) -> None:
+    """Virtual column names are exact regardless of the normalization setting."""
+    table = _snowflake_dataset(normalize_columns)
+    table.sql = 'SELECT species AS "species" FROM iris'
+    species = table.get_column("species")
+    assert species is not None
+
+    assert _compile_snowflake(species.get_sqla_col()) == '"species"'
+
+
+@pytest.mark.parametrize("time_grain", [None, "P1M"])
+def test_get_timestamp_expression_quotes_snowflake_virtual_column(
+    time_grain: str | None,
+) -> None:
+    """Both timestamp construction paths preserve exact virtual column names."""
+    table = _snowflake_dataset(normalize_columns=False)
+    table.sql = 'SELECT added_at AS "added_at" FROM iris'
+    added_at = table.get_column("added_at")
+    assert added_at is not None
+
+    rendered = _compile_snowflake(
+        added_at.get_timestamp_expression(time_grain=time_grain)
+    )
+
+    assert '"added_at"' in rendered.replace('AS "added_at"', "")
+
+
+def test_adhoc_metric_to_sqla_quotes_snowflake_virtual_column_fallback() -> None:
+    """A missing column lookup still preserves exact virtual column names."""
+    table = _snowflake_dataset(normalize_columns=False)
+    table.sql = 'SELECT amount AS "amount" FROM iris'
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "SUM",
+        "column": {"column_name": "amount"},
+        "label": "total",
+    }
+
+    assert 'sum("amount")' in _compile_snowflake(table.adhoc_metric_to_sqla(metric, {}))
+
+
 @pytest.mark.parametrize("time_grain", [None, "P1M"])
 def test_get_timestamp_expression_leaves_snowflake_lowercase_column_unquoted(
     time_grain: str | None,
@@ -228,6 +270,38 @@ def test_snowflake_pivot_query_leaves_lowercase_columns_unquoted(
     ) in sql
     assert "WHERE species IN ('setosa')" in sql
     assert "GROUP BY DATE_TRUNC('MONTH', added_at), species" in sql
+
+
+def test_snowflake_virtual_dataset_quotes_lowercase_alias(app: Flask) -> None:
+    """
+    Virtual dataset columns are the exact cursor names, so a case-sensitive
+    lowercase alias stays quoted and resolves against the subquery.
+    """
+    pytest.importorskip("snowflake.sqlalchemy")
+    table = SqlaTable(
+        table_name="v",
+        schema="sch",
+        database=Database(id=1, database_name="sf", sqlalchemy_uri=SNOWFLAKE_URI),
+        sql='SELECT species AS "species" FROM iris',
+        normalize_columns=False,
+        columns=[TableColumn(column_name="species", type="VARCHAR")],
+    )
+
+    sql = table.get_query_str_extended(
+        {
+            "columns": ["species"],
+            "metrics": [],
+            "orderby": [("species", True)],
+            "filter": [{"col": "species", "op": "IN", "val": ["setosa"]}],
+            "extras": {},
+            "is_timeseries": False,
+            "row_limit": 1000,
+        }
+    ).sql
+
+    assert 'SELECT "species" AS "species"' in sql
+    assert "WHERE \"species\" IN ('setosa')" in sql
+    assert 'GROUP BY "species"' in sql
 
 
 def test_query_bubbles_errors(mocker: MockerFixture) -> None:

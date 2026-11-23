@@ -34,6 +34,7 @@ from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
+from sqlalchemy.sql import quoted_name
 from sqlalchemy.sql.elements import ColumnElement
 from typing_extensions import NotRequired
 
@@ -221,6 +222,18 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
     supports_grouping_sets = True
+
+    @classmethod
+    def prepare_identifier(cls, name: str, exact_case: bool = False) -> str:
+        """
+        Quote exact-case names verbatim. Snowflake folds unquoted identifiers to
+        uppercase, so a case-sensitive lowercase alias such as ``"species"`` in a
+        virtual dataset only resolves when quoted. Physical dataset metadata can
+        be stale or normalized, so it keeps SQLAlchemy's automatic quoting.
+        """
+        if exact_case:
+            return quoted_name(name, quote=True)
+        return name
 
     metadata = {
         "description": "Snowflake is a cloud-native data warehouse.",
