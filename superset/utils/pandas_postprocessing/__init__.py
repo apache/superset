@@ -41,6 +41,7 @@ from superset.utils.pandas_postprocessing.resample import resample
 from superset.utils.pandas_postprocessing.rolling import rolling
 from superset.utils.pandas_postprocessing.select import select
 from superset.utils.pandas_postprocessing.sort import sort
+from superset.utils.pandas_postprocessing.tree_rows import tree_rows
 from superset.utils.pandas_postprocessing.utils import (
     escape_separator,
     unescape_separator,
@@ -66,6 +67,7 @@ __all__ = [
     "rolling",
     "select",
     "sort",
+    "tree_rows",
     "flatten",
     "escape_separator",
     "unescape_separator",

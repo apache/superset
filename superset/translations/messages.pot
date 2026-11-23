@@ -6064,6 +6064,9 @@ msgstr ""
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "Each level needs an id_column"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 

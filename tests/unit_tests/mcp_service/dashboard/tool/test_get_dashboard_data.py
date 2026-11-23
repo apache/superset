@@ -875,6 +875,7 @@ def test_post_processing_classification_covers_registry() -> None:
         "prophet",
         "resample",
         "rolling",
+        "tree_rows",
     }
 
 

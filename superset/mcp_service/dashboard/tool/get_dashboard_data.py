@@ -57,8 +57,8 @@ logger = logging.getLogger(__name__)
 
 
 # Only these built-ins preserve input rows. Aggregate, boxplot,
-# first_n_per_group, histogram, pivot, resample and rolling can reduce them;
-# prophet rebuilds the time index.
+# first_n_per_group, histogram, pivot, resample, rolling and tree_rows
+# can reduce them; prophet rebuilds the time index.
 # Unknown/custom operations are conservative by default, including future additions.
 _ROW_PRESERVING_OPERATIONS = {
     "compare",
