@@ -18,6 +18,8 @@
  */
 
 import { CSSProperties, useEffect, useMemo, useState } from 'react';
+import { useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { DatePattern, TopBannerChartProps } from './types.js';
 
 function getDateOptions(pattern: DatePattern): Intl.DateTimeFormatOptions {
@@ -65,6 +67,7 @@ export default function TopBanner({
   accentColor,
   showBottomBorder,
 }: TopBannerChartProps) {
+  const theme = useTheme();
   const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export default function TopBanner({
   const iconStyle: CSSProperties = {
     flex: '0 0 auto', width: iconFontSize + 22, height: iconFontSize + 22,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    borderRadius: 10, color: '#fff', background: accentColor, fontSize: `${iconFontSize}px`,
+    borderRadius: 10, color: theme.colorTextLightSolid, background: accentColor, fontSize: `${iconFontSize}px`,
   };
   const textStyle: CSSProperties = { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 };
   const titleStyle: CSSProperties = {
@@ -139,7 +142,7 @@ export default function TopBanner({
     fontSize: `${clockFontSize}px`, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1.1, whiteSpace: 'nowrap',
   };
-  const errorStyle: CSSProperties = { color: '#d32f2f', fontSize: 12, lineHeight: 1.4 };
+  const errorStyle: CSSProperties = { color: theme.colorError, fontSize: 12, lineHeight: 1.4 };
 
   return (
     <div style={containerStyle}>
@@ -153,7 +156,11 @@ export default function TopBanner({
 
       {showClock && (
         formatters === null ? (
-          <div style={errorStyle}>Invalid locale or time zone.<br />{locale} / {timezone}</div>
+          <div style={errorStyle}>
+            {t('Invalid locale or time zone.')}
+            <br />
+            {locale} / {timezone}
+          </div>
         ) : (
           <div style={clockAreaStyle}>
             {showDate && <div style={dateStyle}>{formatters.date.format(now)}</div>}
@@ -164,3 +171,4 @@ export default function TopBanner({
     </div>
   );
 }
+
