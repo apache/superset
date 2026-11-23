@@ -39,8 +39,9 @@ import { fetchDatasourceMetadata, fetchVersionSnapshot } from './api';
 import PreviewBanner from './PreviewBanner';
 import { VERSION_HISTORY_PANEL_WIDTH } from './constants';
 
-// Preview exists while history is open. Reserve its overlay space only here
-// so the live chart has no leftover padding when preview ends.
+// CLOSE_VERSION_HISTORY_PANEL clears preview in the reducer, so preview exists
+// only while history is open. Reserve overlay space here to leave no padding
+// behind on the live chart when preview ends.
 const Container = styled.div`
   ${({ theme }) => `
     display: flex;

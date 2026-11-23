@@ -60,7 +60,6 @@ const PanelHost = styled.div`
     top: 0;
     right: 0;
     bottom: 0;
-    height: auto;
     z-index: 20;
     box-shadow: ${theme.boxShadow};
   `}

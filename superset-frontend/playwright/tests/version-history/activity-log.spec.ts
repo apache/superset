@@ -164,7 +164,7 @@ async function openVersionHistory(page: Page): Promise<void> {
   await expect(
     page.getByRole('complementary', { name: 'Version history' }),
     'version history panel opens',
-  ).toBeVisible({ timeout: 2000 });
+  ).toBeVisible();
 }
 
 /** Read the layout in one frame, before any click can scroll hidden overflow. */
@@ -190,6 +190,8 @@ async function measureHistoryLayout(page: Page) {
       appScrollWidth: app?.scrollWidth,
       content: rect('#explore-container'),
       chart: rect('.main-explore-content'),
+      datasourceRail: rect('.data-source-selection'),
+      controlsRail: rect('.controls-column'),
       panel: rect('aside[aria-label="Version history"]'),
       close: rect('button[aria-label="Close version history"]'),
       headerActions: rect('[data-test="actions-trigger"]'),
@@ -415,100 +417,61 @@ testWithAssets(
     await page.goto(`explore/?slice_id=${chartId}`);
     await expect(page.getByTestId('actions-trigger')).toBeVisible();
 
+    // 1200/1201 straddle the removed overlay breakpoint; 1440/1480 straddle
+    // the nominal 1452px combined minimum of the rails, chart, and history.
     const widths = [800, 1024, 1200, 1201, 1280, 1327, 1440, 1480, 1600, 1920];
     type Layout = Awaited<ReturnType<typeof measureHistoryLayout>>;
     const baselines = new Map<number, Layout>();
-    const failures: {
-      width: number;
-      metric: string;
-      actual: unknown;
-      expected: string;
-    }[] = [];
-    const check = (
-      layout: Layout,
-      metric: string,
-      actual: unknown,
-      expected: string,
-      passes: boolean,
-    ) => {
-      if (!passes)
-        failures.push({ width: layout.width, metric, actual, expected });
-    };
     const checkOpen = (
       open: Layout,
       closed: Layout,
       scenario = 'default rails',
     ) => {
-      check(
-        open,
-        `${scenario}: app scroll`,
-        open.appScroll,
-        '0',
-        open.appScroll === 0,
-      );
-      check(
-        open,
-        `${scenario}: horizontal overflow`,
-        open.appScrollWidth,
-        `<= ${closed.appScrollWidth}`,
-        open.appScrollWidth !== undefined &&
-          closed.appScrollWidth !== undefined &&
-          open.appScrollWidth <= closed.appScrollWidth + 1,
-      );
-      check(
-        open,
-        `${scenario}: chart width`,
-        open.chart?.width,
-        `${closed.chart?.width} ± 1`,
-        !!open.chart &&
-          !!closed.chart &&
-          Math.abs(open.chart.width - closed.chart.width) <= 1,
-      );
+      const label = `${open.width}px (${scenario})`;
+      expect.soft(open.appScroll, `${label}: app scroll`).toBe(0);
+      expect
+        .soft(open.appScrollWidth, `${label}: horizontal overflow`)
+        .toBeLessThanOrEqual((closed.appScrollWidth ?? NaN) + 1);
+      expect
+        .soft(
+          Math.abs((open.chart?.width ?? NaN) - (closed.chart?.width ?? NaN)),
+          `${label}: chart width change`,
+        )
+        .toBeLessThanOrEqual(1);
       for (const name of ['panel', 'close'] as const) {
         const box = open[name];
-        check(
-          open,
-          `${scenario}: ${name} containment`,
-          box,
-          'inside viewport and Explore content',
-          !!box &&
-            !!open.content &&
-            box.left >= Math.max(0, open.content.left) - 1 &&
-            box.right <= Math.min(open.width, open.content.right) + 1 &&
-            box.top >= Math.max(0, open.content.top) - 1 &&
-            box.bottom <= Math.min(open.height, open.content.bottom) + 1,
-        );
+        expect
+          .soft(box?.left, `${label}: ${name} left edge`)
+          .toBeGreaterThanOrEqual(Math.max(0, open.content?.left ?? NaN) - 1);
+        expect
+          .soft(box?.right, `${label}: ${name} right edge`)
+          .toBeLessThanOrEqual(
+            Math.min(open.width, open.content?.right ?? NaN) + 1,
+          );
+        expect
+          .soft(box?.top, `${label}: ${name} top edge`)
+          .toBeGreaterThanOrEqual(Math.max(0, open.content?.top ?? NaN) - 1);
+        expect
+          .soft(box?.bottom, `${label}: ${name} bottom edge`)
+          .toBeLessThanOrEqual(
+            Math.min(open.height, open.content?.bottom ?? NaN) + 1,
+          );
       }
-      check(
-        open,
-        `${scenario}: panel right edge`,
-        open.panel?.right,
-        `${open.content?.right} ± 1`,
-        !!open.panel &&
-          !!open.content &&
-          Math.abs(open.panel.right - open.content.right) <= 1,
-      );
-      check(
-        open,
-        `${scenario}: panel below header`,
-        open.panel?.top,
-        `>= ${open.headerActions?.bottom}`,
-        !!open.panel &&
-          !!open.headerActions &&
-          open.panel.top >= open.headerActions.bottom - 1,
-      );
+      expect
+        .soft(
+          Math.abs((open.panel?.right ?? NaN) - (open.content?.right ?? NaN)),
+          `${label}: panel right edge matches content`,
+        )
+        .toBeLessThanOrEqual(1);
+      expect
+        .soft(open.panel?.top, `${label}: panel below header`)
+        .toBeGreaterThanOrEqual((open.headerActions?.bottom ?? NaN) - 1);
     };
 
     for (const width of widths) {
       await resizeExplore(page, width);
       const closed = await measureHistoryLayout(page);
-      check(
-        closed,
-        'closed app scroll',
-        closed.appScroll,
-        '0',
-        closed.appScroll === 0,
-      );
+      expect.soft(closed.appScroll, `${width}px: closed app scroll`).toBe(0);
       baselines.set(width, closed);
     }
     await openVersionHistory(page);
@@ -524,7 +487,7 @@ testWithAssets(
 
     // Keep negative controls diagnostic: report the sampled widths rather than
     // attempting interactions after a containment failure.
-    if (failures.length === 0) {
+    if (testWithAssets.info().errors.length === 0) {
       await clickWithoutScroll(page, page.getByTestId('actions-trigger'));
       await expect(
         page.getByRole('menuitem', { name: 'View version history' }),
@@ -543,7 +506,7 @@ testWithAssets(
       );
       await expect(
         page.getByRole('complementary', { name: 'Version history' }),
-      ).toHaveCount(0, { timeout: 2000 });
+      ).toHaveCount(0);
       checkOpen(
         collapsed,
         await measureHistoryLayout(page),
@@ -561,7 +524,7 @@ testWithAssets(
       );
       await expect(
         page.getByRole('complementary', { name: 'Version history' }),
-      ).toHaveCount(0, { timeout: 2000 });
+      ).toHaveCount(0);
       checkOpen(
         reopened,
         await measureHistoryLayout(page),
@@ -578,13 +541,20 @@ testWithAssets(
       await page.reload();
       await expect(page.getByTestId('actions-trigger')).toBeVisible();
       const closed = await measureHistoryLayout(page);
+      for (const rail of ['datasourceRail', 'controlsRail'] as const) {
+        expect
+          .soft(
+            Math.abs((closed[rail]?.width ?? NaN) - 450),
+            `${width}px: persisted ${rail} width is 450px`,
+          )
+          .toBeLessThanOrEqual(1);
+      }
       await openVersionHistory(page);
       const open = await measureHistoryLayout(page);
       checkOpen(open, closed, '450px rails');
       // Do not try to click a close button that the geometry already found
       // clipped. Reloading the next case supplies a fresh closed baseline.
     }
-    expect(failures).toEqual([]);
   },
 );
 
@@ -637,7 +607,7 @@ testWithAssets(
       page,
       panel.getByRole('button', { name: 'Close version history' }),
     );
-    await expect(panel).toHaveCount(0, { timeout: 2000 });
+    await expect(panel).toHaveCount(0);
     await openVersionHistory(page);
     await expect(page.getByTestId('chart-version-preview')).toHaveCount(0);
   },
@@ -760,7 +730,7 @@ testWithAssets(
       page,
       banner.getByRole('button', { name: 'Close preview' }),
     );
-    await expect(banner).toHaveCount(0, { timeout: 2000 });
+    await expect(banner).toHaveCount(0);
     await expect(panel).toBeVisible();
     await enterPreview();
     await searchHistory(page, 'vh1');
@@ -768,7 +738,7 @@ testWithAssets(
       page,
       panel.getByRole('button', { name: 'Close version history' }),
     );
-    await expect(panel).toHaveCount(0, { timeout: 2000 });
+    await expect(panel).toHaveCount(0);
     await expect(page.getByTestId('chart-version-preview')).toHaveCount(0);
     await openVersionHistory(page);
     await expect(page.getByTestId('chart-version-preview')).toHaveCount(0);
