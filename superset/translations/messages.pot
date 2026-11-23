@@ -15065,6 +15065,14 @@ msgstr ""
 msgid "The number of rows displayed is limited to %(rows)d by the query and limit dropdown."
 msgstr ""
 
+#, python-format
+msgid "The number of rows displayed is limited to %(rows)d due to memory constraints."
+msgstr ""
+
+#, python-format
+msgid "The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads include all rows up to the query limit."
+msgstr ""
+
 msgid "The number of seconds before expiring the cache"
 msgstr ""
 
