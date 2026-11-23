@@ -426,6 +426,7 @@ The AI agent sees your tool's:
 1. **Check extension registration**: Verify your tool module is listed in extension entrypoints
 2. **Verify decorator**: Ensure `@tool` is correctly applied
 3. **Extension loading**: Confirm your extension is installed and enabled
+4. **MCP installed**: Where `fastmcp` isn't installed (the `fastmcp` extra of `apache-superset`), `@tool` and `@prompt` register nothing and return your function as it is, so the rest of your extension's backend still loads. Install the extra wherever Superset serves MCP
 
 ### Input Validation Errors
 
