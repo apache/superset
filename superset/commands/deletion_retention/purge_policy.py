@@ -629,6 +629,7 @@ def _builtin_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
                     relationship(
                         "slices", "semantic_views", "manytoone", "semantic_view"
                     ),
+                    relationship("slices", "saved_query", "manytoone", "saved_query"),
                     fk("chart_editors", "slices", "chart_id", "id", "outbound"),
                     fk("chart_editors", "subjects", "subject_id", "id", "outbound"),
                     fk("chart_viewers", "slices", "chart_id", "id", "outbound"),
@@ -657,6 +658,7 @@ def _builtin_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
                     DependencyClassification.ASSOCIATION,
                     DependencyClassification.BLOCK,
                     DependencyClassification.VERSION_OWNED,
+                    DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,

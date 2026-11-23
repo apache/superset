@@ -435,6 +435,12 @@ also rejected, Superset asks the user to sign in again.
 <details>
 <summary><strong>Explore Form Data</strong> (4 endpoints) — Manage temporary form data for chart exploration.</summary>
 
+Legacy HTML form submissions to `POST /explore/` (including the typed
+`/explore/<datasource_type>/<datasource_id>/` route) cache the submitted chart
+configuration and return a `303` redirect to `/explore/?form_data_key=...`.
+Clients should follow the redirect with `GET`. The `saveas` and `overwrite`
+actions continue to use their existing save handlers.
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | [Create a new form_data](/developer-docs/api/create-a-new-form-data) | `/api/v1/explore/form_data` |

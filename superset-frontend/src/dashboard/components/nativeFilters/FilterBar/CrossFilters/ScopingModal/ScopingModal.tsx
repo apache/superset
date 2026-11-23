@@ -19,7 +19,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
-import { isDefined, NativeFilterScope } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  isDefined,
+  NativeFilterScope,
+} from '@superset-ui/core';
 import { Modal } from '@superset-ui/core/components';
 import {
   ChartConfiguration,
@@ -35,6 +39,9 @@ import {
 } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { saveChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
+import { hasCrossFilterTargets } from 'src/dashboard/util/crossFilters';
+import { updateDataMask } from 'src/dataMask/actions';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import { DEFAULT_CROSS_FILTER_SCOPING } from 'src/dashboard/constants';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
@@ -94,6 +101,9 @@ export const ScopingModal = ({
   const initialChartConfig = useSelector<RootState, ChartConfiguration>(
     state => state.dashboardInfo.metadata?.chart_configuration || {},
   );
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
+  );
   const defaultGlobalChartConfig = useMemo(
     () => ({
       scope: DEFAULT_CROSS_FILTER_SCOPING,
@@ -152,8 +162,25 @@ export const ScopingModal = ({
         globalChartConfiguration: globalChartConfig,
       }),
     );
+    // A cross-filter applied by a chart left without targets would filter
+    // nothing, so clear it the same way the filter bar removes one.
+    Object.values(savedChartConfigs).forEach(({ id }) => {
+      const chartId = Number(id);
+      if (
+        isDefined(dataMask[chartId]?.filterState?.value) &&
+        !hasCrossFilterTargets(savedChartConfigs, chartId)
+      ) {
+        releaseFilterKeyPublish();
+        dispatch(
+          updateDataMask(chartId, {
+            extraFormData: { filters: [] },
+            filterState: { value: null, selectedValues: null },
+          }),
+        );
+      }
+    });
     closeModal();
-  }, [chartConfigs, closeModal, dispatch, globalChartConfig]);
+  }, [chartConfigs, closeModal, dataMask, dispatch, globalChartConfig]);
 
   const handleScopeUpdate = useCallback(
     ({ scope }: { scope: NativeFilterScope }) => {
