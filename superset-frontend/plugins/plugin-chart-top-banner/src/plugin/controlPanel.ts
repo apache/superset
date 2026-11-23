@@ -54,7 +54,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'TextControl',
               label: t('Icon or short label'),
-              description: t('Example: \uD83D\uDC30, \uD83D\uDE02, Hi'),
+              description: t('Example:smiley, rocket, or short text, Hi'),
               default: '\uD83D\uDE36\u200D\uD83C\uDF2B\uFE0F',
               renderTrigger: true,
             },
