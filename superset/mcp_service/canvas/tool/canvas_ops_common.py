@@ -67,8 +67,8 @@ def payload_result(
 
 
 UNREAD_REASON = (
-    "This widget keeps no dataBinding.datasetId, so its data can't be run "
-    "here; read its props for how it gets its data."
+    "This widget's type builds no query for it here, so it has no data to "
+    "run; read its props for how it gets its data."
 )
 
 

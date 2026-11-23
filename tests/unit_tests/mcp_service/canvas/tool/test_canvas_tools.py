@@ -417,6 +417,67 @@ def test_a_widget_types_refusal_reaches_agents_with_its_code() -> None:
     )
 
 
+def test_preview_runs_an_extension_widget_types_own_queries() -> None:
+    from superset_core.widgets import QueryRequest, Widget, WidgetQuery
+
+    from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    asked: list[QueryRequest] = []
+
+    class Kpis(Widget):
+        @classmethod
+        def build_queries(cls, request: QueryRequest) -> list[WidgetQuery]:
+            asked.append(request)
+            return [
+                WidgetQuery("revenue", {"datasetId": 3, "metrics": ["revenue"]}),
+                WidgetQuery("deals", {"datasetId": 3, "metrics": ["deals"]}),
+            ]
+
+    def rows_of(binding: dict[str, Any], filters: Any) -> PlacementData:
+        name = binding["metrics"][0]
+        rows = [{name: float(i)} for i in range(12)] if name == "revenue" else []
+        return PlacementData(rows, f"SELECT {name}", "sql")
+
+    draft = MagicMock(canvas=Canvas(id=7, slug="sales"), token="tok")  # noqa: S106
+    draft.definition = _preview_canvas(
+        {"widgetType": "extensions.acme.kpis.board", "props": {}}
+    )
+    with (
+        patch(f"{PREVIEW}.load_draft", return_value=draft),
+        patch.dict(
+            "superset.widgets.registry.registry", {"extensions.acme.kpis.board": Kpis}
+        ),
+        patch(f"{PREVIEW}.run_binding", side_effect=rows_of),
+        patch(f"{PREVIEW}.can_view_query", return_value=True),
+        patch(f"{PREVIEW}._render") as render,
+    ):
+        result, image = _preview_widget_impl(7, "chart", False, "tok")
+
+    assert [(r.canvas_id, r.placement_id, r.draft_token) for r in asked] == [
+        ("7", "chart", "tok")
+    ]
+    revenue, deals = result["datasets"]
+    assert revenue["name"] == "revenue"
+    assert revenue["row_count"] == 12
+    assert len(revenue["sample_rows"]) == 10
+    assert revenue["query"] == "SELECT revenue"
+    assert deals == {
+        "name": "deals",
+        "row_count": 0,
+        "columns": [],
+        "sample_rows": [],
+        "query": "SELECT deals",
+        "query_language": "sql",
+    }
+    assert result["warnings"] == ["The widget's 'deals' query returned no rows"]
+    assert "sample_rows" not in result
+    assert PreviewWidgetResponse.model_validate(result).datasets
+    render.assert_not_called()
+    assert image is None
+
+
 def test_preview_reports_unknown_placements() -> None:
     from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
 

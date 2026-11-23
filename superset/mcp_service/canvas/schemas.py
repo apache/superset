@@ -157,6 +157,15 @@ class CanvasWriteResponse(_Compact):
     )
 
 
+class PreviewDataset(_Compact):
+    name: str
+    row_count: int | None = None
+    columns: list[str] | None = None
+    sample_rows: list[dict[str, Any]] | None = None
+    query: str | None = None
+    query_language: str | None = None
+
+
 class PreviewWidgetResponse(_Compact):
     canvas_id: int | None = None
     url: str | None = None
@@ -175,6 +184,11 @@ class PreviewWidgetResponse(_Compact):
         "users who can view queries.",
     )
     query_language: str | None = None
+    datasets: list[PreviewDataset] | None = Field(
+        default=None,
+        description="Each dataset, by name, when the widget's type builds more "
+        "than its default ``main``.",
+    )
     option: dict[str, Any] | None = Field(
         default=None,
         description=(
@@ -199,6 +213,14 @@ class PreviewWidgetResponse(_Compact):
     error_code: str | None = Field(default=None, description=ERROR_CODE_DESCRIPTION)
 
 
+class CanvasDatasetRows(_Compact):
+    name: str
+    row_count: int | None = None
+    columns: list[str] | None = None
+    rows: list[dict[str, Any]] | None = None
+    truncated: bool | None = None
+
+
 class CanvasWidgetData(_Compact):
     placement_id: str
     title: str | None = Field(
@@ -214,6 +236,11 @@ class CanvasWidgetData(_Compact):
     )
     truncated: bool | None = Field(
         default=None, description="True when ``rows`` stops before ``row_count``."
+    )
+    datasets: list[CanvasDatasetRows] | None = Field(
+        default=None,
+        description="Each dataset, by name, when the widget's type builds more "
+        "than its default ``main``.",
     )
     error: str | None = None
     error_type: CanvasDataErrorType | None = None

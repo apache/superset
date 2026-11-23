@@ -24,6 +24,7 @@ from typing import Any
 
 from superset_core.canvas import StoredWidget, WidgetResolver
 from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.widgets import QueryRequest
 
 from superset.canvas.data import run_binding, RuntimeFilter
 from superset.canvas.definition.registry import (
@@ -39,6 +40,7 @@ from superset.commands.canvas.exceptions import (
     CanvasForbiddenError,
     CanvasNotFoundError,
 )
+from superset.commands.canvas.placement_data import widget_queries
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
@@ -106,29 +108,46 @@ def _load(
     return definition, get_widget_resolver(), about
 
 
+def _rows(rows: list[dict[str, Any]], max_rows: int) -> dict[str, Any]:
+    shown: dict[str, Any] = {
+        "row_count": len(rows),
+        "columns": list(rows[0]) if rows else [],
+        "rows": rows[:max_rows],
+    }
+    if len(rows) > max_rows:
+        shown["truncated"] = True
+    return shown
+
+
 def _widget_data(
     placement_id: str,
     widget_type: str | None,
-    props: dict[str, Any],
+    queries: dict[str, dict[str, Any]],
     title: str | None,
     max_rows: int,
     runtime_filters: list[RuntimeFilter] | None,
 ) -> dict[str, Any]:
+    """The rows of a widget's queries, or why they failed: as for the canvas
+    page, one failing query fails them all."""
     entry: dict[str, Any] = {
         "placement_id": placement_id,
         "title": title,
         "widget_type": widget_type,
     }
     try:
-        rows = run_binding(props["dataBinding"], runtime_filters).rows
+        datasets = {
+            name: run_binding(binding, runtime_filters).rows
+            for name, binding in queries.items()
+        }
     except Exception as ex:  # pylint: disable=broad-except
         entry.update(query_error(ex))
         return entry
-    entry["row_count"] = len(rows)
-    entry["columns"] = list(rows[0]) if rows else []
-    entry["rows"] = rows[:max_rows]
-    if len(rows) > max_rows:
-        entry["truncated"] = True
+    if list(datasets) == ["main"]:
+        entry.update(_rows(datasets["main"], max_rows))
+    else:
+        entry["datasets"] = [
+            {"name": name, **_rows(rows, max_rows)} for name, rows in datasets.items()
+        ]
     return entry
 
 
@@ -183,6 +202,8 @@ def _get_canvas_data_impl(
     entries: list[dict[str, Any]] = []
     skipped: list[str] = []
     unread: list[dict[str, Any]] = []
+    # Queries run so far, against ``max_widgets``.
+    ran = 0
     for node_id in _in_layout_order(definition):
         if wanted and node_id not in wanted:
             continue
@@ -190,25 +211,44 @@ def _get_canvas_data_impl(
         if (shown := _shown(node, widgets)) is None:
             continue
         widget_type, props = shown
-        binding = props.get("dataBinding")
-        if not isinstance(binding, dict) or not binding.get("datasetId"):
-            unread.extend(_unread(node_id, node, widget_type))
-            continue
         # As the placement data route answers: what a type this host doesn't
         # know stored was never checked by it.
         if widget_type is None or not widget_type_available(widget_type):
+            unread.extend(_unread(node_id, node, widget_type))
             continue
-        if len(entries) >= max_widgets:
+        request = QueryRequest(
+            str(result["canvas_id"]),
+            node_id,
+            props,
+            draft_token=draft_token or None,
+            widget_id=node.get("widgetId") or None,
+        )
+        failed: dict[str, str] | None = None
+        try:
+            queries = widget_queries(widget_type, request)
+        except Exception as ex:  # pylint: disable=broad-except
+            queries, failed = {}, query_error(ex)
+        if not queries and failed is None:
+            unread.extend(_unread(node_id, node, widget_type))
+            continue
+        # A type that failed to build its queries counts as one, so that a
+        # canvas of such widgets stays within the size budget too.
+        cost = len(queries) or 1
+        if skipped or ran + cost > max_widgets:
             skipped.append(node_id)
             continue
+        ran += cost
+        title = titles.get(node_id)
         entries.append(
-            _widget_data(
-                node_id,
-                widget_type,
-                props,
-                titles.get(node_id),
-                max_rows,
-                runtime_filters,
+            {
+                "placement_id": node_id,
+                "title": title,
+                "widget_type": widget_type,
+                **failed,
+            }
+            if failed is not None
+            else _widget_data(
+                node_id, widget_type, queries, title, max_rows, runtime_filters
             )
         )
     listed = {
@@ -226,8 +266,11 @@ def _get_canvas_data_impl(
 
 def _fit_rows(entries: list[dict[str, Any]], budget: int) -> None:
     """Halve the longest row list until the widgets' data fits ``budget``."""
-    while len(json.dumps(entries, default=str)) > budget:
-        longest = max(entries, key=lambda entry: len(entry.get("rows") or []))
+    holders = [
+        holder for entry in entries for holder in (entry, *entry.get("datasets", ()))
+    ]
+    while holders and len(json.dumps(entries, default=str)) > budget:
+        longest = max(holders, key=lambda holder: len(holder.get("rows") or []))
         rows = longest.get("rows") or []
         if not rows:
             return
@@ -256,12 +299,13 @@ def get_canvas_data(
     """Get the data behind a canvas's widgets in one call, to answer questions
     about what the canvas shows.
 
-    Runs each placement's query as you, in layout order, and returns its
-    title, row count, columns and up to ``max_rows`` rows (at most 500);
-    rows are trimmed further, marked ``truncated``, to keep the response small.
-    Placements without a query (containers, text, filters, and widgets of a
-    type unavailable here) are left out; the first 20 extension widgets with
-    no ``dataBinding`` are listed in ``unread``.
+    Runs each placement's queries as you, as its widget type builds them, in
+    layout order, and returns its title, row count, columns and up to
+    ``max_rows`` rows (at most 500); a type that builds several has each in
+    ``datasets``. Rows are trimmed further, marked ``truncated``, to keep the
+    response small. Placements without a query (containers, text, filters,
+    and widgets of a type turned off here) are left out; the first 20
+    extension widgets without one are listed in ``unread``.
     ``placement_ids`` limits it to those placements; ``max_widgets`` (at most
     50) caps how many queries run, and the rest are listed in ``skipped``.
     With ``draft_token``, reads the draft instead of the published canvas.
