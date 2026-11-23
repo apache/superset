@@ -3321,12 +3321,8 @@ class DashboardRestApi(
         try:
             command.run()
         except CommandException as ex:
-            # Caught and converted here (rather than left to propagate to the
-            # global CommandException error handler) so that expected,
-            # client-caused validation errors like "already exists and
-            # `overwrite=true` was not passed" don't fire Flask's
-            # got_request_exception signal and get reported to error
-            # tracking as unhandled exceptions.
+            # Return the same well-formed error body as the global
+            # CommandException handler for expected, client-caused failures.
             return command_exception_response(ex)
         return self.response(200, message="OK")
 

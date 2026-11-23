@@ -140,13 +140,8 @@ def command_exception_response(ex: CommandException) -> FlaskResponse:
     Build the standard JSON error response for a ``CommandException``.
 
     This is shared between the global ``CommandException`` error handler and
-    API endpoints that want to catch a ``CommandException`` locally (e.g. an
-    expected validation failure) and return the same well-formed 4xx body
-    *without* letting the exception propagate up through Flask's dispatch.
-    Letting it propagate fires the ``got_request_exception`` signal, which
-    error-tracking integrations (like Sentry) use to report unhandled
-    exceptions — so routine, client-caused validation errors end up paging
-    as if they were bugs. Catching and converting locally avoids that.
+    API endpoints that catch a ``CommandException`` locally (e.g. an expected
+    validation failure) and return the same well-formed error body.
     """
     extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
     return json_error_response(
@@ -345,19 +340,18 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         CommandException it should be fixed to map it to SupersetErrorException
         or SupersetErrorsException, with a specific status code and error type
 
-        NOTE: reaching this handler means the exception propagated all the
-        way up through Flask's request dispatch, which triggers the
-        ``got_request_exception`` signal (and with it, error-tracking
-        integrations such as Sentry) *before* this handler gets a chance to
-        turn it into a well-formed 4xx response. Expected validation errors
-        (e.g. "already exists and `overwrite=true` was not passed") should
-        be caught and converted at the call site via
-        ``command_exception_response`` instead of being allowed to bubble up
-        here, so they don't get reported as unhandled errors.
+        Only 5xx command errors get the branded HTML error page; 4xx ones
+        (expected, client-caused failures such as a malformed import bundle or
+        a validation error) keep their status and JSON body whatever the
+        ``Accept`` header says.
         """
         logger.warning("CommandException", exc_info=True)
 
-        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+        if (
+            ex.status >= 500
+            and "text/html" in request.accept_mimetypes
+            and not app.config["DEBUG"]
+        ):
             path = files("superset") / "static/assets/500.html"
             # Try to serve HTML file; fall back to JSON if not built
             try:
