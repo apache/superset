@@ -17,7 +17,11 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { ContextMenuFilters, DataRecordValue } from '@superset-ui/core';
+import {
+  ContextMenuFilters,
+  DataRecordValue,
+  TimeGranularity,
+} from '@superset-ui/core';
 import { HeatmapTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -62,6 +66,12 @@ export default function Heatmap(props: HeatmapTransformedProps) {
     onContextMenu,
   } = props;
 
+  const timeGrain = (formData.extraFormData?.time_grain_sqla ??
+    formData.time_grain_sqla ??
+    formData.timeGrainSqla) as TimeGranularity | undefined;
+  const granularitySqla = (formData.extraFormData?.granularity_sqla ??
+    formData.granularitySqla) as string | undefined;
+
   const eventHandlers: EventHandlers = useMemo(() => {
     const selectedKeys = getSelectedHeatmapKeys(filterState?.selectedValues);
 
@@ -82,6 +92,8 @@ export default function Heatmap(props: HeatmapTransformedProps) {
           yValue,
           selectedKeys,
           coltypeMapping,
+          timeGrain,
+          granularitySqla,
         });
         setDataMask(crossFilter.dataMask);
       },
@@ -101,6 +113,8 @@ export default function Heatmap(props: HeatmapTransformedProps) {
           xValue,
           yValue,
           coltypeMapping,
+          timeGrain,
+          granularitySqla,
         }) as NonNullable<ContextMenuFilters['drillToDetail']>;
 
         const drillBy = getHeatmapDrillByFilters({
@@ -109,6 +123,8 @@ export default function Heatmap(props: HeatmapTransformedProps) {
           xValue,
           yValue,
           coltypeMapping,
+          timeGrain,
+          granularitySqla,
         }) as ContextMenuFilters['drillBy'];
 
         const crossFilter =
@@ -120,6 +136,8 @@ export default function Heatmap(props: HeatmapTransformedProps) {
                 yValue,
                 selectedKeys,
                 coltypeMapping,
+                timeGrain,
+                granularitySqla,
               })
             : undefined;
 
@@ -136,8 +154,10 @@ export default function Heatmap(props: HeatmapTransformedProps) {
     filterState?.selectedValues,
     formData.groupby,
     formData.xAxis,
+    granularitySqla,
     onContextMenu,
     setDataMask,
+    timeGrain,
   ]);
 
   return (

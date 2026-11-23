@@ -17,7 +17,8 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
-import { ChartProps } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { ChartProps, DTTM_ALIAS, TimeGranularity } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import Heatmap from '../../src/Heatmap/Heatmap';
 import transformProps from '../../src/Heatmap/transformProps';
@@ -73,6 +74,8 @@ function setup(
     filterState?: { selectedValues?: string[] | null };
     setDataMask?: jest.Mock | undefined;
     onContextMenu?: jest.Mock | undefined;
+    formData?: Partial<HeatmapFormData>;
+    queriesData?: any[];
   } = {},
 ) {
   const setDataMask =
@@ -82,10 +85,10 @@ function setup(
 
   const chartProps = {
     ...new ChartProps({
-      formData: baseFormData,
+      formData: { ...baseFormData, ...overrides.formData },
       width: 800,
       height: 600,
-      queriesData,
+      queriesData: overrides.queriesData ?? queriesData,
       theme: supersetTheme,
       hooks: { onContextMenu, setDataMask },
       filterState: overrides.filterState ?? {},
@@ -553,4 +556,156 @@ test('context menu does nothing when onContextMenu is undefined', () => {
   }).not.toThrow();
 
   expect(stop).not.toHaveBeenCalled();
+});
+
+test('clicking a temporal cell with time_grain_sqla emits setDataMask with TEMPORAL_RANGE and extraFormData.time_range', () => {
+  const temporalQueriesData = [
+    {
+      data: [{ order_date: '2024-01-01T00:00:00', hour: 9, count: 10 }],
+      colnames: ['order_date', 'hour', 'count'],
+      coltypes: [
+        GenericDataType.Temporal,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+    },
+  ];
+  const { eventHandlers, setDataMask } = setup({
+    formData: {
+      xAxis: 'order_date',
+      time_grain_sqla: TimeGranularity.MONTH,
+    },
+    queriesData: temporalQueriesData,
+  });
+
+  eventHandlers.click({
+    data: {
+      xValue: '2024-01-01T00:00:00',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+  });
+
+  const expectedKey = heatmapCellKey('2024-01-01T00:00:00', 9);
+  const expectedRange = '2024-01-01T00:00:00 : 2024-02-01T00:00:00';
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        { col: 'order_date', op: 'TEMPORAL_RANGE', val: expectedRange },
+        { col: 'hour', op: 'IN', val: [9] },
+      ],
+      time_range: expectedRange,
+    },
+    filterState: {
+      label: expect.any(String),
+      value: expect.any(String),
+      selectedValues: [expectedKey],
+    },
+  });
+});
+
+test('context menu on temporal cell invokes onContextMenu with accurate temporal bucket representations', () => {
+  const temporalQueriesData = [
+    {
+      data: [{ order_date: '2024-01-01T00:00:00', hour: 9, count: 10 }],
+      colnames: ['order_date', 'hour', 'count'],
+      coltypes: [
+        GenericDataType.Temporal,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+    },
+  ];
+  const { eventHandlers, onContextMenu } = setup({
+    formData: {
+      xAxis: 'order_date',
+      time_grain_sqla: TimeGranularity.MONTH,
+    },
+    queriesData: temporalQueriesData,
+  });
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: '2024-01-01T00:00:00',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 100, clientY: 200 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(stop).toHaveBeenCalledTimes(1);
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+  const epoch = new Date('2024-01-01T00:00:00Z').getTime();
+  const expectedRange = '2024-01-01T00:00:00 : 2024-02-01T00:00:00';
+
+  expect(payload.drillToDetail[0]).toEqual({
+    col: 'order_date',
+    op: '==',
+    val: epoch,
+    grain: TimeGranularity.MONTH,
+    formattedVal: expect.any(String),
+  });
+  expect(payload.drillBy.xAxisFilters[0]).toEqual({
+    col: 'order_date',
+    op: '==',
+    val: epoch,
+    grain: TimeGranularity.MONTH,
+    formattedVal: expect.any(String),
+  });
+  expect(payload.crossFilter.dataMask.extraFormData).toEqual({
+    filters: [
+      { col: 'order_date', op: 'TEMPORAL_RANGE', val: expectedRange },
+      { col: 'hour', op: 'IN', val: [9] },
+    ],
+    time_range: expectedRange,
+  });
+});
+
+test('context menu with DTTM_ALIAS and granularitySqla resolves to real column in all 3 interaction payloads', () => {
+  const temporalQueriesData = [
+    {
+      data: [{ [DTTM_ALIAS]: '2024-01-01T00:00:00', hour: 9, count: 10 }],
+      colnames: [DTTM_ALIAS, 'hour', 'count'],
+      coltypes: [
+        GenericDataType.Temporal,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+    },
+  ];
+  const { eventHandlers, onContextMenu } = setup({
+    formData: {
+      xAxis: DTTM_ALIAS,
+      granularitySqla: 'order_date',
+      time_grain_sqla: TimeGranularity.MONTH,
+    },
+    queriesData: temporalQueriesData,
+  });
+  const stop = jest.fn();
+
+  eventHandlers.contextmenu({
+    data: {
+      xValue: '2024-01-01T00:00:00',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 100, clientY: 200 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+
+  expect(payload.drillToDetail[0].col).toBe('order_date');
+  expect(payload.drillBy.xAxisFilters[0].col).toBe('order_date');
+  expect(payload.crossFilter.dataMask.extraFormData.filters[0].col).toBe(
+    'order_date',
+  );
 });

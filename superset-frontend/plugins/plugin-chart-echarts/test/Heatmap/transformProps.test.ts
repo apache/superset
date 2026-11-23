@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GenericDataType } from '@apache-superset/core/common';
 import { Behavior, ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
@@ -702,6 +703,44 @@ describe('Heatmap transformProps', () => {
     });
     expect(unselectedPoint.itemStyle).toEqual({
       opacity: OpacityEnum.SemiTransparent,
+    });
+  });
+
+  test('formats temporal axis values using getTimeFormatter for temporal columns', () => {
+    const epoch1 = Date.parse('2024-01-01T00:00:00.000Z');
+    const epoch2 = Date.parse('2024-02-01T00:00:00.000Z');
+    const temporalData = [
+      { order_date: epoch1, hour: 9, count: 10 },
+      { order_date: epoch2, hour: 10, count: 20 },
+    ];
+    const chartProps = createChartProps(
+      {
+        xAxis: 'order_date',
+        xAxisTimeFormat: '%Y-%m',
+      },
+      temporalData,
+    );
+    (chartProps as any).queriesData[0].colnames = [
+      'order_date',
+      'hour',
+      'count',
+    ];
+    (chartProps as any).queriesData[0].coltypes = [
+      GenericDataType.Temporal,
+      GenericDataType.Numeric,
+      GenericDataType.Numeric,
+    ];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const xAxisFormatter = (result.echartOptions.xAxis as any).axisLabel
+      .formatter;
+    expect(typeof xAxisFormatter).toBe('function');
+    expect(xAxisFormatter(epoch1)).toBe('2024-01');
+    expect(xAxisFormatter(epoch2)).toBe('2024-02');
+    expect(result.coltypeMapping).toEqual({
+      order_date: GenericDataType.Temporal,
+      hour: GenericDataType.Numeric,
+      count: GenericDataType.Numeric,
     });
   });
 });

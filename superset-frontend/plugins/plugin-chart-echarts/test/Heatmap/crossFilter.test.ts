@@ -17,7 +17,11 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { getTimeFormatter } from '@superset-ui/core';
+import {
+  DTTM_ALIAS,
+  getTimeFormatter,
+  TimeGranularity,
+} from '@superset-ui/core';
 import {
   EMPTY_STRING,
   formatHeatmapValue,
@@ -27,6 +31,8 @@ import {
   getSelectedHeatmapKeys,
   heatmapCellKey,
   heatmapValueId,
+  isTemporalColumn,
+  resolveColumn,
   toJsonSafeFilterValue,
 } from '../../src/Heatmap/crossFilter';
 
@@ -116,6 +122,85 @@ describe('toJsonSafeFilterValue', () => {
   });
 });
 
+describe('resolveColumn', () => {
+  test('returns col if col is undefined', () => {
+    expect(resolveColumn(undefined, 'ds')).toBeUndefined();
+  });
+
+  test('returns col when col is not DTTM_ALIAS', () => {
+    expect(resolveColumn('country', 'ds')).toBe('country');
+  });
+
+  test('resolves DTTM_ALIAS to granularitySqla when provided', () => {
+    expect(resolveColumn(DTTM_ALIAS, 'ds')).toBe('ds');
+  });
+
+  test('returns DTTM_ALIAS when granularitySqla is undefined', () => {
+    expect(resolveColumn(DTTM_ALIAS, undefined)).toBe(DTTM_ALIAS);
+  });
+
+  test('handles ad-hoc column object', () => {
+    const colObj = {
+      label: 'my_col',
+      sqlExpression: 'my_col',
+      expressionType: 'SQL' as const,
+    };
+    expect(resolveColumn(colObj, 'ds')).toBe(colObj);
+
+    const dttmObj = {
+      label: DTTM_ALIAS,
+      sqlExpression: '__timestamp',
+      expressionType: 'SQL' as const,
+    };
+    expect(resolveColumn(dttmObj, 'ds')).toBe('ds');
+  });
+});
+
+describe('isTemporalColumn', () => {
+  test('returns false for undefined column', () => {
+    expect(isTemporalColumn(undefined)).toBe(false);
+  });
+
+  test('returns true for DTTM_ALIAS', () => {
+    expect(isTemporalColumn(DTTM_ALIAS)).toBe(true);
+    expect(
+      isTemporalColumn({
+        label: DTTM_ALIAS,
+        sqlExpression: '__timestamp',
+        expressionType: 'SQL' as const,
+      }),
+    ).toBe(true);
+  });
+
+  test('returns true when coltypeMapping maps column to GenericDataType.Temporal', () => {
+    expect(
+      isTemporalColumn('order_date', {
+        order_date: GenericDataType.Temporal,
+      }),
+    ).toBe(true);
+  });
+
+  test('returns true when granularitySqla matches column name or is in coltypeMapping', () => {
+    expect(isTemporalColumn('ds', {}, 'ds')).toBe(true);
+    expect(
+      isTemporalColumn('other_col', { ds: GenericDataType.Temporal }, 'ds'),
+    ).toBe(true);
+  });
+
+  test('returns false for categorical or numeric columns', () => {
+    expect(
+      isTemporalColumn('country', {
+        country: GenericDataType.String,
+      }),
+    ).toBe(false);
+    expect(
+      isTemporalColumn('count', {
+        count: GenericDataType.Numeric,
+      }),
+    ).toBe(false);
+  });
+});
+
 describe('formatHeatmapValue', () => {
   test('formats null, undefined, and empty string distinctly', () => {
     expect(formatHeatmapValue(null)).toBe('<NULL>');
@@ -134,6 +219,21 @@ describe('formatHeatmapValue', () => {
       order_date: GenericDataType.Temporal,
     });
     const expected = getTimeFormatter()(new Date(epoch));
+    expect(formatted).toBe(expected);
+  });
+
+  test('formats temporal columns using timeFormatter with timeGrain', () => {
+    const epoch = Date.parse('2024-01-02T00:00:00.000Z');
+    const formatted = formatHeatmapValue(
+      epoch,
+      'order_date',
+      { order_date: GenericDataType.Temporal },
+      TimeGranularity.MONTH,
+    );
+    const expected = getTimeFormatter(
+      undefined,
+      TimeGranularity.MONTH,
+    )(new Date(epoch));
     expect(formatted).toBe(expected);
   });
 });
@@ -231,6 +331,24 @@ describe('getHeatmapCrossFilterDataMask', () => {
     expect(result.dataMask.filterState.label).toBe('<NULL> (9)');
   });
 
+  test('null value on temporal axis emits IS NULL clause', () => {
+    const result = getHeatmapCrossFilterDataMask({
+      xColumn: 'order_date',
+      yColumn: 'hour',
+      xValue: null,
+      yValue: 9,
+      selectedKeys: [],
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+      timeGrain: TimeGranularity.MONTH,
+    });
+
+    expect(result.dataMask.extraFormData.filters).toEqual([
+      { col: 'order_date', op: 'IS NULL' },
+      { col: 'hour', op: 'IN', val: [9] },
+    ]);
+    expect(result.dataMask.extraFormData).not.toHaveProperty('time_range');
+  });
+
   test('bigint value is serialized to string in IN filter and JSON stringify safe', () => {
     const result = getHeatmapCrossFilterDataMask({
       xColumn: 'entity_id',
@@ -276,6 +394,143 @@ describe('getHeatmapCrossFilterDataMask', () => {
       { col: 'hour', op: 'IN', val: [16] },
     ]);
     expect(result.dataMask.filterState.label).toBe('Friday (16)');
+  });
+
+  test('cross-filter on temporal axis with timeGrain emits TEMPORAL_RANGE and sets extraFormData.time_range', () => {
+    const result = getHeatmapCrossFilterDataMask({
+      xColumn: 'order_date',
+      yColumn: 'channel',
+      xValue: '2024-01-01T00:00:00',
+      yValue: 'web',
+      selectedKeys: [],
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+      timeGrain: TimeGranularity.MONTH,
+    });
+
+    const expectedRange = '2024-01-01T00:00:00 : 2024-02-01T00:00:00';
+    const expectedKey = heatmapCellKey('2024-01-01T00:00:00', 'web');
+    expect(result.dataMask).toEqual({
+      extraFormData: {
+        filters: [
+          { col: 'order_date', op: 'TEMPORAL_RANGE', val: expectedRange },
+          { col: 'channel', op: 'IN', val: ['web'] },
+        ],
+        time_range: expectedRange,
+      },
+      filterState: {
+        label: expect.any(String),
+        value: expect.any(String),
+        selectedValues: [expectedKey],
+      },
+    });
+  });
+
+  test('cross-filter toggle on temporal axis clears filter and time_range', () => {
+    const key = heatmapCellKey('2024-01-01T00:00:00', 'web');
+    const result = getHeatmapCrossFilterDataMask({
+      xColumn: 'order_date',
+      yColumn: 'channel',
+      xValue: '2024-01-01T00:00:00',
+      yValue: 'web',
+      selectedKeys: [key],
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+      timeGrain: TimeGranularity.MONTH,
+    });
+
+    expect(result.isCurrentValueSelected).toBe(true);
+    expect(result.dataMask).toEqual({
+      extraFormData: {
+        filters: [],
+      },
+      filterState: {
+        label: null,
+        value: null,
+        selectedValues: null,
+      },
+    });
+    expect(result.dataMask.extraFormData).not.toHaveProperty('time_range');
+  });
+
+  test('cross-filter on temporal axis without timeGrain falls back to op: IN and does not set time_range', () => {
+    const result = getHeatmapCrossFilterDataMask({
+      xColumn: 'order_date',
+      yColumn: 'channel',
+      xValue: '2024-01-01T00:00:00',
+      yValue: 'web',
+      selectedKeys: [],
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+    });
+
+    expect(result.dataMask.extraFormData).toEqual({
+      filters: [
+        { col: 'order_date', op: 'IN', val: ['2024-01-01T00:00:00'] },
+        { col: 'channel', op: 'IN', val: ['web'] },
+      ],
+    });
+    expect(result.dataMask.extraFormData).not.toHaveProperty('time_range');
+  });
+
+  test('cross-filter on DTTM_ALIAS resolves to granularitySqla', () => {
+    const result = getHeatmapCrossFilterDataMask({
+      xColumn: DTTM_ALIAS,
+      yColumn: 'channel',
+      xValue: '2024-01-01T00:00:00',
+      yValue: 'web',
+      selectedKeys: [],
+      granularitySqla: 'order_date',
+      timeGrain: TimeGranularity.MONTH,
+    });
+
+    const expectedRange = '2024-01-01T00:00:00 : 2024-02-01T00:00:00';
+    expect(result.dataMask.extraFormData.filters).toEqual([
+      { col: 'order_date', op: 'TEMPORAL_RANGE', val: expectedRange },
+      { col: 'channel', op: 'IN', val: ['web'] },
+    ]);
+    expect(result.dataMask.extraFormData.time_range).toBe(expectedRange);
+  });
+
+  test('mixed temporal X and categorical Y emits TEMPORAL_RANGE for X, IN for Y, and sets time_range', () => {
+    const result = getHeatmapCrossFilterDataMask({
+      xColumn: 'order_date',
+      yColumn: 'device',
+      xValue: '2024-01-01T00:00:00',
+      yValue: 'mobile',
+      selectedKeys: [],
+      coltypeMapping: {
+        order_date: GenericDataType.Temporal,
+        device: GenericDataType.String,
+      },
+      timeGrain: TimeGranularity.DAY,
+    });
+
+    const expectedRange = '2024-01-01T00:00:00 : 2024-01-02T00:00:00';
+    expect(result.dataMask.extraFormData.filters).toEqual([
+      { col: 'order_date', op: 'TEMPORAL_RANGE', val: expectedRange },
+      { col: 'device', op: 'IN', val: ['mobile'] },
+    ]);
+    expect(result.dataMask.extraFormData.time_range).toBe(expectedRange);
+  });
+
+  test('mixed categorical X and temporal Y emits IN for X, TEMPORAL_RANGE for Y, and sets time_range', () => {
+    const result = getHeatmapCrossFilterDataMask({
+      xColumn: 'device',
+      yColumn: 'order_date',
+      xValue: 'mobile',
+      yValue: '2024-01-01T00:00:00',
+      selectedKeys: [],
+      coltypeMapping: {
+        order_date: GenericDataType.Temporal,
+        device: GenericDataType.String,
+      },
+      timeGrain: TimeGranularity.DAY,
+    });
+
+    const expectedRange = '2024-01-01T00:00:00 : 2024-01-02T00:00:00';
+    expect(result.dataMask.extraFormData.filters).toEqual([
+      { col: 'device', op: 'IN', val: ['mobile'] },
+      { col: 'order_date', op: 'TEMPORAL_RANGE', val: expectedRange },
+    ]);
+    expect(result.dataMask.extraFormData.time_range).toBe(expectedRange);
   });
 });
 
@@ -437,6 +692,68 @@ describe('getHeatmapDrillFilters', () => {
       { col: 'day_of_week', op: '==', val: 'Monday', formattedVal: 'Monday' },
       { col: 'hour', op: '==', val: 9, formattedVal: '9' },
     ]);
+  });
+
+  test('drill to detail on temporal axis with timeGrain emits equality filter carrying grain, val: bucket.getTime(), and formattedVal', () => {
+    const epoch = Date.parse('2024-01-01T00:00:00.000Z');
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'order_date',
+      yColumn: 'channel',
+      xValue: epoch,
+      yValue: 'web',
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+      timeGrain: TimeGranularity.MONTH,
+    });
+
+    expect(filters[0]).toEqual({
+      col: 'order_date',
+      op: '==',
+      val: epoch,
+      grain: TimeGranularity.MONTH,
+      formattedVal: expect.any(String),
+    });
+    expect(filters[1]).toEqual({
+      col: 'channel',
+      op: '==',
+      val: 'web',
+      formattedVal: 'web',
+    });
+  });
+
+  test('drill to detail on temporal axis without timeGrain emits equality filter with naive ISO datetime in val', () => {
+    const epoch = Date.parse('2024-01-01T00:00:00.000Z');
+    const filters = getHeatmapDrillFilters({
+      xColumn: 'order_date',
+      yColumn: 'channel',
+      xValue: epoch,
+      yValue: 'web',
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+    });
+
+    expect(filters[0]).toEqual({
+      col: 'order_date',
+      op: '==',
+      val: '2024-01-01T00:00:00',
+      formattedVal: expect.any(String),
+    });
+  });
+
+  test('drill to detail on DTTM_ALIAS resolves to granularitySqla', () => {
+    const epoch = Date.parse('2024-01-01T00:00:00.000Z');
+    const filters = getHeatmapDrillFilters({
+      xColumn: DTTM_ALIAS,
+      yColumn: 'channel',
+      xValue: epoch,
+      yValue: 'web',
+      granularitySqla: 'order_date',
+      timeGrain: TimeGranularity.MONTH,
+    });
+
+    expect(filters[0]).toMatchObject({
+      col: 'order_date',
+      grain: TimeGranularity.MONTH,
+      val: epoch,
+    });
   });
 });
 
@@ -617,6 +934,68 @@ describe('getHeatmapDrillByFilters', () => {
         },
       ],
       groupbyFieldName: 'groupby',
+    });
+  });
+
+  test('drill by on temporal axis with timeGrain uses getTemporalBucketDrillByFilter for xAxisFilters', () => {
+    const epoch = Date.parse('2024-01-01T00:00:00.000Z');
+    const drillBy = getHeatmapDrillByFilters({
+      xColumn: 'order_date',
+      yColumn: 'channel',
+      xValue: epoch,
+      yValue: 'web',
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+      timeGrain: TimeGranularity.MONTH,
+    });
+
+    expect(drillBy.xAxisFilters[0]).toEqual({
+      col: 'order_date',
+      op: '==',
+      val: epoch,
+      grain: TimeGranularity.MONTH,
+      formattedVal: expect.any(String),
+    });
+    expect(drillBy.filters[0]).toEqual({
+      col: 'channel',
+      op: '==',
+      val: 'web',
+      formattedVal: 'web',
+    });
+  });
+
+  test('drill by on temporal axis without timeGrain uses getTemporalBucketDrillByFilter with naive datetime', () => {
+    const epoch = Date.parse('2024-01-01T00:00:00.000Z');
+    const drillBy = getHeatmapDrillByFilters({
+      xColumn: 'order_date',
+      yColumn: 'channel',
+      xValue: epoch,
+      yValue: 'web',
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+    });
+
+    expect(drillBy.xAxisFilters[0]).toEqual({
+      col: 'order_date',
+      op: '==',
+      val: '2024-01-01T00:00:00',
+      formattedVal: expect.any(String),
+    });
+  });
+
+  test('drill by on DTTM_ALIAS resolves to granularitySqla', () => {
+    const epoch = Date.parse('2024-01-01T00:00:00.000Z');
+    const drillBy = getHeatmapDrillByFilters({
+      xColumn: DTTM_ALIAS,
+      yColumn: 'channel',
+      xValue: epoch,
+      yValue: 'web',
+      granularitySqla: 'order_date',
+      timeGrain: TimeGranularity.MONTH,
+    });
+
+    expect(drillBy.xAxisFilters[0]).toMatchObject({
+      col: 'order_date',
+      grain: TimeGranularity.MONTH,
+      val: epoch,
     });
   });
 });

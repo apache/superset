@@ -19,13 +19,21 @@
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   DataRecordValue,
+  DTTM_ALIAS,
   getColumnLabel,
   getTimeFormatter,
   QueryFormColumn,
   QueryObjectFilterClause,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { NULL_STRING } from '../constants';
 import { formatSeriesName } from '../utils/series';
+import {
+  formatNaiveDateTime,
+  getTemporalBucketDrillByFilter,
+  getTimeBucketRange,
+  parseTemporalValue,
+} from '../utils/xAxisDrillByFilter';
 
 export const EMPTY_STRING = '<empty string>';
 
@@ -90,12 +98,66 @@ export function toJsonSafeFilterValue(
 }
 
 /**
- * Formats a dimension value for display on the cross-filter chip.
+ * Resolves virtual timestamp alias to active datasource granularity column.
+ */
+export function resolveColumn(
+  col: QueryFormColumn,
+  granularitySqla?: string,
+): QueryFormColumn;
+export function resolveColumn(
+  col?: QueryFormColumn,
+  granularitySqla?: string,
+): QueryFormColumn | undefined;
+export function resolveColumn(
+  col?: QueryFormColumn,
+  granularitySqla?: string,
+): QueryFormColumn | undefined {
+  if (!col) {
+    return col;
+  }
+  if (getColumnLabel(col) === DTTM_ALIAS && granularitySqla) {
+    return granularitySqla;
+  }
+  return col;
+}
+
+/**
+ * Determines whether a column is temporal using DTTM_ALIAS, type mapping, or granularitySqla.
+ */
+export function isTemporalColumn(
+  col?: QueryFormColumn,
+  coltypeMapping?: Record<string, GenericDataType>,
+  granularitySqla?: string,
+): boolean {
+  if (!col) {
+    return false;
+  }
+  const label = getColumnLabel(col);
+  if (label === DTTM_ALIAS) {
+    return true;
+  }
+  if (coltypeMapping?.[label] === GenericDataType.Temporal) {
+    return true;
+  }
+  if (
+    granularitySqla &&
+    (label === granularitySqla ||
+      coltypeMapping?.[granularitySqla] === GenericDataType.Temporal)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Formats a dimension value for display on the cross-filter chip or drill filter.
  */
 export function formatHeatmapValue(
   value?: DataRecordValue,
   col?: QueryFormColumn | QueryFormColumn[],
   coltypeMapping?: Record<string, GenericDataType>,
+  timeGrain?: TimeGranularity,
+  granularitySqla?: string,
 ): string {
   if (value == null) {
     return NULL_STRING;
@@ -104,25 +166,35 @@ export function formatHeatmapValue(
     return EMPTY_STRING;
   }
   const column = Array.isArray(col) ? col[0] : col;
+  const rawColtype = column
+    ? coltypeMapping?.[getColumnLabel(column)]
+    : undefined;
+  const isTemporal =
+    isTemporalColumn(column, coltypeMapping, granularitySqla) ||
+    rawColtype === GenericDataType.Temporal;
+  const coltype = isTemporal ? GenericDataType.Temporal : rawColtype;
   return formatSeriesName(value, {
-    timeFormatter: getTimeFormatter(),
-    coltype: column ? coltypeMapping?.[getColumnLabel(column)] : undefined,
+    timeFormatter: isTemporal
+      ? getTimeFormatter(undefined, timeGrain)
+      : getTimeFormatter(),
+    coltype,
   });
 }
 
-function dimensionFilter(
-  col: QueryFormColumn,
-  value: DataRecordValue,
-): QueryObjectFilterClause {
-  if (value == null) {
-    return { col, op: 'IS NULL' };
-  }
-  return {
-    col,
-    op: 'IN',
-    val: [toJsonSafeFilterValue(value)],
+export type HeatmapCrossFilterDataMaskResult = {
+  dataMask: {
+    extraFormData: {
+      filters: QueryObjectFilterClause[];
+      time_range?: string;
+    };
+    filterState: {
+      label: string | null;
+      value: string | null;
+      selectedValues: string[] | null;
+    };
   };
-}
+  isCurrentValueSelected: boolean;
+};
 
 export function getHeatmapCrossFilterDataMask({
   xColumn,
@@ -131,6 +203,9 @@ export function getHeatmapCrossFilterDataMask({
   yValue,
   selectedKeys,
   coltypeMapping,
+  timeGrain,
+  timeGrainSqla,
+  granularitySqla,
 }: {
   xColumn?: QueryFormColumn | QueryFormColumn[];
   yColumn?: QueryFormColumn | QueryFormColumn[];
@@ -138,9 +213,16 @@ export function getHeatmapCrossFilterDataMask({
   yValue: DataRecordValue;
   selectedKeys: string[];
   coltypeMapping?: Record<string, GenericDataType>;
-}) {
-  const resolvedXColumn = Array.isArray(xColumn) ? xColumn[0] : xColumn;
-  const resolvedYColumn = Array.isArray(yColumn) ? yColumn[0] : yColumn;
+  timeGrain?: TimeGranularity;
+  timeGrainSqla?: TimeGranularity;
+  granularitySqla?: string;
+}): HeatmapCrossFilterDataMaskResult {
+  const rawXColumn = Array.isArray(xColumn) ? xColumn[0] : xColumn;
+  const rawYColumn = Array.isArray(yColumn) ? yColumn[0] : yColumn;
+  const resolvedXColumn = resolveColumn(rawXColumn, granularitySqla);
+  const resolvedYColumn = resolveColumn(rawYColumn, granularitySqla);
+  const effectiveTimeGrain = timeGrain ?? timeGrainSqla;
+
   const key = heatmapCellKey(xValue, yValue);
   const isCurrentValueSelected = selectedKeys.includes(key);
   const nextKeys = isCurrentValueSelected ? [] : [key];
@@ -148,20 +230,28 @@ export function getHeatmapCrossFilterDataMask({
     xValue,
     resolvedXColumn,
     coltypeMapping,
+    effectiveTimeGrain,
+    granularitySqla,
   );
   const yFormatted = formatHeatmapValue(
     yValue,
     resolvedYColumn,
     coltypeMapping,
+    effectiveTimeGrain,
+    granularitySqla,
   );
   const label = `${xFormatted} (${yFormatted})`;
 
   if (nextKeys.length === 0) {
+    const extraFormData: {
+      filters: QueryObjectFilterClause[];
+      time_range?: string;
+    } = {
+      filters: [],
+    };
     return {
       dataMask: {
-        extraFormData: {
-          filters: [],
-        },
+        extraFormData,
         filterState: {
           label: null,
           value: null,
@@ -172,7 +262,41 @@ export function getHeatmapCrossFilterDataMask({
     };
   }
 
+  function buildCrossFilterClause(
+    col: QueryFormColumn,
+    value: DataRecordValue,
+  ): { filter: QueryObjectFilterClause; timeRange?: string } {
+    if (value == null) {
+      return {
+        filter: { col, op: 'IS NULL' },
+      };
+    }
+    const isTemporal = isTemporalColumn(col, coltypeMapping, granularitySqla);
+    if (isTemporal && effectiveTimeGrain) {
+      const bucketLabel = parseTemporalValue(value);
+      const range = bucketLabel
+        ? getTimeBucketRange(bucketLabel, effectiveTimeGrain)
+        : undefined;
+      if (range) {
+        const val = `${formatNaiveDateTime(range.since)} : ${formatNaiveDateTime(range.until)}`;
+        return {
+          filter: { col, op: 'TEMPORAL_RANGE', val },
+          timeRange: val,
+        };
+      }
+    }
+    return {
+      filter: {
+        col,
+        op: 'IN',
+        val: [toJsonSafeFilterValue(value)],
+      },
+    };
+  }
+
   const filters: QueryObjectFilterClause[] = [];
+  let timeRange: string | undefined;
+
   const isSameColumn =
     resolvedXColumn &&
     resolvedYColumn &&
@@ -180,21 +304,41 @@ export function getHeatmapCrossFilterDataMask({
   const isSameValue = xValue === yValue || (xValue == null && yValue == null);
 
   if (isSameColumn && isSameValue) {
-    filters.push(dimensionFilter(resolvedXColumn, xValue));
+    if (resolvedXColumn) {
+      const clause = buildCrossFilterClause(resolvedXColumn, xValue);
+      filters.push(clause.filter);
+      if (clause.timeRange) {
+        timeRange = clause.timeRange;
+      }
+    }
   } else {
     if (resolvedXColumn) {
-      filters.push(dimensionFilter(resolvedXColumn, xValue));
+      const clauseX = buildCrossFilterClause(resolvedXColumn, xValue);
+      filters.push(clauseX.filter);
+      if (clauseX.timeRange) {
+        timeRange = clauseX.timeRange;
+      }
     }
     if (resolvedYColumn) {
-      filters.push(dimensionFilter(resolvedYColumn, yValue));
+      const clauseY = buildCrossFilterClause(resolvedYColumn, yValue);
+      filters.push(clauseY.filter);
+      if (clauseY.timeRange) {
+        timeRange = timeRange ?? clauseY.timeRange;
+      }
     }
   }
 
+  const extraFormData: {
+    filters: QueryObjectFilterClause[];
+    time_range?: string;
+  } = {
+    filters,
+    ...(timeRange && { time_range: timeRange }),
+  };
+
   return {
     dataMask: {
-      extraFormData: {
-        filters,
-      },
+      extraFormData,
       filterState: {
         label,
         value: label,
@@ -209,17 +353,42 @@ function buildHeatmapDrillFilterClause(
   col: QueryFormColumn,
   value?: DataRecordValue,
   coltypeMapping?: Record<string, GenericDataType>,
+  effectiveTimeGrain?: TimeGranularity,
+  granularitySqla?: string,
 ): QueryObjectFilterClause {
-  const formattedVal = formatHeatmapValue(value, col, coltypeMapping);
+  const resolvedCol = resolveColumn(col, granularitySqla) ?? col;
+  const formattedVal = formatHeatmapValue(
+    value,
+    resolvedCol,
+    coltypeMapping,
+    effectiveTimeGrain,
+    granularitySqla,
+  );
   if (value == null) {
     return {
-      col,
+      col: resolvedCol,
       op: 'IS NULL',
       formattedVal,
     };
   }
+  const isTemporal = isTemporalColumn(
+    resolvedCol,
+    coltypeMapping,
+    granularitySqla,
+  );
+  if (isTemporal) {
+    const temporalFilter = getTemporalBucketDrillByFilter(
+      resolvedCol,
+      value,
+      effectiveTimeGrain,
+      formattedVal,
+    );
+    if (temporalFilter) {
+      return temporalFilter;
+    }
+  }
   return {
-    col,
+    col: resolvedCol,
     op: '==',
     val: toJsonSafeFilterValue(value),
     formattedVal,
@@ -232,15 +401,24 @@ export function getHeatmapDrillFilters({
   xValue,
   yValue,
   coltypeMapping,
+  timeGrain,
+  timeGrainSqla,
+  granularitySqla,
 }: {
   xColumn?: QueryFormColumn | QueryFormColumn[];
   yColumn?: QueryFormColumn | QueryFormColumn[];
   xValue?: DataRecordValue;
   yValue?: DataRecordValue;
   coltypeMapping?: Record<string, GenericDataType>;
+  timeGrain?: TimeGranularity;
+  timeGrainSqla?: TimeGranularity;
+  granularitySqla?: string;
 }): QueryObjectFilterClause[] {
-  const resolvedXColumn = Array.isArray(xColumn) ? xColumn[0] : xColumn;
-  const resolvedYColumn = Array.isArray(yColumn) ? yColumn[0] : yColumn;
+  const rawXColumn = Array.isArray(xColumn) ? xColumn[0] : xColumn;
+  const rawYColumn = Array.isArray(yColumn) ? yColumn[0] : yColumn;
+  const resolvedXColumn = resolveColumn(rawXColumn, granularitySqla);
+  const resolvedYColumn = resolveColumn(rawYColumn, granularitySqla);
+  const effectiveTimeGrain = timeGrain ?? timeGrainSqla;
 
   const filters: QueryObjectFilterClause[] = [];
   const isSameColumn =
@@ -250,18 +428,38 @@ export function getHeatmapDrillFilters({
   const isSameValue = xValue === yValue || (xValue == null && yValue == null);
 
   if (isSameColumn && isSameValue) {
-    filters.push(
-      buildHeatmapDrillFilterClause(resolvedXColumn, xValue, coltypeMapping),
-    );
+    if (resolvedXColumn) {
+      filters.push(
+        buildHeatmapDrillFilterClause(
+          resolvedXColumn,
+          xValue,
+          coltypeMapping,
+          effectiveTimeGrain,
+          granularitySqla,
+        ),
+      );
+    }
   } else {
     if (resolvedXColumn) {
       filters.push(
-        buildHeatmapDrillFilterClause(resolvedXColumn, xValue, coltypeMapping),
+        buildHeatmapDrillFilterClause(
+          resolvedXColumn,
+          xValue,
+          coltypeMapping,
+          effectiveTimeGrain,
+          granularitySqla,
+        ),
       );
     }
     if (resolvedYColumn) {
       filters.push(
-        buildHeatmapDrillFilterClause(resolvedYColumn, yValue, coltypeMapping),
+        buildHeatmapDrillFilterClause(
+          resolvedYColumn,
+          yValue,
+          coltypeMapping,
+          effectiveTimeGrain,
+          granularitySqla,
+        ),
       );
     }
   }
@@ -275,31 +473,52 @@ export function getHeatmapDrillByFilters({
   xValue,
   yValue,
   coltypeMapping,
+  timeGrain,
+  timeGrainSqla,
+  granularitySqla,
 }: {
   xColumn?: QueryFormColumn | QueryFormColumn[];
   yColumn?: QueryFormColumn | QueryFormColumn[];
   xValue?: DataRecordValue;
   yValue?: DataRecordValue;
   coltypeMapping?: Record<string, GenericDataType>;
+  timeGrain?: TimeGranularity;
+  timeGrainSqla?: TimeGranularity;
+  granularitySqla?: string;
 }): {
   filters: QueryObjectFilterClause[];
   xAxisFilters: QueryObjectFilterClause[];
   groupbyFieldName: string;
 } {
-  const resolvedXColumn = Array.isArray(xColumn) ? xColumn[0] : xColumn;
-  const resolvedYColumn = Array.isArray(yColumn) ? yColumn[0] : yColumn;
+  const rawXColumn = Array.isArray(xColumn) ? xColumn[0] : xColumn;
+  const rawYColumn = Array.isArray(yColumn) ? yColumn[0] : yColumn;
+  const resolvedXColumn = resolveColumn(rawXColumn, granularitySqla);
+  const resolvedYColumn = resolveColumn(rawYColumn, granularitySqla);
+  const effectiveTimeGrain = timeGrain ?? timeGrainSqla;
 
   const filters: QueryObjectFilterClause[] = [];
   if (resolvedYColumn) {
     filters.push(
-      buildHeatmapDrillFilterClause(resolvedYColumn, yValue, coltypeMapping),
+      buildHeatmapDrillFilterClause(
+        resolvedYColumn,
+        yValue,
+        coltypeMapping,
+        effectiveTimeGrain,
+        granularitySqla,
+      ),
     );
   }
 
   const xAxisFilters: QueryObjectFilterClause[] = [];
   if (resolvedXColumn) {
     xAxisFilters.push(
-      buildHeatmapDrillFilterClause(resolvedXColumn, xValue, coltypeMapping),
+      buildHeatmapDrillFilterClause(
+        resolvedXColumn,
+        xValue,
+        coltypeMapping,
+        effectiveTimeGrain,
+        granularitySqla,
+      ),
     );
   }
 
