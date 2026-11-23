@@ -88,7 +88,7 @@ def test_apply_conditional_formatting_writes_cell_is_rule() -> None:
     rules = _cf_rules(result)
     assert len(rules) == 1
     cf_range, rule = rules[0]
-    assert "A2" in cf_range
+    assert cf_range == "A2:A4"
     assert rule.type == "cellIs"
     assert rule.operator == "greaterThan"
 
@@ -215,7 +215,7 @@ def test_operator_none_on_text_column_writes_solid_fill() -> None:
         [{"column": "region", "operator": None, "colorScheme": "success"}],
     )
     cf_range, rule = _cf_rules(load_workbook(io.BytesIO(styled)).active)[0]
-    assert "B2" in cf_range
+    assert cf_range == "B2"
     assert rule.type == "expression"
     formula = "".join(str(part) for part in (rule.formula or []))
     assert "NOT(ISBLANK(B2))" in formula
@@ -265,7 +265,7 @@ def test_column_formatting_paints_target_from_source() -> None:
     fills = [(rng, rule) for rng, rule in rules if rule.type == "expression"]
     assert len(fills) == 1
     cf_range, rule = fills[0]
-    assert "B2" in cf_range
+    assert cf_range == "B2:B3"
     formula = "".join(str(part) for part in (rule.formula or []))
     assert "$A2>10" in formula
     assert rule.dxf is not None
@@ -292,8 +292,7 @@ def test_entire_row_formula_uses_source_column() -> None:
         ],
     )
     cf_range, rule = _cf_rules(load_workbook(io.BytesIO(styled)).active)[0]
-    assert "A2" in cf_range
-    assert "B" in cf_range
+    assert cf_range == "A2:B3"
     assert rule.type == "expression"
     formula = "".join(str(part) for part in (rule.formula or []))
     assert "$A2>20" in formula
@@ -316,7 +315,7 @@ def test_to_all_row_matches_entire_row() -> None:
     )
     cf_range, rule = _cf_rules(load_workbook(io.BytesIO(styled)).active)[0]
     assert rule.type == "expression"
-    assert "B" in cf_range
+    assert cf_range == "A2:B3"
     formula = "".join(str(part) for part in (rule.formula or []))
     assert "$A2>20" in formula
 
@@ -413,6 +412,7 @@ def test_use_gradient_greater_than_writes_color_scale() -> None:
     assert scale.colorScale.cfvo[0].type == "num"
     assert float(scale.colorScale.cfvo[0].val) == 1
     assert scale.colorScale.cfvo[1].type == "max"
+    assert scale.colorScale.cfvo[1].val is None
     colors = [str(color.rgb) for color in scale.colorScale.color]
     assert colors[0].endswith("FFFFFF")
     assert colors[1].endswith("5AC189")
@@ -494,7 +494,7 @@ def test_rule_matches_verbose_column_header() -> None:
     )
     rules = _cf_rules(load_workbook(io.BytesIO(styled)).active)
     assert len(rules) == 1
-    assert "A2" in rules[0][0]
+    assert rules[0][0] == "A2"
 
 
 @pytest.mark.parametrize(
@@ -574,7 +574,7 @@ def test_range_operator_writes_formula_rule() -> None:
         ],
     )
     cf_range, rule = _cf_rules(load_workbook(io.BytesIO(styled)).active)[0]
-    assert "A2" in cf_range
+    assert cf_range == "A2"
     assert rule.type == "expression"
     formula = "".join(str(part) for part in (rule.formula or []))
     assert "AND(" in formula
@@ -625,7 +625,7 @@ def test_pivot_sum_header_matches_rule_column() -> None:
     )
     rules = _cf_rules(load_workbook(io.BytesIO(styled)).active)
     assert len(rules) == 1
-    assert "A2" in rules[0][0]
+    assert rules[0][0] == "A2"
 
 
 def test_cell_bar_range_operator_covers_contiguous_matches() -> None:
@@ -748,7 +748,7 @@ def test_polish_explore_xlsx_table_cf_on_xlsxwriter_workbook() -> None:
     assert len(rules) == 1
     assert rules[0][1].type == "cellIs"
     assert rules[0][1].operator == "greaterThan"
-    assert "A2" in rules[0][0]
+    assert rules[0][0] == "A2:A4"
     assert sheet["A2"].number_format == "#,##0.0"
     assert sheet["A2"].alignment.horizontal == "right"
     assert sheet["B2"].alignment.horizontal is None
@@ -835,7 +835,7 @@ def test_polish_explore_xlsx_sales_rule_paints_region() -> None:
     fills = [(rng, rule) for rng, rule in rules if rule.type == "expression"]
     assert len(fills) == 1
     cf_range, rule = fills[0]
-    assert "A2" in cf_range
+    assert cf_range == "A2:A3"
     formula = "".join(str(part) for part in (rule.formula or []))
     assert "$B2>10" in formula
     data_bars = [rng for rng, cf_rule in rules if cf_rule.type == "dataBar"]

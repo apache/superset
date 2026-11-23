@@ -133,6 +133,7 @@ def d3_time_to_excel(d3_time_format: str | None) -> str | None:
 
 
 def _currency_excel_format(number_body: str, currency: Mapping[str, Any] | None) -> str:
+    """Prefix or suffix an Excel currency symbol onto a numeric format body."""
     if not currency:
         return number_body
     code = str(currency.get("symbol") or "")

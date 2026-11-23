@@ -32,6 +32,7 @@ from superset.utils.excel_display import (
 
 
 def test_d3_number_to_excel_common_specifiers() -> None:
+    """Common d3 number formats map to Excel numFmt, including currency wrappers."""
     assert d3_number_to_excel(",.2f") == "#,##0.00"
     assert d3_number_to_excel(".0%") == "0%"
     assert d3_number_to_excel(",.1%") == "#,##0.0%"
@@ -49,6 +50,7 @@ def test_d3_number_to_excel_common_specifiers() -> None:
 
 
 def test_d3_time_to_excel_common_patterns() -> None:
+    """Common strftime patterns map to Excel date formats; unsupported stay None."""
     assert d3_time_to_excel("%Y-%m-%d") == "yyyy-mm-dd"
     assert d3_time_to_excel("%Y-%m-%d %H:%M:%S") == "yyyy-mm-dd hh:mm:ss"
     assert d3_time_to_excel("%d/%m/%Y") == "dd/mm/yyyy"
@@ -56,6 +58,7 @@ def test_d3_time_to_excel_common_patterns() -> None:
 
 
 def test_styles_from_table_form_data_generated_config() -> None:
+    """Table column_config yields number formats and alignment only for listed headers."""
     styles = styles_from_table_form_data(
         ["revenue", "when"],
         {
@@ -132,6 +135,7 @@ def test_attach_datasource_formats_fills_omitted_chart_maps() -> None:
 
 
 def test_styles_from_pivot_form_data_matches_flattened_metric() -> None:
+    """Per-metric columnFormats win over valueFormat on flattened pivot headers."""
     styles = styles_from_pivot_form_data(
         ["2024 SUM(num)", "state"],
         {"valueFormat": ".1%", "columnFormats": {"SUM(num)": ",.0f"}},
@@ -140,6 +144,7 @@ def test_styles_from_pivot_form_data_matches_flattened_metric() -> None:
 
 
 def test_apply_column_display_on_generated_workbook() -> None:
+    """Number formats and horizontal alignment are stamped onto matching data cells."""
     workbook = Workbook()
     sheet = workbook.active
     sheet["A1"] = "revenue"
@@ -164,6 +169,7 @@ def test_apply_column_display_on_generated_workbook() -> None:
 
 
 def test_apply_column_display_formats_datetimes() -> None:
+    """Datetime cells keep their value and receive the configured Excel date format."""
     workbook = Workbook()
     sheet = workbook.active
     sheet["A1"] = "ds"

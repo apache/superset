@@ -162,10 +162,12 @@ def _hex_rgb(color: Any) -> Optional[str]:
 
 
 def _rule_color(rule: dict[str, Any]) -> str:
+    """Resolve the rule colorScheme to RGB, falling back to Explore success green."""
     return _hex_rgb(rule.get("colorScheme")) or _DEFAULT_RULE_COLOR
 
 
 def _as_number(value: Any) -> Optional[float]:
+    """Parse a chart comparison target or cell value as float; None if not numeric."""
     if isinstance(value, bool) or value in (None, ""):
         return None
     if isinstance(value, (int, float)):
@@ -256,6 +258,7 @@ def _rule_column_aliases(
 
 
 def _header_at(sheet: Worksheet, header_row: int, col_idx: int) -> str:
+    """Return the nearest non-empty header cell above the data for a column."""
     for row in range(header_row, 0, -1):
         value = sheet.cell(row=row, column=col_idx).value
         if value not in (None, ""):
@@ -269,6 +272,7 @@ def _column_index(
     column: str,
     verbose_map: Optional[Mapping[str, Any]] = None,
 ) -> Optional[int]:
+    """1-based sheet column index for a rule column name, or None if missing."""
     aliases = _rule_column_aliases(column, verbose_map)
     for col_idx in range(1, sheet.max_column + 1):
         header_label = _header_at(sheet, header_row, col_idx)
@@ -325,6 +329,7 @@ def _data_bar_color(color_pn: bool) -> str:
 
 
 def _column_config_enables_bars(column_config: Optional[Mapping[str, Any]]) -> bool:
+    """True when any column opts into cell bars while the global toggle is off."""
     if not isinstance(column_config, dict):
         return False
     return any(
@@ -334,6 +339,7 @@ def _column_config_enables_bars(column_config: Optional[Mapping[str, Any]]) -> b
 
 
 def _data_range(sheet: Worksheet, col_idx: int, header_row: int) -> Optional[str]:
+    """Excel A1 range covering all data rows of one column below the header."""
     last_row = sheet.max_row
     first_row = header_row + 1
     if last_row < first_row:
@@ -343,6 +349,7 @@ def _data_range(sheet: Worksheet, col_idx: int, header_row: int) -> Optional[str
 
 
 def _used_data_range(sheet: Worksheet, header_row: int) -> Optional[str]:
+    """Excel A1 range covering the full used data rectangle below the header."""
     first_row = header_row + 1
     last_row = sheet.max_row
     last_col = sheet.max_column
@@ -368,6 +375,7 @@ def _paint_column_name(rule: dict[str, Any]) -> Optional[str]:
 
 
 def _cell_ref(col_idx: int, row: int, *, abs_col: bool = False) -> str:
+    """Build an A1 cell reference, optionally absolute on the column."""
     letter = get_column_letter(col_idx)
     return f"${letter}{row}" if abs_col else f"{letter}{row}"
 
@@ -394,6 +402,7 @@ def _condition_formula(source_ref: str, rule: dict[str, Any]) -> Optional[str]:
 
 
 def _solid_fill(rgb: str) -> PatternFill:
+    """Solid PatternFill for background conditional formatting."""
     return PatternFill(start_color=rgb, end_color=rgb, fill_type="solid")
 
 
@@ -405,6 +414,7 @@ def _add_formula_rule(
     *,
     text_color: bool,
 ) -> None:
+    """Attach a FormulaRule with fill or font color to ``cell_range``."""
     fill = None if text_color else _solid_fill(rgb)
     font = Font(color=rgb) if text_color else None
     sheet.conditional_formatting.add(
@@ -422,6 +432,7 @@ def _add_cell_is_rule(
     *,
     text_color: bool,
 ) -> None:
+    """Attach a CellIsRule with fill or font color to ``cell_range``."""
     fill = None if text_color else _solid_fill(rgb)
     font = Font(color=rgb) if text_color else None
     sheet.conditional_formatting.add(
@@ -431,6 +442,7 @@ def _add_cell_is_rule(
 
 
 def _add_data_bar(sheet: Worksheet, cell_range: str, rgb: str) -> None:
+    """Attach a native Excel data-bar rule to ``cell_range``."""
     sheet.conditional_formatting.add(
         cell_range,
         DataBarRule(
@@ -536,6 +548,7 @@ def _resolve_paint_target(
 def _apply_color_scale(
     sheet: Worksheet, cell_range: str, rule: dict[str, Any], rgb: str
 ) -> None:
+    """Two-color scale using configured minBound/maxBound, else sheet min/max."""
     min_bound = _as_number(rule.get("minBound"))
     max_bound = _as_number(rule.get("maxBound"))
     start_type = "num" if min_bound is not None else "min"
@@ -585,6 +598,7 @@ def _blend_with_white(rgb: str, opacity: float) -> str:
 def _column_numeric_extent(
     sheet: Worksheet, col_idx: int, header_row: int
 ) -> tuple[Optional[float], Optional[float]]:
+    """Min and max numeric values in a column below the header row."""
     low: Optional[float] = None
     high: Optional[float] = None
     for row in range(header_row + 1, sheet.max_row + 1):
@@ -599,6 +613,7 @@ def _column_numeric_extent(
 def _pair_or_none(
     cutoff: Optional[float], extreme: Optional[float]
 ) -> Optional[tuple[float, float]]:
+    """Return ``(cutoff, extreme)`` only when both ends are numeric."""
     if cutoff is None or extreme is None:
         return None
     return cutoff, extreme
@@ -649,14 +664,15 @@ def _apply_operator_color_scale(
         if target is None:
             return False
         max_bound = _as_number(rule.get("maxBound"))
+        end_type = "num" if max_bound is not None else "max"
         sheet.conditional_formatting.add(
             cell_range,
             ColorScaleRule(
                 start_type="num",
                 start_value=target,
                 start_color=_SCALE_LOW,
-                end_type="num" if max_bound is not None else "max",
-                end_value=max_bound,
+                end_type=end_type,
+                end_value=max_bound if end_type == "num" else None,
                 end_color=rgb,
             ),
         )
@@ -666,11 +682,12 @@ def _apply_operator_color_scale(
         if target is None:
             return False
         min_bound = _as_number(rule.get("minBound"))
+        start_type = "num" if min_bound is not None else "min"
         sheet.conditional_formatting.add(
             cell_range,
             ColorScaleRule(
-                start_type="num" if min_bound is not None else "min",
-                start_value=min_bound,
+                start_type=start_type,
+                start_value=min_bound if start_type == "num" else None,
                 start_color=rgb,
                 end_type="num",
                 end_value=target,
@@ -767,6 +784,7 @@ def _apply_fill_or_scale(
     rgb: str,
     text_color: bool,
 ) -> None:
+    """Apply gradient, CellIs, Formula, or color-scale fill for one CF rule."""
     operator = rule.get("operator")
     same_column = paint_idx is not None and paint_idx == source_idx
     source_ref = _cell_ref(source_idx, header_row + 1, abs_col=not same_column)
@@ -818,6 +836,7 @@ def _apply_rule(
     rule: dict[str, Any],
     verbose_map: Optional[Mapping[str, Any]] = None,
 ) -> None:
+    """Resolve paint target and stamp one Explore conditional-formatting rule."""
     column = rule.get("column")
     if not isinstance(column, str) or not column:
         return
@@ -846,6 +865,7 @@ def _apply_rule(
 
 
 def _is_numeric_header(sheet: Worksheet, col_idx: int, header_row: int) -> bool:
+    """True when the first non-empty sample cells look numeric (not dates/text)."""
     sample_last = min(sheet.max_row, header_row + _NUMERIC_SAMPLE_ROWS)
     for row in range(header_row + 1, sample_last + 1):
         cell = sheet.cell(row=row, column=col_idx)
@@ -873,6 +893,7 @@ def _columns_skipping_default_bars(
     rules: list[dict[str, Any]],
     verbose_map: Optional[Mapping[str, Any]] = None,
 ) -> set[int]:
+    """Columns that already have background/CELL_BAR CF and must not get default bars."""
     skipped: set[int] = set()
     for rule in rules:
         if not isinstance(rule, dict) or not _rule_hides_default_bars(rule):
