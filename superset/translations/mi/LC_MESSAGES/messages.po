@@ -275,6 +275,16 @@ msgstr ""
 "Kāore e taea te whakamahi i te %(dialect)s hei puna raraunga mō ngā take "
 "haumaru."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s, %(lastSuggestion)s rānei hei utu mō "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "kōnae %(label)s"
@@ -379,15 +389,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d rārangi i whakahokia mai"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(lastSuggestion)s hei utu mō \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s, %(lastSuggestion)s rānei hei utu mō "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s hei utu mō \"%(undefinedParameter)s\"?"
 
 # Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
 # placeholder]
@@ -6321,7 +6326,7 @@ msgstr "HAK"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "MUKU"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10114,7 +10119,7 @@ msgstr "Whakarerekē atu me pēhea te whakaatu i ia ine"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "RŌPŪ MĀ"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10332,6 +10337,7 @@ msgstr "Kāore e taea e te kaiwhakamahi manuhiri te whakarereke i te uta kauwhat
 msgid "HTTP Path"
 msgstr "Ara HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12868,7 +12874,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "KĀORE I RŌPŪNGIA MĀ"
+msgstr ""
 
 msgid "NOV"
 msgstr "WHI"
@@ -13687,7 +13693,7 @@ msgstr "rānei"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "TUHIRUA"
+msgstr ""
 
 msgid "October"
 msgstr "Oketopa"
@@ -25584,7 +25590,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "pākurutete"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25880,7 +25886,7 @@ msgstr "urunga"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "karere_hapa"
+msgstr ""
 
 msgid "every"
 msgstr "ia"
@@ -26273,9 +26279,8 @@ msgid "permalink state not found"
 msgstr "kāore i kitea te tūnga hononga-ā-mau"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Māmā"
+msgstr ""
 
 msgid "pixels"
 msgstr "pika"

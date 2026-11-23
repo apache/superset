@@ -1230,3 +1230,21 @@ test('Exit fullscreen keeps the bare icon footprint and leaves More Options in p
   // another one, which would push the More Options trigger to the right.
   expect(exitButton).not.toHaveClass('superset-button');
 });
+
+test('menu strings the viewer reads use the displayed name', async () => {
+  // The header can show a translation or a panel title override while
+  // slice_name stays canonical for edits and download filenames, so these two
+  // strings have to follow what is on screen rather than the stored name.
+  const props = createProps();
+  renderWrapper({
+    ...props,
+    slice: { ...props.slice, display_name: 'Ventes' },
+  } as SliceHeaderControlsProps);
+  await openMenu();
+
+  await userEvent.hover(screen.getByText('Edit chart'));
+  expect(await screen.findByText(/Click to edit Ventes/)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('View as table'));
+  expect(await screen.findByText('Chart Data: Ventes')).toBeInTheDocument();
+});

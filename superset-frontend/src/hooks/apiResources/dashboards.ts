@@ -29,6 +29,7 @@ export const DASHBOARD_GET_COLUMNS = [
   'url',
   'dashboard_title',
   'description',
+  'localized_title',
   'published',
   'css',
   'theme',
