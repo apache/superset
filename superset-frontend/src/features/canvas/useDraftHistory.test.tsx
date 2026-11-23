@@ -24,6 +24,7 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { canvas } from 'src/core';
 import { useDraftHistory } from './useDraftHistory';
 
 const undoEndpoint = 'glob:*/api/v1/canvas/draft/undo';
@@ -39,13 +40,22 @@ function Harness({
   fetched,
   reload,
   token = 'tok-123',
+  canvasId,
 }: {
   revision: number;
   fetched: { canUndo?: boolean; canRedo?: boolean };
   reload: () => void;
   token?: string;
+  canvasId?: number;
 }) {
-  const history = useDraftHistory(token, revision, fetched, reload);
+  const history = useDraftHistory(
+    token,
+    revision,
+    fetched,
+    reload,
+    undefined,
+    canvasId,
+  );
   return (
     <>
       <output aria-label="Settling">{String(history.settling)}</output>
@@ -362,4 +372,60 @@ test('a step asked for while the last one settles is not sent', async () => {
   await settle();
 
   expect(fetchMock.callHistory.calls()).toHaveLength(1);
+});
+
+test('a step tells the page which widget a recorded step moved', async () => {
+  // A step recorded for a widget's content changes nothing the definition
+  // shows, so its renderer would go on showing what was undone.
+  fetchMock.post(undoEndpoint, {
+    result: {
+      revision: 4,
+      canUndo: true,
+      canRedo: true,
+      steppedWidgetIds: ['w-1'],
+    },
+  });
+  fetchMock.post(redoEndpoint, {
+    result: { revision: 5, canUndo: true, canRedo: false },
+  });
+  const events = jest.fn();
+  const listening = canvas.onDidChangeDraft(events);
+  const reload = jest.fn();
+  const { rerender } = render(
+    <Harness
+      revision={3}
+      fetched={{ canUndo: true }}
+      reload={reload}
+      canvasId={7}
+    />,
+    { useRedux: true },
+  );
+
+  fireEvent.click(undo());
+  await waitFor(() => expect(events).toHaveBeenCalledTimes(1));
+  // The page catches up with the step before the next one is offered.
+  rerender(
+    <Harness
+      revision={4}
+      fetched={{ canUndo: true }}
+      reload={reload}
+      canvasId={7}
+    />,
+  );
+  await waitFor(() => expect(redo()).toBeEnabled());
+  fireEvent.click(redo());
+  await waitFor(() => expect(events).toHaveBeenCalledTimes(2));
+
+  expect(events.mock.calls).toEqual([
+    [
+      {
+        kind: 'undone',
+        canvasId: 7,
+        token: 'tok-123',
+        steppedWidgetIds: ['w-1'],
+      },
+    ],
+    [{ kind: 'redone', canvasId: 7, token: 'tok-123', steppedWidgetIds: [] }],
+  ]);
+  listening.dispose();
 });

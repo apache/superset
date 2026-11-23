@@ -19,14 +19,15 @@
 
 /**
  * @fileoverview Host implementation of the `canvas` extension namespace:
- * widget renderers by type, and the canvas the user has open.
+ * widget renderers by type, the canvas the user has open, what the canvas
+ * page does to its draft, and what is published with a draft.
  */
 
 import { ComponentType, useSyncExternalStore } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
-import { createValueEventEmitter } from '../utils';
+import { createEventEmitter, createValueEventEmitter } from '../utils';
 import type { CanvasRendererProps } from './types';
 
 type WidgetRenderer = ComponentType<CanvasRendererProps>;
@@ -106,8 +107,54 @@ export const setActiveCanvas = (value: canvasApi.ActiveCanvas | undefined) => {
   activeCanvas.fire(value);
 };
 
+const draftChanges = createEventEmitter<canvasApi.CanvasDraftEvent>();
+
+/** Called by the canvas page once it discarded, published or stepped its draft. */
+export const fireDraftEvent = (event: canvasApi.CanvasDraftEvent) =>
+  draftChanges.fire(event);
+
+// Listeners are extensions': one that throws mustn't keep the others from
+// hearing, or the page from finishing the publish or discard it reports.
+const onDidChangeDraft: typeof canvasApi.onDidChangeDraft = (
+  listener,
+  thisArgs,
+) =>
+  draftChanges.subscribe(event => {
+    try {
+      listener.call(thisArgs, event);
+    } catch (error) {
+      logging.error('A canvas draft listener threw; continuing.', error);
+    }
+  });
+
+const publishParticipants = new Set<canvasApi.CanvasPublishParticipant>();
+
+const registerPublishParticipant: typeof canvasApi.registerPublishParticipant =
+  participant => {
+    publishParticipants.add(participant);
+    return new Disposable(() => {
+      publishParticipants.delete(participant);
+    });
+  };
+
+/**
+ * What publishing `draft` also publishes, as every participant answers it.
+ * One that fails fails them all: what it would have published can't be
+ * listed, so nothing may be published.
+ */
+export const preparePublish = async (
+  draft: canvasApi.CanvasDraftPublish,
+): Promise<canvasApi.CanvasPublishPart[]> => {
+  const answers = await Promise.all(
+    [...publishParticipants].map(participant => participant.prepare(draft)),
+  );
+  return answers.flat();
+};
+
 export const canvas: typeof canvasApi = {
   registerWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
+  onDidChangeDraft,
+  registerPublishParticipant,
 };

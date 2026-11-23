@@ -85,6 +85,7 @@ from superset.commands.canvas.exceptions import (
     DefinitionConflictError,
     DefinitionInvalidError,
     DraftConflictError,
+    DraftStepFailedError,
 )
 from superset.commands.canvas.placement_data import GetPlacementDataCommand
 from superset.commands.canvas.restore_version import RestoreCanvasVersionCommand
@@ -220,6 +221,7 @@ def _handle_canvas_errors(
             DefinitionConflictError,
             DefinitionInvalidError,
             DraftConflictError,
+            DraftStepFailedError,
         ) as ex:
             _report_canvas_error(self, ex, ex.status)
             return self.response(ex.status, **ex.to_payload())
@@ -974,13 +976,18 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                       type: integer
           responses:
             200:
-              description: The draft after the step, as the definition response
+              description: >-
+                The draft after the step, as the definition response, with
+                `steppedWidgetIds`: the saved widget whose content a step
+                recorded for it moved, which the step doesn't show otherwise
             400:
               $ref: '#/components/responses/400'
             404:
               $ref: '#/components/responses/404'
             409:
-              description: The draft or the canvas changed
+              description: >-
+                The draft or the canvas changed, or a step recorded for a
+                widget's content couldn't be undone or redone
         """
         return self._rewind_draft(forward=False, report=add_extra_log_payload)
 
@@ -1015,13 +1022,18 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                       type: integer
           responses:
             200:
-              description: The draft after the step, as the definition response
+              description: >-
+                The draft after the step, as the definition response, with
+                `steppedWidgetIds`: the saved widget whose content a step
+                recorded for it moved, which the step doesn't show otherwise
             400:
               $ref: '#/components/responses/400'
             404:
               $ref: '#/components/responses/404'
             409:
-              description: The draft or the canvas changed
+              description: >-
+                The draft or the canvas changed, or a step recorded for a
+                widget's content couldn't be undone or redone
         """
         return self._rewind_draft(forward=True, report=add_extra_log_payload)
 
@@ -1030,11 +1042,24 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
             return self.response(400, message=request_errors(ex))
-        draft = RewindCanvasDraftCommand(
+        command = RewindCanvasDraftCommand(
             _draft_token(), body.revision, forward=forward
-        ).run()
+        )
+        draft = command.run()
         report(canvas_id=draft.canvas_id)
-        return self.response(200, result=draft_payload(draft))
+        recorded = command.recorded
+        return self.response(
+            200,
+            result={
+                **draft_payload(draft),
+                # A step recorded for a widget's content moves nothing the
+                # definition shows, so the page is told which widget to fetch
+                # again.
+                "steppedWidgetIds": (
+                    [recorded.widget_id] if recorded and recorded.widget_id else []
+                ),
+            },
+        )
 
     @expose("/draft/commit", methods=("POST",))
     @protect()

@@ -28,10 +28,17 @@ without a write, and are deleted on commit.
 
 Widgets the draft creates or changes are held with it too, and saved with the
 canvas on commit; a widget created in a draft that is discarded never exists.
+
+A widget whose content lives elsewhere, with a draft of its own, follows the
+canvas draft through ``superset_core.canvas.drafts``: its owner hears of the
+draft's discard, commit, undo and redo (``draft_hooks.emit``), and records its
+own steps in the draft's history, which undo and redo then reach.
 """
 
 from __future__ import annotations
 
+import logging
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -42,8 +49,15 @@ from uuid import UUID, uuid4
 from flask import current_app
 from pydantic import TypeAdapter
 from superset_core.canvas import StoredWidget
+from superset_core.canvas.drafts import (
+    CanvasDraftEvent,
+    DraftEventKind,
+    DraftStep,
+    DraftStepError,
+)
 
 from superset import security_manager
+from superset.canvas import draft_hooks
 from superset.canvas.definition.pending import (
     HidingWidgetResolver,
     pending_from_value,
@@ -66,6 +80,7 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
     DefinitionInvalidError,
     DraftConflictError,
+    DraftStepFailedError,
 )
 from superset.commands.utils import raise_if_managed_externally
 from superset.daos.canvas import CanvasDAO
@@ -75,10 +90,14 @@ from superset.models.canvas import Canvas
 from superset.utils import json
 from superset.utils.core import get_user_id
 
+logger = logging.getLogger(__name__)
+
 KEY_PREFIX = "canvas_draft:"
 # How long a draft write may hold the draft's lock before it lapses.
 DRAFT_LOCK_TIMEOUT_SECONDS = 30
 OPERATIONS = TypeAdapter(list[Operation])
+# Between the attempts of a recorded step to take a draft's write lock.
+RECORD_RETRY_SECONDS = (0.05, 0.1, 0.2, 0.4, 0.8)
 
 
 #: A step read from a draft written before steps were summarised.
@@ -88,6 +107,51 @@ _UNKNOWN_STEP: dict[str, Any] = {"by": "user", "changes": []}
 #: the two callers are told apart at the door rather than guessed at later.
 BY_USER = "user"
 BY_AI = "ai"
+
+#: Where a step that ``record_step`` added keeps what its handler needs.
+RECORDED = "recorded"
+
+
+def _recorded_value(step: DraftStep) -> dict[str, Any]:
+    value: dict[str, Any] = {
+        "kind": step.kind,
+        "payload": dict(step.payload),
+        "widgetId": step.widget_id,
+    }
+    try:
+        json.dumps(value)
+    except (TypeError, ValueError) as ex:
+        raise ValueError("A recorded step's payload must be JSON") from ex
+    return value
+
+
+def _recorded_of(step: dict[str, Any]) -> DraftStep | None:
+    """The recorded step ``step`` carries, or ``None`` for the canvas's own."""
+    value = step.get(RECORDED)
+    if not isinstance(value, dict) or not isinstance(value.get("kind"), str):
+        return None
+    widget_id = value.get("widgetId")
+    return DraftStep(
+        kind=value["kind"],
+        payload=value.get("payload") or {},
+        widget_id=widget_id if isinstance(widget_id, str) else None,
+    )
+
+
+def _step_changes(step: dict[str, Any], definition: dict[str, Any]) -> list[Any]:
+    """
+    What ``step`` changed, as the banner lists it. A recorded step names a
+    saved widget rather than a node, so it reads as an edit of each placement
+    that shows the widget now: one placed later is listed then.
+    """
+    recorded = _recorded_of(step)
+    if recorded is None:
+        return step.get("changes") or []
+    return [
+        {"kind": "edited", "nodeId": node_id}
+        for node_id, node in (definition.get("nodes") or {}).items()
+        if recorded.widget_id and node.get("widgetId") == recorded.widget_id
+    ]
 
 
 LAYOUT_OPS = frozenset({"place", "move", "swap"})
@@ -380,8 +444,12 @@ def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
         "changes": [
             {**change, "by": step.get("by", BY_USER)}
             for step in reversed(draft.steps)
-            for change in reversed(step.get("changes") or [])
+            for change in reversed(_step_changes(step, draft.definition))
         ],
+        # Whether the canvas was published since the draft started, which a
+        # commit refuses. Read before publishing anything that has to go with
+        # the canvas, which a refused commit would leave published alone.
+        "canvasChanged": draft.canvas.revision != draft.base_revision,
         # Whether the user has done anything, which is not the same as whether
         # anything is *listed*: an operation with no node to name it after --
         # a canvas setting, say -- is a step that took effect and leaves
@@ -492,6 +560,93 @@ class ApplyCanvasDraftOperationsCommand:
         return draft, logged
 
 
+class RecordCanvasDraftStepCommand:
+    """
+    Add a step that changed a widget's content elsewhere to a draft's history
+    (``superset_core.canvas.drafts.record_step``), so that undo and redo reach
+    it through its handler.
+
+    It changes nothing that replays: its group of operations is empty, as for
+    a request that changed only a widget's props, and the widgets beside it are
+    the draft's as they stand.
+    """
+
+    def __init__(self, token: str, step: DraftStep, by: str = BY_USER) -> None:
+        self._token = token
+        self._step = step
+        self._by = by
+
+    def run(self) -> CanvasDraft:
+        value = _recorded_value(self._step)
+        # The lock turns a second writer away at once, which suits a client
+        # that reloads and tries again. The change this step records has been
+        # made already, elsewhere, so it waits its turn rather than be lost.
+        delays = iter(RECORD_RETRY_SECONDS)
+        while True:
+            try:
+                with _draft_write_lock(self._token):
+                    return self._run(value)
+            except DraftConflictError:
+                if (delay := next(delays, None)) is None:
+                    raise
+                time.sleep(delay)
+
+    def _run(self, value: dict[str, Any]) -> CanvasDraft:
+        draft = load_draft(self._token)
+        draft.ops = [*draft.ops, []]
+        draft.widget_history = [*draft.widget_history, dict(draft.widgets)]
+        draft.steps = [
+            *draft.steps,
+            {"by": self._by, "changes": [], RECORDED: value},
+        ]
+        draft.undone = []
+        draft.revision += 1
+        _save(draft)
+        return draft
+
+
+def _step_recorded(step: DraftStep, token: str, forward: bool) -> None:
+    """
+    Undo or redo a recorded step through its handler. One without a handler,
+    as when its extension is gone, is stepped over.
+    """
+    handler = draft_hooks.step_handler(step.kind)
+    if handler is None:
+        logger.warning("No handler for recorded canvas draft steps of %s", step.kind)
+        return
+    try:
+        if forward:
+            handler.redo(step, token)
+        else:
+            handler.undo(step, token)
+    except DraftStepError as ex:
+        raise DraftStepFailedError(str(ex)) from ex
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.exception("The handler of %s failed", step.kind)
+        raise DraftStepFailedError() from ex
+
+
+def _all_recorded(draft: CanvasDraft) -> tuple[DraftStep, ...]:
+    steps = [*draft.steps, *(step for _ops, _widgets, step in draft.undone)]
+    return tuple(found for step in steps if (found := _recorded_of(step)))
+
+
+def _emit(
+    kind: DraftEventKind,
+    draft: CanvasDraft,
+    steps: tuple[DraftStep, ...],
+) -> None:
+    draft_hooks.emit(
+        CanvasDraftEvent(
+            kind=kind,
+            canvas_id=draft.canvas_id,
+            token=draft.token,
+            widget_ids=frozenset(_placed(draft.definition)),
+            steps=steps,
+        )
+    )
+
+
 @dataclass(frozen=True)
 class CommitResult:
     """The revision written by a commit, or observed while closing an empty draft."""
@@ -520,12 +675,21 @@ class RewindCanvasDraftCommand:
         self._token = token
         self._revision = revision
         self._forward = forward
+        #: The recorded step the last run moved, if it moved one.
+        self.recorded: DraftStep | None = None
 
     def run(self) -> CanvasDraft:
         with _draft_write_lock(self._token):
-            return self._run()
+            draft, stepped = self._run()
+        if stepped:
+            _emit(
+                "redone" if self._forward else "undone",
+                draft,
+                () if self.recorded is None else (self.recorded,),
+            )
+        return draft
 
-    def _run(self) -> CanvasDraft:
+    def _run(self) -> tuple[CanvasDraft, bool]:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision)
@@ -538,7 +702,7 @@ class RewindCanvasDraftCommand:
 
         if self._forward:
             if not draft.can_redo:
-                return draft
+                return draft, False
             group, widgets, step = draft.undone[-1]
             draft.undone = draft.undone[:-1]
             draft.ops = [*draft.ops, group]
@@ -546,14 +710,11 @@ class RewindCanvasDraftCommand:
             draft.steps = [*draft.steps, step]
         else:
             if not draft.can_undo:
-                return draft
+                return draft, False
+            step = draft.steps[-1] if draft.steps else _UNKNOWN_STEP
             draft.undone = [
                 *draft.undone,
-                (
-                    draft.ops[-1],
-                    draft.widget_history[-1],
-                    draft.steps[-1] if draft.steps else _UNKNOWN_STEP,
-                ),
+                (draft.ops[-1], draft.widget_history[-1], step),
             ]
             draft.ops = draft.ops[:-1]
             draft.widget_history = draft.widget_history[:-1]
@@ -566,11 +727,17 @@ class RewindCanvasDraftCommand:
         draft.definition, _ = apply_batches(
             CanvasDAO.load(canvas), batches, draft.widgets, keep_unplaced=True
         )
+        # Last before the save, once nothing of the canvas's own can fail: a
+        # handler that refuses leaves the draft as it was, and one that ran is
+        # never followed by a step the draft doesn't keep.
+        self.recorded = _recorded_of(step)
+        if self.recorded is not None:
+            _step_recorded(self.recorded, self._token, self._forward)
         # Forward, like every other write: the revision is what concurrent
         # writers compare against, so stepping back must still move it on.
         draft.revision += 1
         _save(draft)
-        return draft
+        return draft, True
 
 
 class CommitCanvasDraftCommand:
@@ -586,13 +753,18 @@ class CommitCanvasDraftCommand:
 
     def run(self) -> CommitResult:
         with _draft_write_lock(self._token):
-            return self._run()
+            draft, result = self._run()
+        _emit("committed", draft, _all_recorded(draft))
+        return result
 
-    def _run(self) -> CommitResult:
+    def _run(self) -> tuple[CanvasDraft, CommitResult]:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision, draft_revision=draft.revision)
-        if draft.ops or draft.widgets:
+        # Groups that replay nothing and change no widget, as recorded steps
+        # are, leave the canvas as it is: writing it would publish a revision
+        # and a version that change nothing.
+        if any(draft.ops) or draft.widgets:
             batches = [OPERATIONS.validate_python(group) for group in draft.ops]
             try:
                 applied = ApplyCanvasOperationsCommand(
@@ -615,7 +787,7 @@ class CommitCanvasDraftCommand:
         else:
             result = CommitResult(_editable_canvas(draft.canvas_id).revision)
         _discard(self._token)
-        return result
+        return draft, result
 
 
 class DeleteCanvasDraftCommand:
@@ -628,7 +800,9 @@ class DeleteCanvasDraftCommand:
         # Under the write lock, or a write in flight saves the draft again
         # after it was discarded.
         with _draft_write_lock(self._token):
-            return _discard(self._token)
+            draft = _discard(self._token)
+        _emit("discarded", draft, _all_recorded(draft))
+        return draft
 
 
 def _discard(token: str) -> CanvasDraft:

@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { fireDraftEvent } from 'src/core';
 import { DRAFT_TOKEN_HEADER } from './useCanvasDefinition';
 
 export interface DraftHistory {
@@ -45,6 +46,11 @@ export interface DraftHistory {
  * kept in the browser would be wrong the moment the agent moved something,
  * and gone on a reload. Each step is a request to the server, which rebuilds
  * the draft and answers with it.
+ *
+ * A step can be one recorded for a widget's content, which the canvas's
+ * definition doesn't show: the step names the widget, and the page's draft
+ * event (`canvas.onDidChangeDraft`) passes it on, so its renderer fetches it
+ * again.
  */
 export function useDraftHistory(
   token: string | undefined,
@@ -54,6 +60,8 @@ export function useDraftHistory(
   reload: () => void,
   /** Told the revision each step produced, before the refetch shows it. */
   onStepped?: (revision: number) => void,
+  /** The canvas the draft is of, which the page's draft events name. */
+  canvasId?: number,
 ): DraftHistory {
   const { addDangerToast } = useToasts();
   const [state, setState] = useState({
@@ -125,6 +133,16 @@ export function useDraftHistory(
         // layout write path carries, so the canvas is refetched rather than
         // patched in place.
         reload();
+        if (canvasId !== undefined) {
+          fireDraftEvent({
+            kind: direction === 'undo' ? 'undone' : 'redone',
+            canvasId,
+            token,
+            steppedWidgetIds: Array.isArray(result.steppedWidgetIds)
+              ? result.steppedWidgetIds
+              : [],
+          });
+        }
       } catch (response) {
         const { message, error } = await getClientErrorObject(response);
         // As above: a failure answering for the draft the user left is no
@@ -139,7 +157,7 @@ export function useDraftHistory(
         setBusy(false);
       }
     },
-    [token, revision, settling, reload, addDangerToast, onStepped],
+    [token, revision, settling, reload, addDangerToast, onStepped, canvasId],
   );
 
   return {
