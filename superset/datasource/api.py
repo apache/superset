@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from typing import Any, cast
 
 from flask import current_app as app, make_response, request, Response
@@ -72,6 +73,34 @@ from superset.utils.hashing import hash_from_dict
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
+
+# MySQL client/server error codes that mean the connection itself could not be
+# established or was dropped (1040 too many connections, 2002/2003 can't
+# connect, 2006 server gone away, 2013 lost connection during query).
+_CONNECTION_FAILURE_DB_CODES = {1040, 2002, 2003, 2006, 2013}
+_CONNECTION_FAILURE_PATTERN = re.compile(
+    r"too many connections|could not connect|can't connect|connection refused|"
+    r"connection timed out|server closed the connection|"
+    r"lost connection|server has gone away|remaining connection slots",
+    re.IGNORECASE,
+)
+
+
+def _is_connection_failure(ex: OperationalError) -> bool:
+    """
+    Whether an ``OperationalError`` is a genuine connection failure.
+
+    ``OperationalError`` also wraps query-level failures (SQLite ``no such
+    column``, MySQL 1054, Postgres statement timeouts) that indicate a broken
+    dataset rather than an unavailable database; those must keep propagating.
+    """
+    if ex.connection_invalidated:
+        return True
+    args = getattr(ex.orig, "args", ())
+    if args and isinstance(args[0], int) and args[0] in _CONNECTION_FAILURE_DB_CODES:
+        return True
+    return bool(_CONNECTION_FAILURE_PATTERN.search(str(ex.orig or ex)))
+
 
 # Cache lifetime for search-filtered column values, in seconds.
 SEARCH_CACHE_TIMEOUT = 60
@@ -314,7 +343,22 @@ class DatasourceRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
             500:
-              $ref: '#/components/responses/500'
+              description: >-
+                Unexpected error, or the analytics database refused or dropped
+                the connection (the response then carries a typed `errors`
+                list). Deliberately not 502/503/504, which SupersetClient
+                retries.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      errors:
+                        type: array
+                        items:
+                          type: object
         """
         try:
             datasource = DatasourceDAO.get_datasource(
@@ -423,9 +467,15 @@ class DatasourceRestApi(BaseSupersetApi):
             # The analytics database refused or dropped the connection (e.g.
             # MySQL 1040 "Too many connections"). That is the customer
             # database's condition, not a Superset bug: answer with a typed
-            # 503 and a warning instead of an unhandled 500 + ERROR.
+            # error and a warning instead of an unhandled 500 + ERROR. Query
+            # level failures (bad virtual dataset SQL, statement timeouts) are
+            # not connection failures and keep propagating.
+            #
+            # This deliberately stays a 500 rather than 502/503/504:
+            # SupersetClient retries those three times by default, which would
+            # hit an already saturated database repeatedly.
             database = getattr(datasource, "database", None)
-            if database is None:
+            if database is None or not _is_connection_failure(ex):
                 raise
             logger.warning(
                 "column-values: database unavailable: uid=%s col=%s",
@@ -437,7 +487,7 @@ class DatasourceRestApi(BaseSupersetApi):
                 ex, database_name=database.database_name
             )
             return self.response(
-                503,
+                500,
                 message=sanitize_error_message(errors[0].message),
                 errors=[error.to_dict() for error in errors],
             )

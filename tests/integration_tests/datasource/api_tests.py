@@ -426,7 +426,7 @@ class TestDatasourceApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_database_unavailable(self):
-        """A refused DB connection is a typed 503, not an unhandled 500."""
+        """A refused DB connection returns a typed, non-retried error response."""
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         error = OperationalError(
@@ -436,10 +436,29 @@ class TestDatasourceApi(SupersetTestCase):
             rv = self.client.get(
                 f"api/v1/datasource/table/{table.id}/column/col1/values/?force=true"
             )
-        assert rv.status_code == 503
+        # 502/503/504 are retried by SupersetClient, so a plain 500 is used.
+        assert rv.status_code == 500
         response = json.loads(rv.data.decode("utf-8"))
         assert "Too many connections" in response["message"]
         assert response["errors"][0]["error_type"] == "GENERIC_DB_ENGINE_ERROR"
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_query_error_not_treated_as_unavailable(self):
+        """Query-level OperationalErrors are not reported as a DB outage."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        error = OperationalError("SELECT 1", {}, Exception("no such column: nope"))
+        with (
+            patch.object(SqlaTable, "values_for_column", side_effect=error),
+            patch("superset.datasource.api.logger") as mock_logger,
+        ):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col1/values/?force=true"
+            )
+        assert rv.status_code == 500
+        response = json.loads(rv.data.decode("utf-8"))
+        assert "errors" not in response
+        mock_logger.warning.assert_not_called()
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_strs(self):
