@@ -19,6 +19,9 @@
 
 import { ChartProps } from '@superset-ui/core';
 import { TopBannerChartProps, TopBannerFormData } from './types.js';
+import { useTheme } from '@apache-superset/core/theme';
+
+
 
 function numberValue(value: unknown, fallback: number, min: number, max: number): number {
   const parsed = Number(value);
@@ -33,6 +36,7 @@ export default function transformProps(
   chartProps: ChartProps<TopBannerFormData>,
 ): TopBannerChartProps {
   const { width, height, formData } = chartProps;
+  const theme = useTheme();
 
   return {
     width,
@@ -58,9 +62,9 @@ export default function transformProps(
     borderRadius: numberValue(formData.borderRadius, 8, 0, 50),
     backgroundColor: textValue(formData.backgroundColor, 'transparent'),
     titleColor: textValue(formData.titleColor, 'inherit'),
-    subtitleColor: textValue(formData.subtitleColor, '#64748b'),
+    subtitleColor: textValue(formData.subtitleColor, theme.colorTextLightSolid),
     clockColor: textValue(formData.clockColor, 'inherit'),
-    accentColor: textValue(formData.accentColor, '#20a7c9'),
+    accentColor: textValue(formData.accentColor, theme.colorPrimary),
     showBottomBorder: formData.showBottomBorder ?? true,
   };
 }
