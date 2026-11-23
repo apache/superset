@@ -456,7 +456,22 @@ test('a publish that stops after a part went out says which, and publishing agai
   expect(commits()).toHaveLength(0);
   expect(onClosed).not.toHaveBeenCalled();
 
+  let retried: () => void = () => {};
+  notes.mockImplementationOnce(
+    () =>
+      new Promise<void>(resolve => {
+        retried = resolve;
+      }),
+  );
   click('Confirm');
+
+  // Publishing again shows the publish going on, Maps still out.
+  await waitFor(() => expect(reviewState().end).toBeNull());
+  expect(reviewState().outcomes[0]).toEqual({
+    state: 'published',
+    notices: [],
+  });
+  retried();
 
   await waitFor(() => expect(onClosed).toHaveBeenCalled());
   // Maps isn't published twice; Notes is asked again, then the canvas.
