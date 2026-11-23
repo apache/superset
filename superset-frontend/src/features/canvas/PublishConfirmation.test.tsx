@@ -28,6 +28,24 @@ const review = (): PublishReview => ({
       publish: () => Promise.resolve(),
     },
   ],
+  outcomes: [],
+  confirm: jest.fn(),
+  cancel: jest.fn(),
+});
+
+const part = (title: string) => ({
+  title,
+  lines: [`What ${title} asks`],
+  publish: () => Promise.resolve(),
+});
+
+const ended = (
+  end: PublishReview['end'],
+  outcomes: PublishReview['outcomes'],
+): PublishReview => ({
+  parts: [part('Maps'), part('Notes'), part('Prices')],
+  outcomes,
+  end,
   confirm: jest.fn(),
   cancel: jest.fn(),
 });
@@ -61,4 +79,83 @@ test('nothing is shown while nothing is reviewed', () => {
   render(<PublishConfirmation review={undefined} busy={false} />);
 
   expect(screen.queryByText('Publish this canvas?')).toBeNull();
+});
+
+test('a publish that stopped partway says what went out, and that the canvas did not', async () => {
+  const shown = ended(
+    {
+      state: 'stopped',
+      reason: "Notes wasn't published, so the canvas wasn't either.",
+      retry: true,
+    },
+    [
+      { state: 'published', notices: [] },
+      { state: 'failed', message: 'Its server check failed' },
+    ],
+  );
+  render(<PublishConfirmation review={shown} busy={false} />);
+
+  expect(screen.getByText("The canvas wasn't published")).toBeInTheDocument();
+  const [maps, notes, prices] = screen.getAllByTestId('canvas-publish-part');
+  expect(maps).toHaveTextContent('Maps Published');
+  expect(notes).toHaveTextContent('Not published: Its server check failed');
+  expect(prices).toHaveTextContent('Prices Not published');
+  expect(
+    screen.getByText("Notes wasn't published, so the canvas wasn't either."),
+  ).toBeInTheDocument();
+  // What the parts asked was read already; it isn't listed again.
+  expect(screen.queryByText('What Maps asks')).toBeNull();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Publish again' }));
+  expect(shown.confirm).toHaveBeenCalled();
+
+  await userEvent.click(screen.getByText('Close'));
+  expect(shown.cancel).toHaveBeenCalled();
+});
+
+test('a stop that publishing again cannot help offers only to close', async () => {
+  const shown = ended(
+    {
+      state: 'stopped',
+      reason: 'The canvas changed since this draft started; start a new draft.',
+      retry: false,
+    },
+    [{ state: 'published', notices: [] }],
+  );
+  render(<PublishConfirmation review={shown} busy={false} />);
+
+  expect(
+    screen.getByText(
+      'The canvas changed since this draft started; start a new draft.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Publish again' })).toBeNull();
+
+  await userEvent.click(screen.getByText('Close'));
+
+  expect(shown.cancel).toHaveBeenCalled();
+  expect(shown.confirm).not.toHaveBeenCalled();
+});
+
+test("a part's notices show under it once it is published", async () => {
+  const shown = ended({ state: 'published' }, [
+    {
+      state: 'published',
+      notices: ['Published without a server check: no check runner here.'],
+    },
+    { state: 'published', notices: [] },
+    { state: 'published', notices: [] },
+  ]);
+  render(<PublishConfirmation review={shown} busy={false} />);
+
+  expect(screen.getByText('Canvas published')).toBeInTheDocument();
+  const [maps, notes] = screen.getAllByTestId('canvas-publish-part');
+  expect(maps).toHaveTextContent(
+    'Published without a server check: no check runner here.',
+  );
+  expect(notes).not.toHaveTextContent('server check');
+
+  await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+
+  expect(shown.cancel).toHaveBeenCalled();
 });

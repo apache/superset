@@ -648,6 +648,39 @@ def test_draft_conflict_response_preserves_legacy_fields_and_revision_provenance
     assert response.json == expected
 
 
+def test_a_refused_commit_is_a_conflict_with_the_refusals_code(
+    client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    """What has to go out with the canvas refused it, in its own words."""
+    from superset.commands.canvas.exceptions import DraftCommitRefusedError
+
+    mocker.patch(
+        "superset.canvas.api.load_draft",
+        return_value=MagicMock(token="token"),  # noqa: S106
+    )
+    command = mocker.patch("superset.canvas.api.CommitCanvasDraftCommand")
+    command.return_value.run.side_effect = DraftCommitRefusedError(
+        "Publish the notes first.", "NOTES_UNPUBLISHED", draft_revision=4
+    )
+
+    response = client.post(
+        f"{BASE}/draft/commit",
+        json={"revision": 4},
+        headers={"X-Canvas-Draft": "token"},
+    )
+
+    assert response.status_code == 409
+    assert response.json == {
+        "message": "Publish the notes first.",
+        "error_type": "DraftCommitRefused",
+        "refusalCode": "NOTES_UNPUBLISHED",
+        "draftRevision": 4,
+    }
+    # The page's commit is the person's.
+    assert command.call_args.args == ("token", 4)
+    assert command.call_args.kwargs.get("by", "user") == "user"
+
+
 @pytest.mark.parametrize("recorded", ["chart-1", None])
 def test_a_step_names_the_widget_whose_recorded_step_it_moved(
     client: Any, full_api_access: None, mocker: MockerFixture, recorded: str | None

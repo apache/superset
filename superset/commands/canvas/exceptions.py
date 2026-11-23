@@ -190,6 +190,35 @@ class DraftStepFailedError(CommandException):
         return {"message": str(self.message), "error_type": self.recovery_type}
 
 
+class DraftCommitRefusedError(CommandException):
+    """
+    Something that has to be published with the canvas refused its commit (a
+    commit participant, ``superset_core.canvas.drafts``); nothing was written,
+    and the draft is as it was. ``code`` is the participant's.
+    """
+
+    status = 409
+    recovery_type = "DraftCommitRefused"
+
+    def __init__(
+        self, message: str, code: str, *, draft_revision: int | None = None
+    ) -> None:
+        self.code = code
+        self.draft_revision = draft_revision
+        super().__init__(message)
+
+    def to_payload(self) -> dict[str, Any]:
+        """The REST error body, keyed as ``DraftConflictError``'s."""
+        payload: dict[str, Any] = {
+            "message": str(self.message),
+            "error_type": self.recovery_type,
+            "refusalCode": self.code,
+        }
+        if self.draft_revision is not None:
+            payload["draftRevision"] = self.draft_revision
+        return payload
+
+
 class DefinitionInvalidError(CommandException):
     """An operation could not apply, or its result is not a valid definition."""
 

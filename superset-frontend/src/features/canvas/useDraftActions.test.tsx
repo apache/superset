@@ -30,9 +30,16 @@ import { useDraftActions } from './useDraftActions';
 const commitEndpoint = 'glob:*/api/v1/canvas/draft/commit';
 const draftEndpoint = 'glob:*/api/v1/canvas/draft';
 
+// Participants are the host's, so one a failed test left would join the next.
+const registrations: { dispose: () => void }[] = [];
+
 beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
+});
+
+afterEach(() => {
+  registrations.splice(0).forEach(registration => registration.dispose());
 });
 
 function Harness({
@@ -176,11 +183,21 @@ function PlacedHarness({ onClosed }: { onClosed: () => void }) {
           <button type="button" onClick={actions.review.cancel}>
             Cancel
           </button>
+          <pre data-test="review-state">
+            {JSON.stringify({
+              outcomes: actions.review.outcomes,
+              end: actions.review.end ?? null,
+            })}
+          </pre>
         </>
       )}
     </>
   );
 }
+
+/** How the review stands: each part's outcome, and how the publish ended. */
+const reviewState = () =>
+  JSON.parse(screen.getByTestId('review-state').textContent ?? '{}');
 
 test.each([
   [
@@ -235,10 +252,9 @@ const participate = (publish: () => Promise<void>) => {
       ? [{ title: 'Notes', lines: ['Notes go public'], publish }]
       : [],
   );
-  return {
-    prepare,
-    registration: canvas.registerPublishParticipant({ prepare }),
-  };
+  const registration = canvas.registerPublishParticipant({ prepare });
+  registrations.push(registration);
+  return { prepare, registration };
 };
 
 const renderPlaced = () => {
@@ -378,6 +394,7 @@ test('a participant that fails stops the publish before anything is published', 
     Promise.reject(new Error('Notes are unreachable')),
   );
   const registration = canvas.registerPublishParticipant({ prepare });
+  registrations.push(registration);
   const onClosed = renderPlaced();
 
   click('Publish');
@@ -386,5 +403,164 @@ test('a participant that fails stops the publish before anything is published', 
   await waitFor(() => expect(screen.getByText('free')).toBeInTheDocument());
   expect(fetchMock.callHistory.calls()).toHaveLength(0);
   expect(onClosed).not.toHaveBeenCalled();
+  registration.dispose();
+});
+
+/** Registers a participant that publishes each of `parts` with any draft. */
+const participateWith = (
+  parts: { title: string; publish: canvasApi.CanvasPublishPart['publish'] }[],
+) => {
+  const registration = canvas.registerPublishParticipant({
+    prepare: async () =>
+      parts.map(({ title, publish }) => ({ title, lines: [], publish })),
+  });
+  registrations.push(registration);
+  return registration;
+};
+
+const reviewedAtFour = () =>
+  fetchMock.get(draftEndpoint, {
+    result: { revision: 4, canvasChanged: false },
+  });
+
+test('a publish that stops after a part went out says which, and publishing again skips it', async () => {
+  reviewedAtFour();
+  fetchMock.post(commitEndpoint, { result: { revision: 5 } });
+  const maps = jest.fn(async () => {});
+  const notes = jest
+    .fn(async (): Promise<void> => {})
+    .mockRejectedValueOnce(new Error('Its server check failed'));
+  const registration = participateWith([
+    { title: 'Maps', publish: maps },
+    { title: 'Notes', publish: notes },
+  ]);
+  const onClosed = renderPlaced();
+
+  click('Publish');
+  await screen.findByRole('button', { name: 'Confirm' });
+  click('Confirm');
+
+  // The review stays: Maps went out, Notes didn't, and neither did the canvas.
+  await waitFor(() => expect(reviewState().end).not.toBeNull());
+  expect(reviewState()).toEqual({
+    outcomes: [
+      { state: 'published', notices: [] },
+      { state: 'failed', message: 'Its server check failed' },
+    ],
+    end: {
+      state: 'stopped',
+      reason: "Notes wasn't published, so the canvas wasn't either.",
+      retry: true,
+    },
+  });
+  expect(commits()).toHaveLength(0);
+  expect(onClosed).not.toHaveBeenCalled();
+
+  click('Confirm');
+
+  await waitFor(() => expect(onClosed).toHaveBeenCalled());
+  // Maps isn't published twice; Notes is asked again, then the canvas.
+  expect(maps).toHaveBeenCalledTimes(1);
+  expect(notes).toHaveBeenCalledTimes(2);
+  expect(commits()).toHaveLength(1);
+  expect(JSON.parse(commits()[0].options.body as string)).toEqual({
+    revision: 4,
+  });
+  expect(screen.queryByTestId('review-state')).toBeNull();
+  registration.dispose();
+});
+
+test('a commit that fails once the parts went out is published again alone', async () => {
+  reviewedAtFour();
+  let answers = 0;
+  fetchMock.post(commitEndpoint, () => {
+    answers += 1;
+    return answers === 1 ? 500 : { result: { revision: 5 } };
+  });
+  const maps = jest.fn(async () => {});
+  const registration = participateWith([{ title: 'Maps', publish: maps }]);
+  const onClosed = renderPlaced();
+
+  click('Publish');
+  await screen.findByRole('button', { name: 'Confirm' });
+  click('Confirm');
+
+  await waitFor(() => expect(reviewState().end?.state).toBe('stopped'));
+  expect(reviewState().outcomes).toEqual([{ state: 'published', notices: [] }]);
+  expect(reviewState().end.retry).toBe(true);
+  expect(onClosed).not.toHaveBeenCalled();
+
+  click('Confirm');
+
+  await waitFor(() => expect(onClosed).toHaveBeenCalled());
+  expect(maps).toHaveBeenCalledTimes(1);
+  expect(commits()).toHaveLength(2);
+  registration.dispose();
+});
+
+test('a commit refused once the parts went out says why, and publishes nothing more', async () => {
+  reviewedAtFour();
+  fetchMock.post(commitEndpoint, {
+    status: 409,
+    body: {
+      message:
+        'Widgets this draft changes were changed since; start a new draft.',
+      error_type: 'WidgetRevisionConflict',
+    },
+  });
+  const maps = jest.fn(async () => {});
+  const registration = participateWith([{ title: 'Maps', publish: maps }]);
+  const onClosed = renderPlaced();
+
+  click('Publish');
+  await screen.findByRole('button', { name: 'Confirm' });
+  click('Confirm');
+
+  await waitFor(() => expect(reviewState().end?.state).toBe('stopped'));
+  expect(reviewState().end).toEqual({
+    state: 'stopped',
+    reason: 'Widgets this draft changes were changed since; start a new draft.',
+    retry: false,
+  });
+
+  // Publishing again as reviewed can't help: the review just closes.
+  click('Confirm');
+
+  await waitFor(() => expect(screen.queryByTestId('review-state')).toBeNull());
+  expect(maps).toHaveBeenCalledTimes(1);
+  expect(commits()).toHaveLength(1);
+  expect(onClosed).not.toHaveBeenCalled();
+  registration.dispose();
+});
+
+test('what a part has to say of its publish stays on screen once the canvas is published', async () => {
+  reviewedAtFour();
+  fetchMock.post(commitEndpoint, { result: { revision: 5 } });
+  const registration = participateWith([
+    {
+      title: 'Maps',
+      publish: async () => ({
+        notices: ['Published without a server check.'],
+      }),
+    },
+  ]);
+  const onClosed = renderPlaced();
+
+  click('Publish');
+  await screen.findByRole('button', { name: 'Confirm' });
+  click('Confirm');
+
+  await waitFor(() => expect(onClosed).toHaveBeenCalled());
+  expect(reviewState()).toEqual({
+    outcomes: [
+      { state: 'published', notices: ['Published without a server check.'] },
+    ],
+    end: { state: 'published' },
+  });
+
+  click('Confirm');
+
+  await waitFor(() => expect(screen.queryByTestId('review-state')).toBeNull());
+  expect(commits()).toHaveLength(1);
   registration.dispose();
 });
