@@ -145,9 +145,6 @@ msgstr " un de nou"
 msgid " at line %(line)d"
 msgstr " a la línia %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " expressió que ha de complir amb el "
-
 #, fuzzy
 msgid " for details."
 msgstr "Detalls"
@@ -155,39 +152,6 @@ msgstr "Detalls"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " prop de '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" estàndard per garantir que l'ordenació lexicogràfica\n"
-"                      coincideixi amb l'ordenació cronològica. Si el\n"
-"                      format de la marca de temps no s'ajusta a "
-"l'estàndard ISO 8601,\n"
-"                      haureu de definir una expressió i un tipus per\n"
-"                      transformar la cadena en una data o una marca de "
-"temps. Nota:\n"
-"                      actualment no s'admeten els fusos horaris. Si el "
-"temps s'emmagatzema\n"
-"                      en format epoch, indiqueu `epoch_s`, `epoch_ms` o "
-"`epoch_us`. Si no s'especifica cap patró,\n"
-"                      s'usen els valors per defecte opcionals per\n"
-"                      base de dades/nom de columna mitjançant el "
-"paràmetre extra."
 
 msgid " to add calculated columns"
 msgstr " per afegir columnes calculades"
@@ -305,6 +269,16 @@ msgstr[1] "%(count)s recursos dependents estan arxivats."
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s no es pot usar com a font de dades per raons de seguretat."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s o %(lastSuggestion)s en lloc de "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "fitxer %(label)s"
@@ -410,15 +384,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d fileres retornades"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(lastSuggestion)s en lloc de \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s o %(lastSuggestion)s en lloc de "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s en lloc de \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -6403,7 +6372,7 @@ msgstr "DES"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ELIMINAR"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10235,7 +10204,7 @@ msgstr "Personalitzar més com mostrar cada mètrica"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "AGRUPAR PER"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10451,6 +10420,7 @@ msgstr "L'usuari convidat no pot modificar la càrrega útil del gràfic"
 msgid "HTTP Path"
 msgstr "Ruta HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10611,9 +10581,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Codis ISO 3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13004,7 +12971,7 @@ msgstr "N/D"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NO AGRUPAT PER"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -13821,7 +13788,7 @@ msgstr "o"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOBREESCRIURE"
+msgstr ""
 
 msgid "October"
 msgstr "Octubre"
@@ -15117,9 +15084,6 @@ msgstr "Posar les etiquetes fora del sector?"
 
 msgid "Put your code here"
 msgstr "Posa el teu codi aquí"
-
-msgid "Python datetime string pattern"
-msgstr "Patró de cadena datetime de Python"
 
 msgid "Quarter"
 msgstr "Trimestre"
@@ -19146,7 +19110,7 @@ msgstr "TAULES"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "RANG_TEMPORAL"
+msgstr ""
 
 msgid "THU"
 msgstr "DIJ"
@@ -20350,8 +20314,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Calen les contrasenyes de les bases de dades següents per importar-les."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "El patró de format de marca de temps. Per cadenes usa "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25752,7 +25730,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "negreta"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26042,7 +26020,7 @@ msgstr "entrades"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "missatge_error"
+msgstr ""
 
 msgid "every"
 msgstr "cada"
@@ -26436,9 +26414,8 @@ msgid "permalink state not found"
 msgstr "estat de l'enllaç permanent no trobat"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Pivotat"
+msgstr ""
 
 msgid "pixels"
 msgstr "píxels"

@@ -805,6 +805,69 @@ test('semantic member filters still carry the source view identity', () => {
   });
 });
 
+const appliedCrossFilter: DataMask = {
+  extraFormData: { filters: [{ col: 'gender', op: 'IN', val: ['boy'] }] },
+  filterState: { value: ['boy'] },
+};
+
+test.each<[string, DataMask, DataMask | undefined]>([
+  ['drops an applied cross-filter', appliedCrossFilter, undefined],
+  [
+    'keeps the own state of a mask that also applies a cross-filter',
+    { ...appliedCrossFilter, ownState: { page: 2 } },
+    { ownState: { page: 2 } },
+  ],
+  [
+    'passes a cleared cross-filter through',
+    { extraFormData: { filters: [] }, filterState: { value: null } },
+    { extraFormData: { filters: [] }, filterState: { value: null } },
+  ],
+  [
+    'passes an own-state-only mask through',
+    { ownState: { page: 2 } },
+    { ownState: { page: 2 } },
+  ],
+])(
+  'a chart whose cross-filter scope has no targets %s',
+  (_name, mask, expected) => {
+    const updateDataMask = jest.fn();
+    render(
+      <ChartRenderer
+        {...requiredProps}
+        hasCrossFilterTargets={false}
+        formData={{ ...requiredProps.formData, testDataMask: mask }}
+        actions={{ ...requiredProps.actions, updateDataMask }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+    if (expected) {
+      expect(updateDataMask).toHaveBeenCalledWith(
+        requiredProps.chartId,
+        expected,
+      );
+    } else {
+      expect(updateDataMask).not.toHaveBeenCalled();
+    }
+  },
+);
+
+test('a chart whose cross-filter scope has targets applies cross-filters', () => {
+  const updateDataMask = jest.fn();
+  render(
+    <ChartRenderer
+      {...requiredProps}
+      hasCrossFilterTargets
+      formData={{ ...requiredProps.formData, testDataMask: appliedCrossFilter }}
+      actions={{ ...requiredProps.actions, updateDataMask }}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+  expect(updateDataMask).toHaveBeenCalledWith(
+    requiredProps.chartId,
+    appliedCrossFilter,
+  );
+});
+
 test('a SQL chart click mask is excluded from a versioned semantic receiver', () => {
   const mask: DataMask = {
     extraFormData: {
