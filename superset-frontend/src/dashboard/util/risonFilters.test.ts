@@ -115,6 +115,88 @@ test('should parse NOT operator', () => {
   expect(result[0].comparator).toBe('USA');
 });
 
+test('NOT negates comparison and LIKE operators', () => {
+  expect(parseRisonFilters('(NOT:(sales:(gt:100)))')).toEqual([
+    { subject: 'sales', operator: '<=', comparator: 100 },
+  ]);
+  expect(parseRisonFilters('(NOT:(sales:(gte:100)))')[0].operator).toBe('<');
+  expect(parseRisonFilters('(NOT:(sales:(lt:100)))')[0].operator).toBe('>=');
+  expect(parseRisonFilters('(NOT:(sales:(lte:100)))')[0].operator).toBe('>');
+  expect(parseRisonFilters("(NOT:(name:(like:'%smith%')))")).toEqual([
+    { subject: 'name', operator: 'NOT LIKE', comparator: '%smith%' },
+  ]);
+  expect(parseRisonFilters('(NOT:(country:!(USA,Canada)))')).toEqual([
+    { subject: 'country', operator: 'NOT IN', comparator: ['USA', 'Canada'] },
+  ]);
+});
+
+test('NOT drops a BETWEEN it cannot negate', () => {
+  expect(
+    parseRisonFilters('(NOT:(msrp:(between:!(35,200))),country:USA)'),
+  ).toEqual([{ subject: 'country', operator: '==', comparator: 'USA' }]);
+});
+
+test('OR on one column becomes a single IN', () => {
+  expect(
+    parseRisonFilters('(OR:!((country:USA),(country:!(Canada,USA))))'),
+  ).toEqual([
+    { subject: 'country', operator: 'IN', comparator: ['USA', 'Canada'] },
+  ]);
+});
+
+test('OR keeps the filters next to it', () => {
+  expect(
+    parseRisonFilters('(OR:!((country:USA),(country:Canada)),year:2024)'),
+  ).toEqual([
+    { subject: 'country', operator: 'IN', comparator: ['USA', 'Canada'] },
+    { subject: 'year', operator: '==', comparator: 2024 },
+  ]);
+});
+
+test('OR that is not one IN is dropped instead of AND-ed', () => {
+  expect(
+    parseRisonFilters('(OR:!((country:USA),(region:EMEA)),year:2024)'),
+  ).toEqual([{ subject: 'year', operator: '==', comparator: 2024 }]);
+  expect(
+    parseRisonFilters("(OR:!((country:USA),(country:(like:'C%'))),year:2024)"),
+  ).toEqual([{ subject: 'year', operator: '==', comparator: 2024 }]);
+  expect(
+    parseRisonFilters('(OR:!((country:USA,year:2024)),year:2024)'),
+  ).toEqual([{ subject: 'year', operator: '==', comparator: 2024 }]);
+  expect(
+    parseRisonFilters(
+      '(OR:!((OR:!((country:USA))),(OR:!((country:Canada)))),year:2024)',
+    ),
+  ).toEqual([{ subject: 'year', operator: '==', comparator: 2024 }]);
+  expect(parseRisonFilters('(OR:!(a,a),year:2024)')).toEqual([
+    { subject: 'year', operator: '==', comparator: 2024 },
+  ]);
+  expect(parseRisonFilters('(OR:!(),year:2024)')).toEqual([
+    { subject: 'year', operator: '==', comparator: 2024 },
+  ]);
+});
+
+test('NOT drops a nested OR or NOT', () => {
+  expect(
+    parseRisonFilters(
+      '(NOT:(OR:!((country:USA)),NOT:(country:USA)),year:2024)',
+    ),
+  ).toEqual([{ subject: 'year', operator: '==', comparator: 2024 }]);
+});
+
+test('negated filters read back the same after encoding', () => {
+  const filters: RisonFilter[] = [
+    { subject: 'sales', operator: '<=', comparator: 100 },
+    { subject: 'name', operator: 'NOT LIKE', comparator: '%smith%' },
+    { subject: 'country', operator: 'NOT IN', comparator: ['USA'] },
+    { subject: 'region', operator: '!=', comparator: 'EMEA' },
+  ];
+  expect(parseRisonFilters(risonFiltersToString(filters))).toEqual(
+    expect.arrayContaining(filters),
+  );
+  expect(parseRisonFilters(risonFiltersToString(filters))).toHaveLength(4);
+});
+
 test('should parse comparison operators', () => {
   expect(parseRisonFilters('(sales:(gt:100000))')[0].operator).toBe('>');
   expect(parseRisonFilters('(age:(gte:18))')[0].operator).toBe('>=');
