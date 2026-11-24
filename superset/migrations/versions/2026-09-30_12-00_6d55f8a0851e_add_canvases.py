@@ -21,7 +21,7 @@ Creates ``canvases`` (a canvas and its definition), ``canvas_editors`` and
 applied definition operations per revision).
 
 Revision ID: 6d55f8a0851e
-Revises: dfa683969f48
+Revises: a7d29bc4e681
 Create Date: 2026-09-30 12:00:00.000000
 
 """
@@ -33,7 +33,7 @@ from superset.migrations.shared.utils import create_table, drop_table
 from superset.utils.core import MediumText
 
 revision = "6d55f8a0851e"
-down_revision = "dfa683969f48"
+down_revision = "a7d29bc4e681"
 
 
 def _subject_table(name: str) -> None:

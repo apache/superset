@@ -52,6 +52,11 @@ export interface CanvasWidgetProps {
   canvasId: number;
   /** The placement's id, unique within the canvas, e.g. `revenue-trend`. */
   nodeId: string;
+  /**
+   * The saved widget's UUID, the same on every canvas that places it. Unset
+   * for containers and text.
+   */
+  widgetId?: string;
   /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
   widgetType: string;
   /**
