@@ -64,7 +64,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import { FileEncryptedExtraFields } from 'src/views/CRUD/types';
 import { useCommonConf } from 'src/features/databases/state';
-import { isEmpty, pick } from 'lodash-es';
+import { isEmpty, isEqual, pick } from 'lodash-es';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
@@ -79,6 +79,7 @@ import {
 } from '../types';
 import ExtraOptions from './ExtraOptions';
 import StoredSecretExpiryAlert from './StoredSecretExpiryAlert';
+import { ReplacedTokens, replacedTokens } from './expiry';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
@@ -760,6 +761,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     () => setSecureExtraFocusPending(false),
     [],
   );
+  // Stored tokens the Secure extra editor replaces, for the alert and the note
+  // to agree. Invalid JSON mid-paste keeps the database's last reading.
+  const editedTokens = replacedTokens(
+    dbFetched?.id === db?.id ? dbFetched?.masked_encrypted_extra : undefined,
+    db?.masked_encrypted_extra,
+    Object.keys(db?.engine_information?.encrypted_extra_expirations ?? {}),
+  );
+  const [lastEditedTokens, setLastEditedTokens] = useState<{
+    id?: number;
+    tokens: ReplacedTokens;
+  }>({ tokens: {} });
+  if (
+    editedTokens &&
+    (lastEditedTokens.id !== db?.id ||
+      !isEqual(editedTokens, lastEditedTokens.tokens))
+  ) {
+    setLastEditedTokens({ id: db?.id, tokens: editedTokens });
+  }
+  const replacedSecrets =
+    editedTokens ??
+    (lastEditedTokens.id === db?.id ? lastEditedTokens.tokens : {});
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -2302,6 +2324,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           db?.engine_information?.encrypted_extra_sensitive_fields
         }
         expirations={db?.engine_information?.encrypted_extra_expirations}
+        replacedSecrets={replacedSecrets}
         onGoToSecureExtra={goToSecureExtra}
       />
       <TabsStyled
@@ -2420,6 +2443,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
                 secretsGeneration={secretsGeneration}
+                replacedSecrets={replacedSecrets}
                 focusSecureExtra={
                   secureExtraFocusPending ? secureExtraFocusRequest : 0
                 }

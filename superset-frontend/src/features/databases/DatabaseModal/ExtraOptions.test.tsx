@@ -669,6 +669,39 @@ test('the secure extra note lists each stored token that expired or expires soon
   }
 });
 
+test('the secure extra note confirms a replaced token, keeps the other stored lines, and is announced', () => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2026-11-05T12:00:00Z'));
+  try {
+    render(
+      <ExtraOptions
+        db={expiringDb as unknown as DatabaseObject}
+        replacedSecrets={{ '$.connect_args.jwt': '2027-02-22T12:00:00.000Z' }}
+        onInputChange={jest.fn()}
+        onTextChange={jest.fn()}
+        onEditorChange={jest.fn()}
+        onExtraInputChange={jest.fn()}
+        onExtraEditorChange={jest.fn()}
+        extraExtension={undefined}
+      />,
+      { useRedux: true },
+    );
+    fireEvent.click(screen.getByText(t('Security')));
+
+    const notes = screen.getAllByTestId('secure-extra-expiry-note');
+    expect(notes.map(note => note.textContent)).toEqual([
+      'The stored Password expires in 5 days (Nov 10, 2026).',
+      'The new JWT Token expires on Feb 22, 2027. Click Finish to save it.',
+    ]);
+    expect(within(notes[1]).getByTestId('check-circle')).toHaveStyle({
+      color: supersetTheme.colorSuccess,
+    });
+    expect(notes[1].parentElement).toHaveAttribute('aria-live', 'polite');
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
 test('the secure extra note is absent without expirations', () => {
   renderSecurityPanel(maskedDb, 5);
 

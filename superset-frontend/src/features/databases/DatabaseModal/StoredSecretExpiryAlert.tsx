@@ -21,26 +21,31 @@ import { Alert } from '@apache-superset/core/components';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { EncryptedExtraExpiration } from '../types';
-import { expiryLines } from './expiry';
+import { expiryLines, ReplacedTokens } from './expiry';
 import { antDAlertStyles, StyledAlertMargin } from './styles';
 
 /**
- * Warns, when an edit opens, about stored JWTs that have expired or expire soon.
+ * Warns, when an edit opens, about stored JWTs that have expired or expire soon,
+ * and about a new token pasted over one of them that does too.
  */
 const StoredSecretExpiryAlert = ({
   isEditMode,
   sensitiveFields,
   expirations,
+  replacedSecrets,
   onGoToSecureExtra,
 }: {
   isEditMode: boolean;
   sensitiveFields?: Record<string, string>;
   expirations?: Record<string, EncryptedExtraExpiration>;
+  replacedSecrets?: ReplacedTokens;
   onGoToSecureExtra: () => void;
 }) => {
   const lines =
     isEditMode && expirations
-      ? expiryLines(sensitiveFields ?? {}, expirations)
+      ? expiryLines(sensitiveFields ?? {}, expirations, replacedSecrets).filter(
+          ({ severity }) => severity !== 'success',
+        )
       : [];
   if (lines.length === 0) {
     return null;
@@ -55,18 +60,20 @@ const StoredSecretExpiryAlert = ({
         {lines.map(({ path, text }) => (
           <div key={path}>{text}</div>
         ))}
-        <div>
-          {t('Paste a new token into Secure extra and click Finish.')}{' '}
-          <Button
-            buttonStyle="link"
-            buttonSize="xsmall"
-            styleConfig={{ paddingInline: 0 }}
-            data-test="go-to-secure-extra"
-            onClick={onGoToSecureExtra}
-          >
-            {t('Go to Secure extra')}
-          </Button>
-        </div>
+        {lines.some(({ replaced }) => !replaced) && (
+          <div>
+            {t('Paste a new token into Secure extra and click Finish.')}{' '}
+            <Button
+              buttonStyle="link"
+              buttonSize="xsmall"
+              styleConfig={{ paddingInline: 0 }}
+              data-test="go-to-secure-extra"
+              onClick={onGoToSecureExtra}
+            >
+              {t('Go to Secure extra')}
+            </Button>
+          </div>
+        )}
       </Alert>
     </StyledAlertMargin>
   );

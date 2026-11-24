@@ -15047,6 +15047,24 @@ msgstr ""
 msgid "The name of the rule must be unique"
 msgstr ""
 
+#, python-format
+msgid "The new %s expires on %s. Click Finish to save it."
+msgstr ""
+
+#, python-format
+msgid "The new, unsaved %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The new, unsaved %s expires in %s day (%s)."
+msgid_plural "The new, unsaved %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The new, unsaved %s expires today at %s."
+msgstr ""
+
 msgid "The number color \"steps\""
 msgstr ""
 
