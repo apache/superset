@@ -57,6 +57,7 @@ from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+    from superset.models.core import Database
     from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
@@ -593,6 +594,33 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # YYYY-MM-DD:YYYY-MM-DD
             return False
 
+    def _get_datasource_database_retrying(self) -> Database:
+        """
+        Resolve ``self.datasource.database``, retrying once on a transient
+        SQLAlchemy race.
+
+        This attribute access triggers a lazy-load through SQLAlchemy's ORM,
+        which dispatches through class-level event listener collections
+        backed by a plain ``deque``. A concurrent ``event.listen``/``remove``
+        call on another thread (e.g. a different request registering a
+        mapper event) can mutate that deque while this thread iterates it,
+        raising ``RuntimeError: deque mutated during iteration``. The race is
+        inherent to SQLAlchemy's event dispatch under a threaded app server
+        and clears on its own, so retrying once avoids surfacing a transient
+        500 to chart-data requests.
+        """
+        try:
+            return self.datasource.database
+        except RuntimeError as ex:
+            if "deque mutated during iteration" not in str(ex):
+                raise
+            logger.warning(
+                "Retrying datasource.database lookup after a transient "
+                "event-dispatch race: %s",
+                ex,
+            )
+            return self.datasource.database
+
     def _sanitize_filters(self) -> None:
         from superset.jinja_context import get_template_processor
 
@@ -602,7 +630,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             clause = self.extras.get(param)
             if clause and self.datasource:
                 try:
-                    database = self.datasource.database
+                    database = self._get_datasource_database_retrying()
                     processor = get_template_processor(
                         database=database, table=self.datasource
                     )
