@@ -38,3 +38,21 @@ A widget's data is always queried on the server, from what is stored: the caller
 Both take `{"runtime_filters": [{"datasetId": 1, "column": "country", "values": ["FR"]}]}` and answer `{"result": {"datasets": [{"name": "main", "row_count": 1, "inline_data": [...], "coltypes": {...}}]}}`; a dataset carries the `query` that ran, and its `language`, only for a caller who may view queries.
 
 The saved widget endpoint is synchronous, and stands in for the asynchronous one [SIP-231](https://github.com/apache/superset/issues/44875) section 8 describes, which answers a manifest of Arrow datasets, or a task while the result isn't cached yet. Its answer, and possibly its path, will change when that lands.
+
+## Showing a saved widget outside a canvas
+
+`canvas.WidgetHost` shows one saved widget on its own, on any page, in the cell a canvas draws around a placement: the title row, the slot the widget's own controls render into, its error boundary, and the canvas's "This widget is unavailable" placeholder. Its data comes from the saved widget endpoint above.
+
+```tsx
+import { canvas } from '@apache-superset/core';
+
+<canvas.WidgetHost widgetId={uuid} filters={pageFilters} showTitle={false} />;
+```
+
+A canvas renderer is always given the canvas and placement it renders (`canvasId`, `nodeId`), so the host never runs one outside a canvas. A widget type shows in a widget host once it registers a renderer for a saved widget on its own:
+
+```tsx
+canvas.registerSavedWidgetRenderer('extensions.acme.kpi.kpi', SavedKpiTile);
+```
+
+That renderer gets `SavedWidgetProps`: the saved widget's `widgetId`, `widgetType`, `props` and `title`, the `filters` the page passes in, and `refreshKey`. The widget is the only node of its filter bus, so it has no cross-filters. A type without one shows the placeholder. The built-in data widgets (`echarts`, `metric-tile` and `ag-grid-table`) register theirs.

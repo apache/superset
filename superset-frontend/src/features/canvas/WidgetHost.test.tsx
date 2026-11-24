@@ -19,9 +19,12 @@
 import fetchMock from 'fetch-mock';
 import { ComponentType, useContext } from 'react';
 import { createPortal } from 'react-dom';
-import type { CanvasRendererProps } from 'src/core/canvas/types';
+import type {
+  CanvasRendererProps,
+  SavedRendererProps,
+} from 'src/core/canvas/types';
 import { render as baseRender, screen } from 'spec/helpers/testing-library';
-import { registerWidgetRenderer } from 'src/core';
+import { registerSavedWidgetRenderer, registerWidgetRenderer } from 'src/core';
 import WidgetHost from './WidgetHost';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 
@@ -41,9 +44,9 @@ const saved = {
   props: { metric: 'revenue' },
 };
 
-const received: CanvasRendererProps[] = [];
+const received: SavedRendererProps[] = [];
 
-const Saved = (props: CanvasRendererProps) => {
+const Saved = (props: SavedRendererProps) => {
   received.push(props);
   return <div>{`saved ${String(props.props?.metric)}`}</div>;
 };
@@ -67,8 +70,8 @@ const Broken = () => {
 const disposables: { dispose: () => void }[] = [];
 const register = (
   widgetType: string,
-  renderer: ComponentType<CanvasRendererProps>,
-) => disposables.push(registerWidgetRenderer(widgetType, renderer));
+  renderer: ComponentType<SavedRendererProps>,
+) => disposables.push(registerSavedWidgetRenderer(widgetType, renderer));
 
 beforeEach(() => {
   fetchMock.removeRoutes();
@@ -156,6 +159,22 @@ test('a widget that does not exist, or that the viewer may not read, says so', a
       'This widget does not exist, or you do not have access to it',
     ),
   ).toBeInTheDocument();
+});
+
+test('a type that renders only on a canvas is unavailable outside one', async () => {
+  fetchMock.get(widgetEndpoint, { result: saved });
+  const placed = jest.fn((props: CanvasRendererProps) => (
+    <div>{`placed on ${props.canvasId}`}</div>
+  ));
+  disposables.push(registerWidgetRenderer('test.saved', placed));
+
+  render(<WidgetHost widgetId={ID} />);
+
+  expect(
+    await screen.findByText('This widget is unavailable'),
+  ).toBeInTheDocument();
+  // A canvas renderer is always given its canvas, so it never runs here.
+  expect(placed).not.toHaveBeenCalled();
 });
 
 test('a widget type with no renderer gets the placeholder a canvas shows', async () => {

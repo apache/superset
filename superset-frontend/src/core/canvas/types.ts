@@ -103,3 +103,23 @@ export interface CanvasRendererProps extends canvasApi.CanvasWidgetProps {
    */
   renderGrid: (options?: { chromeAbove?: boolean }) => ReactNode;
 }
+
+/**
+ * What the host's own renderers take: everything a canvas passes, or the
+ * same without `canvasId` where the host's widget host shows a saved widget
+ * on its own. An extension's canvas renderer is never given the latter.
+ */
+export interface HostRendererProps extends Omit<
+  CanvasRendererProps,
+  'canvasId'
+> {
+  canvasId?: number;
+}
+
+/**
+ * What the host's widget host passes to a saved widget's renderer: never a
+ * `canvasId`, and always the saved widget's `widgetId`.
+ */
+export interface SavedRendererProps extends HostRendererProps {
+  widgetId: string;
+}
