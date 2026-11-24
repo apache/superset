@@ -41798,6 +41798,123 @@
         ]
       }
     },
+    "/api/v1/widget/{widget_uuid}/data": {
+      "post": {
+        "description": "Runs the query the widget's stored `dataBinding` describes, as the caller, narrowed by `runtime_filters` on the binding's dataset, without a canvas, and answers it as the dataset `main`, as a placement's data is answered. Reading needs access to the widget and to the binding's dataset. The dataset includes the query that ran when the caller can view queries. This synchronous endpoint stands in for the asynchronous one SIP-231 section 8 describes, which answers a manifest of Arrow datasets, or a task while the result isn't cached yet; its answer and its path may change when that lands.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "runtime_filters": {
+                    "items": {
+                      "properties": {
+                        "column": {
+                          "type": "string"
+                        },
+                        "datasetId": {
+                          "type": "integer"
+                        },
+                        "values": {
+                          "items": {},
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "datasets": {
+                          "items": {
+                            "properties": {
+                              "inline_data": {
+                                "items": {
+                                  "type": "object"
+                                },
+                                "type": "array"
+                              },
+                              "language": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "query": {
+                                "type": "string"
+                              },
+                              "row_count": {
+                                "type": "integer"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The widget's datasets"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a saved widget's data",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
     "/api/v1/widgets/type/{widget_type}/control-schema": {
       "get": {
         "parameters": [

@@ -25,10 +25,17 @@ This stands in for SIP-231's ``build_queries`` until widgets declare their own.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from flask import Response
+    from flask_appbuilder.api import BaseApi
+
+    from superset.canvas.query_errors import CanvasQueryFailedError
 
 # Values a select filter publishes.
 FilterScalar = str | int | float | bool
@@ -59,6 +66,56 @@ class PlacementData:
     # Each column's ``GenericDataType``, by name: rows carry temporal values as
     # epoch milliseconds, which only the type tells apart from a number.
     coltypes: dict[str, int] = field(default_factory=dict)
+
+
+def data_response(
+    api: BaseApi,
+    run: Callable[[], PlacementData],
+    on_error: Callable[[CanvasQueryFailedError, int], None] | None = None,
+) -> Response:
+    """
+    A data endpoint's answer to ``run``, which runs a binding as
+    ``run_binding`` does and raises ``CanvasQueryFailedError`` when it fails:
+    its rows as the dataset ``main``, or that failure as ``canvas_query_error``
+    classifies it for the caller. ``on_error`` is told of each failure, with
+    the status it is answered with.
+    """
+    # pylint: disable=import-outside-toplevel
+    from flask import Response
+
+    from superset.canvas.query_errors import CanvasQueryFailedError
+    from superset.extensions import security_manager
+    from superset.utils import json
+
+    try:
+        data = run()
+    except CanvasQueryFailedError as ex:
+        error = ex.error
+        missing = error.reason == "missing_datasource"
+        if on_error is not None:
+            on_error(ex, 404 if missing else error.status)
+        if missing:
+            return api.response_404()
+        return api.response(error.status, **error.rest_payload())
+    dataset: dict[str, Any] = {
+        "name": "main",
+        "row_count": len(data.rows),
+        "inline_data": data.rows,
+        "coltypes": data.coltypes,
+    }
+    # Classic charts gate "View query" on the same permission.
+    if data.query and security_manager.can_access("can_view_query", "Dashboard"):
+        dataset["query"] = data.query
+        dataset["language"] = data.language
+    return Response(
+        json.dumps(
+            {"result": {"datasets": [dataset]}},
+            default=json.json_int_dttm_ser,
+            ignore_nan=True,
+        ),
+        status=200,
+        mimetype="application/json",
+    )
 
 
 def binding_dataset_id(props: dict[str, Any]) -> int | None:
