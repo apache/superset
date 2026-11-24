@@ -37,7 +37,11 @@ import type { ExplorePageState } from 'src/explore/types';
 import { selectVersionPreview, versionPreviewApplied } from './reducer';
 import { fetchDatasourceMetadata, fetchVersionSnapshot } from './api';
 import PreviewBanner from './PreviewBanner';
+import { VERSION_HISTORY_PANEL_WIDTH } from './constants';
 
+// CLOSE_VERSION_HISTORY_PANEL clears preview in the reducer, so preview exists
+// only while history is open. Reserve overlay space here to leave no padding
+// behind on the live chart when preview ends.
 const Container = styled.div`
   ${({ theme }) => `
     display: flex;
@@ -45,6 +49,7 @@ const Container = styled.div`
     gap: ${theme.sizeUnit * 2}px;
     height: 100%;
     padding: ${theme.sizeUnit * 2}px;
+    padding-right: ${VERSION_HISTORY_PANEL_WIDTH + theme.sizeUnit * 2}px;
   `}
 `;
 

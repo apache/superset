@@ -290,19 +290,25 @@ def test_cron_schedule_window_invalid_cron_date(
         ("0 9 L * 5", "At 09:00 AM, on the last day of the month, or on Friday"),
     ],
 )
-def test_get_cron_description(cron: str, expected: str) -> None:
+def test_get_cron_description(
+    cron: str, expected: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """
     Test that the humanized cron matches the days the schedule actually fires on.
     """
 
+    monkeypatch.setattr("locale.getlocale", lambda: ("en_US", "UTF-8"))
     assert get_cron_description(cron) == expected
 
 
-def test_get_cron_description_matches_fire_times() -> None:
+def test_get_cron_description_matches_fire_times(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     A restricted day-of-month and day-of-week are OR'ed, never AND'ed.
     """
 
+    monkeypatch.setattr("locale.getlocale", lambda: ("en_US", "UTF-8"))
     cron = "0 9 7-11,19-23 * 2"
     # 2026-09-01 is a Tuesday that falls outside both day-of-month ranges, so
     # an AND reading of the description would have skipped it

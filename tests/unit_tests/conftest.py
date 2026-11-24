@@ -20,11 +20,14 @@ import importlib
 import os
 import unittest.mock
 from collections.abc import Iterator
+from contextlib import ExitStack
 from typing import Any, Callable, Union
 from unittest.mock import patch
 
 import pytest
 from _pytest.fixtures import SubRequest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from flask_appbuilder.menu import Menu
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
@@ -66,21 +69,27 @@ def session_engine() -> Engine:
 
 
 @pytest.fixture
-def get_session(mocker: MockerFixture, session_engine: Engine) -> Callable[[], Session]:
+def get_session(
+    mocker: MockerFixture, session_engine: Engine
+) -> Iterator[Callable[[], Session]]:
     """
-    Create an in-memory SQLite db.session.to test models.
+    Create patched sessions and release their transactions after each test.
     """
-    engine = session_engine
+    engine: Engine = session_engine
+    cleanup: ExitStack = ExitStack()
 
-    def get_session():
-        Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
-        in_memory_session = Session_()
+    def get_session() -> Session:
+        """Create and patch a session owned by this fixture's cleanup stack."""
+        Session_: sessionmaker[Session] = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
+        in_memory_session: Session = Session_()
+        cleanup.callback(in_memory_session.close)
+        cleanup.callback(in_memory_session.rollback)
 
         # flask calls db.session.remove()
         in_memory_session.remove = lambda: None
 
         # patch session
-        get_session = mocker.patch(
+        get_session: unittest.mock.MagicMock = mocker.patch(
             "superset.security.SupersetSecurityManager.session",
         )
         get_session.return_value = in_memory_session
@@ -92,7 +101,10 @@ def get_session(mocker: MockerFixture, session_engine: Engine) -> Callable[[], S
         mocker.patch("superset.db.session", in_memory_session)
         return in_memory_session
 
-    return get_session
+    # Roll back before closing so version capture releases its units of work.
+    # Track every factory call, not only the session installed in db.session.
+    with cleanup:
+        yield get_session
 
 
 @pytest.fixture
@@ -132,6 +144,42 @@ def _preload_clock_reading_drivers() -> None:
         pass
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _reuse_migration_script_directory() -> Iterator[None]:
+    """Parse the alembic migration scripts once per worker instead of per app.
+
+    Every app built here runs ``SupersetApp.sync_config_to_db``, whose
+    migration-status check loads the whole ``superset/migrations`` script
+    directory to find the head revision. With one app per test module (about a
+    thousand per suite run), that re-parse was about 40% of each build: 1.3s
+    against 0.5s per build when cached, measured under coverage. The scripts
+    cannot change while the tests run, so each distinct configuration is parsed
+    once; configurations read from an ini file are not cached.
+    """
+    from_config: classmethod[ScriptDirectory, [Config], ScriptDirectory] = (
+        ScriptDirectory.__dict__["from_config"]
+    )
+    cache: dict[tuple[tuple[str, str], ...], ScriptDirectory] = {}
+
+    def cached_from_config(
+        cls: type[ScriptDirectory], config: Config
+    ) -> ScriptDirectory:
+        uncached: Callable[[Config], ScriptDirectory] = from_config.__get__(None, cls)
+        if cls is not ScriptDirectory or config.config_file_name is not None:
+            return uncached(config)
+        options = config.get_section(config.config_ini_section, {})
+        key: tuple[tuple[str, str], ...] = tuple(sorted(options.items()))
+        if key not in cache:
+            cache[key] = uncached(config)
+        return cache[key]
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            ScriptDirectory, "from_config", classmethod(cached_from_config)
+        )
+        yield
+
+
 def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
     """
     Build and initialize a Superset app for the unit tests.
@@ -146,6 +194,11 @@ def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
     app = SupersetApp(__name__)
 
     app.config.from_object("superset.config")
+    # ``from_object`` shares ``superset.config``'s dict, and the feature flag
+    # manager updates it in place with this app's FEATURE_FLAGS. Without a copy,
+    # one module's flag overrides would stay on for every later module in the
+    # same xdist worker.
+    app.config["DEFAULT_FEATURE_FLAGS"] = dict(app.config["DEFAULT_FEATURE_FLAGS"])
     app.config["SQLALCHEMY_DATABASE_URI"] = (
         os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI") or "sqlite://"
     )
@@ -260,6 +313,41 @@ def dummy_query_object(request, app_context):
         },
         _datasource_dao=unittest.mock.Mock(),
     ).create(parent_result_type=result_type, **query_object)
+
+
+@pytest.fixture
+def sqlite_supports_partition_filter_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Let SQLite-backed fixtures exercise partition filter mapping.
+
+    The query path and the Explore summary only resolve a mapping on an engine
+    that advertises `supports_partition_filter_mapping`, which SQLite does not.
+    Tests that build their datasets on SQLite and assert a mapping resolves opt
+    into this to keep testing the mapping itself rather than the engine gate.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", True)
+
+
+@pytest.fixture
+def every_engine_supports_partition_filter_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Let a test exercise partition filter mapping on any engine spec.
+
+    Tests that check how the mirror reads and writes values on a specific
+    dialect -- Trino, Presto, BigQuery, Oracle and the rest -- are about that
+    dialect's literals, not about which engines the gate admits. They opt into
+    this so the gate does not decline the mapping before the code under test
+    runs. A spec that sets the flag explicitly keeps its own value.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    monkeypatch.setattr(BaseEngineSpec, "supports_partition_filter_mapping", True)
 
 
 def with_feature_flags(**mock_feature_flags):

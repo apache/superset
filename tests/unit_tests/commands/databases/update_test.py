@@ -220,7 +220,7 @@ def test_rename_with_catalog(
     chart = mocker.MagicMock()
     sync_db_perms_dao.get_datasets.return_value = [dataset]
     dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")
-    dataset_dao.get_related_objects.return_value = {"charts": [chart]}
+    dataset_dao.get_charts_for_datasets.return_value = [chart]
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -242,7 +242,9 @@ def test_rename_with_catalog(
         None,  # [my_db].[catalog2].[schema4] doesn't exist
     ]
     add_pvm = mocker.patch("superset.commands.database.sync_permissions.add_pvm")
-    add_vm = mocker.patch("superset.commands.database.sync_permissions.add_vm")
+    rename_pvm = mocker.patch(
+        "superset.commands.database.sync_permissions.rename_permission_view_menu"
+    )
 
     UpdateDatabaseCommand(1, {}).run()
 
@@ -277,11 +279,13 @@ def test_rename_with_catalog(
         ],
     )
 
-    assert catalog2_pvm.view_menu == add_vm.return_value
-    assert (
-        catalog2_schema3_pvm.view_menu.name
-        == f"[{database_with_catalog.name}].[catalog2].[schema3]"
-    )
+    assert rename_pvm.call_args_list == [
+        mocker.call(catalog2_pvm, f"[{database_with_catalog.name}].[catalog2]"),
+        mocker.call(
+            catalog2_schema3_pvm,
+            f"[{database_with_catalog.name}].[catalog2].[schema3]",
+        ),
+    ]
 
     assert dataset.catalog_perm == f"[{database_with_catalog.name}].[catalog2]"
     assert dataset.schema_perm == f"[{database_with_catalog.name}].[catalog2].[schema4]"
@@ -332,6 +336,10 @@ def test_rename_without_catalog(
     ]
     add_pvm = mocker.patch("superset.commands.database.sync_permissions.add_pvm")
 
+    rename_pvm = mocker.patch(
+        "superset.commands.database.sync_permissions.rename_permission_view_menu"
+    )
+
     UpdateDatabaseCommand(1, {}).run()
 
     add_pvm.assert_called_with(
@@ -341,7 +349,9 @@ def test_rename_without_catalog(
         f"[{database_without_catalog.name}].[schema1]",
     )
 
-    assert schema2_pvm.view_menu.name == f"[{database_without_catalog.name}].[schema2]"
+    rename_pvm.assert_called_once_with(
+        schema2_pvm, f"[{database_without_catalog.name}].[schema2]"
+    )
 
 
 def test_rename_without_catalog_with_assets(
@@ -370,7 +380,7 @@ def test_rename_without_catalog_with_assets(
     chart = mocker.MagicMock()
     sync_db_perms_dao.get_datasets.return_value = [dataset]
     dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")
-    dataset_dao.get_related_objects.return_value = {"charts": [chart]}
+    dataset_dao.get_charts_for_datasets.return_value = [chart]
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -383,9 +393,15 @@ def test_rename_without_catalog_with_assets(
         schema_pvm,
     ]
 
+    rename_pvm = mocker.patch(
+        "superset.commands.database.sync_permissions.rename_permission_view_menu"
+    )
+
     UpdateDatabaseCommand(1, {}).run()
 
-    assert schema_pvm.view_menu.name == f"[{database_without_catalog.name}].[schema1]"
+    rename_pvm.assert_called_once_with(
+        schema_pvm, f"[{database_without_catalog.name}].[schema1]"
+    )
     assert dataset.schema_perm == f"[{database_without_catalog.name}].[schema1]"
     assert dataset.catalog_perm is None
     assert chart.catalog_perm is None

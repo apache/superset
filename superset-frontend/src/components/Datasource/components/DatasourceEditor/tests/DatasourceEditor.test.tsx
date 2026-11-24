@@ -17,14 +17,20 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import {
+  act,
   fireEvent,
   screen,
   waitFor,
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
+import {
+  DatasourceType,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 import {
   createProps,
@@ -69,6 +75,66 @@ test('renders Tabs', async () => {
     datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
   expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
+});
+
+test('Usage excludes semantic-view charts whose datasource id matches the dataset', async () => {
+  const testProps = createProps();
+  const charts = [
+    {
+      id: 101,
+      slice_name: 'Dataset chart',
+      datasource_id: testProps.datasource.id,
+      datasource_type: DatasourceType.Table,
+    },
+    {
+      id: 102,
+      slice_name: 'Semantic view chart',
+      datasource_id: testProps.datasource.id,
+      datasource_type: DatasourceType.SemanticView,
+    },
+    {
+      id: 103,
+      slice_name: 'Other dataset chart',
+      datasource_id: testProps.datasource.id + 1,
+      datasource_type: DatasourceType.Table,
+    },
+  ];
+  fetchMock.removeRoutes();
+  fetchMock.get(DATASOURCE_ENDPOINT, []);
+  fetchMock.get('glob:*/api/v1/chart/*', ({ url }) => {
+    const { filters } = rison.decode<{
+      filters: {
+        col: 'datasource_id' | 'datasource_type';
+        opr: string;
+        value: string | number;
+      }[];
+    }>(new URL(url, 'http://localhost').searchParams.get('q') ?? '');
+    const matches = charts.filter(chart =>
+      filters.every(filter => chart[filter.col] === filter.value),
+    );
+    return {
+      count: matches.length,
+      ids: matches.map(chart => chart.id),
+      result: matches.map(chart => ({
+        ...chart,
+        url: `/explore/?slice_id=${chart.id}`,
+        changed_on_delta_humanized: 'a day ago',
+        changed_by: null,
+        dashboards: [],
+      })),
+    };
+  });
+  setupDatasourceEditorMocks();
+
+  await asyncRender(testProps);
+  await userEvent.click(screen.getByRole('tab', { name: /usage/i }));
+
+  expect(
+    await screen.findByRole('link', { name: 'Dataset chart' }),
+  ).toBeVisible();
+  expect(screen.queryByText('Semantic view chart')).not.toBeInTheDocument();
+  expect(screen.queryByText('Other dataset chart')).not.toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /usage/i })).toHaveTextContent('1');
 });
 
 test('recommends a registered client route for the default URL', async () => {
@@ -996,4 +1062,126 @@ test('syncing restores a column deleted in the session as its saved row', async 
 
   expect(columns).toHaveLength(1);
   expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });
+});
+
+test('partition mapping UI is offered when the engine supports it', async () => {
+  // The feature flag alone is not enough: mirroring a filter onto a partition
+  // column only prunes work on partition-directory engines, so the engine has
+  // to advertise the capability before the editor surfaces it.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      partition_column: 'ds',
+      supports_partition_filter_mapping: true,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  expect(await screen.findByTestId('partition-tag')).toBeInTheDocument();
+});
+
+test('partition mapping UI is withheld on an engine that does not support it', async () => {
+  // Same flag, same partition column, but an engine whose tables are not
+  // partition-directory laid out: the dropdown would map to nothing, so it is
+  // never offered even though the flag is on.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      partition_column: 'ds',
+      supports_partition_filter_mapping: false,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  // Wait for the columns tab to render before asserting the tag is absent.
+  expect(
+    await screen.findByPlaceholderText('Search columns by name'),
+  ).toBeInTheDocument();
+  expect(screen.queryByTestId('partition-tag')).not.toBeInTheDocument();
+});
+
+test('the partition column section is shown when the engine supports it', async () => {
+  // The "Partition column" / "Maps to partition" block in Default Column
+  // Settings is a second render site that must honour the same engine gate as
+  // the per-column tag above.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: true,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  expect(
+    await screen.findByTestId('partition-column-fields'),
+  ).toBeInTheDocument();
+});
+
+test('the partition column section is hidden on an engine that does not support it', async () => {
+  // Regression: this block was previously gated on the feature flag alone, so
+  // it showed on non-partition-directory engines (e.g. Postgres) even though
+  // the per-column tag was correctly hidden.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: false,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  // Wait for the columns tab to render before asserting the section is absent.
+  expect(
+    await screen.findByPlaceholderText('Search columns by name'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('partition-column-fields'),
+  ).not.toBeInTheDocument();
+});
+
+test('the Is temporal column header explains the Datetime format requirement', async () => {
+  await asyncRender(createProps());
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  const header = (await screen.findByRole('columnheader', {
+    name: /is temporal/i,
+  })) as HTMLElement;
+  const infoButton = within(header).getByRole('button', {
+    name: 'Show info tooltip',
+  });
+  act(() => infoButton.focus());
+
+  expect(
+    await screen.findByText(/does not convert a string column/i, undefined, {
+      timeout: 5000,
+    }),
+  ).toBeInTheDocument();
 });

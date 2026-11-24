@@ -76,7 +76,7 @@ _DATASET_TYPES = frozenset({DatasourceType.TABLE.value, DatasourceType.DATASET.v
 
 
 def _load_dataset_for_samples(
-    view: BaseSupersetView, params: dict[str, Any]
+    params: dict[str, Any],
 ) -> tuple[DatasourceModel | None, FlaskResponse | None]:
     """Pre-fetch and access-check the dataset for an authenticated request.
 
@@ -96,7 +96,7 @@ def _load_dataset_for_samples(
             database_id_or_uuid=params["datasource_id"],
         )
     except (DatasourceNotFound, DatasourceTypeNotSupportedError):
-        return None, view.response_404()
+        return None, json_error_response(_("Not found"), status=404)
     try:
         security_manager.raise_for_access(datasource=dataset)
     except SupersetSecurityException:
@@ -172,6 +172,7 @@ def _partition_transform_error(
 def _partition_mapping_reference_error(
     orm_datasource: Any,
     datasource_dict: dict[str, Any],
+    database_changed: bool,
 ) -> str | None:
     """
     Why this request's partition mapping references cannot be stored, if any.
@@ -194,6 +195,13 @@ def _partition_mapping_reference_error(
     Gated on the feature flag, like `UpdateDatasetCommand`'s own call: with the
     flag off nothing mirrors, and a deployment that never turned the feature on
     should not start failing saves over a reference nothing reads.
+
+    Gated on the engine too, for the same reason and again like
+    `UpdateDatasetCommand`: the editor hides the mapping and the query path
+    ignores it on an engine without the capability, so its owner could not see
+    or repair the reference this would refuse. That engine is the one the request
+    leaves the dataset on, and `save` assigns only `database_id`, so on a move
+    `orm_datasource.database` still answers for the database being left.
     """
     if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
         return None
@@ -202,8 +210,15 @@ def _partition_mapping_reference_error(
     if not partition_column:
         return None
 
-    database = getattr(orm_datasource, "database", None)
-    if database is None:
+    database = (
+        DatasetDAO.get_database_by_id(datasource_dict["database"]["id"])
+        if database_changed
+        else getattr(orm_datasource, "database", None)
+    )
+    if (
+        database is None
+        or not database.db_engine_spec.supports_partition_filter_mapping
+    ):
         return None
 
     # The columns the request is about to write, not the ones in storage:
@@ -545,7 +560,9 @@ class Datasource(BaseSupersetView):
         # And the mapping's own column references, for the same reason: they
         # ride in on `update_from_object` with no validation, and a dangling one
         # fails every later PUT rather than this request.
-        if error := _partition_mapping_reference_error(orm_datasource, datasource_dict):
+        if error := _partition_mapping_reference_error(
+            orm_datasource, datasource_dict, database_changed
+        ):
             return json_error_response(error, status=422)
 
         orm_datasource.update_from_object(datasource_dict)
@@ -656,21 +673,21 @@ class Datasource(BaseSupersetView):
             # spaces, so the lookup below would validate whichever unrelated
             # SqlaTable happens to share the integer id.
             if params["datasource_type"] not in _DATASET_TYPES:
-                return self.response_404()
+                return json_error_response(_("Not found"), status=404)
             dashboard_id = params["dashboard_id"]
             dataset = DatasetDAO.find_by_id(
                 params["datasource_id"], skip_base_filter=True
             )
             dashboard = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
             if not (dashboard and dataset):
-                return self.response_404()
+                return json_error_response(_("Not found"), status=404)
             if not security_manager.can_drill_dataset_via_dashboard_access(
                 dataset,
                 dashboard,
             ):
                 return json_error_response(_("Forbidden"), status=403)
         else:
-            dataset, error_response = _load_dataset_for_samples(self, params)
+            dataset, error_response = _load_dataset_for_samples(params)
             if error_response is not None:
                 return error_response
 

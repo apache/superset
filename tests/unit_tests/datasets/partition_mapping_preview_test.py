@@ -37,6 +37,10 @@ from superset import db
 
 PROBE = "superset.connectors.sqla.partition_mapping.evaluate_transform"
 
+# These tests are about the preview, not the engine gate, so every engine they
+# point the dataset at opts in to partition filter mapping.
+pytestmark = pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
+
 
 @pytest.fixture(autouse=True)
 def enable_partition_filter_mapping(app: Flask) -> Any:
@@ -291,8 +295,16 @@ def test_preview_rejects_an_operator_that_can_never_mirror(
     assert response.status_code == 400
 
 
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value",
+        "extract(epoch from cast(:value as timestamp)",
+        "lower(:value), 'x'",
+    ],
+)
 def test_preview_reports_a_parse_error_without_touching_the_engine(
-    client: Any, full_api_access: None, dataset: Any
+    transform: str, client: Any, full_api_access: None, dataset: Any
 ) -> None:
     """
     Validate first, probe second. A half-typed transform is by definition
@@ -303,7 +315,7 @@ def test_preview_reports_a_parse_error_without_touching_the_engine(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "event_time",
-                "value_transform": "unix_timestamp(:value",
+                "value_transform": transform,
                 "sample_values": ["2026-01-15 00:00:00"],
             },
         )
@@ -374,6 +386,7 @@ def test_preview_refuses_a_transform_whose_result_the_key_cannot_hold(
     assert result["valid"] is False
     assert result["reason"] == "type"
     assert "dt_epoch" in result["error"]
+    assert "CAST" in result["error"]
     assert result["sample_input"] == "event_time == '2026-01-15 00:00:00'"
 
 
@@ -655,28 +668,30 @@ def test_a_cache_that_cannot_count_does_not_lock_the_editor_out(
     assert response.status_code == 200
 
 
+@pytest.mark.parametrize("values", [[None], [None, 1]])
 def test_a_probe_that_returns_null_reports_a_reason_not_a_predicate(
-    client: Any, full_api_access: None, dataset: Any
+    values: list[Any], client: Any, full_api_access: None, dataset: Any
 ) -> None:
     """
     A transform returns NULL for an input it cannot convert. A NULL bound would
     make the mirrored comparison NULL for every row, so no predicate is emitted
     at all -- and the editor is told why rather than shown `dt_epoch >= None`.
     """
-    with patch(PROBE, return_value=[None]):
+    with patch(PROBE, return_value=values):
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "country",
                 "value_transform": "unix_timestamp(:value)",
-                "sample_values": ["not a date"],
+                "sample_values": ["not a date"] * len(values),
+                "operator": "IN",
             },
         )
 
     assert response.status_code == 200
     result = response.json["result"]
     assert result["valid"] is False
-    assert result["reason"] == "engine"
+    assert result["reason"] == "null_result"
     assert "emitted_predicate" not in result
     assert "None" not in result["sample_input"]
 
@@ -867,6 +882,39 @@ def test_preview_refuses_a_mapped_column_with_an_advanced_data_type(
     assert response.json["result"]["valid"] is False
     assert response.json["result"]["reason"] == "validation"
     assert "advanced data type" in response.json["result"]["error"]
+    assert "emitted_predicate" not in response.json["result"]
+
+
+def test_preview_declines_on_an_engine_without_partition_filter_mapping(
+    client: Any,
+    full_api_access: None,
+    dataset: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    The query path resolves no mapping on an engine that doesn't advertise
+    `supports_partition_filter_mapping`, so the preview mustn't show a
+    predicate there, nor probe the engine for one.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "engine"
+    assert (
+        "doesn't support partition filter mapping" in (response.json["result"]["error"])
+    )
     assert "emitted_predicate" not in response.json["result"]
 
 
@@ -1290,7 +1338,11 @@ def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
 
 
 def test_preview_and_the_chart_path_agree_about_a_coarse_column(
-    app: Flask, client: Any, full_api_access: None, dataset: Any
+    app: Flask,
+    client: Any,
+    full_api_access: None,
+    dataset: Any,
+    sqlite_supports_partition_filter_mapping: None,
 ) -> None:
     """
     The invariant behind the fix, asserted in both directions: for the same
@@ -1397,6 +1449,35 @@ def test_preview_declines_a_temporal_answer_the_engine_would_floor(
                 "value_transform": "from_unixtime(:value)",
                 "is_monotonic": True,
                 "operator": "<=",
+                "sample_values": ["1767225600"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "emitted_predicate" not in result
+
+
+def test_preview_declines_the_earliest_instant_rather_than_failing(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    psycopg2 reads ``'-infinity'`` as `datetime.min`, which has no earlier
+    instant for the precision check to compare against. The `OverflowError`
+    that raised was reported as an engine failure, as if the transform were
+    broken; it is a type decline like any other.
+    """
+    with patch(PROBE, return_value=[datetime.min]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "dt_epoch",
+                "partition_column": "part_ts",
+                "value_transform": "from_unixtime(:value)",
+                "is_monotonic": True,
+                "operator": ">=",
                 "sample_values": ["1767225600"],
             },
         )

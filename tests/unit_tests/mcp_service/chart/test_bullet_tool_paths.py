@@ -22,7 +22,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -47,6 +47,7 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.tool.get_chart_data import _query_from_form_data
 from superset.utils import json, json as utils_json
 from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 
 def query_result_data(
@@ -94,7 +95,7 @@ def mock_auth():
         patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
         patch.object(_gcd_module, "event_logger", mock_event_logger),
     ):
-        user = Mock()
+        user = regular_user()
         user.id = 1
         user.username = "admin"
         mock_get_user.return_value = user
@@ -1466,7 +1467,7 @@ async def test_bullet_numeric_and_temporal_categories_reach_real_mcp_entrypoint(
         form_data={},
         queries=[SimpleNamespace(metrics=["Revenue"], columns=["Category"])],
     )
-    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    user = regular_user(id=1, username="admin")
     with (
         patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
         patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
@@ -1661,7 +1662,7 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         form_data={},
         queries=[SimpleNamespace(metrics=["Revenue"], columns=["Category"])],
     )
-    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    user = regular_user(id=1, username="admin")
     with (
         patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
         patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
@@ -1828,7 +1829,7 @@ async def test_transitionless_dateutil_dataframe_reaches_fastmcp_preview() -> No
         form_data={},
         queries=[SimpleNamespace(metrics=["Revenue"], columns=["Category"])],
     )
-    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    user = regular_user(id=1, username="admin")
     with (
         patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
         patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
@@ -1974,7 +1975,7 @@ async def test_duration_dataframe_reaches_fastmcp_bullet_preview(
         form_data={},
         queries=[SimpleNamespace(metrics=["Revenue"], columns=["Duration"])],
     )
-    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    user = regular_user(id=1, username="admin")
     with (
         patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
         patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
@@ -2108,7 +2109,7 @@ async def test_bullet_short_labels_and_case_distinct_dimensions_reach_fastmcp(
         form_data={},
         queries=[SimpleNamespace(metrics=["Revenue"], columns=["Region", "region"])],
     )
-    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    user = regular_user(id=1, username="admin")
     with (
         patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
         patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
@@ -2207,12 +2208,17 @@ def test_configless_bullet_rebind_preserves_native_sql_and_having() -> None:
         target_dataset: Any,
         *,
         run_compile_check: bool,
+        temporal_form_data: dict[str, Any] | None = None,
     ) -> CompileResult:
         assert isinstance(config, BulletChartConfig)
         assert not config.filters
         assert compiled_form_data["adhoc_filters"] == native_filters
         assert target_dataset is dataset
         assert run_compile_check is True
+        assert temporal_form_data is not None
+        # Saved native filters are not authored in this call, so they stay out
+        # of the temporal value check scope.
+        assert not temporal_form_data.get("adhoc_filters")
         return CompileResult(success=True)
 
     with (
@@ -2294,7 +2300,7 @@ async def test_saved_bullet_ascii_preview_fits_requested_frame() -> None:
         form_data={},
         queries=[SimpleNamespace(metrics=["Revenue"], columns=["Region"])],
     )
-    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    user = regular_user(id=1, username="admin")
     with (
         patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
         patch("superset.mcp_service.auth.check_tool_permission", return_value=True),

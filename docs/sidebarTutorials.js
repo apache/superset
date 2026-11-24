@@ -35,6 +35,7 @@ const sidebars = {
       items: [
         'contributing/overview',
         'contributing/development-setup',
+        'contributing/ai-pr-guideline',
         'contributing/submitting-pr',
         'contributing/guidelines',
         'contributing/code-review',
@@ -85,8 +86,10 @@ const sidebars = {
             'extensions/extension-points/editors',
             'extensions/extension-points/chat',
             'extensions/extension-points/semantic-layers',
+            'extensions/extension-points/version-history',
           ],
         },
+        'extensions/semantic-provider-transport',
         'extensions/development',
         'extensions/deployment',
         'extensions/mcp',

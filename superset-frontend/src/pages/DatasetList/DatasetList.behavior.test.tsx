@@ -21,12 +21,18 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { ComponentType } from 'react';
+import { FeatureFlag } from '@superset-ui/core';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   setupMocks,
+  setupApiPermissions,
+  mockReadOnlyUser,
   renderDatasetList,
   waitForDatasetsPageReady,
   mockAdminUser,
+  mockEditorUser,
+  mockWriteUser,
   mockDatasets,
   setupDeleteMocks,
   mockRelatedCharts,
@@ -37,6 +43,164 @@ import {
 } from './DatasetList.testHelpers';
 
 jest.mock('src/utils/export');
+
+test('semantic writer without Dataset write cannot bulk delete ordinary rows', async () => {
+  setupApiPermissions(['can_read']);
+  const semanticView = {
+    ...mockDatasets[0],
+    id: 99,
+    table_name: 'semantic_orders',
+    kind: 'semantic_view',
+    can_modify: true,
+  };
+  mockDatasetListEndpoints({
+    result: [mockDatasets[0], semanticView],
+    count: 2,
+  });
+  const addDangerToast = jest.fn();
+  renderDatasetList(mockReadOnlyUser, { addDangerToast });
+  await screen.findByText('semantic_orders');
+  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+  for (const name of [mockDatasets[0].table_name, 'semantic_orders']) {
+    const row = screen.getByText(name).closest('tr');
+    await userEvent.click(within(row!).getByRole('checkbox'));
+  }
+  fetchMock.clearHistory();
+  await userEvent.click(
+    within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+      name: 'Delete',
+    }),
+  );
+  expect(addDangerToast).toHaveBeenCalledWith(
+    expect.stringContaining('You must be a dataset editor in order to delete.'),
+  );
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test.each(['semantic', 'mixed semantic'])(
+  'bulk delete refuses an ineligible %s selection without a request',
+  async kind => {
+    const blocked = {
+      ...mockDatasets[0],
+      id: 99,
+      table_name: 'blocked_row',
+      kind: 'semantic_view',
+      can_modify: false,
+      editors: [],
+    };
+    const allowed = { ...mockDatasets[0], table_name: 'allowed_row' };
+    const rows = kind.startsWith('mixed') ? [blocked, allowed] : [blocked];
+    mockDatasetListEndpoints({ result: rows, count: rows.length });
+    const addDangerToast = jest.fn();
+    renderDatasetList(
+      kind.startsWith('mixed') ? mockEditorUser : mockWriteUser,
+      {
+        addDangerToast,
+      },
+    );
+    await screen.findByText('blocked_row');
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    for (const row of rows) {
+      await userEvent.click(
+        within(screen.getByText(row.table_name).closest('tr')!).getByRole(
+          'checkbox',
+        ),
+      );
+    }
+    fetchMock.clearHistory();
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+    expect(addDangerToast).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'You do not have permission to modify this semantic view.',
+      ),
+    );
+    expect(addDangerToast).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Deselect the items you cannot modify and try again.',
+      ),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(fetchMock.callHistory.calls()).toHaveLength(0);
+    expect(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Export',
+      }),
+    ).toBeEnabled();
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Export',
+      }),
+    );
+    const exportIds = rows
+      .filter(row => row.kind !== 'semantic_view')
+      .map(row => row.id);
+    if (exportIds.length) {
+      expect(mockHandleResourceExport).toHaveBeenCalledWith(
+        'dataset',
+        exportIds,
+        expect.any(Function),
+      );
+    } else {
+      expect(mockHandleResourceExport).not.toHaveBeenCalled();
+      expect(addDangerToast).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Exporting semantic views is not supported yet.',
+        ),
+      );
+    }
+  },
+);
+
+test.each([
+  ['editor', mockEditorUser, false],
+  ['dataset writer checked by server', mockWriteUser, false],
+  ['admin', mockAdminUser, false],
+  ['admin mixed', mockAdminUser, true],
+  ['creator mixed', mockEditorUser, true],
+] as const)(
+  'bulk delete permits an eligible %s selection',
+  async (_label, user, semantic) => {
+    const rows = [
+      mockDatasets[0],
+      ...(semantic
+        ? [
+            {
+              ...mockDatasets[0],
+              id: 99,
+              table_name: 'semantic_orders',
+              kind: 'semantic_view',
+              can_modify: true,
+              editors: [],
+            },
+          ]
+        : []),
+    ];
+    mockDatasetListEndpoints({ result: rows, count: rows.length });
+    const addDangerToast = jest.fn();
+    renderDatasetList(user, { addDangerToast });
+    await screen.findByText(rows[0].table_name);
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    for (const row of rows) {
+      await userEvent.click(
+        within(screen.getByText(row.table_name).closest('tr')!).getByRole(
+          'checkbox',
+        ),
+      );
+    }
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(addDangerToast).not.toHaveBeenCalled();
+  },
+);
 
 jest.mock('src/utils/getBootstrapData', () =>
   mockUserSubjectsBootstrapData([1]),
@@ -50,6 +214,8 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 
 // Increase default timeout for tests that involve multiple async operations
 jest.setTimeout(15000);
+
+const originalFlags = window.featureFlags;
 
 beforeEach(() => {
   setupMocks();
@@ -71,6 +237,8 @@ afterEach(async () => {
   fetchMock.clearHistory();
   fetchMock.removeRoutes();
   jest.restoreAllMocks();
+  window.featureFlags = originalFlags;
+  localStorage.removeItem(LocalStorageKeys.LastArchivedType);
 });
 
 test('single semantic view delete displays the counted dependency conflict', async () => {
@@ -79,6 +247,8 @@ test('single semantic view delete displays the counted dependency conflict', asy
     id: 99,
     table_name: 'orders_semantic',
     kind: 'semantic_view',
+
+    can_modify: true,
   };
   const reason =
     'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
@@ -127,6 +297,8 @@ test('single semantic view delete names its blockers, including archived ones', 
     id: 99,
     table_name: 'orders_semantic',
     kind: 'semantic_view',
+
+    can_modify: true,
   };
   mockDatasetListEndpoints({ result: [view], count: 1 });
   fetchMock.delete('glob:*/api/v1/semantic_view/99', {
@@ -179,11 +351,18 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
     id: 99,
     table_name: 'orders_semantic',
     kind: 'semantic_view',
+
+    can_modify: true,
+    editors: [],
   };
+  const secondView = { ...semanticView, id: 100, table_name: 'other_semantic' };
   const addDangerToast = jest.fn();
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
-  mockDatasetListEndpoints({ result: [dataset, semanticView], count: 2 });
+    'Semantic source is used by 4 dependent assets and cannot be deleted. 1 dependent asset is archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
+  mockDatasetListEndpoints({
+    result: [dataset, semanticView, secondView],
+    count: 3,
+  });
   fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
     charts: { count: 0, result: [] },
     dashboards: { count: 0, result: [] },
@@ -193,9 +372,39 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
     status: 409,
     body: {
       message: reason,
-      total: 25,
-      dependents: [],
-      inaccessible_count: 25,
+      total: 4,
+      archived_count: 1,
+      dependents: [
+        { type: 'chart', id: 7, name: 'Revenue chart', archived: false },
+        { type: 'dashboard', id: 8, name: 'Other dashboard', archived: false },
+      ],
+      inaccessible_count: 2,
+      blocked_view_ids: [99, 100],
+      blocked_views: [
+        {
+          id: 99,
+          total: 3,
+          archived_count: 1,
+          inaccessible_count: 2,
+          dependents: [
+            { type: 'chart', id: 7, name: 'Revenue chart', archived: false },
+          ],
+        },
+        {
+          id: 100,
+          total: 1,
+          archived_count: 0,
+          inaccessible_count: 0,
+          dependents: [
+            {
+              type: 'dashboard',
+              id: 8,
+              name: 'Other dashboard',
+              archived: false,
+            },
+          ],
+        },
+      ],
     },
   });
   renderDatasetList(mockAdminUser, {
@@ -205,13 +414,17 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
   await screen.findByText(semanticView.table_name);
   await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
   const table = screen.getByTestId('listview-table');
-  for (const name of [dataset.table_name, semanticView.table_name]) {
+  for (const name of [
+    dataset.table_name,
+    semanticView.table_name,
+    secondView.table_name,
+  ]) {
     const cell = await within(table).findByText(name);
     await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
   }
   await waitFor(() =>
     expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
-      '2 Selected',
+      '3 Selected',
     ),
   );
   await userEvent.click(
@@ -225,19 +438,352 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
     'DELETE',
   );
   await userEvent.click(within(modal).getByRole('button', { name: 'Delete' }));
-  await waitFor(() =>
-    expect(addDangerToast).toHaveBeenCalledWith(
-      `Could not delete semantic views orders_semantic: ${reason}`,
-    ),
-  );
-  expect(addDangerToast).toHaveBeenCalledTimes(1);
+  const refusal = await screen.findByRole('dialog', {
+    name: 'Cannot delete semantic views',
+  });
+  const first = within(refusal).getByRole('region', {
+    name: 'orders_semantic',
+  });
+  const second = within(refusal).getByRole('region', {
+    name: 'other_semantic',
+  });
+  expect(first).not.toHaveTextContent('Other dashboard');
+  expect(second).toHaveTextContent('Other dashboard');
+  expect(second).not.toHaveTextContent('Revenue chart');
+  expect(second).not.toHaveTextContent("can't see");
   expect(
-    fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_BULK_DELETE),
+    within(refusal).getByRole('link', { name: 'Revenue chart' }),
+  ).toHaveAttribute('href', '/explore/?slice_id=7');
+  expect(refusal).toHaveTextContent(
+    "2 dependent assets are ones you can't see. Ask an admin for help.",
+  );
+  expect(
+    within(refusal).queryByRole('button', { name: 'Delete' }),
+  ).not.toBeInTheDocument();
+  expect(addDangerToast).not.toHaveBeenCalled();
+  expect(
+    fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_BULK_DELETE, {
+      method: 'DELETE',
+    }),
   ).toHaveLength(1);
   expect(
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/?q=*'),
   ).toHaveLength(1);
 });
+
+test.each([200, 409, 403, 404, 422, 'network'] as const)(
+  'refused bulk delete offers only the other view and handles retry %s',
+  async status => {
+    window.featureFlags = {
+      ...window.featureFlags,
+      [FeatureFlag.SoftDelete]: true,
+      // Semantic views are listed only by the combined datasource API.
+      [FeatureFlag.SemanticLayers]: true,
+    };
+    const views = [
+      {
+        ...mockDatasets[0],
+        id: 98,
+        table_name: 'blocked_view',
+        kind: 'semantic_view',
+
+        can_modify: true,
+      },
+      {
+        ...mockDatasets[1],
+        id: 99,
+        table_name: 'free_view',
+        kind: 'semantic_view',
+
+        can_modify: true,
+      },
+    ];
+    const addSuccessToast = jest.fn();
+    const addDangerToast = jest.fn();
+    mockDatasetListEndpoints({ result: views, count: 2 });
+    fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+      charts: { count: 0, result: [] },
+      dashboards: { count: 0, result: [] },
+    });
+    fetchMock.delete('glob:*/api/v1/semantic_view/?q=!(98,99)', {
+      status: 409,
+      body: {
+        message: 'blocked',
+        total: 2,
+        blocked_view_ids: [98],
+        blocked_views: [
+          {
+            id: 98,
+            total: 2,
+            inaccessible_count: 1,
+            archived_count: 0,
+            dependents: [
+              { type: 'chart', id: 7, name: 'Retry blocker', archived: false },
+            ],
+          },
+        ],
+      },
+    });
+    fetchMock.delete(
+      'glob:*/api/v1/semantic_view/?q=!(99)',
+      status === 'network'
+        ? { throws: new TypeError('Failed to fetch') }
+        : {
+            status,
+            body:
+              status === 200
+                ? { message: 'Deleted 1 semantic view' }
+                : {
+                    message: 'Retry refused',
+                    total: 1,
+                    blocked_view_ids: [99],
+                    blocked_views: [
+                      {
+                        id: 99,
+                        total: 1,
+                        archived_count: 0,
+                        inaccessible_count: 0,
+                        dependents: [
+                          {
+                            type: 'chart',
+                            id: 8,
+                            name: 'New blocker',
+                            archived: false,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+          },
+    );
+    renderDatasetList(mockAdminUser, { addDangerToast, addSuccessToast });
+    await screen.findByText('free_view');
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    const table = screen.getByTestId('listview-table');
+    for (const name of ['blocked_view', 'free_view']) {
+      const cell = await within(table).findByText(name);
+      await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+    }
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: /^(Delete|Archive)$/,
+      }),
+    );
+    const bulkModal = await screen.findByRole('dialog');
+    expect(bulkModal).not.toHaveTextContent('moved to Recently Archived');
+    await userEvent.type(
+      within(bulkModal).getByTestId('delete-modal-input'),
+      'DELETE',
+    );
+    await userEvent.click(
+      within(bulkModal).getByRole('button', { name: 'Delete' }),
+    );
+    const retry = await screen.findByRole('dialog', {
+      name: 'Delete the other semantic views?',
+    });
+    expect(retry).toHaveTextContent(
+      'No semantic views were deleted because other assets depend on blocked_view. Delete the other semantic view, free_view?',
+    );
+    expect(
+      within(retry).getByRole('link', { name: 'Retry blocker' }),
+    ).toBeInTheDocument();
+    expect(retry).toHaveTextContent(
+      "1 dependent asset is one you can't see. Ask an admin for help.",
+    );
+    expect(addDangerToast).not.toHaveBeenCalled();
+    await userEvent.type(
+      within(retry).getByTestId('delete-modal-input'),
+      'DELETE',
+    );
+    const listRequests = fetchMock.callHistory.calls(
+      API_ENDPOINTS.DATASOURCE_COMBINED,
+    ).length;
+    expect(listRequests).toBeGreaterThan(0);
+    await userEvent.click(
+      within(retry).getByRole('button', { name: 'Delete' }),
+    );
+    if (status === 200) {
+      await waitFor(() =>
+        expect(addSuccessToast).toHaveBeenCalledWith('Deleted 1 semantic view'),
+      );
+    } else if (status === 409) {
+      const refusedAgain = await screen.findByRole('dialog', {
+        name: 'Cannot delete semantic views',
+      });
+      expect(
+        within(refusedAgain).getByRole('region', { name: 'free_view' }),
+      ).toHaveTextContent('New blocker');
+      expect(refusedAgain).not.toHaveTextContent('blocked_view');
+      expect(
+        within(refusedAgain).queryByRole('button', { name: 'Delete' }),
+      ).not.toBeInTheDocument();
+      expect(addDangerToast).not.toHaveBeenCalled();
+      expect(addSuccessToast).not.toHaveBeenCalled();
+    } else {
+      await waitFor(
+        () =>
+          expect(addDangerToast).toHaveBeenCalledWith(
+            expect.stringContaining('There was an issue deleting free_view:'),
+          ),
+        { timeout: 5000 },
+      );
+      expect(
+        screen.queryByRole('dialog', { name: 'Cannot delete semantic views' }),
+      ).not.toBeInTheDocument();
+      expect(addSuccessToast).not.toHaveBeenCalled();
+    }
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+      ).toBeGreaterThan(listRequests),
+    );
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/?q=!(99)'),
+    ).toHaveLength(status === 'network' ? 4 : 1);
+  },
+);
+
+test.each([false, true])(
+  'refused mixed bulk delete reports datasets with SOFT_DELETE=%s',
+  async softDelete => {
+    window.featureFlags = {
+      ...window.featureFlags,
+      [FeatureFlag.SoftDelete]: softDelete,
+    };
+    localStorage.removeItem(LocalStorageKeys.LastArchivedType);
+    const dataset = mockDatasets[0];
+    const views = [
+      {
+        ...mockDatasets[1],
+        id: 98,
+        table_name: 'blocked_view',
+        kind: 'semantic_view',
+
+        can_modify: true,
+      },
+      {
+        ...mockDatasets[2],
+        id: 99,
+        table_name: 'free_view',
+        kind: 'semantic_view',
+
+        can_modify: true,
+      },
+    ];
+    const addSuccessToast = jest.fn();
+    mockDatasetListEndpoints({ result: [dataset, ...views], count: 3 });
+    fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+      charts: { count: 0, result: [] },
+      dashboards: { count: 0, result: [] },
+    });
+    fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, { message: 'OK' });
+    fetchMock.delete('glob:*/api/v1/semantic_view/?q=*', {
+      status: 409,
+      body: { message: 'blocked', total: 1, blocked_view_ids: [98] },
+    });
+    renderDatasetList(mockAdminUser, {
+      addDangerToast: jest.fn(),
+      addSuccessToast,
+    });
+    await screen.findByText('free_view');
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    const table = screen.getByTestId('listview-table');
+    for (const name of [dataset.table_name, 'blocked_view', 'free_view']) {
+      const cell = await within(table).findByText(name);
+      await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+    }
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: /^(Delete|Archive)$/,
+      }),
+    );
+    const bulkModal = await screen.findByRole('dialog');
+    await userEvent.type(
+      within(bulkModal).getByTestId('delete-modal-input'),
+      'DELETE',
+    );
+    await userEvent.click(
+      within(bulkModal).getByRole('button', { name: 'Delete' }),
+    );
+    const retry = await screen.findByRole('dialog', {
+      name: 'Delete the other semantic views?',
+    });
+    expect(retry).toHaveTextContent('No semantic views were deleted');
+    expect(retry).not.toHaveTextContent('Nothing was deleted');
+    if (softDelete) {
+      expect(addSuccessToast).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Archived 1 item(s) <a href="/archived/?type=dataset">View in Recently Archived',
+        ),
+        { allowHtml: true },
+      );
+      expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBe('dataset');
+    } else {
+      expect(addSuccessToast.mock.calls[0][0]).toBe('Deleted 1 item(s)');
+      expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBeNull();
+    }
+  },
+);
+
+test.each([403, 404, 422, 'network'] as const)(
+  'bulk semantic delete reports %s as a toast, not a dependency refusal',
+  async status => {
+    const views = [98, 99].map(id => ({
+      ...mockDatasets[0],
+      id,
+      table_name: `view_${id}`,
+      kind: 'semantic_view',
+
+      can_modify: true,
+    }));
+    const addDangerToast = jest.fn();
+    const addSuccessToast = jest.fn();
+    mockDatasetListEndpoints({ result: views, count: 2 });
+    fetchMock.delete(
+      'glob:*/api/v1/semantic_view/?q=*',
+      status === 'network'
+        ? { throws: new TypeError('Failed to fetch') }
+        : { status, body: { message: 'Delete failed' } },
+    );
+    renderDatasetList(mockAdminUser, { addDangerToast, addSuccessToast });
+    await screen.findByText('view_98');
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    const table = screen.getByTestId('listview-table');
+    for (const view of views) {
+      const cell = within(table).getByText(view.table_name);
+      await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+    }
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+    const modal = await screen.findByRole('dialog');
+    await userEvent.type(
+      within(modal).getByTestId('delete-modal-input'),
+      'DELETE',
+    );
+    await userEvent.click(
+      within(modal).getByRole('button', { name: 'Delete' }),
+    );
+    await waitFor(
+      () =>
+        expect(addDangerToast).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'There was an issue deleting view_98, view_99:',
+          ),
+        ),
+      { timeout: 5000 },
+    );
+    expect(
+      screen.queryByRole('dialog', { name: 'Cannot delete semantic views' }),
+    ).not.toBeInTheDocument();
+    expect(addSuccessToast).not.toHaveBeenCalled();
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/?q=*'),
+    ).toHaveLength(status === 'network' ? 4 : 1);
+  },
+);
 
 test('typing in search updates the input value correctly', async () => {
   renderDatasetList(mockAdminUser);
@@ -270,7 +816,7 @@ test('typing in search triggers debounced API call with search filter', async ()
 
   // Record initial API calls
   const initialCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Type search query and submit with Enter to trigger the debounced fetch
@@ -279,16 +825,14 @@ test('typing in search triggers debounced API call with search filter', async ()
   // Wait for debounced API call
   await waitFor(
     () => {
-      const calls = fetchMock.callHistory.calls(
-        API_ENDPOINTS.DATASOURCE_COMBINED,
-      );
+      const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(calls.length).toBeGreaterThan(initialCallCount);
     },
     { timeout: 5000 },
   );
 
   // Verify the latest API call includes search filter in URL
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -458,6 +1002,8 @@ test('bulk export of only semantic-view rows shows danger toast and skips export
     id: 100,
     table_name: 'sl_only_view',
     kind: 'semantic_view',
+
+    can_modify: true,
   };
   const addDangerToast = jest.fn();
 
@@ -519,6 +1065,8 @@ test('bulk export of mixed datasets and semantic views warns and exports only da
     id: 100,
     table_name: 'sl_mixed_view',
     kind: 'semantic_view',
+
+    can_modify: true,
   };
   const addDangerToast = jest.fn();
 
@@ -616,7 +1164,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
 
   // Track initial dataset list API calls BEFORE duplicate action
   const initialDatasetCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   const row = screen.getByText(datasetToDuplicate.table_name).closest('tr');
@@ -657,9 +1205,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   // Verify refreshData() is called (observable via new dataset list API call)
   await waitFor(
     () => {
-      const datasetCalls = fetchMock.callHistory.calls(
-        API_ENDPOINTS.DATASOURCE_COMBINED,
-      );
+      const datasetCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(datasetCalls.length).toBeGreaterThan(initialDatasetCallCount);
     },
     { timeout: 3000 },

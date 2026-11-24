@@ -43,6 +43,9 @@ from superset.datasets.schemas import (
 )
 from superset.models.core import Database
 
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
+
 DATASET_FIELDS = ["partition_column", "partition_mapped_column"]
 COLUMN_FIELDS = ["partition_value_transform", "partition_transform_is_monotonic"]
 
@@ -122,10 +125,12 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
+        "mapped_column_is_temporal": True,
         # SQLite's driver and engine spell both characters the same way, so
         # nothing is declined on these grounds here.
         "unmirrorable_value_chars": [],
-        "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
+        # Nothing to promise until a verdict confirms the mapping.
+        "mirrorable_operators": [],
     }
 
 
@@ -158,7 +163,7 @@ def test_the_mapping_summary_reports_the_engine_s_literal_resolution(
 
 
 def test_the_mapping_summary_names_the_characters_this_database_spells_oddly(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     The other gate the Explore indicator cannot work out for itself: whether a
@@ -169,8 +174,13 @@ def test_the_mapping_summary_names_the_characters_this_database_spells_oddly(
     backslash, and one flag would cost quote-bearing filters their glyph for
     nothing.
     """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
     table = _table()
     table.database.sqlalchemy_uri = "postgresql://user@host/db"
+    # Postgres does not support partition filter mapping, and the summary is
+    # gated on that; opted in here to test the per-character report itself.
+    monkeypatch.setattr(PostgresEngineSpec, "supports_partition_filter_mapping", True)
 
     with app.app_context():
         summary = table.data["partition_filter_mapping"]
@@ -207,6 +217,8 @@ def test_the_mapping_summary_calls_a_text_mapping_full_resolution(
 
     assert summary is not None
     assert summary["literal_resolution"] == "full"
+    # Compared as text, so an unreadable string mirrors as typed.
+    assert summary["mapped_column_is_temporal"] is False
 
 
 def test_the_mapping_summary_stops_claiming_a_mirror_a_probe_refused(
@@ -248,6 +260,29 @@ def test_the_mapping_summary_reports_inactive_without_a_transform(
     assert summary["active"] is False
 
 
+def test_the_mapping_summary_ships_the_operators_once_confirmed(app: Flask) -> None:
+    """The full matrix, for a monotonic transform the engine has confirmed."""
+    with (
+        app.app_context(),
+        patch(
+            "superset.connectors.sqla.models.known_mirror_verdict", return_value=True
+        ),
+    ):
+        summary = _table().data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["evaluable"] is True
+    assert summary["mirrorable_operators"] == [
+        "<",
+        "<=",
+        "==",
+        ">",
+        ">=",
+        "IN",
+        "TEMPORAL_RANGE",
+    ]
+
+
 def test_the_mapping_summary_narrows_the_operators_without_monotonicity(
     app: Flask,
 ) -> None:
@@ -260,7 +295,12 @@ def test_the_mapping_summary_narrows_the_operators_without_monotonicity(
     table = _table()
     table.columns[0].partition_transform_is_monotonic = False
 
-    with app.app_context():
+    with (
+        app.app_context(),
+        patch(
+            "superset.connectors.sqla.models.known_mirror_verdict", return_value=True
+        ),
+    ):
         summary = table.data["partition_filter_mapping"]
 
     assert summary is not None
@@ -350,10 +390,12 @@ def test_the_mapping_summary_still_names_the_columns_when_inactive(
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
+        "mapped_column_is_temporal": True,
         # SQLite's driver and engine spell both characters the same way, so
         # nothing is declined on these grounds here.
         "unmirrorable_value_chars": [],
-        "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
+        # Nothing to promise until a verdict confirms the mapping.
+        "mirrorable_operators": [],
     }
 
 
@@ -650,6 +692,33 @@ def test_the_summary_alias_and_the_property_agree(app: Flask) -> None:
     with app.app_context():
         assert table.partition_filter_mapping == table.partition_filter_mapping_summary
         assert table.partition_filter_mapping is not None
+
+
+def test_the_engine_capability_flag_is_readable_over_the_api() -> None:
+    """
+    The editor gates the whole partition mapping UI on this; unexposed, it reads
+    back falsy and the feature never appears, even on an engine that supports it.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert "supports_partition_filter_mapping" in DatasetRestApi.show_columns
+
+
+def test_the_mapping_summary_is_gated_on_engine_support(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    The summary follows `resolve_partition_mapping`: on an engine that does not
+    support partition filter mapping nothing is mirrored, so the Explore
+    indicator must not be told otherwise.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    table = _table()
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+
+    with app.app_context():
+        assert table.partition_filter_mapping_summary is None
 
 
 def test_the_mapping_summary_is_gated_on_the_feature_flag(app: Flask) -> None:

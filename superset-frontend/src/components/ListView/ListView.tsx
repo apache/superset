@@ -316,6 +316,8 @@ const ViewModeToggle = ({
     </Tooltip>
   </ViewModeContainer>
 );
+export type { ListViewColumn };
+
 export interface ListViewProps<T extends object = any> {
   columns: ListViewColumn<T>[];
   data: T[];
@@ -525,6 +527,7 @@ export function ListView<T extends object = any>({
               cardSortSelectOptions &&
               !setMobileFiltersOpen && (
                 <CardSortSelect
+                  key={JSON.stringify(sortBy)}
                   initialSort={sortBy}
                   onChange={(value: SortColumn[]) => setSortBy(value)}
                   options={cardSortSelectOptions}
@@ -660,6 +663,7 @@ export function ListView<T extends object = any>({
                   prepareRow={prepareRow}
                   headerGroups={headerGroups}
                   setSortBy={setSortBy}
+                  sortBy={sortBy}
                   rows={rows}
                   columns={columns}
                   loading={loading && rows.length > 0}
@@ -667,6 +671,7 @@ export function ListView<T extends object = any>({
                   isRowHighlighted={isRowHighlighted}
                   columnsForWrapText={columnsForWrapText}
                   expandable={expandable}
+                  managedColumnWidths
                   bulkSelectEnabled={bulkSelectEnabled}
                   selectedFlatRows={selectedFlatRows}
                   toggleRowSelected={(rowId, value) => {
@@ -729,6 +734,7 @@ export function ListView<T extends object = any>({
             />
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
+                key={JSON.stringify(sortBy)}
                 initialSort={sortBy}
                 onChange={(value: SortColumn[]) => setSortBy(value)}
                 options={cardSortSelectOptions}

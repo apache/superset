@@ -103,7 +103,10 @@ class EmbeddedView(BaseSupersetView):
                     "GUEST_TOKEN_HEADER_MAX_BYTES"
                 ],
             },
-            "common": common_bootstrap_payload(),
+            # Rendered for an anonymous user before the guest token arrives, so
+            # the realtime permission can't be checked here: carry the configured
+            # WEBSOCKET_ENABLE and let the ticket endpoint authorize the guest.
+            "common": common_bootstrap_payload(gate_realtime=False),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
                 # The list of domains allowed to embed this dashboard. An empty

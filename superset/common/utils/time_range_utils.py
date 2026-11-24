@@ -21,9 +21,12 @@ from datetime import datetime
 from typing import Any, cast
 
 from flask import current_app
+from flask_babel import gettext as _
+from marshmallow import ValidationError
 
 from superset.common.query_object import QueryObject
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
 from superset.superset_typing import Column
 from superset.utils.core import (
     FilterOperator,
@@ -77,6 +80,47 @@ def get_since_until_from_time_range(
 
 
 # pylint: disable=invalid-name
+def get_since_until_from_temporal_filter(
+    time_range: str,
+    column: str,
+    time_shift: str | None = None,
+    extras: dict[str, Any] | None = None,
+) -> tuple[datetime | None, datetime | None]:
+    """Parse one temporal filter's range, reporting a bad range as a bad request.
+
+    ``get_time_range_from_filters`` picks a single temporal filter, and only
+    that one is parsed while the query context is built, where
+    ``ChartDataRestApi`` answers 400 for a range it cannot parse. Every temporal
+    filter is parsed again when the SQL is built, and that runs outside the
+    handlers that answer 400, so a bad range in any other filter would reach
+    ``app.errorhandler(Exception)`` and answer 500.
+
+    :param time_range: The range expression, as the filter carries it.
+    :param column: The filtered column, to say which filter is at fault.
+    :param time_shift: An offset to apply to the parsed range.
+    :param extras: Query extras holding the relative-date anchors.
+    :return: The parsed bounds
+    :raises QueryObjectValidationError: If the range is unusable
+    """
+    try:
+        return get_since_until_from_time_range(
+            time_range=time_range,
+            time_shift=time_shift,
+            extras=extras,
+        )
+    except (ValidationError, ValueError) as ex:
+        # ``TimeRangeParseFailError`` and ``TimeRangeAmbiguousError`` are
+        # marshmallow ``ValidationError``s, which only the query-context
+        # handlers answer 400 for; the rest arrive as a bare ``ValueError``.
+        raise QueryObjectValidationError(
+            _(
+                "Invalid time range for %(column)s: %(message)s",
+                column=column,
+                message=str(ex),
+            )
+        ) from ex
+
+
 def get_since_until_from_query_object(
     query_object: QueryObject,
 ) -> tuple[datetime | None, datetime | None]:
