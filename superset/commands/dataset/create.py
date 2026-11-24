@@ -230,14 +230,14 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             table = Table(table_name, schema, catalog)
 
             if not DatasetDAO.validate_uniqueness(database, table):
-                # Distinguish the hidden-twin case: uniqueness fails while
-                # the caller's dataset list looks empty. Raise the targeted
-                # 422 (naming the twin's uuid and the restore endpoint)
-                # instead of the opaque "already exists".
+                # Archived datasets are hidden from the dataset picker; name
+                # the duplicate and explain how to recover or remove it.
                 if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
                     database, table
                 ):
-                    raise DatasetSoftDeletedTwinExistsError(str(soft_twin.uuid))
+                    raise DatasetSoftDeletedTwinExistsError(
+                        str(soft_twin.uuid), dataset_name=str(soft_twin.table_name)
+                    )
                 exceptions.append(DatasetExistsValidationError(table))
 
         # Validate table exists on dataset if sql is not provided

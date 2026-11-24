@@ -639,9 +639,7 @@ def test_create_dataset_physical_table_no_parse_error(
 
 
 def test_create_dataset_blocked_by_soft_deleted_twin() -> None:
-    """Uniqueness failure caused by a hidden twin raises the targeted,
-    single-sourced 422 (naming the twin's uuid and the restore endpoint)
-    instead of the opaque "already exists" validation error."""
+    """An archived duplicate raises a targeted 422 naming the dataset."""
     from superset.commands.dataset.exceptions import (
         DatasetSoftDeletedTwinExistsError,
     )
@@ -651,6 +649,7 @@ def test_create_dataset_blocked_by_soft_deleted_twin() -> None:
     mock_database.get_default_catalog.return_value = None
     twin = Mock()
     twin.uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    twin.table_name = "blocked_tbl"
 
     with patch(
         "superset.commands.dataset.create.DatasetDAO.get_database_by_id",
@@ -672,11 +671,10 @@ def test_create_dataset_blocked_by_soft_deleted_twin() -> None:
                     command.validate()
 
     message = str(exc_info.value)
-    assert "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" in message
+    assert "blocked_tbl" in message
+    assert "Recently Archived" in message
     assert "restore" in message.lower()
-    # Executable recoveries only — no hard-delete/purge claims.
-    assert "hard-delete" not in message.lower()
-    assert "purge" not in message.lower()
+    assert "delete it permanently" in message
 
 
 def test_create_dataset_generic_exists_error_when_no_twin() -> None:
