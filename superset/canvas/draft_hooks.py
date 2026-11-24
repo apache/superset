@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from typing import TypeVar
 
 from superset_core.canvas.drafts import CanvasDraftEvent, DraftStep, DraftStepHandler
 
@@ -44,6 +45,9 @@ logger = logging.getLogger(__name__)
 
 _listeners: list[Callable[[CanvasDraftEvent], None]] = []
 _handlers: dict[str, DraftStepHandler] = {}
+
+_ListenerT = TypeVar("_ListenerT", bound=Callable[[CanvasDraftEvent], None])
+_HandlerT = TypeVar("_HandlerT", bound=DraftStepHandler)
 
 
 class _ExtensionStepHandler:
@@ -71,18 +75,10 @@ def _registered(handler: DraftStepHandler) -> DraftStepHandler:
     return handler
 
 
-def on_draft_event(
-    listener: Callable[[CanvasDraftEvent], None],
-) -> Callable[[], None]:
-    """Call ``listener`` after each canvas draft event; answer its unsubscribe."""
-    bound = bind_context(listener, get_current_extension_context())
-    _listeners.append(bound)
-
-    def unsubscribe() -> None:
-        if bound in _listeners:
-            _listeners.remove(bound)
-
-    return unsubscribe
+def on_draft_event(listener: _ListenerT) -> _ListenerT:
+    """Call ``listener`` after each canvas draft event; return it."""
+    _listeners.append(bind_context(listener, get_current_extension_context()))
+    return listener
 
 
 def emit(event: CanvasDraftEvent) -> None:
@@ -97,8 +93,8 @@ def emit(event: CanvasDraftEvent) -> None:
             logger.exception("A canvas draft listener failed on %s", event.kind)
 
 
-def register_step_handler(kind: str, handler: DraftStepHandler) -> Callable[[], None]:
-    """Make ``handler`` undo and redo the steps of ``kind``; answer its removal."""
+def register_step_handler(kind: str, handler: _HandlerT) -> _HandlerT:
+    """Make ``handler`` undo and redo the steps of ``kind``; return it."""
     if not kind:
         raise ValueError("A recorded step's kind can't be empty")
     existing = _handlers.get(kind)
@@ -109,13 +105,7 @@ def register_step_handler(kind: str, handler: DraftStepHandler) -> Callable[[], 
         )
     elif _registered(existing) is not handler:
         raise ValueError(f"Recorded steps of kind {kind!r} have a handler already")
-
-    def unregister() -> None:
-        current = _handlers.get(kind)
-        if current is not None and _registered(current) is handler:
-            del _handlers[kind]
-
-    return unregister
+    return handler
 
 
 def step_handler(kind: str) -> DraftStepHandler | None:

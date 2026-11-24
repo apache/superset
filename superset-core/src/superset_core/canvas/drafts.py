@@ -34,12 +34,14 @@ follows the canvas draft here:
 Usage:
     from superset_core.canvas import drafts
 
+    @drafts.on_draft_event
+    def on_canvas_draft(event: drafts.CanvasDraftEvent) -> None: ...
+
     class NoteSteps:
         def undo(self, step: drafts.DraftStep, token: str) -> None: ...
         def redo(self, step: drafts.DraftStep, token: str) -> None: ...
 
     drafts.register_step_handler("extensions.acme.notes.edit", NoteSteps())
-    drafts.on_draft_event(lambda event: ...)
     drafts.record_step(
         token,
         drafts.DraftStep(
@@ -55,7 +57,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, Protocol, TypeVar
 
 DraftEventKind = Literal["discarded", "committed", "undone", "redone"]
 
@@ -129,9 +131,11 @@ class DraftNotFoundError(LookupError):
     """
 
 
-def on_draft_event(
-    listener: Callable[[CanvasDraftEvent], None],
-) -> Callable[[], None]:
+_ListenerT = TypeVar("_ListenerT", bound=Callable[[CanvasDraftEvent], None])
+_HandlerT = TypeVar("_HandlerT", bound=DraftStepHandler)
+
+
+def on_draft_event(listener: _ListenerT) -> _ListenerT:
     """
     Call ``listener`` after each event, in the request that caused it, which
     runs as the draft's owner.
@@ -139,19 +143,21 @@ def on_draft_event(
     Delivery is best-effort: a listener that raises is logged, and neither
     stops the others nor fails the request.
 
+    Can be used as a decorator::
+
+        @drafts.on_draft_event
+        def on_canvas_draft(event: drafts.CanvasDraftEvent) -> None: ...
+
     Host implementations will replace this function during initialization
     with a concrete implementation providing actual functionality.
 
     :param listener: Called with each event.
-    :returns: A function that unsubscribes ``listener``.
+    :returns: ``listener``, so that it can be used as a decorator.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
 
-def register_step_handler(
-    kind: str,
-    handler: DraftStepHandler,
-) -> Callable[[], None]:
+def register_step_handler(kind: str, handler: _HandlerT) -> _HandlerT:
     """
     Register ``handler`` for the recorded steps of ``kind``.
 
@@ -167,7 +173,7 @@ def register_step_handler(
 
     :param kind: The kind of the steps it handles.
     :param handler: What undoes and redoes them.
-    :returns: A function that unregisters ``handler``.
+    :returns: ``handler``.
     :raises ValueError: If ``kind`` has another handler.
     """
     raise NotImplementedError("Function will be replaced during initialization")

@@ -22,7 +22,6 @@ and how the canvas's undo and redo reach its steps.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -71,6 +70,15 @@ class Handler:
         self.calls.append((name, recorded, token))
 
 
+@pytest.fixture(autouse=True)
+def draft_hooks_registry(mocker: MockerFixture) -> None:
+    """Each test starts with no listener and no step handler, and leaves none."""
+    from superset.canvas import draft_hooks
+
+    mocker.patch.object(draft_hooks, "_listeners", [])
+    mocker.patch.dict(draft_hooks._handlers, clear=True)
+
+
 @pytest.fixture
 def store(mocker: MockerFixture, widget_types: FakeResolver) -> Store:
     """The Explore cache in memory, and a canvas the caller may edit."""
@@ -89,23 +97,19 @@ def store(mocker: MockerFixture, widget_types: FakeResolver) -> Store:
 
 
 @pytest.fixture
-def events() -> Iterator[list[CanvasDraftEvent]]:
+def events() -> list[CanvasDraftEvent]:
     from superset.canvas import draft_hooks
 
     heard: list[CanvasDraftEvent] = []
-    unsubscribe = draft_hooks.on_draft_event(heard.append)
-    yield heard
-    unsubscribe()
+    draft_hooks.on_draft_event(heard.append)
+    return heard
 
 
 @pytest.fixture
-def handler() -> Iterator[Handler]:
+def handler() -> Handler:
     from superset.canvas import draft_hooks
 
-    registered = Handler()
-    unregister = draft_hooks.register_step_handler(KIND, registered)
-    yield registered
-    unregister()
+    return draft_hooks.register_step_handler(KIND, Handler())
 
 
 def placed_draft() -> Any:
@@ -221,14 +225,11 @@ def test_a_handler_that_breaks_fails_the_step_without_its_details(
 
     broken = MagicMock()
     broken.undo.side_effect = RuntimeError("secret internals")
-    unregister = draft_hooks.register_step_handler(KIND, broken)
-    try:
-        draft = placed_draft()
-        draft = drafts.RecordCanvasDraftStepCommand(draft.token, step("v1")).run()
-        with pytest.raises(DraftStepFailedError) as excinfo:
-            drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
-    finally:
-        unregister()
+    draft_hooks.register_step_handler(KIND, broken)
+    draft = placed_draft()
+    draft = drafts.RecordCanvasDraftStepCommand(draft.token, step("v1")).run()
+    with pytest.raises(DraftStepFailedError) as excinfo:
+        drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
 
     assert "secret" not in str(excinfo.value.message)
     assert drafts.load_draft(draft.token).revision == draft.revision
@@ -306,12 +307,9 @@ def test_a_listener_that_fails_neither_fails_the_discard_nor_silences_others(
     def failing(_event: CanvasDraftEvent) -> None:
         raise RuntimeError("listener bug")
 
-    unsubscribe = draft_hooks.on_draft_event(failing)
-    try:
-        draft = placed_draft()
-        drafts.DeleteCanvasDraftCommand(draft.token).run()
-    finally:
-        unsubscribe()
+    draft_hooks.on_draft_event(failing)
+    draft = placed_draft()
+    drafts.DeleteCanvasDraftCommand(draft.token).run()
 
     assert [event.kind for event in events] == ["discarded"]
     assert store.entries == {}
@@ -357,11 +355,8 @@ def test_a_commit_with_canvas_changes_tells_listeners_once_it_is_written(
         return MagicMock(revision=4)
 
     command.return_value.run.side_effect = write
-    unsubscribe = draft_hooks.on_draft_event(lambda event: order.append(event.kind))
-    try:
-        result = drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
-    finally:
-        unsubscribe()
+    draft_hooks.on_draft_event(lambda event: order.append(event.kind))
+    result = drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
 
     assert result.revision == 4
     assert order == ["written", "committed"]
@@ -420,6 +415,31 @@ def test_a_step_whose_payload_isnt_json_is_refused(
     assert drafts.load_draft(draft.token).revision == draft.revision
 
 
+def test_registering_returns_what_was_registered(
+    store: Store,
+    widget_types: FakeResolver,
+) -> None:
+    """So that ``on_draft_event`` works as a decorator, as ``on_cleanup`` does."""
+    from superset.canvas import draft_hooks
+    from superset.commands.canvas import draft as drafts
+
+    heard: list[str] = []
+
+    @draft_hooks.on_draft_event
+    def on_canvas_draft(event: CanvasDraftEvent) -> None:
+        heard.append(event.kind)
+
+    steps = Handler()
+    assert draft_hooks.register_step_handler(KIND, steps) is steps
+
+    drafts.DeleteCanvasDraftCommand(placed_draft().token).run()
+    # The decorated name is still the listener itself.
+    on_canvas_draft(MagicMock(kind="called directly"))
+
+    assert heard == ["discarded", "called directly"]
+    assert draft_hooks.step_handler(KIND) is steps
+
+
 def test_a_kind_has_one_handler(handler: Handler) -> None:
     from superset.canvas import draft_hooks
 
@@ -445,16 +465,13 @@ def test_extensions_reach_the_draft_hooks_through_superset_core(
         monkeypatch.setattr(core_drafts, name, getattr(core_drafts, name))
     inject_canvas_draft_implementations()
 
+    from superset.commands.canvas import draft as drafts
+
     draft = placed_draft()
     heard: list[CanvasDraftEvent] = []
-    unsubscribe = core_drafts.on_draft_event(heard.append)
-    try:
-        revision = core_drafts.record_step(draft.token, step("v1"), by="ai")
-        from superset.commands.canvas import draft as drafts
-
-        drafts.RewindCanvasDraftCommand(draft.token, revision).run()
-    finally:
-        unsubscribe()
+    core_drafts.on_draft_event(heard.append)
+    revision = core_drafts.record_step(draft.token, step("v1"), by="ai")
+    drafts.RewindCanvasDraftCommand(draft.token, revision).run()
     assert revision == draft.revision + 1
     assert [event.kind for event in heard] == ["undone"]
     assert handler.calls == [("undo", step("v1"), draft.token)]
@@ -501,30 +518,23 @@ def test_what_an_extension_registers_runs_in_its_extension_context(
 
     steps = Steps()
     with extension_context(create_manifest("acme", "notes")):
-        removals = [
-            draft_hooks.on_draft_event(lambda event: heard(event.kind)),
-            draft_hooks.register_step_handler(KIND, steps),
-        ]
-    removals.append(
-        draft_hooks.on_draft_event(
-            lambda _event: host.append(get_current_extension_context())
-        )
+        draft_hooks.on_draft_event(lambda event: heard(event.kind))
+        draft_hooks.register_step_handler(KIND, steps)
+    draft_hooks.on_draft_event(
+        lambda _event: host.append(get_current_extension_context())
     )
     command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
     command.return_value.run.return_value = MagicMock(revision=4)
-    try:
-        draft = placed_draft()
-        draft = drafts.RecordCanvasDraftStepCommand(draft.token, step("v1")).run()
-        draft = drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
-        draft = drafts.RewindCanvasDraftCommand(
-            draft.token, draft.revision, forward=True
-        ).run()
-        drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
-        # The same handler again is the registration it already has.
-        draft_hooks.register_step_handler(KIND, steps)
-    finally:
-        for remove in removals:
-            remove()
+    draft = placed_draft()
+    draft = drafts.RecordCanvasDraftStepCommand(draft.token, step("v1")).run()
+    draft = drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
+    draft = drafts.RewindCanvasDraftCommand(
+        draft.token, draft.revision, forward=True
+    ).run()
+    drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+    # The same handler again, outside the extension's context, is still the
+    # registration it already has.
+    assert draft_hooks.register_step_handler(KIND, steps) is steps
 
     acme = "acme.notes"
     assert seen == [
@@ -536,4 +546,3 @@ def test_what_an_extension_registers_runs_in_its_extension_context(
     ]
     assert host == [None, None, None]
     assert get_current_extension_context() is None
-    assert draft_hooks.step_handler(KIND) is None
