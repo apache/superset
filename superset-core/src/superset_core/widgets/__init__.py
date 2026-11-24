@@ -43,7 +43,3 @@ from superset_core.widgets.composites import (
 )
 from superset_core.widgets.decorators import widget as widget
 from superset_core.widgets.enrichment import EnricherFn as EnricherFn
-from superset_core.widgets.queries import (
-    QueryRequest as QueryRequest,
-    WidgetQuery as WidgetQuery,
-)
