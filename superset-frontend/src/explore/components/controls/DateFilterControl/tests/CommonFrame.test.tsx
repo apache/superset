@@ -21,7 +21,9 @@ import { DateFilterTestKey } from '../utils';
 import { CommonFrame } from '../components';
 
 test('renders the title and one radio per common range', () => {
-  render(<CommonFrame onChange={jest.fn()} value="Last month" />);
+  render(<CommonFrame onChange={jest.fn()} value="Last month" />, {
+    useRedux: true,
+  });
 
   expect(screen.getByTestId(DateFilterTestKey.CommonFrame)).toHaveTextContent(
     'Configure Time Range: Last...',
@@ -41,7 +43,9 @@ test('renders the title and one radio per common range', () => {
 });
 
 test('checks the radio matching the value', () => {
-  render(<CommonFrame onChange={jest.fn()} value="Last quarter" />);
+  render(<CommonFrame onChange={jest.fn()} value="Last quarter" />, {
+    useRedux: true,
+  });
 
   expect(screen.getByLabelText('Last quarter')).toBeChecked();
   expect(screen.getByLabelText('Last week')).not.toBeChecked();
@@ -49,14 +53,18 @@ test('checks the radio matching the value', () => {
 
 test('does not call onChange when the value is a common range', () => {
   const onChange = jest.fn();
-  render(<CommonFrame onChange={onChange} value="Last year" />);
+  render(<CommonFrame onChange={onChange} value="Last year" />, {
+    useRedux: true,
+  });
 
   expect(onChange).not.toHaveBeenCalled();
 });
 
 test('falls back to Last week when the value is not a common range', () => {
   const onChange = jest.fn();
-  render(<CommonFrame onChange={onChange} value="previous calendar week" />);
+  render(<CommonFrame onChange={onChange} value="previous calendar week" />, {
+    useRedux: true,
+  });
 
   expect(onChange).toHaveBeenCalledWith('Last week');
   expect(screen.getByLabelText('Last week')).toBeChecked();
@@ -64,7 +72,9 @@ test('falls back to Last week when the value is not a common range', () => {
 
 test('calls onChange with the selected range', async () => {
   const onChange = jest.fn();
-  render(<CommonFrame onChange={onChange} value="Last week" />);
+  render(<CommonFrame onChange={onChange} value="Last week" />, {
+    useRedux: true,
+  });
 
   await userEvent.click(screen.getByLabelText('Last day'));
 
