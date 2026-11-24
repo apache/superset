@@ -69,6 +69,9 @@ CanvasErrorType = Literal[
     "CanvasRevisionConflict",
     "WidgetRevisionConflict",
 ]
+# Only the data tools run a widget type's bindings, which the type may refuse.
+CanvasDataErrorType = Literal[CanvasErrorType, "WidgetDataRefused"]
+ERROR_CODE_DESCRIPTION = "With WidgetDataRefused: the widget type's reason code."
 
 
 class _Compact(BaseModel):
@@ -205,7 +208,8 @@ class PreviewWidgetResponse(_Compact):
         default=None, description="False when the renderer failed: not checked."
     )
     error: str | None = None
-    error_type: CanvasErrorType | None = None
+    error_type: CanvasDataErrorType | None = None
+    error_code: str | None = Field(default=None, description=ERROR_CODE_DESCRIPTION)
 
 
 class CanvasDatasetRows(_Compact):
@@ -238,7 +242,8 @@ class CanvasWidgetData(_Compact):
         "than its default ``main``.",
     )
     error: str | None = None
-    error_type: CanvasErrorType | None = None
+    error_type: CanvasDataErrorType | None = None
+    error_code: str | None = Field(default=None, description=ERROR_CODE_DESCRIPTION)
 
 
 class CanvasUnreadWidget(_Compact):

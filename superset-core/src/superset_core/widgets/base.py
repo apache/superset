@@ -46,6 +46,7 @@ from pydantic import BaseModel, ValidationError
 # configuration is supplied — the exact machinery the SIP proposes to share.
 from superset_core.semantic_layers.config import build_configuration_schema
 from superset_core.widgets.behavior import WidgetBehavior, WidgetUi
+from superset_core.widgets.bindings import BindingRequest, WidgetBinding
 from superset_core.widgets.enrichment import (
     build_dependency_graph,
     dynamic_field_paths,
@@ -53,7 +54,6 @@ from superset_core.widgets.enrichment import (
     run_enrichers,
     toposort_or_raise,
 )
-from superset_core.widgets.queries import QueryRequest, WidgetQuery
 
 logger = logging.getLogger(__name__)
 
@@ -127,14 +127,15 @@ class Widget:
     ui: ClassVar[WidgetUi] = WidgetUi()
 
     @classmethod
-    def build_queries(cls, request: QueryRequest) -> list[WidgetQuery]:
+    def build_bindings(cls, request: BindingRequest) -> list[WidgetBinding] | None:
         """
-        The widget's queries, whose results the host serves as its datasets
-        (see ``superset_core.widgets.queries``): by default the props'
-        ``dataBinding``, as ``main``.
+        The bindings a data request for the widget runs, each answered as the
+        dataset of its name (see ``superset_core.widgets.bindings``), or
+        ``None``, the default, for the host's own: the props' ``dataBinding``,
+        as ``main``. Raise ``WidgetDataRefusedError`` to refuse the request
+        with a code and a message instead.
         """
-        binding = request.props.get("dataBinding")
-        return [WidgetQuery("main", binding)] if isinstance(binding, Mapping) else []
+        return None
 
     @classmethod
     def validate_contract(cls) -> None:

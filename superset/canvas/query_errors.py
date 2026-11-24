@@ -22,6 +22,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Literal
 
 from marshmallow import ValidationError
+from superset_core.widgets import WidgetDataRefusedError
 
 from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
@@ -58,6 +59,8 @@ class CanvasQueryError:
     reason: Literal["query", "missing_datasource", "security_refusal"] = "query"
     security_error_type: SupersetErrorType | None = None
     oauth_redirect_url: str | None = None
+    # A widget type's own code for refusing the request, for its renderer.
+    code: str | None = None
 
     def rest_payload(self) -> dict[str, Any]:
         """Retain structured details needed by clients, including OAuth redirects."""
@@ -65,6 +68,8 @@ class CanvasQueryError:
             "message": self.message,
             "error_type": self.error_type,
         }
+        if self.code is not None:
+            payload["code"] = self.code
         if self.errors:
             payload["errors"] = [asdict(error) for error in self.errors]
         return payload
@@ -83,8 +88,16 @@ def canvas_query_error(error: Exception) -> CanvasQueryError:
 
     Object/draft/version ACL errors are handled by the calling transport before
     entering this adapter. Unknown query failures remain server errors, with a
-    fixed public message rather than arbitrary exception details.
+    fixed public message rather than arbitrary exception details. A widget
+    type's refusal keeps the type's status, code and message, which it wrote
+    for the caller, and a failure already classified keeps its classification.
     """
+    if isinstance(error, CanvasQueryFailedError):
+        return error.error
+    if isinstance(error, WidgetDataRefusedError):
+        return CanvasQueryError(
+            error.status, "WidgetDataRefused", error.message, code=error.code
+        )
     if isinstance(error, DatasourceNotFound):
         return CanvasQueryError(
             404, "QueryError", "Datasource does not exist", reason="missing_datasource"

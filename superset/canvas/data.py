@@ -15,15 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-A placement's data, queried on the server from its stored ``dataBinding``.
+A widget's data, queried on the server from what is stored.
 
-The binding always comes from the canvas (or draft) definition; a caller only
-adds runtime filters, which narrow the binding's own dataset. The canvas page,
-MCP tools and anything else reading a placement therefore run the same query.
-A data request runs every query the widget type builds from the props
-(``Widget.build_queries``, by default the ``dataBinding`` alone) and answers
-each as a dataset of its name; bindings stand in for SIP-231's
-``SemanticQuery`` until widgets query through it.
+The bindings always come from the canvas (or draft) definition, or from the
+saved widget; a caller only adds runtime filters, which narrow each binding's
+own dataset. The canvas page, MCP tools and anything else reading a widget
+therefore run the same queries. A data request runs every binding the widget
+type builds (``Widget.build_bindings``, by default the props' ``dataBinding``
+alone) and answers each as a dataset of its name. This stands in for SIP-231's
+``QueryMixin.build_queries`` and ``SemanticQuery`` until widgets query through
+them.
 """
 
 from __future__ import annotations
@@ -39,6 +40,11 @@ if TYPE_CHECKING:
     from flask_appbuilder.api import BaseApi
 
     from superset.canvas.query_errors import CanvasQueryFailedError
+
+# Headers naming a draft and a version of a widget's own content, which the
+# host passes to its widget type (``BindingRequest``) without reading them.
+WIDGET_DRAFT_HEADER = "X-Widget-Draft"  # noqa: S105
+WIDGET_VERSION_HEADER = "X-Widget-Version"
 
 # Values a select filter publishes.
 FilterScalar = str | int | float | bool
@@ -112,6 +118,15 @@ def data_response(
     from superset.extensions import security_manager
     from superset.utils import json
 
+    def answer(payload: dict[str, Any], status: int) -> Response:
+        # Not ``api.response``, whose status parameter is named ``code``, a key
+        # a widget type's refusal carries.
+        return Response(
+            json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
+            status=status,
+            mimetype="application/json",
+        )
+
     try:
         datasets = run()
     except CanvasQueryFailedError as ex:
@@ -121,17 +136,13 @@ def data_response(
             on_error(ex, 404 if missing else error.status)
         if missing:
             return api.response_404()
-        return api.response(error.status, **error.rest_payload())
+        return answer(error.rest_payload(), error.status)
     # Classic charts gate "View query" on the same permission.
     payload = datasets_payload(
         datasets,
         with_query=security_manager.can_access("can_view_query", "Dashboard"),
     )
-    return Response(
-        json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
-        status=200,
-        mimetype="application/json",
-    )
+    return answer(payload, 200)
 
 
 def binding_dataset_id(props: dict[str, Any]) -> int | None:

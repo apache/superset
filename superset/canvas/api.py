@@ -35,7 +35,12 @@ from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
 from superset import is_feature_enabled
-from superset.canvas.data import data_response, PlacementDataRequest
+from superset.canvas.data import (
+    data_response,
+    PlacementDataRequest,
+    WIDGET_DRAFT_HEADER,
+    WIDGET_VERSION_HEADER,
+)
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
@@ -46,7 +51,7 @@ from superset.canvas.definition.schemas import (
     Operation,
 )
 from superset.canvas.definition.scopes import resolve_scopes
-from superset.canvas.definition.validation import request_pointer
+from superset.canvas.definition.validation import request_errors
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.canvas.filters import (
     CanvasAccessFilter,
@@ -259,14 +264,6 @@ def _draft_token() -> str:
     if not token:
         raise CanvasDraftNotFoundError()
     return token
-
-
-def _pydantic_errors(ex: PydanticValidationError) -> list[dict[str, Any]]:
-    """Request errors as JSON-pointer paths into the request body."""
-    return [
-        {"path": request_pointer(error["loc"]), "message": error["msg"]}
-        for error in ex.errors()
-    ]
 
 
 def describe_widget(widget: type[Widget]) -> dict[str, Any]:
@@ -941,7 +938,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             # A malformed ops payload is a real failure mode for an agent
             # writing to a draft, and otherwise leaves no trace.
             _report_canvas_error(self, ex, 400, scope="draft_ops")
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft, ops = ApplyCanvasDraftOperationsCommand(
             _draft_token(), body.revision, body.ops
         ).run()
@@ -1037,7 +1034,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft = RewindCanvasDraftCommand(
             _draft_token(), body.revision, forward=forward
         ).run()
@@ -1078,7 +1075,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft = load_draft(_draft_token())
         # Read before the commit, which deletes the draft.
         add_extra_log_payload(canvas_id=draft.canvas_id)
@@ -1136,14 +1133,19 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         post:
           summary: Get a placement's data
           description: >-
-            Runs every query the placement's widget type builds from its
-            stored props, by default the `dataBinding` as the dataset `main`,
-            as the caller, each narrowed by `runtime_filters` on its dataset,
-            and answers each as a dataset of its name. One failing query fails
-            the request.
+            Runs every binding the placement's widget type builds for it, by
+            default the stored `dataBinding` as the dataset `main`, as the
+            caller, each narrowed by `runtime_filters` on its dataset, and
+            answers each as a dataset of its name. One failing binding fails
+            the request. A widget type may refuse the request: it is then
+            answered with the type's `code` and `message`, by default as a
+            409.
             With the `X-Canvas-Draft` header, reads the placement from the
             caller's draft of this canvas; with `X-Canvas-Version`, from that
-            version of it, which only its editors can read. Each dataset
+            version of it, which only its editors can read. `X-Widget-Draft`
+            and `X-Widget-Version` name a draft and a version of the widget's
+            own content, which go to its widget type unchecked, for a type
+            that keeps them; the type checks them itself. Each dataset
             includes the query that ran when the caller can view queries.
           parameters:
           - in: path
@@ -1209,6 +1211,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: >-
+                The widget's type refused the request, as its `code` says; a
+                type may answer another client error
             422:
               $ref: '#/components/responses/422'
         """
@@ -1218,7 +1224,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             )
         except PydanticValidationError as ex:
             _report_canvas_error(self, ex, 400, scope="placement_data")
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         token = request.headers.get(DRAFT_TOKEN_HEADER) or None
         try:
             version = UUID(request.headers[VERSION_HEADER])
@@ -1237,7 +1243,13 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         return data_response(
             self,
             GetPlacementDataCommand(
-                id_or_uuid, placement_id, body.runtime_filters, token, version
+                id_or_uuid,
+                placement_id,
+                body.runtime_filters,
+                token,
+                version,
+                widget_draft_token=request.headers.get(WIDGET_DRAFT_HEADER),
+                widget_version=request.headers.get(WIDGET_VERSION_HEADER),
             ).run,
             on_error,
         )

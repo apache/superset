@@ -29,7 +29,7 @@ from flask import current_app
 from mcp.types import ImageContent, TextContent
 from superset_core.canvas import WidgetResolver
 from superset_core.mcp.decorators import tool, ToolAnnotations
-from superset_core.widgets import QueryRequest
+from superset_core.widgets import BindingRequest
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
@@ -41,7 +41,7 @@ from superset.commands.canvas.exceptions import (
     CanvasForbiddenError,
     CanvasNotFoundError,
 )
-from superset.commands.canvas.placement_data import widget_queries
+from superset.commands.canvas.placement_data import widget_bindings
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
@@ -294,15 +294,17 @@ def _preview_widget_impl(
             }, None
         widget_type, props = widget.widget_type, widget.props
     result.update(placement_id=placement_id, widget_type=widget_type)
-    request = QueryRequest(
+    request = BindingRequest(
         str(source.canvas.id),
         placement_id,
         props,
-        draft_token=draft_token if source.draft else None,
         widget_id=widget_id or None,
+        canvas_draft_token=draft_token if source.draft else None,
     )
     try:
-        rows = _with_rows(result, widget_queries(widget_type, request), runtime_filters)
+        rows = _with_rows(
+            result, widget_bindings(widget_type, request), runtime_filters
+        )
     except Exception as ex:  # pylint: disable=broad-except
         result.update(query_error(ex))
         return result, None
