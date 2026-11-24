@@ -218,7 +218,8 @@ The `@tool` decorator accepts several optional parameters:
 - **`tags`**: Categories for organization and discovery
 - **`protect`**: Whether the tool requires user authentication (defaults to `True`)
 - **`metadata_only`**: Set it to `True` for a tool that reads only Superset's metadata database, never a warehouse, a semantic layer or a screenshot service (defaults to `False`). Its calls are admitted under `MCP_METADATA_TOOL_WORKERS` rather than `MCP_TOOL_WORKERS`, so the tool keeps answering while slow warehouse queries fill every warehouse slot. A tool that reaches a warehouse anyway must take a warehouse slot first, and answers **MCP server busy** if none is free
-- **`app`**: [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) settings, as FastMCP's `AppConfig` or its dict, validated when the tool registers: `resource_uri` links a View (see below) and `visibility` names the audience, `["model"]`, `["app"]` or both
+- **`app`**: [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) settings, as FastMCP's `AppConfig` or its dict, validated when the tool registers: `resource_uri` links a View (see [MCP Apps Views](#mcp-apps-views)) and `visibility` names the audience, `["model"]`, `["app"]` or both
+- **`meta`**: Entries for the tool's `_meta`, served with its definition. A `ui` entry holds MCP Apps settings and is validated like `app`; pass one or the other
 
 ### Naming Your Tools
 
@@ -692,8 +693,9 @@ async def metrics_guide(ctx: Context) -> str:
 
 ## MCP Apps Views
 
-An MCP Apps View is an HTML page that an AI client renders for a tool's
-result. Register one with the `resource` decorator, and link it from a tool:
+An [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) View is an
+HTML page that an AI client renders for a tool's result. Register one with the
+`resource` decorator, and link it from a tool:
 
 ```python
 from pathlib import Path
@@ -723,19 +725,26 @@ def widget_rows(widget_id: int, page: int = 0) -> dict:
 ```
 
 - **URIs are scoped and versioned:** the View above is
-  `ui://extensions/<publisher>/<name>/viewer/v1-<digest>`. Clients cache Views
-  by URI, so a version taken from the content gives every build its own URI.
+  `ui://extensions/<publisher>/<name>/viewer/v1-<digest>`, and the decorated
+  function carries it as `.uri`. Clients cache Views by URI, so a version taken
+  from the content gives every build its own URI. Path segments and the version
+  use letters, digits, `-`, `.`, `_` and `~`.
 - **Settings:** `app` on a View takes `csp`, `permissions`, `domain` and
   `prefers_border`, served as `_meta.ui` when the View is listed and when it
   is read. With no `csp`, clients apply their most restrictive policy.
+  `resource_uri` and `visibility` belong to tools and are refused on a View.
 - **Authentication:** Views require it unless `protect=False`, like tools.
+- **Processes that don't serve MCP:** where Superset's MCP tools aren't loaded,
+  such as a worker with `CORE_MCP_HOST_TOOLS_ENABLED = False`, `resource`
+  registers nothing, and the function still carries its `.uri`.
 - **Visibility is not authorization:** a View's calls arrive with the viewer's
   credentials, and the server can't tell them from the model's. Check every
   argument on the server, as for any tool.
-- **Model-only by default:** once any tool links a View, tools that declare
-  no `visibility` are listed as `["model"]`, so compliant clients refuse a
-  View's call to them. `search_tools` and `call_tool` are model-only, and
-  `call_tool` refuses tools the model may not see.
+- **Model-only by default:** once any tool links a View or declares an `"app"`
+  audience, tools that declare no `visibility` are listed as `["model"]`, so
+  compliant clients refuse a View's call to them. `search_tools` and
+  `call_tool` are model-only, and `call_tool` refuses tools the model may not
+  see.
 - **Structured results:** tools that link a View or declare `"app"` keep
   their `structuredContent` and `outputSchema` even when
   `MCP_STRUCTURED_OUTPUT_ENABLED` is off, and they stay in `tools/list` when

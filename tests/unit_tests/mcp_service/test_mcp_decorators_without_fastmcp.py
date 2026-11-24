@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""``@tool`` and ``@prompt`` in a process where ``fastmcp`` isn't installed."""
+"""MCP decorators in a process where ``fastmcp`` isn't installed."""
 
 from collections.abc import Callable
 from types import ModuleType
@@ -38,6 +38,8 @@ def decorators(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
 
     monkeypatch.setattr(module, "tool", module.tool)
     monkeypatch.setattr(module, "prompt", module.prompt)
+    monkeypatch.setattr(module, "resource", module.resource)
+    monkeypatch.setattr(module, "content_version", module.content_version)
     return module
 
 
@@ -70,3 +72,22 @@ def test_with_fastmcp_the_host_installs_its_own_decorators(
 
     assert decorators.tool is core_mcp_injection.create_tool_decorator
     assert decorators.prompt is core_mcp_injection.create_prompt_decorator
+
+
+def viewer() -> str:
+    """A View's page."""
+    return "<html></html>"
+
+
+def test_without_fastmcp_a_view_keeps_the_function_and_its_uri(
+    decorators: ModuleType,
+) -> None:
+    with patch.object(core_mcp_injection, "_fastmcp_available", return_value=False):
+        core_mcp_injection.initialize_core_mcp_decorators()
+
+    version = decorators.content_version("<html></html>")
+    kept = decorators.resource("viewer", version=version)(viewer)
+
+    assert kept is viewer
+    assert kept.uri == f"ui://superset/viewer/{version}"
+    assert version.startswith("v1-")

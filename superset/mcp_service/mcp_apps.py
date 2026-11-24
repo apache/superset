@@ -28,28 +28,20 @@ authorization.
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
-from fastmcp.apps.config import AppConfig, UI_MIME_TYPE
+from fastmcp.apps.config import AppConfig
 from fastmcp.server.transforms import Transform
-
-__all__ = [
-    "MODEL_ONLY",
-    "MODEL_ONLY_META",
-    "ModelOnlyByDefaultTransform",
-    "UI_MIME_TYPE",
-    "declared_visibility",
-    "feeds_view",
-    "tool_meta",
-    "ui_meta",
-    "with_visibility",
-]
 
 UI_META_KEY = "ui"
 UI_URI_SCHEME = "ui://"
 MODEL_ONLY: tuple[str, ...] = ("model",)
-# For tools that only the model may call, such as the tool-search proxies.
-MODEL_ONLY_META: dict[str, Any] = {UI_META_KEY: {"visibility": list(MODEL_ONLY)}}
+
+
+def model_only_meta() -> dict[str, Any]:
+    """``_meta`` for a tool only the model may call, such as the search proxies."""
+    return {UI_META_KEY: {"visibility": list(MODEL_ONLY)}}
 
 
 def ui_meta(component: Any) -> Mapping[str, Any] | None:

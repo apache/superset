@@ -26,16 +26,19 @@ never reaches an app-only tool. They also cover the structured results that
 Views need, the pinning that lets hosts see them, and the decorators.
 """
 
+import hashlib
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client, FastMCP
 from fastmcp.apps.config import AppConfig, ResourceCSP
-from fastmcp.exceptions import ToolError
+from fastmcp.exceptions import McpError, ToolError
+from fastmcp.tools.base import ToolResult
 from pydantic import BaseModel, ValidationError
 
 from superset.mcp_service.mcp_apps import (
@@ -53,6 +56,7 @@ from superset.mcp_service.server import (
 )
 
 VIEW_URI = "ui://superset/test-viewer/v1"
+SERVICE_APP = "superset.mcp_service.app"
 
 
 class Payload(BaseModel):
@@ -191,7 +195,6 @@ async def test_view_tools_keep_structured_results_when_output_is_text_only() -> 
 async def test_unresolvable_tool_keeps_the_text_only_result() -> None:
     middleware = ToolResultCompatibilityMiddleware(structured_output_enabled=False)
     context = SimpleNamespace(message=SimpleNamespace(name="x"), fastmcp_context=None)
-    from fastmcp.tools.base import ToolResult
 
     async def call_next(_: Any) -> ToolResult:
         return ToolResult(content="hi", structured_content={"a": 1})
@@ -223,6 +226,20 @@ async def test_default_transform_leaves_tool_lookups_alone() -> None:
     assert await transform.get_tool("a", call_next) is plain
 
 
+def test_mcp_apps_transforms_install_once() -> None:
+    server = FastMCP("mcp-apps-install-test")
+
+    _apply_mcp_apps_transforms(server)
+    _apply_mcp_apps_transforms(server)
+
+    installed = [
+        transform
+        for transform in server.transforms
+        if isinstance(transform, ModelOnlyByDefaultTransform)
+    ]
+    assert len(installed) == 1
+
+
 def test_tool_meta_validates_mcp_apps_settings() -> None:
     meta = tool_meta(None, AppConfig(resource_uri=VIEW_URI, visibility=["model"]))
     assert meta == {"ui": {"resourceUri": VIEW_URI, "visibility": ["model"]}}
@@ -243,7 +260,7 @@ async def test_tool_decorator_registers_typed_mcp_apps_settings() -> None:
     from superset.core.mcp.core_mcp_injection import create_tool_decorator
 
     server = FastMCP("decorator-test")
-    with patch("superset.mcp_service.app.mcp", server):
+    with patch(f"{SERVICE_APP}.mcp", server):
 
         @create_tool_decorator(
             protect=False, app={"resourceUri": VIEW_URI, "visibility": ["model"]}
@@ -252,12 +269,24 @@ async def test_tool_decorator_registers_typed_mcp_apps_settings() -> None:
             """Docs."""
             return "ok"
 
-    async with _client(server) as client:
-        (listed,) = await client.list_tools()
+        @create_tool_decorator(protect=False, meta={"ui": {"visibility": ["app"]}})
+        def from_meta() -> str:
+            """Docs."""
+            return "ok"
 
-    assert listed.meta["ui"] == {"resourceUri": VIEW_URI, "visibility": ["model"]}
+    async with _client(server) as client:
+        listed = {tool.name: tool for tool in await client.list_tools()}
+
+    assert listed["decorated"].meta["ui"] == {
+        "resourceUri": VIEW_URI,
+        "visibility": ["model"],
+    }
+    assert listed["from_meta"].meta["ui"] == {"visibility": ["app"]}
+    # Bad settings fail as the decorator is built, before any function.
     with pytest.raises(ValidationError):
         create_tool_decorator(protect=False, app={"visibility": ["robots"]})
+    with pytest.raises(ValueError, match="must start with ui://"):
+        create_tool_decorator(meta={"ui": {"resourceUri": "https://example.com"}})
 
 
 @pytest.mark.asyncio
@@ -267,7 +296,7 @@ async def test_resource_decorator_scopes_versions_and_describes_views() -> None:
     server = FastMCP("resource-test")
     extension = SimpleNamespace(extension=SimpleNamespace(publisher="acme", name="viz"))
     with (
-        patch("superset.mcp_service.app.mcp", server),
+        patch(f"{SERVICE_APP}.mcp", server),
         patch(
             "superset.core.mcp.core_mcp_injection.get_current_extension_context",
             return_value=extension,
@@ -297,26 +326,81 @@ async def test_resource_decorator_scopes_versions_and_describes_views() -> None:
     assert read.text.startswith("<!doctype html>")
 
 
-def test_resource_decorator_protects_and_scopes_host_views() -> None:
+@pytest.mark.asyncio
+async def test_resource_decorator_protects_and_scopes_host_views() -> None:
     from superset.core.mcp.core_mcp_injection import create_resource_decorator
 
     server = FastMCP("resource-host-test")
     with (
-        patch("superset.mcp_service.app.mcp", server),
+        patch(f"{SERVICE_APP}.mcp", server),
         patch(
             "superset.mcp_service.auth.mcp_auth_hook", side_effect=lambda f: f
         ) as hook,
     ):
 
-        @create_resource_decorator("viewer")
+        @create_resource_decorator("/viewer/")
         def viewer() -> str:
             return "<!doctype html>"
 
     hook.assert_called_once()
     assert viewer.uri == "ui://superset/viewer"  # type: ignore[attr-defined]
+    async with _client(server) as client:
+        (listed,) = await client.list_resources()
+
+    # A View that declares no settings serves none.
+    assert "ui" not in (listed.meta or {})
 
 
-@pytest.mark.parametrize("path", ["", "/", "../escape", "a/./b"])
+@pytest.mark.asyncio
+async def test_protected_view_is_read_only_by_an_authenticated_user() -> None:
+    from superset.core.mcp.core_mcp_injection import create_resource_decorator
+
+    server = FastMCP("resource-auth-test")
+    with patch(f"{SERVICE_APP}.mcp", server):
+
+        @create_resource_decorator("viewer")
+        def viewer() -> str:
+            return "<!doctype html>"
+
+    uri = viewer.uri  # type: ignore[attr-defined]
+    user = Mock(id=1, username="viewer", roles=[], groups=[])
+    with patch("superset.mcp_service.auth.get_user_from_request", return_value=user):
+        async with _client(server) as client:
+            (read,) = await client.read_resource(uri)
+    assert read.text == "<!doctype html>"
+
+    with patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        side_effect=ValueError("No authenticated user"),
+    ):
+        async with _client(server) as client:
+            with pytest.raises(McpError, match="No authenticated user"):
+                await client.read_resource(uri)
+
+
+def test_resource_decorator_registers_nothing_where_mcp_is_not_served() -> None:
+    from superset.core.mcp import core_mcp_injection
+
+    saved = sys.modules.pop(SERVICE_APP, None)
+    try:
+        with patch.object(core_mcp_injection, "_skipped_registrations", set()):
+
+            @core_mcp_injection.create_resource_decorator("viewer", version="v2")
+            def viewer() -> str:
+                return "<!doctype html>"
+
+        assert SERVICE_APP not in sys.modules
+        assert viewer() == "<!doctype html>"
+        # Tools that link the View still find its URI.
+        assert viewer.uri == "ui://superset/viewer/v2"  # type: ignore[attr-defined]
+    finally:
+        if saved is not None:
+            sys.modules[SERVICE_APP] = saved
+
+
+@pytest.mark.parametrize(
+    "path", ["", "/", "../escape", "a/./b", "a//b", "a b", "view?x=1", "a#b", "ü"]
+)
 def test_resource_decorator_refuses_bad_paths(path: str) -> None:
     from superset.core.mcp.core_mcp_injection import create_resource_decorator
 
@@ -324,25 +408,63 @@ def test_resource_decorator_refuses_bad_paths(path: str) -> None:
         create_resource_decorator(path)
 
 
-def test_resource_decorator_refuses_tool_settings_on_a_view() -> None:
+@pytest.mark.parametrize("version", ["", "v/1", "..", "v 1"])
+def test_resource_decorator_refuses_bad_versions(version: str) -> None:
     from superset.core.mcp.core_mcp_injection import create_resource_decorator
 
-    server = FastMCP("resource-invalid-test")
-    with patch("superset.mcp_service.app.mcp", server):
-        decorator = create_resource_decorator(
-            "viewer", app={"visibility": ["app"]}, protect=False
-        )
-        with pytest.raises(ValueError, match="visibility cannot be set on resources"):
-
-            @decorator
-            def viewer() -> str:
-                return "<!doctype html>"
+    with pytest.raises(ValueError, match="Invalid MCP Apps resource version"):
+        create_resource_decorator("viewer", version=version)
 
 
-def test_content_version_is_a_digest() -> None:
-    from superset_core.mcp.decorators import content_version
+def test_resource_decorator_takes_a_path_first() -> None:
+    from superset.core.mcp.core_mcp_injection import create_resource_decorator
 
-    assert content_version("<html>") == content_version(b"<html>")
-    assert content_version("<html>").startswith("v1-")
-    assert content_version("<html>") != content_version("<html> ")
-    assert content_version("x", prefix="v4").startswith("v4-")
+    def viewer() -> str:
+        return "<!doctype html>"
+
+    with pytest.raises(TypeError, match="path first"):
+        create_resource_decorator(viewer)  # type: ignore[arg-type]
+
+
+# Named so as not to shadow the Flask ``app`` fixture.
+@pytest.mark.parametrize(
+    "settings",
+    [
+        {"visibility": ["app"]},
+        {"resourceUri": "ui://superset/other"},
+        AppConfig(visibility=["model"]),
+    ],
+)
+def test_resource_decorator_refuses_tool_settings_on_a_view(settings: Any) -> None:
+    from superset.core.mcp.core_mcp_injection import create_resource_decorator
+
+    with pytest.raises(ValueError, match="take no resource_uri or visibility"):
+        create_resource_decorator("viewer", app=settings)
+
+
+def test_content_version_is_a_digest_of_the_content() -> None:
+    from superset.core.mcp.core_mcp_injection import content_version
+
+    digest = hashlib.sha256(b"<html>").hexdigest()[:12]
+    assert content_version("<html>") == f"v1-{digest}"
+    assert content_version(b"<html>") == content_version("<html>")
+    assert content_version("<html> ") != content_version("<html>")
+
+
+def test_initialization_installs_the_mcp_apps_decorators() -> None:
+    import superset_core.mcp.decorators as core_decorators
+
+    from superset.core.mcp.core_mcp_injection import (
+        content_version,
+        create_resource_decorator,
+        initialize_core_mcp_decorators,
+    )
+
+    with (
+        patch.object(core_decorators, "resource", None),
+        patch.object(core_decorators, "content_version", None),
+    ):
+        initialize_core_mcp_decorators()
+
+        assert core_decorators.resource is create_resource_decorator
+        assert core_decorators.content_version is content_version

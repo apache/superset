@@ -47,6 +47,7 @@ def _install_entrypoint_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
 
     server_module = cast(Any, ModuleType("superset.mcp_service.server"))
     server_module.build_middleware_list = lambda: []
+    server_module._apply_mcp_apps_transforms = lambda mcp_instance: None
 
     monkeypatch.setitem(sys.modules, "superset", superset_module)
     monkeypatch.setitem(sys.modules, "superset.mcp_service", mcp_service_module)

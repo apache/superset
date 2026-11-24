@@ -61,6 +61,27 @@ def test_main_installs_auth_provider_for_network_transport(
     mock_run.assert_called_once_with(transport="sse")
 
 
+def test_main_installs_mcp_apps_listing_rule_for_network_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The entrypoint lists tools with the MCP Apps rule, as run_server() does."""
+    monkeypatch.setenv("FASTMCP_TRANSPORT", "sse")
+
+    from superset.mcp_service import __main__ as main_module
+
+    with (
+        patch("superset.mcp_service.flask_singleton.get_flask_app"),
+        patch("superset.mcp_service.server._create_auth_provider"),
+        patch.object(main_module, "init_fastmcp_server"),
+        patch.object(main_module, "_add_default_middlewares"),
+        patch.object(main_module, "_apply_mcp_apps_transforms") as mock_apps,
+        patch.object(main_module.mcp, "run"),
+    ):
+        main_module.main()
+
+    mock_apps.assert_called_once_with(main_module.mcp)
+
+
 def test_main_propagates_auth_config_error_for_network_transport(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

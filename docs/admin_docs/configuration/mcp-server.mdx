@@ -1205,7 +1205,7 @@ permission checks; only the `tools/list` response differs.
 
 | Mode                      | `MCP_TOOL_SEARCH_CONFIG["enabled"]` | `tools/list` returns                                                       | Calling tools                                         |
 | ------------------------- | ----------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Compatibility (default)   | `True`                              | The pinned `always_visible` tools plus `search_tools` and `call_tool`      | Through the `call_tool` proxy, or directly by name    |
+| Compatibility (default)   | `True`                              | The pinned tools plus `search_tools` and `call_tool`                       | Through the `call_tool` proxy, or directly by name    |
 | Native                    | `False`                             | Every tool the caller may use, under its real name                         | Directly by name with `tools/call`                    |
 
 Every registered tool can be called directly by name in both modes. In native
@@ -1237,6 +1237,10 @@ response should be checked against those totals before switching modes.
   native `tools/list` shows every tool, while `search_tools` returns only tools
   without a permission requirement. Protected calls are rejected in both modes
   until a user can be resolved.
+- `call_tool` accepts only names the model may discover: an unregistered name,
+  or a tool whose `_meta.ui.visibility` leaves out `"model"` (see
+  [MCP Apps](#mcp-apps)), is refused as an unknown tool. A direct call by name
+  still reaches such a tool, after the same checks.
 - `call_tool` returns the same result as a direct call, including `isError`,
   validation details, and `structuredContent` when structured output is
   enabled.
@@ -1319,7 +1323,7 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `enabled`                | `True`    | Enable tool search. When `False`, all tools are listed upfront                                                                                                                                                                                                                                                     |
 | `strategy`               | `"bm25"`  | Search ranking algorithm. `"bm25"` supports natural language; `"regex"` supports pattern matching                                                                                                                                                                                                                  |
 | `max_results`            | `5`       | Maximum tools returned per search query                                                                                                                                                                                                                                                                            |
-| `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
+| `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search. Tools that feed an MCP Apps View are listed as well                                                                                                                                                                                                |
 | `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
 | `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
 | `max_description_length` | `300`     | Budget for discovery prose alone (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
@@ -1351,9 +1355,10 @@ With either the `bm25` or `regex` strategy, a query matching a tool name is
 promoted ahead of other matches before the `max_results` limit is applied. Matching
 ignores case and treats underscores and whitespace as equivalent separators
 (including leading, trailing, or repeated whitespace). Only tools visible to
-the caller are eligible. Pinned `always_visible` tools remain in `list_tools`
-rather than search results. BM25 also promotes multi-word tool names spelled out
-as a contiguous, in-order run in a longer query. These matches are ordered by
+the caller are eligible. Pinned tools (`always_visible`, and tools that feed an
+MCP Apps View) remain in `list_tools` rather than search results. BM25 also
+promotes multi-word tool names spelled out as a contiguous, in-order run in a
+longer query. These matches are ordered by
 name length (longest first), then by where the name starts in the query, then
 by BM25 rank. A name contained in another covered name is not promoted separately:
 `create dataset metric for revenue` promotes `create_dataset_metric`, not
@@ -1455,10 +1460,12 @@ custom startup paths that retains its original stripping behavior. Replace it wi
 ### MCP Apps
 
 Clients that support [MCP Apps](https://github.com/modelcontextprotocol/ext-apps)
-render a tool's result in a View, an HTML page served as a `ui://` resource. A
-View calls tools through its client, with the viewer's credentials, so the
+render a tool's result in a View, an HTML page served as a `ui://` resource.
+Extensions register Views and link them from their tools (see
+[MCP Apps Views](/developer-docs/extensions/mcp#mcp-apps-views)).
+A View calls tools through its client, with the viewer's credentials, so the
 server can't tell its calls from the model's. Once any registered tool links a
-View:
+View or declares an `"app"` audience:
 
 - tools that declare no audience are listed with `_meta.ui.visibility` set to
   `["model"]`, so compliant clients refuse a View's call to them;
@@ -1466,11 +1473,14 @@ View:
   that the model may not see;
 - tools that link a View or declare an `"app"` audience keep `outputSchema` and
   `structuredContent` whatever `MCP_STRUCTURED_OUTPUT_ENABLED` says, and stay in
-  `tools/list` when tool search is on.
+  `tools/list` when tool search is on. Through `call_tool`, which links no
+  View, their results follow `MCP_STRUCTURED_OUTPUT_ENABLED` like any other
+  tool's.
 
 Visibility is enforced by clients, not by the server: a client that ignores it
-lets a View call any listed tool. A custom startup path that builds its own
-server applies the same listing rule by adding
+lets a View call any listed tool, and every tool still checks its caller's
+permissions. A custom startup path that builds its own server applies the same
+listing rule by adding
 `superset.mcp_service.mcp_apps.ModelOnlyByDefaultTransform()` before tool search.
 
 ### Tool Result Value Contract
@@ -1481,6 +1491,7 @@ alongside their text representation. Clients can use the schema to understand
 result fields and validate structured tool-call results. The default is `False`:
 the compatibility middleware removes both fields as a pair and preserves the
 text representation for clients and bridges that do not support structured output.
+Tools that feed an MCP Apps View keep both fields (see [MCP Apps](#mcp-apps)).
 
 Structured tool results preserve Superset domain values exactly. In particular,
 string fields are not wrapped in trust delimiters, and text that resembles a

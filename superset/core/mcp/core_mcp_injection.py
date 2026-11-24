@@ -22,10 +22,12 @@ This module provides the concrete implementation of MCP abstractions
 that replaces the abstract functions in superset-core during initialization.
 """
 
+import hashlib
 import inspect
 import logging
+import re
 import sys
-from typing import Any, Callable, get_type_hints, Optional, TypeVar
+from typing import Any, Callable, get_type_hints, Optional, TYPE_CHECKING, TypeVar
 
 from pydantic import TypeAdapter
 
@@ -35,6 +37,9 @@ except ImportError:
     ToolAnnotations = dict
 
 from superset.extensions.context import get_current_extension_context
+
+if TYPE_CHECKING:
+    from fastmcp.apps.config import AppConfig
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -208,7 +213,7 @@ def create_tool_decorator(  # noqa: C901
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
     meta: dict[str, Any] | None = None,
-    app: Any = None,
+    app: "AppConfig | dict[str, Any] | None" = None,
     metadata_only: bool = False,
 ) -> Callable[..., Any]:
     """
@@ -232,8 +237,8 @@ def create_tool_decorator(  # noqa: C901
             Defaults to "write" if tags has "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
         meta: Optional ``_meta`` dict attached to the registered tool definition.
-        app: MCP Apps settings (FastMCP's ``AppConfig`` or its dict), merged into
-            ``meta["ui"]``. Both are validated with ``AppConfig``.
+        app: MCP Apps settings (FastMCP's ``AppConfig`` or its dict), served as
+            ``meta["ui"]``. Either one is validated with ``AppConfig``.
         metadata_only: Admit the tool's calls under the metadata-only bound, as
             the host's own tools in ``METADATA_ONLY_TOOLS`` are.
 
@@ -243,11 +248,13 @@ def create_tool_decorator(  # noqa: C901
         are async even when the original function is synchronous.
     """
 
-    # Validate MCP Apps settings when the decorator is built, so a bad
-    # declaration fails at import rather than when a host first lists tools.
-    from superset.mcp_service.mcp_apps import tool_meta
+    if meta is not None or app is not None:
+        # Validated as the decorator is built, in every process, so a bad
+        # declaration fails as its module imports rather than when a client
+        # first lists tools.
+        from superset.mcp_service.mcp_apps import tool_meta
 
-    tool_meta_value = tool_meta(meta, app)
+        meta = tool_meta(meta, app)
 
     def decorator(func: F) -> Callable[..., Any]:
         # Skip registration when the MCP service app is not loaded in this
@@ -303,7 +310,7 @@ def create_tool_decorator(  # noqa: C901
                 "description": tool_description,
                 "tags": tool_tags,
                 "annotations": annotations,
-                "meta": tool_meta_value,
+                "meta": meta,
             }
             # Extension tools keep FastMCP's schema behavior because their
             # serializers are extension-owned and cannot be assumed to follow
@@ -458,13 +465,39 @@ def create_prompt_decorator(
     return parameterized_decorator
 
 
+def content_version(content: str | bytes) -> str:
+    """
+    A version segment for a View's URI: ``v1-`` and the first 12 hex digits
+    of the content's SHA-256 digest.
+    """
+    data = content.encode("utf-8") if isinstance(content, str) else content
+    return f"v1-{hashlib.sha256(data).hexdigest()[:12]}"
+
+
+# RFC 3986 unreserved characters. A URI made of them is listed exactly as it
+# is built, so the URI a tool links is the one its View is served under.
+_UI_URI_SEGMENT = re.compile(r"[A-Za-z0-9._~-]+")
+
+
+def _is_ui_uri_segment(segment: str) -> bool:
+    """Whether ``segment`` can stand in a View's URI as it is."""
+    return bool(_UI_URI_SEGMENT.fullmatch(segment)) and segment not in {".", ".."}
+
+
 def _ui_resource_uri(path: str, version: str | None) -> tuple[str, str]:
     """A View's ``ui://`` URI, scoped like tool names, and its context type."""
-    segments = [segment for segment in path.strip("/").split("/") if segment]
-    if not segments or any(segment in {".", ".."} for segment in segments):
+    if not isinstance(path, str):
+        raise TypeError(
+            "The MCP resource decorator takes the View's path first, "
+            'as in @resource("viewer")'
+        )
+    segments = path.strip("/").split("/")
+    if not all(_is_ui_uri_segment(segment) for segment in segments):
         raise ValueError(f"Invalid MCP Apps resource path: {path!r}")
-    if version is not None and (not version or "/" in version):
-        raise ValueError(f"Invalid MCP Apps resource version: {version!r}")
+    if version is not None:
+        if not _is_ui_uri_segment(version):
+            raise ValueError(f"Invalid MCP Apps resource version: {version!r}")
+        segments.append(version)
     if context := get_current_extension_context():
         prefix = (
             f"ui://extensions/{context.extension.publisher}/{context.extension.name}"
@@ -473,28 +506,27 @@ def _ui_resource_uri(path: str, version: str | None) -> tuple[str, str]:
     else:
         prefix = "ui://superset"
         context_type = "host"
-    uri = "/".join([prefix, *segments, *([version] if version else [])])
-    return uri, context_type
+    return "/".join([prefix, *segments]), context_type
 
 
 def create_resource_decorator(
     path: str,
     *,
-    name: Optional[str] = None,
-    title: Optional[str] = None,
-    description: Optional[str] = None,
-    app: Any = None,
-    version: Optional[str] = None,
+    name: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    app: "AppConfig | dict[str, Any] | None" = None,
+    version: str | None = None,
     protect: bool = True,
 ) -> Callable[[F], F]:
     """
     Create the concrete MCP Apps View decorator implementation.
 
-    Registers an HTML ``ui://`` resource through FastMCP's own resource
-    decorator, which validates ``app`` with ``AppConfig`` (a View carries no
-    ``resource_uri`` or ``visibility``) and serves it as ``_meta.ui`` on the
-    listing and on every read. The URI is scoped to the extension that
-    registers it, or to the host.
+    Registers an HTML ``ui://`` resource through FastMCP's resource decorator,
+    which serves ``app`` as ``_meta.ui`` when the View is listed and when it is
+    read. ``app`` is validated with ``AppConfig`` and may not carry the tool
+    settings ``resource_uri`` and ``visibility``. The URI is scoped to the
+    extension that registers the View, or to the host.
 
     Args:
         path: The View's path under its owner's prefix
@@ -502,12 +534,12 @@ def create_resource_decorator(
         title: Resource title
         description: Resource description (defaults to the function docstring)
         app: MCP Apps settings for the View (``AppConfig`` or its dict)
-        version: A version segment appended to the URI
+        version: A last URI segment, such as ``content_version(html)``
         protect: Whether to apply Superset authentication (defaults to True)
 
     Returns:
-        Decorator that registers the View and returns the wrapped function,
-        which carries the View's full URI as ``uri``.
+        Decorator that registers the View and returns the function, wrapped
+        with authentication when protected, carrying the View's URI as ``uri``.
     """
     from fastmcp.apps.config import AppConfig, UI_MIME_TYPE
 
@@ -517,15 +549,31 @@ def create_resource_decorator(
         if app is None or isinstance(app, AppConfig)
         else AppConfig.model_validate(app)
     )
+    # Checked here rather than left to FastMCP, so a process that registers
+    # nothing refuses the declaration too.
+    if app_config is not None and (
+        app_config.resource_uri is not None or app_config.visibility is not None
+    ):
+        raise ValueError(
+            "A View's MCP Apps settings take no resource_uri or visibility; "
+            "those belong to the tools that link it"
+        )
 
     def decorator(func: F) -> F:
+        # As for @tool, a process that doesn't serve MCP registers nothing;
+        # the function still carries its URI for the tools that link it.
+        if not _mcp_host_tools_loaded():
+            _warn_skipped_registration("resource", path)
+            func.uri = uri  # type: ignore[attr-defined]
+            return func
+
         try:
             from superset.mcp_service.app import mcp
 
             if protect:
                 from superset.mcp_service.auth import mcp_auth_hook
 
-                wrapped_func = mcp_auth_hook(func)
+                wrapped_func: Callable[..., Any] = mcp_auth_hook(func)
             else:
                 wrapped_func = func
 
@@ -535,7 +583,7 @@ def create_resource_decorator(
                 title=title,
                 description=description or func.__doc__,
                 mime_type=UI_MIME_TYPE,
-                app=app_config if app_config is not None else AppConfig(),
+                app=app_config,
             )(wrapped_func)
             wrapped_func.uri = uri  # type: ignore[attr-defined]
             logger.info(
@@ -546,7 +594,7 @@ def create_resource_decorator(
             )
             return wrapped_func  # type: ignore[return-value]
         except Exception as e:
-            # Fail fast, as for tools: never serve an unprotected resource.
+            # Fail fast, as for tools: never serve an unprotected View.
             logger.error("Failed to register MCP resource %s: %s", uri, e)
             raise
 
@@ -574,6 +622,26 @@ def _unregistered_decorator(kind: str) -> Callable[..., Any]:
         return keep(func_or_name) if callable(func_or_name) else keep
 
     return decorator
+
+
+def _unregistered_resource(
+    path: str, *, version: str | None = None, **kwargs: Any
+) -> Callable[[F], F]:
+    """
+    ``@resource`` where ``fastmcp`` isn't installed: it registers nothing and
+    returns the function with its View's URI as ``uri``, for the tools that
+    link it.
+    """
+    uri, _ = _ui_resource_uri(path, version)
+
+    def keep(func: F) -> F:
+        logger.debug(
+            "fastmcp isn't installed, so MCP resource %s isn't registered", uri
+        )
+        func.uri = uri  # type: ignore[attr-defined]
+        return func
+
+    return keep
 
 
 def inject_mcp_instructions() -> None:
@@ -608,15 +676,19 @@ def initialize_core_mcp_decorators() -> None:
     import superset_core.mcp.decorators
 
     inject_mcp_instructions()
+    # A digest needs no MCP server, so every process gets it.
+    superset_core.mcp.decorators.content_version = content_version
 
     if not _fastmcp_available():
-        # No MCP server can run here, but a module that declares tools and
-        # prompts, such as an extension's backend in a worker, must still
-        # import: the abstract decorators would raise.
+        # No MCP server can run here, but a module that declares tools,
+        # prompts and Views, such as an extension's backend in a worker, must
+        # still import: the abstract decorators would raise.
         superset_core.mcp.decorators.tool = _unregistered_decorator("tool")
         superset_core.mcp.decorators.prompt = _unregistered_decorator("prompt")
+        superset_core.mcp.decorators.resource = _unregistered_resource
         logger.info(
-            "fastmcp is not installed, so MCP tools and prompts register nothing. "
+            "fastmcp is not installed, so MCP tools, prompts and Views register "
+            "nothing. "
             "Install it with: pip install 'apache-superset[fastmcp]'"
         )
         return

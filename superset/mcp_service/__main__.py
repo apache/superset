@@ -61,7 +61,10 @@ from superset.mcp_service.app import init_fastmcp_server, mcp
 from superset.mcp_service.caching import create_response_caching_middleware
 from superset.mcp_service.mcp_config import MCP_STRUCTURED_OUTPUT_ENABLED
 from superset.mcp_service.middleware import create_response_size_guard_middleware
-from superset.mcp_service.server import build_middleware_list
+from superset.mcp_service.server import (
+    _apply_mcp_apps_transforms,
+    build_middleware_list,
+)
 
 
 def _add_default_middlewares(
@@ -153,6 +156,7 @@ def main() -> None:
                     "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
                 )
             )
+            _apply_mcp_apps_transforms(mcp)
 
         # Log captured output to stderr for debugging (optional)
         captured = captured_output.getvalue()
@@ -190,6 +194,7 @@ def main() -> None:
                 "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
             )
         )
+        _apply_mcp_apps_transforms(mcp)
 
         # Run with specified transport
         if transport == "streamable-http":

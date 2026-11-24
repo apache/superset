@@ -39,7 +39,7 @@ from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_apps import (
     feeds_view,
-    MODEL_ONLY_META,
+    model_only_meta,
     ModelOnlyByDefaultTransform,
 )
 from superset.mcp_service.mcp_config import (
@@ -706,7 +706,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
             return await ctx.fastmcp.call_tool(name, arguments)
 
         tool = Tool.from_function(
-            fn=call_tool, name=transform._call_tool_name, meta=MODEL_ONLY_META
+            fn=call_tool, name=transform._call_tool_name, meta=model_only_meta()
         )
         return _fix_call_tool_arguments(tool)
 
@@ -736,11 +736,17 @@ def _is_pinned(transform: Any, tool: Any) -> bool:
 
 
 def _apply_mcp_apps_transforms(mcp_instance: Any) -> None:
-    """Install the MCP Apps listing rules, ahead of search or compaction.
+    """Install the MCP Apps listing rule, ahead of search or compaction.
 
     Added first, so it sees the whole catalog: tools that declare no audience
-    are listed as model-only once any tool feeds a View.
+    are listed as model-only once any tool feeds a View. A second call adds
+    nothing.
     """
+    if any(
+        isinstance(transform, ModelOnlyByDefaultTransform)
+        for transform in mcp_instance.transforms
+    ):
+        return
     mcp_instance.add_transform(ModelOnlyByDefaultTransform())
 
 
@@ -786,7 +792,7 @@ def _create_search_transform(  # noqa: C901
             return await transform._render_results(results)
 
         tool = Tool.from_function(
-            fn=search_tools, name=transform._search_tool_name, meta=MODEL_ONLY_META
+            fn=search_tools, name=transform._search_tool_name, meta=model_only_meta()
         )
         return _fix_search_tool_query(tool)
 
