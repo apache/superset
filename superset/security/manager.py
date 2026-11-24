@@ -3910,6 +3910,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return True
         return False
 
+    def _is_extension_owned_resource(self, resource: str) -> bool:
+        """Whether an extension owns this FAB view menu and the host does not.
+
+        The two questions are always asked together -- an extension claimed
+        the name, and the host did not also claim it -- so they are asked in
+        one place. SIP-235 lets an extension gate on a host permission, and
+        a host resource must keep its stock grants.
+        """
+        # Imported here, not at module scope: `superset.extensions` pulls the
+        # app's own extension objects and importing it from here at import
+        # time closes a cycle. The same reason as `event_logger` elsewhere.
+        from superset.extensions.permissions import (  # pylint: disable=import-outside-toplevel
+            is_extension_resource,
+        )
+
+        return is_extension_resource(resource) and not self._host_claims_resource(
+            resource
+        )
+
     def _is_admin_only(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is accessible to only Admin users,
@@ -3927,16 +3946,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             and pvm.permission.name not in self.READ_ONLY_PERMISSION
         ):
             return True
-        # Imported here, not at module scope: `superset.extensions` pulls the
-        # app's own extension objects and importing it from here at import
-        # time closes a cycle. The same reason as `event_logger` below.
-        from superset.extensions.permissions import (  # pylint: disable=import-outside-toplevel
-            is_extension_resource,
-        )
-
-        if is_extension_resource(pvm.view_menu.name) and not self._host_claims_resource(
-            pvm.view_menu.name
-        ):
+        if self._is_extension_owned_resource(pvm.view_menu.name):
             # A resource an extension registered. `_is_gamma_pvm` is a
             # denylist, so without this the next `superset init` hands every
             # permission on it to stock Gamma and Alpha -- and a page gated
@@ -3984,7 +3994,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the FAB object is accessible to all users
         """
 
-        return pvm.permission.name in self.ACCESSIBLE_PERMS
+        if pvm.permission.name not in self.ACCESSIBLE_PERMS:
+            return False
+        # An extension's resource is never accessible to all, whatever the
+        # permission is called. Both `_is_alpha_pvm` and `_is_gamma_pvm` read
+        # `not (... or self._is_admin_only(pvm) ...) or
+        # self._is_accessible_to_all(pvm)`, so this is a trailing disjunct:
+        # a permission it admits reaches Alpha and Gamma no matter what the
+        # admin-only classification decided. `ACCESSIBLE_PERMS` names
+        # permissions the host puts on its own user-facing views, so an
+        # extension whose API class carries a method of the same name --
+        # `can_userinfo`, `can_recent_activity` -- otherwise had that
+        # permission on *its own* resource granted to every signed-in user,
+        # which is the leak the classification exists to close.
+        #
+        # Host resources are unaffected: the question is only asked of
+        # resources an extension registered and the host does not claim.
+        return not self._is_extension_owned_resource(pvm.view_menu.name)
 
     def _is_admin_pvm(self, pvm: PermissionView) -> bool:
         """

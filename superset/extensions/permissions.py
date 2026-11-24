@@ -53,6 +53,8 @@ workflow grants it to a role of its own, which role sync leaves alone.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -66,6 +68,36 @@ _extension_resources: set[str] = set()
 #: all of them -- and the answer comes from a transactional read, so asking
 #: each time would turn one role sync into hundreds of them.
 _persisted_cache: set[str] | None = None
+
+
+@contextmanager
+def _isolated() -> Iterator[None]:
+    """Run a metadata-database access so a failure cannot poison the caller.
+
+    Both accesses here are best effort, and both can run inside a
+    transaction somebody else owns: ``superset init`` is itself
+    ``@transaction()``, and role sync asks ``is_extension_resource`` about
+    every permission from inside it.
+
+    ``superset.utils.decorators.transaction`` only rolls back a transaction
+    it opened itself -- a nested call sees ``g.in_transaction`` and runs the
+    body bare -- so catching a failed statement here is not enough to undo
+    it. The session is left dirty, and on PostgreSQL the enclosing
+    transaction is aborted: every later statement in the init run, its final
+    commit included, then fails with ``InFailedSqlTransaction``. Degrading
+    instead of raising is the property these reads exist to have, and
+    swallowing the exception alone did not deliver it.
+
+    So the statement runs inside a SAVEPOINT, and a failure rolls back to it
+    and leaves the enclosing transaction usable. Note ``begin_nested``
+    flushes pending work before opening the savepoint, so a failure in the
+    caller's *own* pending writes still surfaces -- that is its transaction
+    failing, not this one.
+    """
+    from superset import db  # noqa: PLC0415
+
+    with db.session.begin_nested():
+        yield
 
 
 def _persisted() -> set[str]:
@@ -85,7 +117,8 @@ def _persisted() -> set[str]:
         )
         from superset.key_value.types import SharedKey  # noqa: PLC0415
 
-        stored: Any = get_shared_value(SharedKey.EXTENSION_RESOURCES)
+        with _isolated():
+            stored: Any = get_shared_value(SharedKey.EXTENSION_RESOURCES)
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         logger.debug("extensions: could not read recorded resources", exc_info=True)
         # Not cached: a store that was unreachable once may be reachable by
@@ -97,24 +130,44 @@ def _persisted() -> set[str]:
 
 
 def _persist(resources: set[str]) -> None:
-    """Write the recorded set back, so a later process can read it.
+    """Add ``resources`` to the recorded set, so a later process can read it.
 
     Best effort for the same reason: an extension registering before the
     metadata database is reachable, or inside a test app with no tables,
     must still install.
+
+    Merged against a fresh read rather than written from what this process
+    happens to hold, because the entry is shared by every process pointed at
+    this metadata database. Two booting concurrently -- a rolling deploy, or
+    one deployment's workers starting beside another's -- would otherwise
+    each write their own names over the other's, and whichever wrote last
+    would drop the other's resource from the record. A later ``superset
+    init`` that loaded no extension would then not recognise the dropped
+    name and hand its permissions to the stock roles, which is the widening
+    this module exists to prevent.
+
+    Narrowed to a single statement pair rather than closed: the read takes no
+    row lock, so two writers can still interleave inside the savepoint. What
+    makes that recoverable is that the write is retried on every
+    registration, so any later process that loads the extension puts a
+    dropped name back.
     """
     try:
         from superset.key_value.shared_entries import (  # noqa: PLC0415
+            get_shared_value,
             upsert_shared_value,
         )
         from superset.key_value.types import SharedKey  # noqa: PLC0415
 
-        upsert_shared_value(SharedKey.EXTENSION_RESOURCES, sorted(resources))
+        with _isolated():
+            stored: Any = get_shared_value(SharedKey.EXTENSION_RESOURCES)
+            merged = resources | (set(stored) if isinstance(stored, list) else set())
+            upsert_shared_value(SharedKey.EXTENSION_RESOURCES, sorted(merged))
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         logger.debug("extensions: could not record resources durably", exc_info=True)
         return
     global _persisted_cache  # pylint: disable=global-statement
-    _persisted_cache = set(resources)
+    _persisted_cache = merged
 
 
 def register_extension_resource(resource: str) -> None:
@@ -131,12 +184,18 @@ def register_extension_resource(resource: str) -> None:
     denylist hands every permission on it to the stock Gamma and Alpha roles,
     which is the quiet widening this module exists to prevent.
     """
-    if resource in _extension_resources:
-        return
-    _extension_resources.add(resource)
-    logger.info("extensions: %r recorded as an extension resource", resource)
-    persisted = _persisted()
-    if resource not in persisted:
+    if resource not in _extension_resources:
+        _extension_resources.add(resource)
+        logger.info("extensions: %r recorded as an extension resource", resource)
+    # Attempted whenever the durable record does not already hold the name,
+    # and not only the first time this process sees it. The write is best
+    # effort, and returning early on the in-process set meant a write that
+    # failed -- a metadata database briefly unreachable, or not yet migrated
+    # -- was never attempted again. The in-process record does not survive
+    # the run this is for: a `superset init` where no extension loaded reads
+    # the durable one, and without the name there the denylist hands every
+    # permission on the resource to the stock Gamma and Alpha roles.
+    if resource not in (persisted := _persisted()):
         _persist(persisted | _extension_resources)
 
 

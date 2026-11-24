@@ -37,6 +37,7 @@ from types import SimpleNamespace
 import pytest
 from pytest_mock import MockerFixture
 
+from superset import db
 from superset.extensions import permissions
 from superset.key_value.types import SharedKey
 from superset.security.manager import SupersetSecurityManager
@@ -339,3 +340,173 @@ def test_the_recorded_set_is_read_once_not_once_per_permission(
         assert permissions.is_extension_resource("AcmeThing") is True
 
     assert get_value.call_count == 1
+
+
+def test_a_permission_the_host_shares_with_everyone_is_still_admin_only():
+    """The classification must not have a hole named after a host permission.
+
+    `_is_accessible_to_all` is a *trailing* disjunct in both role
+    predicates -- `not (... or _is_admin_only(pvm) ...) or
+    _is_accessible_to_all(pvm)` -- so a permission it admits reaches Alpha
+    and Gamma whatever the admin-only classification decided.
+    `ACCESSIBLE_PERMS` names permissions the host puts on its own
+    user-facing views, and an extension's API class carrying a method of the
+    same name produced that permission on the extension's own resource.
+    Measured before the fix: `_is_admin_only` said True and `_is_gamma_pvm`
+    said True alongside it.
+    """
+    manager = _manager(_view("ChangeRequest", is_extension=True))
+    permissions.register_extension_resource("ChangeRequest")
+
+    for permission in SupersetSecurityManager.ACCESSIBLE_PERMS:
+        pvm = _pvm(permission, "ChangeRequest")
+        assert manager._is_admin_only(pvm) is True  # noqa: SLF001
+        assert manager._is_accessible_to_all(pvm) is False  # noqa: SLF001
+        assert manager._is_alpha_pvm(pvm) is False  # noqa: SLF001
+        assert manager._is_gamma_pvm(pvm) is False  # noqa: SLF001
+
+
+def test_the_host_keeps_the_permissions_it_shares_with_everyone():
+    """The other side of the hole: closing it must not narrow the host.
+
+    `can_userinfo` and `can_recent_activity` on the host's own views are
+    what `ACCESSIBLE_PERMS` is for -- every signed-in user needs them -- so
+    they must keep reaching Alpha and Gamma.
+    """
+    manager = _manager(_view("UserDBModelView", is_extension=False))
+    permissions.register_extension_resource("ChangeRequest")
+
+    for permission in SupersetSecurityManager.ACCESSIBLE_PERMS:
+        pvm = _pvm(permission, "UserDBModelView")
+        assert manager._is_accessible_to_all(pvm) is True  # noqa: SLF001
+        assert manager._is_alpha_pvm(pvm) is True  # noqa: SLF001
+        assert manager._is_gamma_pvm(pvm) is True  # noqa: SLF001
+
+
+def test_an_extension_reusing_a_host_resource_keeps_the_host_s_grants():
+    """SIP-235 lets an extension gate on a host permission.
+
+    The host's `Dashboard` must keep `can_userinfo` reaching everyone even
+    while an extension has registered a class carrying that resource name,
+    for the same reason the admin-only classification defers to the host.
+    """
+    manager = _manager(
+        _view("Dashboard", is_extension=False),
+        _view("Dashboard", is_extension=True),
+    )
+    permissions.register_extension_resource("Dashboard")
+
+    pvm = _pvm("can_userinfo", "Dashboard")
+    assert manager._is_accessible_to_all(pvm) is True  # noqa: SLF001
+    assert manager._is_gamma_pvm(pvm) is True  # noqa: SLF001
+
+
+def test_a_failed_read_does_not_poison_the_enclosing_transaction(
+    mocker: MockerFixture,
+) -> None:
+    """Swallowing the exception was not enough to degrade.
+
+    `superset init` is itself `@transaction()`, and role sync asks about
+    every permission from inside it. `transaction` only rolls back a
+    transaction it opened -- a nested call sees `g.in_transaction` and runs
+    the body bare -- so a failed statement left the session dirty however
+    well the caller caught it. On PostgreSQL the enclosing transaction is
+    then aborted and every later statement in the init run, its commit
+    included, fails with `InFailedSqlTransaction`: the opposite of degrading.
+
+    Asserted as "the statement ran inside a SAVEPOINT that was rolled back",
+    because that is the mechanism that keeps the enclosing transaction
+    usable, and the abort it prevents is specific to PostgreSQL -- SQLite
+    would let the unprotected read through and report nothing.
+    """
+    begin_nested = mocker.spy(db.session, "begin_nested")
+    mocker.patch(
+        "superset.key_value.shared_entries.get_shared_value",
+        side_effect=RuntimeError('relation "key_value" does not exist'),
+    )
+
+    assert permissions.is_extension_resource("AcmeThing") is False
+
+    assert begin_nested.called, "the read must be isolated by a savepoint"
+    assert db.session.is_active
+
+
+def test_a_failed_write_is_attempted_again_on_the_next_registration(
+    mocker: MockerFixture,
+) -> None:
+    """The durable record is what the fail-closed case reads.
+
+    Returning early once the name was in this process's set meant a write
+    that failed -- a metadata database briefly unreachable, or not yet
+    migrated -- was never attempted again. The name then lived only in a
+    process that is gone by the time it matters, and the `superset init` run
+    with no extension loaded handed every permission on the resource back to
+    the stock roles.
+    """
+    mocker.patch(
+        "superset.key_value.shared_entries.get_shared_value",
+        return_value=[],
+    )
+    upsert = mocker.patch(
+        "superset.key_value.shared_entries.upsert_shared_value",
+        side_effect=RuntimeError("unreachable"),
+    )
+
+    permissions.register_extension_resource("AcmeThing")
+    assert upsert.call_count == 1
+
+    upsert.side_effect = None
+    permissions.register_extension_resource("AcmeThing")
+
+    assert upsert.call_count == 2, "a failed write must be retried"
+    assert "AcmeThing" in upsert.call_args[0][1]
+
+
+def test_a_resource_recorded_by_another_process_is_not_written_over(
+    mocker: MockerFixture,
+) -> None:
+    """The entry is shared by every process pointed at this database.
+
+    Two booting concurrently -- a rolling deploy, or one deployment's
+    workers starting beside another's -- each wrote the names they knew over
+    whatever was there, so whichever wrote last dropped the other's
+    resource. A later `superset init` that loaded no extension would then
+    not recognise the dropped name.
+
+    The two reads here are that interleaving: this process reads an empty
+    store, another records `BetaThing`, and this process then writes.
+    """
+    mocker.patch(
+        "superset.key_value.shared_entries.get_shared_value",
+        side_effect=[[], ["BetaThing"]],
+    )
+    upsert = mocker.patch(
+        "superset.key_value.shared_entries.upsert_shared_value",
+    )
+
+    permissions.register_extension_resource("AcmeThing")
+
+    key, value = upsert.call_args[0]
+    assert key == SharedKey.EXTENSION_RESOURCES
+    assert set(value) == {"AcmeThing", "BetaThing"}
+
+
+def test_the_other_roles_role_sync_builds_do_not_pick_up_the_resource():
+    """`sync_role_definitions` builds four roles, not two.
+
+    Alpha and Gamma are the pair that leaked, because they are the ones
+    decided by a denylist. `sql_lab` and `Public` are allowlists -- literal
+    sets of permission/resource pairs -- so an extension's resource cannot
+    match one, and Admin is where these permissions are meant to land.
+    Asserted rather than argued, so a later change from an allowlist to a
+    denylist does not reopen this quietly.
+    """
+    manager = _manager(_view("ChangeRequest", is_extension=True))
+    permissions.register_extension_resource("ChangeRequest")
+
+    for permission in ("can_read", "can_write", "can_userinfo"):
+        pvm = _pvm(permission, "ChangeRequest")
+        assert manager._is_sql_lab_pvm(pvm) is False  # noqa: SLF001
+        assert manager._is_public_pvm(pvm) is False  # noqa: SLF001
+        # Admin is the role the classification routes them to.
+        assert manager._is_admin_pvm(pvm) is True  # noqa: SLF001
