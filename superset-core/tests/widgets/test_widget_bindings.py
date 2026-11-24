@@ -15,20 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pytest
-from superset_core.widgets import BindingRequest, Widget, WidgetDataRefusedError
-
-
-def test_a_refusal_carries_its_code_and_message() -> None:
-    refused = WidgetDataRefusedError("CONTENT_CHANGED", "Reload to see it")
-
-    assert (refused.code, refused.message) == ("CONTENT_CHANGED", "Reload to see it")
-    assert str(refused) == "Reload to see it"
-
-
-def test_a_refusal_needs_a_code() -> None:
-    with pytest.raises(ValueError, match="needs a code"):
-        WidgetDataRefusedError("", "Reload")
+from superset_core.widgets import BindingRequest, Widget
 
 
 def test_a_widget_type_leaves_its_bindings_to_the_host_by_default() -> None:

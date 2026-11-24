@@ -1164,9 +1164,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             default the stored `dataBinding` as the dataset `main`, as the
             caller, each narrowed by `runtime_filters` on its dataset, and
             answers each as a dataset of its name. One failing binding fails
-            the request. A widget type may refuse the request instead, which
-            is answered as a 400 whose `error_type` is `WidgetDataRefused`,
-            with the type's own `code`, for programs, and `message`.
+            the request.
             With the `X-Canvas-Draft` header, reads the placement from the
             caller's draft of this canvas; with `X-Canvas-Version`, from that
             version of it, which only its editors can read. Each dataset
