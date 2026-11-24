@@ -157,10 +157,14 @@ const Mark = styled(Tag)`
 `;
 
 /**
- * A widget's title row above its content. A content change marks it with
- * `data-canvas-mark`, which the surface draws as the widget's frame (see
- * `Interactive`): out in the gap, so it never sits on the content, and
- * outside the content box, which scrolls and would clip it.
+ * Every widget's box: its title row, when it has one, above its content. A
+ * content change marks it with `data-canvas-mark`, which the surface draws as
+ * the widget's frame (see `Interactive`): out in the gap, so it never sits on
+ * the content, and outside the content box, which scrolls and would clip it.
+ *
+ * A widget with no row is wrapped all the same. A wrapper that appeared with
+ * a draft's first mark would make React mount the widget afresh, and it
+ * would start over blank.
  */
 const Titled = styled.div`
   ${({ theme }) => css`
@@ -249,15 +253,6 @@ const TitledBody = styled.div`
   min-height: 0;
 `;
 
-/**
- * A container whose mark sits in its own chrome: the whole cell, with no row
- * above it. Still the content box's child, where the surface reads the mark
- * to frame the widget (see `Interactive`).
- */
-const MarkedInChrome = styled.div`
-  height: 100%;
-`;
-
 /** Where a widget that can't render would be. */
 export const WidgetPlaceholder = styled.div`
   ${({ theme }) => css`
@@ -277,8 +272,8 @@ export const WidgetPlaceholder = styled.div`
 
 /**
  * A widget under its title row: the name the canvas gives it, and the tag of
- * what a draft did to it. The widget host titles a saved widget with it too,
- * so a widget reads the same on a canvas and on its own.
+ * what a draft did to it, when it has either. The widget host titles a saved
+ * widget with it too, so a widget reads the same on a canvas and on its own.
  */
 export function TitledWidget({
   title,
@@ -298,16 +293,19 @@ export function TitledWidget({
   inset?: boolean;
   children: ReactNode;
 }) {
+  const row = Boolean(title || tag);
   return (
     <Titled data-canvas-mark={frame}>
-      <TitleRow $align={align} $inset={inset}>
-        {title && (
-          <WidgetTitle title={title} data-test="canvas-widget-title">
-            {title}
-          </WidgetTitle>
-        )}
-        {tag}
-      </TitleRow>
+      {row && (
+        <TitleRow $align={align} $inset={inset}>
+          {title && (
+            <WidgetTitle title={title} data-test="canvas-widget-title">
+              {title}
+            </WidgetTitle>
+          )}
+          {tag}
+        </TitleRow>
+      )}
       <TitledBody>{children}</TitledBody>
     </Titled>
   );
@@ -669,15 +667,12 @@ export default function CanvasGrid({
         {widget}
       </CanvasMarkContext.Provider>
     );
-    if (inChrome) {
-      return <MarkedInChrome data-canvas-mark={frame}>{body}</MarkedInChrome>;
-    }
-    // A widget with neither a name nor a change has no row to draw.
-    if (!title && !mark) return body;
     return (
       <TitledWidget
         title={title}
-        tag={tag}
+        // A container that wears its mark in its own chrome takes the whole
+        // cell.
+        tag={inChrome ? undefined : tag}
         frame={frame}
         align={display.titleAlign ?? 'left'}
         inset={editable}
