@@ -65,6 +65,11 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
 - `metadata_only` on `superset_core.mcp.tool`: a tool that reads only Superset's metadata
   database declares it, so that its calls take no warehouse slot. See the
   [MCP guide](../docs/developer_docs/extensions/mcp.md).
+- `superset_core.canvas.drafts`: canvas draft events (`on_draft_event`), steps a widget
+  records in a draft's history for the canvas's undo and redo (`record_step`,
+  `register_step_handler`), and commit participants that can refuse a commit
+  (`register_commit_participant`). See the
+  [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
 
 ### Compatibility
 
