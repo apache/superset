@@ -69,8 +69,6 @@ export interface CanvasChild {
 
 /** Everything the canvas passes to a renderer; extensions see a subset. */
 export interface CanvasRendererProps extends canvasApi.CanvasWidgetProps {
-  /** For a widget entity (anything but a container or text): its UUID. */
-  widgetId?: string;
   /** The schema version `props` is valid against. */
   schemaVersion?: number;
   /** Values of the customizations whose scope includes this node. */
