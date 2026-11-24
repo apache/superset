@@ -130,10 +130,12 @@ class Widget:
     def build_bindings(cls, request: BindingRequest) -> list[WidgetBinding] | None:
         """
         The bindings a data request for the widget runs, each answered as the
-        dataset of its name (see ``superset_core.widgets.bindings``), or
-        ``None``, the default, for the host's own: the props' ``dataBinding``,
-        as ``main``. Raise ``WidgetDataRefusedError`` to refuse the request
-        with a code and a message instead.
+        dataset of its name, or ``None``, the default, for the host's own: the
+        props' ``dataBinding``, as ``main``. Raise ``WidgetDataRefusedError``
+        to refuse the request with a code and a message instead.
+
+        Provisional, with the types in ``superset_core.widgets.bindings``,
+        which also says what the host checks and runs.
         """
         return None
 

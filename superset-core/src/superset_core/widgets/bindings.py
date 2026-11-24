@@ -26,10 +26,12 @@ its bindings itself (``Widget.build_bindings``), and the host answers each as
 the dataset of its name. A binding has the shape of a ``dataBinding``: a
 dataset, its metrics, dimensions, filters, sort and row limit.
 
-This is a stand-in, not SIP-231's query API. That one has widgets build
-``WidgetQuery`` objects around a ``SemanticQuery`` from a semantic view and
-the props (``QueryMixin.build_queries``); these names stay clear of it, so it
-can land with its own shape.
+This module and ``Widget.build_bindings`` are provisional: a stand-in until
+SIP-231's query API, in which widgets build ``WidgetQuery`` objects around a
+``SemanticQuery`` from a semantic view and the props
+(``QueryMixin.build_queries``). They may change, or be replaced by that API,
+under the package's deprecation policy. Their names differ from that API's,
+so it can land with its own shape.
 
 The host checks every binding a type builds as it checks a stored one when it
 is written, then runs it as the caller, with their dataset access, row level
