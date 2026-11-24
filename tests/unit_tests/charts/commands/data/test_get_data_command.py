@@ -473,3 +473,80 @@ def test_database_error_while_building_the_query_is_a_failed_query(entry: str) -
         getattr(ChartDataCommand(mock_query_context), entry)()
 
     assert "Incorrect username or password" in excinfo.value.message
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_mssql_resource_governor_error_is_a_failed_query_not_a_500(
+    entry: str,
+) -> None:
+    """
+    SQL Server error 10928 ("The request limit for the database is %d and
+    has been reached") means the customer's own Azure SQL/Synapse resource
+    governor rejected a connection -- a capacity condition on their side, not
+    a Superset bug.
+
+    pymssql's C extension raises this directly from SQLAlchemy's pool-level
+    rollback-on-checkin (``Pool._reset`` -> ``Dialect.do_rollback``), which
+    calls the DBAPI connection's ``rollback()`` without going through
+    ``Connection.execute()`` -- so, unlike the ``OperationalError`` case
+    above, it is never wrapped into a ``sqlalchemy.exc.SQLAlchemyError`` and
+    would otherwise escape the existing ``except SQLAlchemyError`` handling
+    as an unhandled 500 (Sentry SUPERSET-PYTHON-1CM2/1CM1).
+    """
+
+    class FakeMssqlDriverError(Exception):
+        pass
+
+    # pymssql is an optional extra and may not be installed in every test
+    # environment, so the fake exception's module is set directly rather
+    # than importing the real driver -- the fix matches on module name and
+    # message, not on the real exception type.
+    FakeMssqlDriverError.__module__ = "pymssql"
+
+    error = FakeMssqlDriverError(
+        '(10928, "The request limit for the database is 400 and has been '
+        "reached. See 'http://go.microsoft.com/fwlink/?LinkId=267637' for "
+        "assistance. DB-Lib error message 20018, severity 17:\\nGeneral "
+        'SQL Server error: Check messages from the SQL Server\\n")'
+    )
+
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.get_payload.side_effect = error
+    mock_query_context.get_payload_result.side_effect = error
+    database = Mock()
+    database.db_engine_spec.extract_error_message.return_value = (
+        "mssql error: The request limit for the database is 400 and has "
+        "been reached."
+    )
+    mock_query_context.datasource = Mock(database=database)
+
+    with pytest.raises(ChartDataQueryFailedError) as excinfo:
+        getattr(ChartDataCommand(mock_query_context), entry)()
+
+    assert "request limit for the database" in excinfo.value.message
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_unrecognized_non_sqlalchemy_error_still_propagates(entry: str) -> None:
+    """
+    Only the recognized MSSQL resource-governor signature is converted to a
+    typed failed-query error; any other non-``SQLAlchemyError`` exception
+    raised while building the query must keep propagating unchanged, so real
+    bugs are not accidentally swallowed as failed queries.
+    """
+
+    class SomeOtherDriverError(Exception):
+        pass
+
+    SomeOtherDriverError.__module__ = "pymssql"
+    error = SomeOtherDriverError("totally unrelated failure")
+
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.get_payload.side_effect = error
+    mock_query_context.get_payload_result.side_effect = error
+    mock_query_context.datasource = Mock(database=Mock())
+
+    with pytest.raises(SomeOtherDriverError):
+        getattr(ChartDataCommand(mock_query_context), entry)()
