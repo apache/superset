@@ -20,7 +20,10 @@ import type { canvas as canvasApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import {
   canvas,
-  fireDraftEvent,
+  fireDraftDiscarded,
+  fireDraftPublished,
+  fireDraftStepRedone,
+  fireDraftStepUndone,
   getWidgetRenderer,
   setActiveCanvas,
 } from 'src/core';
@@ -135,23 +138,47 @@ test('active canvas changes fire on the open draft and a version preview', () =>
   subscription.dispose();
 });
 
-test('what the page does to its draft reaches every listener, past one that throws', () => {
+test('each thing the page does to its draft fires its own event', () => {
+  const heard: [string, canvasApi.CanvasDraftEvent][] = [];
+  const subscriptions = [
+    canvas.onDidPublishDraft(event => heard.push(['published', event])),
+    canvas.onDidDiscardDraft(event => heard.push(['discarded', event])),
+    canvas.onDidUndoDraftStep(event => heard.push(['undone', event])),
+    canvas.onDidRedoDraftStep(event => heard.push(['redone', event])),
+  ];
+  const draft = { canvasId: 7, token: 'tok-123' };
+  const stepped = { ...draft, steppedWidgetIds: ['w-1'] };
+
+  fireDraftStepUndone(stepped);
+  fireDraftStepRedone({ ...draft, steppedWidgetIds: [] });
+  fireDraftPublished(draft);
+  fireDraftDiscarded(draft);
+
+  expect(heard).toEqual([
+    ['undone', stepped],
+    ['redone', { ...draft, steppedWidgetIds: [] }],
+    ['published', draft],
+    ['discarded', draft],
+  ]);
+  subscriptions.forEach(subscription => subscription.dispose());
+});
+
+test('a draft event reaches every listener, past one that throws, until disposed', () => {
   const logged = jest.spyOn(logging, 'error').mockImplementation(() => {});
-  const failing = canvas.onDidChangeDraft(() => {
+  const failing = canvas.onDidUndoDraftStep(() => {
     throw new Error('listener bug');
   });
   const listener = jest.fn();
-  const subscription = canvas.onDidChangeDraft(listener);
-  const event: canvasApi.CanvasDraftEvent = {
-    kind: 'undone',
+  const subscription = canvas.onDidUndoDraftStep(listener);
+  const event: canvasApi.CanvasDraftStepEvent = {
     canvasId: 7,
     token: 'tok-123',
     steppedWidgetIds: ['w-1'],
   };
 
-  fireDraftEvent(event);
+  fireDraftStepUndone(event);
   subscription.dispose();
-  fireDraftEvent({ ...event, kind: 'redone' });
+  fireDraftStepUndone(event);
 
   expect(listener.mock.calls).toEqual([[event]]);
   expect(logged).toHaveBeenCalled();

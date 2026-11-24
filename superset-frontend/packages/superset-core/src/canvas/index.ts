@@ -23,8 +23,9 @@
  * A canvas places widget instances: inline ones, stored on the placement as a
  * widget id and props, or persisted ones, referenced by UUID. Widgets bring
  * their own renderers. This module lets a widget provider register the React component
- * that renders a widget type on a canvas, and lets tools (such as the chat)
- * know which canvas the user has open.
+ * that renders a widget type on a canvas, lets tools (such as the chat)
+ * know which canvas the user has open, and tells either what the canvas page
+ * did to the draft it shows.
  *
  * @example
  * ```typescript
@@ -182,34 +183,49 @@ export declare function getActiveCanvas(): ActiveCanvas | undefined;
  */
 export declare const onDidChangeActiveCanvas: Event<ActiveCanvas | undefined>;
 
-/** What the canvas page did to the draft it shows. */
-export type CanvasDraftEventKind =
-  | 'discarded'
-  | 'committed'
-  | 'undone'
-  | 'redone';
-
-/** Something the canvas page did to the draft it shows. */
+/** The draft that the canvas page published or discarded. */
 export interface CanvasDraftEvent {
-  kind: CanvasDraftEventKind;
   canvasId: number;
   /**
    * The draft's token, which only its owner can use: compare it, and never
    * log it or send it anywhere but the requests that name the draft.
    */
   token: string;
+}
+
+/** A step of its draft's history that the canvas page undid or redid. */
+export interface CanvasDraftStepEvent extends CanvasDraftEvent {
   /**
-   * For `undone` and `redone`: the saved widgets whose content a step
-   * recorded on the server (`superset_core.canvas.drafts`) moved, which the
-   * canvas's definition doesn't show. Their renderers fetch it again.
+   * The saved widgets whose content the step moved, when it was a step
+   * recorded on the server (`superset_core.canvas.drafts`), which the
+   * canvas's definition doesn't show: their renderers fetch it again.
    */
   steppedWidgetIds: string[];
 }
 
 /**
- * Fires after the canvas page discarded, published, undid or redid the draft
- * it shows. Only what the page itself did: a draft that an agent's tool or
- * another tab ends fires nothing here, while the server's listeners
- * (`superset_core.canvas.drafts`) hear of every end.
+ * Fires after the canvas page published the draft it shows. Only the page's
+ * own publish fires it: not an edit of the draft, nor a commit asked for
+ * elsewhere (another tab, the REST API, an agent's tool), which the server's
+ * listeners (`superset_core.canvas.drafts.on_draft_event`) hear of.
  */
-export declare const onDidChangeDraft: Event<CanvasDraftEvent>;
+export declare const onDidPublishDraft: Event<CanvasDraftEvent>;
+
+/**
+ * Fires after the canvas page discarded the draft it shows. Only the page's
+ * own discard fires it, as for `onDidPublishDraft`.
+ */
+export declare const onDidDiscardDraft: Event<CanvasDraftEvent>;
+
+/**
+ * Fires after the canvas page undid a step of the draft it shows. Only the
+ * page's own undo fires it, not one asked for elsewhere, which the server's
+ * listeners hear of.
+ */
+export declare const onDidUndoDraftStep: Event<CanvasDraftStepEvent>;
+
+/**
+ * Fires after the canvas page redid a step of the draft it shows. Only the
+ * page's own redo fires it, as for `onDidUndoDraftStep`.
+ */
+export declare const onDidRedoDraftStep: Event<CanvasDraftStepEvent>;

@@ -107,29 +107,26 @@ export const setActiveCanvas = (value: canvasApi.ActiveCanvas | undefined) => {
   activeCanvas.fire(value);
 };
 
-const draftChanges = createEventEmitter<canvasApi.CanvasDraftEvent>();
+const draftPublished = createEventEmitter<canvasApi.CanvasDraftEvent>();
+const draftDiscarded = createEventEmitter<canvasApi.CanvasDraftEvent>();
+const draftStepUndone = createEventEmitter<canvasApi.CanvasDraftStepEvent>();
+const draftStepRedone = createEventEmitter<canvasApi.CanvasDraftStepEvent>();
 
-/** Called by the canvas page once it discarded, published or stepped its draft. */
-export const fireDraftEvent = (event: canvasApi.CanvasDraftEvent) =>
-  draftChanges.fire(event);
-
-// Listeners are extensions': one that throws mustn't keep the others from
-// hearing, or the page from finishing the publish or discard it reports.
-const onDidChangeDraft: typeof canvasApi.onDidChangeDraft = (
-  listener,
-  thisArgs,
-) =>
-  draftChanges.subscribe(event => {
-    try {
-      listener.call(thisArgs, event);
-    } catch (error) {
-      logging.error('A canvas draft listener threw; continuing.', error);
-    }
-  });
+/** Called by the canvas page once it published its draft. */
+export const fireDraftPublished = draftPublished.fire;
+/** Called by the canvas page once it discarded its draft. */
+export const fireDraftDiscarded = draftDiscarded.fire;
+/** Called by the canvas page once it undid a step of its draft. */
+export const fireDraftStepUndone = draftStepUndone.fire;
+/** Called by the canvas page once it redid a step of its draft. */
+export const fireDraftStepRedone = draftStepRedone.fire;
 
 export const canvas: typeof canvasApi = {
   registerWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
-  onDidChangeDraft,
+  onDidPublishDraft: draftPublished.subscribe,
+  onDidDiscardDraft: draftDiscarded.subscribe,
+  onDidUndoDraftStep: draftStepUndone.subscribe,
+  onDidRedoDraftStep: draftStepRedone.subscribe,
 };

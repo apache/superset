@@ -109,6 +109,29 @@ test('sets up global superset object when user is logged in', async () => {
   initializeSpy.mockRestore();
 });
 
+test('exposes the canvas page draft events on window.superset.canvas', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const initializeSpy = jest
+    .spyOn(loader, 'initializeExtensions')
+    .mockImplementation(() => Promise.resolve());
+
+  render(<ExtensionsStartup />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: mockInitialState,
+  });
+
+  // Extensions reach the events here, not through the host's imports.
+  await waitFor(() => expect(window.superset).toBeDefined());
+  const { canvas } = window.superset;
+  expect(typeof canvas.onDidPublishDraft).toBe('function');
+  expect(typeof canvas.onDidDiscardDraft).toBe('function');
+  expect(typeof canvas.onDidUndoDraftStep).toBe('function');
+  expect(typeof canvas.onDidRedoDraftStep).toBe('function');
+
+  initializeSpy.mockRestore();
+});
+
 test('does not set up global superset object when user is not logged in', async () => {
   render(<ExtensionsStartup />, {
     useRedux: true,

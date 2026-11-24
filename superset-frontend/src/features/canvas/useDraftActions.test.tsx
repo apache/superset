@@ -158,45 +158,47 @@ function PlacedHarness({ onClosed }: { onClosed: () => void }) {
 test.each([
   [
     'Publish',
-    'committed',
+    canvas.onDidPublishDraft,
+    canvas.onDidDiscardDraft,
     () => fetchMock.post(commitEndpoint, { result: {} }),
   ],
   [
     'Discard',
-    'discarded',
+    canvas.onDidDiscardDraft,
+    canvas.onDidPublishDraft,
     () => fetchMock.delete(draftEndpoint, { result: {} }),
   ],
 ])(
-  'what the page did to its draft is told to its listeners: %s',
-  async (button, kind, respond) => {
+  '%s fires its own draft event, and only that one',
+  async (button, fired, other, respond) => {
     respond();
-    const events = jest.fn();
-    const listening = canvas.onDidChangeDraft(events);
+    const heard = jest.fn();
+    const elsewhere = jest.fn();
+    const listening = [fired(heard), other(elsewhere)];
     const onClosed = jest.fn();
     render(<PlacedHarness onClosed={onClosed} />, { useRedux: true });
 
     click(button);
 
     await waitFor(() => expect(onClosed).toHaveBeenCalled());
-    expect(events).toHaveBeenCalledWith({
-      kind,
-      canvasId: 7,
-      token: 'tok-123',
-      steppedWidgetIds: [],
-    });
-    listening.dispose();
+    expect(heard).toHaveBeenCalledWith({ canvasId: 7, token: 'tok-123' });
+    expect(elsewhere).not.toHaveBeenCalled();
+    listening.forEach(subscription => subscription.dispose());
   },
 );
 
-test('a draft that stays open tells its listeners nothing', async () => {
+test('a draft that stays open fires no draft event', async () => {
   fetchMock.post(commitEndpoint, 409);
   const events = jest.fn();
-  const listening = canvas.onDidChangeDraft(events);
+  const listening = [
+    canvas.onDidPublishDraft(events),
+    canvas.onDidDiscardDraft(events),
+  ];
   render(<PlacedHarness onClosed={jest.fn()} />, { useRedux: true });
 
   click('Publish');
 
   await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
   expect(events).not.toHaveBeenCalled();
-  listening.dispose();
+  listening.forEach(subscription => subscription.dispose());
 });

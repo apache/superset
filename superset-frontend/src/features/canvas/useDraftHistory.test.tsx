@@ -18,6 +18,7 @@
  */
 import { act } from 'react';
 import fetchMock from 'fetch-mock';
+import type { canvas as canvasApi } from '@apache-superset/core';
 import {
   fireEvent,
   render,
@@ -388,8 +389,11 @@ test('a step tells the page which widget a recorded step moved', async () => {
   fetchMock.post(redoEndpoint, {
     result: { revision: 5, canUndo: true, canRedo: false },
   });
-  const events = jest.fn();
-  const listening = canvas.onDidChangeDraft(events);
+  const events: [string, canvasApi.CanvasDraftStepEvent][] = [];
+  const listening = [
+    canvas.onDidUndoDraftStep(event => events.push(['undone', event])),
+    canvas.onDidRedoDraftStep(event => events.push(['redone', event])),
+  ];
   const reload = jest.fn();
   const { rerender } = render(
     <Harness
@@ -402,7 +406,7 @@ test('a step tells the page which widget a recorded step moved', async () => {
   );
 
   fireEvent.click(undo());
-  await waitFor(() => expect(events).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(events).toHaveLength(1));
   // The page catches up with the step before the next one is offered.
   rerender(
     <Harness
@@ -414,18 +418,11 @@ test('a step tells the page which widget a recorded step moved', async () => {
   );
   await waitFor(() => expect(redo()).toBeEnabled());
   fireEvent.click(redo());
-  await waitFor(() => expect(events).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(events).toHaveLength(2));
 
-  expect(events.mock.calls).toEqual([
-    [
-      {
-        kind: 'undone',
-        canvasId: 7,
-        token: 'tok-123',
-        steppedWidgetIds: ['w-1'],
-      },
-    ],
-    [{ kind: 'redone', canvasId: 7, token: 'tok-123', steppedWidgetIds: [] }],
+  expect(events).toEqual([
+    ['undone', { canvasId: 7, token: 'tok-123', steppedWidgetIds: ['w-1'] }],
+    ['redone', { canvasId: 7, token: 'tok-123', steppedWidgetIds: [] }],
   ]);
-  listening.dispose();
+  listening.forEach(subscription => subscription.dispose());
 });
