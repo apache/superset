@@ -361,7 +361,8 @@ def test_failed_result_blocks_a_passed_result() -> None:
 def test_non_sip_thread_is_ignored() -> None:
     issues = {1: make_issue(1, SIP_TITLE)}
     steward = make_steward(FakeModel("passed"))
-    other = Email("o" * 32, "[VOTE] Release 5.0 candidate", 0, "")
+    body = "Includes https://github.com/apache/superset/issues/1"
+    other = Email("o" * 32, "[VOTE] Release 5.0 candidate", 0, body)
     assert steward._collect_evidence(issues, [other]) == {}
 
 

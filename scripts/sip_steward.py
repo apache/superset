@@ -735,7 +735,7 @@ class Steward:
             if thread_id in linked:
                 return vote
         subject = classify_subject(result.subject)[2:]
-        for vote in vote_by_thread.values():
+        for vote in reversed(vote_by_thread.values()):
             if classify_subject(vote[0].subject)[2:] == subject:
                 return vote
         return None
