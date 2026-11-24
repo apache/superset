@@ -19262,7 +19262,7 @@ msgid "The port number is invalid."
 msgstr "El número de puerto no es válido."
 
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "No se pudo cargar la vista previa. Inténtalo de nuevo."
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
@@ -19726,6 +19726,10 @@ msgstr ""
 #, python-format
 msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
+"La transformación devolvió %(returned)s para la columna %(column)s, que "
+"es de tipo %(kind)s. Los filtros reflejados de esta asignación fallarían "
+"en la base de datos. Devuelve un valor compatible con %(type)s; utiliza "
+"un CAST explícito en la transformación si corresponde."
 
 #, python-format
 msgid ""
@@ -19843,10 +19847,15 @@ msgstr ""
 
 msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"No se pudo analizar la transformación de valor. Corrige la expresión "
+"para previsualizarla. Los filtros no se reflejarán mientras no sea válida."
 
 #, python-format
 msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"No se pudo analizar la transformación de valor: %(detail)s Corrige la "
+"expresión para previsualizarla. Los filtros no se reflejarán mientras "
+"no sea válida."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid ""
