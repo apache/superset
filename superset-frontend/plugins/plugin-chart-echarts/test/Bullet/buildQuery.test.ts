@@ -69,7 +69,7 @@ test('queries the target metric alongside the measure, once each', () => {
     metric: 'sum__num',
     groupby: ['state'],
   };
-  const [ query ] = buildQuery({ ...formData, target_metric: 'quota' }).queries;
+  const [query] = buildQuery({ ...formData, target_metric: 'quota' }).queries;
   expect(query.columns).toEqual(['state']);
   expect(query.metrics).toEqual(['sum__num', 'quota']);
 
