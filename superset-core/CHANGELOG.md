@@ -70,6 +70,9 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   `register_step_handler`), and commit participants that can refuse a commit
   (`register_commit_participant`). See the
   [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
+- `superset_core.mcp.instructions.contribute_instructions`: an extension adds guidance
+  on its own tools to the MCP server's instructions, as text or as a callable asked as
+  each session starts. See the [MCP guide](../docs/developer_docs/extensions/mcp.md).
 
 ### Compatibility
 

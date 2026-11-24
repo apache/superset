@@ -1392,19 +1392,15 @@ class RBACToolVisibilityMiddleware(Middleware):
             return tools
 
 
-class CodeArtifactsInstructionsMiddleware(Middleware):
-    """Answer each session's ``initialize`` with the instructions that a
-    callable ``MCP_CODE_ARTIFACTS_ENABLED`` picks for it.
-
-    The server's own instructions keep the rule against generating code. A
-    session for which ``enabled`` returns ``True`` gets ``instructions``, which
-    allow an extension's artifact tools instead. Any other answer, and an
-    exception, keep the rule.
+class ExtensionInstructionsMiddleware(Middleware):
+    """Answer each session's ``initialize`` with the instructions as ``build``
+    makes them then, so that guidance an extension contributes as a callable
+    (``superset_core.mcp.instructions``) follows state that changes while the
+    server runs. A ``build`` that fails keeps the server's own instructions.
     """
 
-    def __init__(self, enabled: Callable[[], bool], instructions: str) -> None:
-        self._enabled = enabled
-        self._instructions = instructions
+    def __init__(self, build: Callable[[], str]) -> None:
+        self._build = build
 
     async def on_initialize(
         self,
@@ -1412,21 +1408,19 @@ class CodeArtifactsInstructionsMiddleware(Middleware):
         call_next: CallNext[mt.InitializeRequest, mt.InitializeResult | None],
     ) -> mt.InitializeResult | None:
         result = await call_next(context)
-        if result is None or not self._session_enabled():
+        if result is None:
             return result
-        return result.model_copy(update={"instructions": self._instructions})
-
-    def _session_enabled(self) -> bool:
         try:
             with _get_app_context_manager():
-                return self._enabled() is True
-        except Exception:  # noqa: BLE001 — operator-supplied callable may raise anything
+                instructions = self._build()
+        except Exception:  # noqa: BLE001 — extension callables may raise anything
             logger.warning(
-                "MCP_CODE_ARTIFACTS_ENABLED raised; keeping the rule against "
-                "generating code for this session",
+                "Building this session's MCP instructions failed; keeping the "
+                "server's own",
                 exc_info=True,
             )
-            return False
+            return result
+        return result.model_copy(update={"instructions": instructions})
 
 
 class GlobalErrorHandlerMiddleware(Middleware):

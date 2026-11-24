@@ -17,20 +17,11 @@
 
 """Tests for MCP service configuration and branding."""
 
-from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
-import mcp.types as mt
 import pytest
 
-from superset.mcp_service.app import (
-    _snippet_artifacts_allowed,
-    _SNIPPET_NO_CODE_ARTIFACTS,
-    DEFAULT_INSTRUCTIONS,
-    get_default_instructions,
-    init_fastmcp_server,
-)
-from superset.mcp_service.middleware import CodeArtifactsInstructionsMiddleware
+from superset.mcp_service.app import get_default_instructions, init_fastmcp_server
 
 
 def test_get_default_instructions_with_default_branding():
@@ -182,134 +173,6 @@ def test_init_fastmcp_server_derives_server_name_from_app_name():
 
             # Verify the global mcp instance got the derived name
             assert mock_mcp._mcp_server.name == expected_server_name
-
-
-def _mock_flask_with_code_artifacts(setting: object) -> MagicMock:
-    """A Flask app mock whose MCP_CODE_ARTIFACTS_ENABLED is ``setting``."""
-    mock = _mock_flask_config("Superset")
-    plain = mock.config.get.side_effect
-    mock.config.get.side_effect = lambda key, default=None: (
-        setting if key == "MCP_CODE_ARTIFACTS_ENABLED" else plain(key, default)
-    )
-    return mock
-
-
-def _init_with_code_artifacts(setting: object) -> MagicMock:
-    """The global MCP instance as init_fastmcp_server configures it."""
-    with patch.dict(
-        "sys.modules",
-        {
-            "superset.mcp_service.flask_singleton": MagicMock(
-                app=_mock_flask_with_code_artifacts(setting)
-            )
-        },
-    ):
-        with patch("superset.mcp_service.app.mcp") as mock_mcp:
-            init_fastmcp_server()
-    return mock_mcp
-
-
-@pytest.mark.parametrize(
-    ("setting", "allowed"),
-    [(False, False), (True, True), ("yes", False), (1, False), (None, False)],
-)
-def test_init_fastmcp_server_follows_a_static_code_artifacts_setting(setting, allowed):
-    """Only True lifts the no-code rule; no per-session middleware is added."""
-    mock_mcp = _init_with_code_artifacts(setting)
-
-    instructions = mock_mcp._mcp_server.instructions
-    assert ("Do NOT generate code artifacts" in instructions) is not allowed
-    assert ("artifact authoring tools" in instructions) is allowed
-    assert not any(
-        isinstance(call.args[0], CodeArtifactsInstructionsMiddleware)
-        for call in mock_mcp.add_middleware.call_args_list
-    )
-
-
-def test_init_fastmcp_server_reads_a_callable_setting_per_session():
-    """A callable keeps the rule in the server's instructions and is read later."""
-    setting = MagicMock(return_value=True)
-    mock_mcp = _init_with_code_artifacts(setting)
-
-    instructions = mock_mcp._mcp_server.instructions
-    assert _SNIPPET_NO_CODE_ARTIFACTS in instructions
-    setting.assert_not_called()
-    [middleware] = [
-        call.args[0]
-        for call in mock_mcp.add_middleware.call_args_list
-        if isinstance(call.args[0], CodeArtifactsInstructionsMiddleware)
-    ]
-    # Only the rule differs, and the disabled tools stay out of both.
-    assert middleware._instructions == instructions.replace(
-        _SNIPPET_NO_CODE_ARTIFACTS, _snippet_artifacts_allowed("Superset")
-    )
-
-
-def _initialize_result(instructions: str) -> mt.InitializeResult:
-    return mt.InitializeResult(
-        protocolVersion="2025-06-18",
-        capabilities=mt.ServerCapabilities(),
-        serverInfo=mt.Implementation(name="Superset MCP Server", version="1"),
-        instructions=instructions,
-    )
-
-
-async def _initialize(
-    middleware: CodeArtifactsInstructionsMiddleware,
-) -> mt.InitializeResult | None:
-    async def call_next(_context: object) -> mt.InitializeResult:
-        return _initialize_result("rules without artifacts")
-
-    with patch(
-        "superset.mcp_service.middleware._get_app_context_manager",
-        return_value=nullcontext(),
-    ):
-        return await middleware.on_initialize(MagicMock(), call_next)
-
-
-@pytest.mark.asyncio
-async def test_code_artifacts_middleware_swaps_instructions_for_an_enabled_session():
-    middleware = CodeArtifactsInstructionsMiddleware(
-        lambda: True, "rules with artifacts"
-    )
-
-    result = await _initialize(middleware)
-
-    assert result is not None
-    assert result.instructions == "rules with artifacts"
-    assert result.serverInfo.name == "Superset MCP Server"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("answer", [False, None, "yes", 1])
-async def test_code_artifacts_middleware_keeps_the_rule_unless_true(answer):
-    middleware = CodeArtifactsInstructionsMiddleware(
-        lambda: answer, "rules with artifacts"
-    )
-
-    result = await _initialize(middleware)
-
-    assert result is not None
-    assert result.instructions == "rules without artifacts"
-
-
-@pytest.mark.asyncio
-async def test_code_artifacts_middleware_fails_closed_when_the_callable_raises():
-    def enabled() -> bool:
-        raise RuntimeError("the switch is down")
-
-    middleware = CodeArtifactsInstructionsMiddleware(enabled, "rules with artifacts")
-
-    result = await _initialize(middleware)
-
-    assert result is not None
-    assert result.instructions == "rules without artifacts"
-
-
-def test_default_instructions_keep_the_no_code_rule():
-    """Off by default: the instructions forbid generating code."""
-    assert DEFAULT_INSTRUCTIONS == get_default_instructions()
-    assert _SNIPPET_NO_CODE_ARTIFACTS in DEFAULT_INSTRUCTIONS
 
 
 def test_init_fastmcp_server_applies_auth_to_global_instance():
@@ -748,20 +611,3 @@ def test_instructions_drop_the_draft_rules_without_the_draft_tools():
 
     assert "Canvas edits go through drafts" not in instructions
     assert "commit_canvas_draft" not in instructions
-
-
-def test_instructions_allow_artifacts_only_while_enabled():
-    """Only the first tool-only rule changes, and only with artifacts_enabled."""
-    branding = "ACME Analytics"
-    default = get_default_instructions(branding)
-    enabled = get_default_instructions(branding, artifacts_enabled=True)
-    allowed = _snippet_artifacts_allowed(branding)
-
-    assert get_default_instructions(branding, artifacts_enabled=False) == default
-    assert _SNIPPET_NO_CODE_ARTIFACTS in default
-    assert allowed not in default
-    assert _SNIPPET_NO_CODE_ARTIFACTS not in enabled
-    assert enabled.replace(allowed, _SNIPPET_NO_CODE_ARTIFACTS) == default
-    # Code for the user to run outside Superset stays forbidden.
-    assert "Do NOT write HTML pages, JavaScript snippets" in allowed
-    assert f"outside {branding}" in allowed

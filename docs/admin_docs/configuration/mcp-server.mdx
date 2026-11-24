@@ -1086,7 +1086,6 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_STRUCTURED_OUTPUT_ENABLED` | `False` | Advertise native tool `outputSchema` metadata and return matching `structuredContent`. The text-only default supports clients and transport bridges that cannot encode structured results. Enable only after validating every MCP client and bridge used by the deployment. |
 | `MCP_DISABLED_CHART_PLUGINS` | `frozenset()` | Set of chart type plugin names (e.g. `"handlebars"`) to hide from `generate_chart`. Does not affect `get_chart_type_schema`. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
 | `MCP_CHART_PLUGIN_ENABLED_FUNC` | `None`        | Callable `(chart_type: str) -> bool` evaluated per registry lookup for dynamic enable/disable decisions. Takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
-| `MCP_CODE_ARTIFACTS_ENABLED` | `False` | Whether the default instructions let agents write code artifacts with an extension's artifact tools, instead of telling them never to generate code. `True`, or a callable `() -> bool` that the server calls when each MCP session initializes, inside the app context. Any other value, and a callable that raises, keep the rule against generating code. |
 
 ### Authentication
 

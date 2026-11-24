@@ -549,6 +549,8 @@ def create_resource_decorator(
             # Fail fast, as for tools: never serve an unprotected resource.
             logger.error("Failed to register MCP resource %s: %s", uri, e)
             raise
+
+
 def _unregistered_decorator(kind: str) -> Callable[..., Any]:
     """
     ``@tool`` or ``@prompt`` where ``fastmcp`` isn't installed: it registers
@@ -572,6 +574,19 @@ def _unregistered_decorator(kind: str) -> Callable[..., Any]:
     return decorator
 
 
+def inject_mcp_instructions() -> None:
+    """
+    Replace ``superset_core.mcp.instructions.contribute_instructions`` with the
+    host's, which every process takes, MCP or not: an extension contributes as
+    it loads, wherever it loads.
+    """
+    import superset_core.mcp.instructions as core_instructions
+
+    from superset.core.mcp.instructions import contribute_instructions
+
+    core_instructions.contribute_instructions = contribute_instructions
+
+
 def initialize_core_mcp_decorators() -> None:
     """
     Replace the abstract MCP decorators in ``superset_core.mcp.decorators`` with
@@ -589,6 +604,8 @@ def initialize_core_mcp_decorators() -> None:
     host-tool stack when it is disabled.
     """
     import superset_core.mcp.decorators
+
+    inject_mcp_instructions()
 
     if not _fastmcp_available():
         # No MCP server can run here, but a module that declares tools and

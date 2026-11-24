@@ -250,22 +250,6 @@ MCP_DISABLED_CHART_PLUGINS: frozenset[str] = frozenset()
 # Signature: (chart_type: str) -> bool
 MCP_CHART_PLUGIN_ENABLED_FUNC: Callable[[str], bool] | None = None
 
-# =============================================================================
-# MCP Code Artifacts
-# =============================================================================
-#
-# The default instructions tell agents never to generate code for the user to
-# run. A deployment whose extension tools write sandboxed code artifacts turns
-# this on, and the instructions then allow those tools instead.
-#
-# A bool, or a callable with no arguments that returns one. A callable is read
-# as each MCP session initializes, inside the Flask app context, so it can
-# follow state that changes while the server runs, such as an extension
-# registering the machinery its artifacts need. Keep it cheap and in-process.
-# Anything but True, and a callable that raises, keep the rule against
-# generating code.
-MCP_CODE_ARTIFACTS_ENABLED: bool | Callable[[], bool] = False
-
 # MCP JWT Debug Errors - controls server-side JWT debug logging.
 # When False (default), uses the default JWTVerifier with minimal logging.
 # When True, uses DetailedJWTVerifier with tiered logging:
@@ -1047,7 +1031,6 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_IGNORED_SCOPES": set(MCP_IGNORED_SCOPES),
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
         "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,
-        "MCP_CODE_ARTIFACTS_ENABLED": MCP_CODE_ARTIFACTS_ENABLED,
         "MCP_EMBEDDED_GUEST_AUTH_ENABLED": MCP_EMBEDDED_GUEST_AUTH_ENABLED,
         "MCP_GUEST_ALLOWED_TOOLS": set(MCP_GUEST_ALLOWED_TOOLS),
         "MCP_RESTRICTED_TOOL_POLICY": MCP_RESTRICTED_TOOL_POLICY,
