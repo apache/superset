@@ -62,6 +62,18 @@ function canNormalizeError(
 }
 
 /**
+ * The values that narrow a widget's data: those of the filters and of the
+ * cross-filter sources whose scope includes it.
+ */
+export const dataFilters = ({
+  filters,
+  crossFilters,
+}: Pick<CanvasRendererProps, 'filters' | 'crossFilters'>): FilterValue[] => [
+  ...filters,
+  ...crossFilters,
+];
+
+/**
  * A placement's rows, queried on the server from its stored `dataBinding`,
  * narrowed by the filter values that reach it and refetched on refresh. A
  * widget without a binding gets none.

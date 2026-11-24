@@ -26,7 +26,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { applyStructuredChrome, EchartsChromeValue } from './chrome';
-import { useWidgetRows } from '../useWidgetRows';
+import { dataFilters, useWidgetRows } from '../useWidgetRows';
 import WithQuery from '../WithQuery';
 import { resolveOption } from './resolveBindings';
 import { applyStructuredSeries, StructuredProps } from './structuredSeries';
@@ -64,11 +64,11 @@ const describe = async (error: unknown): Promise<string> => {
  * canvas's color scheme. ECharts is loaded on first use.
  */
 export default function EchartsRenderer(widget: CanvasRendererProps) {
-  const { props, refreshKey, colors, filters, crossFilters, title } = widget;
+  const { props, refreshKey, colors, title } = widget;
   const theme = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
-  const data = useWidgetRows(widget, [...filters, ...crossFilters], refreshKey);
+  const data = useWidgetRows(widget, dataFilters(widget), refreshKey);
   const option = (props?.echartsOptions ?? {}) as Record<string, unknown>;
   const optionKey = JSON.stringify([
     option,
