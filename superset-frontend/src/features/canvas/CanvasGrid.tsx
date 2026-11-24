@@ -157,10 +157,14 @@ const Mark = styled(Tag)`
 `;
 
 /**
- * A widget's title row above its content. A content change marks it with
- * `data-canvas-mark`, which the surface draws as the widget's frame (see
- * `Interactive`): out in the gap, so it never sits on the content, and
- * outside the content box, which scrolls and would clip it.
+ * Every widget's box: its title row, when it has one, above its content. A
+ * content change marks it with `data-canvas-mark`, which the surface draws as
+ * the widget's frame (see `Interactive`): out in the gap, so it never sits on
+ * the content, and outside the content box, which scrolls and would clip it.
+ *
+ * A widget with no row is wrapped all the same. A wrapper that appeared with
+ * a draft's first mark would make React mount the widget afresh, and it
+ * would start over blank.
  */
 const Titled = styled.div`
   ${({ theme }) => css`
@@ -247,15 +251,6 @@ const WidgetTitle = styled.div`
 const TitledBody = styled.div`
   flex: 1;
   min-height: 0;
-`;
-
-/**
- * A container whose mark sits in its own chrome: the whole cell, with no row
- * above it. Still the content box's child, where the surface reads the mark
- * to frame the widget (see `Interactive`).
- */
-const MarkedInChrome = styled.div`
-  height: 100%;
 `;
 
 const Placeholder = styled.div`
@@ -630,21 +625,20 @@ export default function CanvasGrid({
         {widget}
       </CanvasMarkContext.Provider>
     );
-    if (inChrome) {
-      return <MarkedInChrome data-canvas-mark={frame}>{body}</MarkedInChrome>;
-    }
-    // A widget with neither a name nor a change has no row to draw.
-    if (!title && !mark) return body;
+    // A container that wears its mark in its own chrome takes the whole cell.
+    const row = !inChrome && Boolean(title || tag);
     return (
       <Titled data-canvas-mark={frame}>
-        <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
-          {title && (
-            <WidgetTitle title={title} data-test="canvas-widget-title">
-              {title}
-            </WidgetTitle>
-          )}
-          {tag}
-        </TitleRow>
+        {row && (
+          <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
+            {title && (
+              <WidgetTitle title={title} data-test="canvas-widget-title">
+                {title}
+              </WidgetTitle>
+            )}
+            {tag}
+          </TitleRow>
+        )}
         <TitledBody>{body}</TitledBody>
       </Titled>
     );

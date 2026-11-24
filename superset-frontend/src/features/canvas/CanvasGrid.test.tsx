@@ -1024,6 +1024,42 @@ test('a changed widget with no name still says what happened', () => {
   expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('New');
 });
 
+/** The grid as `renderGrid` draws it, to render again with another result. */
+const gridOf = (gridResult: CanvasDefinitionResult, editable = false) => (
+  <CanvasGrid
+    canvasId={7}
+    result={gridResult}
+    values={emptyScopeValues()}
+    onValueChange={jest.fn()}
+    layout={layoutOf(gridResult)}
+    editable={editable}
+  />
+);
+
+test('an unnamed widget stays mounted when a draft first marks it', () => {
+  // Mounted afresh, an artifact's frame or a chart starts over blank.
+  const { rerender } = render(gridOf(result));
+  const chart = screen.getByText('chart Revenue filters=[]');
+
+  rerender(gridOf(marked({ kind: 'edited', nodeId: 'c1', by: 'ai' })));
+
+  expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('Edited');
+  expect(screen.getByText('chart Revenue filters=[]')).toBe(chart);
+  expect(chart).toBeInTheDocument();
+});
+
+test('a widget stays mounted when its mark goes', () => {
+  const { rerender } = render(
+    gridOf(marked({ kind: 'new', nodeId: 'c1', by: 'ai' })),
+  );
+  const chart = screen.getByText('chart Revenue filters=[]');
+
+  rerender(gridOf(result));
+
+  expect(screen.queryByTestId('canvas-widget-mark')).not.toBeInTheDocument();
+  expect(screen.getByText('chart Revenue filters=[]')).toBe(chart);
+});
+
 test('a widget that was both edited and moved says it was edited', () => {
   // "The numbers changed" and "it only moved" are different news, and the
   // second must not hide the first -- which is what showing the most recent
@@ -1309,12 +1345,14 @@ test('a titled group wears its mark in its own title strip, not a row above it',
 
   // Still read by the surface, which frames an edited widget.
   expect(frame).toHaveAttribute('data-canvas-mark', 'edited');
-  // Nothing between the frame and the group: no row, and the group takes the
-  // whole cell.
+  // No row above the group, which takes the whole cell: the frame holds the
+  // body alone, and the body the group.
   expect(frame.children).toHaveLength(1);
-  expect(frame.firstElementChild?.tagName).toBe('SECTION');
+  const body = frame.firstElementChild as HTMLElement;
+  expect(body.children).toHaveLength(1);
+  expect(body.firstElementChild?.tagName).toBe('SECTION');
   expect(getComputedStyle(frame).height).toBe('100%');
-  expect(getComputedStyle(frame).display).not.toBe('flex');
+  expect(getComputedStyle(body).flexGrow).toBe('1');
 
   const mark = screen.getByTestId('canvas-widget-mark');
   const [strip] = within(frame).getAllByRole('heading');
@@ -1334,7 +1372,7 @@ test('tabs wear their mark in the tab bar, not a row above it', () => {
 
   expect(frame).toHaveAttribute('data-canvas-mark', 'new');
   expect(frame.children).toHaveLength(1);
-  expect(frame.firstElementChild).toHaveClass('ant-tabs');
+  expect(frame.firstElementChild?.firstElementChild).toHaveClass('ant-tabs');
 
   const mark = screen.getByTestId('canvas-widget-mark');
   expect(mark).toHaveTextContent('New');
@@ -1398,6 +1436,32 @@ test('an untitled group keeps its mark in a row of its own', () => {
   expect(row).toContainElement(mark);
   expect(body.querySelector('section')).not.toBeNull();
   expect(body).not.toContainElement(mark);
+});
+
+test('a group stays mounted, with what it holds, when a draft first marks it', () => {
+  // The titled group wears the mark in its own strip; the untitled one gets
+  // a row above it.
+  const { container, rerender } = render(gridOf(containers([]), true));
+  const titled = frameOf(container, 'titled').querySelector('section');
+  const bare = frameOf(container, 'bare').querySelector('section');
+  const leaf = screen.getByText('chart Leaf filters=[]');
+  const loose = screen.getByText('chart Loose filters=[]');
+
+  rerender(
+    gridOf(
+      containers([
+        { kind: 'edited', nodeId: 'titled', by: 'ai' },
+        { kind: 'new', nodeId: 'bare', by: 'ai' },
+      ]),
+      true,
+    ),
+  );
+
+  expect(screen.getAllByTestId('canvas-widget-mark')).toHaveLength(2);
+  expect(frameOf(container, 'titled').querySelector('section')).toBe(titled);
+  expect(frameOf(container, 'bare').querySelector('section')).toBe(bare);
+  expect(screen.getByText('chart Leaf filters=[]')).toBe(leaf);
+  expect(screen.getByText('chart Loose filters=[]')).toBe(loose);
 });
 
 test("a group's mark stays with that group, not the groups inside it", () => {
