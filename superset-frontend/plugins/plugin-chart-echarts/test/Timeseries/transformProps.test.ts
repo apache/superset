@@ -5423,3 +5423,68 @@ test.each([0, 30])(
     ]);
   },
 );
+
+describe('stack total labels with forecast confidence bands', () => {
+  const rows = [
+    {
+      __timestamp: BASE_TIMESTAMP,
+      a: 1,
+      a__yhat: null,
+      a__yhat_lower: 0.5,
+      a__yhat_upper: 1.5,
+      b: 2,
+    },
+    {
+      __timestamp: BASE_TIMESTAMP + 300000000,
+      a: 3,
+      a__yhat: null,
+      a__yhat_lower: 2.5,
+      a__yhat_upper: 3.5,
+      b: 4,
+    },
+  ];
+
+  const totalLabels = (formData: Partial<EchartsTimeseriesFormData>) => {
+    const chartProps = createTestChartProps({
+      formData: {
+        x_axis: '__timestamp',
+        metrics: ['a', 'b'],
+        groupby: [],
+        stack: StackControlsValue.Stack,
+        showValue: true,
+        onlyTotal: true,
+        ...formData,
+      } as Partial<EchartsTimeseriesFormData>,
+      queriesData: [createTestQueryData(rows)],
+    });
+    const series = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+    // ECharts passes each series' position in the rendered series array.
+    return rows.map((_, dataIndex) =>
+      series
+        .map((entry, seriesIndex) => ({
+          id: entry.id,
+          label: entry.label?.formatter?.({
+            value: entry.data[dataIndex],
+            dataIndex,
+            seriesIndex,
+          }),
+        }))
+        .filter(({ label }) => label !== '' && label !== undefined),
+    );
+  };
+
+  test('puts the stack total on the topmost series, not on one shifted by the dropped bands', () => {
+    expect(totalLabels({})).toEqual([
+      [{ id: 'a', label: '3' }],
+      [{ id: 'a', label: '7' }],
+    ]);
+  });
+
+  test('keeps the total when the stacked chart is also an area', () => {
+    expect(totalLabels({ area: true })).toEqual([
+      [{ id: 'a', label: '3' }],
+      [{ id: 'a', label: '7' }],
+    ]);
+  });
+});

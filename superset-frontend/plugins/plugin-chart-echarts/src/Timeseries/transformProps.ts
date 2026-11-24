@@ -115,6 +115,7 @@ import {
   extractForecastSeriesContexts,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
+  isConfidenceBandSeries,
   rebaseForecastDatum,
   reorderForecastSeries,
 } from '../utils/forecast';
@@ -1039,6 +1040,7 @@ export default function transformProps(
     Object.create(null);
   if (stack && onlyTotal) {
     rawSeries.forEach((entry, idx) => {
+      if (isConfidenceBandSeries(entry.name)) return;
       const group = seriesStackIds[idx];
       if (
         !Object.prototype.hasOwnProperty.call(perGroupTotalStackedValues, group)
@@ -1058,12 +1060,19 @@ export default function transformProps(
     });
   }
 
-  const showValueIndexes = extractShowValueIndexes(rawSeries, {
+  // The chart renders its series through reorderForecastSeries, so the
+  // indexes must follow that order.
+  const renderedRawSeries = reorderForecastSeries([
+    ...rawSeries,
+  ] as SeriesOption[]) as SeriesOption[];
+  const showValueIndexes = extractShowValueIndexes(renderedRawSeries, {
     stack,
     onlyTotal,
     isHorizontal,
     legendState,
-    seriesStackIds,
+    seriesStackIds: renderedRawSeries.map(
+      entry => seriesStackIds[rawSeries.indexOf(entry)],
+    ),
   });
   const seriesContexts = extractForecastSeriesContexts(
     rawSeries.map(series => series.name as string),

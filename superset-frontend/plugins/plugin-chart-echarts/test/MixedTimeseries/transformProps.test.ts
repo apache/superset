@@ -629,6 +629,63 @@ test('keeps the Query A stack total on its topmost series when annotations are s
   });
 });
 
+test('keeps the stack total on the topmost series when confidence bands are dropped', () => {
+  const timestamp = 1704067200000;
+  const queryAData = createTestQueryData(
+    [
+      {
+        __timestamp: timestamp,
+        a: 1,
+        a__yhat_lower: 0.5,
+        a__yhat_upper: 1.5,
+        b: 2,
+      },
+    ],
+    {
+      colnames: ['__timestamp', 'a', 'a__yhat_lower', 'a__yhat_upper', 'b'],
+      coltypes: [
+        GenericDataType.Temporal,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+    },
+  );
+  const queryBData = createTestQueryData([{ __timestamp: timestamp, c: 5 }], {
+    colnames: ['__timestamp', 'c'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+  });
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queryBData],
+    formData: {
+      ...formData,
+      groupby: [],
+      groupbyB: [],
+      metrics: ['a', 'a__yhat_lower', 'a__yhat_upper', 'b'],
+      metricsB: ['c'],
+      showValue: true,
+      showValueB: true,
+      onlyTotal: true,
+      onlyTotalB: true,
+      stack: true,
+      stackB: true,
+      x_axis: '__timestamp',
+    },
+    queriesData: [queryAData, queryBData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+
+  expect(
+    formatFirstValueLabels(echartOptions.series as SeriesOption[]),
+  ).toEqual({ a: '3', b: '', c: '5' });
+});
+
 describe('legend sorting', () => {
   const getChartProps = (overrides = {}) =>
     createEchartsTimeseriesTestChartProps<
