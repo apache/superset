@@ -34,6 +34,9 @@ import { Input } from '../Input';
 import type { InputRef } from '../Input';
 import type { DynamicEditableTitleProps } from './types';
 
+// Default aligned with common String(250) columns (e.g. slice_name)
+export const DYNAMIC_EDITABLE_TITLE_MAX_LENGTH = 250;
+
 const measureWidth = (element: HTMLElement) =>
   Math.ceil(element.getBoundingClientRect().width);
 
@@ -76,6 +79,7 @@ export const DynamicEditableTitle = memo(
     onSave,
     canEdit,
     label,
+    maxLength = DYNAMIC_EDITABLE_TITLE_MAX_LENGTH,
   }: DynamicEditableTitleProps) => {
     const theme = useTheme();
     const [isEditing, setIsEditing] = useState(false);
@@ -200,9 +204,9 @@ export const DynamicEditableTitle = memo(
           setIsEditing(true);
         }
         dirtyRef.current = true;
-        setCurrentTitle(ev.target.value);
+        setCurrentTitle(ev.target.value.slice(0, maxLength));
       },
-      [canEdit, isEditing],
+      [canEdit, isEditing, maxLength],
     );
 
     const handleKeyPress = useCallback(
@@ -239,6 +243,7 @@ export const DynamicEditableTitle = memo(
             onClick={handleClick}
             onPressEnter={handleKeyPress}
             placeholder={placeholder}
+            maxLength={maxLength}
             style={inputWidth > 0 ? { width: inputWidth } : undefined}
             css={css`
               ${
