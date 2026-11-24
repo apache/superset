@@ -826,6 +826,8 @@ const ExtraOptions = ({
                         )}
                         <Typography.Text
                           type={severity === 'error' ? 'danger' : undefined}
+                          // Typography sets body size; the helper is small.
+                          style={{ fontSize: theme.fontSizeSM }}
                         >
                           {text}
                         </Typography.Text>

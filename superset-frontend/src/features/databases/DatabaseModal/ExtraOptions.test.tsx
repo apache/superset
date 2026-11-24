@@ -702,6 +702,27 @@ test('the secure extra note confirms a replaced token, keeps the other stored li
   }
 });
 
+test('the secure extra note is helper size, keeping its severity colour', () => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2026-11-05T12:00:00Z'));
+  try {
+    renderSecurityPanel(expiringDb, 0);
+
+    const expiredText = screen.getByText(
+      'The stored JWT Token expired on Nov 3, 2026.',
+    );
+    expect(expiredText).toHaveClass('ant-typography-danger');
+    expect(expiredText).toHaveStyle({
+      fontSize: `${supersetTheme.fontSizeSM}px`,
+    });
+    expect(
+      screen.getByText('The stored Password expires in 5 days (Nov 10, 2026).'),
+    ).toHaveStyle({ fontSize: `${supersetTheme.fontSizeSM}px` });
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
 test('the secure extra note is absent without expirations', () => {
   renderSecurityPanel(maskedDb, 5);
 

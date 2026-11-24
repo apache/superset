@@ -17,12 +17,21 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { Alert } from '@apache-superset/core/components';
-import { SupersetTheme } from '@apache-superset/core/theme';
+import { SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
+import { ErrorAlert } from 'src/components';
 import { EncryptedExtraExpiration } from '../types';
-import { expiryLines, ReplacedTokens } from './expiry';
+import { ExpiryLine, expiryLines, ReplacedTokens } from './expiry';
 import { antDAlertStyles, StyledAlertMargin } from './styles';
+
+// One token is named in the title; several share a plain one.
+const alertTitle = (lines: ExpiryLine[]) => {
+  if (lines.length > 1) {
+    return t('Tokens expired or expiring soon');
+  }
+  const [{ label, expired }] = lines;
+  return expired ? t('%s expired', label) : t('%s expires soon', label);
+};
 
 /**
  * Warns, when an edit opens, about stored JWTs that have expired or expire soon,
@@ -41,6 +50,7 @@ const StoredSecretExpiryAlert = ({
   replacedSecrets?: ReplacedTokens;
   onGoToSecureExtra: () => void;
 }) => {
+  const theme = useTheme();
   const lines =
     isEditMode && expirations
       ? expiryLines(sensitiveFields ?? {}, expirations, replacedSecrets).filter(
@@ -52,29 +62,34 @@ const StoredSecretExpiryAlert = ({
   }
   return (
     <StyledAlertMargin>
-      <Alert
-        css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+      {/* Titled like the connection error alert of this modal. */}
+      <ErrorAlert
+        css={(alertTheme: SupersetTheme) => antDAlertStyles(alertTheme)}
+        errorType={alertTitle(lines)}
         type={lines.some(({ expired }) => expired) ? 'error' : 'warning'}
-        showIcon
-      >
-        {lines.map(({ path, text }) => (
-          <div key={path}>{text}</div>
-        ))}
-        {lines.some(({ replaced }) => !replaced) && (
-          <div>
-            {t('Paste a new token into Secure extra and click Finish.')}{' '}
-            <Button
-              buttonStyle="link"
-              buttonSize="xsmall"
-              styleConfig={{ paddingInline: 0 }}
-              data-test="go-to-secure-extra"
-              onClick={onGoToSecureExtra}
-            >
-              {t('Go to Secure extra')}
-            </Button>
-          </div>
-        )}
-      </Alert>
+        message={
+          <>
+            {lines.map(({ path, text }) => (
+              <div key={path}>{text}</div>
+            ))}
+            {lines.some(({ replaced }) => !replaced) && (
+              <div>
+                {t('Paste a new token into Secure extra and click Finish.')}{' '}
+                <Button
+                  buttonStyle="link"
+                  buttonSize="xsmall"
+                  // The link style defaults to the small button text.
+                  styleConfig={{ paddingInline: 0, fontSize: theme.fontSize }}
+                  data-test="go-to-secure-extra"
+                  onClick={onGoToSecureExtra}
+                >
+                  {t('Go to Secure extra')}
+                </Button>
+              </div>
+            )}
+          </>
+        }
+      />
     </StyledAlertMargin>
   );
 };

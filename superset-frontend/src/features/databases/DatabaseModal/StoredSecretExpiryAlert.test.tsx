@@ -325,3 +325,38 @@ test('a new token expiring soon is a warning about the new token', () => {
   );
   expect(alert).toHaveClass('ant-alert-warning');
 });
+
+const alertTitle = () =>
+  screen.getByRole('alert').querySelector('.ant-alert-title');
+
+test('a single expired token titles the alert with its label, as the modal error alert does', () => {
+  renderAlert(expirations);
+
+  expect(screen.getByRole('alert')).toHaveClass('ant-alert-with-description');
+  expect(alertTitle()).toHaveTextContent(/^JWT Token expired$/);
+});
+
+test('a single expiring token titles the alert as expiring soon', () => {
+  renderExpiringAt('2026-11-10T13:00:00Z');
+
+  expect(alertTitle()).toHaveTextContent(/^JWT Token expires soon$/);
+});
+
+test('several tokens share one plain title, with the lines expired first', () => {
+  renderAtNow(
+    {
+      '$.connect_args.password': expiring('2026-11-10T13:00:00Z'),
+      '$.connect_args.jwt': EXPIRED,
+    },
+    {
+      '$.connect_args.jwt': 'JWT Token',
+      '$.connect_args.password': 'Password',
+    },
+  );
+
+  expect(alertTitle()).toHaveTextContent(/^Tokens expired or expiring soon$/);
+  expect(lineTexts()).toEqual([
+    'The stored JWT Token expired on Nov 3, 2026.',
+    'The stored Password expires in 5 days (Nov 10, 2026).',
+  ]);
+});
