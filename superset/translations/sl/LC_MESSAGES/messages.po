@@ -265,6 +265,16 @@ msgstr ""
 "%(dialect)s ni mogoče uporabiti kot podatkovni vir zaradi varnostnih "
 "razlogov."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
+"»%(undefinedParameter)s«?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "Datoteka %(label)s"
@@ -371,21 +381,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d vrnjenih vrstic"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s namesto »%(undefinedParameter)s?«"
-msgstr[1] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
-msgstr[2] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
-msgstr[3] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s namesto »%(undefinedParameter)s«?"
 
 #, python-format
 msgid ""
@@ -6099,7 +6098,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "IZBRIŠI"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9900,6 +9899,7 @@ msgstr "Gost ne more spreminjati atributov grafikona"
 msgid "HTTP Path"
 msgstr "Pot HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -13105,7 +13105,7 @@ msgstr "ALI"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PREPIŠI"
+msgstr ""
 
 msgid "October"
 msgstr "Oktober"
@@ -18074,7 +18074,7 @@ msgstr "TABELE"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "ČASOVNI_OBSEG"
+msgstr ""
 
 msgid "THU"
 msgstr "ČET"
@@ -19114,6 +19114,13 @@ msgstr[3] "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -24301,7 +24308,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "vijak"
+msgstr ""
 
 msgid "boolean"
 msgstr "logično"
@@ -24464,7 +24471,7 @@ msgstr "deck.gl - plastnice"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl - GeoJson"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl - 3D mreža"
@@ -24518,7 +24525,7 @@ msgstr "dokumentacija"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "datum-čas"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "npr. ********"

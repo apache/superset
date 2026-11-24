@@ -263,6 +263,16 @@ msgstr ""
 "%(dialect)s не можна використовувати як джерело даних з безпекових "
 "міркувань."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s або %(lastSuggestion)s замість "
+"«%(undefinedParameter)s?»"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "Файл %(label)s"
@@ -374,19 +384,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Повернуто записів: %(rows)d"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
-msgstr[1] ""
-"%(firstSuggestions)s або %(lastSuggestion)s замість "
-"«%(undefinedParameter)s?»"
-msgstr[2] ""
-"%(firstSuggestions)s або %(lastSuggestion)s замість "
-"«%(undefinedParameter)s?»"
-msgstr[3] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s замість «%(undefinedParameter)s?»"
 
 #, python-format
 msgid ""
@@ -6116,7 +6117,7 @@ msgstr "груд"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ВИЛУЧИТИ"
+msgstr ""
 
 msgid "DML"
 msgstr "DML (редагування даних)"
@@ -9732,7 +9733,7 @@ msgstr "Додаткові налаштування як показувати к
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "Групування"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Діаграма планування"
@@ -9926,6 +9927,7 @@ msgstr "Гостьовий користувач не може змінювати
 msgid "HTTP Path"
 msgstr "Шлях HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12351,7 +12353,7 @@ msgstr "Пусто"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "Не згруповано"
+msgstr ""
 
 msgid "NOV"
 msgstr "лист"
@@ -13125,7 +13127,7 @@ msgstr "АБО"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "ПЕРЕЗАПИСАТИ"
+msgstr ""
 
 msgid "October"
 msgstr "Жовтень"
@@ -19249,6 +19251,13 @@ msgstr[3] "Параметр %(parameters)s у вашому запиті не в�
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -24662,7 +24671,7 @@ msgstr "Deck.gl - Контурна карта"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - Geojson"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Deck.gl - Сітка"

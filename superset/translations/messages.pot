@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# Licensed to the Apache Software Foundation (ASF) under one
 
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
@@ -25,7 +26,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-20 08:54+1100\n"
+"POT-Creation-Date: 2026-11-23 15:13+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -131,7 +132,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% calculation"
 msgstr ""
 
@@ -151,7 +152,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of parent"
 msgstr ""
 
@@ -159,7 +160,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of total"
 msgstr ""
 
@@ -186,7 +187,17 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
 #, python-format
+msgid "%(engine)s doesn't support partition filter mapping, so charts won't mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
 msgstr ""
 
 #, python-format
@@ -263,11 +274,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr ""
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
-msgstr[0] ""
-msgstr[1] ""
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -2497,6 +2507,10 @@ msgstr ""
 msgid "Arrow"
 msgstr ""
 
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr ""
 
@@ -3316,6 +3330,10 @@ msgstr ""
 
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
+msgstr ""
+
+#, python-format
+msgid "Chart archived: %s"
 msgstr ""
 
 msgid "Chart cache timeout"
@@ -5609,6 +5627,9 @@ msgstr ""
 msgid "Deselect all"
 msgstr ""
 
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
+
 msgid "Design with"
 msgstr ""
 
@@ -7778,6 +7799,7 @@ msgstr ""
 msgid "HTTPS will be used to connect to the Druid SQL endpoint."
 msgstr ""
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr ""
 
@@ -9977,6 +9999,9 @@ msgstr ""
 msgid "No entities have this tag currently assigned"
 msgstr ""
 
+msgid "No extension provides a page with this name."
+msgstr ""
+
 msgid "No filter"
 msgstr ""
 
@@ -10195,6 +10220,9 @@ msgid "Not added to any dashboard"
 msgstr ""
 
 msgid "Not all required fields are complete. Please provide the following:"
+msgstr ""
+
+msgid "Not authorized"
 msgstr ""
 
 msgid "Not available"
@@ -10490,12 +10518,6 @@ msgstr ""
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
 msgstr ""
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 msgid "Oops! An error occurred!"
 msgstr ""
 
@@ -10547,6 +10569,9 @@ msgstr ""
 msgid "Open in SQL lab"
 msgstr ""
 
+msgid "Open page"
+msgstr ""
+
 msgid "Open price"
 msgstr ""
 
@@ -10554,6 +10579,9 @@ msgid "Open query in SQL Lab"
 msgstr ""
 
 msgid "Opening value for each period."
+msgstr ""
+
+msgid "Opens a page contributed by an extension."
 msgstr ""
 
 msgid "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information."
@@ -11997,6 +12025,9 @@ msgid "Reset password"
 msgstr ""
 
 msgid "Reset state"
+msgstr ""
+
+msgid "Reset to default datetime column"
 msgstr ""
 
 msgid "Reset to default folders?"
@@ -14604,10 +14635,7 @@ msgid ""
 "          value distribution and transformation."
 msgstr ""
 
-msgid ""
-"The Snowflake connection could not be established. Check the account "
-"identifier, connection address, network access, and authentication "
-"settings, then retry the import."
+msgid "The Snowflake connection could not be established. Check the account identifier, connection address, network access, and authentication settings, then retry the import."
 msgstr ""
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
@@ -14646,10 +14674,7 @@ msgstr ""
 msgid "The annotation has been updated"
 msgstr ""
 
-msgid ""
-"The asset configuration is invalid. Review this file's fields and "
-"references. Re-export the assets from a compatible Superset version, then"
-" retry with the new file."
+msgid "The asset configuration is invalid. Review this file's fields and references. Re-export the assets from a compatible Superset version, then retry with the new file."
 msgstr ""
 
 msgid "The background color of the charts."
@@ -14883,6 +14908,9 @@ msgstr ""
 msgid "The extension %(id)s could not be loaded."
 msgstr ""
 
+msgid "The extension may not be installed, may be switched off, or may have failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
 msgid "The extent of the map on application start. FIT DATA automatically sets the extent so that all data points are included in the viewport. CUSTOM allows users to define the extent manually."
 msgstr ""
 
@@ -14984,6 +15012,10 @@ msgstr ""
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr ""
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid "The maximum number of subdivisions of each group; lower values are pruned first"
 msgstr ""
 
@@ -15055,6 +15087,10 @@ msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
 msgstr[0] ""
 msgstr[1] ""
+
+#, python-format
+msgid "The partition column cannot be a calculated column whose expression uses Jinja templating. %(name)s is templated, so the predicate mirrored onto it could not be rendered."
+msgstr ""
 
 #, python-format
 msgid "The partition column cannot be mapped onto itself. %(name)s is both the partition column and the mapped column."
@@ -16061,9 +16097,7 @@ msgstr ""
 msgid "This field is used as a unique identifier to attach the metric to charts. It is also used as the alias in the SQL query."
 msgstr ""
 
-msgid ""
-"This file is not a supported dashboard export. Re-export the dashboard "
-"from a compatible Superset version, then retry with the new ZIP file."
+msgid "This file is not a supported dashboard export. Re-export the dashboard from a compatible Superset version, then retry with the new ZIP file."
 msgstr ""
 
 msgid "This filter already exist on the report"
@@ -18187,6 +18221,12 @@ msgstr ""
 msgid "You do not have permission to import this asset. Ask its owner or an administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 msgid "You do not have permission to perform this operation"
 msgstr ""
 
@@ -18454,6 +18494,9 @@ msgid "Z-A"
 msgstr ""
 
 msgid "ZIP file contains multiple file types"
+msgstr ""
+
+msgid "ZIP file contains no data files"
 msgstr ""
 
 msgid "Zebra striping"

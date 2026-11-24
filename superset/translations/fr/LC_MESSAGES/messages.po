@@ -268,6 +268,16 @@ msgstr ""
 "%(dialect)s ne peut pas être utilisé comme source de données pour des "
 "raisons de sécurité."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s ou %(lastSuggestion)s au lieu de "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s fichier"
@@ -371,15 +381,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d lignes retournées"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s au lieu de \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s ou %(lastSuggestion)s au lieu de "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s au lieu de \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -937,7 +942,7 @@ msgstr "10/90 percentiles"
 
 #. do-not-translate
 msgid "10000"
-msgstr "10 000"
+msgstr ""
 
 msgid "104 weeks"
 msgstr "104 semaines"
@@ -6125,7 +6130,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "SUPPRIMER"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9717,7 +9722,7 @@ msgstr "Personnaliser davantage la façon d'afficher chaque mesure"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GROUPER PAR"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Diagramme de Gantt"
@@ -9918,6 +9923,7 @@ msgstr "Un utilisateur invité ne peut pas modifier le contenu du graphique"
 msgid "HTTP Path"
 msgstr "Route HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12361,7 +12367,7 @@ msgstr "S.O."
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NON GROUPÉ PAR"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -13143,7 +13149,7 @@ msgstr "ou"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "REMPLACER"
+msgstr ""
 
 msgid "October"
 msgstr "Octobre"
@@ -18204,7 +18210,7 @@ msgstr "TABLES"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "PERIODE_TEMPORELLE"
+msgstr ""
 
 msgid "THU"
 msgstr "JEU"
@@ -19281,6 +19287,13 @@ msgstr[1] "Les paramètres suivants de votre requête sont indéfinis : %(param
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -23120,7 +23133,7 @@ msgstr "MER"
 
 #. do-not-translate
 msgid "WFS"
-msgstr "WMS"
+msgstr ""
 
 #. do-not-translate
 msgid "WMS"
@@ -24637,7 +24650,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "boulon"
+msgstr ""
 
 msgid "boolean"
 msgstr "booléen"
@@ -25284,7 +25297,7 @@ msgstr "état du lien permanent introuvable"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "xlsx pivoté"
+msgstr ""
 
 msgid "pixels"
 msgstr "pixels"

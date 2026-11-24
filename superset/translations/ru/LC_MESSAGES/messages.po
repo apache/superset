@@ -260,6 +260,16 @@ msgstr ""
 "%(dialect)s не может использоваться в качестве источника данных по "
 "соображениям безопасности"
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s или %(lastSuggestion)s вместо "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "Файл %(label)s"
@@ -364,20 +374,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Получено строк: %(rows)d"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] ""
-"%(firstSuggestions)s или %(lastSuggestion)s вместо "
-"\"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s или %(lastSuggestion)s вместо "
-"\"%(undefinedParameter)s\"?"
-msgstr[2] ""
-"%(firstSuggestions)s или %(lastSuggestion)s вместо "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s вместо \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -9725,6 +9725,7 @@ msgstr "Гость не может изменять данные диаграм�
 msgid "HTTP Path"
 msgstr "Путь HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -18867,6 +18868,13 @@ msgstr[2] "Следующие параметры в запросе не опре
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -24224,7 +24232,7 @@ msgstr "Deck.gl - Контурная карта"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Deck.gl - Сетка"
@@ -24278,7 +24286,7 @@ msgstr "документацией"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "Дата и время"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "например, ********"
