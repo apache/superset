@@ -118,4 +118,3 @@ def test_get_invalid_key(test_client, login_as_admin):
     resp = test_client.get("api/v1/dashboard/permalink/undefined")
     assert resp.status_code == 404
     assert resp.json["message"] == "Invalid permalink key"
-
