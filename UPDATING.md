@@ -24,6 +24,23 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard history records related chart archives using the new
+  `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
+  new archive writes with versioning capture enabled. During a rollout, activity
+  reads tolerate a missing scope table and continue returning content history;
+  archive capture skipped before the migration cannot be reconstructed or
+  backfilled. Archive activity adds no content version and does not change
+  recovery or content-restore behavior. Downgrade removes archive scopes and
+  archive records but leaves content history intact; empty activity transactions
+  may remain until normal history retention removes them.
+
+- Version-history commit-time finalization rejects the whole save when a database
+  error occurs outside a recoverable savepoint, including final field or child
+  diff generation and version-transaction lookup. This applies to ordinary
+  content saves as well as chart archives. A lost transaction or savepoint also
+  rejects the save. Optional capture failures isolated by a successful savepoint
+  rollback may still omit history without rejecting the save.
+
 - `list` and `pages` are now reserved extension publisher names. An
   extension already published under either will fail manifest validation
   and the `superset-extensions` CLI will refuse to build it; the host owns
@@ -273,6 +290,25 @@ assists people when migrating to a new version.
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
   non-empty viewers list restricts access regardless of the flag), and removing
   viewers remains possible so stale assignments can be cleared.
+
+- [45929](https://github.com/apache/superset/pull/45929): Partition filter
+  mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
+  `supports_partition_filter_mapping = True`: Hive and Impala, plus the specs
+  that inherit from them -- Apache Spark SQL, Databricks Interactive Cluster
+  (`databricks+pyhive://`) and Ascend. On every other engine -- Trino, Presto,
+  PostgreSQL, the other Databricks connectors (Databricks SQL Python, legacy
+  `databricks+connector://`, SQL Endpoint `databricks+pyodbc://`) and the
+  rest -- an existing mapping **silently stops applying** after upgrade: no
+  filter is mirrored onto the partition column, so queries that used to prune
+  partitions scan the whole table. The dataset editor hides the mapping
+  settings and Explore shows no pruning indicator. The stored mapping is kept,
+  not deleted, and applies again if the dataset is pointed at a database on a
+  supported engine.
+  Superset logs a warning (`Ignoring partition filter mapping on dataset ...`)
+  the first time each worker resolves such a mapping; search for it after
+  upgrading to find affected datasets. A deployment that depends on mirroring
+  on another engine has to add a predicate on the partition column to the
+  affected charts, or opt that engine spec in.
 
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and

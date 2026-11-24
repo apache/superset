@@ -212,6 +212,7 @@ def _resolve_visibility(
     from flask_appbuilder.models.sqla.interface import SQLAInterface
 
     from superset.charts.filters import ChartFilter
+    from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
     from superset.dashboards.filters import DashboardAccessFilter
     from superset.views.base import DatasourceFilter
 
@@ -253,6 +254,12 @@ def _resolve_visibility(
             continue
         model_cls = load_live_model(NAME_COLUMN[api_kind][0])
         access_filter = access_filter_classes[api_kind]("id", SQLAInterface(model_cls))
+        # Archived related rows still use their resource's normal read policy.
+        visibility_options = (
+            {SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}}
+            if api_kind in {"Slice", "SqlaTable"}
+            else {}
+        )
 
         # Chunk the candidate ids to stay under SQLite's bind-variable floor
         # (a dashboard built from a large chart library can exceed it).
@@ -266,6 +273,7 @@ def _resolve_visibility(
             live_ids.update(
                 row[0]
                 for row in db.session.query(model_cls.id)
+                .execution_options(**visibility_options)
                 .filter(model_cls.id.in_(chunk))
                 .all()
             )
@@ -275,7 +283,9 @@ def _resolve_visibility(
             visible_ids.update(
                 row[0]
                 for row in access_filter.apply(
-                    db.session.query(model_cls.id).filter(model_cls.id.in_(chunk)),
+                    db.session.query(model_cls.id)
+                    .execution_options(**visibility_options)
+                    .filter(model_cls.id.in_(chunk)),
                     value=None,
                 ).all()
             )
