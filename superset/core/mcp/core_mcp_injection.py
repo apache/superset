@@ -549,6 +549,25 @@ def create_resource_decorator(
             # Fail fast, as for tools: never serve an unprotected resource.
             logger.error("Failed to register MCP resource %s: %s", uri, e)
             raise
+def _unregistered_decorator(kind: str) -> Callable[..., Any]:
+    """
+    ``@tool`` or ``@prompt`` where ``fastmcp`` isn't installed: it registers
+    nothing and returns the function as it is, applied bare (``@tool``) or with
+    arguments (``@tool(name=...)``).
+    """
+
+    def decorator(
+        func_or_name: str | Callable[..., Any] | None = None, **kwargs: Any
+    ) -> Any:
+        def keep(func: F) -> F:
+            logger.debug(
+                "fastmcp isn't installed, so MCP %s %s isn't registered",
+                kind,
+                getattr(func, "__name__", func),
+            )
+            return func
+
+        return keep(func_or_name) if callable(func_or_name) else keep
 
     return decorator
 
@@ -572,8 +591,13 @@ def initialize_core_mcp_decorators() -> None:
     import superset_core.mcp.decorators
 
     if not _fastmcp_available():
+        # No MCP server can run here, but a module that declares tools and
+        # prompts, such as an extension's backend in a worker, must still
+        # import: the abstract decorators would raise.
+        superset_core.mcp.decorators.tool = _unregistered_decorator("tool")
+        superset_core.mcp.decorators.prompt = _unregistered_decorator("prompt")
         logger.info(
-            "fastmcp is not installed, skipping MCP initialization. "
+            "fastmcp is not installed, so MCP tools and prompts register nothing. "
             "Install it with: pip install 'apache-superset[fastmcp]'"
         )
         return
