@@ -223,7 +223,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==4.3.1
+marshmallow==4.4.0
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -364,7 +364,7 @@ setuptools==84.0.0
     # via -r requirements/base.in
 shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
-simplejson==4.2.0
+simplejson==4.3.0
     # via apache-superset (pyproject.toml)
 six==1.17.0
     # via
