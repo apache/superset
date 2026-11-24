@@ -57,8 +57,13 @@ class ExtensionStorage:
 class ConcreteExtensionContext:
     """Concrete implementation of ExtensionContext for the host."""
 
-    def __init__(self, manifest: Manifest):
+    def __init__(
+        self,
+        manifest: Manifest,
+        user_id: int | None | Callable[[], int | None] = None,
+    ) -> None:
         self._manifest = manifest
+        self._user_id = user_id
         self._storage = ExtensionStorage()
 
     @property
@@ -74,6 +79,11 @@ class ConcreteExtensionContext:
     @property
     def storage(self) -> ExtensionStorage:
         return self._storage
+
+    @property
+    def user_id(self) -> int | None:
+        """Resolve request principals after authentication, or use a fixed worker ID."""
+        return self._user_id() if callable(self._user_id) else self._user_id
 
 
 # Context variable for ambient extension context pattern.
@@ -127,7 +137,10 @@ def use_context(ctx: ConcreteExtensionContext) -> Iterator[None]:
 
 
 @contextmanager
-def extension_context(manifest: Manifest) -> Iterator[ConcreteExtensionContext]:
+def extension_context(
+    manifest: Manifest,
+    user_id: int | None | Callable[[], int | None] = None,
+) -> Iterator[ConcreteExtensionContext]:
     """
     Context manager for setting extension context during loading.
 
@@ -135,9 +148,10 @@ def extension_context(manifest: Manifest) -> Iterator[ConcreteExtensionContext]:
     the current context. Supports nested contexts via ContextVar tokens.
 
     :param manifest: The extension manifest
+    :param user_id: A fixed principal or a resolver called when the ID is accessed
     :yields: The created ExtensionContext
     """
-    ctx = ConcreteExtensionContext(manifest)
+    ctx = ConcreteExtensionContext(manifest, user_id=user_id)
     with use_context(ctx):
         yield ctx
 
@@ -155,12 +169,16 @@ def restore_context(ctx: ConcreteExtensionContext | None) -> Iterator[None]:
     The host calls what an extension registered while loading long after it
     loaded, when no context is set, so ``get_context()`` and extension storage
     would not find the extension. Each call gets a context of its own, made
-    from the extension's manifest.
+    from the extension's manifest, whose user is whoever the call runs for:
+    the request's user, resolved when the context is asked, or a task's.
     """
     if ctx is None:
         yield
         return
-    with extension_context(ctx.manifest):
+    # Imported here, as importing superset.utils.core imports this module.
+    from superset.utils.core import get_user_id
+
+    with extension_context(ctx.manifest, user_id=get_user_id):
         yield
 
 
