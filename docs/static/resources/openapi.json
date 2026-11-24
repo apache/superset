@@ -291,7 +291,7 @@
             "type": "string"
           },
           "entity_name": {
-            "description": "Name of the source entity *at the time of the change* \u2014 denormalized from the validity-strategy shadow row. Survives entity rename / delete.",
+            "description": "Name of the source entity *at the time of the change* \u2014 denormalized from the validity-strategy shadow row, or from the capture-time payload for ``__archive__`` records. Preserved across renames; redacted for deleted related entities.",
             "type": "string"
           },
           "entity_uuid": {
@@ -322,7 +322,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "Content category \u2014 what kind of thing changed. ``field`` is the fallback for scalar changes without a more specific category. Per-record.",
+            "description": "Content category \u2014 what kind of thing changed. ``field`` is the fallback for scalar changes without a more specific category. Per-record. ``__archive__`` announces a chart archive in related dashboard activity only.",
             "enum": [
               "filter",
               "metric",
@@ -339,7 +339,8 @@
               "color_palette",
               "field",
               "__meta__",
-              "__creation__"
+              "__creation__",
+              "__archive__"
             ],
             "type": "string"
           },
@@ -372,11 +373,11 @@
             "type": "string"
           },
           "summary": {
-            "description": "Synthesized headline for ``source: \"related\"`` records \u2014 e.g., ``\"Dataset updated: Sales Transactions\"``. Empty string for ``source: \"self\"`` records, except ``__meta__`` self records (e.g. restore announcements), which carry their own headline.",
+            "description": "Synthesized headline for ``source: \"related\"`` records \u2014 e.g., ``\"Dataset updated: Sales Transactions\"`` or ``\"Chart archived: Sales\"``. Empty string for ``source: \"self\"`` records, except ``__meta__`` self records (e.g. restore announcements), which carry their own headline.",
             "type": "string"
           },
           "to_value": {
-            "description": "New value; ``null`` = removed.",
+            "description": "New value; ``null`` = removed. For ``__archive__``, an object with the archived chart's ``entity_uuid`` and capture-time ``entity_name``; null when related detail is redacted.",
             "nullable": true
           },
           "transaction_id": {
@@ -2175,6 +2176,9 @@
           "last_saved_by": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
+          "localized_name": {
+            "readOnly": true
+          },
           "params": {
             "nullable": true,
             "type": "string"
@@ -2958,6 +2962,12 @@
             "description": "The id of the chart.",
             "type": "integer"
           },
+          "localized_name": {
+            "description": "The chart name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "slice_name": {
             "description": "The name of the chart.",
             "type": "string"
@@ -3070,6 +3080,11 @@
           },
           "is_managed_externally": {
             "type": "boolean"
+          },
+          "localized_name": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
           },
           "params": {
             "type": "string"
@@ -3207,6 +3222,9 @@
           },
           "last_saved_by": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+          },
+          "localized_name": {
+            "readOnly": true
           },
           "params": {
             "nullable": true,
@@ -4427,6 +4445,12 @@
             "description": "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter  specific parameters.",
             "type": "string"
           },
+          "localized_title": {
+            "description": "The dashboard title resolved for the viewer's locale (read-only). Falls back to dashboard_title when no translation applies.",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "position_json": {
             "description": "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view",
             "type": "string"
@@ -4587,6 +4611,9 @@
           },
           "is_managed_externally": {
             "type": "boolean"
+          },
+          "localized_title": {
+            "readOnly": true
           },
           "published": {
             "nullable": true,
@@ -7854,6 +7881,20 @@
         },
         "type": "object"
       },
+      "EncryptedExtraExpiration": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "EncryptedExtraHintSchema": {
         "properties": {
           "expired": {
@@ -7903,6 +7944,13 @@
           "disable_ssh_tunneling": {
             "description": "SSH tunnel is not available to the database",
             "type": "boolean"
+          },
+          "encrypted_extra_expirations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EncryptedExtraExpiration"
+            },
+            "description": "On `/connection` only: JSONPath of each stored sensitive encrypted_extra field holding a JWT with an exp claim, and when it expires. The signature is not verified.",
+            "type": "object"
           },
           "encrypted_extra_sensitive_fields": {
             "additionalProperties": {
@@ -12445,6 +12493,12 @@
           "is_managed_externally": {
             "description": "If the chart is managed outside externally.",
             "type": "boolean"
+          },
+          "localized_name": {
+            "description": "The slice name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
           },
           "modified": {
             "description": "Last modification in human readable form.",
@@ -28298,6 +28352,46 @@
           }
         ],
         "summary": "Update the current user",
+        "tags": [
+          "Current User"
+        ]
+      }
+    },
+    "/api/v1/me/api_key_scopes/": {
+      "get": {
+        "description": "Lists the ``superset:<resource>:<action>`` API-key scopes the current user is allowed to put on a new API key, i.e. the subset of the scope catalog that does not exceed the user's own permissions. Returns a 401 error if the user is unauthenticated.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The allowed scopes"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the self-issuable API-key scopes",
         "tags": [
           "Current User"
         ]

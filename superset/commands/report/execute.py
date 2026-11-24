@@ -108,6 +108,7 @@ from superset.reports.notifications.slack_transport import (
     get_slack_send_retry_deadline,
 )
 from superset.reports.utils import get_dynamic_executor, get_email_addresses
+from superset.semantic_layers.chart_types import UNSUPPORTED_SEMANTIC_CHART_TYPES
 from superset.subjects.types import SubjectType
 from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
@@ -116,6 +117,7 @@ from superset.utils.core import (
     apply_max_row_limit,
     get_user,
     HeaderDataType,
+    override_query_log_context,
     override_user,
 )
 from superset.utils.csv import (
@@ -123,6 +125,7 @@ from superset.utils.csv import (
     get_chart_csv_data,
     get_chart_dataframe,
 )
+from superset.utils.dashboard_layout import selected_tab_chart_count
 from superset.utils.dates import naive_utcnow
 from superset.utils.decorators import (
     logs_context,
@@ -139,9 +142,14 @@ from superset.utils.report_execution import (
     ReportExecutionDeadline,
     resolve_report_execution_budget_seconds,
 )
-from superset.utils.screenshot_utils import validate_report_screenshot
+from superset.utils.screenshot_utils import (
+    ChartHoldersNeverMountedError,
+    DashboardRenderCrashedError,
+    validate_report_screenshot,
+)
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
+from superset.utils.webdriver import PlaywrightTimeout
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
@@ -788,13 +796,16 @@ class BaseReportState:
                 force=force,
                 **kwargs,
             )
-        # If we need to render dashboard in a specific state, use stateful permalink
-        if (
-            not (user_friendly and attachment_free_alert)
-            and (dashboard_state := self._report_schedule.extra.get("dashboard"))
-            and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS")
-        ):
-            return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
+        # Reuse the screenshot URL builder so the link carries the same
+        # stateful permalink (tab, urlParams and the report's native filters)
+        # as the attachment. A multi-tab report links to its first tab.
+        if not (user_friendly and attachment_free_alert):
+            urls = self.get_dashboard_urls(user_friendly=user_friendly, **kwargs)
+            if urls:
+                return urls[0]
+            # An empty tab list (anchor "[]") yields no tab URLs. That is a
+            # degenerate configuration with no tab to scope filters to, so
+            # link to the plain dashboard rather than failing the notification.
 
         return self._get_plain_dashboard_url(user_friendly=user_friendly, **kwargs)
 
@@ -824,11 +835,39 @@ class BaseReportState:
         notification fail too.
         """
         try:
+            if get_user() is None and self._report_schedule.dashboard is not None:
+                # Terminal-error handling can run outside the executor's user
+                # context; build the stateful link as the resolved executor.
+                # Chart reports never need a user for their link and have no
+                # dashboard to fall back to, so they use ``_get_url`` directly.
+                executor, _ = resolve_executor_user(self._report_schedule)
+                with override_user(executor):
+                    return self._get_url(user_friendly=True)
             return self._get_url(user_friendly=True)
-        except ReportScheduleExecutorAccessDeniedError:
+        except (
+            ReportScheduleExecutorAccessDeniedError,
+            ReportScheduleExecutorNotFoundError,
+        ):
+            return self._get_plain_dashboard_url(user_friendly=True)
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            # Building the stateful link can fail for the very reason the
+            # report failed (e.g. the permalink store or the saved native
+            # filters). The editors still need to hear about the failure.
+            if self._report_schedule.dashboard is None:
+                raise
+            logger.warning(
+                "Falling back to the plain dashboard link for the failure "
+                "notification of report schedule %s",
+                self._report_schedule.id,
+                exc_info=True,
+            )
             return self._get_plain_dashboard_url(user_friendly=True)
 
-    def _raise_for_executor_dashboard_access(self) -> None:
+    def _raise_for_executor_dashboard_access(
+        self, require_executor: bool = False
+    ) -> None:
         """
         Fail with an actionable error when the executor cannot see the dashboard.
 
@@ -836,7 +875,16 @@ class BaseReportState:
         executor and surfaces only as a generic screenshot failure.
         """
         user = get_user()
-        if user is None or getattr(user, "is_anonymous", False):
+        if getattr(user, "is_anonymous", False):
+            return
+        if user is None:
+            # No user context. When a permalink is about to be created, surface
+            # an unresolved executor as the same actionable error the screenshot
+            # step raises, instead of failing on a missing ``g.user``. A
+            # resolvable executor is applied by callers that wrap in
+            # ``override_user``.
+            if require_executor:
+                resolve_executor_user(self._report_schedule)
             return
         dashboard = self._report_schedule.dashboard
         try:
@@ -857,6 +905,12 @@ class BaseReportState:
                 user.username,
                 "the dashboard is withheld from this user",
             )
+
+    def _add_execution_warnings(self, warnings: list[str]) -> None:
+        """Record warnings, skipping any already recorded for this execution."""
+        self._execution_warnings.extend(
+            w for w in dict.fromkeys(warnings) if w not in self._execution_warnings
+        )
 
     def get_dashboard_urls(
         self, user_friendly: bool = False, **kwargs: Any
@@ -881,8 +935,7 @@ class BaseReportState:
             native_filter_params, filter_warnings = (
                 self._report_schedule.get_native_filters_params()
             )
-            if filter_warnings:
-                self._execution_warnings.extend(filter_warnings)
+            self._add_execution_warnings(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list = json.loads(anchor)
@@ -925,8 +978,7 @@ class BaseReportState:
         native_filter_params, filter_warnings = (
             self._report_schedule.get_native_filters_params()
         )
-        if filter_warnings:
-            self._execution_warnings.extend(filter_warnings)
+        self._add_execution_warnings(filter_warnings)
         if native_filter_params and native_filter_params != "()":
             # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
             # set via API even when ALERT_REPORT_TABS is off — same merge
@@ -969,7 +1021,7 @@ class BaseReportState:
         # without passing through ``get_dashboard_urls``, so the executor
         # check lives here to turn an exclusion (which the permalink command
         # reports as not-found) into the access-denied error callers handle.
-        self._raise_for_executor_dashboard_access()
+        self._raise_for_executor_dashboard_access(require_executor=True)
         force = self._get_force_param()
         # ``Superset.dashboard_permalink`` redirects by appending this
         # state's ``urlParams`` *before* its own query string (which is
@@ -1096,7 +1148,9 @@ class BaseReportState:
         # including any pending state changes protected by this ownership check.
         db.session.commit()  # pylint: disable=consider-using-transaction
 
-    def _get_screenshots(self, *, for_delivery: bool = True) -> list[bytes]:
+    def _get_screenshots(  # noqa: C901
+        self, *, for_delivery: bool = True
+    ) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
@@ -1110,6 +1164,8 @@ class BaseReportState:
         )
 
         max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+        tab_anchors: list[str | None] = []
+        empty_tab_suffixes: list[str | None] = []
 
         if self._report_schedule.chart:
             url = self._get_url()
@@ -1129,6 +1185,8 @@ class BaseReportState:
             ]
         else:
             urls = self.get_dashboard_urls()
+            tab_anchors = self._dashboard_tab_anchors(len(urls))
+            empty_tab_suffixes = self._empty_tab_pane_suffixes(tab_anchors)
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
             width = min(max_width, self._report_schedule.custom_width or window_width)
             height = self._report_schedule.custom_height or window_height
@@ -1143,17 +1201,28 @@ class BaseReportState:
                 )
                 for url in urls
             ]
+        screenshot_index = 0
+
+        def _suffix_at(index: int) -> str | None:
+            return (
+                empty_tab_suffixes[index] if index < len(empty_tab_suffixes) else None
+            )
+
         try:
             imges = []
-            for screenshot in screenshots:
+            for screenshot_index, screenshot in enumerate(screenshots):
+                tab_context = capture_context
+                tab_suffix = _suffix_at(screenshot_index)
+                if tab_context is not None and tab_suffix:
+                    tab_context = tab_context.with_empty_tab_pane(tab_suffix)
                 imge = screenshot.get_screenshot(
                     user=user,
                     log_context=self._log_context,
                     report_execution_context=(
-                        capture_context
-                        if for_delivery or capture_context is None
+                        tab_context
+                        if for_delivery or tab_context is None
                         else replace(
-                            capture_context,
+                            tab_context,
                             validate_for_delivery=False,
                         )
                     ),
@@ -1216,12 +1285,106 @@ class BaseReportState:
                 ),
                 type(ex).__name__,
             )
+            if isinstance(ex, PlaywrightTimeout) and (
+                isinstance(ex, ChartHoldersNeverMountedError)
+                or _suffix_at(screenshot_index)
+            ):
+                raise ReportScheduleScreenshotFailedError(
+                    self._render_timeout_message(
+                        tab_anchors[screenshot_index]
+                        if screenshot_index < len(tab_anchors)
+                        else None,
+                        crashed=isinstance(ex, DashboardRenderCrashedError),
+                    )
+                ) from ex
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
             ) from ex
         if not imges:
             raise ReportScheduleScreenshotFailedError()
         return imges
+
+    def _dashboard_tab_anchors(self, url_count: int) -> list[str | None]:
+        """Return the tab anchor behind each dashboard URL, or ``None`` per URL.
+
+        Anchors are only trusted when they map one-to-one onto the URLs and the
+        report does not also pin ``activeTabs``, which would change which panes
+        are active.
+        """
+        unknown: list[str | None] = [None] * url_count
+        dashboard_state = self._report_schedule.extra.get("dashboard")
+        if (
+            not dashboard_state
+            or not feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS")
+            or dashboard_state.get("activeTabs")
+        ):
+            return unknown
+        anchor = dashboard_state.get("anchor")
+        if not anchor or not isinstance(anchor, str):
+            return unknown
+        try:
+            anchor_list = json.loads(anchor)
+        except json.JSONDecodeError:
+            anchor_list = None
+        if not isinstance(anchor_list, list):
+            return [anchor] if url_count == 1 else unknown
+        if len(anchor_list) != url_count or not all(
+            isinstance(item, str) for item in anchor_list
+        ):
+            return unknown
+        return list(anchor_list)
+
+    def _empty_tab_pane_suffixes(self, anchors: list[str | None]) -> list[str | None]:
+        """Return, per anchor, the pane key of a selected tab that holds no charts."""
+        suffixes: list[str | None] = [None] * len(anchors)
+        if not any(anchors):
+            return suffixes
+        try:
+            position = self._report_schedule.dashboard.position
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Unable to read the dashboard layout for report %s; "
+                "tab emptiness is not inferred",
+                self._report_schedule.id,
+                exc_info=True,
+            )
+            return suffixes
+        try:
+            attached_chart_ids = [
+                chart.id for chart in self._report_schedule.dashboard.slices
+            ]
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Unable to read the charts of the dashboard for report %s; "
+                "tab emptiness is not inferred",
+                self._report_schedule.id,
+                exc_info=True,
+            )
+            return suffixes
+        for index, anchor in enumerate(anchors):
+            tab_info = selected_tab_chart_count(position, anchor, attached_chart_ids)
+            if tab_info is not None and tab_info[0] == 0:
+                suffixes[index] = tab_info[1]
+        return suffixes
+
+    def _render_timeout_message(self, anchor: str | None, crashed: bool = False) -> str:
+        """Describe a bounded render failure without Playwright internals."""
+        title: str | None = None
+        if anchor:
+            try:
+                title = self._report_schedule.dashboard.tabs["all_tabs"].get(anchor)
+            except Exception:  # noqa: BLE001
+                title = None
+        target = f'dashboard tab "{title}"' if title else "the dashboard"
+        if crashed:
+            return (
+                f"Failed to render {target}: the page reported an unexpected "
+                "error. Check that the dashboard loads in Superset and try again."
+            )
+        return (
+            f"Timed out waiting for {target} to finish rendering. "
+            "Check that the content loads in the dashboard and try again."
+        )
 
     def _reject_capture(self, reason: str) -> None:
         """Keep capture failures sticky even if an intermediate caller catches them."""
@@ -1269,6 +1432,17 @@ class BaseReportState:
 
         return pdf
 
+    def _include_semantic_chart_type(self, query_context: dict[str, Any]) -> None:
+        """Identify refused charts without activating supported export processors."""
+        if (
+            self._report_schedule.chart.datasource_type == "semantic_view"
+            and self._report_schedule.chart.viz_type in UNSUPPORTED_SEMANTIC_CHART_TYPES
+        ):
+            query_context["form_data"] = dict(
+                query_context.get("form_data") or {},
+                viz_type=self._report_schedule.chart.viz_type,
+            )
+
     def _get_chart_data_request_payload(
         self,
         result_format: ChartDataResultFormat,
@@ -1298,6 +1472,8 @@ class BaseReportState:
 
         if form_data is not None:
             query_context["form_data"] = dict(form_data)
+
+        self._include_semantic_chart_type(query_context)
 
         result_type = ChartDataResultType.POST_PROCESSED.value
         force = bool(self._report_schedule.force_screenshot)
@@ -1336,6 +1512,12 @@ class BaseReportState:
                     query_context["queries"] = download_queries
 
         return query_context
+
+    def _get_chart_data_url(self) -> str:
+        return get_url_path(
+            "ChartDataRestApi.data",
+            form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
+        )
 
     @staticmethod
     def _post_chart_data(
@@ -1444,7 +1626,7 @@ class BaseReportState:
                     )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
-                url = get_url_path("ChartDataRestApi.data")
+                url = self._get_chart_data_url()
                 endpoint = "/api/v1/chart/data"
 
                 def fetch(timeout: float | None) -> bytes | None:
@@ -1543,7 +1725,7 @@ class BaseReportState:
                 request_payload: dict[str, Any] = self._get_chart_data_request_payload(
                     ChartDataResultFormat.JSON, form_data=form_data or None
                 )
-                url = get_url_path("ChartDataRestApi.data")
+                url = self._get_chart_data_url()
                 dataframe = chart_data_to_dataframe(
                     self._post_chart_data(
                         chart_url=url,
@@ -2787,7 +2969,10 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             user, username = get_executor_user(self._model)
 
             start_time: datetime = naive_utcnow()
-            with override_user(user):
+            with (
+                override_user(user),
+                override_query_log_context({"report_id": self._model.id}),
+            ):
                 # Pre-commit any permalink rows before the state machine's
                 # @transaction() opens. When called inside a transaction,
                 # CreateDashboardPermalinkCommand only flushes (not commits),

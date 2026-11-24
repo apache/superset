@@ -27,6 +27,7 @@ on:
     paths:
       - ".github/workflows/testcontainers.yml"
       - "tests/testcontainers/**"
+      - "!tests/testcontainers/versioning/**"
       - "superset/db_engine_specs/**"
       - "pyproject.toml"
       - "requirements/development.in"

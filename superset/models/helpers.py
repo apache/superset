@@ -32,7 +32,7 @@ from contextlib import contextmanager
 from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
-from functools import cache
+from functools import cache, partial
 from typing import (
     Any,
     Callable,
@@ -90,7 +90,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import db, is_feature_enabled
+from superset import db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import (
@@ -151,7 +151,11 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
-from superset.jinja_context import BaseTemplateProcessor
+from superset.jinja_context import (
+    BaseTemplateProcessor,
+    JinjaTemplateProcessor,
+    safe_proxy,
+)
 from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import (
     has_aggregate,
@@ -159,6 +163,7 @@ from superset.sql.parse import (
     sanitize_clause,
     SQLScript,
     SQLStatement,
+    Table,
 )
 from superset.superset_typing import (
     AdhocColumn,
@@ -1045,6 +1050,19 @@ _ARRAY_LITERAL_OPERATORS = {
     utils.FilterOperator.NOT_EQUALS,
     utils.FilterOperator.IN,
     utils.FilterOperator.NOT_IN,
+}
+
+#: Operators that compare a grained temporal column against displayed bucket
+#: labels, which pandas shifts for display (Hours offset or dataset timezone).
+_DISPLAYED_BUCKET_OPERATORS = {
+    utils.FilterOperator.EQUALS,
+    utils.FilterOperator.NOT_EQUALS,
+    utils.FilterOperator.IN,
+    utils.FilterOperator.NOT_IN,
+    utils.FilterOperator.GREATER_THAN,
+    utils.FilterOperator.LESS_THAN,
+    utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+    utils.FilterOperator.LESS_THAN_OR_EQUALS,
 }
 
 
@@ -2668,7 +2686,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         db_engine_spec = self.db_engine_spec
         # add quotes to tables
         if db_engine_spec.get_allows_alias_in_select(self.database):
-            label = db_engine_spec.make_label_compatible(label_expected)
+            label = db_engine_spec.make_label_compatible(label_expected, self.database)
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
@@ -4947,6 +4965,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 _("Virtual dataset query must be read-only")
             )
 
+        # Authorize tables a request-time Jinja value resolved beyond the
+        # dataset's declared SQL (the dataset-level grant does not cover them).
+        self._authorize_request_resolved_tables(parsed_script)
+
         # Apply RLS filters to virtual dataset SQL to prevent RLS bypass
         # For each table referenced in the virtual dataset, apply its RLS filters
         if parsed_script.statements:
@@ -5062,6 +5084,202 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return from_clause, cte
 
+    @staticmethod
+    def _qualified_tables(
+        script: SQLScript, catalog: Optional[str], schema: Optional[str]
+    ) -> set[Table]:
+        """Every table referenced by ``script``, qualified with the dataset's
+        catalog/schema so the two parses in
+        ``_authorize_request_resolved_tables`` compare like for like."""
+        return {
+            table.qualify(catalog=catalog, schema=schema)
+            for statement in script.statements
+            for table in statement.tables
+        }
+
+    @staticmethod
+    def _declared_table_sentinel() -> str:
+        """A random, unpredictable placeholder identifier substituted for a
+        request-controllable Jinja expression when building the declared-table
+        set. Randomness matters: a caller must not be able to name a real table
+        that collides with the placeholder and thereby drop it from the set. The
+        ``superset_declared_`` prefix + ``uuid4`` hex format lives here so both
+        the render path (``_render_declared_sql``) and the static fallback
+        (``_neutralize_jinja``) stay identical."""
+        return f"superset_declared_{uuid.uuid4().hex}"
+
+    @staticmethod
+    def _neutralize_jinja(sql: str) -> str:
+        """
+        Static fallback for ``_declared_tables`` when the stored SQL cannot be
+        rendered: replace every Jinja expression, block, and comment with a
+        benign placeholder so the remaining SQL can be parsed for the tables the
+        dataset references. A ``{{ ... }}`` expression becomes
+        ``_declared_table_sentinel()`` (so a templated ``FROM``/``JOIN`` target
+        does not vanish and silently reduce the set); ``{% ... %}`` control
+        blocks and ``{# ... #}`` comments are dropped. Unlike the render path
+        this neutralizes identity macros too, so an identity-parameterized table
+        may then read as request-introduced; that is the conservative
+        (fail-closed) outcome only reached when rendering is unavailable.
+        """
+        placeholder = ExploreMixin._declared_table_sentinel()
+        sql = re.sub(r"\{\{.*?\}\}", placeholder, sql, flags=re.DOTALL)
+        sql = re.sub(r"\{%.*?%\}", " ", sql, flags=re.DOTALL)
+        sql = re.sub(r"\{#.*?#\}", " ", sql, flags=re.DOTALL)
+        return sql
+
+    def _render_declared_sql(self, raw_sql: str) -> Optional[str]:
+        """
+        Render the stored SQL with only the request-controllable macros
+        (``JinjaTemplateProcessor.REQUEST_CONTROLLABLE_MACROS``) replaced by a
+        neutral sentinel, while identity macros (``current_user*``) and
+        author-baked macros
+        (``dataset``/``metric``) render with their real values. Tables keyed off
+        identity (e.g. ``tenant_{{ current_username() }}.sales``) therefore
+        resolve to the same name as the live render and are not mistaken for a
+        request-introduced table; only tables a request value can steer differ.
+
+        Returns ``None`` when a template processor is unavailable or the render
+        fails, so the caller falls back to static neutralization.
+        """
+        try:
+            processor = self.get_template_processor()
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return None
+
+        sentinel = self._declared_table_sentinel()
+        stub = partial(safe_proxy, lambda *_args, **_kwargs: sentinel)
+
+        # Override the request-controllable macros in place. ``set_context``
+        # re-installs the real macros, so mutate the already-built context
+        # directly. The value must stay a ``safe_proxy`` partial to pass the
+        # template context validation applied by ``process_template``.
+        context = processor._context  # pylint: disable=protected-access
+        for macro_name in JinjaTemplateProcessor.REQUEST_CONTROLLABLE_MACROS & set(
+            context
+        ):
+            context[macro_name] = stub
+
+        try:
+            return processor.process_template(raw_sql)
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return None
+
+    def _parse_qualified_tables(
+        self, sql: Optional[str], catalog: Optional[str], schema: Optional[str]
+    ) -> Optional[set[Table]]:
+        """Parse ``sql`` and return its qualified tables, or ``None`` if it is
+        missing or cannot be parsed."""
+        if sql is None:
+            return None
+        try:
+            script = SQLScript(sql, engine=self.db_engine_spec.engine)
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return None
+        return self._qualified_tables(script, catalog, schema)
+
+    def _declared_tables(
+        self, raw_sql: str, catalog: Optional[str], schema: Optional[str]
+    ) -> Optional[set[Table]]:
+        """
+        Tables the dataset SQL references independently of any request value.
+        Prefers rendering with only request-controllable macros neutralized (so
+        identity-parameterized tables keep their real name); falls back to
+        static neutralization of all Jinja when that render is unavailable.
+        Returns ``None`` when neither parse succeeds, signalling the caller to
+        treat every rendered table as request-resolved (fail closed).
+        """
+        rendered = self._parse_qualified_tables(
+            self._render_declared_sql(raw_sql), catalog, schema
+        )
+        if rendered is not None:
+            return rendered
+        return self._parse_qualified_tables(
+            self._neutralize_jinja(raw_sql), catalog, schema
+        )
+
+    def _authorize_request_resolved_tables(self, parsed_script: SQLScript) -> None:
+        """
+        Access-check any table the rendered SQL resolves to that the dataset does
+        not declare statically. Non-templated SQL resolves to exactly the
+        declared tables (already covered by the dataset-level grant), so it is
+        skipped; only tables a request-time value can introduce are checked,
+        using the same strict per-table authorization SQL Lab applies to raw
+        queries. Fails closed on any table that cannot be resolved or authorized.
+
+        ``ExploreMixin`` also backs SQL Lab ``Query`` objects, so this covers a
+        query-backed chart too; that is consistent with (not duplicated by) the
+        SQL Lab execute path, which enforces the same ``force_dataset_match``
+        per-table check.
+        """
+        raw_sql = getattr(self, "sql", None)
+        if not parsed_script.statements or not isinstance(raw_sql, str):
+            return
+        # ``{#...#}`` comments are intentionally not treated as templating here:
+        # a comment introduces no table, so a comment-only dataset is correctly
+        # skipped (``_neutralize_jinja`` still strips them for the declared-set
+        # parse).
+        if "{{" not in raw_sql and "{%" not in raw_sql:
+            return
+
+        # Fail closed on a rendered statement whose table references cannot be
+        # trusted for the declared-vs-rendered comparison below, mirroring the
+        # strict ``force_dataset_match`` handling in
+        # ``SecurityManager.raise_for_access``:
+        #  * ``has_unparseable_statement``: an ``exp.Command`` from dynamic SQL
+        #    (or a non-sqlglot engine) hides its tables from both parses, so the
+        #    per-table check would silently authorize nothing.
+        #  * ``changes_default_schema``: a ``USE``/``SET SCHEMA``/``search_path``
+        #    change rebinds how unqualified names resolve, so qualifying the two
+        #    parses with the dataset's schema no longer compares like for like.
+        if (
+            parsed_script.has_unparseable_statement
+            or parsed_script.changes_default_schema()
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    message=_(
+                        "The virtual dataset query could not be safely parsed, so "
+                        "the tables it references cannot be resolved. Qualify "
+                        "tables explicitly and avoid dynamic SQL or statements "
+                        "that change the default schema (e.g. USE, search_path)."
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        # Without a request-controllable macro, the declared render neutralizes
+        # nothing, so it would resolve to exactly the rendered tables and leave
+        # nothing to authorize. Skip the second render/parse entirely in that
+        # (common) case; a substring match is intentionally loose (a table named
+        # after a macro just does the harmless extra work).
+        if not any(
+            macro in raw_sql
+            for macro in JinjaTemplateProcessor.REQUEST_CONTROLLABLE_MACROS
+        ):
+            return
+
+        catalog = self.catalog
+        schema = self.schema or self.database.get_default_schema(catalog) or None
+
+        rendered_tables = self._qualified_tables(parsed_script, catalog, schema)
+        declared_tables = self._declared_tables(raw_sql, catalog, schema)
+        # ``None`` means the declared set could not be determined, so every
+        # rendered table is treated as request-resolved (fail closed).
+        request_resolved = (
+            rendered_tables
+            if declared_tables is None
+            else rendered_tables - declared_tables
+        )
+
+        for table in request_resolved:
+            security_manager.raise_for_access(
+                database=self.database,
+                table=table,
+                force_dataset_match=True,
+            )
+
     def adhoc_metric_to_sqla(
         self,
         metric: AdhocMetric,
@@ -5150,6 +5368,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
         db_extra: Optional[dict[str, Any]] = None,
         temporal_offset_hours: int = 0,
+        temporal_timezone: Optional[str] = None,
     ) -> Optional[FilterValues]:
         if values is None:
             return None
@@ -5195,26 +5414,67 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return literal_column(temporal_sql) if temporal_sql is not None else value
 
+        def timezone_to_utc(wall_time: datetime) -> datetime:
+            """Convert a naive label in the dataset timezone back to naive UTC."""
+            assert temporal_timezone
+            return (
+                wall_time.replace(tzinfo=ZoneInfo(temporal_timezone))
+                .astimezone(timezone.utc)
+                .replace(tzinfo=None)
+            )
+
         def shift_temporal_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
-            """Undo the display-only offset before comparing an unshifted bucket."""
+            """
+            Undo the display-only shift before comparing an unshifted bucket.
+
+            A bucket label is either moved into the dataset timezone or, without
+            one, moved by the Hours offset (see ``normalize_dttm_col``).
+            """
             if (
-                not temporal_offset_hours
+                not (temporal_offset_hours or temporal_timezone)
                 or target_generic_type != GenericDataType.TEMPORAL
             ):
                 return value
             if isinstance(value, bool) or value is None:
                 return value
-            if isinstance(value, (int, float)):
-                return value - temporal_offset_hours * 60 * 60 * 1000
             delta = timedelta(hours=temporal_offset_hours)
+
+            def undo(wall_time: datetime) -> datetime:
+                return (
+                    timezone_to_utc(wall_time)
+                    if temporal_timezone
+                    else wall_time - delta
+                )
+
+            if isinstance(value, (int, float)) or (
+                isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value)
+            ):
+                try:
+                    wall_time = datetime.fromtimestamp(
+                        float(value) / 1000, tz=timezone.utc
+                    ).replace(tzinfo=None)
+                    shift_ms = (undo(wall_time) - wall_time) // timedelta(
+                        milliseconds=1
+                    )
+                except (OverflowError, OSError, ValueError):
+                    return value
+                if isinstance(value, str):
+                    return str(int(value) + shift_ms)
+                return value + shift_ms
             if isinstance(value, datetime):
-                return value - delta
-            if re.fullmatch(r"[+-]?\d+", value):
-                return str(int(value) - temporal_offset_hours * 60 * 60 * 1000)
-            try:
-                return (datetime.fromisoformat(value) - delta).isoformat(sep=" ")
-            except ValueError:
+                parsed = value
+            else:
+                try:
+                    parsed = datetime.fromisoformat(value)
+                except (TypeError, ValueError):
+                    return value
+            if temporal_timezone and parsed.tzinfo is not None:
+                # An aware value already names an instant.
                 return value
+            shifted = undo(parsed)
+            return (
+                shifted if isinstance(value, datetime) else shifted.isoformat(sep=" ")
+            )
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
@@ -6772,7 +7032,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         db_engine_spec = self.db_engine_spec
         series_column_labels = [
-            db_engine_spec.make_label_compatible(column)
+            db_engine_spec.make_label_compatible(column, self.database)
             for column in utils.get_column_names(
                 columns=series_columns or [],
             )
@@ -7459,6 +7719,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if adhoc_filter_column
                     else col_obj
                 )
+                # Grained comparisons select a bucket whose label pandas shifted
+                # for display, so the compared value must undo that shift.
+                displayed_bucket_shifted = bool(
+                    filter_grain
+                    and offset_column is not None
+                    and offset_column.is_dttm
+                    and op in _DISPLAYED_BUCKET_OPERATORS
+                )
                 eq = (
                     val
                     if literal_filter
@@ -7475,20 +7743,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         # each selected bucket, not on the underlying column.
                         temporal_offset_hours=(
                             (self.offset or 0)
-                            if filter_grain
-                            and offset_column is not None
-                            and offset_column.is_dttm
-                            and op
-                            in {
-                                utils.FilterOperator.EQUALS,
-                                utils.FilterOperator.NOT_EQUALS,
-                                utils.FilterOperator.IN,
-                                utils.FilterOperator.NOT_IN,
-                                utils.FilterOperator.GREATER_THAN,
-                                utils.FilterOperator.LESS_THAN,
-                                utils.FilterOperator.GREATER_THAN_OR_EQUALS,
-                                utils.FilterOperator.LESS_THAN_OR_EQUALS,
-                            }
+                            if displayed_bucket_shifted
                             # A SQL-shifted grouping already matches the label.
                             and not (
                                 db_engine_spec.supports_temporal_column_shift
@@ -7497,6 +7752,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             # pandas skips the offset only for a valid timezone.
                             and not self._has_valid_dataset_timezone()
                             else 0
+                        ),
+                        # A valid timezone moves grouped UTC labels to local wall
+                        # time in pandas, whatever the engine's SQL-shift support.
+                        # A DATE column has no time of day for the zone to move.
+                        temporal_timezone=(
+                            self.get_dataset_timezone()
+                            if displayed_bucket_shifted
+                            and self._has_valid_dataset_timezone()
+                            and not is_date_column_type(
+                                db_engine_spec,
+                                offset_column.type if offset_column else None,
+                                db_extra=self.db_extra,
+                            )
+                            else None
                         ),
                     )
                 )
@@ -8145,7 +8414,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
-                    col_name = db_engine_spec.make_label_compatible(gby_name + "__")
+                    col_name = db_engine_spec.make_label_compatible(
+                        gby_name + "__", self.database
+                    )
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 # Use LEFT JOIN when grouping others, INNER JOIN otherwise
@@ -8160,12 +8431,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                     # Apply Others grouping using the refactored method
                     def _create_join_condition(col_name: str, expr: Any) -> Any:
-                        # Get the corresponding column from the subquery
-                        subq_col_name = db_engine_spec.make_label_compatible(
-                            col_name + "__"
-                        )
-                        # Reference the column from the already-created aliased subquery
-                        subq_col = subq_alias.c[subq_col_name]
+                        # The subquery keys its columns by the expected label, which
+                        # differs from the SQL alias when the engine shortened it
+                        subq_col = subq_alias.c[col_name + "__"]
                         return subq_col.is_not(None)
 
                     select_exprs, groupby_all_columns = (

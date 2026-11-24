@@ -144,9 +144,6 @@ msgstr " novou"
 msgid " at line %(line)d"
 msgstr " na řádku %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " výraz, který musí dodržovat "
-
 #, fuzzy
 msgid " for details."
 msgstr "pro podrobnosti."
@@ -154,39 +151,6 @@ msgstr "pro podrobnosti."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " poblíž '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" standardu, aby lexikografické řazení\n"
-"                      odpovídalo chronologickému řazení. Pokud\n"
-"                      formát časového razítka nevyhovuje standardu ISO "
-"8601,\n"
-"                      budete muset definovat výraz a typ pro\n"
-"                      převod řetězce na datum nebo časové razítko. "
-"Poznámka:\n"
-"                      časová pásma momentálně nejsou podporována. Pokud "
-"je čas uložen\n"
-"                      ve formátu epoch, zadejte `epoch_s`, `epoch_ms` "
-"nebo `epoch_us`. Pokud není zadán žádný vzor,\n"
-"                      použijí se volitelné výchozí hodnoty podle\n"
-"                      názvu databáze/sloupce prostřednictvím parametru "
-"extra."
 
 msgid " to add calculated columns"
 msgstr " pro přidání počítaných sloupců"
@@ -297,6 +261,16 @@ msgstr[2] "%(count)s závislých prvků je archivováno."
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nelze z bezpečnostních důvodů použít jako zdroj dat."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s nebo %(lastSuggestion)s místo "
+"„%(undefinedParameter)s?“"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "soubor %(label)s"
@@ -403,18 +377,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Vráceno %(rows)d řádků"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s místo „%(undefinedParameter)s?“"
-msgstr[1] ""
-"%(firstSuggestions)s nebo %(lastSuggestion)s místo "
-"„%(undefinedParameter)s?“"
-msgstr[2] ""
-"%(firstSuggestions)s nebo %(lastSuggestion)s místo "
-"„%(undefinedParameter)s?“"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s místo „%(undefinedParameter)s?“"
 
 #, python-format
 msgid ""
@@ -6170,7 +6136,7 @@ msgstr "PRO"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "SMAZAT"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9854,7 +9820,7 @@ msgstr "Dále přizpůsobit, jak zobrazit každou metriku"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "SESKUPIT PODLE"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10053,6 +10019,7 @@ msgstr "Hostující uživatel nemůže upravovat data grafu"
 msgid "HTTP Path"
 msgstr "HTTP cesta"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10137,6 +10104,9 @@ msgstr "Nejvyšší hodnota za každé období."
 msgid "Histogram"
 msgstr "Histogram"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Domů"
 
@@ -10206,9 +10176,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Kódy ISO 3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10415,6 +10382,9 @@ msgstr "V tomto pohledu můžete prohlédnout první 25 řádků."
 #, fuzzy
 msgid "Inactive"
 msgstr "Aktivní"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Zahrnout série"
@@ -12520,7 +12490,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NESESKUPENO PODLE"
+msgstr ""
 
 msgid "NOV"
 msgstr "LIS"
@@ -13316,7 +13286,7 @@ msgstr "NEBO"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PŘEPSAT"
+msgstr ""
 
 msgid "October"
 msgstr "Říjen"
@@ -14456,6 +14426,9 @@ msgstr ""
 msgid "Preview"
 msgstr "Náhled"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -14573,9 +14546,6 @@ msgstr "Umístit popisky vně koláče?"
 
 msgid "Put your code here"
 msgstr "Vložte sem svůj kód"
-
-msgid "Python datetime string pattern"
-msgstr "Vzor řetězce data a času v Pythonu"
 
 msgid "Quarter"
 msgstr "Čtvrtletí"
@@ -18452,7 +18422,7 @@ msgstr "TABULKY"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "ČASOVÝ_ROZSAH"
+msgstr ""
 
 msgid "THU"
 msgstr "ČT"
@@ -19588,8 +19558,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Pro import níže uvedených databází jsou potřeba jejich hesla."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Vzor formátu časového razítka. Pro řetězce použijte "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19642,10 +19626,8 @@ msgstr "Port je uzavřen."
 msgid "The port number is invalid."
 msgstr "Číslo portu je neplatné."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Náhled se nepodařilo načíst."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Primární metrika se používá k definování velikostí segmentů oblouku"
@@ -20094,14 +20076,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Transformace odpovídala vzorkovaným řádkům, nikoli celé datové sadě."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Transformace vrátila %(returned)s pro %(column)s, což je %(kind)s. "
-"Zrcadlené filtry na tomto mapování by v databázi selhaly."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20113,6 +20090,9 @@ msgstr ""
 "Transformace vrátila %(returned)s pro %(column)s, což tato databáze "
 "nedokáže zapsat do dotazu jako hodnotu typu %(type)s beze změny. Filtry "
 "na tomto mapování nebudou zrcadleny."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -20212,23 +20192,12 @@ msgstr ""
 "výsledek se ukládá do mezipaměti, takže by vygenerovaný predikát "
 "zafixoval snímek tohoto okamžiku."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformaci hodnoty se nepodařilo zpracovat. Mapování se uloží, ale "
-"zůstane neaktivní, dokud se to nepodaří."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformaci hodnoty se nepodařilo zpracovat: %(detail)s Mapování se "
-"uloží, ale zůstane neaktivní, dokud se to nepodaří."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21853,6 +21822,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Příliš mnoho požadavků na náhled této datové sady. Chvíli počkejte a "
 "zkuste to znovu."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24789,7 +24761,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "šroub"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25079,7 +25051,7 @@ msgstr "položky"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "chybová_zpráva"
+msgstr ""
 
 msgid "every"
 msgstr "každý"
@@ -25720,6 +25692,10 @@ msgstr "zpět"
 msgid "unknown type icon"
 msgstr "ikona neznámého typu"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "nenastaveno"
 
@@ -25732,6 +25708,9 @@ msgid ""
 msgstr ""
 "horní percentil musí být větší než 0 a menší než 100. Musí být vyšší než "
 "dolní percentil."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "použít šablonu nejnovějšího_oddílu"

@@ -222,6 +222,46 @@ test('should render a SliceHeader', () => {
   expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
 });
 
+test('shows the localized name when the panel is not overridden', () => {
+  const { getByText } = setup(
+    { sliceName: sliceEntities.slices[queryId].slice_name },
+    {
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            localized_name: 'Ventes',
+          },
+        },
+      },
+    },
+  );
+  expect(getByText('Ventes')).toBeInTheDocument();
+});
+
+test('keeps a panel title override instead of the localized name', () => {
+  // The override is authored on this dashboard and has no translation, so the
+  // localized value -- which is resolved from the canonical name, and equals it
+  // when translation is off -- must not replace it.
+  const { getByText, queryByText } = setup(
+    { sliceName: 'Q2 Sales' },
+    {
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            localized_name: 'Ventes',
+          },
+        },
+      },
+    },
+  );
+  expect(getByText('Q2 Sales')).toBeInTheDocument();
+  expect(queryByText('Ventes')).not.toBeInTheDocument();
+});
+
 test('should render a ChartContainer', () => {
   const { getByTestId } = setup();
   expect(getByTestId('chart-container')).toBeInTheDocument();
@@ -1286,6 +1326,53 @@ test('passes the form data of the last request to ChartContainer next to the cur
   expect(capturedChartContainerProps.formData).toEqual(
     expect.objectContaining({ groupby: ['region'] }),
   );
+});
+
+const stateWithCrossFilterScope = (chartsInScope?: number[]) => ({
+  ...defaultState,
+  dashboardInfo: {
+    ...defaultState.dashboardInfo,
+    crossFiltersEnabled: true,
+    metadata: chartsInScope
+      ? {
+          chart_configuration: {
+            [queryId]: {
+              id: queryId,
+              crossFilters: { scope: 'global', chartsInScope },
+            },
+          },
+        }
+      : {},
+  },
+});
+
+test('keeps cross-filter rendering on but reports no targets when the chart cross-filter scope targets no other chart', () => {
+  // emitCrossFilters drives plugin rendering (e.g. Table V2's numbered column
+  // and cell truncation), so it must keep following the dashboard setting.
+  setup({}, stateWithCrossFilterScope([]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
+
+  setup({}, stateWithCrossFilterScope([queryId]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
+});
+
+test('reports cross-filter targets when the chart cross-filter scope targets another chart', () => {
+  setup({}, stateWithCrossFilterScope([queryId + 1]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
+});
+
+test('reports cross-filter targets when the chart has no cross-filter configuration', () => {
+  setup({}, stateWithCrossFilterScope());
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
+});
+
+test('does not emit cross-filters when cross-filtering is disabled on the dashboard', () => {
+  setup({}, defaultState);
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
 });
 
 test('dashboard Chart omits SQL cross-filter using the emitter datasource in Redux', () => {

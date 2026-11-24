@@ -53,6 +53,7 @@ import {
   useMemo,
   useRef,
   useState,
+  ReactNode,
   RefObject,
   memo,
 } from 'react';
@@ -294,6 +295,22 @@ const getOptionDataTest = (
   value: string | number | undefined,
 ) =>
   `${prefix}-${String(value ?? 'undefined').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+
+type TypeOption = { label?: ReactNode; value?: string | number };
+
+const renderCustomizationTypeOption = (option: TypeOption) => (
+  <span
+    data-test={getOptionDataTest('customization-type-option', option.value)}
+  >
+    {option.label || option.value}
+  </span>
+);
+
+const renderFilterTypeOption = (option: TypeOption) => (
+  <span data-test={getOptionDataTest('filter-type-option', option.value)}>
+    {option.label || option.value}
+  </span>
+);
 
 // TODO: Rename the filter plugins and remove this mapping
 const FILTER_TYPE_NAME_MAPPING = {
@@ -1380,16 +1397,7 @@ const FiltersConfigForm = (
                               label: name || pluginKey,
                             };
                           })}
-                        optionRender={option => (
-                          <span
-                            data-test={getOptionDataTest(
-                              'customization-type-option',
-                              option.value,
-                            )}
-                          >
-                            {option.label || option.value}
-                          </span>
-                        )}
+                        optionRender={renderCustomizationTypeOption}
                         onChange={value => {
                           setNativeFilterFieldValues(form, filterId, {
                             filterType: value,
@@ -1464,16 +1472,7 @@ const FiltersConfigForm = (
                             disabled: isDisabled,
                           };
                         })}
-                        optionRender={option => (
-                          <span
-                            data-test={getOptionDataTest(
-                              'filter-type-option',
-                              option.value,
-                            )}
-                          >
-                            {option.label || option.value}
-                          </span>
-                        )}
+                        optionRender={renderFilterTypeOption}
                         onChange={value => {
                           setNativeFilterFieldValues(form, filterId, {
                             filterType: value,

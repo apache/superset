@@ -59,6 +59,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import (
     BinaryExpression,
+    ClauseElement,
     ColumnClause,
     ColumnElement,
     Select,
@@ -171,7 +172,11 @@ TIME_LIMIT_EXCEPTIONS = (
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
     for col in cols:
-        result_set_columns.append({"column_name": col.get("name"), **col})  # type: ignore
+        values = {
+            key: str(value) if isinstance(value, ClauseElement) else value
+            for key, value in col.items()
+        }
+        result_set_columns.append({"column_name": col.get("name"), **values})  # type: ignore
     return result_set_columns
 
 
@@ -880,6 +885,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # owner cancel a query whose caller has given up.
     has_query_id_during_execute = False
 
+    # Execution owners may call cursor.cancel() from another thread when the
+    # driver exposes it. This does not enable SQL Lab's cross-process stop path.
+    supports_cancel_on_live_cursor = False
+
+    @classmethod
+    def can_cancel_live_cursor(  # pylint: disable=unused-argument
+        cls, driver: str, cursor: Any
+    ) -> bool:
+        """Whether ``cursor.cancel()`` is safe to call from another thread."""
+        return cls.supports_cancel_on_live_cursor is True and callable(
+            getattr(cursor, "cancel", None)
+        )
+
     @classmethod
     def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
         """Build the bounded-read retry form of system-authored sampling SQL.
@@ -1282,6 +1300,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         engine-specs to define dynamic values for the attribute.
         """
         return cls.limit_method
+
+    @classmethod
+    def get_max_column_name_length(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> int | None:
+        """
+        Method for dynamic `max_column_name_length`.
+
+        In Oracle the identifier length limit is version-dependent, so Superset needs
+        to inspect the database configuration in order to determine it. This method
+        allows engine-specs to define dynamic values for the attribute.
+        """
+        return cls.max_column_name_length
 
     @classmethod
     def supports_url(cls, url: URL) -> bool:
@@ -2969,7 +3001,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return not security_manager.is_guest_user(g.user)
 
     @classmethod
-    def make_label_compatible(cls, label: str) -> str | quoted_name:
+    def make_label_compatible(
+        cls,
+        label: str,
+        database: Database | None = None,
+    ) -> str | quoted_name:
         """
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
@@ -2979,14 +3015,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         generate a truncated label by calling truncate_label().
 
         :param label: expected expression label/alias
+        :param database: database the label is for, to read a version-dependent
+            maximum column name length
         :return: conditionally mutated label supported by the db engine
         """
         label_mutated = cls._mutate_label(label)
-        if (
+        max_length = (
             cls.max_column_name_length
-            and len(label_mutated) > cls.max_column_name_length
-        ):
-            label_mutated = cls._truncate_label(label)
+            if database is None
+            else cls.get_max_column_name_length(database)
+        )
+        if max_length and cls._label_length(label_mutated) > max_length:
+            label_mutated = cls._truncate_label(label)[:max_length]
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
         return label_mutated
@@ -3018,6 +3058,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return sqla_type(match), generic_type
             return sqla_type, generic_type
         return None
+
+    @staticmethod
+    def _label_length(label: str) -> int:
+        """
+        Return the length of a label in the unit `max_column_name_length` counts.
+
+        Most engines count characters. Engines that limit identifiers in bytes can
+        override this method.
+        """
+        return len(label)
 
     @staticmethod
     def _mutate_label(label: str) -> str:
@@ -3447,9 +3497,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param user: logged-in user
 
-        :returns: username if given user is not null
+        :returns: username if available, otherwise None
         """
-        return user.username if user else None
+        return getattr(user, "username", None) if user else None
 
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:

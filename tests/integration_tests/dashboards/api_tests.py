@@ -1182,6 +1182,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             "form_data",
             "id",
             "slice_name",
+            "localized_name",
             "slice_url",
         }
         assert result["id"] == dashboard.slices[0].id
@@ -1414,6 +1415,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "uuid": str(dashboard.uuid),
                 "css": "",
                 "dashboard_title": "title",
+                "localized_title": "title",
                 "datasources": [],
                 "json_metadata": "",
                 "editors": [
@@ -4818,7 +4820,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response == {
             "errors": [
                 {
-                    "message": "Could not find a valid command to import file",
+                    "message": (
+                        "This file is not a supported dashboard export. "
+                        "Re-export the dashboard from a compatible Superset version, "
+                        "then retry with the new ZIP file."
+                    ),
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
