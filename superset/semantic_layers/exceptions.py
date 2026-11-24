@@ -61,6 +61,11 @@ ProviderArguments = ParamSpec("ProviderArguments")
 
 def rejection_message(code: SemanticQueryErrorCode) -> str:
     """Select localized host text, with a safe fallback for newer SDK codes."""
+    if code == SemanticQueryErrorCode.TIME_RANGE_REQUIRED:
+        return _(
+            "This metric requires a time range. Choose a time range with "
+            "a start and end date, then try again."
+        )
     if code == SemanticQueryErrorCode.UNSUPPORTED_QUERY:
         return _(
             "This semantic provider does not support this query. "
