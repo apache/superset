@@ -88,7 +88,6 @@ import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
 import TopBannerChartPlugin from '@superset-ui/plugin-chart-top-banner';
 
-
 export default class MainPreset extends Preset {
   constructor() {
     const experimentalPlugins = isFeatureEnabled(

@@ -32,7 +32,7 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 
 const thumbnail =
-  'data:image/svg+xml;charset=utf-8,' +
+  `data:image/svg+xml;charset=utf-8,${ 
   encodeURIComponent(`
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -105,7 +105,7 @@ const thumbnail =
         fill="#94a3b8"
       />
     </svg>
-  `);
+  `)}`;
 
 export default class TopBannerChartPlugin extends ChartPlugin<
   TopBannerFormData,

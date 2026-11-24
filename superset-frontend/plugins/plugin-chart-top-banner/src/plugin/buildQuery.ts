@@ -20,8 +20,6 @@
 import { buildQueryContext } from '@superset-ui/core';
 import { TopBannerFormData } from '../types.js';
 
-
-
 export default function buildQuery(formData: TopBannerFormData) {
   return buildQueryContext(formData, baseQueryObject => [
     {
