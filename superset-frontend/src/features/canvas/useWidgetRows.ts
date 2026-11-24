@@ -17,7 +17,7 @@
  * under the License.
  */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { CanvasRendererProps, FilterValue } from 'src/core/canvas/types';
+import type { FilterValue, HostRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
 import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
@@ -69,7 +69,7 @@ function canNormalizeError(
 export const dataFilters = ({
   filters,
   crossFilters,
-}: Pick<CanvasRendererProps, 'filters' | 'crossFilters'>): FilterValue[] => [
+}: Pick<HostRendererProps, 'filters' | 'crossFilters'>): FilterValue[] => [
   ...filters,
   ...crossFilters,
 ];
@@ -86,7 +86,7 @@ export function useWidgetRows(
     nodeId,
     widgetId,
     props,
-  }: Pick<CanvasRendererProps, 'canvasId' | 'nodeId' | 'widgetId' | 'props'>,
+  }: Pick<HostRendererProps, 'canvasId' | 'nodeId' | 'widgetId' | 'props'>,
   filters: FilterValue[],
   refreshKey: number,
 ): WidgetRows {

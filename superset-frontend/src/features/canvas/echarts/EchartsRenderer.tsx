@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import type { CanvasRendererProps } from 'src/core/canvas/types';
+import type { HostRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
@@ -63,7 +63,7 @@ const describe = async (error: unknown): Promise<string> => {
  * filled from the widget's query and styled by the Superset theme and the
  * canvas's color scheme. ECharts is loaded on first use.
  */
-export default function EchartsRenderer(widget: CanvasRendererProps) {
+export default function EchartsRenderer(widget: HostRendererProps) {
   const { props, refreshKey, colors, title } = widget;
   const theme = useTheme();
   const container = useRef<HTMLDivElement>(null);

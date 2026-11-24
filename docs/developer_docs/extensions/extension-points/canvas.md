@@ -71,3 +71,20 @@ class Board(Widget):
 Agents read the same bindings: the MCP tools `preview_widget` and `get_canvas_data` run what a widget type builds, with the same checks, and answer each as a dataset of its name; a refusal reaches them as `error_type` `WidgetDataRefused`, with the type's code in `error_code`.
 
 `build_bindings` stands in for SIP-231's `QueryMixin.build_queries`, which builds `WidgetQuery` objects around a `SemanticQuery`. It will be replaced when that lands.
+## Showing a saved widget outside a canvas
+
+`canvas.WidgetHost` shows one saved widget on its own, on any page, in the cell a canvas draws around a placement: the title row, the slot the widget's own controls render into, its error boundary, and the canvas's "This widget is unavailable" placeholder. Its data comes from the saved widget endpoint above.
+
+```tsx
+import { canvas } from '@apache-superset/core';
+
+<canvas.WidgetHost widgetId={uuid} filters={pageFilters} showTitle={false} />;
+```
+
+A canvas renderer is always given the canvas and placement it renders (`canvasId`, `nodeId`), so the host never runs one outside a canvas. A widget type shows in a widget host once it registers a renderer for a saved widget on its own:
+
+```tsx
+canvas.registerSavedWidgetRenderer('extensions.acme.kpi.kpi', SavedKpiTile);
+```
+
+That renderer gets `SavedWidgetProps`: the saved widget's `widgetId`, `widgetType`, `props` and `title`, the `filters` the page passes in, and `refreshKey`. The widget is the only node of its filter bus, so it has no cross-filters. A type without one shows the placeholder. The built-in data widgets (`echarts`, `metric-tile` and `ag-grid-table`) register theirs.

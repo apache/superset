@@ -21,7 +21,7 @@ import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
-import { useWidgetRenderers } from 'src/core';
+import { useSavedWidgetRenderers } from 'src/core';
 import type {
   CanvasChild,
   CanvasColors,
@@ -34,8 +34,8 @@ import { registerBuiltinRenderers } from './builtinRenderers';
 import { TitledWidget, WidgetPlaceholder } from './CanvasGrid';
 import { Interactive, overflowFor, WidgetBody } from './CanvasGridSurface';
 
-// A saved widget can be any type, built in or an extension's; the canvas page
-// registers the built-in renderers too, and doing it twice is a no-op.
+// The built-in data widgets register their saved widget renderers here; the
+// canvas page registers them too, and doing it twice is a no-op.
 registerBuiltinRenderers();
 
 /** A saved widget, as `GET /api/v1/widget/<uuid>` answers it. */
@@ -81,7 +81,7 @@ export default function WidgetHost({
   const widget = useApiV1Resource<SavedWidget>(
     `/api/v1/widget/${encodeURIComponent(widgetId)}`,
   );
-  const getRenderer = useWidgetRenderers();
+  const getRenderer = useSavedWidgetRenderers();
 
   if (widget.status === ResourceStatus.Loading) {
     return (
@@ -132,8 +132,8 @@ export default function WidgetHost({
       />
     </ErrorBoundary>
   ) : (
-    // Its extension isn't loaded on this page, say: the type id means
-    // nothing to a viewer.
+    // Its extension isn't loaded on this page, or the type renders only on a
+    // canvas: the type id means nothing to a viewer.
     <WidgetPlaceholder>
       <span>{t('This widget is unavailable')}</span>
     </WidgetPlaceholder>
