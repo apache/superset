@@ -21,13 +21,20 @@ import rison from 'rison';
 import {
   act,
   fireEvent,
+  render,
   screen,
   waitFor,
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
+import {
+  DatasourceType,
+  isFeatureEnabled,
+  SupersetClient,
+  SupersetClientClass,
+} from '@superset-ui/core';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
+import DatasourceEditor from '..';
 import {
   createProps,
   DATASOURCE_ENDPOINT,
@@ -42,6 +49,10 @@ import {
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
+}));
+
+jest.mock('src/components/FilterableTable', () => ({
+  FilterableTable: () => null,
 }));
 
 beforeEach(() => {
@@ -928,59 +939,89 @@ test('calculated column search is case-insensitive', async () => {
   });
 });
 
-test('Open in SQL lab href is single-prefixed under subdirectory deployment', () => {
-  // The Open-in-SQL-Lab link's href is produced by `getSQLLabUrl()`:
-  //   return makeUrl(`/sqllab/?${queryParams.toString()}`);
-  // `makeUrl` is the idempotent app-root prefix helper from
-  // `src/utils/navigationUtils`. Rendering the link requires both the
-  // virtual datasourceType state AND a populated Redux `database.queryResult`
-  // slice (which is not part of the default test reducer tree). Calling
-  // `makeUrl` directly with a `/superset` mock exercises the exact path the
-  // component takes and pins the dedupe invariant for the underlying helper.
-  const applicationRootSpy = jest
-    .spyOn(getBootstrapData, 'applicationRoot')
-    .mockReturnValue('/superset');
-  try {
-    const { makeUrl } = jest.requireActual('src/utils/navigationUtils');
-    const queryParams = new URLSearchParams({
-      dbid: '1',
-      sql: 'SELECT * FROM users',
-      name: 'Vehicle Sales',
+test.each([
+  ['', 'button'],
+  ['/superset', 'button'],
+  ['', 'preview link'],
+  ['/superset', 'preview link'],
+  ['', 'error link'],
+  ['/superset', 'error link'],
+])(
+  'opens long SQL via POST in a new tab under "%s" from the %s',
+  async (appRoot, control) => {
+    const testProps = createProps();
+    const sql = "SELECT '长 SQL & ? # %' AS value;\n".repeat(450);
+    const datasource = {
+      ...testProps.datasource,
+      sql,
+      datasource_name: 'Long query & dataset',
       schema: 'public',
-      autorun: 'true',
-      isDataset: 'true',
+    };
+    const client = new SupersetClientClass({
+      protocol: 'http:',
+      host: 'localhost',
+      appRoot,
+      csrfToken: 'test-csrf-token',
     });
-    const url = makeUrl(`/sqllab/?${queryParams.toString()}`);
-    expect(url).toMatch(/^\/superset\/sqllab\/\?/);
-    expect(url).not.toMatch(/\/superset\/superset\//);
-  } finally {
-    applicationRootSpy.mockRestore();
-  }
-});
+    const applicationRootSpy = jest
+      .spyOn(getBootstrapData, 'applicationRoot')
+      .mockReturnValue(appRoot);
+    const postForm = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(client.postForm.bind(client));
+    const submit = jest
+      .spyOn(HTMLFormElement.prototype, 'submit')
+      .mockImplementation(() => {});
+    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
 
-test('DatasourceEditor source pins getSQLLabUrl/openOnSqlLab to the makeUrl + openInNewTab helpers', () => {
-  // Source-pin: lock the exact two-line shape the runtime behaviour depends
-  // on. `getSQLLabUrl` MUST wrap its `/sqllab/?...` path in `makeUrl` so the
-  // Layer-2 idempotent prefix runs at the click boundary; `openOnSqlLab`
-  // MUST delegate to `openInNewTab` so `ensureAppRoot` runs again (idempotent
-  // dedupe, see `navigationUtils.appRoot.test.tsx`). A refactor that drops
-  // either layer would let a doubled-prefix URL escape into a new tab.
-  // eslint-disable-next-line global-require
-  const { readFileSync } = require('fs');
-  // eslint-disable-next-line global-require
-  const { join } = require('path');
-  const src = readFileSync(
-    join(__dirname, '..', 'DatasourceEditor.tsx'),
-    'utf8',
-  );
-  expect(src).toMatch(
-    /return makeUrl\(`\/sqllab\/\?\$\{queryParams\.toString\(\)\}`\);/,
-  );
-  expect(src).toMatch(/openInNewTab\(getSQLLabUrl\(\)\);/);
-  expect(src).toMatch(
-    /import \{ makeUrl, openInNewTab \} from 'src\/utils\/navigationUtils';/,
-  );
-});
+    try {
+      render(<DatasourceEditor {...testProps} datasource={datasource} />, {
+        useRedux: true,
+        useRouter: true,
+        reducers: {
+          common: () => ({ currencies: ['USD', 'GBP', 'EUR'] }),
+          database: () =>
+            control === 'error link'
+              ? { error: 'Query failed' }
+              : control === 'preview link'
+                ? { queryResult: { data: [], columns: [] } }
+                : {},
+        },
+      });
+      await dismissDatasourceWarning();
+
+      await userEvent.click(
+        control === 'button'
+          ? screen.getByRole('button', { name: /export/i })
+          : screen.getByText('Open in SQL lab'),
+      );
+
+      await waitFor(() => expect(submit).toHaveBeenCalledTimes(1), {
+        onTimeout: error => error,
+      });
+      const form = submit.mock.contexts[0] as HTMLFormElement;
+      expect(form.action).toBe(`http://localhost${appRoot}/sqllab/`);
+      expect(form.method).toBe('post');
+      expect(form.target).toBe('_blank');
+      const formData = new FormData(form);
+      expect(JSON.parse(String(formData.get('form_data')))).toEqual({
+        dbid: datasource.database.id,
+        sql,
+        name: datasource.datasource_name,
+        schema: datasource.schema,
+        autorun: true,
+        isDataset: true,
+      });
+      expect(formData.get('csrf_token')).toBe('test-csrf-token');
+      expect(open).not.toHaveBeenCalled();
+    } finally {
+      applicationRootSpy.mockRestore();
+      postForm.mockRestore();
+      submit.mockRestore();
+      open.mockRestore();
+    }
+  },
+);
 
 const renderWithOneColumn = async () => {
   const baseProps = createProps();
