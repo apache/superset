@@ -229,19 +229,25 @@ def _partition_mapping_reference_error(
         for column in datasource_dict.get("columns") or []
         if column.get("column_name")
     }
+    stored_columns = {
+        column.column_name: column
+        for column in getattr(orm_datasource, "columns", None) or []
+    }
     stored_issues = (
         {
             (issue.field, str(issue.message))
             for issue in validate_partition_mapping(
-                column_names={
-                    column.column_name
-                    for column in getattr(orm_datasource, "columns", None) or []
-                },
+                column_names=set(stored_columns),
                 partition_column=orm_datasource.partition_column,
                 partition_mapped_column=orm_datasource.partition_mapped_column,
                 main_dttm_col=orm_datasource.main_dttm_col,
                 transform=None,
                 engine=database.backend,
+                partition_expression=getattr(
+                    stored_columns.get(orm_datasource.partition_column),
+                    "expression",
+                    None,
+                ),
             )
             if issue.blocking
         }

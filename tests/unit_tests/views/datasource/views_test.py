@@ -2225,11 +2225,17 @@ def test_save_keeps_an_echoed_transform_only_while_the_flag_is_off(
     assert on[0]["partition_transform_is_monotonic"] is False
 
 
-def _legacy_mapping_orm(partition_column: str | None) -> MagicMock:
+def _legacy_mapping_orm(
+    partition_column: str | None, dt_epoch_expression: str | None = None
+) -> MagicMock:
     columns = []
-    for name in ("event_time", "dt_epoch"):
+    for name, expression in (
+        ("event_time", None),
+        ("dt_epoch", dt_epoch_expression),
+    ):
         column = MagicMock()
         column.column_name = name
+        column.expression = expression
         columns.append(column)
     orm = MagicMock()
     orm.database.backend = "sqlite"
@@ -2292,3 +2298,30 @@ def test_legacy_save_survives_a_reference_already_broken_in_storage(
         app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
 
     assert error is None
+
+
+def test_legacy_save_survives_a_templated_key_already_stored(app: Flask) -> None:
+    """The same for a templated partition key the GET-then-POST client echoes."""
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    template = "{{ 'dt_' ~ 'epoch' }}"
+    payload = _legacy_mapping_payload("dt_epoch")
+    payload["columns"][1]["expression"] = template
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    try:
+        echoed = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch", dt_epoch_expression=template),
+            payload,
+            database_changed=False,
+        )
+        introduced = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch"), payload, database_changed=False
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert echoed is None
+    assert introduced is not None
+    assert "Jinja" in introduced
