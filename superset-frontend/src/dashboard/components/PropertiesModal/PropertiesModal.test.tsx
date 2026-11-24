@@ -45,18 +45,33 @@ jest.mock('@superset-ui/core', () => ({
 
 // Mock the Advanced JSON editor (Ace-based, not drivable in jsdom) with a plain
 // textarea so a direct JSON edit can be simulated. Keeps the "JSON Metadata"
-// label so the existing "should open advance" test still passes.
+// label so the existing "should open advance" test still passes. The custom
+// time presets props are surfaced as plain DOM so they can be asserted on.
 jest.mock('./sections/AdvancedSection', () => ({
   __esModule: true,
   default: ({
     jsonMetadata,
     onJsonMetadataChange,
+    customTimePresets,
+    customTimePresetsError,
   }: {
     jsonMetadata: string;
     onJsonMetadataChange: (value: string) => void;
+    customTimePresets?: string[];
+    customTimePresetsError?: string;
   }) => (
     <div>
       <span>JSON Metadata</span>
+      <ul data-test="mock-custom-time-presets">
+        {(customTimePresets ?? []).map(preset => (
+          <li key={preset}>{preset}</li>
+        ))}
+      </ul>
+      {customTimePresetsError && (
+        <div data-test="mock-custom-time-presets-error">
+          {customTimePresetsError}
+        </div>
+      )}
       <textarea
         aria-label="JSON metadata editor"
         data-test="mock-json-editor"
@@ -461,6 +476,98 @@ describe('PropertiesModal', () => {
     });
     const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
     expect(submitted.refresh_frequency).toBe(60);
+  });
+
+  test('renders custom time presets with existing preset', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    const metadataWithPresets = {
+      ...JSON.parse(mockedJsonMetadata),
+      custom_time_presets: ['Last 5 minutes', 'Last 2 hours'],
+    };
+    // dashboardInfo, when passed, is used directly instead of fetching;
+    // handleDashboardData reads the parsed `metadata` object.
+    render(
+      <PropertiesModal
+        {...props}
+        dashboardInfo={{
+          ...dashboardInfo,
+          json_metadata: JSON.stringify(metadataWithPresets),
+          metadata: metadataWithPresets,
+        }}
+      />,
+      { useRedux: true },
+    );
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    const advancedHeader = screen
+      .getByText('Advanced settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(advancedHeader!);
+
+    const presetList = await screen.findByTestId('mock-custom-time-presets');
+    expect(presetList).toHaveTextContent('Last 5 minutes');
+    expect(presetList).toHaveTextContent('Last 2 hours');
+    expect(presetList.querySelectorAll('li')).toHaveLength(2);
+
+    // Valid presets must not produce a validation error
+    expect(
+      screen.queryByTestId('mock-custom-time-presets-error'),
+    ).not.toBeInTheDocument();
+
+    // The presets are also kept in the JSON metadata editor
+    const editor = screen.getByTestId(
+      'mock-json-editor',
+    ) as HTMLTextAreaElement;
+    expect(JSON.parse(editor.value).custom_time_presets).toEqual([
+      'Last 5 minutes',
+      'Last 2 hours',
+    ]);
+  });
+
+  test('displays validation error when customTimePresetsError exists', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    render(
+      <PropertiesModal
+        {...props}
+        dashboardInfo={{
+          ...dashboardInfo,
+          json_metadata: mockedJsonMetadata,
+          metadata: JSON.parse(mockedJsonMetadata),
+        }}
+      />,
+      { useRedux: true },
+    );
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    const advancedHeader = screen
+      .getByText('Advanced settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(advancedHeader!);
+
+    const editor = await screen.findByTestId('mock-json-editor');
+    expect(
+      screen.queryByTestId('mock-custom-time-presets-error'),
+    ).not.toBeInTheDocument();
+
+    // Input an invalid preset (zero is not allowed) alongside a valid one;
+    // handleJsonMetadataChange syncs custom_time_presets into modal state.
+    fireEvent.change(editor, {
+      target: {
+        value: JSON.stringify({
+          custom_time_presets: ['Last 5 minutes', 'Last 0 minutes'],
+        }),
+      },
+    });
+
+    const error = await screen.findByTestId('mock-custom-time-presets-error');
+    expect(error).toHaveTextContent('Invalid time preset: Last 0 minutes.');
+    expect(error).toHaveTextContent(
+      'Use the format "Last <number> <unit>", e.g. "Last 5 minutes".',
+    );
+    // Only the invalid entry is reported
+    expect(error).not.toHaveTextContent('Invalid time preset: Last 5 minutes');
   });
 
   test('should close modal', async () => {
