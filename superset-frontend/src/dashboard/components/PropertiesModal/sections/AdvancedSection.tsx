@@ -82,7 +82,7 @@ const AdvancedSection = ({
         ariaLabel={t('Custom time presets')}
         placeholder={t('e.g., Last 5 minutes')}
         value={customTimePresets}
-        onChange={value => onCustomTimePresetsChange(value as string[])}
+        onChange={onCustomTimePresetsChange}
         options={[]}
         tokenSeparators={[',']}
         status={customTimePresetsError ? 'error' : undefined}
