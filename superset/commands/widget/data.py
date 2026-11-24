@@ -48,13 +48,9 @@ class GetWidgetDataCommand(BaseCommand):
         self,
         widget_uuid: UUID,
         runtime_filters: list[RuntimeFilter],
-        widget_draft_token: str | None = None,
-        widget_version: str | None = None,
     ) -> None:
         self._widget_uuid = widget_uuid
         self._runtime_filters = runtime_filters
-        self._widget_draft_token = widget_draft_token
-        self._widget_version = widget_version
         self._bindings: dict[str, dict[str, Any]] = {}
 
     def run(self) -> dict[str, PlacementData]:
@@ -79,8 +75,6 @@ class GetWidgetDataCommand(BaseCommand):
                 None,
                 dict(widget.props or {}),
                 widget_id=str(self._widget_uuid),
-                widget_draft_token=self._widget_draft_token or None,
-                widget_version=self._widget_version or None,
             ),
         )
         if not self._bindings:

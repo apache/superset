@@ -41,11 +41,6 @@ if TYPE_CHECKING:
 
     from superset.canvas.query_errors import CanvasQueryFailedError
 
-# Headers naming a draft and a version of a widget's own content, which the
-# host passes to its widget type (``BindingRequest``) without reading them.
-WIDGET_DRAFT_HEADER = "X-Widget-Draft"  # noqa: S105
-WIDGET_VERSION_HEADER = "X-Widget-Version"
-
 # Values a select filter publishes.
 FilterScalar = str | int | float | bool
 

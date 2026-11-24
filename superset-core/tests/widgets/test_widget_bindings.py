@@ -53,5 +53,4 @@ def test_a_request_names_no_draft_or_version_unless_it_has_them() -> None:
 
     assert request.widget_id is None
     assert request.canvas_draft_token is None
-    assert request.widget_draft_token is None
-    assert request.widget_version is None
+    assert request.canvas_version is None

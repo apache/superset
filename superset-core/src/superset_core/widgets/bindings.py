@@ -59,7 +59,11 @@ from typing import Any
 
 @dataclass(frozen=True)
 class BindingRequest:
-    """A data request for a widget: where the host read it, and what it names."""
+    """
+    A data request for a widget: where the host read the widget, all of which
+    the host has checked the caller may read. The caller's only input is the
+    runtime filters, which the host applies to the bindings a type builds.
+    """
 
     # The canvas, by id or UUID, and the placement the data request names;
     # ``None`` for a saved widget asked for on its own, without a canvas.
@@ -73,13 +77,13 @@ class BindingRequest:
     # it. The host has checked that the draft is the caller's own, and that
     # they may still edit the canvas.
     canvas_draft_token: str | None = None
-    # A draft and a version of the widget's own content that the request names
-    # (the ``X-Widget-Draft`` and ``X-Widget-Version`` headers), for a type
-    # that keeps drafts or versions of what it shows. The host passes them as
-    # they came, unchecked: they locate content, and grant nothing, so a type
-    # that reads them checks that the caller may read what they name.
-    widget_draft_token: str | None = None
-    widget_version: str | None = None
+    # The UUID of the saved version of the canvas the host read the placement
+    # from, when the request previews one, as the canvas page names it in
+    # ``X-Canvas-Version``. Only the canvas's editors can read a version, and
+    # the host has checked that the caller is one. ``None`` when no version is
+    # previewed, or when the placement came from the caller's draft, which
+    # wins over a version.
+    canvas_version: str | None = None
 
 
 @dataclass(frozen=True)
