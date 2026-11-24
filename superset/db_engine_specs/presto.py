@@ -92,6 +92,9 @@ CONNECTION_PORT_CLOSED_REGEX = re.compile(
 CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
     r"line (?P<location>.+?): Catalog '(?P<catalog_name>.+?)' does not exist"
 )
+SEQUENCE_FUNCTION_LIMIT_EXCEEDED_REGEX = re.compile(
+    r"result of sequence function must not have more than \d+ entries"
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1046,6 +1049,14 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         CONNECTION_UNKNOWN_DATABASE_ERROR: (
             __('Unable to connect to catalog named "%(catalog_name)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {},
+        ),
+        SEQUENCE_FUNCTION_LIMIT_EXCEEDED_REGEX: (
+            __(
+                "The query used a function (e.g. sequence()) that generated more "
+                "entries than the engine allows. Reduce the range or step size."
+            ),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             {},
         ),
     }

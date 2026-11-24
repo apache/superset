@@ -24,6 +24,9 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.sql_lab.export import SqlResultExportCommand
+from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+from superset.errors import SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.utils import csv
 
 
@@ -111,3 +114,31 @@ def test_csv_export_mixed_frame_is_byte_identical(
     assert result["data"] == expected.encode()
     assert result["count"] == 5
     assert formatter.call_count == 5
+
+
+def test_csv_export_dbapi_error_becomes_typed_4xx(mocker: MockerFixture) -> None:
+    """A DBAPI error while re-executing the query is a 400, not an unhandled 500."""
+    mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    query: MagicMock = MagicMock()
+    query.select_sql = "SELECT sequence(1, 1000000) FROM numbers"
+    query.database.get_df.side_effect = SupersetDBAPIProgrammingError(
+        "result of sequence function must not have more than 10000 entries"
+    )
+    query.database.db_engine_spec.extract_errors.return_value = [
+        SupersetError(
+            message="The query used a function (e.g. sequence()) that generated "
+            "more entries than the engine allows. Reduce the range or step size.",
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            level="error",
+        )
+    ]
+    mock_db: MagicMock = mocker.patch("superset.commands.sql_lab.export.db")
+    query_result: MagicMock = mock_db.session.query.return_value.filter_by.return_value
+    query_result.one_or_none.return_value = query
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        SqlResultExportCommand("client_id").run()
+
+    assert excinfo.value.status == 400
+    assert excinfo.value.error.error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+    query.database.db_engine_spec.extract_errors.assert_called_once()

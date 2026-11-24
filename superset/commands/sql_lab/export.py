@@ -27,6 +27,7 @@ from jinja2.exceptions import TemplateError
 
 from superset import db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.models.sql_lab import Query
@@ -146,11 +147,18 @@ class SqlResultExportCommand(BaseCommand):
             }:
                 # remove extra row from `increased_limit`
                 limit -= 1
-            df = self._query.database.get_df(
-                sql,
-                self._query.catalog,
-                self._query.schema,
-            )[:limit]
+            try:
+                df = self._query.database.get_df(
+                    sql,
+                    self._query.catalog,
+                    self._query.schema,
+                )[:limit]
+            except SupersetDBAPIError as ex:
+                db_engine_spec = self._query.database.db_engine_spec
+                errors = db_engine_spec.extract_errors(
+                    ex, database_name=self._query.database.database_name
+                )
+                raise SupersetErrorException(errors[0], status=400) from ex
 
         _format_decimal_columns(df)
 
