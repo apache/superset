@@ -24,6 +24,7 @@ import {
 } from 'src/utils/navigationUtils';
 import type { ActivityEntityKind, ActivityRecord } from './types';
 import { resolveEntityId } from './api';
+import { canOpenRelatedEntity } from './lifecycle';
 
 function entityUrl(kind: ActivityEntityKind, id: number): string {
   if (kind === 'chart') {
@@ -40,7 +41,7 @@ export async function openRelatedEntity(
   record: ActivityRecord,
   onError: (message: string) => void,
 ): Promise<void> {
-  if (!record.entity_uuid) {
+  if (!record.entity_uuid || !canOpenRelatedEntity(record)) {
     onError(t('Could not find %s', record.entity_name));
     return;
   }

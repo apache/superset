@@ -14,20 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Classify database errors the versioning capture path swallows.
+"""Classify database failures at version-history capture boundaries.
 
-The capture listeners fail open — a versioning bug must never break a
-user's save — and one failure is genuinely benign: the versioning tables
-not existing yet, during the window between deploying the code and
-running its migration. The listeners swallow that case silently.
+Database failures during optional metadata writes may be skipped only when
+savepoint recovery proves caller work survived. Missing versioning tables are a
+quiet rollout case after successful rollback; other recoverable capture failures
+are logged and counted.
+Lost transactions and invalidated connections must propagate to the caller.
 
-But the exception classes that case raises (``OperationalError`` on
-SQLite/MySQL, ``ProgrammingError`` on PostgreSQL) also cover deadlocks,
-lock timeouts, and dropped connections. Swallowing the whole class turns
-any of those into a silent capture drop: the user's save succeeds and its
-version history quietly doesn't exist. :func:`is_missing_table_error`
-separates the benign case from everything else, so the listeners can stay
-quiet for the migration race and log-plus-count the rest.
+Unisolated finalization reads also fail closed on DBAPI errors, including during
+ordinary content saves without archive activity. Without a savepoint rollback,
+continuation could report success after the database discarded the user's work.
+Ordinary computation errors remain optional capture failures. Driver diagnostics
+separate missing tables, recoverable statement failures, and transaction loss;
+exception class alone does not establish that a failed statement was isolated.
 """
 
 from __future__ import annotations
@@ -116,6 +116,42 @@ def is_lock_contention_error(exc: BaseException | None) -> bool:
     return any(phrase in text for phrase in _LOCK_CONTENTION_PHRASES)
 
 
+def is_lost_transaction_error(exc: BaseException | None) -> bool:
+    """Recognize structured evidence that optional capture lost caller work.
+
+    MySQL deadlocks roll back the whole transaction; a missing savepoint or an
+    invalidated connection also makes continuation unsafe. PostgreSQL deadlocks
+    and MySQL lock timeouts alone are not fatal: an enclosing savepoint may
+    isolate them. Inspect exception chains because savepoint cleanup can replace
+    the original driver error. Only DBAPIError.orig supplies structured driver
+    diagnostics: ordinary Python exception arguments are not database errnos.
+    Never classify on SQL or parameter text.
+    """
+    pending = [exc] if exc is not None else []
+    seen: set[int] = set()
+    while pending:
+        error = pending.pop()
+        if id(error) in seen:
+            continue
+        seen.add(id(error))
+        if isinstance(error, DBAPIError) and error.connection_invalidated:
+            return True
+        diagnostic = error.orig if isinstance(error, DBAPIError) else None
+        args = getattr(diagnostic, "args", ())
+        if args and isinstance(args[0], int):
+            # MySQL drivers may expose SQLSTATE as well as their decisive errno.
+            if args[0] in (1213, 1305):
+                return True
+        elif (
+            getattr(diagnostic, "pgcode", None) or getattr(diagnostic, "sqlstate", None)
+        ) == "3B001":
+            return True
+        for linked in (error.__cause__, error.__context__):
+            if linked is not None:
+                pending.append(linked)
+    return False
+
+
 #: MySQL/MariaDB errnos for a foreign key violation: adding a child row whose
 #: parent is missing (1452, and 1216 from older servers).
 _MYSQL_FOREIGN_KEY_VIOLATION: tuple[int, ...] = (1452, 1216)
@@ -168,16 +204,17 @@ def is_missing_table_error(exc: DBAPIError) -> bool:
     """
     orig = getattr(exc, "orig", None)
 
+    # MySQL/MariaDB drivers can also expose SQLSTATE; their numeric errno
+    # takes precedence over the PostgreSQL SQLSTATE vocabulary.
+    args = getattr(orig, "args", ())
+    if args and isinstance(args[0], int):
+        return args[0] == _MYSQL_NO_SUCH_TABLE
+
     # PostgreSQL via psycopg2. (psycopg 3 spells it ``sqlstate``; checked
     # too so a driver swap doesn't silently widen the swallow.)
     pgcode = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
     if pgcode is not None:
         return pgcode == _PG_UNDEFINED_TABLE
-
-    # MySQL/MariaDB drivers put the numeric errno first in args.
-    args = getattr(orig, "args", ())
-    if args and isinstance(args[0], int):
-        return args[0] == _MYSQL_NO_SUCH_TABLE
 
     # SQLite has no error codes on OperationalError; the message is the
     # documented, stable signal.

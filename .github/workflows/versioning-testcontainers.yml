@@ -1,0 +1,92 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+name: Version history databases
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - ".github/workflows/versioning-testcontainers.yml"
+      - ".github/actions/setup-backend/**"
+      - "tests/testcontainers/versioning/**"
+      - "tests/testcontainers/db_engine_specs/_driver.py"
+      - "tests/conftest.py"
+      - "tests/integration_tests/test_app.py"
+      - "tests/integration_tests/superset_test_config.py"
+      - "pytest.ini"
+      - "superset/versioning/**"
+      - "superset/commands/deletion_retention/purge_cascade.py"
+      - "superset/tasks/version_history_retention.py"
+      - "superset/migrations/versions/2026-11-23_00-00_a7d29bc4e681_add_chart_archive_scope.py"
+      - "superset/migrations/shared/utils.py"
+      - "superset/initialization/__init__.py"
+      - "superset/app.py"
+      - "superset/config.py"
+      - "superset/models/slice.py"
+      - "superset/models/dashboard.py"
+      - "superset/models/helpers.py"
+      - "pyproject.toml"
+      - "requirements/base.in"
+      - "requirements/base.txt"
+      - "requirements/development.in"
+      - "requirements/development.txt"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  archive-history:
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        dialect: [POSTGRES, MYSQL]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_TESTENV: true
+      SUPERSET_SECRET_KEY: not-a-secret
+      SUPERSET_TESTCONTAINERS_STRICT: true
+      SUPERSET_VERSIONING_TEST_DIALECT: ${{ matrix.dialect }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: $/.github/actions/setup-backend/
+        with:
+          python-version: current
+      - name: Run archive transaction and migration tests
+        run: |
+          pytest --durations-min=2 -v -m testcontainers \
+            tests/testcontainers/versioning/test_chart_archive.py \
+            --junit-xml=test-results/junit-archive-${{ matrix.dialect }}.xml
+      - name: Upload JUnit test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: junit-results-archive-${{ matrix.dialect }}
+          path: test-results/
+          retention-days: 7
