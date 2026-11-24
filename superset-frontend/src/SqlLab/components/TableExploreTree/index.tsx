@@ -75,7 +75,9 @@ const EMPTY_PINNED_KEYS = new Set<string>();
 const ignorePin = () => {};
 
 const StyledTreeContainer = styled.div`
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
   .tree-node {
     display: flex;
     align-items: center;

@@ -66,6 +66,8 @@ export default function LeftPanel({
       gap="small"
       style={{
         height: '100%',
+        minHeight: 0,
+        overflow: 'hidden',
         padding: theme.sizeUnit * 4,
         position: 'relative',
       }}
