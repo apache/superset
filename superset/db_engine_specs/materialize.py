@@ -239,6 +239,8 @@ class MaterializeEngineSpec(PostgresEngineSpec):
             if names:
                 # A quoted spelling names the relation as written (quotes
                 # stripped, doubled quotes undone); an unquoted one is folded.
+                # Unlike PostgreSQL, Materialize folds unquoted identifiers with same
+                # Unicode lowercasing as lower(), so both agree on non-ASCII names.
                 cursor.execute(
                     "SELECT s.name, sp.spelling "
                     "FROM unnest(%s::text[]) AS sp(spelling) "
