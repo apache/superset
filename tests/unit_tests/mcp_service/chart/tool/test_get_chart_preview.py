@@ -1981,14 +1981,14 @@ class TestDetachedInstanceError:
 
         data = json.loads(response.content[0].text)
         # The tool should succeed — not return a ChartError
-        assert "error_type" not in data, (
-            f"Expected ChartPreview but got ChartError: {data.get('error')}"
-        )
+        assert (
+            "error_type" not in data
+        ), f"Expected ChartPreview but got ChartError: {data.get('error')}"
         assert data.get("chart_id") == 42
 
-        assert len(refresh_calls) == 1, (
-            "db.session.refresh() should be called once after loading the chart"
-        )
+        assert (
+            len(refresh_calls) == 1
+        ), "db.session.refresh() should be called once after loading the chart"
         assert refresh_calls[0] is mock_chart
 
     @pytest.mark.asyncio
@@ -2721,3 +2721,74 @@ async def test_png_budget_counts_metadata_at_exact_boundary(headroom):
             await middleware.on_call_tool(context, call_next)
     else:
         assert await middleware.on_call_tool(context, call_next) is response
+
+
+@pytest.mark.parametrize(
+    ("chart_id", "identifier", "key", "expected_query"),
+    [
+        (0, None, "cached-key", "form_data_key=cached-key"),
+        (0, "legacy-cached-key", None, "form_data_key=legacy-cached-key"),
+        (42, 42, "edited-key", "form_data_key=edited-key"),
+        (42, 42, None, "slice_id=42"),
+        (0, None, "key&slice_id=99", "form_data_key=key%26slice_id%3D99"),
+    ],
+)
+def test_url_preview_preserves_cached_state(
+    chart_id: int,
+    identifier: int | str | None,
+    key: str | None,
+    expected_query: str,
+) -> None:
+    from superset.mcp_service.chart.tool.get_chart_preview import URLPreviewStrategy
+
+    request = GetChartPreviewRequest(
+        identifier=identifier, form_data_key=key, format="url"
+    )
+    chart = SimpleNamespace(id=chart_id)
+    with patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.get_superset_base_url",
+        return_value="https://superset.example",
+    ):
+        result = URLPreviewStrategy(chart, request).generate()
+    assert isinstance(result, URLPreview)
+    assert result.preview_url == f"https://superset.example/explore/?{expected_query}"
+
+
+@pytest.mark.asyncio
+async def test_unsaved_preview_returns_renderable_cached_state(monkeypatch) -> None:
+    from contextlib import nullcontext
+    from unittest.mock import AsyncMock
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    form_data = {
+        "datasource": "443__table",
+        "viz_type": "echarts_timeseries_line",
+        "metrics": ["close_rate"],
+        "x_axis": "closedate",
+        "time_range": "2024-11-23 : 2026-11-23",
+    }
+    monkeypatch.setattr(module.event_logger, "log_context", lambda **kw: nullcontext())
+    with (
+        patch(
+            "superset.commands.explore.form_data.get.GetFormDataCommand.run",
+            return_value=utils_json.dumps(form_data),
+        ),
+        patch.object(
+            module, "get_superset_base_url", return_value="https://superset.example"
+        ),
+    ):
+        result = await module._get_chart_preview_internal(
+            GetChartPreviewRequest(form_data_key="cached-key", format="url"),
+            AsyncMock(),
+        )
+    assert isinstance(result, ChartPreview), result
+    assert result.chart_id == 0
+    assert result.form_data_key == "cached-key"
+    assert (
+        result.explore_url
+        == "https://superset.example/explore/?form_data_key=cached-key"
+    )
+    assert isinstance(result.content, URLPreview)
+    assert result.content.preview_url == result.explore_url

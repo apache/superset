@@ -27,6 +27,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
 from io import BytesIO
 from typing import Any, Dict, List, Protocol
+from urllib.parse import urlencode
 
 from fastmcp import Context
 from flask import g
@@ -286,17 +287,36 @@ class PreviewFormatStrategy:
         )
 
 
+def _preview_form_data_key(chart: Any, request: GetChartPreviewRequest) -> str | None:
+    """Retain cached state, including the legacy key-as-identifier input."""
+    if request.form_data_key:
+        return request.form_data_key
+    if not chart.id and isinstance(request.identifier, str):
+        return request.identifier
+    return None
+
+
+def _preview_explore_url(chart: Any, request: GetChartPreviewRequest) -> str:
+    if key := _preview_form_data_key(chart, request):
+        query = urlencode({"form_data_key": key})
+    elif chart.id:
+        query = urlencode({"slice_id": chart.id})
+    else:
+        return ""
+    return f"{get_superset_base_url()}/explore/?{query}"
+
+
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based preview with explore link."""
 
     def generate(self) -> URLPreview | ChartError:
         chart = self.chart
-        if not chart.id:
+        explore_url = _preview_explore_url(chart, self.request)
+        if not explore_url:
             return ChartError(
-                error="URL preview not available for transient charts without an ID",
+                error="URL preview requires a saved chart or cached form_data_key",
                 error_type="UnsupportedFormat",
             )
-        explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
         return URLPreview(
             preview_url=explore_url,
             width=self.request.width or 800,
@@ -1656,7 +1676,8 @@ async def _get_chart_preview_internal(  # noqa: C901
             chart_id=chart.id,
             chart_name=chart.slice_name or f"Chart {chart.id}",
             chart_type=chart.viz_type or "unknown",
-            explore_url=f"{get_superset_base_url()}/explore/?slice_id={chart.id}",
+            explore_url=_preview_explore_url(chart, request),
+            form_data_key=_preview_form_data_key(chart, request),
             content=content,
             chart_description=_build_chart_description(chart),
             accessibility=accessibility,
