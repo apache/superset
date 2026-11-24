@@ -5056,6 +5056,9 @@ def test_get_sqla_query_rolls_back_a_failed_flush_at_the_engine_lookup(
     token staged earlier is flushed by that lookup's ORM reads, before any
     guard in ``compile_sqla_query`` or ``get_df``.
     """
+    # Load columns and metrics first, so the staged flush cannot land at their
+    # lazy load and instead lands at the engine lookup.
+    _ = persisted_table.columns, persisted_table.metrics
     _stage_failing_flush(session)
 
     with pytest.raises(sqlalchemy.exc.IntegrityError):
