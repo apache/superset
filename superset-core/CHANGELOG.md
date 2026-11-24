@@ -54,6 +54,19 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   previews, read with the canvas's access rules, and `editable_widgets`, which of
   some saved widgets the current user may change. See the
   [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
+- `superset_core.canvas.drafts`: canvas draft events (`on_draft_event`) and steps a widget
+  records in a draft's history for the canvas's undo and redo (`record_step`,
+  `register_step_handler`). `on_draft_event` and `register_step_handler` return what
+  they register, so `on_draft_event` works as a decorator. In an extension's context,
+  the host prefixes a step's kind with the extension's id
+  (`extensions.<publisher>.<name>.<kind>`), where its handler is registered and where
+  the step is recorded alike. See the
+  [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
+- Commit participants in `superset_core.canvas.drafts` (`register_commit_participant`,
+  `DraftCommit`, `CommitRefusedError`), which can refuse a canvas commit that would
+  publish the canvas without what goes out with it. `register_commit_participant`
+  returns the participant, so it works as a decorator. See the
+  [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
 - `Widget.build_bindings` and `superset_core.widgets.bindings` (`BindingRequest`,
   `WidgetBinding`, `WidgetDataRefusedError`), provisional: a widget type whose data
   is not in its props builds the bindings a data request runs, which the host
@@ -70,11 +83,6 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
 - `metadata_only` on `superset_core.mcp.tool`: a tool that reads only Superset's metadata
   database declares it, so that its calls take no warehouse slot. See the
   [MCP guide](../docs/developer_docs/extensions/mcp.md).
-- `superset_core.canvas.drafts`: canvas draft events (`on_draft_event`), steps a widget
-  records in a draft's history for the canvas's undo and redo (`record_step`,
-  `register_step_handler`), and commit participants that can refuse a commit
-  (`register_commit_participant`). See the
-  [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
 - `superset_core.mcp.instructions.contribute_instructions`: an extension adds guidance
   on its own tools to the MCP server's instructions, as text or as a callable asked as
   each session starts. See the [MCP guide](../docs/developer_docs/extensions/mcp.md).

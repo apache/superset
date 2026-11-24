@@ -21,7 +21,11 @@ import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { fireDraftEvent, preparePublish } from 'src/core';
+import {
+  fireDraftDiscarded,
+  fireDraftPublished,
+  preparePublish,
+} from 'src/core';
 import {
   LOG_ACTIONS_CANVAS_DRAFT_END,
   LOG_ACTIONS_CANVAS_ERROR,
@@ -164,12 +168,9 @@ export function useDraftActions(
       // separate names.
       log(LOG_ACTIONS_CANVAS_DRAFT_END, { outcome, revision: at });
       if (canvasId !== undefined && token) {
-        fireDraftEvent({
-          kind: outcome === 'commit' ? 'committed' : 'discarded',
-          canvasId,
-          token,
-          steppedWidgetIds: [],
-        });
+        const fire =
+          outcome === 'commit' ? fireDraftPublished : fireDraftDiscarded;
+        fire({ canvasId, token });
       }
       onClosed();
     },

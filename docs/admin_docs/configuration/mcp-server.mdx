@@ -511,6 +511,7 @@ unsupported definition versions retain their existing responses.
 | `DraftRevisionConflict` | The submitted draft revision differs from the loaded draft. | Reload the draft and base subsequent changes on its current revision. |
 | `CanvasRevisionConflict` | The published canvas changed before a mutating commit or conflicted with initial operations. | Start a fresh draft after a rejected mutating commit. |
 | `WidgetRevisionConflict` | A shared widget changed even though the canvas did not. `changed_widgets` identifies the conflicts and `canvas_changed` is `false`. | Start a fresh draft; the rejected commit publishes none of its changes. |
+| `DraftCommitRefused` | Something that goes out with the canvas, such as an extension's content that keeps a draft of its own, isn't published yet. `refusal_code` is the refusing extension's code and `error` says what to do; nothing was published. | Leave the draft as it is and have the person publish the canvas from its page. |
 
 Revision fields identify the state actually observed by the command:
 

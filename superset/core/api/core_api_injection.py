@@ -463,6 +463,8 @@ def inject_canvas_draft_implementations() -> None:
     steps recorded in a draft's history, the recording itself, and who is
     asked before a commit.
     """
+    from dataclasses import replace
+
     import superset_core.canvas.drafts as core_drafts_module
     from superset_core.canvas.drafts import DraftNotFoundError, DraftStep, StepAuthor
 
@@ -472,6 +474,9 @@ def inject_canvas_draft_implementations() -> None:
         from superset.commands.canvas.draft import RecordCanvasDraftStepCommand
         from superset.commands.exceptions import ForbiddenError, ObjectNotFoundError
 
+        # Prefixed in the caller's context as its handler's kind was where it
+        # registered, so that the step reaches that handler.
+        step = replace(step, kind=draft_hooks.step_kind(step.kind))
         try:
             return RecordCanvasDraftStepCommand(token, step, by=by).run().revision
         except (ObjectNotFoundError, ForbiddenError) as ex:
