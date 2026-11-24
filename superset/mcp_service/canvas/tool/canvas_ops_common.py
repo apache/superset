@@ -90,17 +90,8 @@ def query_error(ex: Exception) -> dict[str, str]:
     and a missing dataset must read the same as one the caller cannot see.
     Known query diagnostics use the shared principal-sensitive sanitizer and
     require permission to see the query. Unexpected failures remain generic.
-    A widget type's own refusal keeps its message and code, which the type
-    wrote for the caller.
     """
     error = canvas_query_error(ex)
-    if error.code is not None:
-        logger.info("Canvas widget query refused by its type: %s", error.code)
-        return {
-            "error": error.message,
-            "error_type": error.error_type,
-            "error_code": error.code,
-        }
     if error.status >= 500:
         logger.warning("Canvas widget query failed", exc_info=True)
     if (

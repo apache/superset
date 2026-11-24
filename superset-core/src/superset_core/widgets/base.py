@@ -131,8 +131,7 @@ class Widget:
         """
         The bindings a data request for the widget runs, each answered as the
         dataset of its name, or ``None``, the default, for the host's own: the
-        props' ``dataBinding``, as ``main``. Raise ``WidgetDataRefusedError``
-        to refuse the request with a code and a message instead.
+        props' ``dataBinding``, as ``main``.
 
         Provisional, with the types in ``superset_core.widgets.bindings``,
         which also says what the host checks and runs.

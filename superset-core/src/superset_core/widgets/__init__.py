@@ -34,7 +34,6 @@ from superset_core.widgets.behavior import (
 from superset_core.widgets.bindings import (
     BindingRequest as BindingRequest,
     WidgetBinding as WidgetBinding,
-    WidgetDataRefusedError as WidgetDataRefusedError,
 )
 from superset_core.widgets.composites import (
     composite_control as composite_control,

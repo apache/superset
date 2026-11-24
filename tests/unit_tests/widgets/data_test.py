@@ -129,35 +129,6 @@ def test_a_widget_types_bindings_come_from_its_builder(
     )
 
 
-def test_a_widget_types_refusal_comes_through_with_its_code(
-    tables: Session,
-    make_user: MakeUser,
-    make_widget: MakeWidget,
-    run_binding: MagicMock,
-    mocker: MockerFixture,
-) -> None:
-    from superset_core.widgets import WidgetDataRefusedError
-
-    from superset.widgets.registry import registry
-
-    mocker.patch.object(
-        registry["markdown"],
-        "build_bindings",
-        MagicMock(side_effect=WidgetDataRefusedError("CONTENT_CHANGED", "Reload")),
-    )
-    alice_user, alice = make_user("alice", "Gamma")
-    widget = make_widget("Notes", editors=[alice], props={"content": "x"})
-
-    with override_user(alice_user), pytest.raises(CanvasQueryFailedError) as caught:
-        GetWidgetDataCommand(widget.uuid, []).run()
-
-    assert (caught.value.error.status, caught.value.error.code) == (
-        400,
-        "CONTENT_CHANGED",
-    )
-    run_binding.assert_not_called()
-
-
 def test_a_failing_query_fails_classified_as_a_placements_does(
     tables: Session,
     make_user: MakeUser,
@@ -248,28 +219,6 @@ def test_the_route_answers_the_datasets_envelope(
         UUID(WIDGET),
         [RuntimeFilter(datasetId=13, column="country", values=["FR"])],
     )
-
-
-@api_flags
-def test_the_route_answers_a_refusal_as_a_400_with_its_code_and_message(
-    client: Any, full_api_access: None, mocker: MockerFixture
-) -> None:
-    from superset_core.widgets import WidgetDataRefusedError
-
-    refused = WidgetDataRefusedError("CONTENT_GONE", "Reload it")
-    command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
-    command.return_value.run.side_effect = CanvasQueryFailedError(
-        canvas_query_error(refused)
-    )
-
-    response = client.post(URL.format(WIDGET), json={})
-
-    assert response.status_code == 400
-    assert response.json == {
-        "message": "Reload it",
-        "error_type": "WidgetDataRefused",
-        "code": "CONTENT_GONE",
-    }
 
 
 @api_flags

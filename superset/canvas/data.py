@@ -113,15 +113,6 @@ def data_response(
     from superset.extensions import security_manager
     from superset.utils import json
 
-    def answer(payload: dict[str, Any], status: int) -> Response:
-        # Not ``api.response``, whose status parameter is named ``code``, a key
-        # a widget type's refusal carries.
-        return Response(
-            json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
-            status=status,
-            mimetype="application/json",
-        )
-
     try:
         datasets = run()
     except CanvasQueryFailedError as ex:
@@ -131,13 +122,17 @@ def data_response(
             on_error(ex, 404 if missing else error.status)
         if missing:
             return api.response_404()
-        return answer(error.rest_payload(), error.status)
+        return api.response(error.status, **error.rest_payload())
     # Classic charts gate "View query" on the same permission.
     payload = datasets_payload(
         datasets,
         with_query=security_manager.can_access("can_view_query", "Dashboard"),
     )
-    return answer(payload, 200)
+    return Response(
+        json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
+        status=200,
+        mimetype="application/json",
+    )
 
 
 def binding_dataset_id(props: dict[str, Any]) -> int | None:

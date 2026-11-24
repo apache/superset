@@ -46,10 +46,6 @@ security and the runtime filters, which narrow every binding on its dataset:
 
 A binding that names no dataset isn't bound yet, and the host leaves it out.
 A widget type decides what its widgets query, never who may read their data.
-
-A widget type may also refuse a data request (``WidgetDataRefusedError``),
-such as one that names content the widget no longer serves; the host then
-presents the type's code and message instead of any dataset.
 """
 
 from __future__ import annotations
@@ -95,24 +91,3 @@ class WidgetBinding:
     name: str
     # In the shape of a placement's ``dataBinding``.
     binding: Mapping[str, Any]
-
-
-class WidgetDataRefusedError(Exception):
-    """
-    A widget type's refusal of a data request: the host runs none of the
-    widget's bindings and presents the refusal instead of any dataset, with
-    ``code`` and ``message``, the same way whatever the code.
-
-    ``code`` is for programs, such as the widget's renderer deciding what to
-    do next: the type's own name for why it refused, which keeps its meaning
-    from one release to the next. The host passes it on without reading it.
-    ``message`` reaches whoever made the request as it is, so it must say
-    nothing they may not know.
-    """
-
-    def __init__(self, code: str, message: str) -> None:
-        if not isinstance(code, str) or not code:
-            raise ValueError("a widget data refusal needs a code")
-        super().__init__(message)
-        self.code = code
-        self.message = message
