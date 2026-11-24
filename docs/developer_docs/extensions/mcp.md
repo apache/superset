@@ -315,6 +315,21 @@ The AI agent sees your tool's:
 - **Parameters**: What inputs it expects (from Pydantic schema)
 - **Tags**: Categories for discovery
 
+### Adding to the server's instructions
+
+When your tools need guidance beyond their own descriptions, such as when an agent should reach for them rather than Superset's, contribute it to the MCP server's instructions from your entry point:
+
+```python
+from superset_core.mcp.instructions import contribute_instructions
+
+contribute_instructions("Use the board tools when the user names a board.")
+
+# Or a callable, asked as each MCP session starts, which answers None to add nothing:
+contribute_instructions(lambda: BOARD_GUIDANCE if boards_enabled() else None)
+```
+
+Superset lists each extension's guidance under its id, after its own rules, which stay as they are: write guidance that says how your tools fit them. A callable runs in your extension's context and the app context; one that raises, or answers `None` or nothing, adds nothing for that session. Keep it cheap, since every session waits for it.
+
 ## Troubleshooting
 
 ### Tool Not Available to AI Agents

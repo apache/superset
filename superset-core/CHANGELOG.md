@@ -45,6 +45,9 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
 - A provider conformance test kit in `superset_core.semantic_layers.testing`; install
   `apache-superset-core[testing]` for its pytest dependency.
+- `superset_core.mcp.instructions.contribute_instructions`: an extension adds guidance
+  on its own tools to the MCP server's instructions, as text or as a callable asked as
+  each session starts. See the [MCP guide](../docs/developer_docs/extensions/mcp.md).
 
 ### Compatibility
 

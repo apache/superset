@@ -1325,6 +1325,37 @@ class RBACToolVisibilityMiddleware(Middleware):
             return tools
 
 
+class ExtensionInstructionsMiddleware(Middleware):
+    """Answer each session's ``initialize`` with the instructions as ``build``
+    makes them then, so that guidance an extension contributes as a callable
+    (``superset_core.mcp.instructions``) follows state that changes while the
+    server runs. A ``build`` that fails keeps the server's own instructions.
+    """
+
+    def __init__(self, build: Callable[[], str]) -> None:
+        self._build = build
+
+    async def on_initialize(
+        self,
+        context: MiddlewareContext[mt.InitializeRequest],
+        call_next: CallNext[mt.InitializeRequest, mt.InitializeResult | None],
+    ) -> mt.InitializeResult | None:
+        result = await call_next(context)
+        if result is None:
+            return result
+        try:
+            with _get_app_context_manager():
+                instructions = self._build()
+        except Exception:  # noqa: BLE001 — extension callables may raise anything
+            logger.warning(
+                "Building this session's MCP instructions failed; keeping the "
+                "server's own",
+                exc_info=True,
+            )
+            return result
+        return result.model_copy(update={"instructions": instructions})
+
+
 class GlobalErrorHandlerMiddleware(Middleware):
     """
     Global error handler middleware that provides consistent error responses

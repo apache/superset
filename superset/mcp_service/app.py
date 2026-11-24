@@ -64,6 +64,7 @@ _SNIPPET_CONNECT_GUIDANCE = (
 def get_default_instructions(
     branding: str = "Apache Superset",
     disabled_tools: set[str] | None = None,
+    extension_guidance: str | None = None,
 ) -> str:
     """Get default instructions with configurable branding.
 
@@ -76,11 +77,22 @@ def get_default_instructions(
             (e.g., "ACME Analytics", "Apache Superset")
         disabled_tools: Set of tool names to omit from the tool listing.
             When ``None`` (default) all tools are included.
+        extension_guidance: The extensions' notes on their own tools
+            (``superset_core.mcp.instructions``), placed after the host's
+            rules. When ``None`` (default), what the extensions contributed,
+            asked now.
 
     Returns:
         Formatted instructions string with branding applied
     """
+    from superset.core.mcp.instructions import (  # noqa: PLC0415
+        extension_guidance as contributed_guidance,
+    )
+
     _disabled = disabled_tools or set()
+    _extension_guidance = (
+        contributed_guidance() if extension_guidance is None else extension_guidance
+    )
 
     # Prose sections that reference get_instance_info are omitted when that
     # tool is disabled so the LLM is never directed to call a removed tool.
@@ -521,7 +533,7 @@ IMPORTANT - Tool-Only Interaction:
 - If a user asks for something the tools cannot do, explain the limitation and suggest
   the closest available tool rather than generating code as a workaround.
 
-General usage tips:
+{_extension_guidance}General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
 - Use get_schema (chart/dataset/dashboard/database/report) to discover filterable columns,
   sortable columns, and default columns for those resource types
@@ -1091,7 +1103,13 @@ def init_fastmcp_server(
     """
     # circular import: flask_singleton imports from superset.extensions which
     # re-enters mcp_service during startup; must stay lazy inside the function.
+    from superset.core.mcp.instructions import (  # noqa: PLC0415
+        has_dynamic_contributions,
+    )
     from superset.mcp_service.flask_singleton import app as flask_app  # noqa: PLC0415
+    from superset.mcp_service.middleware import (  # noqa: PLC0415
+        ExtensionInstructionsMiddleware,
+    )
     from superset.mcp_service.session_scope import (  # noqa: PLC0415
         install_mcp_session_scoping,
     )
@@ -1119,7 +1137,16 @@ def init_fastmcp_server(
         # Merge MCP_DISABLED_TOOLS with config-guard removals so the instructions
         # never advertise tools that have been suppressed by either mechanism.
         all_disabled = disabled_tools | config_guard_removed
-        instructions = get_default_instructions(branding, all_disabled)
+        with flask_app.app_context():
+            instructions = get_default_instructions(branding, all_disabled)
+        if has_dynamic_contributions():
+            # An extension's guidance can change while the server runs, so
+            # each session is answered with the instructions as they are then.
+            mcp.add_middleware(
+                ExtensionInstructionsMiddleware(
+                    lambda: get_default_instructions(branding, all_disabled)
+                )
+            )
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.
