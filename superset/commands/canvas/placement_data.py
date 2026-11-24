@@ -17,11 +17,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 from flask import current_app
 from pydantic import ValidationError as PydanticValidationError
+from superset_core.canvas import StoredWidget
 from superset_core.widgets import (
     BindingRequest,
     WidgetBinding,
@@ -45,6 +47,67 @@ from superset.daos.canvas import CanvasDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.widgets.controls import DataBinding
+
+
+@dataclass(frozen=True)
+class StoredPlacement:
+    """A placement's widget type and props, as stored."""
+
+    # ``None`` for a widget entity that no longer resolves.
+    widget_type: str | None
+    props: dict[str, Any]
+    # The UUID of the saved widget the placement shows; ``None`` for a widget
+    # stored on the placement itself, such as a container or text.
+    widget_id: str | None = None
+    # That saved widget's content, as the canvas or draft resolves it.
+    widget: StoredWidget | None = None
+
+
+def load_placement(
+    id_or_uuid: str,
+    placement_id: str,
+    draft_token: str | None = None,
+    version_uuid: UUID | None = None,
+) -> StoredPlacement:
+    """
+    A placement as stored on the canvas, in the caller's draft of it, or in one
+    of its versions, which only its editors can read. A canvas the caller can't
+    read looks the same as one that doesn't exist.
+
+    Raises ``CanvasNotFoundError``, ``CanvasDraftNotFoundError`` and
+    ``CanvasPlacementNotFoundError``, and what ``load_draft`` and
+    ``version_snapshot`` raise.
+    """
+    canvas = CanvasDAO.find_by_id_or_uuid(id_or_uuid)
+    if canvas is None:
+        raise CanvasNotFoundError()
+    resolver = get_widget_resolver()
+    if draft_token:
+        draft = load_draft(draft_token)
+        if draft.canvas_id != canvas.id:
+            raise CanvasDraftNotFoundError()
+        definition = draft.definition
+        resolver = draft.resolver()
+    elif version_uuid:
+        definition = version_snapshot(canvas, version_uuid)["definition"]
+    else:
+        definition = CanvasDAO.load(canvas)
+    node = definition["nodes"].get(placement_id)
+    if node is None:
+        raise CanvasPlacementNotFoundError()
+    if widget_id := node.get("widgetId"):
+        widget = resolver.widgets({widget_id}).get(widget_id)
+        if widget is None:
+            return StoredPlacement(widget_type=None, props={}, widget_id=widget_id)
+        return StoredPlacement(
+            widget_type=widget.widget_type,
+            props=widget.props,
+            widget_id=widget_id,
+            widget=widget,
+        )
+    return StoredPlacement(
+        widget_type=node.get("widgetType"), props=node.get("props") or {}
+    )
 
 
 class GetPlacementDataCommand(BaseCommand):
@@ -83,40 +146,26 @@ class GetPlacementDataCommand(BaseCommand):
             raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
 
     def validate(self) -> None:
-        canvas = CanvasDAO.find_by_id_or_uuid(self._id_or_uuid)
-        if canvas is None:
-            raise CanvasNotFoundError()
-        resolver = get_widget_resolver()
-        version: str | None = None
-        if self._draft_token:
-            draft = load_draft(self._draft_token)
-            if draft.canvas_id != canvas.id:
-                raise CanvasDraftNotFoundError()
-            definition = draft.definition
-            resolver = draft.resolver()
-        elif self._version_uuid:
-            definition = version_snapshot(canvas, self._version_uuid)["definition"]
-            version = str(self._version_uuid)
-        else:
-            definition = CanvasDAO.load(canvas)
-        node = definition["nodes"].get(self._placement_id)
-        if node is None:
-            raise CanvasPlacementNotFoundError()
-        widget_type, props = node.get("widgetType"), node.get("props") or {}
-        if widget_id := node.get("widgetId"):
-            widget = resolver.widgets({widget_id}).get(widget_id)
-            widget_type, props = (
-                (widget.widget_type, widget.props) if widget is not None else (None, {})
-            )
+        placement = load_placement(
+            self._id_or_uuid,
+            self._placement_id,
+            self._draft_token,
+            self._version_uuid,
+        )
         self._bindings = widget_bindings(
-            widget_type,
+            placement.widget_type,
             BindingRequest(
                 self._id_or_uuid,
                 self._placement_id,
-                props,
-                widget_id=widget_id or None,
+                placement.props,
+                widget_id=placement.widget_id,
                 canvas_draft_token=self._draft_token or None,
-                canvas_version=version,
+                # load_placement reads the draft over a previewed version.
+                canvas_version=(
+                    str(self._version_uuid)
+                    if self._version_uuid and not self._draft_token
+                    else None
+                ),
             ),
         )
         if not self._bindings:
