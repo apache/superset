@@ -20,6 +20,7 @@ import { useMemo } from 'react';
 import {
   ContextMenuFilters,
   DataRecordValue,
+  QueryFormColumn,
   TimeGranularity,
   getXAxisColumn,
 } from '@superset-ui/core';
