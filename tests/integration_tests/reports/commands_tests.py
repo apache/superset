@@ -2604,7 +2604,7 @@ def test_report_schedule_working_timeout_takes_over_owned_execution(
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
     with freeze_time(current_time):
-        with pytest.raises(Exception):  # noqa: B017
+        with pytest.raises(Exception):  # noqa: B017, PT011
             AsyncExecuteReportScheduleCommand(
                 TEST_ID,
                 create_report_slack_chart_working.id,
@@ -2648,9 +2648,7 @@ def test_prune_keeps_latest_stuck_reset_marker(create_report_slack_chart_working
     db.session.commit()
     latest_marker = (
         db.session.query(ReportExecutionLog)
-        .filter(
-            ReportExecutionLog.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE
-        )
+        .filter(ReportExecutionLog.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE)
         .order_by(ReportExecutionLog.id.desc())
         .first()
     )

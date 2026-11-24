@@ -3182,9 +3182,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self._execution_id,
             )
         except (CommandException, SoftTimeLimitExceeded) as ex:
-            if self._model and (
-                owns_working_state or recovery_prior_owner is not None
-            ):
+            if self._model and (owns_working_state or recovery_prior_owner is not None):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,
@@ -3198,9 +3196,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 )
             raise
         except Exception as ex:
-            if self._model and (
-                owns_working_state or recovery_prior_owner is not None
-            ):
+            if self._model and (owns_working_state or recovery_prior_owner is not None):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,
