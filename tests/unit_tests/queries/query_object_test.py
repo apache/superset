@@ -103,7 +103,7 @@ def test_validate_rejects_non_string_metric_label() -> None:
         metrics=[
             {
                 "expressionType": "SQL",
-                "label": {"not": "a string"},
+                "label": {"not": "a string"},  # type: ignore[typeddict-item]
             }
         ],
         row_limit=1,
