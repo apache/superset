@@ -32,7 +32,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 # Constants that define role permissions in SupersetSecurityManager
 ROLE_DEFINING_CONSTANTS = [
     "READ_ONLY_MODEL_VIEWS",
@@ -63,7 +62,7 @@ def _is_set_or_frozenset_call(node: ast.Call) -> bool:
 
 
 def parse_set_or_tuple(node: ast.expr) -> list[Any]:
-    """Parse an AST node representing a set, frozenset, tuple, list, or set operations."""
+    """Parse an AST node for a set, frozenset, tuple, list, or set operation."""
     if isinstance(node, ast.Set):
         return [parse_element(elt) for elt in node.elts]
     if isinstance(node, ast.Tuple):
@@ -71,7 +70,7 @@ def parse_set_or_tuple(node: ast.expr) -> list[Any]:
     if isinstance(node, ast.List):
         return [parse_element(elt) for elt in node.elts]
     if isinstance(node, ast.Call):
-        # Handle frozenset() or set() calls (including attribute access like builtins.set)
+        # Handle frozenset() or set() calls, including attribute access (builtins.set)
         if _is_set_or_frozenset_call(node):
             if node.args:
                 return parse_set_or_tuple(node.args[0])
@@ -163,7 +162,7 @@ def resolve_references(
         resolved_values = []
         for value in values:
             resolved_values.extend(resolve_value(value, {name}))
-        resolved[name] = sorted(set(str(v) for v in resolved_values))
+        resolved[name] = sorted({str(v) for v in resolved_values})
 
     return resolved
 

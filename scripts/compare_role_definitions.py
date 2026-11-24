@@ -110,12 +110,8 @@ def format_markdown(diff: dict[str, Any]) -> str:
         f"Found changes in **{summary['constants_with_changes']}** "
         f"role-defining constant(s):"
     )
-    lines.append(
-        f"- **{summary['total_added']}** permission(s) added"
-    )
-    lines.append(
-        f"- **{summary['total_removed']}** permission(s) removed"
-    )
+    lines.append(f"- **{summary['total_added']}** permission(s) added")
+    lines.append(f"- **{summary['total_removed']}** permission(s) removed")
     lines.append("")
 
     # Map constant names to their role implications
