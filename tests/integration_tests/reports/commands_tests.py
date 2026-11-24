@@ -2580,6 +2580,90 @@ def test_report_schedule_working_timeout_after_reset_retry(
     assert create_report_slack_chart_working.execution_owner is None
 
 
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_report_schedule_working_timeout_takes_over_owned_execution(
+    screenshot_mock,
+    slack_should_use_v2_api_mock,
+    create_report_slack_chart_working,
+):
+    """
+    ExecuteReport Command: a stuck execution that holds an owner claim and a
+    window is taken over by a newer window, and a retry that dies after the
+    takeover is terminalized at the command boundary.
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    screenshot_mock.side_effect = SoftTimeLimitExceeded()
+    stuck_log = db.session.query(ReportExecutionLog).one()
+    create_report_slack_chart_working.execution_owner = str(stuck_log.uuid)
+    create_report_slack_chart_working.execution_window = datetime(2020, 1, 1, 0, 0)
+    db.session.commit()
+    current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
+        seconds=create_report_slack_chart_working.working_timeout + 1
+    )
+    with freeze_time(current_time):
+        with pytest.raises(Exception):  # noqa: B017
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID,
+                create_report_slack_chart_working.id,
+                datetime.utcnow(),
+            ).run()
+
+    db.session.commit()
+    db.session.refresh(create_report_slack_chart_working)
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+        .all()
+    )
+    assert any(
+        log.state == ReportState.NOOP
+        and log.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE
+        for log in logs
+    )
+    assert create_report_slack_chart_working.last_state == ReportState.ERROR
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_prune_keeps_latest_stuck_reset_marker(create_report_slack_chart_working):
+    """
+    Log pruning never deletes the newest stuck-reset marker, even when it is
+    older than the retention window.
+    """
+    old = datetime(2019, 1, 1, 0, 0)
+    for offset in (0, 1):
+        db.session.add(
+            ReportExecutionLog(
+                scheduled_dttm=old,
+                start_dttm=old,
+                end_dttm=old + timedelta(days=offset),
+                state=ReportState.NOOP,
+                error_message=REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+                report_schedule=create_report_slack_chart_working,
+                uuid=uuid4(),
+            )
+        )
+    db.session.commit()
+    latest_marker = (
+        db.session.query(ReportExecutionLog)
+        .filter(
+            ReportExecutionLog.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE
+        )
+        .order_by(ReportExecutionLog.id.desc())
+        .first()
+    )
+
+    ReportScheduleDAO.bulk_delete_logs(
+        create_report_slack_chart_working, datetime(2021, 1, 1)
+    )
+    db.session.commit()
+
+    remaining = db.session.query(ReportExecutionLog).all()
+    assert [log.id for log in remaining] == [latest_marker.id]
+
+
 @pytest.mark.usefixtures("create_alert_slack_chart_success")
 def test_report_schedule_success_grace(create_alert_slack_chart_success):
     """

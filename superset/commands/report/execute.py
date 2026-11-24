@@ -3000,6 +3000,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         monotonic_started_at = time.monotonic()
         report_execution_context: ReportExecutionContext | None = None
         owns_working_state = False
+        recovery_prior_owner: str | None = None
         try:
             self.validate()
             if not self._model:
@@ -3159,6 +3160,12 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                         report_execution_context = replace(
                             report_execution_context, execution_claimed=True
                         )
+                elif report_execution_context is not None:
+                    # Entering on WORKING: the state machine may take the
+                    # stuck execution over for an immediate retry. Remember
+                    # the owner it would replace so the boundary below can
+                    # tell a genuine takeover from a replayed UUID.
+                    recovery_prior_owner = self._model.execution_owner or ""
                 ReportScheduleStateMachine(
                     self._execution_id,
                     self._model,
@@ -3175,25 +3182,60 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self._execution_id,
             )
         except (CommandException, SoftTimeLimitExceeded) as ex:
-            if self._model and owns_working_state:
+            if self._model and (
+                owns_working_state or recovery_prior_owner is not None
+            ):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,
                     str(ex) or type(ex).__name__,
                     type(ex).__name__,
-                    report_execution_context,
+                    self._boundary_context(
+                        report_execution_context,
+                        owns_working_state,
+                        recovery_prior_owner,
+                    ),
                 )
             raise
         except Exception as ex:
-            if self._model and owns_working_state:
+            if self._model and (
+                owns_working_state or recovery_prior_owner is not None
+            ):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,
                     str(ex) or type(ex).__name__,
                     type(ex).__name__,
-                    report_execution_context,
+                    self._boundary_context(
+                        report_execution_context,
+                        owns_working_state,
+                        recovery_prior_owner,
+                    ),
                 )
             raise ReportScheduleUnexpectedError(str(ex)) from ex
+
+    def _boundary_context(
+        self,
+        context: ReportExecutionContext | None,
+        owns_working_state: bool,
+        recovery_prior_owner: str | None,
+    ) -> ReportExecutionContext | None:
+        """
+        Context for the terminal-error write at the command boundary.
+
+        A recovery entered on WORKING owns the schedule only if its takeover
+        committed, which the terminal write verifies by comparing the owner to
+        this execution id. A replayed UUID never matches, since recovery
+        retries are refused when the stuck execution has the same id.
+        """
+        if (
+            context is not None
+            and not owns_working_state
+            and recovery_prior_owner is not None
+            and recovery_prior_owner != str(self._execution_id)
+        ):
+            return replace(context, execution_claimed=True)
+        return context
 
     def validate(self) -> None:
         # Validate/populate model exists

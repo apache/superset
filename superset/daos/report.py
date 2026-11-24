@@ -426,14 +426,25 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def bulk_delete_logs(model: ReportSchedule, from_date: datetime) -> int | None:
-        return (
-            db.session.query(ReportExecutionLog)
+        # The newest stuck-reset marker is kept regardless of retention: stuck
+        # recovery reads it to avoid retrying a failing execution forever, and
+        # retention can be shorter than the time to the next scheduled run.
+        latest_marker_id = (
+            db.session.query(func.max(ReportExecutionLog.id))
             .filter(
                 ReportExecutionLog.report_schedule == model,
-                ReportExecutionLog.end_dttm < from_date,
+                ReportExecutionLog.state == ReportState.NOOP,
+                ReportExecutionLog.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
             )
-            .delete(synchronize_session="fetch")
+            .scalar()
         )
+        query = db.session.query(ReportExecutionLog).filter(
+            ReportExecutionLog.report_schedule == model,
+            ReportExecutionLog.end_dttm < from_date,
+        )
+        if latest_marker_id is not None:
+            query = query.filter(ReportExecutionLog.id != latest_marker_id)
+        return query.delete(synchronize_session="fetch")
 
     @staticmethod
     def find_with_email_recipients() -> list[ReportSchedule]:
