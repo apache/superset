@@ -24,11 +24,7 @@ from uuid import UUID
 from flask import current_app
 from pydantic import ValidationError as PydanticValidationError
 from superset_core.canvas import StoredWidget
-from superset_core.widgets import (
-    BindingRequest,
-    WidgetBinding,
-    WidgetDataRefusedError,
-)
+from superset_core.widgets import BindingRequest, WidgetBinding
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.ops import bound_datasets, unreadable_datasets
@@ -187,17 +183,13 @@ def widget_bindings(
     ``main``, which was checked then. A binding that names no dataset isn't
     bound yet and is left out.
 
-    Raises ``CanvasQueryFailedError``: with the type's code and message for a
-    type that refuses the request (``WidgetDataRefusedError``); as a dataset
-    the caller can't read, for a built binding whose dataset doesn't exist or
-    that they can't read; and as a server error for built bindings this host
-    won't run (``checked_bindings``).
+    Raises ``CanvasQueryFailedError``: as a dataset the caller can't read, for
+    a built binding whose dataset doesn't exist or that they can't read; and
+    as a server error for built bindings this host won't run
+    (``checked_bindings``).
     """
     widget_cls = get_widget_types().get(widget_type) if widget_type else None
-    try:
-        built = widget_cls.build_bindings(request) if widget_cls else None
-    except WidgetDataRefusedError as ex:
-        raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
+    built = widget_cls.build_bindings(request) if widget_cls else None
     if built is None:
         binding = request.props.get("dataBinding")
         if isinstance(binding, Mapping) and _plain_id(binding.get("datasetId")):
