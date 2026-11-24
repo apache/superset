@@ -1060,7 +1060,7 @@ snowflake-sqlalchemy==1.11.1
     # via apache-superset
 sortedcontainers==2.4.0
     # via snowflake-connector-python
-sqlalchemy==2.0.55
+sqlalchemy==2.0.58
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
