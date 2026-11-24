@@ -159,10 +159,16 @@ Uppercase and mixed-case names retain the dialect's quoting. If a physical colum
 was created with a case-sensitive lowercase name, use a calculated column with an
 explicitly quoted expression such as `"species"`.
 
-Virtual datasets and SQL Lab query datasources preserve the exact column names
-returned by the query. Superset quotes these names verbatim, so an alias such as
-`SELECT species AS "species" FROM iris` remains case-sensitive in chart queries,
-including timestamp axes, time grains, and temporal filters.
+For virtual datasets and SQL Lab query datasources, Superset quotes exact result
+column names in column references, adhoc metric fallbacks, and the `TableColumn`
+timestamp paths (column-based time grains, legacy timeseries, and temporal
+filters). This preserves case-sensitive aliases such as
+`SELECT species AS "species" FROM iris` in those paths.
+
+The Explore x-axis (`BASE_AXIS`) on a SQL Lab `Query` uses a separate path,
+`Query.adhoc_column_to_sqla`, which builds the expression with `literal_column`.
+That path is unchanged from master: a lowercase timestamp expression such as
+`ts` still compiles to unquoted `DATE_TRUNC('MONTH', ts)` for a monthly grain.
 
 ### Superset semantic layer
 
