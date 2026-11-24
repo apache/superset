@@ -86,10 +86,11 @@ SQLAlchemy has already discovered on the selected engine, without opening an
 inspector connection. It publishes that discovery in `CACHE_CONFIG` with a
 one-hour expiry. Warm cache-key lookups renew the entry at most once per
 half-hour per engine, so long-lived engines can keep discovery available to
-restarted workers. Renewal retains an existing worker's published value rather
-than replacing it with the local dialect's value. Backends supporting
-add-if-absent use it for missing entries; other backends use a best-effort read
-before writing. Discovery is
+restarted workers. Publication replaces a differing shared value with the live
+engine's default schema. If execution discovers a different schema than the
+shared value used to build a chart key, Superset recomputes the key before
+storing the result, including the live schema's RLS predicates. Backends supporting
+add-if-absent use it for missing entries; other backends write directly. Discovery is
 keyed by the database, catalog, and a hash of the effective connection URL and
 engine parameters. Configure a shared cache backend (such as Redis) so a restarted
 or previously unused worker can reuse the discovery during an outage. Cache
@@ -101,7 +102,9 @@ unrelated engine renews its discovery. Concurrent reads of the same entry share
 its result and original deadline. Warm engines skip publications while cache I/O
 is busy. Once a flight exceeds its deadline, further lookups fall back to local
 discovery or an inspector without waiting for that flight. A successful late read
-is retained for the next lookup for up to 60 seconds, then consumed or discarded.
+is available to every lookup for up to 60 seconds after completion, unless evicted
+to admit another key. Reuse does not extend that expiry, and a live engine's
+publication replaces a contradictory retained result.
 A process retains at most 16 schema-cache flights (including completed late
 results, which can be evicted to admit other keys). Hung operations retain their
 slots until I/O returns, so retries cannot accumulate unbounded background

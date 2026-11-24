@@ -37,6 +37,7 @@ from contextlib import (
     nullcontext,
     suppress,
 )
+from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -164,7 +165,7 @@ _DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS = 16
 
 @dataclass
 class _DefaultSchemaCacheFlight:
-    """Share a read's deadline and retain late results for the next lookup."""
+    """Share a read's deadline and retain late results until expiry."""
 
     cache_key: str | None
     deadline: float
@@ -175,6 +176,21 @@ class _DefaultSchemaCacheFlight:
 
 
 _DEFAULT_SCHEMA_CACHE_FLIGHTS: dict[str | None, _DefaultSchemaCacheFlight] = {}
+_DEFAULT_SCHEMA_CACHE_READS: ContextVar[list[tuple[Engine, str]] | None] = ContextVar(
+    "default_schema_cache_reads", default=None
+)
+
+
+@contextmanager
+def track_default_schema_cache_reads() -> Iterator[list[tuple[Engine, str]]]:
+    """Record shared discovery so result writers can detect live contradictions."""
+    reads: list[tuple[Engine, str]] = []
+    token = _DEFAULT_SCHEMA_CACHE_READS.set(reads)
+    try:
+        yield reads
+    finally:
+        _DEFAULT_SCHEMA_CACHE_READS.reset(token)
+
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
 # sign-in on them is logged for administrators (see
@@ -217,10 +233,9 @@ def _reserve_default_schema_cache_flight(
     if pending is not None:
         if not pending.completed.is_set():
             return pending, False
-        # Consume a late result once, without retaining stale discovery.
-        del _DEFAULT_SCHEMA_CACHE_FLIGHTS[cache_key]
         if time.monotonic() < pending.expires_at:
             return pending, False
+        del _DEFAULT_SCHEMA_CACHE_FLIGHTS[cache_key]
     if time.monotonic() >= deadline or not _default_schema_cache_has_room():
         return None, False
     flight = _DefaultSchemaCacheFlight(
@@ -305,26 +320,14 @@ def _read_default_schema(cache_key: str) -> str | None:
 
 
 def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
-    """
-    Publish discovery, or renew an entry that already holds the same schema.
-
-    An entry holding a different schema is left to expire: renewing it would keep a
-    value alive that no live engine reports.
-    """
+    """Publish the live engine's discovery, replacing contradictory shared values."""
     try:
         if cache_manager.cache.add(cache_key, schema, timeout=timeout):
             return True
     except (AttributeError, NotImplementedError):
-        # Backends without add support use a best-effort read before writing.
-        cached_schema = cache_manager.cache.get(cache_key)
-        if cached_schema is not None and cached_schema != schema:
-            return True
         return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
-    cached_schema = cache_manager.cache.get(cache_key)
-    if cached_schema is None:
+    if cache_manager.cache.get(cache_key) is None:
         return False
-    if cached_schema != schema:
-        return True
     return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
 
 
@@ -352,6 +355,11 @@ def _publish_default_schema_if_due(engine: Engine, cache_key: str, schema: str) 
                 cache_key, schema, _DEFAULT_SCHEMA_CACHE_TIMEOUT
             ):
                 interval = _DEFAULT_SCHEMA_CACHE_TIMEOUT / 2
+                with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
+                    pending = _DEFAULT_SCHEMA_CACHE_FLIGHTS.get(cache_key)
+                    if pending is not None and pending.completed.is_set():
+                        # Do not let a retained late read contradict this publication.
+                        pending.result = schema
         except Exception:  # pylint: disable=broad-except
             logger.debug("Unable to write the default schema cache")
         with _DEFAULT_SCHEMA_CACHE_LOCK:
@@ -1355,11 +1363,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         restarts for one hour, scoped to the database, catalog and effective
         engine identity. Cache failures leave local discovery available.
         Warm lookups renew shared discovery at most once per half-hour per engine,
-        and only while the shared value matches the engine's own; a differing value is
-        left to expire. A failed publication is retried after a short backoff, outside
+        replacing a differing shared value with the engine's own discovery.
+        A failed publication is retried after a short backoff, outside
         the process-wide lock. Shared-cache reads have independent per-key flights,
-        bounded waits and a process-wide slot limit. Late results survive for the next
-        lookup; hung operations retain their slots until I/O returns. SSH tunnels do not
+        bounded waits and a process-wide slot limit. Late results survive until expiry;
+        hung operations retain their slots until I/O returns. SSH tunnels do not
         share discovery because their local connection URLs contain ephemeral ports.
         Cold-engine discovery retains the inspector's OAuth2 retry policy.
         """
@@ -1389,6 +1397,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if schema is None and cache_key is not None:
                     cached_schema = _read_default_schema(cache_key)
                     if cached_schema is not None:
+                        if (reads := _DEFAULT_SCHEMA_CACHE_READS.get()) is not None:
+                            reads.append((engine, cached_schema))
                         yield cached_schema
                         return
                 if schema is None:

@@ -4677,3 +4677,104 @@ def test_guest_chart_cache_survives_event_log_commit_and_database_outage(
         cache.clear()
         _retire_cached_engines(database_id)
         engine.dispose()
+
+
+@pytest.mark.parametrize("datasource_class", [SqlaTable, Query])
+def test_stale_shared_schema_cannot_store_rls_rows_under_shared_key(
+    session: Session,
+    app_context: None,
+    tmp_path: Path,
+    mocker: MockerFixture,
+    datasource_class: type[SqlaTable] | type[Query],
+) -> None:
+    """Reconcile a cold worker's shared schema with execution before caching rows."""
+    from flask import current_app, g
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.constants import CacheRegion
+    from superset.extensions import cache_manager
+    from superset.models.core import _retire_cached_engines
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(
+        id=987654,
+        database_name="analytic",
+        sqlalchemy_uri=f"sqlite:///{tmp_path / 'analytic.db'}",
+    )
+    physical = SqlaTable(id=1, table_name="physical", schema="main", database=database)
+    session.add(physical)
+    session.flush()
+    virtual = datasource_class(
+        id=2, database=database, schema=None, sql="SELECT col1 FROM physical"
+    )
+    if isinstance(virtual, SqlaTable):
+        virtual.table_name = "virtual"
+        virtual.columns = [TableColumn(column_name="col1", type="INTEGER")]
+    else:
+        virtual.extra = {
+            "columns": [{"column_name": "col1", "type": "INTEGER", "is_dttm": False}]
+        }
+    set_viewer_rls(mocker)
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        return_value=[],
+    )
+    mocker.patch.object(
+        cache_manager, "_cache", Cache(config={"CACHE_TYPE": "SimpleCache"})
+    )
+    cache_manager.cache.init_app(current_app._get_current_object())
+    data_cache = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    data_cache.init_app(current_app._get_current_object())
+    mocker.patch(
+        "superset.common.utils.query_cache_manager._cache",
+        {CacheRegion.DATA: data_cache},
+    )
+    mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_FLIGHTS", {})
+    # Model a connection role whose default schema changed after publication.
+    # SQLite has a static schema policy, like Postgres without dynamic schemas.
+    with database.get_sqla_engine() as old_engine:
+        with old_engine.begin() as connection:
+            connection.exec_driver_sql("CREATE TABLE physical (col1 INTEGER)")
+            connection.exec_driver_sql("INSERT INTO physical VALUES (1), (2)")
+        old_engine.dialect.default_schema_name = "s_old"
+    assert not database.db_engine_spec.supports_dynamic_schema
+    assert database.get_default_schema_from_engine(None) == "s_old"
+    query = QueryObject(
+        datasource=virtual, columns=["col1"], metrics=[], is_timeseries=False
+    )
+    processor = QueryContextProcessor(
+        MagicMock(
+            datasource=virtual,
+            force=False,
+            is_async_execution=False,
+            custom_cache_timeout=300,
+            result_type="full",
+        )
+    )
+    results = []
+    live_keys = []
+    try:
+        with session.no_autoflush:
+            for user_id in (1, 2):
+                _retire_cached_engines(database.id)
+                g.user = User(id=user_id, username=f"viewer{user_id}")
+                result = processor.get_df_payload_result(query).payload
+                results.append(result)
+                live_keys.append(processor.query_cache_key(query))
+        assert [result["df"]["col1"].tolist() for result in results] == [[1], [2]]
+        assert [result["cache_key"] for result in results] == live_keys
+        assert live_keys[0] != live_keys[1]
+        for key in live_keys:
+            assert data_cache.get(key) is not None
+        # A third cold worker must see the live engine's replacement discovery.
+        _retire_cached_engines(database.id)
+        connect = mocker.patch(
+            "sqlalchemy.engine.Engine.raw_connection",
+            side_effect=ConnectionError("database unreachable"),
+        )
+        assert database.get_default_schema_from_engine(None) == "main"
+        connect.assert_not_called()
+    finally:
+        _retire_cached_engines(database.id)
+        data_cache.clear()
+        cache_manager.cache.clear()

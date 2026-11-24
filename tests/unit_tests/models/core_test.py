@@ -5150,13 +5150,13 @@ def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
 
 @pytest.mark.parametrize("recycle_pool", [False, True])
 @pytest.mark.parametrize("elapsed", [1800, 3600, 3 * 24 * 3600])
-def test_default_schema_old_worker_does_not_overwrite_new_discovery(
+def test_default_schema_each_worker_publishes_its_live_discovery(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     elapsed: int,
     recycle_pool: bool,
 ) -> None:
-    """An older engine must not replace another worker's shared discovery."""
+    """Each worker replaces contradictory discovery with its own live schema."""
     from superset.models.core import _retire_cached_engines
 
     clock = mocker.patch("superset.models.core.monotonic", return_value=0, create=True)
@@ -5180,9 +5180,9 @@ def test_default_schema_old_worker_does_not_overwrite_new_discovery(
         database, "get_sqla_engine", return_value=nullcontext(old_engine)
     )
     assert database.get_default_schema_from_engine(None) == "old"
-    assert shared_default_schema_cache.get(key) == "new"
+    assert shared_default_schema_cache.get(key) == "old"
     assert write.call_count == 2
-    fallback_write.assert_not_called()
+    fallback_write.assert_called_once_with(key, "old", timeout=3600)
 
 
 @pytest.mark.parametrize("supports_add", [False, True])
@@ -5193,7 +5193,7 @@ def test_default_schema_existing_publication_is_not_retried(
     cached_schema: str,
     supports_add: bool,
 ) -> None:
-    """Leave another worker's value in place, then rate-limit repeated publication."""
+    """Replace another worker's differing value, then rate-limit publication."""
     clock = mocker.patch("superset.models.core.monotonic", return_value=0)
     cache = shared_default_schema_cache
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
@@ -5214,14 +5214,14 @@ def test_default_schema_existing_publication_is_not_retried(
         assert database.get_default_schema_from_engine(None) == "main"
     write.assert_called_once()
     key = write.call_args.args[0]
-    assert cache.get(key) == cached_schema
+    assert cache.get(key) == "main"
     clock.return_value = 60
     assert database.get_default_schema_from_engine(None) == "main"
     assert write.call_count == 1
-    assert cache.get(key) == cached_schema
+    assert cache.get(key) == "main"
     clock.return_value = 1800
     assert database.get_default_schema_from_engine(None) == "main"
-    assert cache.get(key) == cached_schema
+    assert cache.get(key) == "main"
     assert write.call_count == 2
     cache.delete(key)
     assert database.get_default_schema_from_engine(None) == "main"
@@ -5582,12 +5582,12 @@ def test_default_schema_long_lived_engine_renews_shared_discovery(
 
 
 @pytest.mark.parametrize("supports_add", [False, True])
-def test_default_schema_renewal_does_not_extend_a_differing_shared_value(
+def test_default_schema_renewal_replaces_a_differing_shared_value(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     supports_add: bool,
 ) -> None:
-    """A shared value no live engine reports expires instead of being renewed."""
+    """The live engine replaces contradictory shared discovery on publication."""
     from superset.utils import cache as cache_util
 
     cache = shared_default_schema_cache
@@ -5610,8 +5610,8 @@ def test_default_schema_renewal_does_not_extend_a_differing_shared_value(
     for elapsed in (0, 1800):
         clock.return_value = cache_clock.return_value = 1000 + elapsed
         assert database.get_default_schema_from_engine(None) == "main"
-        assert cache.get(key) == "stale"
-    # Past the stale entry's original lifetime it must be gone or replaced.
+        assert cache.get(key) == "main"
+    # Subsequent renewals must continue publishing the live schema.
     clock.return_value = cache_clock.return_value = 1000 + 3600
     assert database.get_default_schema_from_engine(None) == "main"
     assert cache.get(key) in (None, "main")
@@ -5819,10 +5819,10 @@ def test_default_schema_joiner_uses_original_flight_deadline(
 
 
 @pytest.mark.parametrize("elapsed", [0.25, 61])
-def test_default_schema_late_result_is_consumed_or_expires(
+def test_default_schema_late_result_is_retained_until_expiry(
     shared_default_schema_cache: Cache, mocker: MockerFixture, elapsed: float
 ) -> None:
-    """A retained late result is single-use and cannot outlive the retry interval."""
+    """A retained late result is reusable but cannot outlive the retry interval."""
     from superset.models.core import (
         _DEFAULT_SCHEMA_CACHE_FLIGHTS,
         _DefaultSchemaCacheFlight,
@@ -5837,8 +5837,8 @@ def test_default_schema_late_result_is_consumed_or_expires(
     read = mocker.spy(shared_default_schema_cache, "get")
     assert _read_default_schema("retained") == ("old" if elapsed < 60 else "fresh")
     assert read.call_count == (0 if elapsed < 60 else 1)
-    assert _read_default_schema("retained") == "fresh"
-    assert read.call_count == (1 if elapsed < 60 else 2)
+    assert _read_default_schema("retained") == ("old" if elapsed < 60 else "fresh")
+    assert read.call_count == (0 if elapsed < 60 else 2)
 
 
 def test_default_schema_flight_limit_bounds_hung_distinct_keys(
@@ -5911,3 +5911,101 @@ def test_default_schema_completed_results_do_not_starve_other_keys(
     shared_default_schema_cache.set("new", "new_schema")
     assert _read_default_schema("new") == "new_schema"
     assert not _DEFAULT_SCHEMA_CACHE_FLIGHTS
+
+
+@pytest.mark.parametrize("delay", [0.25, 0.4])
+@pytest.mark.parametrize("concurrent", [False, True])
+def test_default_schema_late_read_serves_every_retry_until_expiry(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    delay: float,
+    concurrent: bool,
+) -> None:
+    """A stopped database must not make retries consume a slow cache read once."""
+    from superset.models.core import _DEFAULT_SCHEMA_CACHE_FLIGHTS
+
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        assert engine.dialect.default_schema_name is None
+
+    def slow_get(key: str) -> str:
+        """Return shared discovery after the request's cache budget is exhausted."""
+        Event().wait(delay)
+        return "public"
+
+    read = mocker.patch.object(shared_default_schema_cache, "get", side_effect=slow_get)
+    connect = mocker.patch.object(
+        engine, "raw_connection", side_effect=ConnectionError("database unreachable")
+    )
+    start = mocker.spy(Thread, "start")
+    with pytest.raises(ConnectionError, match="database unreachable"):
+        database.get_default_schema_from_engine(None)
+    start.call_args.args[0].join(timeout=2)
+    assert not start.call_args.args[0].is_alive()
+    pending = next(iter(_DEFAULT_SCHEMA_CACHE_FLIGHTS.values()))
+    assert pending.completed.is_set()
+    app_context = current_app.app_context
+
+    def lookup() -> str | None:
+        """Give every retry its own request context."""
+        with app_context():
+            return database.get_default_schema_from_engine(None)
+
+    connect.reset_mock()
+    if concurrent:
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            requests = [executor.submit(lookup) for _ in range(8)]
+            assert [request.result(timeout=2) for request in requests] == ["public"] * 8
+    else:
+        assert [lookup() for _ in range(4)] == ["public"] * 4
+    read.assert_called_once()
+    connect.assert_not_called()
+    # The retained result is bounded by its original expiry, not a sliding TTL.
+    mocker.patch("superset.models.core.time.monotonic", return_value=pending.expires_at)
+    with pytest.raises(ConnectionError, match="database unreachable"):
+        lookup()
+    start.call_args.args[0].join(timeout=2)
+    assert not start.call_args.args[0].is_alive()
+    assert read.call_count == 2
+
+
+@pytest.mark.parametrize("supports_add", [False, True])
+def test_default_schema_live_publication_replaces_retained_late_read(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    supports_add: bool,
+) -> None:
+    """A retained read cannot hide a live schema correction until its expiry."""
+    from superset.models.core import (
+        _DEFAULT_SCHEMA_CACHE_FLIGHTS,
+        _DefaultSchemaCacheFlight,
+        _read_default_schema,
+    )
+    from superset.utils import cache as cache_util
+
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+    key = cache_util.generate_cache_key(
+        {
+            "database_id": database.id,
+            "catalog": None,
+            "engine": engine.get_execution_options()["superset_engine_identity"],
+        },
+        key_prefix="database_default_schema:",
+    )
+    mocker.patch("superset.models.core.time.monotonic", return_value=1)
+    pending = _DefaultSchemaCacheFlight(key, 0.2, result="s_old", expires_at=60.25)
+    pending.completed.set()
+    _DEFAULT_SCHEMA_CACHE_FLIGHTS[key] = pending
+    shared_default_schema_cache.set(key, "s_old")
+    if not supports_add:
+        mocker.patch.object(
+            shared_default_schema_cache, "add", side_effect=NotImplementedError
+        )
+    assert _read_default_schema(key) == "s_old"
+    assert database.get_default_schema_from_engine(None) == "main"
+    assert shared_default_schema_cache.get(key) == "main"
+    for _ in range(8):
+        assert _read_default_schema(key) == "main"
+    assert pending.expires_at == 60.25

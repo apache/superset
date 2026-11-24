@@ -64,6 +64,7 @@ from superset.exceptions import (
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
+from superset.models.core import track_default_schema_cache_reads
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
 from superset.semantic_layers.exceptions import (
@@ -315,7 +316,10 @@ class QueryContextProcessor:
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
 
-        with timed("chart_data.cache.key"):
+        with (
+            timed("chart_data.cache.key"),
+            track_default_schema_cache_reads() as schema_reads,
+        ):
             cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = (
@@ -410,6 +414,17 @@ class QueryContextProcessor:
                 phases["data_acquisition_ns"] = data_acquisition_ns
 
             if cache.status != QueryStatus.FAILED:
+                # Execution can discover a different schema than a cold worker
+                # borrowed for its key. Bind the stored rows to the live RLS.
+                cache_key = (
+                    cast(str, self.query_cache_key(query_obj))
+                    if any(
+                        engine.dialect.default_schema_name is not None
+                        and engine.dialect.default_schema_name != shared_schema
+                        for engine, shared_schema in schema_reads
+                    )
+                    else cache_key
+                )
                 cache.set_query_result(
                     key=cache_key,
                     query_result=query_result,
