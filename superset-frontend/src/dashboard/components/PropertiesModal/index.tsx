@@ -642,7 +642,7 @@ const PropertiesModal = ({
   // Helper function for styling section
   const hasCustomLabelsColor = !!Object.keys(
     getJsonMetadata()?.label_colors || {},
-   ).length;
+  ).length;
 
   // Regex check for custom time presets
   const invalidCustomPresets = useMemo(
@@ -724,7 +724,7 @@ const PropertiesModal = ({
         },
       },
     ],
-    [form, jsonAnnotations, refreshFrequency, dashboardInfo],
+    [form, jsonAnnotations, invalidCustomPresets, refreshFrequency, dashboardInfo],
   );
 
   const {
