@@ -59,6 +59,9 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   previews, read with the canvas's access rules, and `editable_widgets`, which of
   some saved widgets the current user may change. See the
   [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
+- `superset_core.security.can_access_datasource`, the host's decision whether the current
+  user may read a dataset on its own, as its chart data and SQL paths make it. See
+  [extension development](../docs/developer_docs/extensions/development.md).
 
 ### Compatibility
 

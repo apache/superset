@@ -254,10 +254,12 @@ class DatasetReferencesAPI(RestApi):
 #### Checking whether a user may read a dataset
 
 A DAO's list shows what its filter lets through, which is not the whole access
-decision: Superset also counts a dataset's editors, schema and database access,
-and the datasets a guest token grants. Before an extension binds, queries or
-shows a dataset on someone's behalf, it asks Superset with the decision its
-chart data and SQL paths enforce:
+decision: Superset also counts access to the dataset's schema, catalog or
+database, and the dataset's editors.
+Before an extension binds, queries or shows a dataset on someone's behalf, it
+asks Superset with the decision its chart data and SQL paths make for the
+dataset on its own. That decision counts no access that comes only through a
+dashboard, such as a guest token's:
 
 ```python
 from superset_core.common.daos import DatasetDAO
