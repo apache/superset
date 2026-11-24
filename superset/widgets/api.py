@@ -28,7 +28,12 @@ from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 
 from superset import is_feature_enabled
-from superset.canvas.data import data_response, PlacementDataRequest
+from superset.canvas.data import (
+    data_response,
+    PlacementDataRequest,
+    WIDGET_DRAFT_HEADER,
+    WIDGET_VERSION_HEADER,
+)
 from superset.canvas.definition.validation import request_errors
 from superset.canvas.query_errors import CanvasQueryFailedError
 from superset.commands.canvas.exceptions import WidgetTypeUnavailableError
@@ -421,6 +426,8 @@ class WidgetRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_data",
         log_to_statsd=False,
+        # The body holds the runtime filters' values, which stay out of the logs.
+        include_request_data=False,
     )
     def get_data(self, widget_uuid: UUID) -> Response:
         """Run a saved widget's query and return its data.
@@ -428,14 +435,22 @@ class WidgetRestApi(BaseSupersetModelRestApi):
         post:
           summary: Get a saved widget's data
           description: >-
-            Runs every query the widget's type builds from its stored props,
-            by default the `dataBinding` as the dataset `main`, as the caller,
-            each narrowed by `runtime_filters` on its dataset, without a
-            canvas, and answers each as a dataset of its name. One failing
-            query fails the request. A widget type may refuse the request: it
-            is then answered with the type's `code` and `message`, by default
-            as a 409. Each dataset includes the query that ran when the caller
-            can view queries.
+            Runs every binding the widget's type builds for it, by default the
+            stored `dataBinding` as the dataset `main`, as the caller, each
+            narrowed by `runtime_filters` on its dataset, without a canvas, and
+            answers each as a dataset of its name, as a placement's data is
+            answered. One failing binding fails the request. A widget type may
+            refuse the request: it is then answered with the type's `code` and
+            `message`, by default as a 409. Reading needs access to the widget
+            and to each binding's dataset. `X-Widget-Draft` and
+            `X-Widget-Version` name a draft and a version of the widget's own
+            content, which go to its widget type unchecked, for a type that
+            keeps them; the type checks them itself. Each dataset includes the
+            query that ran when the caller can view queries. This synchronous
+            endpoint stands in for the asynchronous one SIP-231 section 8
+            describes, which answers a manifest of Arrow datasets, or a task
+            while the result isn't cached yet; its answer and its path may
+            change when that lands.
           parameters:
           - in: path
             schema:
@@ -463,6 +478,31 @@ class WidgetRestApi(BaseSupersetModelRestApi):
           responses:
             200:
               description: The widget's datasets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          datasets:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                row_count:
+                                  type: integer
+                                inline_data:
+                                  type: array
+                                  items:
+                                    type: object
+                                query:
+                                  type: string
+                                language:
+                                  type: string
             400:
               $ref: '#/components/responses/400'
             401:
@@ -492,7 +532,12 @@ class WidgetRestApi(BaseSupersetModelRestApi):
         try:
             return data_response(
                 self,
-                GetWidgetDataCommand(widget_uuid, body.runtime_filters).run,
+                GetWidgetDataCommand(
+                    widget_uuid,
+                    body.runtime_filters,
+                    widget_draft_token=request.headers.get(WIDGET_DRAFT_HEADER),
+                    widget_version=request.headers.get(WIDGET_VERSION_HEADER),
+                ).run,
                 on_error,
             )
         except WidgetNotFoundError:

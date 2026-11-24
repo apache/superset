@@ -1414,6 +1414,10 @@ CANVAS_DRAFT_TTL_SECONDS: int = 7 * 24 * 60 * 60
 # How often, in seconds, an open draft page checks for changes made elsewhere,
 # such as by an agent working in the same draft. 0 turns checking off.
 CANVAS_DRAFT_POLL_INTERVAL: int = 5
+# The most bindings one data request runs for a widget whose type builds its
+# own (``Widget.build_bindings``). Each is a query of its own, run while the
+# request waits; a type that builds more fails the request.
+CANVAS_WIDGET_MAX_BINDINGS: int = 20
 
 # Canvas widget types to turn off, by id, such as {"markdown"} or
 # {"extensions.acme.reports.report"}. A type that is turned off is left out of

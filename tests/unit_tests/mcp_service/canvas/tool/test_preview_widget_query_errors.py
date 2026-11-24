@@ -548,7 +548,7 @@ def test_a_widget_types_own_query_runs_as_the_caller_in_both_tools(
 ) -> None:
     """What a widget type builds runs through the chart data pipeline, which
     checks the caller's access to its dataset, as for the canvas page."""
-    from superset_core.widgets import QueryRequest, WidgetQuery
+    from superset_core.widgets import BindingRequest, WidgetBinding
 
     from superset.mcp_service.canvas.tool.get_canvas_data import (
         _get_canvas_data_impl,
@@ -564,10 +564,10 @@ def test_a_widget_types_own_query_runs_as_the_caller_in_both_tools(
         "rowLimit": 2,
     }
 
-    def build(request: QueryRequest) -> list[WidgetQuery]:
-        return [WidgetQuery("top_two", top_two)]
+    def build(request: BindingRequest) -> list[WidgetBinding]:
+        return [WidgetBinding("top_two", top_two)]
 
-    mocker.patch.object(registry["ag-grid-table"], "build_queries", build)
+    mocker.patch.object(registry["ag-grid-table"], "build_bindings", build)
     mocker.patch.object(security_manager, "can_access", return_value=True)
     access = mocker.spy(security_manager, "raise_for_access")
     expected = [

@@ -70,9 +70,9 @@ CanvasErrorType = Literal[
     "WidgetRevisionConflict",
     "DraftCommitRefused",
 ]
-# Only the data tools run a widget type's queries, which the type may refuse.
-CanvasDataErrorType = Literal[CanvasErrorType, "WidgetQueryRefused"]
-ERROR_CODE_DESCRIPTION = "With WidgetQueryRefused: the widget type's reason code."
+# Only the data tools run a widget type's bindings, which the type may refuse.
+CanvasDataErrorType = Literal[CanvasErrorType, "WidgetDataRefused"]
+ERROR_CODE_DESCRIPTION = "With WidgetDataRefused: the widget type's reason code."
 
 
 class _Compact(BaseModel):

@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from superset_core.canvas import StoredWidget
-from superset_core.widgets import QueryRequest, Widget, WidgetQuery
+from superset_core.widgets import BindingRequest, Widget, WidgetBinding
 
 from superset.canvas.data import PlacementData, RuntimeFilter
 from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
@@ -46,13 +46,13 @@ class Kpis(Widget):
     """An extension's widget type whose queries aren't in its props."""
 
     widget_type = KPIS
-    asked: list[QueryRequest] = []
+    asked: list[BindingRequest] = []
 
     @classmethod
-    def build_queries(cls, request: QueryRequest) -> list[WidgetQuery]:
+    def build_bindings(cls, request: BindingRequest) -> list[WidgetBinding]:
         cls.asked.append(request)
         return [
-            WidgetQuery(name, {"datasetId": 3, "metrics": [name]})
+            WidgetBinding(name, {"datasetId": 3, "metrics": [name]})
             for name in request.props.get("kpis", [])
         ]
 
@@ -60,7 +60,14 @@ class Kpis(Widget):
 @pytest.fixture
 def kpis() -> Iterator[type[Kpis]]:
     Kpis.asked = []
-    with patch.dict("superset.widgets.registry.registry", {KPIS: Kpis}):
+    # Its bindings' dataset exists and the caller can read it.
+    with (
+        patch.dict("superset.widgets.registry.registry", {KPIS: Kpis}),
+        patch(
+            "superset.commands.canvas.placement_data.unreadable_datasets",
+            return_value=set(),
+        ),
+    ):
         yield Kpis
 
 
@@ -290,11 +297,28 @@ def test_an_extension_widget_types_own_queries_answer_by_dataset(
         ({"datasetId": 3, "metrics": ["deals"]}, filters),
     ]
     assert kpis.asked == [
-        QueryRequest(
+        BindingRequest(
             canvas_id="7", placement_id="board", props={"kpis": ["revenue", "deals"]}
         )
     ]
     assert GetCanvasDataResponse.model_validate(result).widgets[1].datasets
+
+
+def test_an_extension_widget_types_binding_on_a_dataset_the_caller_cant_read(
+    kpis: type[Kpis],
+) -> None:
+    """Agents get the checks the data routes apply to a built binding."""
+    with patch(
+        "superset.commands.canvas.placement_data.unreadable_datasets",
+        return_value={3},
+    ):
+        result, run = _run(definition=_with_kpis("revenue"), rows_of=_rows_of)
+
+    board = result["widgets"][1]
+    assert board["placement_id"] == "board"
+    assert board["error_type"] == "DatasetNotAccessible"
+    assert "datasets" not in board
+    assert all(call.args[0]["datasetId"] != 3 for call in run.call_args_list)
 
 
 def test_an_extension_widget_type_that_builds_no_query_is_unread(
@@ -324,7 +348,7 @@ def test_a_widget_type_that_fails_to_build_its_queries_is_reported(
 ) -> None:
     with (
         patch.object(
-            Kpis, "build_queries", side_effect=RuntimeError("private-diagnostic")
+            Kpis, "build_bindings", side_effect=RuntimeError("private-diagnostic")
         ),
         patch(
             "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
@@ -358,7 +382,7 @@ def test_a_widget_type_learns_the_placement_comes_from_the_callers_draft(
         dao.find_by_id.return_value = MagicMock(id=7, title="Sales")
         _get_canvas_data_impl(7, "tok", ["board"], 50, 20, None)
 
-    assert [(r.canvas_id, r.draft_token) for r in kpis.asked] == [("7", "tok")]
+    assert [(r.canvas_id, r.canvas_draft_token) for r in kpis.asked] == [("7", "tok")]
 
 
 def test_dataset_rows_are_trimmed_to_fit_the_response_budget() -> None:

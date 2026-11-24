@@ -390,49 +390,22 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
     assert result["option"] == {"series": []}
 
 
-def test_a_widget_types_refusal_reaches_agents_with_its_code() -> None:
-    from superset_core.widgets import WidgetQueryRefusedError
-
-    from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
-    from superset.mcp_service.canvas.schemas import (
-        CanvasWidgetData,
-        PreviewWidgetResponse,
-    )
-    from superset.mcp_service.canvas.tool.canvas_ops_common import query_error
-
-    refused = WidgetQueryRefusedError("CONTENT_CHANGED", "This widget changed")
-    expected = {
-        "error": "This widget changed",
-        "error_type": "WidgetQueryRefused",
-        "error_code": "CONTENT_CHANGED",
-    }
-
-    # Raised by the type, or classified on its way to the tool.
-    assert query_error(refused) == expected
-    assert query_error(CanvasQueryFailedError(canvas_query_error(refused))) == expected
-    entry = CanvasWidgetData.model_validate({"placement_id": "chart", **expected})
-    assert entry.model_dump() == {"placement_id": "chart", **expected}
-    assert PreviewWidgetResponse.model_validate(expected).error_code == (
-        "CONTENT_CHANGED"
-    )
-
-
 def test_preview_runs_an_extension_widget_types_own_queries() -> None:
-    from superset_core.widgets import QueryRequest, Widget, WidgetQuery
+    from superset_core.widgets import BindingRequest, Widget, WidgetBinding
 
     from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
     from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
     from superset.models.canvas import Canvas
 
-    asked: list[QueryRequest] = []
+    asked: list[BindingRequest] = []
 
     class Kpis(Widget):
         @classmethod
-        def build_queries(cls, request: QueryRequest) -> list[WidgetQuery]:
+        def build_bindings(cls, request: BindingRequest) -> list[WidgetBinding]:
             asked.append(request)
             return [
-                WidgetQuery("revenue", {"datasetId": 3, "metrics": ["revenue"]}),
-                WidgetQuery("deals", {"datasetId": 3, "metrics": ["deals"]}),
+                WidgetBinding("revenue", {"datasetId": 3, "metrics": ["revenue"]}),
+                WidgetBinding("deals", {"datasetId": 3, "metrics": ["deals"]}),
             ]
 
     def rows_of(binding: dict[str, Any], filters: Any) -> PlacementData:
@@ -451,11 +424,15 @@ def test_preview_runs_an_extension_widget_types_own_queries() -> None:
         ),
         patch(f"{PREVIEW}.run_binding", side_effect=rows_of),
         patch(f"{PREVIEW}.can_view_query", return_value=True),
+        patch(
+            "superset.commands.canvas.placement_data.unreadable_datasets",
+            return_value=set(),
+        ),
         patch(f"{PREVIEW}._render") as render,
     ):
         result, image = _preview_widget_impl(7, "chart", False, "tok")
 
-    assert [(r.canvas_id, r.placement_id, r.draft_token) for r in asked] == [
+    assert [(r.canvas_id, r.placement_id, r.canvas_draft_token) for r in asked] == [
         ("7", "chart", "tok")
     ]
     revenue, deals = result["datasets"]
@@ -476,6 +453,33 @@ def test_preview_runs_an_extension_widget_types_own_queries() -> None:
     assert PreviewWidgetResponse.model_validate(result).datasets
     render.assert_not_called()
     assert image is None
+
+
+def test_a_widget_types_refusal_reaches_agents_with_its_code() -> None:
+    from superset_core.widgets import WidgetDataRefusedError
+
+    from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
+    from superset.mcp_service.canvas.schemas import (
+        CanvasWidgetData,
+        PreviewWidgetResponse,
+    )
+    from superset.mcp_service.canvas.tool.canvas_ops_common import query_error
+
+    refused = WidgetDataRefusedError("CONTENT_CHANGED", "This widget changed")
+    expected = {
+        "error": "This widget changed",
+        "error_type": "WidgetDataRefused",
+        "error_code": "CONTENT_CHANGED",
+    }
+
+    # Raised by the type, or classified on its way to the tool.
+    assert query_error(refused) == expected
+    assert query_error(CanvasQueryFailedError(canvas_query_error(refused))) == expected
+    entry = CanvasWidgetData.model_validate({"placement_id": "chart", **expected})
+    assert entry.model_dump() == {"placement_id": "chart", **expected}
+    assert PreviewWidgetResponse.model_validate(expected).error_code == (
+        "CONTENT_CHANGED"
+    )
 
 
 def test_preview_reports_unknown_placements() -> None:

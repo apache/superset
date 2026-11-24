@@ -21,12 +21,12 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from superset_core.widgets import QueryRequest
+from superset_core.widgets import BindingRequest
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
 from superset.commands.base import BaseCommand
-from superset.commands.canvas.placement_data import widget_queries
+from superset.commands.canvas.placement_data import widget_bindings
 from superset.commands.widget.exceptions import (
     WidgetNotFoundError,
     WidgetUnboundError,
@@ -39,14 +39,22 @@ class GetWidgetDataCommand(BaseCommand):
     Run a saved widget's queries as the caller, as a placement of it would.
 
     The queries come from the widget's stored props, as its widget type builds
-    them; the caller only adds runtime filters. Reading needs access to the
-    widget, which ``WidgetDAO``'s filter checks, and to each query's dataset,
-    which the chart data pipeline does.
+    them (``widget_bindings``); the caller only adds runtime filters. Reading
+    needs access to the widget, which ``WidgetDAO``'s filter checks, and to
+    each query's dataset, which the chart data pipeline does.
     """
 
-    def __init__(self, widget_uuid: UUID, runtime_filters: list[RuntimeFilter]) -> None:
+    def __init__(
+        self,
+        widget_uuid: UUID,
+        runtime_filters: list[RuntimeFilter],
+        widget_draft_token: str | None = None,
+        widget_version: str | None = None,
+    ) -> None:
         self._widget_uuid = widget_uuid
         self._runtime_filters = runtime_filters
+        self._widget_draft_token = widget_draft_token
+        self._widget_version = widget_version
         self._bindings: dict[str, dict[str, Any]] = {}
 
     def run(self) -> dict[str, PlacementData]:
@@ -64,10 +72,15 @@ class GetWidgetDataCommand(BaseCommand):
         widget = WidgetDAO.find_one_or_none(uuid=self._widget_uuid)
         if widget is None:
             raise WidgetNotFoundError(str(self._widget_uuid))
-        self._bindings = widget_queries(
+        self._bindings = widget_bindings(
             widget.widget_type,
-            QueryRequest(
-                None, None, dict(widget.props or {}), widget_id=str(self._widget_uuid)
+            BindingRequest(
+                None,
+                None,
+                dict(widget.props or {}),
+                widget_id=str(self._widget_uuid),
+                widget_draft_token=self._widget_draft_token or None,
+                widget_version=self._widget_version or None,
             ),
         )
         if not self._bindings:

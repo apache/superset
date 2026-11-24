@@ -35,7 +35,12 @@ from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
 from superset import is_feature_enabled
-from superset.canvas.data import data_response, PlacementDataRequest
+from superset.canvas.data import (
+    data_response,
+    PlacementDataRequest,
+    WIDGET_DRAFT_HEADER,
+    WIDGET_VERSION_HEADER,
+)
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
@@ -1160,16 +1165,19 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         post:
           summary: Get a placement's data
           description: >-
-            Runs every query the placement's widget type builds from its
-            stored props, by default the `dataBinding` as the dataset `main`,
-            as the caller, each narrowed by `runtime_filters` on its dataset,
-            and answers each as a dataset of its name. One failing query fails
+            Runs every binding the placement's widget type builds for it, by
+            default the stored `dataBinding` as the dataset `main`, as the
+            caller, each narrowed by `runtime_filters` on its dataset, and
+            answers each as a dataset of its name. One failing binding fails
             the request. A widget type may refuse the request: it is then
             answered with the type's `code` and `message`, by default as a
             409.
             With the `X-Canvas-Draft` header, reads the placement from the
             caller's draft of this canvas; with `X-Canvas-Version`, from that
-            version of it, which only its editors can read. Each dataset
+            version of it, which only its editors can read. `X-Widget-Draft`
+            and `X-Widget-Version` name a draft and a version of the widget's
+            own content, which go to its widget type unchecked, for a type
+            that keeps them; the type checks them itself. Each dataset
             includes the query that ran when the caller can view queries.
           parameters:
           - in: path
@@ -1267,7 +1275,13 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         return data_response(
             self,
             GetPlacementDataCommand(
-                id_or_uuid, placement_id, body.runtime_filters, token, version
+                id_or_uuid,
+                placement_id,
+                body.runtime_filters,
+                token,
+                version,
+                widget_draft_token=request.headers.get(WIDGET_DRAFT_HEADER),
+                widget_version=request.headers.get(WIDGET_VERSION_HEADER),
             ).run,
             on_error,
         )

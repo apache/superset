@@ -22,7 +22,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Literal
 
 from marshmallow import ValidationError
-from superset_core.widgets import WidgetQueryRefusedError
+from superset_core.widgets import WidgetDataRefusedError
 
 from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
@@ -94,9 +94,9 @@ def canvas_query_error(error: Exception) -> CanvasQueryError:
     """
     if isinstance(error, CanvasQueryFailedError):
         return error.error
-    if isinstance(error, WidgetQueryRefusedError):
+    if isinstance(error, WidgetDataRefusedError):
         return CanvasQueryError(
-            error.status, "WidgetQueryRefused", error.message, code=error.code
+            error.status, "WidgetDataRefused", error.message, code=error.code
         )
     if isinstance(error, DatasourceNotFound):
         return CanvasQueryError(

@@ -24,7 +24,7 @@ from typing import Any
 
 from superset_core.canvas import StoredWidget, WidgetResolver
 from superset_core.mcp.decorators import tool, ToolAnnotations
-from superset_core.widgets import QueryRequest
+from superset_core.widgets import BindingRequest
 
 from superset.canvas.data import run_binding, RuntimeFilter
 from superset.canvas.definition.registry import (
@@ -40,7 +40,7 @@ from superset.commands.canvas.exceptions import (
     CanvasForbiddenError,
     CanvasNotFoundError,
 )
-from superset.commands.canvas.placement_data import widget_queries
+from superset.commands.canvas.placement_data import widget_bindings
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
@@ -216,16 +216,16 @@ def _get_canvas_data_impl(
         if widget_type is None or not widget_type_available(widget_type):
             unread.extend(_unread(node_id, node, widget_type))
             continue
-        request = QueryRequest(
+        request = BindingRequest(
             str(result["canvas_id"]),
             node_id,
             props,
-            draft_token=draft_token or None,
             widget_id=node.get("widgetId") or None,
+            canvas_draft_token=draft_token or None,
         )
         failed: dict[str, str] | None = None
         try:
-            queries = widget_queries(widget_type, request)
+            queries = widget_bindings(widget_type, request)
         except Exception as ex:  # pylint: disable=broad-except
             queries, failed = {}, query_error(ex)
         if not queries and failed is None:
