@@ -16,7 +16,8 @@
 # under the License.
 """Identity boundaries must not become content-validity membership changes."""
 
-from datetime import datetime
+import time
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import sqlalchemy as sa
@@ -24,9 +25,9 @@ from sqlalchemy.orm import Session
 
 from superset.versioning.changes.identity import attachment_uuid_at_tx, attachment_uuids
 
-BEFORE = datetime(2026, 1, 1)
+BEFORE = datetime(2026, 1, 1, tzinfo=timezone.utc)
 ATTACHED = datetime(2026, 1, 2)
-AFTER = datetime(2026, 1, 3)
+AFTER = datetime(2026, 1, 3, tzinfo=timezone.utc)
 
 
 def resolve(rows, start=2, tx=2, **kwargs):
@@ -47,7 +48,9 @@ def test_first_content_after_attachment_has_same_identity_on_both_sides(tx):
     )
 
 
-@pytest.mark.parametrize("created", [ATTACHED, AFTER, None])
+@pytest.mark.parametrize(
+    "created", [ATTACHED.replace(tzinfo=timezone.utc), AFTER, None]
+)
 def test_pruned_old_chain_does_not_assign_new_chart_to_old_window(created):
     assert (
         resolve(
@@ -158,19 +161,17 @@ def test_late_content_uses_live_identity_on_the_committing_connection() -> None:
             },
         )
 
-        def read(tx):
+        def read():
             return attachment_uuids(
                 session.connection(),
-                [(101, 2)],
-                tx,
+                {2: [(101, 2)], 3: [(101, 2)]},
                 versions_table=versions,
                 live_table=live,
                 transactions_table=transactions,
                 chunk_size=500,
             )
 
-        assert read(2) == ["old"]
-        assert read(3) == ["old"]
+        assert read() == {2: ["old"], 3: ["old"]}
         # Simulate a fully pruned old chain followed by integer-id reuse.
         session.execute(versions.update().values(uuid="new"))
         session.execute(
@@ -179,6 +180,33 @@ def test_late_content_uses_live_identity_on_the_committing_connection() -> None:
                 created_on=datetime(2026, 1, 3),
             )
         )
-        assert read(2) == []
-        assert read(3) == []
+        assert read() == {2: [], 3: []}
     engine.dispose()
+
+
+@pytest.mark.parametrize("local_tz", ["America/Los_Angeles", "Asia/Tokyo", "UTC"])
+@pytest.mark.parametrize("hours_before", [1, 0, -3])
+def test_creation_witness_compares_local_time_with_utc(
+    monkeypatch: pytest.MonkeyPatch, local_tz: str, hours_before: int
+) -> None:
+    """Hour-scale witnesses reject equal/later incarnations in every timezone."""
+    if not hasattr(time, "tzset"):
+        pytest.skip("Changing the process timezone requires tzset")
+    try:
+        with monkeypatch.context() as env:
+            env.setenv("TZ", local_tz)
+            time.tzset()
+            created_utc = ATTACHED.replace(tzinfo=timezone.utc) - timedelta(
+                hours=hours_before
+            )
+            created_local = created_utc.astimezone().replace(tzinfo=None)
+            for tx in (2, 3):
+                assert resolve(
+                    [("old", 3, None, 1)],
+                    tx=tx,
+                    live_uuid="old",
+                    live_created_on=created_local,
+                    attached_at=ATTACHED,
+                ) == ("old" if hours_before > 0 else None)
+    finally:
+        time.tzset()

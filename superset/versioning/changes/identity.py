@@ -18,11 +18,16 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import logging
+from datetime import datetime, timezone
 from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.engine import Connection
+
+from superset.versioning.baseline import OPERATION_DELETE
+
+logger = logging.getLogger(__name__)
 
 
 def attachment_uuid_at_tx(
@@ -43,18 +48,21 @@ def attachment_uuid_at_tx(
     chart from filling an old window after the old shadow chain was pruned.
     Equal/missing timestamps are ambiguous and deliberately not extrapolated.
     """
+    if live_created_on is not None:
+        # AuditMixinNullable uses server-local time; Continuum uses naive UTC.
+        live_created_on = live_created_on.astimezone(timezone.utc).replace(tzinfo=None)
     rows = sorted(versions, key=lambda row: row[1])
     prior = [row for row in rows if row[1] <= start_tx]
     anchor = prior[-1] if prior else None
     if (
         anchor is None
-        or anchor[3] == 2
+        or anchor[3] == OPERATION_DELETE
         or (anchor[2] is not None and anchor[2] <= start_tx)
     ):
         future = next((row for row in rows if row[1] > start_tx), None)
         if (
             future is None
-            or future[3] == 2
+            or future[3] == OPERATION_DELETE
             or live_uuid is None
             or str(future[0]) != str(live_uuid)
             or live_created_on is None
@@ -66,27 +74,30 @@ def attachment_uuid_at_tx(
     uuid = anchor[0]
     if uuid is None:
         return None
-    if any(start_tx < row[1] <= tx and (row[3] == 2 or row[0] != uuid) for row in rows):
+    if any(
+        start_tx < row[1] <= tx and (row[3] == OPERATION_DELETE or row[0] != uuid)
+        for row in rows
+    ):
         return None
     return str(uuid)
 
 
 def attachment_uuids(
     conn: Connection,
-    attached: list[tuple[int, int]],
-    tx: int,
+    attached_by_tx: dict[int, list[tuple[int, int]]],
     *,
     versions_table: sa.Table,
     live_table: sa.Table,
     transactions_table: sa.Table,
     chunk_size: int,
-) -> list[str]:
+) -> dict[int, list[str]]:
     """Read identity witnesses in bounded queries on the caller's connection.
 
-    ``attached`` contains only windows which contain the target transaction,
-    represented as (chart id, attachment transaction). Selecting only identity
-    columns keeps chart definitions out of the history scan.
+    Each transaction maps to its active (chart id, attachment transaction) pairs.
+    Read the union once so pre/post evaluation shares the same evidence.
+    Selecting only identity columns keeps definitions out of the history scan.
     """
+    attached = {pair for pairs in attached_by_tx.values() for pair in pairs}
     starts = list({start for _, start in attached})
     issued_at = {}
     for offset in range(0, len(starts), chunk_size):
@@ -123,17 +134,27 @@ def attachment_uuids(
             ).where(live_table.c.id.in_(chunk))
         ).all():
             live[sid] = (uuid, created_on)
-    uuids = set()
-    for sid, start in attached:
-        live_uuid, created_on = live.get(sid, (None, None))
-        uuid = attachment_uuid_at_tx(
-            versions.get(sid, []),
-            start,
-            tx,
-            live_uuid=live_uuid,
-            live_created_on=created_on,
-            attached_at=issued_at.get(start),
-        )
-        if uuid is not None:
-            uuids.add(uuid)
-    return sorted(uuids)
+    result = {}
+    for tx, pairs in attached_by_tx.items():
+        uuids = set()
+        for sid, start in pairs:
+            live_uuid, created_on = live.get(sid, (None, None))
+            uuid = attachment_uuid_at_tx(
+                versions.get(sid, []),
+                start,
+                tx,
+                live_uuid=live_uuid,
+                live_created_on=created_on,
+                attached_at=issued_at.get(start),
+            )
+            if uuid is not None:
+                uuids.add(uuid)
+            else:
+                logger.debug(
+                    "Unresolved chart identity: chart_id=%s attachment_tx=%s tx=%s",
+                    sid,
+                    start,
+                    tx,
+                )
+        result[tx] = sorted(uuids)
+    return result

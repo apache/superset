@@ -63,7 +63,7 @@ def shadow_valid_at(shadow_table: sa.Table, tx: int) -> sa.ColumnElement[bool]:
     Continuum's validity semantics is edited once. Attachment identity is
     resolved separately. Only for shadows whose ``end_transaction_id``
     Continuum actually closes — never the M2M association shadow (see
-    ``_dashboard_slice_uuids_at_tx``).
+    ``_dashboard_slice_uuids_at_txs``).
     """
     return sa.and_(
         shadow_table.c.transaction_id <= tx,
@@ -262,10 +262,10 @@ def _affected_dashboard_ids_at_tx(session: Session, tx: int) -> set[int]:
     return dashboard_ids
 
 
-def _dashboard_slice_uuids_at_tx(
-    session: Session, attached: list[tuple[int, Window]], tx: int
-) -> list[str]:
-    """Resolve attachment identity independently of content validity at *tx*.
+def _dashboard_slice_uuids_at_txs(
+    session: Session, attached: list[tuple[int, Window]], txs: tuple[int, ...]
+) -> dict[int, list[str]]:
+    """Resolve attachment identity independently of content validity for each tx.
 
     Pin each window to the incarnation present when it opened. A chart first
     versioned after attachment can be anchored only when its live creation
@@ -273,9 +273,12 @@ def _dashboard_slice_uuids_at_tx(
     Missing/pruned evidence is never replaced with an arbitrary UUID for an id.
     All reads use the committing session, including its uncommitted shadows.
     """
-    active = [(sid, window) for sid, window in attached if window.contains(tx)]
-    if not active:
-        return []
+    active = {
+        tx: [(sid, window.start_tx) for sid, window in attached if window.contains(tx)]
+        for tx in txs
+    }
+    if not any(active.values()):
+        return {tx: [] for tx in txs}
 
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class, versioning_manager
@@ -286,8 +289,7 @@ def _dashboard_slice_uuids_at_tx(
 
     return attachment_uuids(
         session.connection(),
-        [(sid, window.start_tx) for sid, window in active],
-        tx,
+        active,
         versions_table=version_class(Slice).__table__,
         live_table=Slice.__table__,
         transactions_table=versioning_manager.transaction_cls.__table__,
@@ -336,10 +338,13 @@ def _dashboard_child_records_for_tx_from_shadows(
         # contain each tx — the windows are tx-independent, so no need to
         # re-scan the association history for both reads.
         attached = chart_attachment_windows_for_dashboard(dashboard_id, session=session)
-        post_uuids = _dashboard_slice_uuids_at_tx(session, attached, transaction_id)
-        pre_uuids = _dashboard_slice_uuids_at_tx(session, attached, prior_tx)
+        uuids_by_tx = _dashboard_slice_uuids_at_txs(
+            session, attached, (prior_tx, transaction_id)
+        )
 
-        records = diff_dashboard_slices(pre_uuids, post_uuids)
+        records = diff_dashboard_slices(
+            uuids_by_tx[prior_tx], uuids_by_tx[transaction_id]
+        )
         if records:
             result[dashboard_id] = records
     return result

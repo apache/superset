@@ -16,7 +16,7 @@
 # under the License.
 """Unit tests for the change-record shadow queries (sc-120007).
 
-``_dashboard_slice_uuids_at_tx`` takes a dashboard's precomputed attachment
+``_dashboard_slice_uuids_at_txs`` takes a dashboard's precomputed attachment
 windows (from :func:`chart_attachment_windows_for_dashboard`, which pairs the
 ``dashboard_slices_version`` INSERT/DELETE rows into ``[attach, detach)``
 intervals) and keeps only the charts whose window contains the target tx. The
@@ -32,12 +32,13 @@ from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from sqlalchemy.dialects import sqlite
 
 from superset.versioning.activity.kinds import ENTITY_ID_CHUNK_SIZE, Window
 from superset.versioning.changes.shadow_queries import (
     _dashboard_child_records_for_tx_from_shadows,
-    _dashboard_slice_uuids_at_tx,
+    _dashboard_slice_uuids_at_txs,
 )
 
 # Chart ids in the small fixtures; distinguishes them from the other binds
@@ -103,7 +104,7 @@ def test_dashboard_slice_uuids_excludes_chart_detached_before_tx(
     captured: list[Any] = []
     session = _session_echoing_queried_ids(captured)
 
-    result = _dashboard_slice_uuids_at_tx(session, attached, tx=10)
+    result = _dashboard_slice_uuids_at_txs(session, attached, txs=(10,))[10]
 
     assert result == ["uuid-202"]
     assert captured, "expected a slices_version uuid query"
@@ -128,7 +129,7 @@ def test_dashboard_slice_uuids_empty_when_nothing_attached_at_tx(
     attached = [(101, Window(1, 5)), (202, Window(2, 6))]  # both closed before 10
     session = MagicMock()
 
-    result = _dashboard_slice_uuids_at_tx(session, attached, tx=10)
+    result = _dashboard_slice_uuids_at_txs(session, attached, txs=(10,))[10]
 
     assert result == []
     session.connection.return_value.execute.assert_not_called()
@@ -145,16 +146,24 @@ def test_dashboard_slice_uuids_includes_chart_reattached_before_tx(
     captured: list[Any] = []
     session = _session_echoing_queried_ids(captured)
 
-    result = _dashboard_slice_uuids_at_tx(session, attached, tx=10)
+    result = _dashboard_slice_uuids_at_txs(session, attached, txs=(10,))[10]
 
     assert result == ["uuid-101"]
 
 
-def test_dashboard_slice_uuids_drops_null_uuid_rows(app_context: None) -> None:
+def test_dashboard_slice_uuids_drops_null_uuid_rows(
+    app_context: None, caplog: pytest.LogCaptureFixture
+) -> None:
     """A content-shadow row with a NULL uuid is filtered out, not emitted."""
     attached = [(101, Window(1, None)), (202, Window(1, None))]
     session = _session_echoing_queried_ids([], null_ids={101})
-    assert _dashboard_slice_uuids_at_tx(session, attached, tx=10) == ["uuid-202"]
+    with caplog.at_level("DEBUG", logger="superset.versioning.changes.identity"):
+        assert _dashboard_slice_uuids_at_txs(session, attached, txs=(10,))[10] == [
+            "uuid-202"
+        ]
+    assert (
+        "Unresolved chart identity: chart_id=101 attachment_tx=1 tx=10" in caplog.text
+    )
 
 
 def test_dashboard_slice_uuids_chunks_wide_membership_under_bind_floor(
@@ -174,7 +183,7 @@ def test_dashboard_slice_uuids_chunks_wide_membership_under_bind_floor(
     captured: list[Any] = []
     session = _session_echoing_queried_ids(captured, id_predicate=lambda v: v >= 1000)
 
-    result = _dashboard_slice_uuids_at_tx(session, attached, tx=10)
+    result = _dashboard_slice_uuids_at_txs(session, attached, txs=(10,))[10]
 
     assert sorted(result) == sorted(f"uuid-{i}" for i in ids)
     assert len(captured) >= 2, "wide membership must be split across statements"
@@ -183,6 +192,22 @@ def test_dashboard_slice_uuids_chunks_wide_membership_under_bind_floor(
             dialect=sqlite.dialect(), compile_kwargs={"render_postcompile": True}
         )
         assert len(compiled.params) < 999, "each statement must stay under the floor"
+
+
+def test_dashboard_pre_post_membership_reads_identity_history_once(
+    app_context: None,
+) -> None:
+    """Share evidence across pre/post, including charts present on only one side."""
+    attached = [(101, Window(1, 5)), (202, Window(1, None)), (303, Window(5, None))]
+    captured: list[Any] = []
+    session = _session_echoing_queried_ids(captured)
+
+    assert _dashboard_slice_uuids_at_txs(session, attached, (4, 5)) == {
+        4: ["uuid-101", "uuid-202"],
+        5: ["uuid-202", "uuid-303"],
+    }
+    assert len(captured) == 1
+    assert session.connection.return_value.execute.call_count == 3
 
 
 def test_child_records_threads_committing_session_into_membership(
