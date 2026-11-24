@@ -31,81 +31,79 @@ import { TopBannerFormData } from '../types';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 
-const thumbnail =
-  `data:image/svg+xml;charset=utf-8,${ 
-  encodeURIComponent(`
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
+const thumbnail = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="400"
+    height="260"
+    viewBox="0 0 400 260"
+  >
+    <rect
       width="400"
       height="260"
-      viewBox="0 0 400 260"
+      rx="28"
+      fill="#f8fafc"
+    />
+    <rect
+      x="28"
+      y="70"
+      width="344"
+      height="120"
+      rx="18"
+      fill="#ffffff"
+      stroke="#20a7c9"
+      stroke-width="5"
+    />
+    <rect
+      x="50"
+      y="94"
+      width="64"
+      height="64"
+      rx="12"
+      fill="#20a7c9"
+    />
+    <text
+      x="82"
+      y="136"
+      text-anchor="middle"
+      font-size="30"
     >
-      <rect
-        width="400"
-        height="260"
-        rx="28"
-        fill="#f8fafc"
-      />
-      <rect
-        x="28"
-        y="70"
-        width="344"
-        height="120"
-        rx="18"
-        fill="#ffffff"
-        stroke="#20a7c9"
-        stroke-width="5"
-      />
-      <rect
-        x="50"
-        y="94"
-        width="64"
-        height="64"
-        rx="12"
-        fill="#20a7c9"
-      />
-      <text
-        x="82"
-        y="136"
-        text-anchor="middle"
-        font-size="30"
-      >
-        😶‍🌫️
-      </text>
-      <rect
-        x="132"
-        y="101"
-        width="112"
-        height="15"
-        rx="7"
-        fill="#183153"
-      />
-      <rect
-        x="132"
-        y="128"
-        width="87"
-        height="10"
-        rx="5"
-        fill="#94a3b8"
-      />
-      <rect
-        x="278"
-        y="105"
-        width="66"
-        height="13"
-        rx="6"
-        fill="#183153"
-      />
-      <rect
-        x="294"
-        y="132"
-        width="50"
-        height="9"
-        rx="4"
-        fill="#94a3b8"
-      />
-    </svg>
-  `)}`;
+      \uD83D\uDE36\u200D\uD83C\uDF2B\uFE0F
+    </text>
+    <rect
+      x="132"
+      y="101"
+      width="112"
+      height="15"
+      rx="7"
+      fill="#183153"
+    />
+    <rect
+      x="132"
+      y="128"
+      width="87"
+      height="10"
+      rx="5"
+      fill="#94a3b8"
+    />
+    <rect
+      x="278"
+      y="105"
+      width="66"
+      height="13"
+      rx="6"
+      fill="#183153"
+    />
+    <rect
+      x="294"
+      y="132"
+      width="50"
+      height="9"
+      rx="4"
+      fill="#94a3b8"
+    />
+  </svg>
+`)}`;
 
 export default class TopBannerChartPlugin extends ChartPlugin<
   TopBannerFormData,
