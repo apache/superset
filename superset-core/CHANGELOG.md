@@ -45,6 +45,19 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
 - A provider conformance test kit in `superset_core.semantic_layers.testing`; install
   `apache-superset-core[testing]` for its pytest dependency.
+- `meta` and `app` on `superset_core.mcp.decorators.tool`: entries for the tool's
+  `_meta`, and its MCP Apps settings (FastMCP's `AppConfig` or its dict), which link
+  the tool to a View and name its audience (`visibility`). A `ui` entry in `meta` is
+  validated like `app`. Once any tool links a View or declares an `"app"` audience,
+  the host lists tools that declare no visibility as `["model"]`. See the
+  [MCP guide](../docs/developer_docs/extensions/mcp.md#mcp-apps-views).
+- `superset_core.mcp.decorators.resource`, which registers an MCP Apps View: an HTML
+  `ui://` resource scoped to its extension
+  (`ui://extensions/<publisher>/<name>/<path>`), with an optional version segment,
+  served with its MCP Apps settings and requiring authentication unless
+  `protect=False`. The decorated function carries the View's URI as `uri`.
+- `superset_core.mcp.decorators.content_version`, a View's version segment taken
+  from a digest of its content: MCP Apps hosts cache Views by URI.
 
 ### Compatibility
 

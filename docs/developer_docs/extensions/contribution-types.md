@@ -420,6 +420,26 @@ async def analysis_guide(ctx: Context) -> str:
 
 See [MCP Integration](./mcp.md) for implementation details.
 
+### MCP Apps Views
+
+Extensions can register MCP Apps Views: HTML pages that AI clients supporting [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) render for a tool's result. A View is a `ui://` resource scoped to the extension, and a tool links it through its `app` settings.
+
+```python
+from superset_core.mcp.decorators import content_version, resource, tool
+
+@resource("viewer", version=content_version(VIEWER_HTML))
+def viewer() -> str:
+    """The page that shows a widget."""
+    return VIEWER_HTML
+
+@tool(app={"resourceUri": viewer.uri, "visibility": ["model", "app"]})
+def show_widget(widget_id: int) -> dict:
+    """Show a widget in the chat."""
+    ...
+```
+
+See [MCP Apps Views](./mcp.md#mcp-apps-views) for URIs, settings and visibility.
+
 ### Semantic Layers
 
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.

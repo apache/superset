@@ -71,6 +71,7 @@ from fastmcp.client.transports import StreamableHttpTransport
 from starlette.applications import Starlette
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.mcp_apps import feeds_view
 from superset.mcp_service.middleware import ToolResultCompatibilityMiddleware
 from superset.mcp_service.server import build_middleware_list
 from superset.utils import json
@@ -284,7 +285,9 @@ async def test_structured_output_can_be_disabled_over_real_asgi_transport() -> N
             tools = await client.list_tools()
             result = await client.call_tool("health_check", {})
 
-    assert all(tool.outputSchema is None for tool in tools)
+    # Only tools that feed an MCP Apps View keep their schema: a View renders
+    # the structured result.
+    assert all((tool.outputSchema is not None) == feeds_view(tool) for tool in tools)
     assert result.structured_content is None
     assert json.loads(result.content[0].text)["status"] == "healthy"
 
