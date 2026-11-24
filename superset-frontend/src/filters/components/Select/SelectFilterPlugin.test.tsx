@@ -2729,12 +2729,7 @@ test('recovers and selects first value when data transitions from empty to popul
   );
 
   rerender(
-    <ControlledSelectFilter
-      data={[
-        { gender: 'boy' },
-        { gender: 'girl' },
-      ]}
-    />,
+    <ControlledSelectFilter data={[{ gender: 'boy' }, { gender: 'girl' }]} />,
   );
 
   await act(async () => {
