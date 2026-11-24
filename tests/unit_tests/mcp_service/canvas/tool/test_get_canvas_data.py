@@ -367,6 +367,31 @@ def test_a_widget_type_that_fails_to_build_its_queries_is_reported(
     assert run.call_count == 1
 
 
+def test_a_widget_types_refusal_reaches_agents_with_its_code(
+    kpis: type[Kpis],
+) -> None:
+    from superset_core.widgets import WidgetDataRefusedError
+
+    refused = WidgetDataRefusedError("CONTENT_CHANGED", "Reload this board")
+    with patch.object(Kpis, "build_bindings", side_effect=refused):
+        result, run = _run(definition=_with_kpis("revenue"), max_widgets=2)
+
+    board = result["widgets"][1]
+    assert board == {
+        "placement_id": "board",
+        "title": None,
+        "widget_type": KPIS,
+        "error": "Reload this board",
+        "error_type": "WidgetDataRefused",
+        "error_code": "CONTENT_CHANGED",
+    }
+    # It counts as one widget against max_widgets.
+    assert result["skipped"] == ["kpi"]
+    assert run.call_count == 1
+    entry = GetCanvasDataResponse.model_validate(result).widgets[1]
+    assert entry.error_code == "CONTENT_CHANGED"
+
+
 def test_a_widget_type_learns_the_placement_comes_from_the_callers_draft(
     kpis: type[Kpis],
 ) -> None:
@@ -382,7 +407,10 @@ def test_a_widget_type_learns_the_placement_comes_from_the_callers_draft(
         dao.find_by_id.return_value = MagicMock(id=7, title="Sales")
         _get_canvas_data_impl(7, "tok", ["board"], 50, 20, None)
 
-    assert [(r.canvas_id, r.canvas_draft_token) for r in kpis.asked] == [("7", "tok")]
+    # The tool reads no saved version of a canvas, so it names none.
+    assert [
+        (r.canvas_id, r.canvas_draft_token, r.canvas_version) for r in kpis.asked
+    ] == [("7", "tok", None)]
 
 
 def test_dataset_rows_are_trimmed_to_fit_the_response_budget() -> None:

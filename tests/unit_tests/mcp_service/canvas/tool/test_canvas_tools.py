@@ -432,9 +432,11 @@ def test_preview_runs_an_extension_widget_types_own_queries() -> None:
     ):
         result, image = _preview_widget_impl(7, "chart", False, "tok")
 
-    assert [(r.canvas_id, r.placement_id, r.canvas_draft_token) for r in asked] == [
-        ("7", "chart", "tok")
-    ]
+    # The tool reads no saved version of a canvas, so it names none.
+    assert [
+        (r.canvas_id, r.placement_id, r.canvas_draft_token, r.canvas_version)
+        for r in asked
+    ] == [("7", "chart", "tok", None)]
     revenue, deals = result["datasets"]
     assert revenue["name"] == "revenue"
     assert revenue["row_count"] == 12
@@ -480,6 +482,44 @@ def test_a_widget_types_refusal_reaches_agents_with_its_code() -> None:
     assert PreviewWidgetResponse.model_validate(expected).error_code == (
         "CONTENT_CHANGED"
     )
+
+
+def test_preview_reports_a_widget_types_refusal_with_its_code() -> None:
+    from superset_core.widgets import BindingRequest, Widget, WidgetDataRefusedError
+
+    from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    class Board(Widget):
+        @classmethod
+        def build_bindings(cls, request: BindingRequest) -> None:
+            raise WidgetDataRefusedError("CONTENT_CHANGED", "Reload this board")
+
+    draft = MagicMock(canvas=Canvas(id=7, slug="sales"), token="tok")  # noqa: S106
+    draft.definition = _preview_canvas(
+        {"widgetType": "extensions.acme.kpis.board", "props": {}}
+    )
+    with (
+        patch(f"{PREVIEW}.load_draft", return_value=draft),
+        patch.dict(
+            "superset.widgets.registry.registry", {"extensions.acme.kpis.board": Board}
+        ),
+        patch(f"{PREVIEW}.run_binding") as run,
+        patch(f"{PREVIEW}._render") as render,
+    ):
+        result, image = _preview_widget_impl(7, "chart", False, "tok")
+
+    assert {key: result[key] for key in ("error", "error_type", "error_code")} == {
+        "error": "Reload this board",
+        "error_type": "WidgetDataRefused",
+        "error_code": "CONTENT_CHANGED",
+    }
+    assert not {"row_count", "sample_rows", "datasets"} & set(result)
+    run.assert_not_called()
+    render.assert_not_called()
+    assert image is None
+    assert PreviewWidgetResponse.model_validate(result).error_code == "CONTENT_CHANGED"
 
 
 def test_preview_reports_unknown_placements() -> None:

@@ -132,16 +132,12 @@ class GetPlacementDataCommand(BaseCommand):
         runtime_filters: list[RuntimeFilter],
         draft_token: str | None = None,
         version_uuid: UUID | None = None,
-        widget_draft_token: str | None = None,
-        widget_version: str | None = None,
     ) -> None:
         self._id_or_uuid = id_or_uuid
         self._placement_id = placement_id
         self._runtime_filters = runtime_filters
         self._draft_token = draft_token
         self._version_uuid = version_uuid
-        self._widget_draft_token = widget_draft_token
-        self._widget_version = widget_version
         self._bindings: dict[str, dict[str, Any]] = {}
 
     def run(self) -> dict[str, PlacementData]:
@@ -170,8 +166,12 @@ class GetPlacementDataCommand(BaseCommand):
                 placement.props,
                 widget_id=placement.widget_id,
                 canvas_draft_token=self._draft_token or None,
-                widget_draft_token=self._widget_draft_token or None,
-                widget_version=self._widget_version or None,
+                # load_placement reads the draft over a previewed version.
+                canvas_version=(
+                    str(self._version_uuid)
+                    if self._version_uuid and not self._draft_token
+                    else None
+                ),
             ),
         )
         if not self._bindings:

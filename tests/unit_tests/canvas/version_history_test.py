@@ -275,6 +275,42 @@ def test_placement_data_reads_a_version(
     assert bad.status_code == 400
 
 
+def test_a_widget_type_learns_only_a_version_the_caller_may_read(
+    client: Any,
+    full_api_access: None,
+    canvas: Canvas,
+    widget_types: FakeResolver,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.widgets import Widget
+
+    from superset.widgets.registry import registry
+
+    mocker.patch(
+        "superset.commands.canvas.placement_data.run_binding",
+        return_value=PlacementData([], None, None),
+    )
+    build = MagicMock(side_effect=Widget.build_bindings)
+    mocker.patch.object(registry["chart"], "build_bindings", build)
+    widget_types.props["chart-1"] = {"dataBinding": BINDING}
+    save(canvas, {"op": "add", "id": "sales", "widgetId": "chart-1"})
+    first = versions(client, canvas)[1]["version_uuid"]
+    url = f"{BASE}/{canvas.id}/placement/sales/data"
+    headers = {"X-Canvas-Version": first}
+
+    assert client.post(url, json={}, headers=headers).status_code == 200
+    assert build.call_args.args[0].canvas_version == first
+
+    build.reset_mock()
+    mocker.patch(
+        "superset.security_manager.raise_for_editorship",
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+
+    assert client.post(url, json={}, headers=headers).status_code == 403
+    build.assert_not_called()
+
+
 @pytest.mark.parametrize("entity_backed", [True, False], ids=["entity", "inline"])
 def test_version_queries_effective_source_with_current_rls_and_access(
     client: Any,

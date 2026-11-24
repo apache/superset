@@ -89,14 +89,17 @@ def canvas_query_error(error: Exception) -> CanvasQueryError:
     Object/draft/version ACL errors are handled by the calling transport before
     entering this adapter. Unknown query failures remain server errors, with a
     fixed public message rather than arbitrary exception details. A widget
-    type's refusal keeps the type's status, code and message, which it wrote
-    for the caller, and a failure already classified keeps its classification.
+    type's refusal keeps the code and message the type wrote for the caller,
+    and is a 400 whatever its code, as a semantic provider's rejection of a
+    query is (``SemanticLayerQueryRejectedError``): an extension declines a
+    request, and the host decides how that is answered. A failure already
+    classified keeps its classification.
     """
     if isinstance(error, CanvasQueryFailedError):
         return error.error
     if isinstance(error, WidgetDataRefusedError):
         return CanvasQueryError(
-            error.status, "WidgetDataRefused", error.message, code=error.code
+            400, "WidgetDataRefused", error.message, code=error.code
         )
     if isinstance(error, DatasourceNotFound):
         return CanvasQueryError(

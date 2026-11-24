@@ -49,15 +49,20 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   nudge Superset's own pages listen for, so that an extension's change reaches open
   pages through the realtime transport. See the
   [realtime guide](../docs/developer_docs/extensions/realtime.md).
-- `Widget.build_bindings` and `superset_core.widgets.bindings` (`BindingRequest`,
-  `WidgetBinding`, `WidgetDataRefusedError`): a widget type whose data is not in its
-  props builds the bindings a data request runs, which the host checks, caps and runs
-  as the caller, or refuses the request with a code of its own. It stands in for
-  SIP-231's `QueryMixin.build_queries`. See the
 - `superset_core.canvas.placements`: `load_placed_widget`, the saved widget a canvas
   placement shows, in the stored canvas, the caller's draft of it or a version it
   previews, read with the canvas's access rules, and `editable_widgets`, which of
   some saved widgets the current user may change. See the
+  [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
+- `Widget.build_bindings` and `superset_core.widgets.bindings` (`BindingRequest`,
+  `WidgetBinding`, `WidgetDataRefusedError`), provisional: a widget type whose data
+  is not in its props builds the bindings a data request runs, which the host
+  checks, caps and runs as the caller, or refuses the request with a code of its
+  own, which the host presents. They are a stand-in until SIP-231's query API
+  (`QueryMixin.build_queries` with `WidgetQuery` and `SemanticQuery`), and may
+  change, or be replaced by that API, under the
+  [deprecation policy](../docs/developer_docs/extensions/dependencies.md#api-evolution).
+  See the
   [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
 - `superset_core.security.can_access_datasource`, the host's decision whether the current
   user may read a dataset on its own, as its chart data and SQL paths make it. See

@@ -26,69 +26,6 @@ under the License.
 
 A canvas places widgets: containers and text it stores itself, and saved widgets (rows of the `widgets` table) it references by UUID. An extension takes part in canvases by registering a widget type on the backend (`@widget` from `superset_core.widgets`) and its renderer on the frontend (`canvas.registerWidgetRenderer` from `@apache-superset/core`). Everything on this page sits behind the `CANVAS` feature flag, and only the import paths it names are supported.
 
-## Widget data
-
-A widget's data is always queried on the server, from what is stored: the caller only adds runtime filters, the values of the canvas filters and cross-filters that reach the widget, which narrow the binding's own dataset. Each query runs as the caller, through the chart data pipeline, so dataset access, row level security and caching apply as for any chart.
-
-| Endpoint | Reads | Access |
-| --- | --- | --- |
-| `POST /api/v1/canvas/<id_or_uuid>/placement/<placement_id>/data` | A placement, from the stored canvas, the caller's draft of it (`X-Canvas-Draft`), or one of its versions (`X-Canvas-Version`) | The canvas, and the binding's dataset |
-| `POST /api/v1/widget/<uuid>/data` | A saved widget on its own, without a canvas | `can_read` on `Widget`, the widget itself, and the binding's dataset |
-
-Both take `{"runtime_filters": [{"datasetId": 1, "column": "country", "values": ["FR"]}]}` and answer `{"result": {"datasets": [{"name": "main", "row_count": 1, "inline_data": [...], "coltypes": {...}}]}}`, one dataset per binding the widget runs (see below); a dataset carries the `query` that ran, and its `language`, only for a caller who may view queries. One failing binding fails the request. Both also take `X-Widget-Draft` and `X-Widget-Version`, which name a draft and a version of the widget's own content for its widget type.
-
-The saved widget endpoint is provisional. It is a synchronous stand-in for the asynchronous endpoint [SIP-231](https://github.com/apache/superset/issues/44875) section 8 describes, which answers a manifest of Arrow datasets, or a task while the result isn't cached yet, and its answer and path may change or be replaced when that endpoint lands.
-
-## A widget type's bindings
-
-By default a widget's data is its props' `dataBinding`, run as the dataset `main`. A widget type whose data isn't in its props, such as one whose props only refer to content it stores elsewhere, builds the bindings itself, by overriding `build_bindings`:
-
-```python
-from superset_core.widgets import (
-    BindingRequest,
-    Widget,
-    WidgetBinding,
-    WidgetDataRefusedError,
-    widget,
-)
-
-
-@widget(widget_type="board", name="Board", description="...")
-class Board(Widget):
-    @classmethod
-    def build_bindings(cls, request: BindingRequest) -> list[WidgetBinding] | None:
-        content = load_content(request.widget_id, request.widget_version)
-        if content is None:
-            raise WidgetDataRefusedError("CONTENT_CHANGED", "Reload this board")
-        return [WidgetBinding(name, binding) for name, binding in content.items()]
-```
-
-- **What it gets.** `BindingRequest` says where the host read the widget: the canvas and placement (both `None` for a saved widget on its own), the saved widget's UUID, its props, and the caller's canvas draft when the placement came from it, which the host has checked. `widget_draft_token` and `widget_version` are whatever `X-Widget-Draft` and `X-Widget-Version` said, passed on unchecked: they locate content and grant nothing, so a type that reads them checks that the caller may read what they name.
-- **What it returns.** A binding has the shape of a `dataBinding`: `datasetId`, `metrics`, `dimensions`, `filters`, `orderBy` and `rowLimit`. Each is answered as the dataset of its name, so names must be unique. Return `None` to keep the host's default.
-- **What the host checks.** Every binding a type builds is checked as a stored one is when it is written, before any of them runs: it must be a valid `dataBinding` with a plain integer `datasetId`, and the caller must be able to read its dataset. A binding without a `datasetId` isn't bound yet and is left out. A request runs at most `CANVAS_WIDGET_MAX_BINDINGS` bindings (20 by default), and Superset's row limits clamp a binding's own. A type that breaks these rules fails the request with a server error. The bindings then run as the caller, narrowed by the runtime filters on their datasets: a widget type decides what its widgets query, never who may read their data.
-- **Refusing.** Raise `WidgetDataRefusedError(code, message, status=409)` to answer a request with your own code and message instead of any dataset, such as one that names content the widget no longer serves. The message reaches the caller, so it must say nothing they may not know.
-
-Agents read the same bindings: the MCP tools `preview_widget` and `get_canvas_data` run what a widget type builds, with the same checks, and answer each as a dataset of its name; a refusal reaches them as `error_type` `WidgetDataRefused`, with the type's code in `error_code`.
-
-`build_bindings` stands in for SIP-231's `QueryMixin.build_queries`, which builds `WidgetQuery` objects around a `SemanticQuery`. It will be replaced when that lands.
-## Showing a saved widget outside a canvas
-
-`canvas.WidgetHost` shows one saved widget on its own, on any page, in the cell a canvas draws around a placement: the title row, the slot the widget's own controls render into, its error boundary, and the canvas's "This widget is unavailable" placeholder. Its data comes from the saved widget endpoint above.
-
-```tsx
-import { canvas } from '@apache-superset/core';
-
-<canvas.WidgetHost widgetId={uuid} filters={pageFilters} showTitle={false} />;
-```
-
-A canvas renderer is always given the canvas and placement it renders (`canvasId`, `nodeId`), so the host never runs one outside a canvas. A widget type shows in a widget host once it registers a renderer for a saved widget on its own:
-
-```tsx
-canvas.registerSavedWidgetRenderer('extensions.acme.kpi.kpi', SavedKpiTile);
-```
-
-That renderer gets `SavedWidgetProps`: the saved widget's `widgetId`, `widgetType`, `props` and `title`, the `filters` the page passes in, and `refreshKey`. The widget is the only node of its filter bus, so it has no cross-filters. A type without one shows the placeholder. The built-in data widgets (`echarts`, `metric-tile` and `ag-grid-table`) register theirs.
-
 ## Placements on the backend
 
 An extension's own endpoint that serves its widget where a canvas places it, such as a route that answers a frame for a placement, reads the placement through `superset_core.canvas.placements`, so the caller reaches only what the canvas's own endpoints would show them:
@@ -141,3 +78,65 @@ On the frontend, `canvas.onDidChangeDraft` fires after the canvas page itself di
 `canvas.registerPublishParticipant({ prepare })` takes part in publishing a draft from the canvas page. When the person publishes, the page asks each participant's `prepare(draft)` what publishing it also publishes, and lists every part (`title`, `lines`) in a confirmation before anything is published. Once the person confirms, the page publishes each part (`publish()`) and then the canvas; the first part that fails stops the publish with its message, and publishing again from the confirmation publishes only the parts that didn't go out.
 
 The publish is several requests, not one transaction: when parts went out and the canvas didn't, the confirmation says which. Only the page's publish asks participants. A commit that skips the page, such as an agent's through its tool, publishes no part, so pair a participant with a commit participant on the server that refuses the commit while a part waits.
+
+## Widget data
+
+A widget's data is always queried on the server, from what is stored: the caller only adds runtime filters, the values of the canvas filters and cross-filters that reach the widget, which narrow the binding's own dataset. Each query runs as the caller, through the chart data pipeline, so dataset access, row level security and caching apply as for any chart.
+
+| Endpoint | Reads | Access |
+| --- | --- | --- |
+| `POST /api/v1/canvas/<id_or_uuid>/placement/<placement_id>/data` | A placement, from the stored canvas, the caller's draft of it (`X-Canvas-Draft`), or one of its versions (`X-Canvas-Version`) | The canvas, and the binding's dataset |
+| `POST /api/v1/widget/<uuid>/data` | A saved widget on its own, without a canvas | `can_read` on `Widget`, the widget itself, and the binding's dataset |
+
+Both take `{"runtime_filters": [{"datasetId": 1, "column": "country", "values": ["FR"]}]}` and answer `{"result": {"datasets": [{"name": "main", "row_count": 1, "inline_data": [...], "coltypes": {...}}]}}`, one dataset per binding the widget runs (see below); a dataset carries the `query` that ran, and its `language`, only for a caller who may view queries. One failing binding fails the request, and a widget type may refuse it.
+
+The saved widget endpoint is provisional. It is a synchronous stand-in for the asynchronous endpoint [SIP-231](https://github.com/apache/superset/issues/44875) section 8 describes, which answers a manifest of Arrow datasets, or a task while the result isn't cached yet, and its answer and path may change or be replaced when that endpoint lands.
+
+## A widget type's bindings
+
+:::note Provisional
+`build_bindings` and the types it uses (`BindingRequest`, `WidgetBinding` and `WidgetDataRefusedError`, in `superset_core.widgets.bindings`) are provisional: a stand-in until SIP-231's query API, `QueryMixin.build_queries` with `WidgetQuery` and `SemanticQuery`. They may change, or be replaced by that API, under the [deprecation policy](../dependencies.md#api-evolution).
+:::
+
+By default a widget's data is its props' `dataBinding`, run as the dataset `main`. A widget type whose data isn't in its props, such as one whose props only refer to content it stores elsewhere, builds the bindings itself, by overriding `build_bindings`:
+
+```python
+from superset_core.widgets import (
+    BindingRequest,
+    Widget,
+    WidgetBinding,
+    WidgetDataRefusedError,
+    widget,
+)
+
+
+@widget(widget_type="board", name="Board", description="...")
+class Board(Widget):
+    @classmethod
+    def build_bindings(cls, request: BindingRequest) -> list[WidgetBinding] | None:
+        content = load_content(request.props["contentId"], request.canvas_version)
+        if content is None:
+            raise WidgetDataRefusedError("CONTENT_CHANGED", "Reload this board")
+        return [WidgetBinding(name, binding) for name, binding in content.items()]
+```
+
+- **What it gets.** `BindingRequest` says where the host read the widget, all of which the host has checked the caller may read: the canvas and placement (both `None` for a saved widget on its own), the saved widget's UUID, its props, the caller's canvas draft when the placement came from it, and `canvas_version`, the UUID of the canvas version the placement came from when the page previews one (`X-Canvas-Version`; `getActiveCanvas().previewedVersion` on the frontend), which only the canvas's editors can read. A draft wins over a version, and `canvas_version` is then `None`. The caller's only input is the runtime filters, which the host applies to the bindings.
+- **What it returns.** A binding has the shape of a `dataBinding`: `datasetId`, `metrics`, `dimensions`, `filters`, `orderBy` and `rowLimit`. Each is answered as the dataset of its name, so names must be unique. Return `None` to keep the host's default.
+- **What the host checks.** Every binding a type builds is checked as a stored one is when it is written, before any of them runs: it must be a valid `dataBinding` with a plain integer `datasetId`, and the caller must be able to read its dataset. A binding without a `datasetId` isn't bound yet and is left out. A request runs at most `CANVAS_WIDGET_MAX_BINDINGS` bindings (20 by default), and Superset's row limits clamp a binding's own. A type that breaks these rules fails the request with a server error. The bindings then run as the caller, narrowed by the runtime filters on their datasets: a widget type decides what its widgets query, never who may read their data.
+- **Refusing.** Raise `WidgetDataRefusedError(code, message)` to refuse a request instead of building bindings, such as one that names content the widget no longer serves; none of the widget's bindings then runs. `code` is for programs: your own name for why you refused, which keeps its meaning from one release to the next, so that your renderer can act on it, such as by reloading. `message` reaches whoever made the request as it is, so it must say nothing they may not know. The host presents a refusal the same way whatever its code: both data endpoints answer it as a 400 whose `error_type` is `WidgetDataRefused`, with your `code` and `message`.
+
+Agents read the same bindings: the MCP tools `preview_widget` and `get_canvas_data` run what a widget type builds, with the same checks, and answer each as a dataset of its name, within the tools' own caps (`get_canvas_data` counts every binding against its `max_widgets`). A refusal reaches them as `error_type` `WidgetDataRefused`, with the type's code in `error_code`.
+
+## Showing a saved widget outside a canvas
+
+`canvas.WidgetHost` is a proposal. It shows one saved widget on its own, on any page, in the cell a canvas draws around a placement: the title row, the slot the widget's own controls render into, its error boundary, and the canvas's "This widget is unavailable" placeholder. Its data comes from the saved widget endpoint above.
+
+```tsx
+import { canvas } from '@apache-superset/core';
+
+<canvas.WidgetHost widgetId={uuid} showTitle={false} />;
+```
+
+It shows the built-in data widgets: `echarts`, `metric-tile` and `ag-grid-table`. Every other type shows the placeholder, an extension's included, and so does a built-in type whose renderer an extension replaced. A renderer registered with `canvas.registerWidgetRenderer` gets its context as props, the canvas it renders on (`canvasId`) among them, and outside a canvas there is no canvas to give it.
+
+In [SIP-231](https://github.com/apache/superset/issues/44875) section 10, renderers get their context from hooks that each host backs: `useWidgetData`, `useRuntimeFilters` and `emitFilter`. Once those exist, a renderer doesn't know which host it renders in, and the one registry `canvas.registerWidgetRenderer` fills serves every host: a widget host then shows any type that has a renderer.

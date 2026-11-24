@@ -19,22 +19,11 @@ import pytest
 from superset_core.widgets import BindingRequest, Widget, WidgetDataRefusedError
 
 
-def test_a_refusal_carries_its_code_message_and_status() -> None:
-    refused = WidgetDataRefusedError("CONTENT_CHANGED", "Reload to see it", 410)
+def test_a_refusal_carries_its_code_and_message() -> None:
+    refused = WidgetDataRefusedError("CONTENT_CHANGED", "Reload to see it")
 
-    assert (refused.code, refused.message, refused.status) == (
-        "CONTENT_CHANGED",
-        "Reload to see it",
-        410,
-    )
+    assert (refused.code, refused.message) == ("CONTENT_CHANGED", "Reload to see it")
     assert str(refused) == "Reload to see it"
-    assert WidgetDataRefusedError("CONTENT_CHANGED", "Reload").status == 409
-
-
-@pytest.mark.parametrize("status", [200, 302, 401, 407, 500, 503])
-def test_a_refusal_answers_a_client_error_other_than_sign_in(status: int) -> None:
-    with pytest.raises(ValueError, match=str(status)):
-        WidgetDataRefusedError("CONTENT_CHANGED", "Reload", status)
 
 
 def test_a_refusal_needs_a_code() -> None:
@@ -53,5 +42,4 @@ def test_a_request_names_no_draft_or_version_unless_it_has_them() -> None:
 
     assert request.widget_id is None
     assert request.canvas_draft_token is None
-    assert request.widget_draft_token is None
-    assert request.widget_version is None
+    assert request.canvas_version is None

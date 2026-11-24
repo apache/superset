@@ -98,8 +98,7 @@ def test_a_widget_types_bindings_come_from_its_builder(
     run_binding: MagicMock,
     mocker: MockerFixture,
 ) -> None:
-    """The same builder as a placement's, told there is no canvas, with the
-    widget draft and version the request names."""
+    """The same builder as a placement's, told there is no canvas."""
     from superset_core.widgets import BindingRequest, WidgetBinding
 
     from superset.widgets.registry import registry
@@ -117,12 +116,7 @@ def test_a_widget_types_bindings_come_from_its_builder(
     widget = make_widget("Notes", editors=[alice], props={"content": "x"})
 
     with override_user(alice_user):
-        data = GetWidgetDataCommand(
-            widget.uuid,
-            [],
-            widget_draft_token="its-draft",  # noqa: S106
-            widget_version="v7",
-        ).run()
+        data = GetWidgetDataCommand(widget.uuid, []).run()
 
     assert data == {"by_region": BY_REGION, "all": DATA}
     assert [call.args[0] for call in run_binding.call_args_list] == [NAMED, BINDING]
@@ -132,8 +126,6 @@ def test_a_widget_types_bindings_come_from_its_builder(
             placement_id=None,
             props={"content": "x"},
             widget_id=str(widget.uuid),
-            widget_draft_token="its-draft",  # noqa: S106
-            widget_version="v7",
         )
     )
 
@@ -161,7 +153,7 @@ def test_a_widget_types_refusal_comes_through_with_its_code(
         GetWidgetDataCommand(widget.uuid, []).run()
 
     assert (caught.value.error.status, caught.value.error.code) == (
-        409,
+        400,
         "CONTENT_CHANGED",
     )
     run_binding.assert_not_called()
@@ -290,39 +282,15 @@ def test_the_route_answers_the_datasets_envelope(
         UUID(WIDGET),
         [RuntimeFilter(datasetId=13, column="country", values=["FR"])],
     )
-    assert command.call_args.kwargs == {
-        "widget_draft_token": None,
-        "widget_version": None,
-    }
 
 
 @api_flags
-def test_the_route_passes_the_widget_draft_and_version_on(
-    client: Any, full_api_access: None, mocker: MockerFixture
-) -> None:
-    command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
-    command.return_value.run.return_value = {"main": DATA}
-
-    response = client.post(
-        URL.format(WIDGET),
-        json={},
-        headers={"X-Widget-Draft": "its-draft", "X-Widget-Version": "v7"},
-    )
-
-    assert response.status_code == 200
-    assert command.call_args.kwargs == {
-        "widget_draft_token": "its-draft",
-        "widget_version": "v7",
-    }
-
-
-@api_flags
-def test_the_route_answers_a_refusal_with_its_code_and_message(
+def test_the_route_answers_a_refusal_as_a_400_with_its_code_and_message(
     client: Any, full_api_access: None, mocker: MockerFixture
 ) -> None:
     from superset_core.widgets import WidgetDataRefusedError
 
-    refused = WidgetDataRefusedError("CONTENT_CHANGED", "Reload it", 410)
+    refused = WidgetDataRefusedError("CONTENT_GONE", "Reload it")
     command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
     command.return_value.run.side_effect = CanvasQueryFailedError(
         canvas_query_error(refused)
@@ -330,11 +298,11 @@ def test_the_route_answers_a_refusal_with_its_code_and_message(
 
     response = client.post(URL.format(WIDGET), json={})
 
-    assert response.status_code == 410
+    assert response.status_code == 400
     assert response.json == {
         "message": "Reload it",
         "error_type": "WidgetDataRefused",
-        "code": "CONTENT_CHANGED",
+        "code": "CONTENT_GONE",
     }
 
 

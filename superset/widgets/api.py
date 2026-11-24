@@ -28,12 +28,7 @@ from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 
 from superset import is_feature_enabled
-from superset.canvas.data import (
-    data_response,
-    PlacementDataRequest,
-    WIDGET_DRAFT_HEADER,
-    WIDGET_VERSION_HEADER,
-)
+from superset.canvas.data import data_response, PlacementDataRequest
 from superset.canvas.definition.validation import request_errors
 from superset.canvas.query_errors import CanvasQueryFailedError
 from superset.commands.canvas.exceptions import WidgetTypeUnavailableError
@@ -440,17 +435,15 @@ class WidgetRestApi(BaseSupersetModelRestApi):
             narrowed by `runtime_filters` on its dataset, without a canvas, and
             answers each as a dataset of its name, as a placement's data is
             answered. One failing binding fails the request. A widget type may
-            refuse the request: it is then answered with the type's `code` and
-            `message`, by default as a 409. Reading needs access to the widget
-            and to each binding's dataset. `X-Widget-Draft` and
-            `X-Widget-Version` name a draft and a version of the widget's own
-            content, which go to its widget type unchecked, for a type that
-            keeps them; the type checks them itself. Each dataset includes the
-            query that ran when the caller can view queries. This synchronous
-            endpoint stands in for the asynchronous one SIP-231 section 8
-            describes, which answers a manifest of Arrow datasets, or a task
-            while the result isn't cached yet; its answer and its path may
-            change when that lands.
+            refuse the request instead, which is answered as a 400 whose
+            `error_type` is `WidgetDataRefused`, with the type's own `code`,
+            for programs, and `message`. Reading needs access to the widget
+            and to each binding's dataset. Each dataset includes the query that
+            ran when the caller can view queries. This synchronous endpoint
+            stands in for the asynchronous one SIP-231 section 8 describes,
+            which answers a manifest of Arrow datasets, or a task while the
+            result isn't cached yet; its answer and its path may change when
+            that lands.
           parameters:
           - in: path
             schema:
@@ -511,10 +504,6 @@ class WidgetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
-            409:
-              description: >-
-                The widget's type refused the request, as its `code` says; a
-                type may answer another client error
             422:
               $ref: '#/components/responses/422'
         """
@@ -532,12 +521,7 @@ class WidgetRestApi(BaseSupersetModelRestApi):
         try:
             return data_response(
                 self,
-                GetWidgetDataCommand(
-                    widget_uuid,
-                    body.runtime_filters,
-                    widget_draft_token=request.headers.get(WIDGET_DRAFT_HEADER),
-                    widget_version=request.headers.get(WIDGET_VERSION_HEADER),
-                ).run,
+                GetWidgetDataCommand(widget_uuid, body.runtime_filters).run,
                 on_error,
             )
         except WidgetNotFoundError:

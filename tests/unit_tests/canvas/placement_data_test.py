@@ -23,6 +23,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 from pytest_mock import MockerFixture
@@ -465,15 +466,17 @@ def test_one_failing_binding_fails_the_request(
     assert client.post(URL.format("chart"), json={}).status_code == 403
 
 
-@pytest.mark.parametrize("status", [409, 403])
-def test_a_widget_type_refuses_with_its_code_and_message(
+@pytest.mark.parametrize("code", ["CONTENT_CHANGED", "CONTENT_GONE"])
+def test_the_host_presents_a_widget_types_refusal_as_a_400(
     client: Any,
     full_api_access: None,
     canvas: Any,
     run_binding: MagicMock,
     mocker: MockerFixture,
-    status: int,
+    code: str,
 ) -> None:
+    """The same status whatever the type's code, with the code and message
+    the type wrote."""
     from superset_core.widgets import WidgetDataRefusedError
 
     from superset.widgets.registry import registry
@@ -482,23 +485,21 @@ def test_a_widget_type_refuses_with_its_code_and_message(
         registry["chart"],
         "build_bindings",
         MagicMock(
-            side_effect=WidgetDataRefusedError(
-                "CONTENT_CHANGED", "This widget changed: reload it", status
-            )
+            side_effect=WidgetDataRefusedError(code, "This widget changed: reload it")
         ),
     )
     report = mocker.patch("superset.canvas.api._report_canvas_error")
 
     response = client.post(URL.format("chart"), json={})
 
-    assert response.status_code == status
+    assert response.status_code == 400
     assert response.json == {
         "message": "This widget changed: reload it",
         "error_type": "WidgetDataRefused",
-        "code": "CONTENT_CHANGED",
+        "code": code,
     }
     run_binding.assert_not_called()
-    assert report.call_args.args[2] == status
+    assert report.call_args.args[2] == 400
 
 
 def test_an_already_classified_failure_keeps_its_classification() -> None:
@@ -547,37 +548,60 @@ def test_a_widget_type_learns_the_placement_comes_from_the_callers_draft(
     assert request.widget_id == "chart-1"
 
 
-def test_a_widget_type_gets_the_widget_draft_and_version_the_request_names(
+def test_a_widget_type_learns_the_canvas_version_the_page_previews(
     client: Any,
     full_api_access: None,
     canvas: Any,
+    widget_types: FakeResolver,
     run_binding: MagicMock,
     can_view_query: MagicMock,
     mocker: MockerFixture,
 ) -> None:
-    """Passed on as they came, for a type that keeps drafts or versions of its
-    own content; the host reads neither."""
+    """The version the host read the placement from, through the check that
+    the caller may read it (``version_snapshot``); a draft wins over it."""
     from superset_core.widgets import Widget
 
     from superset.widgets.registry import registry
 
     build = MagicMock(side_effect=Widget.build_bindings)
     mocker.patch.object(registry["chart"], "build_bindings", build)
+    snapshot = mocker.patch(
+        "superset.commands.canvas.placement_data.version_snapshot",
+        return_value={"definition": {"nodes": {"chart": {"widgetId": "chart-1"}}}},
+    )
+    version = "8d2b2b7e-2f5c-4a39-9a4e-3f0c1b2a7d10"
 
     response = client.post(
-        URL.format("chart"),
-        json={},
-        headers={"X-Widget-Draft": "its-draft", "X-Widget-Version": "v7"},
+        URL.format("chart"), json={}, headers={"X-Canvas-Version": version}
     )
 
     assert response.status_code == 200
-    [request] = [call.args[0] for call in build.call_args_list]
-    assert (request.widget_draft_token, request.widget_version) == ("its-draft", "v7")
-    assert request.canvas_draft_token is None
-    # Without the headers, the request names neither.
-    client.post(URL.format("chart"), json={})
+    assert snapshot.call_args.args[1] == UUID(version)
     request = build.call_args.args[0]
-    assert (request.widget_draft_token, request.widget_version) == (None, None)
+    assert (request.canvas_version, request.canvas_draft_token) == (version, None)
+
+    # Without the header, the page previews no version.
+    client.post(URL.format("chart"), json={})
+    assert build.call_args.args[0].canvas_version is None
+
+    mocker.patch(
+        "superset.commands.canvas.placement_data.load_draft",
+        return_value=MagicMock(
+            canvas_id=100,
+            definition={"nodes": {"chart": {"widgetId": "chart-1"}}},
+            resolver=lambda: widget_types,
+        ),
+    )
+    snapshot.reset_mock()
+    client.post(
+        URL.format("chart"),
+        json={},
+        headers={"X-Canvas-Draft": "token", "X-Canvas-Version": version},
+    )
+
+    snapshot.assert_not_called()
+    request = build.call_args.args[0]
+    assert (request.canvas_version, request.canvas_draft_token) == (None, "token")
 
 
 @pytest.mark.parametrize(
