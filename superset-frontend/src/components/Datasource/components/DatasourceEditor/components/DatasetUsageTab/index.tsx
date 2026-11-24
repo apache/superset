@@ -216,21 +216,23 @@ const DatasetUsageTab = ({
         render: (_: unknown, record: UsageChart) => (
           <FlexRowContainer>
             {record.deleted_at ? (
-              <span
-                className="archived-chart-title"
-                data-test={`${record.slice_name}-usage-chart-title`}
-              >
-                {record.certified_by && (
-                  <>
-                    <CertifiedBadge
-                      certifiedBy={record.certified_by}
-                      details={record.certification_details}
-                    />{' '}
-                  </>
-                )}
-                {record.slice_name}
+              <>
+                <span
+                  className="archived-chart-title"
+                  data-test={`${record.slice_name}-usage-chart-title`}
+                >
+                  {record.certified_by && (
+                    <>
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />{' '}
+                    </>
+                  )}
+                  {record.slice_name}
+                </span>
                 <ArchivedLabel />
-              </span>
+              </>
             ) : (
               <GenericLink
                 to={record.url}

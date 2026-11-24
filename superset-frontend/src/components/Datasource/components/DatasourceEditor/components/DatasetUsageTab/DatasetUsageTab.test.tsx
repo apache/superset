@@ -752,9 +752,13 @@ test('labels archived charts and dashboards without navigation or edit attributi
 
   const archivedTitle = screen.getByTestId('Archived chart-usage-chart-title');
   expect(archivedTitle.closest('a')).toBeNull();
-  expect(within(archivedTitle).getByLabelText('Archived')).toHaveTextContent(
-    '(archived)',
+  // The marker sits beside the ellipsized title so long names cannot clip it.
+  expect(archivedTitle).toHaveClass('archived-chart-title');
+  expect(archivedTitle.nextElementSibling).toHaveAttribute(
+    'aria-label',
+    'Archived',
   );
+  expect(archivedTitle.nextElementSibling).toHaveTextContent('(archived)');
   expect(screen.getByText('Archived dashboard').closest('a')).toBeNull();
   expect(
     screen.getByText('Another archived dashboard').closest('a'),

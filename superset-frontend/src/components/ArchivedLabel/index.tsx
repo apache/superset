@@ -23,6 +23,7 @@ const ArchivedMarker = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextSecondary};
     margin-left: ${theme.sizeUnit}px;
+    white-space: nowrap;
   `}
 `;
 
