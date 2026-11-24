@@ -91,17 +91,18 @@ charts. The host refuses these queries before reading cached chart results to
 avoid showing incorrect comparison values. SQL dataset comparisons and semantic
 queries without time shifts are unaffected.
 
-## Resampling of dates
+## Resampling and forecasting of dates
 
 Semantic views can resample a DATE axis, for example to fill daily gaps between
-observations. DATE series labels, raw results and exports without resampling keep their
-date-only representation. Resampled results use the same datetime representation
+observations, or use it for Forecast in Advanced analytics when Prophet is installed.
+DATE series labels, raw results and exports without resampling or forecasting keep
+their date-only representation. Resampled and forecast results use the same datetime representation
 as ordinary dataset time-series charts: CSV shows calendar dates for daily
 buckets, while XLSX cells include the midnight time component.
 
 As with ordinary datasets, a NULL time-axis bucket cannot be resampled; filter out
 NULL dates before applying resampling. Resampling does not enable time comparison
-on semantic views. Forecasting on a DATE axis is not addressed by this conversion.
+on semantic views.
 
 ## Clearing dashboard filters
 
