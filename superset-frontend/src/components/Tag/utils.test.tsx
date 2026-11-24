@@ -16,189 +16,202 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fetchMock from 'fetch-mock';
-import rison from 'rison';
-import { tagToSelectOption, loadTags } from 'src/components/Tag/utils';
+import fetchMock from "fetch-mock";
+import rison from "rison";
+import { tagToSelectOption, loadTags } from "src/components/Tag/utils";
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('tagToSelectOption', () => {
-  test('converts a Tag object with table_name to a SelectTagsValue', () => {
-    const tag = {
-      id: 1,
-      name: 'TagName',
-      table_name: 'Table1',
-    };
+test("converts a Tag object with table_name to a SelectTagsValue", () => {
+  const tag = {
+    id: 1,
+    name: "TagName",
+    table_name: "Table1",
+  };
 
-    const expectedSelectTagsValue = {
-      value: 1,
-      label: 'TagName',
-      key: 1,
-    };
+  const expectedSelectTagsValue = {
+    value: 1,
+    label: "TagName",
+    key: 1,
+  };
 
-    expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
+  expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
+});
+
+const clearFetchMock = () => {
+  fetchMock.clearHistory().removeRoutes();
+};
+
+// Same clear ran before and after each loadTags test. tagToSelectOption does
+// not use fetchMock, so the cleanup stays on the loadTags cases only.
+const runLoadTagsTest = async (fn: () => Promise<void>) => {
+  clearFetchMock();
+  try {
+    await fn();
+  } finally {
+    clearFetchMock();
+  }
+};
+
+test("constructs correct API query with custom tag filter", async () => {
+  await runLoadTagsTest(async () => {
+  const mockTags = [
+    { id: 1, name: "analytics", type: 1 },
+    { id: 2, name: "finance", type: 1 },
+  ];
+
+  fetchMock.get("glob:*/api/v1/tag/*", {
+    result: mockTags,
+    count: 2,
+  });
+
+  await loadTags("analytics", 0, 25);
+
+  // Verify the API was called with correct parameters
+  const calls = fetchMock.callHistory.calls();
+  expect(calls).toHaveLength(1);
+
+  const { url } = calls[0];
+  expect(url).toContain("/api/v1/tag/?q=");
+
+  // Extract and decode the query parameter
+  const urlObj = new URL(url);
+  const queryParam = urlObj.searchParams.get("q");
+  expect(queryParam).not.toBeNull();
+  const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
+
+  // Verify the query structure
+  expect(decodedQuery).toEqual({
+    filters: [
+      { col: "name", opr: "ct", value: "analytics" },
+      { col: "type", opr: "custom_tag", value: true },
+    ],
+    page: 0,
+    page_size: 25,
+    order_column: "name",
+    order_direction: "asc",
+  });
   });
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('loadTags', () => {
-  beforeEach(() => {
-    fetchMock.clearHistory().removeRoutes();
+test("returns correctly transformed data", async () => {
+  await runLoadTagsTest(async () => {
+  const mockTags = [
+    { id: 1, name: "analytics", type: 1 },
+    { id: 2, name: "finance", type: 1 },
+  ];
+
+  fetchMock.get("glob:*/api/v1/tag/*", {
+    result: mockTags,
+    count: 2,
   });
 
-  afterEach(() => {
-    fetchMock.clearHistory().removeRoutes();
+  const result = await loadTags("", 0, 25);
+
+  expect(result).toEqual({
+    data: [
+      { value: 1, label: "analytics", key: 1 },
+      { value: 2, label: "finance", key: 2 },
+    ],
+    totalCount: 2,
+  });
+  });
+});
+
+test("handles search parameter correctly", async () => {
+  await runLoadTagsTest(async () => {
+  fetchMock.get("glob:*/api/v1/tag/*", {
+    result: [],
+    count: 0,
   });
 
-  test('constructs correct API query with custom tag filter', async () => {
-    const mockTags = [
-      { id: 1, name: 'analytics', type: 1 },
-      { id: 2, name: 'finance', type: 1 },
-    ];
+  await loadTags("financial-data", 0, 25);
 
-    fetchMock.get('glob:*/api/v1/tag/*', {
-      result: mockTags,
-      count: 2,
-    });
+  const calls = fetchMock.callHistory.calls();
+  const { url } = calls[0];
+  const urlObj = new URL(url);
+  const queryParam = urlObj.searchParams.get("q");
+  expect(queryParam).not.toBeNull();
+  const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
 
-    await loadTags('analytics', 0, 25);
+  // Should include the search term in the name filter
+  expect(decodedQuery.filters[0]).toEqual({
+    col: "name",
+    opr: "ct",
+    value: "financial-data",
+  });
+  });
+});
 
-    // Verify the API was called with correct parameters
-    const calls = fetchMock.callHistory.calls();
-    expect(calls).toHaveLength(1);
+test("handles pagination parameters correctly", async () => {
+  await runLoadTagsTest(async () => {
+  fetchMock.get("glob:*/api/v1/tag/*", {
+    result: [],
+    count: 0,
+  });
 
-    const { url } = calls[0];
-    expect(url).toContain('/api/v1/tag/?q=');
+  await loadTags("", 2, 10);
 
-    // Extract and decode the query parameter
+  const calls = fetchMock.callHistory.calls();
+  const { url } = calls[0];
+  const urlObj = new URL(url);
+  const queryParam = urlObj.searchParams.get("q");
+  expect(queryParam).not.toBeNull();
+  const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
+
+  expect(decodedQuery.page).toBe(2);
+  expect(decodedQuery.page_size).toBe(10);
+  });
+});
+
+test("always includes custom tag filter regardless of other parameters", async () => {
+  await runLoadTagsTest(async () => {
+  fetchMock.get("glob:*/api/v1/tag/*", {
+    result: [],
+    count: 0,
+  });
+
+  // Test with different combinations of parameters
+  await loadTags("", 0, 25);
+  await loadTags("search-term", 1, 50);
+  await loadTags("another-search", 5, 100);
+
+  const calls = fetchMock.callHistory.calls();
+
+  // Verify all calls include the custom tag filter
+  calls.forEach((call) => {
+    const { url } = call;
     const urlObj = new URL(url);
-    const queryParam = urlObj.searchParams.get('q');
+    const queryParam = urlObj.searchParams.get("q");
     expect(queryParam).not.toBeNull();
     const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
 
-    // Verify the query structure
-    expect(decodedQuery).toEqual({
-      filters: [
-        { col: 'name', opr: 'ct', value: 'analytics' },
-        { col: 'type', opr: 'custom_tag', value: true },
-      ],
-      page: 0,
-      page_size: 25,
-      order_column: 'name',
-      order_direction: 'asc',
+    // Every call should have the custom tag filter
+    expect(decodedQuery.filters).toContainEqual({
+      col: "type",
+      opr: "custom_tag",
+      value: true,
     });
   });
+  });
+});
 
-  test('returns correctly transformed data', async () => {
-    const mockTags = [
-      { id: 1, name: 'analytics', type: 1 },
-      { id: 2, name: 'finance', type: 1 },
-    ];
-
-    fetchMock.get('glob:*/api/v1/tag/*', {
-      result: mockTags,
-      count: 2,
-    });
-
-    const result = await loadTags('', 0, 25);
-
-    expect(result).toEqual({
-      data: [
-        { value: 1, label: 'analytics', key: 1 },
-        { value: 2, label: 'finance', key: 2 },
-      ],
-      totalCount: 2,
-    });
+test("maintains correct order specification", async () => {
+  await runLoadTagsTest(async () => {
+  fetchMock.get("glob:*/api/v1/tag/*", {
+    result: [],
+    count: 0,
   });
 
-  test('handles search parameter correctly', async () => {
-    fetchMock.get('glob:*/api/v1/tag/*', {
-      result: [],
-      count: 0,
-    });
+  await loadTags("test", 0, 25);
 
-    await loadTags('financial-data', 0, 25);
+  const calls = fetchMock.callHistory.calls();
+  const { url } = calls[0];
+  const urlObj = new URL(url);
+  const queryParam = urlObj.searchParams.get("q");
+  expect(queryParam).not.toBeNull();
+  const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
 
-    const calls = fetchMock.callHistory.calls();
-    const { url } = calls[0];
-    const urlObj = new URL(url);
-    const queryParam = urlObj.searchParams.get('q');
-    expect(queryParam).not.toBeNull();
-    const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
-
-    // Should include the search term in the name filter
-    expect(decodedQuery.filters[0]).toEqual({
-      col: 'name',
-      opr: 'ct',
-      value: 'financial-data',
-    });
-  });
-
-  test('handles pagination parameters correctly', async () => {
-    fetchMock.get('glob:*/api/v1/tag/*', {
-      result: [],
-      count: 0,
-    });
-
-    await loadTags('', 2, 10);
-
-    const calls = fetchMock.callHistory.calls();
-    const { url } = calls[0];
-    const urlObj = new URL(url);
-    const queryParam = urlObj.searchParams.get('q');
-    expect(queryParam).not.toBeNull();
-    const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
-
-    expect(decodedQuery.page).toBe(2);
-    expect(decodedQuery.page_size).toBe(10);
-  });
-
-  test('always includes custom tag filter regardless of other parameters', async () => {
-    fetchMock.get('glob:*/api/v1/tag/*', {
-      result: [],
-      count: 0,
-    });
-
-    // Test with different combinations of parameters
-    await loadTags('', 0, 25);
-    await loadTags('search-term', 1, 50);
-    await loadTags('another-search', 5, 100);
-
-    const calls = fetchMock.callHistory.calls();
-
-    // Verify all calls include the custom tag filter
-    calls.forEach(call => {
-      const { url } = call;
-      const urlObj = new URL(url);
-      const queryParam = urlObj.searchParams.get('q');
-      expect(queryParam).not.toBeNull();
-      const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
-
-      // Every call should have the custom tag filter
-      expect(decodedQuery.filters).toContainEqual({
-        col: 'type',
-        opr: 'custom_tag',
-        value: true,
-      });
-    });
-  });
-
-  test('maintains correct order specification', async () => {
-    fetchMock.get('glob:*/api/v1/tag/*', {
-      result: [],
-      count: 0,
-    });
-
-    await loadTags('test', 0, 25);
-
-    const calls = fetchMock.callHistory.calls();
-    const { url } = calls[0];
-    const urlObj = new URL(url);
-    const queryParam = urlObj.searchParams.get('q');
-    expect(queryParam).not.toBeNull();
-    const decodedQuery = rison.decode(queryParam!) as Record<string, any>;
-
-    // Should always order by name ascending
-    expect(decodedQuery.order_column).toBe('name');
-    expect(decodedQuery.order_direction).toBe('asc');
+  // Should always order by name ascending
+  expect(decodedQuery.order_column).toBe("name");
+  expect(decodedQuery.order_direction).toBe("asc");
   });
 });

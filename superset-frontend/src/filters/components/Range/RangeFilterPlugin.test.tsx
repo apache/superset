@@ -16,53 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AppSection, type ChartProps } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/common';
-import userEvent from '@testing-library/user-event';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import RangeFilterPlugin, { calculateStep } from './RangeFilterPlugin';
-import { RangeDisplayMode, type PluginFilterRangeProps } from './types';
-import { SingleValueType } from './SingleValueType';
-import transformProps from './transformProps';
+import { AppSection, type ChartProps } from "@superset-ui/core";
+import { GenericDataType } from "@apache-superset/core/common";
+import userEvent from "@testing-library/user-event";
+import { render, screen, fireEvent } from "spec/helpers/testing-library";
+import RangeFilterPlugin, { calculateStep } from "./RangeFilterPlugin";
+import { RangeDisplayMode, type PluginFilterRangeProps } from "./types";
+import { SingleValueType } from "./SingleValueType";
+import transformProps from "./transformProps";
 
 const rangeProps = {
   formData: {
-    datasource: '3__table',
-    groupby: ['SP_POP_TOTL'],
+    datasource: "3__table",
+    groupby: ["SP_POP_TOTL"],
     adhocFilters: [],
     extraFilters: [],
     extraFormData: {},
-    granularitySqla: 'ds',
+    granularitySqla: "ds",
     metrics: [
       {
-        aggregate: 'MIN',
+        aggregate: "MIN",
         column: {
-          column_name: 'SP_POP_TOTL',
+          column_name: "SP_POP_TOTL",
           id: 1,
           type_generic: GenericDataType.Numeric,
         },
-        expressionType: 'SIMPLE',
+        expressionType: "SIMPLE",
         hasCustomLabel: true,
-        label: 'min',
+        label: "min",
       },
       {
-        aggregate: 'MAX',
+        aggregate: "MAX",
         column: {
-          column_name: 'SP_POP_TOTL',
+          column_name: "SP_POP_TOTL",
           id: 2,
           type_generic: GenericDataType.Numeric,
         },
-        expressionType: 'SIMPLE',
+        expressionType: "SIMPLE",
         hasCustomLabel: true,
-        label: 'max',
+        label: "max",
       },
     ],
     rowLimit: 1000,
     showSearch: true,
     defaultValue: [10, 70],
-    timeRangeEndpoints: ['inclusive', 'exclusive'],
+    timeRangeEndpoints: ["inclusive", "exclusive"],
     urlParams: {},
-    vizType: 'filter_range',
+    vizType: "filter_range",
     inputRef: { current: null },
   },
   height: 20,
@@ -71,7 +71,7 @@ const rangeProps = {
   queriesData: [
     {
       rowcount: 1,
-      colnames: ['min', 'max'],
+      colnames: ["min", "max"],
       coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
       data: [{ min: 10, max: 100 }],
       applied_filters: [],
@@ -79,435 +79,427 @@ const rangeProps = {
     },
   ],
   width: 220,
-  behaviors: ['NATIVE_FILTER'],
+  behaviors: ["NATIVE_FILTER"],
   isRefreshing: false,
   appSection: AppSection.Dashboard,
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('RangeFilterPlugin', () => {
-  const setDataMask = jest.fn();
-  const getWrapper = (props: any = {}) =>
-    render(
-      <RangeFilterPlugin
-        {...(transformProps({
-          ...rangeProps,
-          ...props,
-          formData: { ...rangeProps.formData, ...props.formData },
-        }) as PluginFilterRangeProps)}
-        setDataMask={setDataMask}
-      />,
-    );
+const setDataMask = jest.fn();
+const getWrapper = (props: any = {}) =>
+  render(
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        ...props,
+        formData: { ...rangeProps.formData, ...props.formData },
+      }) as PluginFilterRangeProps)}
+      setDataMask={setDataMask}
+    />,
+  );
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
-  test('should render two numerical inputs and a slider by default', () => {
-    getWrapper();
+test("should render two numerical inputs and a slider by default", () => {
+  getWrapper();
 
-    const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(2);
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs).toHaveLength(2);
 
-    expect(inputs[0]).toHaveValue('10');
-    expect(inputs[1]).toHaveValue('70');
+  expect(inputs[0]).toHaveValue("10");
+  expect(inputs[1]).toHaveValue("70");
 
-    // For a range slider, there are two slider handles
-    const sliders = screen.getAllByRole('slider');
-    expect(sliders.length).toBeGreaterThan(0);
-  });
+  // For a range slider, there are two slider handles
+  const sliders = screen.getAllByRole("slider");
+  expect(sliders.length).toBeGreaterThan(0);
+});
 
-  test('should set the data mask to error when the range is incorrect', async () => {
-    getWrapper({ filterState: { value: [null, null] } });
+test("should set the data mask to error when the range is incorrect", async () => {
+  getWrapper({ filterState: { value: [null, null] } });
 
-    const inputs = screen.getAllByRole('spinbutton');
-    const fromInput = inputs[0];
-    const toInput = inputs[1];
+  const inputs = screen.getAllByRole("spinbutton");
+  const fromInput = inputs[0];
+  const toInput = inputs[1];
 
-    await userEvent.clear(fromInput);
-    await userEvent.type(fromInput, '20');
+  await userEvent.clear(fromInput);
+  await userEvent.type(fromInput, "20");
 
-    await userEvent.clear(toInput);
-    await userEvent.type(toInput, '10');
+  await userEvent.clear(toInput);
+  await userEvent.type(toInput, "10");
 
-    await userEvent.tab();
+  await userEvent.tab();
 
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {},
-      filterState: {
-        label: '',
-        validateMessage: 'Numbers must be within 10 and 100',
-        validateStatus: 'error',
-        value: null,
-      },
-    });
-  });
-
-  test('should call setDataMask with correct filter', () => {
-    getWrapper();
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'SP_POP_TOTL',
-            op: '>=',
-            val: 10,
-          },
-          {
-            col: 'SP_POP_TOTL',
-            op: '<=',
-            val: 70,
-          },
-        ],
-      },
-      filterState: {
-        label: '10 ≤ x ≤ 70',
-        value: [10, 70],
-        validateMessage: '',
-        validateStatus: undefined,
-      },
-    });
-  });
-
-  test('should call setDataMask with correct greater than filter', () => {
-    getWrapper({
-      filterState: { value: [20, null] },
-      formData: {
-        enableSingleValue: SingleValueType.Minimum,
-        defaultValue: undefined,
-      },
-    });
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'SP_POP_TOTL',
-            op: '>=',
-            val: 20,
-          },
-        ],
-      },
-      filterState: {
-        validateStatus: undefined,
-        validateMessage: '',
-        label: 'x ≥ 20',
-        value: [20, null],
-      },
-    });
-
-    const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(1);
-    expect(inputs[0]).toHaveValue('20');
-  });
-
-  test('should call setDataMask with correct less than filter', () => {
-    getWrapper({
-      filterState: { value: [null, 60] },
-      formData: {
-        enableSingleValue: SingleValueType.Maximum,
-      },
-    });
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'SP_POP_TOTL',
-            op: '<=',
-            val: 60,
-          },
-        ],
-      },
-      filterState: {
-        label: 'x ≤ 60',
-        value: [null, 60],
-        validateMessage: '',
-        validateStatus: undefined,
-      },
-    });
-
-    const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(1);
-    expect(inputs[0]).toHaveValue('60');
-  });
-
-  test('should call setDataMask with correct exact filter', () => {
-    getWrapper({
-      formData: {
-        enableSingleValue: SingleValueType.Exact,
-      },
-      filterState: { value: [10, 10] },
-    });
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'SP_POP_TOTL',
-            op: '==',
-            val: 10,
-          },
-        ],
-      },
-      filterState: {
-        label: 'x = 10',
-        value: [10, 10],
-        validateStatus: undefined,
-        validateMessage: '',
-      },
-    });
-
-    const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(1);
-    expect(inputs[0]).toHaveValue('10');
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('Range Display Modes', () => {
-    test('should render only the slider in slider mode', () => {
-      getWrapper({
-        formData: {
-          rangeDisplayMode: RangeDisplayMode.Slider,
-        },
-      });
-
-      const sliders = screen.getAllByRole('slider');
-      expect(sliders.length).toBeGreaterThan(0);
-
-      expect(screen.queryAllByRole('spinbutton')).toHaveLength(0);
-    });
-
-    test('should render only inputs in input mode', () => {
-      getWrapper({
-        formData: {
-          rangeDisplayMode: RangeDisplayMode.Input,
-        },
-      });
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs).toHaveLength(2);
-
-      expect(screen.queryAllByRole('slider')).toHaveLength(0);
-    });
-
-    test('dataset input mode emits an exact filter for a typed exact value', () => {
-      getWrapper({
-        formData: {
-          rangeDisplayMode: RangeDisplayMode.Input,
-          enableSingleValue: SingleValueType.Exact,
-        },
-        filterState: { value: [10, 10] },
-      });
-      fireEvent.change(screen.getByRole('spinbutton'), {
-        target: { value: '42' },
-      });
-      expect(setDataMask).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          extraFormData: {
-            filters: [{ col: 'SP_POP_TOTL', op: '==', val: 42 }],
-          },
-        }),
-      );
-    });
-
-    test('should render both slider and inputs in slider-and-input mode', () => {
-      getWrapper({
-        formData: {
-          rangeDisplayMode: RangeDisplayMode.SliderAndInput,
-        },
-      });
-
-      // Should show inputs
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs).toHaveLength(2);
-
-      // Should show slider
-      const sliders = screen.getAllByRole('slider');
-      expect(sliders.length).toBeGreaterThan(0);
-    });
-
-    test('should default to slider-and-input mode when not specified', () => {
-      getWrapper({
-        formData: {
-          // No rangeDisplayMode specified
-        },
-      });
-
-      // Should show inputs
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs).toHaveLength(2);
-
-      // Should show slider
-      const sliders = screen.getAllByRole('slider');
-      expect(sliders.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Decimal value handling', () => {
-    test('should handle decimal ranges correctly (0.03 to 1.08)', () => {
-      const decimalProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: 0.03, max: 1.08 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [0.5, 0.8] },
-      };
-      getWrapper(decimalProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs).toHaveLength(2);
-      expect(inputs[0]).toHaveValue('0.5');
-      expect(inputs[1]).toHaveValue('0.8');
-
-      // Verify the slider exists and can handle decimal values
-      const sliders = screen.getAllByRole('slider');
-      expect(sliders.length).toBeGreaterThan(0);
-    });
-
-    test('should calculate appropriate step size for small decimal ranges', () => {
-      const smallRangeProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: 0.001, max: 0.01 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [0.005, 0.008] },
-      };
-      getWrapper(smallRangeProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs[0]).toHaveValue('0.005');
-      expect(inputs[1]).toHaveValue('0.008');
-    });
-
-    test('should handle very large ranges with appropriate step size', () => {
-      const largeRangeProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: 0, max: 1000000 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [100000, 500000] },
-      };
-      getWrapper(largeRangeProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs[0]).toHaveValue('100000');
-      expect(inputs[1]).toHaveValue('500000');
-    });
-
-    test('should handle negative decimal ranges', () => {
-      const negativeDecimalProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: -1.5, max: 2.5 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [-0.5, 1.5] },
-      };
-      getWrapper(negativeDecimalProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs[0]).toHaveValue('-0.5');
-      expect(inputs[1]).toHaveValue('1.5');
-    });
-
-    test('should allow decimal input via keyboard', async () => {
-      const decimalProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: 0, max: 10 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [null, null] },
-      };
-      getWrapper(decimalProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      const fromInput = inputs[0];
-
-      await userEvent.clear(fromInput);
-      await userEvent.type(fromInput, '2.5');
-      await userEvent.tab();
-
-      expect(setDataMask).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filterState: expect.objectContaining({
-            value: [2.5, null],
-          }),
-        }),
-      );
-    });
-  });
-
-  test('clears a filter still sitting at its default value', () => {
-    const renderWith = (value: [number | null, number | null]) => (
-      <RangeFilterPlugin
-        {...(transformProps({
-          ...rangeProps,
-          filterState: { value },
-        } as unknown as ChartProps) as PluginFilterRangeProps)}
-        setDataMask={setDataMask}
-      />
-    );
-
-    // The filter loads at its default and the user never touches it.
-    const { rerender } = render(renderWith([10, 70]));
-    setDataMask.mockClear();
-
-    // Clear All stages [null, null] for range filters.
-    rerender(renderWith([null, null]));
-
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {},
-      filterState: {
-        value: [null, null],
-        label: '',
-        validateStatus: undefined,
-        validateMessage: '',
-      },
-    });
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {},
+    filterState: {
+      label: "",
+      validateMessage: "Numbers must be within 10 and 100",
+      validateStatus: "error",
+      value: null,
+    },
   });
 });
 
-test('calculateStep returns ~100 steps for integer ranges', () => {
+test("should call setDataMask with correct filter", () => {
+  getWrapper();
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        {
+          col: "SP_POP_TOTL",
+          op: ">=",
+          val: 10,
+        },
+        {
+          col: "SP_POP_TOTL",
+          op: "<=",
+          val: 70,
+        },
+      ],
+    },
+    filterState: {
+      label: "10 ≤ x ≤ 70",
+      value: [10, 70],
+      validateMessage: "",
+      validateStatus: undefined,
+    },
+  });
+});
+
+test("should call setDataMask with correct greater than filter", () => {
+  getWrapper({
+    filterState: { value: [20, null] },
+    formData: {
+      enableSingleValue: SingleValueType.Minimum,
+      defaultValue: undefined,
+    },
+  });
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        {
+          col: "SP_POP_TOTL",
+          op: ">=",
+          val: 20,
+        },
+      ],
+    },
+    filterState: {
+      validateStatus: undefined,
+      validateMessage: "",
+      label: "x ≥ 20",
+      value: [20, null],
+    },
+  });
+
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs).toHaveLength(1);
+  expect(inputs[0]).toHaveValue("20");
+});
+
+test("should call setDataMask with correct less than filter", () => {
+  getWrapper({
+    filterState: { value: [null, 60] },
+    formData: {
+      enableSingleValue: SingleValueType.Maximum,
+    },
+  });
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        {
+          col: "SP_POP_TOTL",
+          op: "<=",
+          val: 60,
+        },
+      ],
+    },
+    filterState: {
+      label: "x ≤ 60",
+      value: [null, 60],
+      validateMessage: "",
+      validateStatus: undefined,
+    },
+  });
+
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs).toHaveLength(1);
+  expect(inputs[0]).toHaveValue("60");
+});
+
+test("should call setDataMask with correct exact filter", () => {
+  getWrapper({
+    formData: {
+      enableSingleValue: SingleValueType.Exact,
+    },
+    filterState: { value: [10, 10] },
+  });
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        {
+          col: "SP_POP_TOTL",
+          op: "==",
+          val: 10,
+        },
+      ],
+    },
+    filterState: {
+      label: "x = 10",
+      value: [10, 10],
+      validateStatus: undefined,
+      validateMessage: "",
+    },
+  });
+
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs).toHaveLength(1);
+  expect(inputs[0]).toHaveValue("10");
+});
+
+test("should render only the slider in slider mode", () => {
+  getWrapper({
+    formData: {
+      rangeDisplayMode: RangeDisplayMode.Slider,
+    },
+  });
+
+  const sliders = screen.getAllByRole("slider");
+  expect(sliders.length).toBeGreaterThan(0);
+
+  expect(screen.queryAllByRole("spinbutton")).toHaveLength(0);
+});
+
+test("should render only inputs in input mode", () => {
+  getWrapper({
+    formData: {
+      rangeDisplayMode: RangeDisplayMode.Input,
+    },
+  });
+
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs).toHaveLength(2);
+
+  expect(screen.queryAllByRole("slider")).toHaveLength(0);
+});
+
+test("dataset input mode emits an exact filter for a typed exact value", () => {
+  getWrapper({
+    formData: {
+      rangeDisplayMode: RangeDisplayMode.Input,
+      enableSingleValue: SingleValueType.Exact,
+    },
+    filterState: { value: [10, 10] },
+  });
+  fireEvent.change(screen.getByRole("spinbutton"), {
+    target: { value: "42" },
+  });
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [{ col: "SP_POP_TOTL", op: "==", val: 42 }],
+      },
+    }),
+  );
+});
+
+test("should render both slider and inputs in slider-and-input mode", () => {
+  getWrapper({
+    formData: {
+      rangeDisplayMode: RangeDisplayMode.SliderAndInput,
+    },
+  });
+
+  // Should show inputs
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs).toHaveLength(2);
+
+  // Should show slider
+  const sliders = screen.getAllByRole("slider");
+  expect(sliders.length).toBeGreaterThan(0);
+});
+
+test("should default to slider-and-input mode when not specified", () => {
+  getWrapper({
+    formData: {
+      // No rangeDisplayMode specified
+    },
+  });
+
+  // Should show inputs
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs).toHaveLength(2);
+
+  // Should show slider
+  const sliders = screen.getAllByRole("slider");
+  expect(sliders.length).toBeGreaterThan(0);
+});
+
+test("should handle decimal ranges correctly (0.03 to 1.08)", () => {
+  const decimalProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ["min", "max"],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: 0.03, max: 1.08 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [0.5, 0.8] },
+  };
+  getWrapper(decimalProps);
+
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs).toHaveLength(2);
+  expect(inputs[0]).toHaveValue("0.5");
+  expect(inputs[1]).toHaveValue("0.8");
+
+  // Verify the slider exists and can handle decimal values
+  const sliders = screen.getAllByRole("slider");
+  expect(sliders.length).toBeGreaterThan(0);
+});
+
+test("should calculate appropriate step size for small decimal ranges", () => {
+  const smallRangeProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ["min", "max"],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: 0.001, max: 0.01 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [0.005, 0.008] },
+  };
+  getWrapper(smallRangeProps);
+
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs[0]).toHaveValue("0.005");
+  expect(inputs[1]).toHaveValue("0.008");
+});
+
+test("should handle very large ranges with appropriate step size", () => {
+  const largeRangeProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ["min", "max"],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: 0, max: 1000000 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [100000, 500000] },
+  };
+  getWrapper(largeRangeProps);
+
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs[0]).toHaveValue("100000");
+  expect(inputs[1]).toHaveValue("500000");
+});
+
+test("should handle negative decimal ranges", () => {
+  const negativeDecimalProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ["min", "max"],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: -1.5, max: 2.5 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [-0.5, 1.5] },
+  };
+  getWrapper(negativeDecimalProps);
+
+  const inputs = screen.getAllByRole("spinbutton");
+  expect(inputs[0]).toHaveValue("-0.5");
+  expect(inputs[1]).toHaveValue("1.5");
+});
+
+test("should allow decimal input via keyboard", async () => {
+  const decimalProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ["min", "max"],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: 0, max: 10 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [null, null] },
+  };
+  getWrapper(decimalProps);
+
+  const inputs = screen.getAllByRole("spinbutton");
+  const fromInput = inputs[0];
+
+  await userEvent.clear(fromInput);
+  await userEvent.type(fromInput, "2.5");
+  await userEvent.tab();
+
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({
+        value: [2.5, null],
+      }),
+    }),
+  );
+});
+
+test("clears a filter still sitting at its default value", () => {
+  const renderWith = (value: [number | null, number | null]) => (
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        filterState: { value },
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={setDataMask}
+    />
+  );
+
+  // The filter loads at its default and the user never touches it.
+  const { rerender } = render(renderWith([10, 70]));
+  setDataMask.mockClear();
+
+  // Clear All stages [null, null] for range filters.
+  rerender(renderWith([null, null]));
+
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {},
+    filterState: {
+      value: [null, null],
+      label: "",
+      validateStatus: undefined,
+      validateMessage: "",
+    },
+  });
+});
+
+test("calculateStep returns ~100 steps for integer ranges", () => {
   // 0..100 -> 1, 0..1000 -> 10
   expect(calculateStep(0, 100)).toBe(1);
   expect(calculateStep(0, 1000)).toBe(10);
 });
 
-test('calculateStep produces sub-unit steps for small decimal ranges', () => {
+test("calculateStep produces sub-unit steps for small decimal ranges", () => {
   // 0..1 -> ~0.01, giving roughly 100 increments
   expect(calculateStep(0, 1)).toBeCloseTo(0.01, 10);
   // 0..0.1 -> ~0.001
   expect(calculateStep(0, 0.1)).toBeCloseTo(0.001, 10);
 });
 
-test('calculateStep is numerically stable for floating-point ranges', () => {
+test("calculateStep is numerically stable for floating-point ranges", () => {
   // 0.05..0.07 computes to 0.020000000000000004 internally; should still
   // yield a sensible step rather than over-counting decimal places.
   const step = calculateStep(0.05, 0.07);
@@ -515,15 +507,15 @@ test('calculateStep is numerically stable for floating-point ranges', () => {
   expect(step).toBeLessThanOrEqual(0.01);
 });
 
-test('calculateStep handles negative and offset decimal ranges', () => {
+test("calculateStep handles negative and offset decimal ranges", () => {
   expect(calculateStep(-1, 1)).toBeCloseTo(0.02, 10);
 });
 
-test('calculateStep never returns 0 for tiny ranges', () => {
+test("calculateStep never returns 0 for tiny ranges", () => {
   expect(calculateStep(0, 0.0000001)).toBeGreaterThan(0);
 });
 
-test('semantic range renders labelled manual bounds without query results or a slider', async () => {
+test("semantic range renders labelled manual bounds without query results or a slider", async () => {
   const setDataMask = jest.fn();
   render(
     <RangeFilterPlugin
@@ -532,7 +524,7 @@ test('semantic range renders labelled manual bounds without query results or a s
         queriesData: [],
         formData: {
           ...rangeProps.formData,
-          datasource: '3__semantic_view',
+          datasource: "3__semantic_view",
           defaultValue: undefined,
           rangeDisplayMode: RangeDisplayMode.Slider,
         },
@@ -541,33 +533,33 @@ test('semantic range renders labelled manual bounds without query results or a s
       setDataMask={setDataMask}
     />,
   );
-  const lower = screen.getByRole('spinbutton', { name: 'Minimum value' });
-  const upper = screen.getByRole('spinbutton', { name: 'Maximum value' });
-  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  const lower = screen.getByRole("spinbutton", { name: "Minimum value" });
+  const upper = screen.getByRole("spinbutton", { name: "Maximum value" });
+  expect(screen.queryByRole("slider")).not.toBeInTheDocument();
   expect(
-    screen.getByText('Leave a bound empty for an unbounded range.'),
+    screen.getByText("Leave a bound empty for an unbounded range."),
   ).toBeInTheDocument();
-  expect(lower).toHaveValue('');
-  expect(upper).toHaveValue('');
-  fireEvent.change(lower, { target: { value: '-1.5' } });
+  expect(lower).toHaveValue("");
+  expect(upper).toHaveValue("");
+  fireEvent.change(lower, { target: { value: "-1.5" } });
   fireEvent.blur(lower);
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '>=', val: -1.5 }] },
+      extraFormData: { filters: [{ col: "SP_POP_TOTL", op: ">=", val: -1.5 }] },
       filterState: expect.objectContaining({
         value: [-1.5, null],
         validateStatus: undefined,
       }),
     }),
   );
-  fireEvent.change(upper, { target: { value: '2000000.25' } });
+  fireEvent.change(upper, { target: { value: "2000000.25" } });
   fireEvent.blur(upper);
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
       extraFormData: {
         filters: [
-          { col: 'SP_POP_TOTL', op: '>=', val: -1.5 },
-          { col: 'SP_POP_TOTL', op: '<=', val: 2000000.25 },
+          { col: "SP_POP_TOTL", op: ">=", val: -1.5 },
+          { col: "SP_POP_TOTL", op: "<=", val: 2000000.25 },
         ],
       },
     }),
@@ -585,7 +577,7 @@ test('semantic range renders labelled manual bounds without query results or a s
   );
 });
 
-test('calculateStep falls back for non-positive ranges', () => {
+test("calculateStep falls back for non-positive ranges", () => {
   expect(calculateStep(5, 5)).toBe(0.01);
   expect(calculateStep(10, 5)).toBe(0.01);
 });
@@ -599,7 +591,7 @@ function semanticRangeProps(
       queriesData: [],
       formData: {
         ...rangeProps.formData,
-        datasource: '3__semantic_view',
+        datasource: "3__semantic_view",
         defaultValue: undefined,
       },
       filterState: { value: [null, null] },
@@ -608,24 +600,24 @@ function semanticRangeProps(
   };
 }
 
-test('semantic range rejects reversed bounds and recovers when corrected', () => {
+test("semantic range rejects reversed bounds and recovers when corrected", () => {
   const setDataMask = jest.fn();
   render(
     <RangeFilterPlugin {...semanticRangeProps()} setDataMask={setDataMask} />,
   );
-  const [lower, upper] = screen.getAllByRole('spinbutton');
-  fireEvent.change(lower, { target: { value: '20' } });
-  fireEvent.change(upper, { target: { value: '10' } });
+  const [lower, upper] = screen.getAllByRole("spinbutton");
+  fireEvent.change(lower, { target: { value: "20" } });
+  fireEvent.change(upper, { target: { value: "10" } });
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
       extraFormData: {},
-      filterState: expect.objectContaining({ validateStatus: 'error' }),
+      filterState: expect.objectContaining({ validateStatus: "error" }),
     }),
   );
   expect(
-    screen.getByText('Min value cannot be greater than max value'),
+    screen.getByText("Min value cannot be greater than max value"),
   ).toBeInTheDocument();
-  fireEvent.change(upper, { target: { value: '30' } });
+  fireEvent.change(upper, { target: { value: "30" } });
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
       filterState: expect.objectContaining({
@@ -636,7 +628,7 @@ test('semantic range rejects reversed bounds and recovers when corrected', () =>
   );
 });
 
-test('semantic range validates required empty saved state without discovered bounds', () => {
+test("semantic range validates required empty saved state without discovered bounds", () => {
   const props = semanticRangeProps();
   const setDataMask = jest.fn();
   render(
@@ -649,17 +641,17 @@ test('semantic range validates required empty saved state without discovered bou
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
       extraFormData: {},
-      filterState: expect.objectContaining({ validateStatus: 'error' }),
+      filterState: expect.objectContaining({ validateStatus: "error" }),
     }),
   );
 });
 
 test.each([
-  [SingleValueType.Minimum, [5, null], '>='],
-  [SingleValueType.Maximum, [null, 5], '<='],
-  [SingleValueType.Exact, [5, 5], '=='],
+  [SingleValueType.Minimum, [5, null], ">="],
+  [SingleValueType.Maximum, [null, 5], "<="],
+  [SingleValueType.Exact, [5, 5], "=="],
 ] as const)(
-  'semantic single-value mode %s preserves saved defaults and emits the right operator',
+  "semantic single-value mode %s preserves saved defaults and emits the right operator",
   (mode, value, op) => {
     const props = semanticRangeProps();
     const setDataMask = jest.fn();
@@ -675,25 +667,25 @@ test.each([
         setDataMask={setDataMask}
       />,
     );
-    expect(screen.getAllByRole('spinbutton')).toHaveLength(1);
-    expect(screen.getByRole('spinbutton')).toHaveValue('5');
+    expect(screen.getAllByRole("spinbutton")).toHaveLength(1);
+    expect(screen.getByRole("spinbutton")).toHaveValue("5");
     expect(setDataMask).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        extraFormData: { filters: [{ col: 'SP_POP_TOTL', op, val: 5 }] },
+        extraFormData: { filters: [{ col: "SP_POP_TOTL", op, val: 5 }] },
       }),
     );
-    fireEvent.change(screen.getByRole('spinbutton'), {
-      target: { value: '-2.5' },
+    fireEvent.change(screen.getByRole("spinbutton"), {
+      target: { value: "-2.5" },
     });
     expect(setDataMask).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        extraFormData: { filters: [{ col: 'SP_POP_TOTL', op, val: -2.5 }] },
+        extraFormData: { filters: [{ col: "SP_POP_TOTL", op, val: -2.5 }] },
       }),
     );
   },
 );
 
-test('semantic range restores external values and clears a saved default', () => {
+test("semantic range restores external values and clears a saved default", () => {
   const props = semanticRangeProps();
   const setDataMask = jest.fn();
   const element = (value: [number | null, number | null]) => (
@@ -708,21 +700,21 @@ test('semantic range restores external values and clears a saved default', () =>
   rerender(element([null, null]));
   expect(
     screen
-      .getAllByRole('spinbutton')
-      .map(input => (input as HTMLInputElement).value),
-  ).toEqual(['', '']);
+      .getAllByRole("spinbutton")
+      .map((input) => (input as HTMLInputElement).value),
+  ).toEqual(["", ""]);
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({ extraFormData: {} }),
   );
   rerender(element([0, 0]));
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '==', val: 0 }] },
+      extraFormData: { filters: [{ col: "SP_POP_TOTL", op: "==", val: 0 }] },
     }),
   );
 });
 
-test('semantic range clears a required-value error when made optional', () => {
+test("semantic range clears a required-value error when made optional", () => {
   const props = semanticRangeProps();
   const setDataMask = jest.fn();
   const element = (required: boolean, invalid: boolean) => (
@@ -731,10 +723,10 @@ test('semantic range clears a required-value error when made optional', () => {
       formData={{ ...props.formData, enableEmptyFilter: required }}
       filterState={{
         value: [null, null],
-        validateStatus: invalid ? 'error' : undefined,
+        validateStatus: invalid ? "error" : undefined,
         validateMessage: invalid
-          ? 'Please provide a valid min or max value'
-          : '',
+          ? "Please provide a valid min or max value"
+          : "",
       }}
       setDataMask={setDataMask}
     />
@@ -753,13 +745,13 @@ test('semantic range clears a required-value error when made optional', () => {
     }),
   );
   expect(
-    screen.queryByText('Please provide a valid min or max value'),
+    screen.queryByText("Please provide a valid min or max value"),
   ).not.toBeInTheDocument();
 });
 
 test.each([undefined, SingleValueType.Exact])(
-  'semantic range rejects non-finite manual input in mode %s',
-  mode => {
+  "semantic range rejects non-finite manual input in mode %s",
+  (mode) => {
     const props = semanticRangeProps();
     const setDataMask = jest.fn();
     render(
@@ -770,22 +762,22 @@ test.each([undefined, SingleValueType.Exact])(
       />,
     );
     fireEvent.change(
-      screen.getAllByRole('spinbutton')[mode === undefined ? 1 : 0],
-      { target: { value: '9'.repeat(309) } },
+      screen.getAllByRole("spinbutton")[mode === undefined ? 1 : 0],
+      { target: { value: "9".repeat(309) } },
     );
     expect(setDataMask).toHaveBeenLastCalledWith(
       expect.objectContaining({
         extraFormData: {},
-        filterState: expect.objectContaining({ validateStatus: 'error' }),
+        filterState: expect.objectContaining({ validateStatus: "error" }),
       }),
     );
   },
 );
 
 test.each([
-  ['an all-null numeric column', [{ min: null, max: null }]],
-  ['an empty result', []],
-])('keeps unbounded inputs usable for %s', (_label, data) => {
+  ["an all-null numeric column", [{ min: null, max: null }]],
+  ["an empty result", []],
+])("keeps unbounded inputs usable for %s", (_label, data) => {
   const setDataMask = jest.fn();
   render(
     <RangeFilterPlugin
@@ -799,44 +791,44 @@ test.each([
     />,
   );
   expect(
-    screen.queryByText('Chosen non-numeric column'),
+    screen.queryByText("Chosen non-numeric column"),
   ).not.toBeInTheDocument();
-  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
-  const [lower, upper] = screen.getAllByRole('spinbutton');
-  expect(lower).toHaveAttribute('placeholder', '');
-  expect(upper).toHaveAttribute('placeholder', '');
+  expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+  const [lower, upper] = screen.getAllByRole("spinbutton");
+  expect(lower).toHaveAttribute("placeholder", "");
+  expect(upper).toHaveAttribute("placeholder", "");
   expect(
-    screen.getByText('Leave a bound empty for an unbounded range.'),
+    screen.getByText("Leave a bound empty for an unbounded range."),
   ).toBeInTheDocument();
-  fireEvent.change(lower, { target: { value: '-3' } });
+  fireEvent.change(lower, { target: { value: "-3" } });
   fireEvent.blur(lower);
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '>=', val: -3 }] },
+      extraFormData: { filters: [{ col: "SP_POP_TOTL", op: ">=", val: -3 }] },
     }),
   );
 });
 
-test('flags a column whose aggregates are not numeric', () => {
+test("flags a column whose aggregates are not numeric", () => {
   render(
     <RangeFilterPlugin
       {...(transformProps({
         ...rangeProps,
         queriesData: [
-          { ...rangeProps.queriesData[0], data: [{ min: 'a', max: 'z' }] },
+          { ...rangeProps.queriesData[0], data: [{ min: "a", max: "z" }] },
         ],
       } as unknown as ChartProps) as PluginFilterRangeProps)}
       setDataMask={jest.fn()}
     />,
   );
-  expect(screen.getByText('Chosen non-numeric column')).toBeInTheDocument();
+  expect(screen.getByText("Chosen non-numeric column")).toBeInTheDocument();
 });
 
 test.each([
   SingleValueType.Minimum,
   SingleValueType.Maximum,
   SingleValueType.Exact,
-])('optional semantic single-value mode %s accepts Clear All', mode => {
+])("optional semantic single-value mode %s accepts Clear All", (mode) => {
   const props = semanticRangeProps();
   const setDataMask = jest.fn();
   const element = (value: [number | null, number | null]) => (
@@ -853,7 +845,7 @@ test.each([
   );
   const { rerender } = render(element([5, 5]));
   rerender(element([null, null]));
-  expect(screen.getByRole('spinbutton')).toHaveValue('');
+  expect(screen.getByRole("spinbutton")).toHaveValue("");
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
       extraFormData: {},
@@ -864,7 +856,7 @@ test.each([
     }),
   );
   expect(
-    screen.queryByText('Please provide a valid min or max value'),
+    screen.queryByText("Please provide a valid min or max value"),
   ).not.toBeInTheDocument();
 });
 
@@ -872,7 +864,7 @@ test.each([
   SingleValueType.Minimum,
   SingleValueType.Maximum,
   SingleValueType.Exact,
-])('required semantic single-value mode %s rejects Clear All', mode => {
+])("required semantic single-value mode %s rejects Clear All", (mode) => {
   const props = semanticRangeProps();
   const setDataMask = jest.fn();
   const element = (value: [number | null, number | null]) => (
@@ -892,18 +884,18 @@ test.each([
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
       extraFormData: {},
-      filterState: expect.objectContaining({ validateStatus: 'error' }),
+      filterState: expect.objectContaining({ validateStatus: "error" }),
     }),
   );
   expect(
-    screen.getByText('Please provide a valid min or max value'),
+    screen.getByText("Please provide a valid min or max value"),
   ).toBeInTheDocument();
 });
 
 test.each([
-  ['an empty SQL column', []],
-  ['an all-null SQL column', [{ min: null, max: null }]],
-])('saved Slider mode falls back to usable inputs for %s', (_label, data) => {
+  ["an empty SQL column", []],
+  ["an all-null SQL column", [{ min: null, max: null }]],
+])("saved Slider mode falls back to usable inputs for %s", (_label, data) => {
   const setDataMask = jest.fn();
   render(
     <RangeFilterPlugin
@@ -920,15 +912,15 @@ test.each([
       setDataMask={setDataMask}
     />,
   );
-  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
-  const [lower, upper] = screen.getAllByRole('spinbutton');
+  expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+  const [lower, upper] = screen.getAllByRole("spinbutton");
   expect(lower).toBeInTheDocument();
   expect(upper).toBeInTheDocument();
-  fireEvent.change(lower, { target: { value: '-3' } });
+  fireEvent.change(lower, { target: { value: "-3" } });
   fireEvent.blur(lower);
   expect(setDataMask).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '>=', val: -3 }] },
+      extraFormData: { filters: [{ col: "SP_POP_TOTL", op: ">=", val: -3 }] },
     }),
   );
 });
@@ -938,31 +930,31 @@ test.each(
     SingleValueType.Minimum,
     SingleValueType.Maximum,
     SingleValueType.Exact,
-  ].flatMap(mode => [false, true].map(required => ({ mode, required }))),
+  ].flatMap((mode) => [false, true].map((required) => ({ mode, required }))),
 )(
-  'SQL single-value mode $mode validates cleared input with required=$required',
+  "SQL single-value mode $mode validates cleared input with required=$required",
   async ({ mode, required }) => {
     const setDataMask = jest.fn();
     const props = transformProps({
       ...rangeProps,
       formData: {
         ...rangeProps.formData,
-        datasource: '3__table',
+        datasource: "3__table",
         enableSingleValue: mode,
         enableEmptyFilter: required,
       },
     } as unknown as ChartProps) as PluginFilterRangeProps;
     render(<RangeFilterPlugin {...props} setDataMask={setDataMask} />);
-    await userEvent.clear(screen.getByRole('spinbutton'));
+    await userEvent.clear(screen.getByRole("spinbutton"));
     if (required) {
       expect(setDataMask).toHaveBeenLastCalledWith(
         expect.objectContaining({
           extraFormData: {},
-          filterState: expect.objectContaining({ validateStatus: 'error' }),
+          filterState: expect.objectContaining({ validateStatus: "error" }),
         }),
       );
       expect(
-        screen.getByText('Please provide a valid min or max value'),
+        screen.getByText("Please provide a valid min or max value"),
       ).toBeInTheDocument();
     } else {
       expect(setDataMask).toHaveBeenLastCalledWith(
@@ -975,7 +967,7 @@ test.each(
         }),
       );
       expect(
-        screen.queryByText('Please provide a valid min or max value'),
+        screen.queryByText("Please provide a valid min or max value"),
       ).not.toBeInTheDocument();
     }
   },
