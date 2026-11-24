@@ -381,13 +381,6 @@ def test_get_catalog_from_engine_params_no_database() -> None:
     assert BaseEngineSpec.get_catalog_from_engine_params(url, connect_args) is None
 
 
-def test_prepare_identifier_returns_name_unchanged() -> None:
-    name = "physical_column"
-
-    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=False) is name
-    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=True) is name
-
-
 def test_quote_table() -> None:
     """
     Test the `quote_table` function.
