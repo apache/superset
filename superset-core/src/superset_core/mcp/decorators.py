@@ -33,15 +33,8 @@ Usage:
     def another_tool(value: int) -> str:
         '''Tool description from docstring'''
         return str(value * 2)
-
-Where ``fastmcp`` isn't installed, no MCP server can run, and the decorators
-register nothing: they return the function as it is, so that a module which
-declares tools and prompts still imports, such as an extension's backend in a
-process that serves no MCP.
 """
 
-import logging
-from importlib.util import find_spec
 from typing import Any, Callable, TypeVar
 
 try:
@@ -53,30 +46,6 @@ except (
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
-
-logger = logging.getLogger(__name__)
-
-
-def _unregistered(kind: str, func_or_name: str | Callable[..., Any] | None) -> Any:
-    """
-    A decorator applied without ``fastmcp``: it returns the function as it
-    is, both as ``@tool`` and as ``@tool(...)``.
-    """
-
-    def keep(func: F) -> F:
-        logger.debug(
-            "fastmcp isn't installed, so MCP %s %s isn't registered",
-            kind,
-            getattr(func, "__name__", func),
-        )
-        return func
-
-    return keep(func_or_name) if callable(func_or_name) else keep
-
-
-def _mcp_installed() -> bool:
-    """Whether ``fastmcp``, which every MCP server here runs on, is installed."""
-    return find_spec("fastmcp") is not None
 
 
 def tool(
@@ -120,13 +89,10 @@ def tool(
             These hints help MCP clients understand tool behavior and safety.
 
     Returns:
-        Decorator function that registers and wraps the tool, or the wrapped
-        function. Without ``fastmcp`` it registers nothing and returns the
-        function as it is.
+        Decorator function that registers and wraps the tool, or the wrapped function
 
     Raises:
-        NotImplementedError: If called before host implementation is
-            initialized, where ``fastmcp`` is installed
+        NotImplementedError: If called before host implementation is initialized
 
     Example:
         @tool(name="my_tool", description="Does something useful", tags=["utility"])
@@ -155,8 +121,6 @@ def tool(
             '''Create a new chart'''
             return {"name": name}
     """
-    if not _mcp_installed():
-        return _unregistered("tool", func_or_name)
     raise NotImplementedError(
         "MCP tool decorator not initialized. "
         "This decorator should be replaced during Superset startup."
@@ -199,13 +163,10 @@ def prompt(
         protect: Whether to require Superset authentication (defaults to True)
 
     Returns:
-        Decorator function that registers and wraps the prompt, or the wrapped
-        function. Without ``fastmcp`` it registers nothing and returns the
-        function as it is.
+        Decorator function that registers and wraps the prompt, or the wrapped function
 
     Raises:
-        NotImplementedError: If called before host implementation is
-            initialized, where ``fastmcp`` is installed
+        NotImplementedError: If called before host implementation is initialized
 
     Example:
         @prompt
@@ -218,8 +179,6 @@ def prompt(
             '''Public prompt accessible without auth'''
             return "Public prompt accessible without auth"
     """
-    if not _mcp_installed():
-        return _unregistered("prompt", func_or_name)
     raise NotImplementedError(
         "MCP prompt decorator not initialized. "
         "This decorator should be replaced during Superset startup."
