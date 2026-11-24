@@ -550,6 +550,8 @@ def create_resource_decorator(
             logger.error("Failed to register MCP resource %s: %s", uri, e)
             raise
 
+    return decorator
+
 
 def _unregistered_decorator(kind: str) -> Callable[..., Any]:
     """

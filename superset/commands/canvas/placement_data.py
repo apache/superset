@@ -115,67 +115,6 @@ def load_placement(
     )
 
 
-@dataclass(frozen=True)
-class StoredPlacement:
-    """A placement's widget type and props, as stored."""
-
-    # ``None`` for a widget entity that no longer resolves.
-    widget_type: str | None
-    props: dict[str, Any]
-    # The UUID of the saved widget the placement shows; ``None`` for a widget
-    # stored on the placement itself, such as a container or text.
-    widget_id: str | None = None
-    # That saved widget's content, as the canvas or draft resolves it.
-    widget: StoredWidget | None = None
-
-
-def load_placement(
-    id_or_uuid: str,
-    placement_id: str,
-    draft_token: str | None = None,
-    version_uuid: UUID | None = None,
-) -> StoredPlacement:
-    """
-    A placement as stored on the canvas, in the caller's draft of it, or in one
-    of its versions, which only its editors can read. A canvas the caller can't
-    read looks the same as one that doesn't exist.
-
-    Raises ``CanvasNotFoundError``, ``CanvasDraftNotFoundError`` and
-    ``CanvasPlacementNotFoundError``, and what ``load_draft`` and
-    ``version_snapshot`` raise.
-    """
-    canvas = CanvasDAO.find_by_id_or_uuid(id_or_uuid)
-    if canvas is None:
-        raise CanvasNotFoundError()
-    resolver = get_widget_resolver()
-    if draft_token:
-        draft = load_draft(draft_token)
-        if draft.canvas_id != canvas.id:
-            raise CanvasDraftNotFoundError()
-        definition = draft.definition
-        resolver = draft.resolver()
-    elif version_uuid:
-        definition = version_snapshot(canvas, version_uuid)["definition"]
-    else:
-        definition = CanvasDAO.load(canvas)
-    node = definition["nodes"].get(placement_id)
-    if node is None:
-        raise CanvasPlacementNotFoundError()
-    if widget_id := node.get("widgetId"):
-        widget = resolver.widgets({widget_id}).get(widget_id)
-        if widget is None:
-            return StoredPlacement(widget_type=None, props={}, widget_id=widget_id)
-        return StoredPlacement(
-            widget_type=widget.widget_type,
-            props=widget.props,
-            widget_id=widget_id,
-            widget=widget,
-        )
-    return StoredPlacement(
-        widget_type=node.get("widgetType"), props=node.get("props") or {}
-    )
-
-
 class GetPlacementDataCommand(BaseCommand):
     """
     Run a placement's queries as the caller. They come from the stored
