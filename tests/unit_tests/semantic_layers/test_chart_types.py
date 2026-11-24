@@ -124,7 +124,7 @@ def test_pin_saved_chart_type_replaces_a_stale_refused_request_type() -> None:
 
 def test_query_context_chart_type_falls_back_to_the_saved_chart() -> None:
     """Without a request type, the saved chart's type is validated."""
-    query_context = MagicMock()
+    query_context: MagicMock = MagicMock()
     query_context.datasource.type = "semantic_view"
     query_context.form_data = {}
     query_context.slice_.viz_type = "rose"
