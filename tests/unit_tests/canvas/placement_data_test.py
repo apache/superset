@@ -722,7 +722,7 @@ def test_extensions_read_a_placed_widget_through_superset_core(
     from superset.core.api.core_api_injection import inject_canvas_implementations
 
     # Puts back whatever the app injected, once the test ends.
-    for name in ("load_placed_widget", "get_widget_resolver"):
+    for name in ("load_placed_widget", "editable_widgets"):
         monkeypatch.setattr(placements, name, getattr(placements, name))
     inject_canvas_implementations()
     mocker.patch(
@@ -734,8 +734,7 @@ def test_extensions_read_a_placed_widget_through_superset_core(
         "chart-1",
         widget_types.widgets({"chart-1"})["chart-1"],
     )
-    # The resolver canvases use answers what else an extension asks.
-    assert placements.get_widget_resolver().editable({"chart-1"}) == {"chart-1"}
+    assert placements.editable_widgets({"chart-1"}) == {"chart-1"}
     # A missing placement or canvas, a draft the caller may not use, and a
     # placement that stores its own content all look the same.
     for canvas_id, placement_id, token in [

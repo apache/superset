@@ -88,3 +88,26 @@ canvas.registerSavedWidgetRenderer('extensions.acme.kpi.kpi', SavedKpiTile);
 ```
 
 That renderer gets `SavedWidgetProps`: the saved widget's `widgetId`, `widgetType`, `props` and `title`, the `filters` the page passes in, and `refreshKey`. The widget is the only node of its filter bus, so it has no cross-filters. A type without one shows the placeholder. The built-in data widgets (`echarts`, `metric-tile` and `ag-grid-table`) register theirs.
+
+## Placements on the backend
+
+An extension's own endpoint that serves its widget where a canvas places it, such as a route that answers a frame for a placement, reads the placement through `superset_core.canvas.placements`, so the caller reaches only what the canvas's own endpoints would show them:
+
+```python
+from superset_core.canvas import placements
+
+try:
+    widget_id, widget = placements.load_placed_widget(
+        canvas_id, placement_id, draft_token, version=previewed_version
+    )
+except placements.PlacementNotFoundError:
+    return self.response_404()
+if widget.widget_type != MY_WIDGET_TYPE:
+    return self.response_404()
+can_change = widget_id in placements.editable_widgets({widget_id})
+```
+
+- `load_placed_widget(canvas_id, placement_id, draft_token=None, *, version=None)` answers the saved widget's UUID and its content (`StoredWidget`) as the canvas stores it, as the caller's draft of the canvas holds it, or as the saved version the canvas page previews placed it. The page names that version in `X-Canvas-Version` (`getActiveCanvas().previewedVersion` on the frontend); only the canvas's editors can read one, and a draft wins over it. A canvas, draft, version or placement the caller can't read looks the same as one that doesn't exist, and so does a placement that stores its own content, such as text: all raise `PlacementNotFoundError`.
+- `editable_widgets(widget_ids)` answers which of the saved widgets the current user may change, as canvases decide it.
+
+Neither reads a widget the caller can't. To read a saved widget on its own, use `superset_core.widgets.daos.WidgetDAO`, whose access filter applies.

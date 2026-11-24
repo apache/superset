@@ -406,23 +406,35 @@ def inject_canvas_implementations() -> None:
     """
     Replace the abstract lookups in ``superset_core.canvas.placements`` with
     the host's: a placement's saved widget, read with the canvas's access
-    rules, and the widget resolver canvases use.
+    rules, and which saved widgets the current user may change. The resolver
+    canvases use reads widgets without an access filter, as a canvas grants
+    read access to what it places, so it stays the host's own.
     """
+    from collections.abc import Iterable
+
     import superset_core.canvas.placements as core_placements_module
-    from superset_core.canvas import StoredWidget, WidgetResolver
+    from superset_core.canvas import StoredWidget
     from superset_core.canvas.placements import PlacementNotFoundError
 
     def load_placed_widget(
         canvas_id: str,
         placement_id: str,
         draft_token: str | None = None,
+        *,
+        version: str | None = None,
     ) -> tuple[str, StoredWidget]:
         from superset.canvas.definition.registry import widget_type_available
         from superset.commands.canvas.placement_data import load_placement
         from superset.commands.exceptions import ForbiddenError, ObjectNotFoundError
 
         try:
-            placement = load_placement(canvas_id, placement_id, draft_token)
+            version_uuid = UUID(version) if version else None
+        except ValueError as ex:
+            raise PlacementNotFoundError(placement_id) from ex
+        try:
+            placement = load_placement(
+                canvas_id, placement_id, draft_token, version_uuid
+            )
         except (ObjectNotFoundError, ForbiddenError) as ex:
             raise PlacementNotFoundError(placement_id) from ex
         # A type that is unavailable is refused here too, so an extension's
@@ -435,15 +447,13 @@ def inject_canvas_implementations() -> None:
             raise PlacementNotFoundError(placement_id)
         return placement.widget_id, placement.widget
 
-    def get_widget_resolver() -> WidgetResolver:
-        from superset.canvas.definition.registry import (
-            get_widget_resolver as host_widget_resolver,
-        )
+    def editable_widgets(widget_ids: Iterable[str]) -> set[str]:
+        from superset.canvas.definition.registry import get_widget_resolver
 
-        return host_widget_resolver()
+        return get_widget_resolver().editable(widget_ids)
 
     core_placements_module.load_placed_widget = load_placed_widget
-    core_placements_module.get_widget_resolver = get_widget_resolver
+    core_placements_module.editable_widgets = editable_widgets
 
 
 def inject_canvas_draft_implementations() -> None:
