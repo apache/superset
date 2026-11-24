@@ -7953,8 +7953,14 @@ msgstr "Direccional"
 msgid "Dynamic group by"
 msgstr "Agrupación dinámica"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
+"El agrupamiento dinámico no es compatible con las vistas semánticas. "
+"Elimine este control de visualización para dejar de almacenarlo."
 
 #, fuzzy
 msgid "Dynamic section description"
@@ -9412,7 +9418,9 @@ msgstr "La extensión del archivo no está permitida."
 msgid ""
 "File handling is not supported in this browser. Please use a modern "
 "browser like Chrome or Edge."
-msgstr "La gestión de archivos no es compatible con este navegador. Usa un navegador moderno como Chrome o Edge."
+msgstr ""
+"La gestión de archivos no es compatible con este navegador. Usa un "
+"navegador moderno como Chrome o Edge."
 
 msgid "File settings"
 msgstr "Ajustes de archivo"
@@ -9915,7 +9923,12 @@ msgid ""
 "Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
 " based on the dataset's currency code column. When multiple currencies "
 "are present, formatting falls back to neutral numbers."
-msgstr "Formatea métricas o columnas con símbolos de moneda como prefijos o sufijos. Elige un símbolo manualmente o usa «Detección automática» para aplicar el símbolo correcto según la columna de código de moneda del conjunto de datos. Cuando hay varias monedas presentes, el formato vuelve a números neutros."
+msgstr ""
+"Formatea métricas o columnas con símbolos de moneda como prefijos o "
+"sufijos. Elige un símbolo manualmente o usa «Detección automática» para "
+"aplicar el símbolo correcto según la columna de código de moneda del "
+"conjunto de datos. Cuando hay varias monedas presentes, el formato vuelve"
+" a números neutros."
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formateado adjunto en el correo electrónico"
@@ -10242,13 +10255,20 @@ msgstr "Ocultar línea"
 msgid "Hide chart description"
 msgstr "Ocultar descripción del gráfico"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"Ocultar columnas con solo valores de métricas nulos. Mantener columnas "
+"con ceros o resúmenes no vacíos. Esto no cambia los totales ni los "
+"porcentajes."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Hide empty columns"
-msgstr ""
+msgstr "Ocultar columnas vacías"
 
 msgid "Hide layer"
 msgstr "Ocultar capa"
@@ -10278,8 +10298,16 @@ msgstr "Valor máximo de cada período."
 msgid "Histogram"
 msgstr "Histograma"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
+"Hive requiere un filtro de partición para esta tabla. Agregue un filtro "
+"en la columna de partición, o un rango de tiempo en una columna con un "
+"mapeo de partición que funcione, e inténtelo de nuevo."
 
 msgid "Home"
 msgstr "Inicio"
@@ -10433,7 +10461,9 @@ msgstr ""
 msgid ""
 "If it stays empty, it won't be saved and will be removed from the list. "
 "To remove folders, move metrics and columns to other folders."
-msgstr "Si permanece vacía, no se guardará y se eliminará de la lista. Para eliminar carpetas, mueve métricas y columnas a otras carpetas."
+msgstr ""
+"Si permanece vacía, no se guardará y se eliminará de la lista. Para "
+"eliminar carpetas, mueve métricas y columnas a otras carpetas."
 
 msgid "If table already exists"
 msgstr "Si la tabla ya existe"
@@ -10565,8 +10595,10 @@ msgstr "En esta vista puede obtener una vista previa de las primeras 25 filas. "
 msgid "Inactive"
 msgstr "Inactivo"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Include :value in the transform to represent the filter value."
-msgstr ""
+msgstr "Incluya :value en la transformación para representar el valor del filtro."
 
 msgid "Include Series"
 msgstr "Incluir series"
@@ -14651,8 +14683,10 @@ msgstr ""
 msgid "Preview"
 msgstr "Vista previa"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Preview temporarily unavailable"
-msgstr ""
+msgstr "La vista previa no está disponible temporalmente"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20039,8 +20073,10 @@ msgstr "El puerto está cerrado."
 msgid "The port number is invalid."
 msgstr "El número de puerto no es válido."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "No se pudo cargar la vista previa. Inténtelo de nuevo."
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
@@ -20518,9 +20554,18 @@ msgstr ""
 "La transformación coincidió con las filas de la muestra, no con todo el "
 "conjunto de datos."
 
-#, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
+"La transformación devolvió %(returned)s para %(column)s, que es %(kind)s."
+" Los filtros reflejados en este mapeo fallarían en la base de datos. "
+"Devuelva un valor compatible con %(type)s; use un CAST explícito en la "
+"transformación si es apropiado."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20533,8 +20578,14 @@ msgstr ""
 " datos no puede escribir en una consulta como un valor %(type)s sin "
 "modificarlo. Los filtros de esta asignación no se reflejarán."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
+"La transformación devolvió NULL para uno o más valores de vista previa, "
+"por lo que no se generó ningún filtro de partición."
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -20638,12 +20689,24 @@ msgstr ""
 "independiente y el resultado se almacena en caché, por lo que el "
 "predicado generado congelaría una instantánea de ese momento."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"No se pudo analizar la transformación de valor. Corrija la expresión para"
+" visualizarla. Los filtros no se reflejarán mientras sea inválida."
 
-#, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"No se pudo analizar la transformación de valor: %(detail)s. Corrija la "
+"expresión para visualizarla. Los filtros no se reflejarán mientras sea "
+"inválida."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22243,7 +22306,12 @@ msgid ""
 "Databases are used as a way to identify your data so that it can be "
 "queried and visualized. This database will hold all of your individual "
 "Google Sheets you choose to connect here."
-msgstr "Para comenzar a usar tus Google Sheets, primero debes crear una base de datos. Las bases de datos se utilizan como una forma de identificar tus datos para que puedan consultarse y visualizarse. Esta base de datos contendrá todas las hojas de Google individuales que elijas conectar aquí."
+msgstr ""
+"Para comenzar a usar tus Google Sheets, primero debes crear una base de "
+"datos. Las bases de datos se utilizan como una forma de identificar tus "
+"datos para que puedan consultarse y visualizarse. Esta base de datos "
+"contendrá todas las hojas de Google individuales que elijas conectar "
+"aquí."
 
 msgid ""
 "To enable multiple column sorting, hold down the ⇧ Shift key while "
@@ -22293,8 +22361,12 @@ msgstr ""
 "Demasiadas solicitudes de vista previa para este conjunto de datos. "
 "Espere un momento e inténtelo de nuevo."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
+"Demasiadas solicitudes de vista previa. Espere un momento e inténtelo de "
+"nuevo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22718,7 +22790,10 @@ msgstr "No se puede crear un gráfico sin un ID de consulta."
 msgid ""
 "Unable to create report: User email address is required but not found. "
 "Please ensure your user profile has a valid email address."
-msgstr "No se puede crear el informe: se requiere la dirección de correo electrónico del usuario pero no se encontró. Asegúrate de que tu perfil de usuario tenga una dirección de correo electrónico válida."
+msgstr ""
+"No se puede crear el informe: se requiere la dirección de correo "
+"electrónico del usuario pero no se encontró. Asegúrate de que tu perfil "
+"de usuario tenga una dirección de correo electrónico válida."
 
 msgid "Unable to decode value"
 msgstr "No se ha podido decodificar el valor"
@@ -26214,9 +26289,10 @@ msgstr "deshacer"
 msgid "unknown type icon"
 msgstr "icono de tipo desconocido"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "unmatched parenthesis at position %(position)d."
-msgstr ""
+msgstr "paréntesis sin emparejar en la posición %(position)d."
 
 msgid "unset"
 msgstr "no establecido"
@@ -26231,8 +26307,12 @@ msgstr ""
 "el percentil superior debe ser mayor que 0 y menor que 100. Debe ser "
 "mayor que el percentil inferior."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "use a single SQL expression; this transform contains multiple expressions."
 msgstr ""
+"use una única expresión SQL; esta transformación contiene múltiples "
+"expresiones."
 
 msgid "use latest_partition template"
 msgstr "usar la plantilla latest_partition"

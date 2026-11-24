@@ -8039,8 +8039,14 @@ msgstr "Ahunga"
 msgid "Dynamic group by"
 msgstr "KĀORE I RŌPŪNGIA MĀ"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
+"Kāore e tautokohia te whakarōpū namaio i runga i ngā semantic view. "
+"Tangohia tenei taupato whakaaturanga kia mutu ai te tiaki i tēnā."
 
 #, fuzzy
 msgid "Dynamic section description"
@@ -10386,13 +10392,20 @@ msgstr "Huna Rārangi"
 msgid "Hide chart description"
 msgstr "Huna whakamārama kauwhata"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"Whakapuhea ngā pou e whai uara metiriki 'null' anake nei. Kia noho tonu "
+"ngā pou e whai zero rānei he whakarāpopototanga e kore e kore rānei. "
+"Kāore tēnei e neke i ngā rawhiti katoa me ngā pūrua."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Hide empty columns"
-msgstr ""
+msgstr "Whakapuhea ngā pou e kore e whai mea."
 
 msgid "Hide layer"
 msgstr "Huna papa"
@@ -10422,8 +10435,16 @@ msgstr "Te uara teitei mō ia wā."
 msgid "Histogram"
 msgstr "Kauwhata Auau"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
+"Me whai i tētahi taupato tūnga te Hive mō tēnei tāpaea. Whakawhiti mai he"
+" taupato ki te pou tūnga, rānei he roa wā ki tētahi pou e whai ana i te "
+"tūnga e mahi ana, ka whakamātau anō."
 
 msgid "Home"
 msgstr "Kāinga"
@@ -10716,8 +10737,12 @@ msgstr "I tēnei tirohanga ka taea e koe te mātakitaki i ngā rārangi 25 tuata
 msgid "Inactive"
 msgstr "Hohe"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Include :value in the transform to represent the filter value."
 msgstr ""
+"Whakawhiti i te :value i roto i te whakawhiti hei whakaaturia te uara "
+"taupato."
 
 msgid "Include Series"
 msgstr "Whakauru Raupapa"
@@ -14862,8 +14887,10 @@ msgstr "Ka pupuri i te kaupapa ā-wā papatohu kua hangaia mā ngā penapena Exp
 msgid "Preview"
 msgstr "Arokite"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Preview temporarily unavailable"
-msgstr ""
+msgstr "Kāore te whakatāwari e wātea i tēnei wā."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20187,10 +20214,11 @@ msgstr ""
 "Ko ngā kupuhipa mō ngā pātengi raraunga o raro nei e hiahiatia ana ki te "
 "kawemai i a rātou."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [refs: de, es]
 #. i18n: translate the whole sentence, including the link
 #. text; keep the [text](%(…)s) link syntax, the backticks
 #. and both placeholders unchanged
-#, python-format
+#, fuzzy, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "
 "pattern](%(python_url)s) expression which needs to adhere to the [ISO "
@@ -20203,6 +20231,16 @@ msgid ""
 "specified we fall back to using the optional defaults on a per "
 "database/column name level via the extra parameter."
 msgstr ""
+"Ko te tauira o te pūāhua taimata. Mō ngā rārangi tukutuku, whakamahia te "
+"[tauira rārangi datetime a Python](%(python_url)s) e tūpiriti ana ki te "
+"paerewa [ISO 8601](%(iso_url)s) kia hāngai te whakarāpoto rehikopū ki te "
+"whakarāpoto wā. Ki te kāore e hāngai te pūāhua taimata ki te paerewa ISO "
+"8601, me whakatakoto i tētahi whakaaturanga me tētahi momo mō te "
+"whakawhiti i te rārangi tukutuku ki te rā rānei ko te taimata. Mahara, "
+"kāore e tautokohia ngā wāinga wā i tēnei wā. Ki te tiaki i te wā i te "
+"pūāhua epoch, tuhi `epoch_s`, `epoch_ms` rānei `epoch_us`. Ki te kāore he"
+" tauira i whakaritea, ka whakamahia ngā defaults pūmau mā te whakamahi i "
+"te parameter 'extra' mō ia pūnaha tuhi/ingoa pou."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20255,8 +20293,10 @@ msgstr "Kua katia te tauranga."
 msgid "The port number is invalid."
 msgstr "He muhu te tau tauranga."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "Kāore a te whakatāwari e taea te whakakā. Whakamātau anō."
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Ka whakamahia te ine matua hei tautuhi i ngā rahi wāhanga kopeka"
@@ -20720,9 +20760,18 @@ msgstr ""
 "I ōrite te panoni ki ngā rārangi tauira, ehara ki te huinga raraunga "
 "katoa."
 
-#, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
+"I hoki mai te whakawhiti i te %(returned)s mō %(column)s, he %(kind)s "
+"tēnā. Ka hapa ngā taupato whakaata i tenei tūtohu ki te pūnaha tuhi. Hoki"
+" mai i tētahi uara e hāngai ana ki %(type)s; whakamahia te CAST mārama i "
+"roto i te whakawhiti ki te mea he tika."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20735,8 +20784,14 @@ msgstr ""
 "tēnei pātengi raraunga te tuhi ki tētahi pātai hei uara %(type)s me te "
 "kore e whakarereke. E kore e whakaatatia ngā tātari o tēnei mahere."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
+"I hoki mai te NULL i te whakawhiti mō tētahi o ngā uara whakatāwari, nō "
+"reira kāore i hangaia he taupato tūnga."
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -20846,12 +20901,25 @@ msgstr ""
 "wāhanga motuhake, ka rongoātia te hua, nā reira ka tārewa te kupu "
 "whakaaturanga i puta i tētahi whakaahua o taua wā."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Kāore e taea te whakamātau i te whakawhiti uara. Whakatika i te "
+"whakaaturanga kia whakatāwari ai. Kāore ngā taupato ka whakaatahia i te "
+"wā e kore e tika ai."
 
-#, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Kāore e taea te whakamātau i te whakawhiti uara: %(detail)s Whakatika i "
+"te whakaaturanga kia whakatāwari ai. Kāore ngā taupato ka whakaatahia i "
+"te wā e kore e tika ai."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22546,8 +22614,10 @@ msgstr ""
 "He nui rawa ngā tono arokite mō tēnei huinga raraunga. Tatari mō tētahi "
 "wā poto, ka whakamātau anō."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Too many preview requests. Wait a moment and try again."
-msgstr ""
+msgstr "He nui rawa ngā tono whakatāwari. Tatari i tētahi wā me whakamātau anō."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26535,9 +26605,10 @@ msgstr "wete"
 msgid "unknown type icon"
 msgstr "tohu momo kāore e mōhiotia"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "unmatched parenthesis at position %(position)d."
-msgstr ""
+msgstr "he pare pare e kore e hāngai i te wāhanga %(position)d."
 
 msgid "unset"
 msgstr "kāore i tautuhia"
@@ -26552,8 +26623,12 @@ msgstr ""
 "me rahi ake te ōrau ōwehenga runga i te 0, ā, me iti ake i te 100. Me "
 "teitei ake i te ōrau ōwehenga raro."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "use a single SQL expression; this transform contains multiple expressions."
 msgstr ""
+"whakamahia he whakaaturanga SQL kotahi; kei roto i tenei whakawhiti ngā "
+"whakaaturanga maha."
 
 msgid "use latest_partition template"
 msgstr "whakamahi tauira latest_partition"
