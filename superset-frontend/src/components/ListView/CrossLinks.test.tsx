@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import CrossLinks, { CrossLinksProps } from './CrossLinks';
 
 const mockedProps = {
@@ -118,4 +123,31 @@ test('mixed archived and live items each occupy one measured element', () => {
     'href',
     '/dashboard/1',
   );
+});
+
+test('passes archived state to the overflow tooltip', async () => {
+  const scrollWidth = jest
+    .spyOn(HTMLElement.prototype, 'scrollWidth', 'get')
+    .mockReturnValue(100);
+  const clientWidth = jest
+    .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+    .mockReturnValue(0);
+  try {
+    setup({
+      crossLinks: [
+        { id: 1, title: 'Live dashboard' },
+        { id: 2, title: 'Archived dashboard', archived: true },
+      ],
+    });
+    await userEvent.hover(screen.getByTestId('count-crosslinks'));
+    const tooltip = await screen.findByRole('tooltip');
+    expect(
+      within(tooltip).getByText('Archived dashboard').closest('a'),
+    ).toBeNull();
+    expect(within(tooltip).getByLabelText('Archived')).toBeInTheDocument();
+    expect(within(tooltip).getAllByRole('link')).toHaveLength(1);
+  } finally {
+    scrollWidth.mockRestore();
+    clientWidth.mockRestore();
+  }
 });

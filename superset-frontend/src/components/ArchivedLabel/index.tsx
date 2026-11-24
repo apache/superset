@@ -26,9 +26,9 @@ const ArchivedMarker = styled.span`
   `}
 `;
 
-export default function ArchivedLabel() {
+export default function ArchivedLabel({ className }: { className?: string }) {
   return (
-    <ArchivedMarker aria-label={t('Archived')}>
+    <ArchivedMarker className={className} aria-label={t('Archived')}>
       {t('(archived)')}
     </ArchivedMarker>
   );

@@ -668,8 +668,22 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                       result:
                         type: array
                         items:
-                          $ref: >-
-                            #/components/schemas/{{self.__class__.__name__}}.get_list
+                          allOf:
+                          - $ref: >-
+                              #/components/schemas/{{self.__class__.__name__}}.get_list
+                          - type: object
+                            properties:
+                              dashboards:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    archived:
+                                      type: boolean
+                                      description: >-
+                                        Present when archived dashboard expansion
+                                        is enabled for the request. True for
+                                        archived dashboards; false for live ones.
             400:
               $ref: '#/components/responses/400'
             401:

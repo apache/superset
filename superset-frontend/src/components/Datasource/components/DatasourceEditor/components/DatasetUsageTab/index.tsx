@@ -44,7 +44,8 @@ const FlexRowContainer = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.sizeUnit}px;
 
-  a {
+  a,
+  > .archived-chart-title {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -215,12 +216,17 @@ const DatasetUsageTab = ({
         render: (_: unknown, record: UsageChart) => (
           <FlexRowContainer>
             {record.deleted_at ? (
-              <span data-test={`${record.slice_name}-usage-chart-title`}>
+              <span
+                className="archived-chart-title"
+                data-test={`${record.slice_name}-usage-chart-title`}
+              >
                 {record.certified_by && (
-                  <CertifiedBadge
-                    certifiedBy={record.certified_by}
-                    details={record.certification_details}
-                  />
+                  <>
+                    <CertifiedBadge
+                      certifiedBy={record.certified_by}
+                      details={record.certification_details}
+                    />{' '}
+                  </>
                 )}
                 {record.slice_name}
                 <ArchivedLabel />
@@ -339,6 +345,7 @@ const DatasetUsageTab = ({
     <div ref={tableContainerRef}>
       {isFeatureEnabled(FeatureFlag.SoftDelete) && (
         <Alert
+          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
           type="info"
           closable={false}
           message={t(

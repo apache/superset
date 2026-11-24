@@ -112,3 +112,15 @@ test('renders archived tooltip entries as labelled blocks alongside live links',
     '/dashboard/1',
   );
 });
+
+test('archived tooltip label inherits the tooltip text color', async () => {
+  setup({
+    crossLinks: [{ to: '/dashboard/2', title: 'Archived', archived: true }],
+  });
+  await userEvent.hover(screen.getByText('Hover me'));
+
+  const label = await screen.findByLabelText('Archived');
+  // The tooltip overlay is dark in the light theme; secondary text color
+  // (dark grey) would be unreadable there.
+  expect(getComputedStyle(label).color).toBe('inherit');
+});

@@ -38,6 +38,11 @@ const StyledLinkedTooltip = styled.div`
   }
 `;
 
+// Tooltip overlays use light text on a dark background.
+const TooltipArchivedLabel = styled(ArchivedLabel)`
+  color: inherit;
+`;
+
 export default function CrossLinksTooltip({
   children,
   crossLinks = [],
@@ -55,7 +60,7 @@ export default function CrossLinksTooltip({
               link.archived ? (
                 <div key={link.to}>
                   {link.title}
-                  <ArchivedLabel />
+                  <TooltipArchivedLabel />
                 </div>
               ) : (
                 <Link

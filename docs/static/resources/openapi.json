@@ -17014,7 +17014,28 @@
                     },
                     "result": {
                       "items": {
-                        "$ref": "#/components/schemas/ChartRestApi.get_list"
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/ChartRestApi.get_list"
+                          },
+                          {
+                            "properties": {
+                              "dashboards": {
+                                "items": {
+                                  "properties": {
+                                    "archived": {
+                                      "description": "Present when archived dashboard expansion is enabled for the request. True for archived dashboards; false for live ones.",
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "type": "object"
+                                },
+                                "type": "array"
+                              }
+                            },
+                            "type": "object"
+                          }
+                        ]
                       },
                       "type": "array"
                     }

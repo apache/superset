@@ -926,7 +926,11 @@ def test_http_flag_off_direct_opt_in(
     resp = _get(
         http,
         _admin(mocker),
-        {"columns": USAGE_COLS, "include_archived_dashboards": True},
+        {
+            "columns": USAGE_COLS,
+            "filters": INCLUDE,
+            "include_archived_dashboards": True,
+        },
     )
     assert resp.status_code == 200, resp.json
     for row in resp.json["result"]:
@@ -1170,3 +1174,27 @@ def test_projection_failure_occurs_after_chart_bypass_release(
     assert response.status_code == 500
     assert session.info[SKIP_VISIBILITY_FILTER_CLASSES] == {SqlaTable}
     assert chart_api._include_archived_dashboards.get() is None
+
+
+def test_list_openapi_documents_optional_dashboard_archive_state() -> None:
+    """Document expansion metadata without changing FAB's default list fields."""
+    from superset.charts.api import ChartRestApi
+
+    api = object.__new__(ChartRestApi)
+    operations: dict[str, Any] = {}
+    api.operation_helper(
+        path="/api/v1/chart/",
+        operations=operations,
+        methods=["GET"],
+        func=api.get_list,
+    )
+    response_schema = operations["get"]["responses"][200]["content"][
+        "application/json"
+    ]["schema"]
+    default_row, expansion = response_schema["properties"]["result"]["items"]["allOf"]
+    assert default_row == {"$ref": "#/components/schemas/ChartRestApi.get_list"}
+    dashboard_schema = expansion["properties"]["dashboards"]["items"]
+    assert dashboard_schema["properties"]["archived"]["type"] == "boolean"
+    assert "archived" not in dashboard_schema.get("required", [])
+    assert "dashboards" not in expansion.get("required", [])
+    assert "dashboards.archived" not in api.list_columns
