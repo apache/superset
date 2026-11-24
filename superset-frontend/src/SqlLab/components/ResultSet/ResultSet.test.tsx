@@ -42,7 +42,7 @@ import {
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   registerToolbarAction,
   cleanupExtensions,

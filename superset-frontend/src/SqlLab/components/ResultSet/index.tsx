@@ -93,7 +93,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 
 enum LimitingFactor {
   Query = 'QUERY',

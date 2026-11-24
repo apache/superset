@@ -116,6 +116,14 @@ test('sets up global superset object when user is logged in', async () => {
     expect(typeof (window as any).superset.deferredWrites.registerOracle).toBe(
       'function',
     );
+    // Same reasoning for `dashboard`: asserted by shape, not by existence.
+    expect(typeof (window as any).superset.dashboard.hasUnsavedChanges).toBe(
+      'function',
+    );
+    expect(
+      typeof (window as any).superset.dashboard.onDidChangeUnsavedChanges,
+    ).toBe('function');
+    expect(typeof (window as any).superset.dashboard.save).toBe('function');
   });
 
   initializeSpy.mockRestore();

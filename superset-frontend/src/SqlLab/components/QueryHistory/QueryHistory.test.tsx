@@ -25,7 +25,7 @@ import {
   defaultQueryEditor,
   extraQueryEditor3,
 } from 'src/SqlLab/fixtures';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   registerToolbarAction,
   cleanupExtensions,

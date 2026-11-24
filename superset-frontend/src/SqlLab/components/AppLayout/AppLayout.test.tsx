@@ -20,7 +20,7 @@ import React from 'react';
 import { render, userEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import * as sqlLabActions from 'src/SqlLab/actions/sqlLab';
 import {
   registerTestView,
