@@ -5030,3 +5030,72 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
         f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
     )
+
+
+@pytest.fixture
+def persisted_table(persisted_database: Database, session: Session) -> SqlaTable:
+    table = SqlaTable(
+        table_name="t",
+        database=persisted_database,
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    session.add(table)
+    session.commit()
+    # Drop loaded state so columns and metrics lazy-load, as in a fresh request.
+    session.expire_all()
+    return table
+
+
+def test_get_sqla_query_rolls_back_a_failed_flush_at_the_engine_lookup(
+    persisted_table: SqlaTable,
+    session: Session,
+    app_context: None,
+) -> None:
+    """
+    Building a chart query looks up the engine first, and a refreshed OAuth2
+    token staged earlier is flushed by that lookup's ORM reads, before any
+    guard in ``compile_sqla_query`` or ``get_df``.
+    """
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_table.get_sqla_query(columns=["a"])
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
+
+
+def test_get_sqla_query_rolls_back_a_failed_flush_at_a_lazy_load(
+    persisted_table: SqlaTable,
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """The flush can also land at the lazy load of unloaded columns/metrics."""
+    mocker.patch.object(Database, "get_sqla_engine", return_value=nullcontext())
+    mocker.patch(
+        "superset.models.helpers.ExploreMixin.get_template_processor",
+        return_value=mocker.MagicMock(),
+    )
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_table.get_sqla_query(columns=["a"])
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
+
+
+def test_datasource_query_rolls_back_a_failed_flush(
+    persisted_table: SqlaTable,
+    session: Session,
+    app_context: None,
+) -> None:
+    """The chart-data entry point, ``SqlaTable.query``, leaves a usable session."""
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_table.query({"columns": ["a"], "metrics": [], "is_timeseries": False})
+
+    assert session.is_active
+    assert session.query(Database).count() == 1

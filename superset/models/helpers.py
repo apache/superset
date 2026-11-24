@@ -32,7 +32,7 @@ from contextlib import contextmanager
 from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
-from functools import cache, partial
+from functools import cache, partial, wraps
 from typing import (
     Any,
     Callable,
@@ -43,6 +43,7 @@ from typing import (
     Optional,
     TYPE_CHECKING,
     TypedDict,
+    TypeVar,
     Union,
 )
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -218,6 +219,30 @@ from superset.utils.rls import (
     SearchPath,
 )
 from superset.utils.timing_metrics import timed
+
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
+def _rolling_back_failed_flush(func: _F) -> _F:
+    """
+    Roll back a session deactivated by a failed flush before the error escapes.
+
+    Building a chart query looks up the engine, and an OAuth2 token refresh staged
+    by one lookup is flushed by the next ORM read, which can be any lazy load of
+    the query builder (the next engine lookup, columns, metrics). The flush
+    failure would otherwise leave the request session inactive.
+    """
+
+    @wraps(func)
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+        # Not via ``self.database``: that relationship can itself be the lazy load
+        # that flushes the failing write.
+        from superset.models.core import Database
+
+        with Database._rolling_back_failed_flush():  # pylint: disable=protected-access
+            return func(self, *args, **kwargs)
+
+    return cast(_F, wrapper)
 
 
 class ValidationResultDict(TypedDict):
@@ -6963,6 +6988,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = self.make_sqla_column_compatible(col, label)
         return col
 
+    @_rolling_back_failed_flush
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
         self,
         apply_fetch_values_predicate: bool = False,
