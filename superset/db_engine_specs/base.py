@@ -871,6 +871,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # editor offers no pre-fill and the owner writes the transform themselves.
     partition_value_transform_default: str | None = None
 
+    # Whether the dataset editor should offer partition filter mapping at all.
+    # This is a structural property of the engine, not a pre-fill: mapping a
+    # filter onto a physical partition column only prunes work on engines whose
+    # tables are laid out as partition directories (Hive-family). Elsewhere the
+    # concept either does not exist (Postgres) or is handled invisibly by the
+    # engine (Snowflake micro-partitions, BigQuery/Redshift internals), so the
+    # dropdown would be clutter that maps to nothing. Default `False` so an
+    # engine only advertises the feature by opting in, rather than inheriting it
+    # and having to remember to opt out.
+    supports_partition_filter_mapping: bool = False
+
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
     # the connection is created.
@@ -1300,6 +1311,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         engine-specs to define dynamic values for the attribute.
         """
         return cls.limit_method
+
+    @classmethod
+    def get_max_column_name_length(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> int | None:
+        """
+        Method for dynamic `max_column_name_length`.
+
+        In Oracle the identifier length limit is version-dependent, so Superset needs
+        to inspect the database configuration in order to determine it. This method
+        allows engine-specs to define dynamic values for the attribute.
+        """
+        return cls.max_column_name_length
 
     @classmethod
     def supports_url(cls, url: URL) -> bool:
@@ -2987,7 +3012,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return not security_manager.is_guest_user(g.user)
 
     @classmethod
-    def make_label_compatible(cls, label: str) -> str | quoted_name:
+    def make_label_compatible(
+        cls,
+        label: str,
+        database: Database | None = None,
+    ) -> str | quoted_name:
         """
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
@@ -2997,14 +3026,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         generate a truncated label by calling truncate_label().
 
         :param label: expected expression label/alias
+        :param database: database the label is for, to read a version-dependent
+            maximum column name length
         :return: conditionally mutated label supported by the db engine
         """
         label_mutated = cls._mutate_label(label)
-        if (
+        max_length = (
             cls.max_column_name_length
-            and len(label_mutated) > cls.max_column_name_length
-        ):
-            label_mutated = cls._truncate_label(label)
+            if database is None
+            else cls.get_max_column_name_length(database)
+        )
+        if max_length and cls._label_length(label_mutated) > max_length:
+            label_mutated = cls._truncate_label(label)[:max_length]
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
         return label_mutated
@@ -3036,6 +3069,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return sqla_type(match), generic_type
             return sqla_type, generic_type
         return None
+
+    @staticmethod
+    def _label_length(label: str) -> int:
+        """
+        Return the length of a label in the unit `max_column_name_length` counts.
+
+        Most engines count characters. Engines that limit identifiers in bytes can
+        override this method.
+        """
+        return len(label)
 
     @staticmethod
     def _mutate_label(label: str) -> str:
@@ -3624,6 +3667,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            # Read by the dataset editor to re-derive whether partition filter
+            # mapping applies when the owner points a dataset at another
+            # database, without a round trip through the dataset endpoint.
+            "supports_partition_filter_mapping": (
+                cls.supports_partition_filter_mapping
+            ),
+            "partition_value_transform_default": (
+                cls.partition_value_transform_default
+            ),
             "encrypted_extra_sensitive_fields": (
                 cls.encrypted_extra_sensitive_field_labels()
             ),

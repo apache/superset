@@ -55,6 +55,7 @@ from superset.connectors.sqla.partition_mapping import (
     is_unfinished,
     stored_expression_error,
     validate_partition_mapping,
+    validate_transform,
 )
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
@@ -580,6 +581,17 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         reference to a column the dataset does not have, or a transform no
         flag-on save would accept, and nothing complained until the flag went on.
 
+        The engine gate (`supports_partition_filter_mapping`) does narrow it,
+        but only for the column references. On an engine without the
+        capability the editor hides every mapping control and the query path
+        ignores the mapping, so a stored mapping whose partition column a sync
+        removed would otherwise reject every later save with nothing the owner
+        can edit to clear it. The transform is still held to the safety checks
+        and the stored-expression gate: the engine is a property of the
+        database connection, which can change under the dataset without a
+        dataset save, and a transform let through here would then be live
+        without ever having been vetted.
+
         And only what *this request* gets wrong is refused. A problem the stored
         mapping already has -- written before this check, or by a path that
         never ran it -- is not the request's doing, and refusing the request
@@ -655,14 +667,19 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 database.backend,
             )
         )
-        for issue in validate_partition_mapping(
-            column_names=column_names,
-            partition_column=partition_column,
-            partition_mapped_column=partition_mapped_column,
-            main_dttm_col=main_dttm_col,
-            transform=transform,
-            engine=database.backend,
-        ):
+        issues = (
+            validate_partition_mapping(
+                column_names=column_names,
+                partition_column=partition_column,
+                partition_mapped_column=partition_mapped_column,
+                main_dttm_col=main_dttm_col,
+                transform=transform,
+                engine=database.backend,
+            )
+            if database.db_engine_spec.supports_partition_filter_mapping
+            else validate_transform(transform, database.backend)
+        )
+        for issue in issues:
             if issue.blocking and issue.field not in unchanged_fields:
                 exceptions.append(
                     ValidationError(str(issue.message), field_name=issue.field)

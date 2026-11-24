@@ -70,6 +70,7 @@ import {
   Input,
   Loading,
   Row,
+  SafeMarkdown,
   Select,
   Tooltip,
   Typography,
@@ -91,6 +92,7 @@ import SubjectPicker, {
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import { DatabaseSelector } from '../../../DatabaseSelector';
+import type { DatabaseObject } from '../../../DatabaseSelector/types';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -113,6 +115,7 @@ import {
   defaultTransformFor,
   discardedMappedTransform,
   nextMappedColumnOverride,
+  partitionFilterMappingEnabled,
   partitionMappingErrors,
   resolveMappedColumn,
 } from './components/PartitionFilterMapping/utils';
@@ -224,6 +227,9 @@ interface DatasourceObject {
   partition_mapped_column?: string | null;
   // Engine-supplied pre-fill for a temporal column's value transform. Read-only.
   partition_value_transform_default?: string | null;
+  // Whether the engine's tables are partition-directory laid out. Gates whether
+  // the partition filter mapping UI is offered at all. Engine-supplied, read-only.
+  supports_partition_filter_mapping?: boolean;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -478,9 +484,11 @@ const ColumnButtonWrapper = styled.div`
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
-  span {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
+  /* Space the row's items (certified badge, column-name control, PARTITION tag)
+     with a flex gap rather than a span margin: the name is rendered via
+     EditableTitle/TextControl, not a plain span, so the old span-only rule left
+     the tag touching the name. */
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 // The partition column is a technical key rather than something an analyst
@@ -580,6 +588,10 @@ const checkboxGenerator = (
     }}
   />
 );
+const PYTHON_DATETIME_FORMAT_URL =
+  'https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior';
+const ISO_8601_URL = 'https://en.wikipedia.org/wiki/ISO_8601';
+
 const DATA_TYPES = [
   { value: 'STRING', label: t('STRING') },
   { value: 'NUMERIC', label: t('NUMERIC') },
@@ -683,8 +695,7 @@ function ColumnCollectionTable({
     />
   );
 
-  const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && Boolean(datasource);
+  const partitionMappingEnabled = partitionFilterMappingEnabled(datasource);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;
@@ -827,26 +838,31 @@ function ColumnCollectionTable({
                 fieldKey="python_date_format"
                 label={t('Datetime format')}
                 description={
-                  /* Note the fragmented translations may not work. */
-                  <div>
-                    {t('The pattern of timestamp format. For strings use ')}
-                    <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
-                      {t('Python datetime string pattern')}
-                    </Typography.Link>
-                    {t(' expression which needs to adhere to the ')}
-                    <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
-                      {t('ISO 8601')}
-                    </Typography.Link>
-                    {t(` standard to ensure that the lexicographical ordering
-                      coincides with the chronological ordering. If the
-                      timestamp format does not adhere to the ISO 8601 standard
-                      you will need to define an expression and type for
-                      transforming the string into a date or timestamp. Note
-                      currently time zones are not supported. If time is stored
-                      in epoch format, put \`epoch_s\`, \`epoch_ms\` or \`epoch_us\`. If no pattern
-                      is specified we fall back to using the optional defaults on a per
-                      database/column name level via the extra parameter.`)}
-                  </div>
+                  <SafeMarkdown
+                    // i18n: translate the whole sentence, including the link
+                    // text; keep the [text](%(…)s) link syntax, the backticks
+                    // and both placeholders unchanged
+                    source={t(
+                      'The pattern of timestamp format. For strings use ' +
+                        '[Python datetime string pattern](%(python_url)s) ' +
+                        'expression which needs to adhere to the ' +
+                        '[ISO 8601](%(iso_url)s) standard to ensure that the ' +
+                        'lexicographical ordering coincides with the ' +
+                        'chronological ordering. If the timestamp format does ' +
+                        'not adhere to the ISO 8601 standard you will need to ' +
+                        'define an expression and type for transforming the ' +
+                        'string into a date or timestamp. Note currently time ' +
+                        'zones are not supported. If time is stored in epoch ' +
+                        'format, put `epoch_s`, `epoch_ms` or `epoch_us`. If ' +
+                        'no pattern is specified we fall back to using the ' +
+                        'optional defaults on a per database/column name ' +
+                        'level via the extra parameter.',
+                      {
+                        python_url: PYTHON_DATETIME_FORMAT_URL,
+                        iso_url: ISO_8601_URL,
+                      },
+                    )}
+                  />
                 }
                 control={
                   <TextControl
@@ -1235,7 +1251,7 @@ function DatasourceEditor({
       // that is a blocking error with no way out -- the partition-column
       // dropdown is physical-only, so reopening such a dataset and changing
       // nothing but its description left Save permanently disabled.
-      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+      if (partitionFilterMappingEnabled(datasource)) {
         validationErrors = validationErrors.concat(
           partitionMappingErrors(datasource, [
             ...databaseColumns,
@@ -1313,6 +1329,24 @@ function DatasourceEditor({
       const newDatasource = { ...prev, [attr]: value };
       return newDatasource;
     });
+  }, []);
+
+  // The partition mapping capability and its transform pre-fill belong to the
+  // engine, and arrive on the dataset payload for the database it was loaded
+  // with. Pointing the dataset at another database has to re-derive both from
+  // the selected database's engine, or the editor keeps offering (or keeps
+  // hiding) partition mapping according to the engine it just left.
+  const onDatabaseChange = useCallback((db: DatabaseObject | undefined) => {
+    if (db === undefined) return;
+    setDatasource(prev => ({
+      ...prev,
+      database: db,
+      supports_partition_filter_mapping: Boolean(
+        db.supports_partition_filter_mapping,
+      ),
+      partition_value_transform_default:
+        db.partition_value_transform_default ?? null,
+    }));
   }, []);
 
   // Effect to trigger validation after datasource changes (skip initial mount)
@@ -1577,11 +1611,13 @@ function DatasourceEditor({
     // calculated column, so both lists are cleared.
     setDatabaseColumns(prev => clearMappingTransforms(prev));
     setCalculatedColumns(prev => clearMappingTransforms(prev));
-    // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- nothing mirrored onto it, and the panel's warning
-    // saying so. The column's own `filterable`/`groupby` flags are untouched:
-    // designating a partition column has never hidden it from Explore (see
-    // `handlePartitionColumnChange`).
+    // The partition column stays designated and the override is cleared. A null
+    // `partition_mapped_column` means "follow `main_dttm_col`", so when the
+    // dataset has a default datetime column the mapping returns to it rather
+    // than going away. Only without one does this reach the 1g state -- no
+    // mapped column, nothing mirrored onto the partition column. The column's
+    // own `filterable`/`groupby` flags are untouched: designating a partition
+    // column has never hidden it from Explore (see `handlePartitionColumnChange`).
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, []);
 
@@ -1618,11 +1654,16 @@ function DatasourceEditor({
       // writes whatever the flag says. The datetime column select itself is
       // not gated, since it predates this feature.
       //
+      // The engine gate applies for the same reason. On an engine without the
+      // capability the mapping is hidden and ignored but kept, so it comes
+      // back if the dataset is pointed at a supported engine; clearing it here
+      // would save the loss as explicit nulls behind a control nobody can see.
+      //
       // Changing the default datetime column is rarely meant as a change to
       // the mapping, so when it would cost the transform the mapping mirrors,
       // the owner confirms that first and cancelling keeps the old column.
       if (
-        !isFeatureEnabled(FeatureFlag.PartitionFilterMapping) ||
+        !partitionFilterMappingEnabled(datasource) ||
         !datasource.partition_column ||
         datasource.partition_mapped_column
       ) {
@@ -1657,6 +1698,7 @@ function DatasourceEditor({
       datasource.main_dttm_col,
       datasource.partition_column,
       datasource.partition_mapped_column,
+      datasource.supports_partition_filter_mapping,
     ],
   );
 
@@ -2274,7 +2316,7 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
-          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+          {partitionFilterMappingEnabled(datasource) && (
             <PartitionColumnFields
               key={discardCancelCount}
               datasource={datasource}
@@ -2617,8 +2659,7 @@ function DatasourceEditor({
                               onDatasourcePropChange('schema', schema)
                             }
                             onDbChange={db =>
-                              isEditMode &&
-                              onDatasourcePropChange('database', db)
+                              isEditMode && onDatabaseChange(db)
                             }
                             formMode={false}
                             handleError={addDangerToast}
@@ -2816,11 +2857,7 @@ function DatasourceEditor({
                             ? schema => onDatasourcePropChange('schema', schema)
                             : undefined
                         }
-                        onDbChange={
-                          isEditMode
-                            ? db => onDatasourcePropChange('database', db)
-                            : undefined
-                        }
+                        onDbChange={isEditMode ? onDatabaseChange : undefined}
                         onTableSelectChange={
                           isEditMode
                             ? table =>

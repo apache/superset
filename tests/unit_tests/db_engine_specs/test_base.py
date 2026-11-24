@@ -1967,6 +1967,31 @@ def test_base_spec_public_information_includes_supports_offset() -> None:
     assert info["supports_offset"] is True
 
 
+def test_public_information_exposes_the_partition_mapping_capability() -> None:
+    """
+    The dataset editor re-derives partition mapping support from this when the
+    owner switches a dataset to another database.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    base = BaseEngineSpec.get_public_information()
+    assert base["supports_partition_filter_mapping"] is False
+    assert base["partition_value_transform_default"] is None
+
+    hive = HiveEngineSpec.get_public_information()
+    assert hive["supports_partition_filter_mapping"] is True
+    assert hive["partition_value_transform_default"] is None
+
+    class EngineWithDefault(BaseEngineSpec):
+        partition_value_transform_default = "bucket(:value)"
+
+    assert (
+        EngineWithDefault.get_public_information()["partition_value_transform_default"]
+        == "bucket(:value)"
+    )
+
+
 def _parameters(encryption: bool) -> BasicParametersType:
     parameters: dict[str, Any] = {
         "username": "user",
@@ -2501,6 +2526,33 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+def test_make_label_compatible_with_database(mocker: MockerFixture) -> None:
+    """
+    The database's maximum column name length decides when a label is hashed.
+    """
+
+    class ShortLabelsEngineSpec(BaseEngineSpec):
+        max_column_name_length = 10
+
+    database = mocker.MagicMock()
+    assert BaseEngineSpec.get_max_column_name_length(database) is None
+    assert ShortLabelsEngineSpec.get_max_column_name_length(database) == 10
+
+    assert ShortLabelsEngineSpec.make_label_compatible("short", database) == "short"
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "63a949e13b"
+    )
+
+    mocker.patch.object(
+        ShortLabelsEngineSpec, "get_max_column_name_length", return_value=None
+    )
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "a longer label"
+    )
 
 
 def test_encrypted_extra_hints_disabled_or_unusable_input() -> None:

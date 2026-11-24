@@ -1244,3 +1244,25 @@ test('navbar renders inline on mobile viewport (md: false)', async () => {
   const navbar = await screen.findByTestId('navbar-top');
   expect(navbar).toHaveClass('ant-menu-inline');
 });
+
+test("a host entry's Font Awesome class name never renders as navbar text", async () => {
+  // Regression. `MenuObjectChildProps.icon` is typed `ReactNode` and a
+  // string satisfies it, but FAB forwards a Font Awesome *class name*
+  // (`icon="fa-dashboard"`). antd's `replaceElement` returns a non-element
+  // unchanged, so forwarding it put "fa-table Sources" in the bar on a
+  // default install with no extensions at all -- and nothing in the types
+  // or the existing tests saw it.
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  const { container } = render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  await screen.findByText(/sources/i);
+  const nav = container.querySelector('.main-nav');
+  expect(nav).not.toBeNull();
+  // The fixtures above carry `fa-table`, `fa-database` and `fa-fw ...`.
+  expect(nav?.textContent ?? '').not.toMatch(/fa-/);
+});
