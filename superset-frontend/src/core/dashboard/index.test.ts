@@ -23,14 +23,14 @@ import {
   SET_REFRESH_FREQUENCY,
 } from 'src/dashboard/actions/dashboardState';
 
-let mockStore = makeStore();
-
 function makeStore() {
   return configureStore({
     reducer: { dashboardState: dashboardStateReducer as any },
     preloadedState: { dashboardState: { hasUnsavedChanges: false } as any },
   });
 }
+
+let mockStore = makeStore();
 
 jest.mock('src/views/store', () => ({
   get store() {

@@ -58,11 +58,11 @@ carries no contributions at all.
 | `home.sectionPrimary` | A section of the Home page, before Superset's own | — |
 | `home.section` | A section of the Home page, after Superset's own | — |
 | `dashboard.header` | Beside the dashboard title | — |
-| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu | `{ assetId }` |
+| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu | — |
 | `dashboard.editActions` | Beside Save, while the dashboard is being edited | — |
 | `dashboard.panel` | Between the dashboard header and the chart grid, full width | — |
 | `dashboard.sidebar` | A column down the right of the chart grid, at most `min(400px, 33vw)` wide. Wider content is clipped rather than scrolled, so size contributions fluidly and render popups at the page root | — |
-| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu | `{ assetId }` |
+| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu | — |
 | `dashboard.chartNameCell` | Beside an individual chart's name on a dashboard | `{ assetId }` |
 | `explore.header` | Beside the chart title in Explore | — |
 | `explore.panel` | Between the Explore header and the chart, the width of the chart column | — |
@@ -89,13 +89,19 @@ itself:
 - `views.ListViewItemProps` is `{ assetId, archived? }`, described under
   [List rows](#list-rows).
 
+The two overflow-menu locations are marked — even though one of them sits
+beside a single chart. A view contributed there is composed into a menu the
+host builds, not rendered through the slot component that forwards props, so
+it is handed nothing and reads what it needs the same way any single-instance
+surface does.
+
 ```tsx
-const ReviewButton = ({ assetId }: { assetId: number }) => ...;
+const ReviewTag = ({ assetId }: { assetId: number }) => ...;
 
 views.registerView<{ assetId: number }>(
-  { id: 'acme.reviews.chartAction', name: 'Send for review' },
-  'dashboard.chartActions',
-  ReviewButton,
+  { id: 'acme.reviews.chartNameCell', name: 'Review status' },
+  'dashboard.chartNameCell',
+  ReviewTag,
 );
 ```
 
