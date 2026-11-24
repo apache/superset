@@ -20,7 +20,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import SqlEditorTopBar, {
   SqlEditorTopBarProps,
 } from 'src/SqlLab/components/SqlEditorTopBar';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   registerToolbarAction,
   cleanupExtensions,

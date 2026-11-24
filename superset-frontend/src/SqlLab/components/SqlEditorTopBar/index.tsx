@@ -19,7 +19,7 @@
 import { Flex } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
 import { MenuItemType } from '@superset-ui/core/components/Menu';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import PanelToolbar from 'src/components/PanelToolbar';
 
 const StyledFlex = styled(Flex)`

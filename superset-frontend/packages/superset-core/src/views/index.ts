@@ -116,43 +116,16 @@ export declare function registerView<Props = {}>(
 ): Disposable;
 
 /**
- * The props a location supplies when the component it renders cannot work out
- * which asset it is beside.
- *
- * Most locations render a component that needs nothing from the host: it is a
- * panel, a button, a status line, and whatever it needs it fetches itself.
- * These are the locations where that is not true -- a row in a list, a chart
- * in a dashboard, an item in an asset's own menu -- because one registered
- * component is rendered once per asset and has no other way to know which.
- */
-export interface AssetViewProps {
-  /** The primary key of the asset the component is rendered beside. */
-  assetId: number;
-}
-
-/**
- * The props the dashboard's edit-mode action locations supply.
- *
- * An action contributed beside Save while editing may need the dashboard's
- * current edits committed before it can act on them, and it cannot commit
- * them itself: whether there is anything to save, and the saving, are the
- * host's.
- */
-export interface EditActionProps {
-  /** Whether the dashboard has edits that have not been saved. */
-  hasUnsavedChanges: boolean;
-  /** Saves the dashboard's current edits, as the host's own Save does. */
-  saveFirst: () => void;
-}
-
-/**
  * The props a list-view location supplies to the component registered there.
  *
- * A list-view location renders the same component once per row, and adds to
- * {@link AssetViewProps} the one thing the location itself cannot say: which
- * of the two lists that render it the row is in.
+ * Most locations render a component that needs nothing from the host: it is a
+ * panel, a button, a status line, and whatever it needs it fetches itself. A
+ * list-view location is different, because the same component is rendered once
+ * per row and has no other way to know which row it is in.
  */
-export interface ListViewItemProps extends AssetViewProps {
+export interface ListViewItemProps {
+  /** The primary key of the item in the row being rendered. */
+  assetId: number;
   /**
    * `true` when the row sits in a list of archived items: the asset still
    * exists and keeps this `assetId`, but it is archived and cannot be opened

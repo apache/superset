@@ -23,7 +23,7 @@ import SouthPane from 'src/SqlLab/components/SouthPane';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { denormalizeTimestamp } from '@superset-ui/core';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   registerTestView,
   registerToolbarAction,

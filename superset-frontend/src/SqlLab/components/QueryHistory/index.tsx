@@ -29,7 +29,7 @@ import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import { mergeQueryStatus } from './mergeQueryStatus';
 
 interface QueryHistoryProps {

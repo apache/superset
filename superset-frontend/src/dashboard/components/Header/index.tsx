@@ -106,6 +106,7 @@ import AutoRefreshIndicator from '../AutoRefreshIndicator';
 import { RefreshButton } from '../RefreshButton';
 import ViewListExtension from 'src/components/ViewListExtension';
 import { ViewLocations } from 'src/core/viewLocations';
+import { registerDashboardSaveHandle } from 'src/core/dashboard';
 
 type DashboardPropertiesUpdate = {
   slug?: string;
@@ -519,6 +520,18 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     dashboardInfo.description,
   ]);
 
+  // Lends the header's own Save to the `dashboard` namespace while the
+  // dashboard is being edited, so an extension contributing an action beside
+  // Save can commit the author's current edits before acting on them -- it
+  // cannot save them itself. Scoped to edit mode: outside it there is no Save
+  // on screen, and `dashboard.save()` should mean exactly what pressing that
+  // button means.
+  useEffect(() => {
+    if (!editMode) return undefined;
+    const registration = registerDashboardSaveHandle(overwriteDashboard);
+    return () => registration.dispose();
+  }, [editMode, overwriteDashboard]);
+
   const {
     showModal: showUnsavedChangesModal,
     setShowModal: setShowUnsavedChangesModal,
@@ -798,17 +811,13 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                 </Button>
                 {/*
                   Anything an extension contributes beside Save while editing.
-                  It is handed `hasUnsavedChanges` and `saveFirst` because an
-                  action that has to capture the current edits before it can
-                  act on them cannot save them itself: whether there is
-                  anything to save, and the saving, are the host's.
+                  Nothing is handed down: an action that has to capture the
+                  current edits before it can act on them reads
+                  `dashboard.hasUnsavedChanges()` and calls `dashboard.save()`,
+                  which the effect above lends to the namespace while editing.
                 */}
                 <ViewListExtension
                   viewId={ViewLocations.dashboard.editActions}
-                  viewProps={{
-                    hasUnsavedChanges,
-                    saveFirst: overwriteDashboard,
-                  }}
                 />
               </div>
             )}

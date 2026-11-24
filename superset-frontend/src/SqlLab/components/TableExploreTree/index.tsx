@@ -49,7 +49,7 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import TreeNodeRenderer from './TreeNodeRenderer';
 import useTreeData, { EMPTY_NODE_ID_PREFIX } from './useTreeData';
 import type { TreeNodeData } from './types';

@@ -54,9 +54,11 @@ export type DashboardLocation =
   | 'headerActions'
   /**
    * The row of actions shown while the dashboard is in edit mode, after the
-   * host's own Discard and Save. The view is given `hasUnsavedChanges` and a
-   * `saveFirst` callback, because whether there is anything to save, and the
-   * saving itself, are the host's to know and to do.
+   * host's own Discard and Save. The view is given nothing: an action that
+   * needs the author's current edits committed before it can act on them
+   * reads `dashboard.hasUnsavedChanges()` and calls `dashboard.save()`,
+   * because whether there is anything to save, and the saving itself, are
+   * the host's to know and to do.
    */
   | 'editActions'
   /**

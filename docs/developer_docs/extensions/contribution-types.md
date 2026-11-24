@@ -58,42 +58,76 @@ carries no contributions at all.
 | `home.sectionPrimary` | A section of the Home page, before Superset's own | — |
 | `home.section` | A section of the Home page, after Superset's own | — |
 | `dashboard.header` | Beside the dashboard title | — |
-| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu | `AssetViewProps` |
-| `dashboard.editActions` | Beside Save, while the dashboard is being edited | `EditActionProps` |
+| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu | — |
+| `dashboard.editActions` | Beside Save, while the dashboard is being edited | — |
 | `dashboard.panel` | Between the dashboard header and the chart grid, full width | — |
 | `dashboard.sidebar` | A column down the right of the chart grid, at most `min(400px, 33vw)` wide. Wider content is clipped rather than scrolled, so size contributions fluidly and render popups at the page root | — |
-| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu | `AssetViewProps` |
-| `dashboard.chartNameCell` | Beside an individual chart's name on a dashboard | `AssetViewProps` |
+| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu | — |
+| `dashboard.chartNameCell` | Beside an individual chart's name on a dashboard | `{ assetId }` |
 | `explore.header` | Beside the chart title in Explore | — |
 | `explore.panel` | Between the Explore header and the chart, the width of the chart column | — |
 | `listView.{chart,dashboard,dataset}.nameCell` | Beside an item's name, in that type's list and in the archive | `ListViewItemProps` |
 | `listView.{chart,dashboard,dataset}.actions` | In a list row's action buttons | `ListViewItemProps` |
-| `listView.{chart,dashboard,dataset}.deleteConfirmation` | In the dialog that asks the reader to confirm deleting an item | `AssetViewProps` |
-| `listView.dashboard.statusCell` | Beside a dashboard row's published-or-draft status | `AssetViewProps` |
+| `listView.{chart,dashboard,dataset}.deleteConfirmation` | In the dialog that asks the reader to confirm deleting an item | `{ assetId }` |
+| `listView.dashboard.statusCell` | Beside a dashboard row's published-or-draft status | `ListViewItemProps` |
 | `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) | — |
 
-A location marked — renders its component with no props: whatever it needs, it
-fetches for itself. The rest render one registered component once per asset,
-and hand it the asset, because that is the one thing the component cannot work
-out on its own:
+A location marked — renders its component with no props. Whatever such a
+component needs, it asks for: context comes from the namespace for the surface
+it is on, the same way a SQL Lab panel reads `sqlLab.getCurrentTab()`. That
+keeps what a location supplies out of the published view contract, so it can
+change without breaking an extension.
 
-- `views.AssetViewProps` is `{ assetId }`, the primary key of the asset the
-  component is rendered beside.
-- `views.ListViewItemProps` adds `archived`, described under
+The locations that do pass props are the ones that render **the same component
+once per row or per chart**. There the host has many instances of one
+registration on screen at once, so there is no "current" asset for a namespace
+to report, and the asset is the one thing the component cannot work out for
+itself:
+
+- `{ assetId }` is the primary key of the asset the component is rendered
+  beside.
+- `views.ListViewItemProps` is `{ assetId, archived? }`, described under
   [List rows](#list-rows).
-- `views.EditActionProps` is `{ hasUnsavedChanges, saveFirst }`. An action
-  contributed beside Save may need the dashboard's current edits committed
-  before it can act on them, and it cannot commit them itself: whether there
-  is anything to save, and the saving, are the host's.
+
+The two overflow-menu locations are marked — even though one of them sits
+beside a single chart. A view contributed there is composed into a menu the
+host builds, not rendered through the slot component that forwards props, so
+it is handed nothing and reads what it needs the same way any single-instance
+surface does.
 
 ```tsx
-const ReviewButton = ({ assetId }: views.AssetViewProps) => ...;
+const ReviewTag = ({ assetId }: { assetId: number }) => ...;
 
-views.registerView<views.AssetViewProps>(
-  { id: 'acme.reviews.chartAction', name: 'Send for review' },
-  'dashboard.chartActions',
-  ReviewButton,
+views.registerView<{ assetId: number }>(
+  { id: 'acme.reviews.chartNameCell', name: 'Review status' },
+  'dashboard.chartNameCell',
+  ReviewTag,
 );
+```
+
+An action contributed at `dashboard.editActions` is the single-instance case:
+it may need the author's current edits committed before it can act on them,
+and it cannot commit them itself, so it reads the dashboard namespace rather
+than being handed anything.
+
+```tsx
+const SendForReview = () => {
+  const [unsaved, setUnsaved] = useState(dashboard.hasUnsavedChanges());
+  useEffect(() => {
+    const sub = dashboard.onDidChangeUnsavedChanges(setUnsaved);
+    return () => sub.dispose();
+  }, []);
+
+  return (
+    <Button
+      disabled={!unsaved}
+      onClick={async () => {
+        await dashboard.save();
+        requestReview();
+      }}
+    />
+  );
+};
 ```
 
 Every location renders nothing at all until an extension contributes to it, so

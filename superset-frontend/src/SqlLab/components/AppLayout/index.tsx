@@ -29,7 +29,7 @@ import {
   SQL_EDITOR_LEFTBAR_WIDTH,
   SQL_EDITOR_RIGHTBAR_WIDTH,
 } from 'src/SqlLab/constants';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import ViewListExtension from 'src/components/ViewListExtension';
 import { toggleLeftBar } from 'src/SqlLab/actions/sqlLab';
 
