@@ -22,6 +22,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { AnyAction, Store } from 'redux';
 import fetchMock from 'fetch-mock';
+import { FeatureFlag } from '@superset-ui/core';
 import type { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import {
   hydrateDashboard,
@@ -130,6 +131,30 @@ test('resolveSnapshotCharts fetches charts removed from the dashboard since the 
   expect(positionData).toBe(layout);
 });
 
+test('resolveSnapshotCharts carries the localized name through the rebuild', async () => {
+  // Charts the dashboard no longer holds are rebuilt from Explore, so the
+  // preview would otherwise show canonical names for exactly those charts.
+  fetchMock.get('glob:*/api/v1/explore/?slice_id=9', {
+    result: {
+      slice: {
+        slice_name: 'Removed chart',
+        localized_name: 'Graphique retiré',
+      },
+      form_data: {},
+    },
+  });
+
+  const { charts } = await resolveSnapshotCharts([liveChart(1, 'Live')], {
+    ...chartSlot('CHART-a', 1),
+    ...chartSlot('CHART-b', 9),
+  });
+
+  expect(charts.find(chart => chart.slice_id === 9)).toMatchObject({
+    slice_name: 'Removed chart',
+    localized_name: 'Graphique retiré',
+  });
+});
+
 test('resolveSnapshotCharts bounds how many chart lookups it runs at once', async () => {
   // One request per chart with no cap would open as many connections as the
   // snapshot has charts the dashboard no longer holds.
@@ -187,6 +212,43 @@ test('resolveSnapshotCharts swaps unreachable charts for a markdown placeholder'
     code: 'This chart no longer exists.',
   });
 });
+
+test.each([true, false])(
+  'resolveSnapshotCharts shows archived-chart guidance with soft delete %s',
+  async softDelete => {
+    const previousFeatureFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFeatureFlags,
+      [FeatureFlag.SoftDelete]: softDelete,
+    };
+    try {
+      // Explore returns 200 with no slice for an archived or purged chart.
+      fetchMock.get('glob:*/api/v1/explore/?slice_id=9', {
+        result: { slice: null, form_data: { slice_id: 9 } },
+      });
+      const layout = { ...chartSlot('CHART-a', 1), ...chartSlot('CHART-b', 9) };
+
+      const { charts, positionData } = await resolveSnapshotCharts(
+        [liveChart(1, 'Live')],
+        layout,
+      );
+
+      expect(charts.map(chart => chart.slice_id)).toEqual([1]);
+      expect((positionData as JsonObject)['CHART-a'].type).toBe(CHART_TYPE);
+      const placeholder = (positionData as JsonObject)['CHART-b'];
+      expect(placeholder.type).toBe(MARKDOWN_TYPE);
+      expect(placeholder.meta).toEqual({
+        width: 4,
+        height: 50,
+        code: softDelete
+          ? 'This chart is archived or unavailable. An editor can restore archived charts from Recently Archived.'
+          : 'This chart is archived or unavailable.',
+      });
+    } finally {
+      window.featureFlags = previousFeatureFlags;
+    }
+  },
+);
 
 const HYDRATE_TEST = 'HYDRATE_TEST_ACTION';
 
@@ -713,4 +775,28 @@ test('a save landing during the theme fetch does not strand the preview', async 
     store.setState({ versionHistory: versionHistoryState({ preview: null }) });
   });
   await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(2));
+});
+
+test('a preview drops the live translation, which belongs to the live title', async () => {
+  // The live localized_title was resolved for 'Live dashboard'. Carrying it
+  // into a preview of 'Snapshot title' would render the live name over
+  // historical content -- and with the feature off it mirrors the live
+  // canonical title, so the same mismatch happens with no hook configured.
+  mockedFetchHydration.mockResolvedValue({
+    dashboard: { ...liveDashboard, localized_title: 'Tableau en direct' },
+    charts: [],
+  } as never);
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
+  const previewed = mockedHydrateDashboard.mock.calls[0][0].dashboard;
+  expect(previewed.dashboard_title).toBe('Snapshot title');
+  expect(previewed.localized_title).toBeUndefined();
 });

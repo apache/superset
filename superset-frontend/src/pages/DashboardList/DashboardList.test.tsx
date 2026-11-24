@@ -100,7 +100,7 @@ test('fetches data', async () => {
 
   const calls = fetchMock.callHistory.calls(/dashboard\/\?q/);
   expect(calls[0].url).toMatchInlineSnapshot(
-    `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,published,url,slug,description,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,editors.id,editors.label,editors.img,editors.type,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on))"`,
+    `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,localized_title,published,url,slug,description,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,editors.id,editors.label,editors.img,editors.type,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on))"`,
   );
 });
 
@@ -314,4 +314,36 @@ test('selecting Modified by filter encodes rel_o_m changed_by in API call', asyn
       ]),
     );
   });
+});
+
+test('renders the localized dashboard title, falling back to dashboard_title', async () => {
+  // Served from a response of its own: the shared mock is asserted against by
+  // canonical title elsewhere in this suite.
+  const [translated, untranslated] = mockDashboards;
+  // Reset every route rather than replacing just this one: re-registering under
+  // the same name throws, and removing it first puts the replacement behind the
+  // helper's catch-all glob, which then answers the request instead.
+  fetchMock.removeRoutes();
+  fetchMock.get(
+    API_ENDPOINTS.DASHBOARDS,
+    {
+      result: [
+        { ...translated, localized_title: 'Tableau des ventes' },
+        untranslated,
+      ],
+      count: 2,
+    },
+    { name: API_ENDPOINTS.DASHBOARDS },
+  );
+
+  renderDashboardList(mockAdminUser);
+  await screen.findByTestId('dashboard-list-view');
+
+  expect(await screen.findByText('Tableau des ventes')).toBeInTheDocument();
+  expect(
+    screen.queryByText(translated.dashboard_title),
+  ).not.toBeInTheDocument();
+
+  // Dashboards without a translation keep showing the canonical title.
+  expect(screen.getByText(untranslated.dashboard_title)).toBeInTheDocument();
 });

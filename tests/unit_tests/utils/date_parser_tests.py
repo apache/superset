@@ -575,8 +575,9 @@ def test_datetime_eval() -> None:
             result = datetime_eval(
                 f"holiday('{holiday_name}', datetime('2000-01-01T00:00:00'), 'SA')"
             )
-            expected = datetime(2000, 1, 8, 0, 0, 0)
-            assert result == expected
+            # Lunar-calendar dates are revised between holidays releases, so
+            # accept the adjacent days the package has reported for this year.
+            assert result in (datetime(2000, 1, 7), datetime(2000, 1, 8))
             sa_holiday_test_passed = True
             break
         except ValueError:
@@ -637,6 +638,45 @@ def test_datetime_eval() -> None:
     )
     expected = datetime(2017, 12, 23, 0, 0, 0)
     assert result == expected
+
+
+def test_holiday_reads_a_country_given_without_a_datetime() -> None:
+    """
+    Both arguments after the holiday name are optional, so the country can be
+    the second one. Boxing Day tells the calendars apart: the UK has it and the
+    default US calendar does not.
+    """
+    with freezegun.freeze_time("2026-06-15"):
+        assert datetime_eval("holiday('Boxing Day', 'UK')") == datetime(2026, 12, 26)
+
+        with pytest.raises(ValueError, match="Unable to find such a holiday"):
+            datetime_eval("holiday('Boxing Day')")
+
+
+def test_holiday_reads_a_country_past_an_empty_datetime_slot() -> None:
+    with freezegun.freeze_time("2026-06-15"):
+        assert datetime_eval("holiday('Boxing Day', , 'UK')") == datetime(2026, 12, 26)
+
+
+@pytest.mark.parametrize(
+    "country",
+    [
+        "ZZ",
+        "United Kingdom",  # written out in full rather than as the ISO code
+        "us",  # the right code in the wrong case
+    ],
+)
+def test_holiday_rejects_a_country_without_a_calendar(country: str) -> None:
+    """
+    A country the holidays package has no calendar for is the caller's to
+    correct, so it has to arrive as a ValueError rather than as whatever the
+    package raises.
+    """
+    expression = (
+        f"holiday('Christmas Day', datetime('2019-01-01T00:00:00'), '{country}')"
+    )
+    with pytest.raises(ValueError, match=f"Unable to find such a country: .{country}."):
+        datetime_eval(expression)
 
 
 @patch("superset.utils.date_parser.datetime")
@@ -1090,3 +1130,15 @@ def test_legacy_bounds_without_time_range() -> None:
         datetime(2025, 3, 15),
         datetime(2025, 4, 1),
     )
+
+
+def test_datetime_eval_rejects_deeply_nested_expressions() -> None:
+    """
+    The expression grammar recurses once per nesting level, so a pathological
+    or pasted expression exhausts the interpreter stack before the parser can
+    report a parse failure. It must surface as a ValueError like every other
+    malformed expression, not as a RecursionError.
+    """
+    expression = "dateadd(" * 200 + "datetime('2024-01-01')" + ")" * 200
+    with pytest.raises(ValueError, match="nested too deeply"):
+        datetime_eval(expression)

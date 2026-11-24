@@ -199,7 +199,7 @@ def get_samples(  # pylint: disable=too-many-arguments
         # This prevents users with "can samples on Datasource" permission from
         # reading samples from datasets they don't have access to.
         samples_instance.raise_for_access()
-        count_star_data = _get_count_star_data(count_star_instance)
+        count_star_data = _get_count_star_data(datasource, count_star_instance)
 
         engine_spec = datasource.database.db_engine_spec
         row_offset = limit_clause["row_offset"]
@@ -231,7 +231,9 @@ def get_samples(  # pylint: disable=too-many-arguments
                 QueryCacheManager.delete(
                     count_star_data.get("cache_key"), CacheRegion.DATA
                 )
-                raise DatasetSamplesFailedError(sample_data.get("error") or "")
+                raise DatasetSamplesFailedError(
+                    _failed_query_message(datasource, sample_data)
+                )
 
         sample_data["page"] = page
         sample_data["per_page"] = per_page
@@ -274,7 +276,24 @@ def _count_star_query_context(
     )
 
 
+def _failed_query_message(datasource: Datasource, query: dict[str, Any]) -> str:
+    """
+    Describe a failed query the way its engine spec does.
+
+    The query payload carries only the driver's raw error text, not the structured
+    errors, so the engine spec reads that text back out of a new exception.
+    """
+    error = query.get("error")
+    if not error:
+        return ""
+    errors = datasource.database.db_engine_spec.extract_errors(
+        Exception(str(error)), database_name=datasource.database.unique_name
+    )
+    return "\n".join(item.message for item in errors) or str(error)
+
+
 def _get_count_star_data(
+    datasource: Datasource,
     count_star_instance: QueryContext | None,
 ) -> dict[str, Any]:
     """Run the count query, or return an empty payload when it was skipped."""
@@ -284,7 +303,9 @@ def _get_count_star_data(
     count_star_instance.raise_for_access()
     count_star_data = count_star_instance.get_payload()["queries"][0]
     if count_star_data.get("status") == QueryStatus.FAILED:
-        raise DatasetSamplesFailedError(count_star_data.get("error"))
+        raise DatasetSamplesFailedError(
+            _failed_query_message(datasource, count_star_data)
+        )
     return count_star_data
 
 
