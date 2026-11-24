@@ -239,6 +239,58 @@ def test_cron_schedule_window_chicago_daylight(
 
 
 @pytest.mark.parametrize(
+    "current_dttm, cron, timezone, expected",
+    [
+        # 01:30 happens twice in America/New_York on 2026-11-01; a
+        # fixed-time schedule fires at the first occurrence (EDT) only
+        (
+            "2026-11-01T05:30:00+00:00",
+            "30 1 * * *",
+            "America/New_York",
+            [FakeDatetime(2026, 11, 1, 5, 30).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        ("2026-11-01T06:30:00+00:00", "30 1 * * *", "America/New_York", []),
+        # 02:30 happens twice in Europe/Berlin on 2026-10-25
+        (
+            "2026-10-25T00:30:00+00:00",
+            "30 2 * * *",
+            "Europe/Berlin",
+            [FakeDatetime(2026, 10, 25, 0, 30).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        ("2026-10-25T01:30:00+00:00", "30 2 * * *", "Europe/Berlin", []),
+        # a minute or hour field starting with "*" still runs again at
+        # the second occurrence
+        (
+            "2026-11-01T06:30:00+00:00",
+            "30 * * * *",
+            "America/New_York",
+            [FakeDatetime(2026, 11, 1, 6, 30).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        (
+            "2026-11-01T06:30:00+00:00",
+            "*/30 1 * * *",
+            "America/New_York",
+            [FakeDatetime(2026, 11, 1, 6, 30).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+    ],
+)
+def test_cron_schedule_window_dst_fallback(
+    current_dttm: str, cron: str, timezone: str, expected: list[FakeDatetime]
+) -> None:
+    """
+    Reports scheduler: a fixed-time schedule fires once when daylight
+    saving time ends, not once per occurrence of the repeated local time
+    """
+
+    datetimes = cron_schedule_window(
+        datetime.fromisoformat(current_dttm), cron, timezone
+    )
+    assert (
+        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected  # noqa: C400
+    )
+
+
+@pytest.mark.parametrize(
     "current_dttm, cron, expected",
     [
         ("2020-01-01T08:59:01+00:00", "0 0 30 2 *", []),
