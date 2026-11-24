@@ -41,18 +41,14 @@ The saved widget endpoint is synchronous, and stands in for the asynchronous one
 
 ## Showing a saved widget outside a canvas
 
-`canvas.WidgetHost` shows one saved widget on its own, on any page, in the cell a canvas draws around a placement: the title row, the slot the widget's own controls render into, its error boundary, and the canvas's "This widget is unavailable" placeholder. Its data comes from the saved widget endpoint above.
+`canvas.WidgetHost` is a proposal. It shows one saved widget on its own, on any page, in the cell a canvas draws around a placement: the title row, the slot the widget's own controls render into, its error boundary, and the canvas's "This widget is unavailable" placeholder. Its data comes from the saved widget endpoint above.
 
 ```tsx
 import { canvas } from '@apache-superset/core';
 
-<canvas.WidgetHost widgetId={uuid} filters={pageFilters} showTitle={false} />;
+<canvas.WidgetHost widgetId={uuid} showTitle={false} />;
 ```
 
-A canvas renderer is always given the canvas and placement it renders (`canvasId`, `nodeId`), so the host never runs one outside a canvas. A widget type shows in a widget host once it registers a renderer for a saved widget on its own:
+It shows the built-in data widgets: `echarts`, `metric-tile` and `ag-grid-table`. Every other type shows the placeholder, an extension's included, and so does a built-in type whose renderer an extension replaced. A renderer registered with `canvas.registerWidgetRenderer` gets its context as props, the canvas it renders on (`canvasId`) among them, and outside a canvas there is no canvas to give it.
 
-```tsx
-canvas.registerSavedWidgetRenderer('extensions.acme.kpi.kpi', SavedKpiTile);
-```
-
-That renderer gets `SavedWidgetProps`: the saved widget's `widgetId`, `widgetType`, `props` and `title`, the `filters` the page passes in, and `refreshKey`. The widget is the only node of its filter bus, so it has no cross-filters. A type without one shows the placeholder. The built-in data widgets (`echarts`, `metric-tile` and `ag-grid-table`) register theirs.
+In [SIP-231](https://github.com/apache/superset/issues/44875) section 10, renderers get their context from hooks that each host backs: `useWidgetData`, `useRuntimeFilters` and `emitFilter`. Once those exist, a renderer doesn't know which host it renders in, and the one registry `canvas.registerWidgetRenderer` fills serves every host: a widget host then shows any type that has a renderer.

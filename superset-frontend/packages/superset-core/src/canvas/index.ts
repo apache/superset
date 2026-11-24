@@ -103,58 +103,10 @@ export interface CanvasWidgetProps {
   refreshKey: number;
 }
 
-/**
- * The props a widget host passes to the renderer of a saved widget it shows
- * on its own, outside any canvas (see {@link registerSavedWidgetRenderer}).
- * There is no canvas or placement, and the widget is the only node of its
- * filter bus, so it has no cross-filters to set or receive.
- */
-export interface SavedWidgetProps {
-  /** The saved widget's UUID. */
-  widgetId: string;
-  /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
-  widgetType: string;
-  /** The widget's props, as saved. */
-  props?: Record<string, unknown>;
-  /**
-   * The title the host shows above the widget, if any. A renderer that draws
-   * a title of its own leaves it out while this is set.
-   */
-  title?: string;
-  /** Values of the filters that reach the widget from the page around it. */
-  filters: FilterValue[];
-  /** Increments when the host asks for fresh data. */
-  refreshKey: number;
-}
-
-/**
- * Registers the component that renders a saved widget of a type on its own,
- * where a {@link WidgetHost} shows it outside any canvas. A canvas renderer
- * gets the canvas and placement it renders for, so a host never runs one
- * without them: a type shows outside a canvas only once it registers this.
- * Its data comes from `POST /api/v1/widget/<uuid>/data`.
- *
- * Registering a type that already has one replaces it, with a warning.
- *
- * @param widgetType The widget type, as the backend names it.
- * @param component The renderer.
- * @returns A Disposable that unregisters the renderer when disposed.
- */
-export declare function registerSavedWidgetRenderer(
-  widgetType: string,
-  component: ComponentType<SavedWidgetProps>,
-): Disposable;
-
 /** What a {@link WidgetHost} needs to show one saved widget. */
 export interface WidgetHostProps {
   /** The saved widget's UUID. */
   widgetId: string;
-  /**
-   * Values of the filters that reach the widget, as a canvas's filters reach
-   * a placement: the controls of the page around it, say. The widget is the
-   * only node of its filter bus, so what it publishes reaches nothing.
-   */
-  filters?: FilterValue[];
   /** Increment to refetch the widget's data, as a canvas refresh does. */
   refreshKey?: number;
   /**
@@ -169,11 +121,15 @@ export interface WidgetHostProps {
  * Shows one saved widget on its own, outside any canvas, in the cell a
  * canvas draws around a placement: its title row, the slot its own controls
  * render into, its error boundary, and the placeholder a canvas shows for a
- * widget that can't render. It runs the renderer the widget's type
- * registered with {@link registerSavedWidgetRenderer}, and shows that
- * placeholder for a type that registered none.
+ * widget that can't render. It fills the height its parent gives it, as a
+ * cell fills its rows.
  *
- * It fills the height its parent gives it, as a cell fills its rows.
+ * It renders the built-in data widgets, `echarts`, `metric-tile` and
+ * `ag-grid-table`, with their data from `POST /api/v1/widget/<uuid>/data`.
+ * Any other type shows the placeholder, and so does a built-in type whose
+ * renderer was replaced: a renderer registered with
+ * {@link registerWidgetRenderer} is always given the canvas it renders on,
+ * and there is none here.
  */
 export declare const WidgetHost: ComponentType<WidgetHostProps>;
 

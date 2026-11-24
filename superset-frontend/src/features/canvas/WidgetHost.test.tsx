@@ -17,16 +17,26 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { ComponentType, useContext } from 'react';
-import { createPortal } from 'react-dom';
-import type {
-  CanvasRendererProps,
-  SavedRendererProps,
-} from 'src/core/canvas/types';
-import { render as baseRender, screen } from 'spec/helpers/testing-library';
-import { registerSavedWidgetRenderer, registerWidgetRenderer } from 'src/core';
+import { logging } from '@apache-superset/core/utils';
+import type { CanvasRendererProps } from 'src/core/canvas/types';
+import {
+  act,
+  render as baseRender,
+  screen,
+} from 'spec/helpers/testing-library';
+import { Disposable, registerWidgetRenderer } from 'src/core';
+import { BUILTIN_RENDERERS } from './builtinRenderers';
+import EchartsRenderer from './echarts/EchartsRenderer';
 import WidgetHost from './WidgetHost';
-import { CanvasWidgetChromeContext } from './widgetChrome';
+
+// The same component reaches the registry and the widget host's built-ins,
+// as the real one does, and the props it is given can be read.
+jest.mock('./echarts/EchartsRenderer', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const echarts = jest.mocked(EchartsRenderer);
 
 // The built-in renderers log their failures through redux.
 const render: typeof baseRender = (ui, options) =>
@@ -38,64 +48,36 @@ const dataEndpoint = `glob:*/api/v1/widget/${ID}/data`;
 
 const saved = {
   uuid: ID,
-  widget_type: 'test.saved',
+  widget_type: 'echarts',
   name: 'Revenue by region',
   schema_version: 2,
   props: { metric: 'revenue' },
 };
 
-const received: SavedRendererProps[] = [];
-
-const Saved = (props: SavedRendererProps) => {
-  received.push(props);
-  return <div>{`saved ${String(props.props?.metric)}`}</div>;
+const metricTile = {
+  ...saved,
+  widget_type: 'metric-tile',
+  props: {
+    dataBinding: { datasetId: 13, metrics: ['revenue'] },
+    label: 'Revenue',
+  },
 };
-
-/** A widget that puts its own control where the canvas keeps them. */
-const WithControls = () => {
-  const chrome = useContext(CanvasWidgetChromeContext);
-  const button = <button type="button">More options</button>;
-  return (
-    <div>
-      body
-      {chrome ? createPortal(button, chrome) : button}
-    </div>
-  );
-};
-
-const Broken = () => {
-  throw new Error('the renderer broke');
-};
-
-const disposables: { dispose: () => void }[] = [];
-const register = (
-  widgetType: string,
-  renderer: ComponentType<SavedRendererProps>,
-) => disposables.push(registerSavedWidgetRenderer(widgetType, renderer));
 
 beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
-  received.length = 0;
+  echarts.mockReset();
+  echarts.mockImplementation(({ props }) => (
+    <div>{`chart of ${String(props?.metric)}`}</div>
+  ));
 });
 
-afterEach(() => {
-  disposables.splice(0).forEach(registration => registration.dispose());
-});
-
-test('a saved widget renders in a canvas cell, under its name, as the only node of its filter bus', async () => {
+test('a built-in widget renders in a canvas cell, under its name, as the only node of its filter bus', async () => {
   fetchMock.get(widgetEndpoint, { result: saved });
-  register('test.saved', Saved);
-  const filters = [
-    {
-      filterNodeId: 'page',
-      value: { datasetId: 13, column: 'region', values: ['EMEA'] },
-    },
-  ];
 
-  render(<WidgetHost widgetId={ID} filters={filters} refreshKey={2} />);
+  render(<WidgetHost widgetId={ID} refreshKey={2} />);
 
-  const body = await screen.findByText('saved revenue');
+  const body = await screen.findByText('chart of revenue');
   expect(screen.getByTestId('canvas-widget-title')).toHaveTextContent(
     'Revenue by region',
   );
@@ -104,16 +86,16 @@ test('a saved widget renders in a canvas cell, under its name, as the only node 
   expect(content?.parentElement).toHaveClass('canvas-interactive');
   expect(content?.nextElementSibling).toHaveClass('canvas-chrome');
 
-  const props = received.at(-1);
-  expect(props?.canvasId).toBeUndefined();
+  const props = echarts.mock.calls.at(-1)?.[0];
+  expect(props).not.toHaveProperty('canvasId');
   expect(props).toMatchObject({
     nodeId: ID,
     widgetId: ID,
-    widgetType: 'test.saved',
+    widgetType: 'echarts',
     schemaVersion: 2,
     props: { metric: 'revenue' },
     title: 'Revenue by region',
-    filters,
+    filters: [],
     crossFilters: [],
     customizations: [],
     crossFiltersEnabled: false,
@@ -129,22 +111,40 @@ test('a saved widget renders in a canvas cell, under its name, as the only node 
 
 test('a page that heads itself with the name leaves the title row out', async () => {
   fetchMock.get(widgetEndpoint, { result: saved });
-  register('test.saved', Saved);
 
   render(<WidgetHost widgetId={ID} showTitle={false} />);
 
-  expect(await screen.findByText('saved revenue')).toBeInTheDocument();
+  expect(await screen.findByText('chart of revenue')).toBeInTheDocument();
   expect(screen.queryByTestId('canvas-widget-title')).not.toBeInTheDocument();
-  expect(received.at(-1)?.title).toBeUndefined();
+  expect(echarts.mock.calls.at(-1)?.[0].title).toBeUndefined();
 });
 
-test("a widget's own controls render beside its content, where a canvas puts them", async () => {
-  fetchMock.get(widgetEndpoint, { result: saved });
-  register('test.saved', WithControls);
+test("a built-in widget on its own reads the saved widget's data", async () => {
+  fetchMock.get(widgetEndpoint, { result: metricTile });
+  fetchMock.post(dataEndpoint, {
+    result: { datasets: [{ inline_data: [{ revenue: 42 }] }] },
+  });
 
   render(<WidgetHost widgetId={ID} />);
 
-  const controls = await screen.findByRole('button', { name: 'More options' });
+  expect(await screen.findByText('42')).toBeInTheDocument();
+  const call = fetchMock.callHistory.lastCall(dataEndpoint);
+  expect(JSON.parse(call?.options.body as string)).toEqual({
+    runtime_filters: [],
+  });
+});
+
+test("a widget's own controls render beside its content, where a canvas puts them", async () => {
+  fetchMock.get(widgetEndpoint, { result: metricTile });
+  fetchMock.post(dataEndpoint, {
+    result: {
+      datasets: [{ inline_data: [{ revenue: 42 }], query: 'SELECT 42' }],
+    },
+  });
+
+  render(<WidgetHost widgetId={ID} />);
+
+  const controls = await screen.findByRole('button', { name: 'More Options' });
   expect(controls.closest('.canvas-chrome')).not.toBeNull();
   expect(controls.closest('.canvas-content')).toBeNull();
 });
@@ -162,11 +162,13 @@ test('a widget that does not exist, or that the viewer may not read, says so', a
 });
 
 test('a type that renders only on a canvas is unavailable outside one', async () => {
-  fetchMock.get(widgetEndpoint, { result: saved });
+  fetchMock.get(widgetEndpoint, {
+    result: { ...saved, widget_type: 'test.placed' },
+  });
   const placed = jest.fn((props: CanvasRendererProps) => (
     <div>{`placed on ${props.canvasId}`}</div>
   ));
-  disposables.push(registerWidgetRenderer('test.saved', placed));
+  const registration = registerWidgetRenderer('test.placed', placed);
 
   render(<WidgetHost widgetId={ID} />);
 
@@ -175,6 +177,35 @@ test('a type that renders only on a canvas is unavailable outside one', async ()
   ).toBeInTheDocument();
   // A canvas renderer is always given its canvas, so it never runs here.
   expect(placed).not.toHaveBeenCalled();
+  act(() => registration.dispose());
+});
+
+test('a built-in type whose renderer is replaced is unavailable outside a canvas', async () => {
+  fetchMock.get(widgetEndpoint, { result: saved });
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  const replacement = jest.fn((props: CanvasRendererProps) => (
+    <div>{`replacement on ${props.canvasId}`}</div>
+  ));
+
+  render(<WidgetHost widgetId={ID} />);
+  expect(await screen.findByText('chart of revenue')).toBeInTheDocument();
+
+  // After the widget rendered, as an extension that loads late does it.
+  let registration: Disposable | undefined;
+  act(() => {
+    registration = registerWidgetRenderer('echarts', replacement);
+  });
+
+  expect(screen.getByText('This widget is unavailable')).toBeInTheDocument();
+  expect(screen.queryByText('chart of revenue')).not.toBeInTheDocument();
+  // Promised its canvas, like any other canvas renderer.
+  expect(replacement).not.toHaveBeenCalled();
+
+  act(() => {
+    registration?.dispose();
+    registerWidgetRenderer('echarts', BUILTIN_RENDERERS.echarts);
+  });
+  warn.mockRestore();
 });
 
 test('a widget type with no renderer gets the placeholder a canvas shows', async () => {
@@ -196,7 +227,9 @@ test('a widget type with no renderer gets the placeholder a canvas shows', async
 
 test('a renderer that throws is contained in its cell', async () => {
   fetchMock.get(widgetEndpoint, { result: saved });
-  register('test.saved', Broken);
+  echarts.mockImplementation(() => {
+    throw new Error('the renderer broke');
+  });
   // React reports the error it caught; the boundary is what is under test.
   const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -207,38 +240,4 @@ test('a renderer that throws is contained in its cell', async () => {
   );
   expect(await screen.findByText(/the renderer broke/)).toBeInTheDocument();
   spy.mockRestore();
-});
-
-test("a built-in widget on its own reads the saved widget's data", async () => {
-  fetchMock.get(widgetEndpoint, {
-    result: {
-      ...saved,
-      widget_type: 'metric-tile',
-      props: {
-        dataBinding: { datasetId: 13, metrics: ['revenue'] },
-        label: 'Revenue',
-      },
-    },
-  });
-  fetchMock.post(dataEndpoint, {
-    result: { datasets: [{ inline_data: [{ revenue: 42 }] }] },
-  });
-
-  render(
-    <WidgetHost
-      widgetId={ID}
-      filters={[
-        {
-          filterNodeId: 'page',
-          value: { datasetId: 13, column: 'region', values: ['EMEA'] },
-        },
-      ]}
-    />,
-  );
-
-  expect(await screen.findByText('42')).toBeInTheDocument();
-  const call = fetchMock.callHistory.lastCall(dataEndpoint);
-  expect(JSON.parse(call?.options.body as string)).toEqual({
-    runtime_filters: [{ datasetId: 13, column: 'region', values: ['EMEA'] }],
-  });
 });
