@@ -4278,10 +4278,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df, offset, time_grain, join_keys, is_date_range_offset
             )
 
-            if not time_grain and not is_date_range_offset:
-                # The grain-less join indexes on the synthetic key plus the
-                # non-temporal join keys, which reset_index moves to the front;
-                # restore the original column order.
+            if not time_grain or is_date_range_offset:
+                # The grain-less and date-range joins index on the non-temporal
+                # join keys, which reset_index moves to the front; restore the
+                # original column order so the next offset's join column is still
+                # built from the time column.
                 df = df[
                     [col for col in original_columns if col in df.columns]
                     + [col for col in df.columns if col not in original_columns]
