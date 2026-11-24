@@ -199,6 +199,7 @@ export type DashboardInfo = {
     positions?: JsonObject;
     filter_scopes?: JsonObject;
     async_mode?: AsyncModeOverride;
+    custom_time_presets?: string[];
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
