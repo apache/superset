@@ -181,7 +181,7 @@ def handle_api_exception(  # noqa: C901
             return json_error_response([ex.error], status=ex.status)
         except SupersetException as ex:
             logger_func, _ = get_logger_from_status(ex.status)
-            logger_func(ex.message, exc_info=True)
+            logger_func(ex.message, exc_info=ex.status >= 500)
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=ex.status
             )
@@ -233,7 +233,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     @app.errorhandler(SupersetException)
     def show_superset_exception(ex: SupersetException) -> FlaskResponse:
         logger_func, _ = get_logger_from_status(ex.status)
-        logger_func(ex.message, exc_info=True)
+        logger_func(ex.message, exc_info=ex.status >= 500)
 
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
@@ -318,7 +318,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         CommandException it should be fixed to map it to SupersetErrorException
         or SupersetErrorsException, with a specific status code and error type
         """
-        logger.warning("CommandException", exc_info=True)
+        logger.warning("CommandException", exc_info=ex.status >= 500)
 
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
