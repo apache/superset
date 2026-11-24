@@ -29,6 +29,7 @@ import {
   REALTIME_REFETCH_DEBOUNCE_MS,
 } from './hooks';
 import type Chart from 'src/types/Chart';
+import { realtime } from 'src/core/realtime';
 import {
   dispatchRealtimeMessage,
   emitRealtimeOpenForTests,
@@ -780,6 +781,122 @@ test('useListViewResource: realtime does NOT reconcile on the initial connect', 
   // No reconcile fetch for the initial connect.
   await new Promise(resolve => {
     setTimeout(resolve, 50);
+  });
+  expect(getSpy.mock.calls.length).toBe(callsBefore);
+});
+
+test('useListViewResource: realtime listens through the realtime namespace only when enabled', () => {
+  const onDidChangeEntity = jest.spyOn(realtime, 'onDidChangeEntity');
+  const onDidReconnect = jest.spyOn(realtime, 'onDidReconnect');
+
+  renderHook(() => useListViewResource('chart', 'Charts', jest.fn(), false));
+  expect(onDidChangeEntity).not.toHaveBeenCalled();
+  expect(onDidReconnect).not.toHaveBeenCalled();
+
+  renderHook(() =>
+    useListViewResource(
+      'chart',
+      'Charts',
+      jest.fn(),
+      false,
+      [],
+      undefined,
+      true,
+      undefined,
+      true, // enableRealtime
+    ),
+  );
+  expect(onDidChangeEntity).toHaveBeenCalledTimes(1);
+  expect(onDidReconnect).toHaveBeenCalledTimes(1);
+});
+
+test('useListViewResource: realtime ignores nudges for other entity types', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [{ id: 1, name: 'A' }], count: 1 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource(
+      'chart',
+      'Charts',
+      jest.fn(),
+      false,
+      [],
+      undefined,
+      true,
+      undefined,
+      true, // enableRealtime
+    ),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'id', desc: false }],
+      filters: [],
+    });
+  });
+
+  const callsBefore = getSpy.mock.calls.length;
+  act(() => {
+    dispatchRealtimeMessage(
+      JSON.stringify({
+        topic: 'entity.changed',
+        payload: { entity_type: 'dashboard', id: 1 },
+      }),
+    );
+  });
+
+  // Row 1 is displayed, but as a chart: a dashboard's nudge schedules no
+  // refetch by the end of the debounce window.
+  await new Promise(resolve => {
+    setTimeout(resolve, REALTIME_REFETCH_DEBOUNCE_MS + 100);
+  });
+  expect(getSpy.mock.calls.length).toBe(callsBefore);
+});
+
+test('useListViewResource: realtime stops listening on unmount', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [{ id: 1, name: 'A' }], count: 1 },
+  } as unknown as JsonResponse);
+
+  const { result, unmount } = renderHook(() =>
+    useListViewResource(
+      'chart',
+      'Charts',
+      jest.fn(),
+      false,
+      [],
+      undefined,
+      true,
+      undefined,
+      true, // enableRealtime
+    ),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'id', desc: false }],
+      filters: [],
+    });
+  });
+  unmount();
+
+  const callsBefore = getSpy.mock.calls.length;
+  dispatchRealtimeMessage(
+    JSON.stringify({
+      topic: 'entity.changed',
+      payload: { entity_type: 'chart', id: 1 },
+    }),
+  );
+  emitRealtimeOpenForTests();
+
+  // A listener left subscribed would have refetched row 1 by now.
+  await new Promise(resolve => {
+    setTimeout(resolve, REALTIME_REFETCH_DEBOUNCE_MS + 100);
   });
   expect(getSpy.mock.calls.length).toBe(callsBefore);
 });

@@ -45,10 +45,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import { getShareableUrl } from 'src/utils/navigationUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
-import {
-  subscribeRealtime,
-  subscribeRealtimeOpen,
-} from 'src/middleware/realtime';
+import { realtime } from 'src/core/realtime';
 import {
   FavoriteStatus,
   FileEncryptedExtraFields,
@@ -341,38 +338,29 @@ export function useListViewResource<D extends object = any>(
       patchRows(ids);
     };
 
-    // `entity.changed` nudges are broadcast for every entity type; filter to this
-    // list's resource by the payload's entity_type before matching rows.
-    const unsubscribe = subscribeRealtime(
-      'entity.changed',
-      (payload: unknown) => {
-        if (!payload || typeof payload !== 'object') return;
-        const { entity_type: entityType, id } = payload as {
-          entity_type?: unknown;
-          id?: unknown;
-        };
-        if (entityType !== resource || id == null) return;
-        const idStr = String(id);
-        if (!isDisplayed(idStr)) return;
-        pendingIds.add(idStr);
-        if (debounceId === undefined) {
-          debounceId = setTimeout(flush, REALTIME_REFETCH_DEBOUNCE_MS);
-        }
-      },
-    );
+    // Entity changes are broadcast for every entity type; filter to this list's
+    // resource before matching rows.
+    const changes = realtime.onDidChangeEntity(({ entityType, id }) => {
+      if (entityType !== resource) return;
+      const idStr = String(id);
+      if (!isDisplayed(idStr)) return;
+      pendingIds.add(idStr);
+      if (debounceId === undefined) {
+        debounceId = setTimeout(flush, REALTIME_REFETCH_DEBOUNCE_MS);
+      }
+    });
 
     // Nudges are lossy and not replayed, so after recovering from a dropped
     // socket refetch the currently-displayed rows once to reconcile anything
-    // missed while disconnected. Only on a real `reconnect`, not the initial
-    // connect (rows were just fetched). In-place merge, no full-list redraw.
-    const unsubscribeOpen = subscribeRealtimeOpen(reason => {
-      if (reason !== 'reconnect') return;
+    // missed while disconnected. The first connect raises no reconnect: the
+    // rows were just fetched. In-place merge, no full-list redraw.
+    const reconnects = realtime.onDidReconnect(() => {
       patchRows(collectionRef.current.map(rowId));
     });
 
     return () => {
-      unsubscribe();
-      unsubscribeOpen();
+      changes.dispose();
+      reconnects.dispose();
       if (debounceId !== undefined) clearTimeout(debounceId);
     };
   }, [enableRealtime, resource]);

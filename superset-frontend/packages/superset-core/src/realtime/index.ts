@@ -49,7 +49,7 @@ import { Event } from '../common';
 
 /** An entity the server says changed: what it is and its id, nothing more. */
 export interface EntityChange {
-  /** The kind of entity, such as `canvas`, `task` or `widget`. */
+  /** The kind of entity, such as `task`, or one an extension names. */
   entityType: string;
   /** Its id, as its publisher names it: an integer id or a UUID. */
   id: number | string;
