@@ -31,6 +31,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from flask import current_app as app, g
+from flask_babel import gettext as _
 from sqlalchemy import Column, false, text, true, types
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.interfaces import Dialect
@@ -139,6 +140,9 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     # A numeric key does not reveal its bucket size or timezone.
     partition_value_transform_default = None
+    # Hive tables are laid out as partition directories, so mirroring a filter
+    # onto the partition column lets the engine prune them.
+    supports_partition_filter_mapping = True
     # Explicitly opt out (overriding the inherited PrestoEngineSpec value):
     # Hive/Spark's GROUPING SETS + GROUPING() marker semantics have not been
     # verified against this query pattern, so fall back to one query per
@@ -454,9 +458,23 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _extract_error_message(cls, ex: Exception) -> str:
         msg = str(ex)
-        match = re.search(r'errorMessage="(.*?)(?<!\\)"', msg)
-        if match:
-            msg = match.group(1)
+        # SQL Lab passes the stringified exception, which has no `args`.
+        args = getattr(ex, "args", None)
+        response = args[0] if args else None
+        status = getattr(response, "status", response)
+        detail = getattr(status, "errorMessage", None)
+        if isinstance(detail, str) and detail:
+            msg = detail
+        else:
+            match = re.search(r"errorMessage=([\"'])(.*?)(?<!\\)\1", msg, re.DOTALL)
+            if match:
+                msg = match.group(2)
+        if "10056" in msg and "partition" in msg.lower():
+            return _(
+                "Hive requires a partition filter for this table. Add a filter "
+                "on the partition column, or a time range on a column with a "
+                "working partition mapping, and try again."
+            )
         return msg
 
     @classmethod

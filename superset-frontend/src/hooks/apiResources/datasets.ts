@@ -164,10 +164,11 @@ export const useDatasetDrillInfo = (
           const structure = await fetchSemanticViewStructure(numericDatasetId);
           // Built as a partial Dataset (the declaration is typed, so
           // table_name/columns are genuinely checked): no id or
-          // datasource_type is fabricated, and verbose_name is omitted rather
-          // than null — consumers only falsy-check it. The metrics are the one
-          // narrowing: the structure payload carries no uuid or full metric
-          // metadata, so each is asserted to Metric with only the fields
+          // datasource_type is fabricated. The shared mapper supplies each
+          // column's verbose_name from the structure when one is present.
+          // Metrics are the one narrowing: the structure payload carries no
+          // uuid or full metric metadata, so each is asserted to Metric with
+          // only the fields
           // consumers read (metric_name for verbose_map; expression for
           // parity). Fabricating a uuid would be worse than the assertion.
           result = {

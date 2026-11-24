@@ -27,15 +27,17 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from importlib.util import find_spec
 from pathlib import Path
-from typing import Any
+from typing import Any, cast, NamedTuple
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 import sqlalchemy as sa
 from flask import Flask
+from sqlglot import exp
 
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -57,9 +59,13 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.models.helpers import ExploreMixin
+from superset.sql.parse import SQLStatement
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
+
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
 
 PARTITION_MAPPING = "superset.connectors.sqla.partition_mapping"
 PROBE = f"{PARTITION_MAPPING}.evaluate_transform"
@@ -144,7 +150,8 @@ def _rendering_dates_like_presto(table: SqlaTable) -> Any:
     )
 
 
-def _query(table: SqlaTable, **kwargs: Any) -> str:
+def _query_obj(**kwargs: Any) -> dict[str, Any]:
+    """A minimal chart query grouping by ``country``, overridden by ``kwargs``."""
     defaults: dict[str, Any] = {
         "columns": ["country"],
         "metrics": [],
@@ -155,7 +162,11 @@ def _query(table: SqlaTable, **kwargs: Any) -> str:
         "is_timeseries": False,
     }
     defaults.update(kwargs)
-    result = table.get_sqla_query(**defaults)
+    return defaults
+
+
+def _query(table: SqlaTable, **kwargs: Any) -> str:
+    result = table.get_sqla_query(**_query_obj(**kwargs))
     return str(
         result.sqla_query.compile(compile_kwargs={"literal_binds": True})
     ).replace("\n", " ")
@@ -1820,7 +1831,7 @@ def _on_postgres(table: SqlaTable) -> SqlaTable:
 
 
 def test_a_value_the_engine_cannot_read_back_declines_rather_than_mirroring(
-    app: Flask,
+    app: Flask, every_engine_supports_partition_filter_mapping: None
 ) -> None:
     """
     The probe evaluates the transform at a literal, so a value the driver and
@@ -1838,18 +1849,21 @@ def test_a_value_the_engine_cannot_read_back_declines_rather_than_mirroring(
         )
     )
 
+    def query(value: str) -> str:
+        return _query(
+            table,
+            filter=[
+                {"col": "country", "op": FilterOperator.EQUALS.value, "val": value}
+            ],
+        )
+
     with app.app_context():
+        # The same filter without the backslash mirrors, so the decline below
+        # is the escaping check's and not the engine gate's.
+        with patch(PROBE, return_value=["ab"]):
+            assert "region_key" in query("ab")
         with patch(PROBE, return_value=["a\\b"]) as probe:
-            sql = _query(
-                table,
-                filter=[
-                    {
-                        "col": "country",
-                        "op": FilterOperator.EQUALS.value,
-                        "val": "a\\b",
-                    }
-                ],
-            )
+            sql = query("a\\b")
 
     probe.assert_not_called()
     assert "region_key" not in sql
@@ -1859,7 +1873,7 @@ def test_a_value_the_engine_cannot_read_back_declines_rather_than_mirroring(
 
 
 def test_a_member_the_dialect_cannot_write_faithfully_declines_the_whole_list(
-    app: Flask,
+    app: Flask, every_engine_supports_partition_filter_mapping: None
 ) -> None:
     """
     One member is the whole list's problem, exactly as one carrying a UTC
@@ -1876,18 +1890,19 @@ def test_a_member_the_dialect_cannot_write_faithfully_declines_the_whole_list(
         )
     )
 
+    def query(values: list[str]) -> str:
+        return _query(
+            table,
+            filter=[{"col": "country", "op": FilterOperator.IN.value, "val": values}],
+        )
+
     with app.app_context():
+        # Without the backslash member the list mirrors, so the decline below is
+        # the escaping check's and not the engine gate's.
+        with patch(PROBE, return_value=["us", "ab"]):
+            assert "region_key" in query(["US", "ab"])
         with patch(PROBE, return_value=["us", "a\\b"]) as probe:
-            sql = _query(
-                table,
-                filter=[
-                    {
-                        "col": "country",
-                        "op": FilterOperator.IN.value,
-                        "val": ["US", "a\\b"],
-                    }
-                ],
-            )
+            sql = query(["US", "a\\b"])
 
     probe.assert_not_called()
     assert "region_key" not in sql
@@ -3150,7 +3165,7 @@ def test_an_epoch_millisecond_in_filter_is_probed_element_wise(app: Flask) -> No
 
 
 def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     An array column's predicate is not built from the handled filter values at
@@ -3162,6 +3177,9 @@ def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
     ClickHouse is the only spec implementing `array_literal`, so it is the only
     engine this branch is reachable on.
     """
+    # ClickHouse stands in for its SQL dialect; it does not advertise partition
+    # mapping support, which the query path otherwise requires.
+    monkeypatch.setattr(ClickHouseEngineSpec, "supports_partition_filter_mapping", True)
     table = _table(
         transform="lower(:value)",
         monotonic=False,
@@ -3206,7 +3224,7 @@ def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
 
 
 def test_an_array_element_the_driver_cannot_write_declines_the_mirror(
-    app: Flask,
+    app: Flask, every_engine_supports_partition_filter_mapping: None
 ) -> None:
     """
     The element has to be checked before the engine spec renders it: once the
@@ -3228,23 +3246,26 @@ def test_an_array_element_the_driver_cannot_write_declines_the_mirror(
             column.partition_value_transform = "lower(:value)"
             column.partition_transform_is_monotonic = False
 
+    def query(value: str) -> str:
+        with patch.object(
+            type(table.database),
+            "db_engine_spec",
+            new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+        ):
+            return _query(
+                table,
+                filter=[
+                    {"col": "tags", "op": FilterOperator.EQUALS.value, "val": value}
+                ],
+            )
+
     with app.app_context():
+        # A plain element mirrors, so the decline below is the escaping check's
+        # and not the engine gate's.
+        with patch(PROBE, return_value=["us"]):
+            assert "region_key" in query("['ab']")
         with patch(PROBE, return_value=["us"]) as probe:
-            with patch.object(
-                type(table.database),
-                "db_engine_spec",
-                new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
-            ):
-                sql = _query(
-                    table,
-                    filter=[
-                        {
-                            "col": "tags",
-                            "op": FilterOperator.EQUALS.value,
-                            "val": "['a\\\\b']",
-                        }
-                    ],
-                )
+            sql = query("['a\\\\b']")
 
     probe.assert_not_called()
     assert "region_key" not in sql
@@ -3256,7 +3277,7 @@ def test_an_array_element_the_driver_cannot_write_declines_the_mirror(
 
 
 def test_no_inner_time_mirror_when_the_subquery_gets_no_time_filter(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     The ranking subquery's time predicate is skipped on a
@@ -3270,6 +3291,9 @@ def test_no_inner_time_mirror_when_the_subquery_gets_no_time_filter(
     The window-independent filter mirrors are a different matter and stay: they
     correspond to `where_clause_and`, which the subquery does receive.
     """
+    # ClickHouse stands in for its SQL dialect; it does not advertise partition
+    # mapping support, which the query path otherwise requires.
+    monkeypatch.setattr(ClickHouseEngineSpec, "supports_partition_filter_mapping", True)
     table = _table()
     epochs = {
         datetime(2025, 1, 1): 1735689600,
@@ -4059,6 +4083,37 @@ def test_a_retried_statement_the_denylist_allows_still_recovers(
     assert "dt_key" not in executed[1]
 
 
+def _epoch_bucket_transform(bucket: int) -> str:
+    """The hourly (3600) or daily (86400) epoch-key recipe for Hive and Impala."""
+    return f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
+
+
+def _epoch_bucket_filter(operator: str) -> dict[str, Any]:
+    """
+    A chart filter on ``event_time`` for ``operator``.
+
+    ``range`` is the time range control; the rest are ad-hoc filters at
+    2026-10-01 10:30:00, with ``IN`` adding 2026-10-02 11:59:59.
+    """
+    if operator == "range":
+        return {
+            "granularity": "event_time",
+            "from_dttm": datetime(2026, 10, 1, 10, 30),
+            "to_dttm": datetime(2026, 10, 2, 10, 30),
+        }
+    return {
+        "filter": [
+            {
+                "col": "event_time",
+                "op": operator,
+                "val": ["2026-10-01 10:30:00", "2026-10-02 11:59:59"]
+                if operator == "IN"
+                else "2026-10-01 10:30:00",
+            }
+        ]
+    }
+
+
 # A comment the owner wrote is inert: it is removed before the probe compiles,
 # so it costs neither rows nor pruning.
 @pytest.mark.parametrize("comment", ["", " -- floor to the bucket"])
@@ -4100,30 +4155,8 @@ def test_epoch_bucket_queries_preserve_actual_rows(
     ]
     rows.append(("null_partition", "2026-10-01 10:30:00", None))
     connection.executemany("INSERT INTO web_events VALUES (?, ?, ?)", rows)
-    table = _table(
-        transform=(
-            f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
-            f"{comment}"
-        )
-    )
-    if operator == "range":
-        arguments = {
-            "granularity": "event_time",
-            "from_dttm": datetime(2026, 10, 1, 10, 30),
-            "to_dttm": datetime(2026, 10, 2, 10, 30),
-        }
-    else:
-        arguments = {
-            "filter": [
-                {
-                    "col": "event_time",
-                    "op": operator,
-                    "val": ["2026-10-01 10:30:00", "2026-10-02 11:59:59"]
-                    if operator == "IN"
-                    else "2026-10-01 10:30:00",
-                }
-            ]
-        }
+    table = _table(transform=f"{_epoch_bucket_transform(bucket)}{comment}")
+    arguments = _epoch_bucket_filter(operator)
     with (
         app.app_context(),
         patch.object(
@@ -4140,6 +4173,162 @@ def test_epoch_bucket_queries_preserve_actual_rows(
         connection.execute(unmirrored_sql).fetchall()
     )
     connection.close()
+
+
+HIVE_FAMILY = [
+    "hive",
+    pytest.param(
+        "impala",
+        marks=pytest.mark.skipif(
+            find_spec("impala") is None, reason="the impyla dialect is not installed"
+        ),
+    ),
+]
+
+# The hour and day epoch keys of the bounds `_epoch_bucket_filter` uses:
+# `first` is 2026-10-01 10:30:00, `second` the `IN` list's 2026-10-02 11:59:59
+# and `last` the time range's end, 2026-10-02 10:30:00 (all UTC).
+EPOCH_BUCKET_KEYS = {
+    3600: {"first": 1790848800, "second": 1790938800, "last": 1790935200},
+    86400: {"first": 1790812800, "second": 1790899200, "last": 1790899200},
+}
+
+# The key the recipes partition on, and what each operator mirrors onto it as
+# `(operator, bounds)`: strict bounds widen to non-strict ones, and an `IN`
+# list maps element-wise. Bounds name entries of `EPOCH_BUCKET_KEYS`.
+KEY = "dt_epoch"
+MIRRORED_BOUNDS = {
+    "==": [("=", ["first"])],
+    ">": [(">=", ["first"])],
+    ">=": [(">=", ["first"])],
+    "<": [("<=", ["first"])],
+    "<=": [("<=", ["first"])],
+    "IN": [("IN", ["first", "second"])],
+    "range": [(">=", ["first"]), ("<=", ["last"])],
+}
+COMPARISONS = {exp.EQ: "=", exp.GT: ">", exp.GTE: ">=", exp.LT: "<", exp.LTE: "<="}
+
+
+class PartitionMirror(NamedTuple):
+    """The mirrored predicate on `KEY`, as the engine's own parser reads it."""
+
+    #: ``(column, operator, values)`` per comparison inside the NULL escape;
+    #: a numeric literal reads as an ``int``, anything else as its SQL text.
+    bounds: list[tuple[str, str, list[int | str]]]
+    #: The columns the conjunction holding the mirror filters on, besides `KEY`.
+    anded_with: set[str]
+
+
+def _literal(node: exp.Expression) -> int | str:
+    if isinstance(node, exp.Literal) and not node.is_string:
+        return int(node.this)
+    return node.sql()
+
+
+def _partition_mirror(sql: str, engine: str) -> PartitionMirror | None:
+    """
+    Find ``<bounds on KEY> OR KEY IS NULL`` in the WHERE clause, or ``None``.
+
+    Read from the sqlglot tree for the engine, so identifier quoting and
+    redundant parentheses -- both rendering choices of the driver -- do not
+    matter; precedence and literal types do.
+    """
+    where = SQLStatement(sql, engine)._parsed.find(exp.Where)  # noqa: SLF001
+    escapes = (
+        node
+        for node in (where.find_all(exp.Or) if where else [])
+        if isinstance(null_check := node.right.unnest(), exp.Is)
+        and null_check.this.name == KEY
+        and isinstance(null_check.expression, exp.Null)
+    )
+    if (escape := next(escapes, None)) is None:
+        return None
+
+    bounds = escape.left.unnest()
+    conjuncts = list(bounds.flatten()) if isinstance(bounds, exp.And) else [bounds]
+    outer: exp.Expression = escape
+    while isinstance(outer.parent, exp.Paren):
+        outer = outer.parent
+    conjunction = outer.parent if isinstance(outer.parent, exp.And) else None
+    return PartitionMirror(
+        bounds=[
+            (
+                conjunct.this.name,
+                "IN" if isinstance(conjunct, exp.In) else COMPARISONS[type(conjunct)],
+                [_literal(value) for value in conjunct.expressions]
+                if isinstance(conjunct, exp.In)
+                else [_literal(conjunct.expression)],
+            )
+            for conjunct in conjuncts
+        ],
+        anded_with={column.name for column in conjunction.find_all(exp.Column)} - {KEY}
+        if conjunction
+        else set(),
+    )
+
+
+def _epoch_key(value: datetime | str, bucket: int) -> int:
+    """The key ``floor(unix_timestamp(value) / bucket) * bucket`` reads, in UTC."""
+    instant = datetime.fromisoformat(value) if isinstance(value, str) else value
+    return int(instant.replace(tzinfo=timezone.utc).timestamp()) // bucket * bucket
+
+
+def _hive_family_chart_sql(engine: str, bucket: int, operator: str) -> str:
+    """
+    The SQL a chart on a Hive or Impala dataset sends, with the engine faked.
+
+    Only `_probe`, the one call that sends the transform to the warehouse, is
+    replaced; it answers each value -- a datetime, or the text a simple filter
+    binds -- with the epoch key the recipe computes. Everything between the
+    filter and the compiled statement runs for real, in the engine's dialect.
+    """
+    table = _table(transform=_epoch_bucket_transform(bucket))
+    table.database = Database(
+        database_name="test_db",
+        sqlalchemy_uri=f"{engine}://warehouse.example.com:10000/default",
+    )
+
+    def warehouse(
+        database: Database,
+        catalog: str | None,
+        schema: str | None,
+        transform: str,
+        values: list[datetime | str],
+        **kwargs: Any,
+    ) -> list[int]:
+        return [_epoch_key(value, bucket) for value in values]
+
+    with patch(f"{PARTITION_MAPPING}._probe", side_effect=warehouse):
+        return table.get_query_str(
+            cast(QueryObjectDict, _query_obj(**_epoch_bucket_filter(operator)))
+        )
+
+
+@pytest.mark.parametrize("operator", list(MIRRORED_BOUNDS))
+@pytest.mark.parametrize("bucket", [3600, 86400])
+@pytest.mark.parametrize("engine", HIVE_FAMILY)
+def test_hive_family_mirrors_epoch_buckets_as_numeric_keys_or_null(
+    app: Flask, engine: str, bucket: int, operator: str
+) -> None:
+    """
+    On Hive and Impala the mirror compares the key with numeric literals (a
+    quoted key is a string comparison the engine coerces per row, which prunes
+    nothing), widens strict bounds, is escaped for the NULL partition the engines
+    park unconvertible rows in, and is ANDed onto the chart's own filter.
+    """
+    keys = EPOCH_BUCKET_KEYS[bucket]
+
+    with app.app_context():
+        sql = _hive_family_chart_sql(engine, bucket, operator)
+
+    mirror = _partition_mirror(sql, engine)
+    assert mirror is not None, "no `... OR dt_epoch IS NULL` in the WHERE clause"
+    assert mirror.bounds == [
+        (KEY, mirrored, [keys[name] for name in names])
+        for mirrored, names in MIRRORED_BOUNDS[operator]
+    ]
+    assert mirror.anded_with == {"event_time"}
+    assert ":value" not in sql
 
 
 @pytest.mark.parametrize("source_type", ["TIMESTAMP", "VARCHAR"])

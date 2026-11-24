@@ -184,6 +184,14 @@ class SliceSchema(Schema):
     )
     slice_id = fields.Integer(metadata={"description": "The slice ID."})
     slice_name = fields.String(metadata={"description": "The slice name."})
+    localized_name = fields.String(
+        dump_only=True,
+        allow_none=True,
+        metadata={
+            "description": "The slice name resolved for the viewer's locale "
+            "(read-only). Falls back to slice_name when no translation applies."
+        },
+    )
     slice_url = fields.String(metadata={"description": "The slice URL."})
 
 

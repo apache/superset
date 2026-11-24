@@ -202,7 +202,8 @@ class ExtraCache:
         r"current_user_roles\([^)]*\)|"
         r"cache_key_wrapper\([^)]*\)|"
         r"url_param\([^)]*\)|"
-        r"get_guest_user_attribute\([^)]*\)"
+        r"get_guest_user_attribute\([^)]*\)|"
+        r"i18n\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -789,7 +790,7 @@ class ExtraCache:
         time_range = time_range or NO_TIME_RANGE
         if time_range == NO_TIME_RANGE and default:
             time_range = default
-        from_expr, to_expr = get_since_until_from_time_range(time_range)
+        from_expr, to_expr = self._resolve_since_until(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
             if strftime and dttm:
@@ -805,6 +806,18 @@ class ExtraCache:
             to_expr=_format_dttm(to_expr),
             time_range=time_range,
         )
+
+    @staticmethod
+    def _resolve_since_until(
+        time_range: str,
+    ) -> tuple[datetime | None, datetime | None]:
+        # A ValueError from the date parser (e.g. a deeply nested expression)
+        # must surface as a handled template error instead of escaping the
+        # render as a 500.
+        try:
+            return get_since_until_from_time_range(time_range)
+        except ValueError as ex:
+            raise SupersetTemplateException(str(ex)) from ex
 
 
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -1321,6 +1334,26 @@ class BaseTemplateProcessor:
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
+    # Macros registered below in ``set_context`` whose value is derived from the
+    # live request (URL/POST args, dashboard/query-context filters, or the
+    # embedded guest token), so a caller can steer what they expand to. Kept
+    # here, next to the registration, so a newly added request-controllable
+    # macro is classified in the same place it is wired up. Consumers that need
+    # to distinguish caller-steerable expansion from identity/author-baked
+    # macros (e.g. authorizing tables a request value resolves in a virtual
+    # dataset) read this set. Everything not listed (the ``current_user*``
+    # identity macros, ``cache_key_wrapper``, ``dataset``/``metric``, engine
+    # namespaces, and ``JINJA_CONTEXT_ADDONS``) is not caller-steerable.
+    REQUEST_CONTROLLABLE_MACROS = frozenset(
+        {
+            "url_param",
+            "filter_values",
+            "get_filters",
+            "get_time_filter",
+            "get_guest_user_attribute",
+        }
+    )
+
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
         extra_cache = ExtraCache(
@@ -1357,6 +1390,22 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 ),
             }
         )
+
+        def i18n_with_cache_key(default_text: str) -> str:
+            # The rendered value varies by locale, so it has to vary the query
+            # cache key too -- otherwise one viewer's translated SQL result is
+            # served to a viewer in another locale within the cache timeout.
+            # Keyed on the resolved text rather than the locale so locales that
+            # resolve alike still share a cache entry.
+            return extra_cache.cache_key_wrapper(i18n_macro(default_text))
+
+        # Yields to JINJA_CONTEXT_ADDONS only. The macro is new, so an addon
+        # bound to this name predates it and has to keep working across the
+        # upgrade. Testing the whole context instead would also let a dataset
+        # template_param called ``i18n`` -- merged into the same dict before
+        # this runs -- unbind the macro and leave a non-callable in its place.
+        if "i18n" not in context_addons():
+            self._context["i18n"] = partial(safe_proxy, i18n_with_cache_key)
 
         # The `metric` filter needs the env and full context to expand other
         # filters. Bind them through a closure rather than positional args so the
@@ -1505,6 +1554,30 @@ def get_template_processor(
     else:
         template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
+
+
+def i18n_macro(default_text: str) -> str:
+    """Jinja macro for translating asset metadata into the viewer's locale.
+
+    Usage in SQL-templated content (e.g. virtual dataset SQL or a metric expression)::
+
+        {{ i18n('Sales') }}
+
+    Resolution is delegated to the configured ``TRANSLATION_HOOK`` and gated by
+    the ``ENABLE_I18N_ASSET_TRANSLATIONS`` feature flag; when the feature is off
+    or no translation exists, the original text is returned unchanged. See
+    ``superset.utils.i18n`` and SIP-161.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.utils.i18n import translate
+
+    # ``or default_text`` rather than ``or ""``: translate() already promises to
+    # return the original text on every fallback path, and mirroring that promise
+    # here means a future change to it cannot blank out a label.
+    return (
+        translate(default_text, model_name="template", field_name="i18n")
+        or default_text
+    )
 
 
 def dataset_macro(

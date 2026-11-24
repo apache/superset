@@ -87,6 +87,9 @@ export type DatasetObject = {
   always_filter_main_dttm: boolean;
   partition_column?: string | null;
   partition_mapped_column?: string | null;
+  // Engine-supplied: whether the engine's tables are partition-directory laid
+  // out, which is what gates whether the editor offers partition filter mapping.
+  supports_partition_filter_mapping?: boolean;
   type: DatasourceType;
   column_formats: Record<string, string>;
   datasource_name: string | null;

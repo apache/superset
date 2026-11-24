@@ -18,6 +18,7 @@
  */
 
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -27,7 +28,9 @@ import {
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import RoleListEditModal from './RoleListEditModal';
+import RoleListEditModalComponent, {
+  RoleListEditModalProps,
+} from './RoleListEditModal';
 import {
   formatPermissionLabel,
   updateRoleName,
@@ -49,7 +52,6 @@ const mockUpdateRoleUsers = jest.mocked(updateRoleUsers);
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
-  default: (Component: any) => Component,
   useToasts: () => mockToasts,
 }));
 
@@ -62,6 +64,47 @@ jest.mock('@superset-ui/core', () => {
     },
     t: (str: string) => str,
   };
+});
+
+// RolesList mounts the editor only while its edit modal is open.
+function RoleListEditModal(props: RoleListEditModalProps) {
+  return props.show ? <RoleListEditModalComponent {...props} /> : null;
+}
+
+type HydrationResponse = { json: { count: number; result: object[] } };
+
+function deferredHydration() {
+  let resolve!: (response: HydrationResponse) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<HydrationResponse>((done, fail) => {
+    resolve = done;
+    reject = fail;
+  });
+  return { promise, resolve, reject };
+}
+
+const hydrationResources = ['users', 'permissions', 'groups'] as const;
+type HydrationResource = (typeof hydrationResources)[number];
+
+const hydrationResponse = (
+  resource: HydrationResource,
+  id = 5,
+): HydrationResponse => ({
+  json: {
+    count: 1,
+    result:
+      resource === 'users'
+        ? [{ id, username: `user${id}`, first_name: `Member ${id}` }]
+        : resource === 'permissions'
+          ? [
+              {
+                id,
+                permission_name: 'can_read',
+                view_menu_name: `Resource ${id}`,
+              },
+            ]
+          : [{ id, name: `Group ${id}` }],
+  },
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -113,12 +156,14 @@ describe('RoleListEditModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
   });
 
-  test('enables save button when role name is entered', () => {
+  test('enables save button after hydration when role name is entered', async () => {
     render(<RoleListEditModal {...mockProps} />);
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: 'Updated Role' },
     });
-    expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
   });
 
   test('submit maps {value,label} form values to numeric ID arrays', async () => {
@@ -443,7 +488,7 @@ describe('RoleListEditModal', () => {
     });
   });
 
-  test('does not leak state when switching roles', async () => {
+  test('does not leak state when closing and opening another role', async () => {
     const mockGet = SupersetClient.get as jest.Mock;
 
     // Role A: returns permission 10 with label
@@ -512,7 +557,8 @@ describe('RoleListEditModal', () => {
     mockGet.mockClear();
     mockToasts.addDangerToast.mockClear();
 
-    // Switch to Role B
+    // Close the editor before opening Role B, as RolesList does.
+    rerender(<RoleListEditModal {...mockProps} show={false} />);
     rerender(
       <RoleListEditModal
         role={roleB}
@@ -586,5 +632,529 @@ describe('RoleListEditModal', () => {
         },
       ],
     });
+  });
+  test.each(['users', 'permissions', 'groups'])(
+    'blocks saving and editing %s until hydration finishes',
+    async resource => {
+      let resolve!: (value: object) => void;
+      const pending = new Promise<object>(done => {
+        resolve = done;
+      });
+      (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) =>
+        endpoint.includes(`/${resource}/`)
+          ? pending
+          : Promise.resolve({ json: { count: 0, result: [] } }),
+      );
+      render(<RoleListEditModal {...mockProps} />);
+      fireEvent.change(screen.getByTestId('role-name-input'), {
+        target: { value: 'Renamed' },
+      });
+      expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+      expect(
+        screen.getByRole('combobox', { name: new RegExp(resource, 'i') }),
+      ).toBeDisabled();
+      fireEvent.submit(screen.getByTestId('role-name-input').closest('form')!);
+      await act(async () => {});
+      expect(mockUpdateRoleUsers).not.toHaveBeenCalled();
+      await act(async () => resolve({ json: { count: 0, result: [] } }));
+      await waitFor(() =>
+        expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+      );
+      fireEvent.click(screen.getByTestId('form-modal-save-button'));
+      await waitFor(() =>
+        expect(mockUpdateRoleUsers).toHaveBeenCalledWith(1, []),
+      );
+    },
+  );
+
+  test('failed user hydration keeps saving blocked', async () => {
+    (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) =>
+      endpoint.includes('/users/')
+        ? Promise.reject(new Error('network error'))
+        : Promise.resolve({ json: { count: 0, result: [] } }),
+    );
+    render(<RoleListEditModal {...mockProps} />);
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Renamed' },
+    });
+    await waitFor(() =>
+      expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+        'There was an error loading users.',
+      ),
+    );
+    expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+    fireEvent.submit(screen.getByTestId('role-name-input').closest('form')!);
+    await act(async () => {});
+    expect(mockUpdateRoleUsers).not.toHaveBeenCalled();
+  });
+
+  test('late responses from a closed role cannot overwrite the reopened editor', async () => {
+    let resolve!: (value: object) => void;
+    const pending = new Promise<object>(done => {
+      resolve = done;
+    });
+    (SupersetClient.get as jest.Mock).mockReturnValue(pending);
+    const { rerender } = render(<RoleListEditModal {...mockProps} />);
+    (SupersetClient.get as jest.Mock).mockResolvedValue({
+      json: { count: 0, result: [] },
+    });
+    rerender(<RoleListEditModal {...mockProps} show={false} />);
+    rerender(
+      <RoleListEditModal
+        {...mockProps}
+        role={{
+          id: 2,
+          name: 'Role B',
+          permission_ids: [],
+          user_ids: [],
+          group_ids: [],
+        }}
+      />,
+    );
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Renamed B' },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
+    await act(async () =>
+      resolve({
+        json: {
+          count: 1,
+          result: [
+            {
+              id: 5,
+              username: 'amy',
+              first_name: 'Amy',
+              last_name: 'Adams',
+              name: 'Old group',
+            },
+          ],
+        },
+      }),
+    );
+    expect(screen.queryByText('Amy Adams')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('form-modal-save-button'));
+    await waitFor(() =>
+      expect(mockUpdateRoleUsers).toHaveBeenCalledWith(2, []),
+    );
+    expect(mockUpdateRolePermissions).toHaveBeenCalledWith(2, []);
+    expect(mockUpdateRoleGroups).toHaveBeenCalledWith(2, []);
+  });
+
+  test('waits for all updates to settle before permitting a retry', async () => {
+    let resolve!: () => void;
+    const pending = new Promise<Awaited<ReturnType<typeof updateRoleUsers>>>(
+      done => {
+        resolve = () => done({} as Awaited<ReturnType<typeof updateRoleUsers>>);
+      },
+    );
+    mockUpdateRoleUsers.mockReturnValueOnce(pending);
+    mockUpdateRoleName.mockRejectedValueOnce(new Error('save failed'));
+    render(<RoleListEditModal {...mockProps} />);
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Renamed' },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByTestId('form-modal-save-button'));
+    await waitFor(() => expect(mockUpdateRoleUsers).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+    expect(mockProps.onSave).not.toHaveBeenCalled();
+    await act(async () => resolve());
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
+    expect(mockProps.onSave).not.toHaveBeenCalled();
+  });
+  test('closing and reopening starts fresh hydration and ignores old errors', async () => {
+    let reject!: (error: Error) => void;
+    const pending = new Promise<object>((_, fail) => {
+      reject = fail;
+    });
+    (SupersetClient.get as jest.Mock).mockReturnValue(pending);
+    const { rerender } = render(<RoleListEditModal {...mockProps} />);
+    rerender(<RoleListEditModal {...mockProps} show={false} />);
+    (SupersetClient.get as jest.Mock).mockResolvedValue({
+      json: { count: 0, result: [] },
+    });
+    rerender(<RoleListEditModal {...mockProps} />);
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Reopened' },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
+    mockToasts.addDangerToast.mockClear();
+    await act(async () => reject(new Error('old request failed')));
+    expect(mockToasts.addDangerToast).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('form-modal-save-button'));
+    await waitFor(() =>
+      expect(mockUpdateRoleUsers).toHaveBeenCalledWith(1, []),
+    );
+  });
+
+  test('a save finishing after closing still reports and refreshes the list', async () => {
+    let resolve!: () => void;
+    const pending = new Promise<Awaited<ReturnType<typeof updateRoleUsers>>>(
+      done => {
+        resolve = () => done({} as Awaited<ReturnType<typeof updateRoleUsers>>);
+      },
+    );
+    mockUpdateRoleUsers.mockReturnValueOnce(pending);
+    const { rerender } = render(<RoleListEditModal {...mockProps} />);
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Renamed' },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByTestId('form-modal-save-button'));
+    await waitFor(() => expect(mockUpdateRoleUsers).toHaveBeenCalledTimes(1));
+    rerender(<RoleListEditModal {...mockProps} show={false} />);
+    rerender(<RoleListEditModal {...mockProps} />);
+    await act(async () => resolve());
+    expect(mockProps.onSave).toHaveBeenCalledTimes(1);
+    expect(mockToasts.addSuccessToast).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('role-name-input')).toHaveValue('Admin');
+  });
+  test('waits for every assigned-user page before enabling save', async () => {
+    let resolve!: (value: object) => void;
+    const pending = new Promise<object>(done => {
+      resolve = done;
+    });
+    const user = (id: number) => ({
+      id,
+      username: `user${id}`,
+      first_name: `User ${id}`,
+    });
+    (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
+      if (endpoint.includes('/users/')) {
+        const query = rison.decode(endpoint.match(/\?q=(.+)/)[1]) as {
+          page: number;
+        };
+        return query.page === 0
+          ? Promise.resolve({
+              json: {
+                count: 101,
+                result: Array.from({ length: 100 }, (_, index) =>
+                  user(index + 1),
+                ),
+              },
+            })
+          : pending;
+      }
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+    render(<RoleListEditModal {...mockProps} />);
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Renamed' },
+    });
+    await waitFor(() =>
+      expect(SupersetClient.get).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: expect.stringContaining('page:1'),
+        }),
+      ),
+    );
+    expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+    await act(async () =>
+      resolve({ json: { count: 101, result: [user(101)] } }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByTestId('form-modal-save-button'));
+    await waitFor(() =>
+      expect(mockUpdateRoleUsers).toHaveBeenCalledWith(
+        1,
+        Array.from({ length: 101 }, (_, index) => index + 1),
+      ),
+    );
+  });
+  // AlertReportModal's concurrent-filter tests hold each request independently:
+  // one completion must not release another field or the overall Save gate.
+  test.each(
+    hydrationResources.flatMap(first =>
+      hydrationResources
+        .filter(resource => resource !== first)
+        .flatMap(second =>
+          ['success', 'failure'].map(outcome => ({
+            first,
+            second,
+            last: hydrationResources.find(
+              resource => resource !== first && resource !== second,
+            )!,
+            outcome,
+          })),
+        ),
+    ),
+  )(
+    'independent hydration: $first ($outcome), then $second, then $last',
+    async ({ first, second, last, outcome }) => {
+      const requests = {
+        users: deferredHydration(),
+        permissions: deferredHydration(),
+        groups: deferredHydration(),
+      };
+      (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
+        const resource = hydrationResources.find(resource =>
+          endpoint.includes(`/${resource}/`),
+        )!;
+        return requests[resource].promise;
+      });
+      render(<RoleListEditModal {...mockProps} />);
+      fireEvent.change(screen.getByTestId('role-name-input'), {
+        target: { value: 'Renamed' },
+      });
+      await act(async () => {
+        if (outcome === 'success')
+          requests[first].resolve(hydrationResponse(first));
+        else requests[first].reject(new Error('First hydration failed'));
+      });
+      for (const resource of [second, last]) {
+        expect(
+          screen.getByRole('combobox', {
+            name: new RegExp(resource, 'i'),
+          }),
+        ).toBeDisabled();
+      }
+      expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+      await act(async () =>
+        requests[second].resolve(hydrationResponse(second)),
+      );
+      expect(
+        screen.getByRole('combobox', { name: new RegExp(last, 'i') }),
+      ).toBeDisabled();
+      expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+      await act(async () => requests[last].resolve(hydrationResponse(last)));
+      if (first === 'users' && outcome === 'failure') {
+        expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+        fireEvent.submit(
+          screen.getByTestId('role-name-input').closest('form')!,
+        );
+        await act(async () => {});
+        expect(mockUpdateRoleUsers).not.toHaveBeenCalled();
+      } else {
+        await waitFor(() =>
+          expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+        );
+        fireEvent.click(screen.getByTestId('form-modal-save-button'));
+        await waitFor(() =>
+          expect(mockUpdateRoleUsers).toHaveBeenCalledWith(1, [5]),
+        );
+        expect(mockUpdateRolePermissions).toHaveBeenCalledWith(
+          1,
+          first === 'permissions' && outcome === 'failure'
+            ? [10, 20]
+            : [5, 10, 20],
+        );
+        expect(mockUpdateRoleGroups).toHaveBeenCalledWith(
+          1,
+          first === 'groups' && outcome === 'failure' ? [1, 2] : [5, 1, 2],
+        );
+      }
+    },
+  );
+
+  // Like overlapping filter requests, exercise both completion orders and errors.
+  // Reopening A after visiting B also checks separate lifetimes for the same ID.
+  test.each(
+    [false, true].flatMap(returnToSameRole =>
+      ['older', 'latest'].flatMap(first =>
+        ['success', 'failure'].map(outcome => ({
+          returnToSameRole,
+          first,
+          outcome,
+        })),
+      ),
+    ),
+  )(
+    'superseded hydration: same role=$returnToSameRole, $first first, old $outcome',
+    async ({ returnToSameRole, first, outcome }) => {
+      const oldRequests = {
+        users: deferredHydration(),
+        permissions: deferredHydration(),
+        groups: deferredHydration(),
+      };
+      const latestRequests = {
+        users: deferredHydration(),
+        permissions: deferredHydration(),
+        groups: deferredHydration(),
+      };
+      const mockGet = SupersetClient.get as jest.Mock;
+      const loadFrom = (requests: typeof oldRequests) =>
+        mockGet.mockImplementation(
+          ({ endpoint }) =>
+            requests[
+              hydrationResources.find(resource =>
+                endpoint.includes(`/${resource}/`),
+              )!
+            ].promise,
+        );
+      loadFrom(oldRequests);
+      const { rerender } = render(<RoleListEditModal {...mockProps} />);
+      mockGet.mockResolvedValue({ json: { count: 0, result: [] } });
+      const roleB = {
+        id: 2,
+        name: 'Role B',
+        permission_ids: [],
+        user_ids: [],
+        group_ids: [],
+      };
+      rerender(<RoleListEditModal {...mockProps} show={false} />);
+      if (returnToSameRole) {
+        rerender(<RoleListEditModal {...mockProps} role={roleB} />);
+        rerender(<RoleListEditModal {...mockProps} show={false} />);
+      }
+      loadFrom(latestRequests);
+      const currentRole = returnToSameRole
+        ? mockRole
+        : { ...mockRole, id: 2, name: 'Role B' };
+      rerender(<RoleListEditModal {...mockProps} role={currentRole} />);
+      fireEvent.change(screen.getByTestId('role-name-input'), {
+        target: { value: 'Current edit' },
+      });
+      mockToasts.addDangerToast.mockClear();
+      const finishOld = async () => {
+        await act(async () => {
+          for (const resource of hydrationResources) {
+            if (outcome === 'success')
+              oldRequests[resource].resolve(hydrationResponse(resource, 99));
+            else
+              oldRequests[resource].reject(
+                new Error('Superseded request failed'),
+              );
+          }
+        });
+        expect(mockToasts.addDangerToast).not.toHaveBeenCalled();
+        expect(screen.queryByText('Member 99')).not.toBeInTheDocument();
+        expect(screen.queryByText('Group 99')).not.toBeInTheDocument();
+      };
+      if (first === 'older') {
+        await finishOld();
+        expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+        for (const resource of hydrationResources) {
+          expect(
+            screen.getByRole('combobox', {
+              name: new RegExp(resource, 'i'),
+            }),
+          ).toBeDisabled();
+        }
+      }
+      await act(async () => {
+        for (const resource of hydrationResources)
+          latestRequests[resource].resolve(
+            hydrationResponse(
+              resource,
+              resource === 'users' ? 7 : resource === 'groups' ? 2 : 20,
+            ),
+          );
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+      );
+      if (first === 'latest') {
+        mockToasts.addDangerToast.mockClear();
+        await finishOld();
+      }
+      expect(screen.getByTestId('role-name-input')).toHaveValue('Current edit');
+      fireEvent.click(screen.getByTestId('form-modal-save-button'));
+      await waitFor(() =>
+        expect(mockUpdateRoleUsers).toHaveBeenCalledWith(currentRole.id, [7]),
+      );
+      expect(mockUpdateRolePermissions).toHaveBeenCalledWith(
+        currentRole.id,
+        [20, 10],
+      );
+      expect(mockUpdateRoleGroups).toHaveBeenCalledWith(currentRole.id, [2, 1]);
+    },
+  );
+
+  test('failure on a later users page never submits a partial assignment list and reopening retries', async () => {
+    const lastPage = deferredHydration();
+    const mockGet = SupersetClient.get as jest.Mock;
+    mockGet.mockImplementation(({ endpoint }) => {
+      if (endpoint.includes('/users/')) {
+        const query = rison.decode(endpoint.match(/\?q=(.+)/)[1]) as {
+          page: number;
+        };
+        return query.page === 0
+          ? Promise.resolve({
+              json: {
+                count: 101,
+                result: Array.from({ length: 100 }, (_, index) => ({
+                  id: index + 1,
+                  username: `user${index + 1}`,
+                })),
+              },
+            })
+          : lastPage.promise;
+      }
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+    const { rerender } = render(<RoleListEditModal {...mockProps} />);
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Renamed' },
+    });
+    await waitFor(() =>
+      expect(mockGet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: expect.stringContaining('page:1'),
+        }),
+      ),
+    );
+    await act(async () => lastPage.reject(new Error('Last page unavailable')));
+    expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
+    fireEvent.submit(screen.getByTestId('role-name-input').closest('form')!);
+    await act(async () => {});
+    expect(mockUpdateRoleUsers).not.toHaveBeenCalled();
+    rerender(<RoleListEditModal {...mockProps} show={false} />);
+    mockGet.mockImplementation(({ endpoint }) =>
+      Promise.resolve(
+        endpoint.includes('/users/')
+          ? hydrationResponse('users', 7)
+          : { json: { count: 0, result: [] } },
+      ),
+    );
+    rerender(<RoleListEditModal {...mockProps} />);
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Recovered' },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByTestId('form-modal-save-button'));
+    await waitFor(() =>
+      expect(mockUpdateRoleUsers).toHaveBeenCalledWith(1, [7]),
+    );
+  });
+  test('a save failing after closing still reports the failure', async () => {
+    let reject!: (error: Error) => void;
+    const pending = new Promise<Awaited<ReturnType<typeof updateRoleUsers>>>(
+      (_, fail) => {
+        reject = fail;
+      },
+    );
+    mockUpdateRoleUsers.mockReturnValueOnce(pending);
+    const { rerender } = render(<RoleListEditModal {...mockProps} />);
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Renamed' },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByTestId('form-modal-save-button'));
+    await waitFor(() => expect(mockUpdateRoleUsers).toHaveBeenCalledTimes(1));
+    rerender(<RoleListEditModal {...mockProps} show={false} />);
+    mockToasts.addDangerToast.mockClear();
+    await act(async () => reject(new Error('Save failed after closing')));
+    expect(mockToasts.addDangerToast).toHaveBeenCalledTimes(1);
+    expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+      'There was an error updating the role. Please, try again.',
+    );
+    expect(mockProps.onSave).not.toHaveBeenCalled();
+    expect(mockToasts.addSuccessToast).not.toHaveBeenCalled();
   });
 });
