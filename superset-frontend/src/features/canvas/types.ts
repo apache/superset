@@ -176,11 +176,6 @@ export interface CanvasDefinitionResult {
    * Undo takes a step back off, so undoing to the start sets this.
    */
   empty?: boolean;
-  /**
-   * Whether the canvas was published since the draft started, which a commit
-   * refuses. Only a draft says.
-   */
-  canvasChanged?: boolean;
 }
 
 /** One change in a draft, as the banner lists it. */
