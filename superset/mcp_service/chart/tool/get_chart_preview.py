@@ -297,13 +297,14 @@ def _preview_form_data_key(chart: Any, request: GetChartPreviewRequest) -> str |
 
 
 def _preview_explore_url(chart: Any, request: GetChartPreviewRequest) -> str:
+    params: dict[str, Any] = {}
     if key := _preview_form_data_key(chart, request):
-        query = urlencode({"form_data_key": key})
-    elif chart.id:
-        query = urlencode({"slice_id": chart.id})
-    else:
+        params["form_data_key"] = key
+    if chart.id:
+        params["slice_id"] = chart.id
+    if not params:
         return ""
-    return f"{get_superset_base_url()}/explore/?{query}"
+    return f"{get_superset_base_url()}/explore/?{urlencode(params)}"
 
 
 class URLPreviewStrategy(PreviewFormatStrategy):
