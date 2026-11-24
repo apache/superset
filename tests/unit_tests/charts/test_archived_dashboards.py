@@ -1198,3 +1198,64 @@ def test_list_openapi_documents_optional_dashboard_archive_state() -> None:
     assert "archived" not in dashboard_schema.get("required", [])
     assert "dashboards" not in expansion.get("required", [])
     assert "dashboards.archived" not in api.list_columns
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_chart_read_exposes_eligible_dashboard_metadata_without_dashboard_read(
+    http: FlaskClient,
+    mocker: MockerFixture,
+    memberships: dict[str, int],
+) -> None:
+    """Chart relationship metadata does not grant Dashboard endpoint access."""
+    from flask import g
+
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "is_item_public", return_value=False)
+    access = mocker.patch.object(
+        security_manager,
+        "has_access",
+        side_effect=lambda permission, resource: (
+            permission == "can_read" and resource == "Chart"
+        ),
+    )
+    user = _user(DASH_EDITOR)
+    response = _get(
+        http,
+        user,
+        {
+            "columns": USAGE_COLS,
+            "filters": INCLUDE,
+            "include_archived_dashboards": True,
+        },
+    )
+    assert response.status_code == 200
+    live_chart = next(
+        row for row in response.json["result"] if row["slice_name"] == "live_c"
+    )
+    assert live_chart["dashboards"] == [
+        {
+            "id": memberships["d_live"],
+            "dashboard_title": "d_live",
+            "archived": False,
+        },
+        {
+            "id": memberships["a"],
+            "dashboard_title": "a_arch_viewed",
+            "archived": True,
+        },
+        {
+            "id": memberships["b"],
+            "dashboard_title": "b_arch_ed",
+            "archived": True,
+        },
+    ]
+    g._login_user = user
+    try:
+        dashboard_response = http.get("/api/v1/dashboard/")
+    finally:
+        for attr in ("_login_user", "user"):
+            g.pop(attr, None)
+    assert dashboard_response.status_code == 403
+    access.assert_any_call("can_read", "Chart")
+    access.assert_any_call("can_read", "Dashboard")

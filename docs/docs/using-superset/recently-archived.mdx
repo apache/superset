@@ -60,9 +60,11 @@ dashboard totals are separate: some affected charts may not belong to a dashboar
 
 With `SOFT_DELETE` enabled, a dataset's **Usage** tab includes accessible live
 charts and archived charts you are eligible to see under the archive-list
-rules. Associated archived dashboards appear only when you can access them
-and are eligible to see them in Recently Archived. Archived assets are marked
-and cannot be opened from Usage; restore them through **Recently Archived**.
+rules. Associated archived dashboards appear only when you pass their
+object-access checks and are one of their editors or an admin. Seeing these
+relationship names does not grant access to dashboard pages or APIs, which
+require their own permissions. Archived assets are marked and cannot be opened
+from Usage; restore them through **Recently Archived** with the required permissions.
 Dataset ownership alone does not grant access to dependent archived assets.
 The Usage notice therefore warns every user, even when the list is empty,
 that archiving or permanently deleting the dataset can prevent dependent
@@ -72,6 +74,20 @@ the same per-user list filtering and include dashboards connected only through
 native filters or display controls, so those counts can differ from Usage even
 without archived assets. Permanent dataset deletion uses separate dependency-impact
 checks that also account for restricted dependencies.
+
+<img
+  src={useBaseUrl('/img/version-history/dataset-usage-archived.png')}
+  alt="Dataset Usage showing the dependency notice, live and archived charts, archive age, and archived dashboard labels"
+/>
+
+When more dashboards use a chart than fit in its row, hover over the additional
+count to see them. Archived dashboards remain labeled and cannot be opened from
+the overflow list.
+
+<img
+  src={useBaseUrl('/img/version-history/dataset-usage-archived-overflow.png')}
+  alt="Dataset Usage dashboard overflow showing live dashboard links alongside archived dashboard names with archived labels"
+/>
 
 Back and Forward restore the selected type and its page, sort, and search from
 the URL. On chart and dashboard cards in the Charts and Dashboards lists,
