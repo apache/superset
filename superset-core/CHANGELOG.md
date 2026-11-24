@@ -45,10 +45,13 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
 - A provider conformance test kit in `superset_core.semantic_layers.testing`; install
   `apache-superset-core[testing]` for its pytest dependency.
-- `superset_core.canvas.drafts`: canvas draft events (`on_draft_event`), steps a widget
+- `superset_core.canvas.drafts`: canvas draft events (`on_draft_event`) and steps a widget
   records in a draft's history for the canvas's undo and redo (`record_step`,
-  `register_step_handler`), and commit participants that can refuse a commit
-  (`register_commit_participant`). See the
+  `register_step_handler`). `on_draft_event` and `register_step_handler` return what
+  they register, so `on_draft_event` works as a decorator. In an extension's context,
+  the host prefixes a step's kind with the extension's id
+  (`extensions.<publisher>.<name>.<kind>`), where its handler is registered and where
+  the step is recorded alike. See the
   [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
 
 ### Compatibility

@@ -34,24 +34,16 @@ A canvas is changed in a draft: a private copy its owner, and their agent, build
 from superset_core.canvas import drafts
 
 
+@drafts.on_draft_event
 def on_canvas_draft(event: drafts.CanvasDraftEvent) -> None:
     if event.kind == "discarded":
         discard_my_drafts(event.token)
-
-
-drafts.on_draft_event(on_canvas_draft)
 ```
 
-- `on_draft_event(listener)` tells it what happened to a canvas draft, whichever way it was asked (the canvas page, the REST API or an agent's tool): `discarded`, `committed`, `undone` or `redone`. A draft that expires fires nothing.
-- `record_step(token, DraftStep(kind=..., payload=..., widget_id=...), by="user")` adds a step of its own to the draft's history, so the canvas's undo and redo reach it like any other step: they call the handler `register_step_handler(kind, handler)` registered for the kind. Name a kind after your extension, such as `extensions.acme.notes.edit`. Steps are recorded in the draft's history but never replayed on the canvas.
-- `register_commit_participant(participant)` is asked before every commit, after the editor check and under the draft's lock, and can only refuse one: raise `CommitRefusedError(code, message)` to stop a commit that would publish the canvas without what has to go out with it.
+- `on_draft_event(listener)` tells it what happened to a canvas draft, whichever way it was asked (the canvas page, the REST API or an agent's tool): `discarded`, `committed`, `undone` or `redone`. A draft that expires fires nothing. It returns the listener, so it works as a decorator.
+- `record_step(token, DraftStep(kind=..., payload=..., widget_id=...), by="user")` adds a step of its own to the draft's history, so the canvas's undo and redo reach it like any other step: they call the handler registered for the kind with `register_step_handler(kind, handler)`, which returns the handler. Steps are recorded in the draft's history but never replayed on the canvas.
+- Name a kind without a prefix, such as `edit`. In an extension's context, the host prefixes it with the extension's id, both where the handler is registered and where the step is recorded, as it prefixes an extension's MCP tools and REST APIs: the step is kept, handed to its handler and told to listeners as `extensions.<publisher>.<name>.edit`. There, a kind that already starts with `extensions.` is refused with `ValueError`. Outside any extension's context, a kind stays as named.
 
-Each of these runs in the context of the extension that registered it, for the user the call runs for.
+Listeners and step handlers run in the context of the extension that registered them, for the user the call runs for.
 
-On the frontend, `canvas.onDidChangeDraft` fires after the canvas page itself discarded, published, undid or redid the draft it shows; `steppedWidgetIds` names the saved widgets whose content a recorded step moved, which their renderers fetch again. `canvas.getActiveCanvas().draft` carries the open draft's `token` and `revision`: send the token only as the `X-Canvas-Draft` header, and never log it.
-
-## Publish participants
-
-`canvas.registerPublishParticipant({ prepare })` takes part in publishing a draft from the canvas page. When the person publishes, the page asks each participant's `prepare(draft)` what publishing it also publishes, and lists every part (`title`, `lines`) in a confirmation before anything is published. Once the person confirms, the page publishes each part (`publish()`) and then the canvas; the first part that fails stops the publish with its message, and publishing again from the confirmation publishes only the parts that didn't go out.
-
-The publish is several requests, not one transaction: when parts went out and the canvas didn't, the confirmation says which. Only the page's publish asks participants. A commit that skips the page, such as an agent's through its tool, publishes no part, so pair a participant with a commit participant on the server that refuses the commit while a part waits.
+On the frontend, the canvas page tells extensions what it did to the draft it shows, each event with the draft's `canvasId` and `token`: `canvas.onDidPublishDraft` and `canvas.onDidDiscardDraft` fire after it published or discarded the draft, and `canvas.onDidUndoDraftStep` and `canvas.onDidRedoDraftStep` after it undid or redid a step, with `steppedWidgetIds`, the saved widgets whose content a recorded step moved, which their renderers fetch again. They fire only for what the page itself did: not for an edit, nor for what another tab, another REST client or an agent's tool did, which the backend's listeners hear of. `canvas.getActiveCanvas().draft` carries the open draft's `token` and `revision`: send the token only as the `X-Canvas-Draft` header, and never log it.
