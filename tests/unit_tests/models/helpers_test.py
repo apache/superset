@@ -44,6 +44,8 @@ from superset.utils.core import (
 from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
+    import pandas as pd
+
     from superset.connectors.sqla.models import SqlaTable
     from superset.jinja_context import BaseTemplateProcessor
     from superset.models.core import Database
@@ -7418,3 +7420,120 @@ def test_get_query_result_leaves_a_custom_operation_fault_unwrapped(
         table.get_query_result(query_object)
 
     assert not isinstance(excinfo.value, QueryObjectValidationError)
+
+
+def _date_range_comparison_frame(
+    database: Database, x_axis: str
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Run a date-range time comparison on a chart whose x-axis column is ``x_axis``.
+
+    The datasource query is stubbed to return the rows of the shifted window, one
+    per day, labelled with the x-axis column exactly as the real query would label
+    them. Returns the main frame, then the frame after ``processing_time_offsets``.
+    """
+    from datetime import timedelta
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="events",
+        columns=[TableColumn(column_name=x_axis, is_dttm=True, type="TIMESTAMP")],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "COUNT(*)",
+        "label": "COUNT(*)",
+    }
+    query_object = QueryObject(
+        datasource=table,
+        columns=[
+            {
+                "label": x_axis,
+                "sqlExpression": x_axis,
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1D",
+            }
+        ],
+        metrics=[metric],
+        is_timeseries=True,
+        row_limit=1000,
+        time_offsets=["2026-05-12 : 2026-06-12"],
+        filters=[
+            {
+                "col": x_axis,
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2026-06-12 : 2026-07-12",
+            }
+        ],
+    )
+
+    main_df = pd.DataFrame(
+        {
+            x_axis: pd.date_range("2026-06-12", periods=30, freq="D"),
+            "COUNT(*)": range(30),
+        }
+    )
+    shifted_df = pd.DataFrame(
+        {
+            x_axis: pd.date_range("2026-05-12", periods=31, freq="D"),
+            "COUNT(*)": [10] * 31,
+        }
+    )
+
+    with patch.object(
+        table,
+        "query",
+        return_value=QueryResult(
+            df=shifted_df,
+            query="SELECT 1",
+            duration=timedelta(0),
+            sql_shifted_temporal_labels=set(),
+        ),
+    ):
+        result = table.processing_time_offsets(main_df.copy(), query_object)
+
+    return main_df, result["df"]
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_time_comparison_with_custom_named_x_axis(
+    database: Database,
+) -> None:
+    """
+    A temporal x-axis column behaves the same whatever it is named.
+
+    A date-range offset is aggregated to a single total and broadcast across the
+    main series, so every row must carry the shifted window's total. When the
+    x-axis column was not one of ``ds``/``__timestamp``/``dttm`` it was joined as
+    an ordinary key instead, the shifted window's timestamps matched nothing, and
+    the comparison column came back null on every row.
+    """
+    main_df, df = _date_range_comparison_frame(database, "event_ts")
+
+    comparison = "COUNT(*)__2026-05-12 : 2026-06-12"
+    assert list(df.columns) == ["event_ts", "COUNT(*)", comparison]
+    assert len(df) == len(main_df)
+    assert df[comparison].tolist() == [310] * len(main_df)
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_time_comparison_with_legacy_named_x_axis(
+    database: Database,
+) -> None:
+    """
+    Control for the custom-named x-axis test: the same chart with the x-axis
+    column named ``__timestamp`` broadcasts the shifted window's total.
+    """
+    main_df, df = _date_range_comparison_frame(database, "__timestamp")
+
+    comparison = "COUNT(*)__2026-05-12 : 2026-06-12"
+    assert list(df.columns) == ["__timestamp", "COUNT(*)", comparison]
+    assert len(df) == len(main_df)
+    assert df[comparison].tolist() == [310] * len(main_df)
