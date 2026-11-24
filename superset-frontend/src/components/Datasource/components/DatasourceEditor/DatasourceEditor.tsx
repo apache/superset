@@ -77,7 +77,7 @@ import {
   Label,
   Modal,
 } from '@superset-ui/core/components';
-import { FilterableTable } from 'src/components';
+import { FilterableTable, ListViewFilterOperator } from 'src/components';
 import {
   executeQuery,
   formatQuery,
@@ -86,7 +86,6 @@ import {
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl, openInNewTab } from 'src/utils/navigationUtils';
-import Subject from 'src/types/Subject';
 import SubjectPicker, {
   normalizeSubjectsToPickerValues,
   type SubjectPickerValue,
@@ -101,7 +100,7 @@ import {
   fetchSyncedColumns,
   updateColumns,
 } from '../../utils';
-import DatasetUsageTab from './components/DatasetUsageTab';
+import DatasetUsageTab, { type UsageChart } from './components/DatasetUsageTab';
 import {
   PartitionColumnFields,
   PartitionMappingSection,
@@ -319,28 +318,6 @@ interface DatabaseState {
 
 interface RootState {
   database?: DatabaseState;
-}
-
-interface ChartUsageData {
-  id: number;
-  slice_name: string;
-  url: string;
-  certified_by?: string;
-  certification_details?: string;
-  description?: string;
-  editors?: Subject[];
-  changed_on_delta_humanized?: string;
-  changed_on?: string;
-  changed_by?: {
-    first_name?: string;
-    last_name?: string;
-    id?: number;
-  };
-  dashboards?: Array<{
-    id: number;
-    dashboard_title: string;
-    url: string;
-  }>;
 }
 
 interface AbortControllers {
@@ -1159,7 +1136,7 @@ function DatasourceEditor({
       ? DATASOURCE_TYPES.virtual.key
       : DATASOURCE_TYPES.physical.key,
   );
-  const [usageCharts, setUsageCharts] = useState<ChartUsageData[]>([]);
+  const [usageCharts, setUsageCharts] = useState<UsageChart[]>([]);
   const [usageChartsCount, setUsageChartsCount] = useState(0);
   const [metricSearchTerm, setMetricSearchTerm] = useState('');
   const [columnSearchTerm, setColumnSearchTerm] = useState('');
@@ -1971,7 +1948,6 @@ function DatasourceEditor({
             'changed_by.id',
             'dashboards.id',
             'dashboards.dashboard_title',
-            'dashboards.url',
           ],
           filters: [
             {
@@ -1984,7 +1960,19 @@ function DatasourceEditor({
               opr: 'eq',
               value: datasource.datasource_type || datasource.type,
             },
+            ...(isFeatureEnabled(FeatureFlag.SoftDelete)
+              ? [
+                  {
+                    col: 'id',
+                    opr: ListViewFilterOperator.ChartDeletedState,
+                    value: 'include',
+                  },
+                ]
+              : []),
           ],
+          ...(isFeatureEnabled(FeatureFlag.SoftDelete) && {
+            include_archived_dashboards: true,
+          }),
           order_column: sortColumn,
           order_direction: sortDirection,
           page: page - 1,
@@ -2000,7 +1988,7 @@ function DatasourceEditor({
         const ids = json?.ids || [];
 
         const chartsWithIds = charts.map(
-          (chart: Omit<ChartUsageData, 'id'>, index: number) => ({
+          (chart: Omit<UsageChart, 'id'>, index: number) => ({
             ...chart,
             id: ids[index],
           }),
@@ -3289,11 +3277,7 @@ function DatasourceEditor({
           <StyledTableTabWrapper>
             <DatasetUsageTab
               datasourceId={datasource.id ?? 0}
-              charts={
-                usageCharts as React.ComponentProps<
-                  typeof DatasetUsageTab
-                >['charts']
-              }
+              charts={usageCharts}
               totalCount={usageChartsCount}
               onFetchCharts={fetchUsageData}
               addDangerToast={addDangerToast}

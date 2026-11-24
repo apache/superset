@@ -20,11 +20,12 @@ import { ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Link } from 'react-router-dom';
+import ArchivedLabel from 'src/components/ArchivedLabel';
 import { Tooltip } from '@superset-ui/core/components';
 
 export type CrossLinksTooltipProps = {
   children: ReactNode;
-  crossLinks: { to: string; title: string }[];
+  crossLinks: { to: string; title: string; archived?: boolean }[];
   moreItems?: number;
   show: boolean;
 };
@@ -50,17 +51,24 @@ export default function CrossLinksTooltip({
       title={
         show && (
           <StyledLinkedTooltip>
-            {crossLinks.map(link => (
-              <Link
-                className="link"
-                key={link.to}
-                to={link.to}
-                target="_blank"
-                rel="noreferer noopener"
-              >
-                {link.title}
-              </Link>
-            ))}
+            {crossLinks.map(link =>
+              link.archived ? (
+                <div key={link.to}>
+                  {link.title}
+                  <ArchivedLabel />
+                </div>
+              ) : (
+                <Link
+                  className="link"
+                  key={link.to}
+                  to={link.to}
+                  target="_blank"
+                  rel="noreferer noopener"
+                >
+                  {link.title}
+                </Link>
+              ),
+            )}
             {moreItems && (
               <span data-test="plus-more">{t('+ %s more', moreItems)}</span>
             )}

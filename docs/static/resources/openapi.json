@@ -15109,6 +15109,11 @@
             },
             "type": "array"
           },
+          "include_archived_dashboards": {
+            "default": false,
+            "description": "Append archived dashboards the caller may enumerate to each returned chart's dashboards, marked archived. Ignored unless soft delete is enabled.",
+            "type": "boolean"
+          },
           "keys": {
             "items": {
               "enum": [

@@ -93,3 +93,29 @@ test('should render multiple links', () => {
   setup();
   expect(screen.getAllByRole('link')).toHaveLength(4);
 });
+
+test('mixed archived and live items each occupy one measured element', () => {
+  setup({
+    crossLinks: [
+      { id: 1, title: 'Live dashboard' },
+      { id: 2, title: 'Archived dashboard', archived: true },
+      { id: 3, title: 'Another live dashboard', archived: false },
+    ],
+  });
+
+  const items = screen.getByTestId('crosslinks');
+  expect(items.childNodes).toHaveLength(3);
+  expect(
+    Array.from(items.childNodes).every(
+      node => node.nodeType === Node.ELEMENT_NODE,
+    ),
+  ).toBe(true);
+  expect(items.children[1]).toHaveTextContent(', Archived dashboard(archived)');
+  expect(screen.getByText(/Archived dashboard/).closest('a')).toBeNull();
+  expect(screen.getByLabelText('Archived')).toHaveTextContent('(archived)');
+  expect(screen.getAllByRole('link')).toHaveLength(2);
+  expect(screen.getByRole('link', { name: 'Live dashboard' })).toHaveAttribute(
+    'href',
+    '/dashboard/1',
+  );
+});
