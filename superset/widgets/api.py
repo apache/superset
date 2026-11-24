@@ -18,15 +18,21 @@
 
 import logging
 from typing import Any, Optional
+from uuid import UUID
 
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
+from pydantic import ValidationError as PydanticValidationError
 
 from superset import is_feature_enabled
+from superset.canvas.data import data_response, PlacementDataRequest
+from superset.canvas.definition.validation import request_errors
+from superset.canvas.query_errors import CanvasQueryFailedError
 from superset.commands.widget.create import CreateWidgetCommand
+from superset.commands.widget.data import GetWidgetDataCommand
 from superset.commands.widget.delete import DeleteWidgetCommand
 from superset.commands.widget.exceptions import (
     WidgetCreateFailedError,
@@ -35,6 +41,7 @@ from superset.commands.widget.exceptions import (
     WidgetInvalidError,
     WidgetNotFoundError,
     WidgetRevisionConflictError,
+    WidgetUnboundError,
     WidgetUpdateFailedError,
 )
 from superset.commands.widget.update import UpdateWidgetCommand
@@ -97,6 +104,7 @@ class WidgetRestApi(BaseSupersetModelRestApi):
         RouteMethod.DELETE,
         RouteMethod.INFO,
         RouteMethod.RELATED,
+        "get_data",
     }
 
     show_columns = [
@@ -404,3 +412,122 @@ class WidgetRestApi(BaseSupersetModelRestApi):
             logger.error("Error deleting widget: %s", str(ex), exc_info=True)
             return self.response_422(message=str(ex))
         return self.response(200, message="OK")
+
+    @expose("/<uuid:widget_uuid>/data", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_data",
+        log_to_statsd=False,
+        # The body holds the runtime filters' values, which stay out of the logs.
+        include_request_data=False,
+    )
+    def get_data(self, widget_uuid: UUID) -> Response:
+        """Run a saved widget's query and return its data.
+        ---
+        post:
+          summary: Get a saved widget's data
+          description: >-
+            Runs every query the widget's type builds from its stored props,
+            by default the `dataBinding` as the dataset `main`, as the caller,
+            each narrowed by `runtime_filters` on its dataset, without a
+            canvas, and answers each as a dataset of its name, as a
+            placement's data is answered. One failing query fails the request.
+            A widget type may refuse the request: it is then answered with the
+            type's `code` and `message`, by default as a 409. Reading needs
+            access to the widget and to each query's dataset. Each dataset
+            includes the query that ran when the caller can view queries. This
+            synchronous endpoint
+            stands in for the asynchronous one SIP-231 section 8 describes,
+            which answers a manifest of Arrow datasets, or a task while the
+            result isn't cached yet; its answer and its path may change when
+            that lands.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: widget_uuid
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    runtime_filters:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          datasetId:
+                            type: integer
+                          column:
+                            type: string
+                          values:
+                            type: array
+                            items: {}
+          responses:
+            200:
+              description: The widget's datasets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          datasets:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                row_count:
+                                  type: integer
+                                inline_data:
+                                  type: array
+                                  items:
+                                    type: object
+                                query:
+                                  type: string
+                                language:
+                                  type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: >-
+                The widget's type refused the request, as its `code` says; a
+                type may answer another client error
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            body = PlacementDataRequest.model_validate(
+                request.get_json(silent=True) or {}
+            )
+        except PydanticValidationError as ex:
+            return self.response(400, message=request_errors(ex))
+
+        def on_error(ex: CanvasQueryFailedError, status: int) -> None:
+            if status >= 500:
+                logger.warning("Widget data query failed", exc_info=True)
+
+        try:
+            return data_response(
+                self,
+                GetWidgetDataCommand(widget_uuid, body.runtime_filters).run,
+                on_error,
+            )
+        except WidgetNotFoundError:
+            return self.response_404()
+        except WidgetUnboundError as ex:
+            return self.response_422(message=str(ex.message))

@@ -46,7 +46,7 @@ from superset.canvas.definition.schemas import (
     Operation,
 )
 from superset.canvas.definition.scopes import resolve_scopes
-from superset.canvas.definition.validation import request_pointer
+from superset.canvas.definition.validation import request_errors
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.canvas.filters import (
     CanvasAccessFilter,
@@ -259,14 +259,6 @@ def _draft_token() -> str:
     if not token:
         raise CanvasDraftNotFoundError()
     return token
-
-
-def _pydantic_errors(ex: PydanticValidationError) -> list[dict[str, Any]]:
-    """Request errors as JSON-pointer paths into the request body."""
-    return [
-        {"path": request_pointer(error["loc"]), "message": error["msg"]}
-        for error in ex.errors()
-    ]
 
 
 def describe_widget(widget: type[Widget]) -> dict[str, Any]:
@@ -941,7 +933,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             # A malformed ops payload is a real failure mode for an agent
             # writing to a draft, and otherwise leaves no trace.
             _report_canvas_error(self, ex, 400, scope="draft_ops")
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft, ops = ApplyCanvasDraftOperationsCommand(
             _draft_token(), body.revision, body.ops
         ).run()
@@ -1037,7 +1029,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft = RewindCanvasDraftCommand(
             _draft_token(), body.revision, forward=forward
         ).run()
@@ -1078,7 +1070,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft = load_draft(_draft_token())
         # Read before the commit, which deletes the draft.
         add_extra_log_payload(canvas_id=draft.canvas_id)
@@ -1224,7 +1216,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             )
         except PydanticValidationError as ex:
             _report_canvas_error(self, ex, 400, scope="placement_data")
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         token = request.headers.get(DRAFT_TOKEN_HEADER) or None
         try:
             version = UUID(request.headers[VERSION_HEADER])
