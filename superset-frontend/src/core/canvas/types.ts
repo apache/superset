@@ -115,3 +115,12 @@ export interface HostRendererProps extends Omit<
 > {
   canvasId?: number;
 }
+
+/**
+ * What the host's widget host passes to a saved widget renderer: never a
+ * `canvasId`, and always the saved widget's `widgetId`.
+ */
+export interface SavedRendererProps extends HostRendererProps {
+  canvasId?: undefined;
+  widgetId: string;
+}

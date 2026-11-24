@@ -35,6 +35,7 @@ import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
 import { createEventEmitter, createValueEventEmitter } from '../utils';
 import type { CanvasRendererProps } from './types';
+import { registerSavedWidgetRenderer } from './savedWidgetRenderers';
 
 type WidgetRenderer = ComponentType<CanvasRendererProps>;
 
@@ -168,8 +169,15 @@ const WidgetHost: typeof canvasApi.WidgetHost = props =>
     createElement(LazyWidgetHost, props),
   );
 
-export const canvas: typeof canvasApi = {
+/**
+ * The runtime `canvas` namespace: what `@apache-superset/core` declares, and
+ * `registerSavedWidgetRenderer`, which it doesn't.
+ */
+export const canvas: typeof canvasApi & {
+  registerSavedWidgetRenderer: typeof registerSavedWidgetRenderer;
+} = {
   registerWidgetRenderer,
+  registerSavedWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
   onDidChangeDraft,

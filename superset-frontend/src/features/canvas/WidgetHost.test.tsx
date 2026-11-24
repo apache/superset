@@ -18,13 +18,16 @@
  */
 import fetchMock from 'fetch-mock';
 import { logging } from '@apache-superset/core/utils';
-import type { CanvasRendererProps } from 'src/core/canvas/types';
+import type {
+  CanvasRendererProps,
+  SavedRendererProps,
+} from 'src/core/canvas/types';
 import {
   act,
   render as baseRender,
   screen,
 } from 'spec/helpers/testing-library';
-import { Disposable, registerWidgetRenderer } from 'src/core';
+import { canvas, Disposable, registerWidgetRenderer } from 'src/core';
 import { BUILTIN_RENDERERS } from './builtinRenderers';
 import EchartsRenderer from './echarts/EchartsRenderer';
 import WidgetHost from './WidgetHost';
@@ -240,4 +243,55 @@ test('a renderer that throws is contained in its cell', async () => {
   );
   expect(await screen.findByText(/the renderer broke/)).toBeInTheDocument();
   spy.mockRestore();
+});
+
+test('an extension type shows through the saved widget renderer the host keeps for it, once registered', async () => {
+  fetchMock.get(widgetEndpoint, {
+    result: { ...saved, widget_type: 'test.saved' },
+  });
+  const onItsOwn = jest.fn((props: SavedRendererProps) => (
+    <div>{`saved ${String(props.props?.metric)}`}</div>
+  ));
+
+  render(<WidgetHost widgetId={ID} refreshKey={3} />);
+  expect(
+    await screen.findByText('This widget is unavailable'),
+  ).toBeInTheDocument();
+
+  // After the widget rendered, as an extension that loads late does it.
+  let registration: Disposable | undefined;
+  act(() => {
+    registration = canvas.registerSavedWidgetRenderer('test.saved', onItsOwn);
+  });
+
+  expect(screen.getByText('saved revenue')).toBeInTheDocument();
+  expect(screen.getByTestId('canvas-widget-title')).toHaveTextContent(
+    'Revenue by region',
+  );
+  const props = onItsOwn.mock.calls.at(-1)?.[0];
+  expect(props).not.toHaveProperty('canvasId');
+  expect(props).toMatchObject({
+    nodeId: ID,
+    widgetId: ID,
+    widgetType: 'test.saved',
+    filters: [],
+    crossFilters: [],
+    refreshKey: 3,
+  });
+
+  act(() => registration?.dispose());
+
+  expect(screen.getByText('This widget is unavailable')).toBeInTheDocument();
+});
+
+test("a built-in type keeps the host's own renderer over a saved widget renderer", async () => {
+  fetchMock.get(widgetEndpoint, { result: saved });
+  const onItsOwn = jest.fn(() => <div>saved instead</div>);
+  const registration = canvas.registerSavedWidgetRenderer('echarts', onItsOwn);
+
+  render(<WidgetHost widgetId={ID} />);
+
+  expect(await screen.findByText('chart of revenue')).toBeInTheDocument();
+  expect(onItsOwn).not.toHaveBeenCalled();
+  act(() => registration.dispose());
 });

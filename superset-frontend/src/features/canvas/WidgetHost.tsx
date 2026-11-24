@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
+import { useSavedWidgetRenderers } from 'src/core/canvas/savedWidgetRenderers';
 import type {
   CanvasChild,
   CanvasColors,
@@ -84,6 +85,7 @@ export default function WidgetHost({
     `/api/v1/widget/${encodeURIComponent(widgetId)}`,
   );
   const getRenderer = useWidgetRenderers();
+  const getSavedRenderer = useSavedWidgetRenderers();
 
   if (widget.status === ResourceStatus.Loading) {
     return (
@@ -107,12 +109,13 @@ export default function WidgetHost({
 
   const saved = widget.result;
   const builtin = RENDERERS_WITHOUT_CANVAS.get(saved.widget_type);
-  // Any other renderer, one that replaced a built-in included, is promised
-  // the canvas it renders on, and there is none here.
+  // Any other canvas renderer, one that replaced a built-in included, is
+  // promised the canvas it renders on, and there is none here: such a type
+  // shows only through a saved widget renderer.
   const Renderer =
     builtin !== undefined && getRenderer(saved.widget_type) === builtin
       ? builtin
-      : undefined;
+      : getSavedRenderer(saved.widget_type);
   const title = showTitle ? saved.name : undefined;
   const content = Renderer ? (
     <ErrorBoundary>

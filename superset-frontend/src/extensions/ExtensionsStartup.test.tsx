@@ -296,7 +296,7 @@ test('continues rendering children even when ExtensionsLoader initialization fai
   ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
 });
 
-test('extensions get the canvas namespace with its widget host and a single renderer registry', async () => {
+test('extensions get the canvas namespace with its widget host and the undeclared saved widget renderer registry', async () => {
   const loader = ExtensionsLoader.getInstance();
   const initializeSpy = jest
     .spyOn(loader, 'initializeExtensions')
@@ -312,8 +312,8 @@ test('extensions get the canvas namespace with its widget host and a single rend
     expect(typeof window.superset.canvas.WidgetHost).toBe('function');
   });
   expect(typeof window.superset.canvas.registerWidgetRenderer).toBe('function');
-  expect(window.superset.canvas).not.toHaveProperty(
-    'registerSavedWidgetRenderer',
+  expect(typeof window.superset.canvas.registerSavedWidgetRenderer).toBe(
+    'function',
   );
 
   initializeSpy.mockRestore();
