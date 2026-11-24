@@ -39,7 +39,9 @@ from superset.utils.log import collect_request_payload
 from tests.unit_tests.widgets.fixtures import MakeUser, MakeWidget
 
 BINDING = {"datasetId": 13, "metrics": ["count"], "dimensions": ["country"]}
+NAMED = {"datasetId": 14, "metrics": ["sum__revenue"], "dimensions": ["region"]}
 DATA = PlacementData([{"country": "FR", "count": 3}], "SELECT country ...", "sql")
+BY_REGION = PlacementData([{"region": "EMEA", "sum__revenue": 12}], None, None)
 NO_ACCESS = SupersetSecurityException(
     SupersetError(
         message="no access to the dataset",
@@ -85,6 +87,82 @@ def test_a_widget_the_caller_cant_read_looks_missing(
         GetWidgetDataCommand(widget.uuid, []).run()
     with override_user(alice_user), pytest.raises(WidgetNotFoundError):
         GetWidgetDataCommand(UUID(int=7), []).run()
+    run_binding.assert_not_called()
+
+
+def test_a_widget_types_bindings_come_from_its_builder(
+    tables: Session,
+    make_user: MakeUser,
+    make_widget: MakeWidget,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """The same builder as a placement's, told there is no canvas, with the
+    widget draft and version the request names."""
+    from superset_core.widgets import BindingRequest, WidgetBinding
+
+    from superset.widgets.registry import registry
+
+    build = MagicMock(
+        return_value=[WidgetBinding("by_region", NAMED), WidgetBinding("all", BINDING)]
+    )
+    mocker.patch.object(registry["markdown"], "build_bindings", build)
+    mocker.patch(
+        "superset.commands.canvas.placement_data.unreadable_datasets",
+        return_value=set(),
+    )
+    run_binding.side_effect = [BY_REGION, DATA]
+    alice_user, alice = make_user("alice", "Gamma")
+    widget = make_widget("Notes", editors=[alice], props={"content": "x"})
+
+    with override_user(alice_user):
+        data = GetWidgetDataCommand(
+            widget.uuid,
+            [],
+            widget_draft_token="its-draft",  # noqa: S106
+            widget_version="v7",
+        ).run()
+
+    assert data == {"by_region": BY_REGION, "all": DATA}
+    assert [call.args[0] for call in run_binding.call_args_list] == [NAMED, BINDING]
+    build.assert_called_once_with(
+        BindingRequest(
+            canvas_id=None,
+            placement_id=None,
+            props={"content": "x"},
+            widget_id=str(widget.uuid),
+            widget_draft_token="its-draft",  # noqa: S106
+            widget_version="v7",
+        )
+    )
+
+
+def test_a_widget_types_refusal_comes_through_with_its_code(
+    tables: Session,
+    make_user: MakeUser,
+    make_widget: MakeWidget,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.widgets import WidgetDataRefusedError
+
+    from superset.widgets.registry import registry
+
+    mocker.patch.object(
+        registry["markdown"],
+        "build_bindings",
+        MagicMock(side_effect=WidgetDataRefusedError("CONTENT_CHANGED", "Reload")),
+    )
+    alice_user, alice = make_user("alice", "Gamma")
+    widget = make_widget("Notes", editors=[alice], props={"content": "x"})
+
+    with override_user(alice_user), pytest.raises(CanvasQueryFailedError) as caught:
+        GetWidgetDataCommand(widget.uuid, []).run()
+
+    assert (caught.value.error.status, caught.value.error.code) == (
+        409,
+        "CONTENT_CHANGED",
+    )
     run_binding.assert_not_called()
 
 
@@ -178,6 +256,52 @@ def test_the_route_answers_the_datasets_envelope(
         UUID(WIDGET),
         [RuntimeFilter(datasetId=13, column="country", values=["FR"])],
     )
+    assert command.call_args.kwargs == {
+        "widget_draft_token": None,
+        "widget_version": None,
+    }
+
+
+@api_flags
+def test_the_route_passes_the_widget_draft_and_version_on(
+    client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
+    command.return_value.run.return_value = {"main": DATA}
+
+    response = client.post(
+        URL.format(WIDGET),
+        json={},
+        headers={"X-Widget-Draft": "its-draft", "X-Widget-Version": "v7"},
+    )
+
+    assert response.status_code == 200
+    assert command.call_args.kwargs == {
+        "widget_draft_token": "its-draft",
+        "widget_version": "v7",
+    }
+
+
+@api_flags
+def test_the_route_answers_a_refusal_with_its_code_and_message(
+    client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    from superset_core.widgets import WidgetDataRefusedError
+
+    refused = WidgetDataRefusedError("CONTENT_CHANGED", "Reload it", 410)
+    command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
+    command.return_value.run.side_effect = CanvasQueryFailedError(
+        canvas_query_error(refused)
+    )
+
+    response = client.post(URL.format(WIDGET), json={})
+
+    assert response.status_code == 410
+    assert response.json == {
+        "message": "Reload it",
+        "error_type": "WidgetDataRefused",
+        "code": "CONTENT_CHANGED",
+    }
 
 
 @api_flags

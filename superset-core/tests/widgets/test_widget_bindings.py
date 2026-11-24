@@ -16,11 +16,11 @@
 # under the License.
 
 import pytest
-from superset_core.widgets import WidgetQueryRefusedError
+from superset_core.widgets import BindingRequest, Widget, WidgetDataRefusedError
 
 
 def test_a_refusal_carries_its_code_message_and_status() -> None:
-    refused = WidgetQueryRefusedError("CONTENT_CHANGED", "Reload to see it", 410)
+    refused = WidgetDataRefusedError("CONTENT_CHANGED", "Reload to see it", 410)
 
     assert (refused.code, refused.message, refused.status) == (
         "CONTENT_CHANGED",
@@ -28,15 +28,30 @@ def test_a_refusal_carries_its_code_message_and_status() -> None:
         410,
     )
     assert str(refused) == "Reload to see it"
-    assert WidgetQueryRefusedError("CONTENT_CHANGED", "Reload").status == 409
+    assert WidgetDataRefusedError("CONTENT_CHANGED", "Reload").status == 409
 
 
 @pytest.mark.parametrize("status", [200, 302, 401, 407, 500, 503])
 def test_a_refusal_answers_a_client_error_other_than_sign_in(status: int) -> None:
     with pytest.raises(ValueError, match=str(status)):
-        WidgetQueryRefusedError("CONTENT_CHANGED", "Reload", status)
+        WidgetDataRefusedError("CONTENT_CHANGED", "Reload", status)
 
 
 def test_a_refusal_needs_a_code() -> None:
     with pytest.raises(ValueError, match="needs a code"):
-        WidgetQueryRefusedError("", "Reload")
+        WidgetDataRefusedError("", "Reload")
+
+
+def test_a_widget_type_leaves_its_bindings_to_the_host_by_default() -> None:
+    request = BindingRequest(None, None, {"dataBinding": {"datasetId": 1}})
+
+    assert Widget.build_bindings(request) is None
+
+
+def test_a_request_names_no_draft_or_version_unless_it_has_them() -> None:
+    request = BindingRequest("7", "chart-1", {})
+
+    assert request.widget_id is None
+    assert request.canvas_draft_token is None
+    assert request.widget_draft_token is None
+    assert request.widget_version is None

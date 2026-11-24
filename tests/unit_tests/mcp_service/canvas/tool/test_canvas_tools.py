@@ -362,7 +362,7 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
 
 
 def test_a_widget_types_refusal_reaches_agents_with_its_code() -> None:
-    from superset_core.widgets import WidgetQueryRefusedError
+    from superset_core.widgets import WidgetDataRefusedError
 
     from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
     from superset.mcp_service.canvas.schemas import (
@@ -371,10 +371,10 @@ def test_a_widget_types_refusal_reaches_agents_with_its_code() -> None:
     )
     from superset.mcp_service.canvas.tool.canvas_ops_common import query_error
 
-    refused = WidgetQueryRefusedError("CONTENT_CHANGED", "This widget changed")
+    refused = WidgetDataRefusedError("CONTENT_CHANGED", "This widget changed")
     expected = {
         "error": "This widget changed",
-        "error_type": "WidgetQueryRefused",
+        "error_type": "WidgetDataRefused",
         "error_code": "CONTENT_CHANGED",
     }
 

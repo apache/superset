@@ -16,13 +16,20 @@
 # under the License.
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
-from superset_core.widgets import QueryRequest, Widget, WidgetQueryRefusedError
+from flask import current_app
+from pydantic import ValidationError as PydanticValidationError
+from superset_core.widgets import (
+    BindingRequest,
+    WidgetBinding,
+    WidgetDataRefusedError,
+)
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
+from superset.canvas.definition.ops import bound_datasets, unreadable_datasets
 from superset.canvas.definition.registry import get_widget_resolver, get_widget_types
 from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
 from superset.canvas.versions import version_snapshot
@@ -35,13 +42,16 @@ from superset.commands.canvas.exceptions import (
     CanvasPlacementUnboundError,
 )
 from superset.daos.canvas import CanvasDAO
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
+from superset.widgets.controls import DataBinding
 
 
 class GetPlacementDataCommand(BaseCommand):
     """
     Run a placement's queries as the caller. They come from the stored
     definition, the caller's draft of the canvas, or a version of it, as the
-    widget type builds them (``widget_queries``); the caller only adds runtime
+    widget type builds them (``widget_bindings``); the caller only adds runtime
     filters. Reading needs access to the canvas and to each query's dataset,
     which the chart data pipeline checks.
     """
@@ -53,12 +63,16 @@ class GetPlacementDataCommand(BaseCommand):
         runtime_filters: list[RuntimeFilter],
         draft_token: str | None = None,
         version_uuid: UUID | None = None,
+        widget_draft_token: str | None = None,
+        widget_version: str | None = None,
     ) -> None:
         self._id_or_uuid = id_or_uuid
         self._placement_id = placement_id
         self._runtime_filters = runtime_filters
         self._draft_token = draft_token
         self._version_uuid = version_uuid
+        self._widget_draft_token = widget_draft_token
+        self._widget_version = widget_version
         self._bindings: dict[str, dict[str, Any]] = {}
 
     def run(self) -> dict[str, PlacementData]:
@@ -96,46 +110,106 @@ class GetPlacementDataCommand(BaseCommand):
             widget_type, props = (
                 (widget.widget_type, widget.props) if widget is not None else (None, {})
             )
-        self._bindings = widget_queries(
+        self._bindings = widget_bindings(
             widget_type,
-            QueryRequest(
+            BindingRequest(
                 self._id_or_uuid,
                 self._placement_id,
                 props,
-                draft_token=self._draft_token or None,
                 widget_id=widget_id or None,
+                canvas_draft_token=self._draft_token or None,
+                widget_draft_token=self._widget_draft_token or None,
+                widget_version=self._widget_version or None,
             ),
         )
         if not self._bindings:
             raise CanvasPlacementUnboundError()
 
 
-def widget_queries(
-    widget_type: str | None, request: QueryRequest
+class WidgetBindingsError(ValueError):
+    """Bindings a widget type built that this host won't run."""
+
+
+def widget_bindings(
+    widget_type: str | None, request: BindingRequest
 ) -> dict[str, dict[str, Any]]:
     """
     The bindings a data request for a widget runs, by the name of the dataset
-    each answers, as its widget type builds them; a type this host doesn't
-    know builds the default, its ``dataBinding``. A query whose binding names
-    no dataset isn't bound yet and is left out. Every binding a type builds
-    gets the same checks, and runs the same way, as the caller.
+    each answers: those its widget type builds (``Widget.build_bindings``),
+    checked as a stored binding is checked when it is written, or by default,
+    and for a type this host doesn't know, the props' ``dataBinding`` as
+    ``main``, which was checked then. A binding that names no dataset isn't
+    bound yet and is left out.
 
-    Raises ``CanvasQueryFailedError`` for a type that refuses the request
-    (``WidgetQueryRefusedError``), with the type's code and message, and
-    ``ValueError`` for a type that builds two queries of one name: each name
-    is a dataset of the answer.
+    Raises ``CanvasQueryFailedError``: with the type's code and message for a
+    type that refuses the request (``WidgetDataRefusedError``); as a dataset
+    the caller can't read, for a built binding whose dataset doesn't exist or
+    that they can't read; and as a server error for built bindings this host
+    won't run (``checked_bindings``).
     """
     widget_cls = get_widget_types().get(widget_type) if widget_type else None
     try:
-        queries = (widget_cls or Widget).build_queries(request)
-    except WidgetQueryRefusedError as ex:
+        built = widget_cls.build_bindings(request) if widget_cls else None
+    except WidgetDataRefusedError as ex:
         raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
-    names = [query.name for query in queries]
-    if len(set(names)) != len(names):
-        raise ValueError(f"widget type {widget_type!r} names a query twice: {names}")
-    return {
-        query.name: dict(query.binding)
-        for query in queries
-        if isinstance(query.binding, Mapping)
-        and isinstance(query.binding.get("datasetId"), int)
-    }
+    if built is None:
+        binding = request.props.get("dataBinding")
+        if isinstance(binding, Mapping) and _plain_id(binding.get("datasetId")):
+            return {"main": dict(binding)}
+        return {}
+    try:
+        return checked_bindings(built)
+    except (WidgetBindingsError, SupersetSecurityException) as ex:
+        raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
+
+
+def _plain_id(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def checked_bindings(built: Sequence[WidgetBinding]) -> dict[str, dict[str, Any]]:
+    """
+    ``built``, the bindings a widget type built, by name, once each passes the
+    checks a stored binding gets when it is written: a valid ``dataBinding``
+    with a plain integer ``datasetId``, on a dataset that exists and the caller
+    can read. A binding that names no dataset is left out.
+
+    Raises ``WidgetBindingsError`` for more bindings than
+    ``CANVAS_WIDGET_MAX_BINDINGS``, a name that isn't unique, or a binding
+    that isn't a valid ``dataBinding``, and ``SupersetSecurityException`` for
+    a dataset that doesn't exist or the caller can't read.
+    """
+    limit = current_app.config["CANVAS_WIDGET_MAX_BINDINGS"]
+    if len(built) > limit:
+        raise WidgetBindingsError(
+            f"{len(built)} bindings, more than the {limit} one request runs"
+        )
+    names = [item.name for item in built]
+    if len(set(names)) != len(names) or not all(
+        isinstance(name, str) and name for name in names
+    ):
+        raise WidgetBindingsError(f"binding names must be unique strings: {names}")
+    bindings: dict[str, dict[str, Any]] = {}
+    for item in built:
+        if not isinstance(item.binding, Mapping):
+            raise WidgetBindingsError(f"binding {item.name!r} isn't a mapping")
+        binding = dict(item.binding)
+        if binding.get("datasetId") is None:
+            continue
+        try:
+            bound_datasets({"dataBinding": binding})
+            DataBinding.model_validate(binding)
+        except (PydanticValidationError, ValueError) as ex:
+            raise WidgetBindingsError(
+                f"binding {item.name!r} isn't a valid dataBinding: {ex}"
+            ) from ex
+        bindings[item.name] = binding
+    if unreadable_datasets(binding["datasetId"] for binding in bindings.values()):
+        raise SupersetSecurityException(
+            SupersetError(
+                message="A widget binding names a dataset the user can't read",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+    return bindings
