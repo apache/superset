@@ -23,16 +23,13 @@ import binascii
 import hashlib
 import hmac
 import logging
-from collections.abc import Iterator
-from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 
 import backoff
 from flask import current_app
 from flask_babel import gettext as _
-from sqlalchemy import and_, desc, func, LargeBinary, update
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, desc, func, LargeBinary
 
 from superset import db
 from superset.daos.base import BaseDAO
@@ -239,12 +236,7 @@ def _validate_value_size(encoded: bytes) -> None:
         raise ExtensionStorageValueTooLarge(max_size)
 
 
-def _check_quota(
-    extension_id: str,
-    new_size: int,
-    existing_size: int = 0,
-    session: Session | None = None,
-) -> None:
+def _check_quota(extension_id: str, new_size: int, existing_size: int = 0) -> None:
     """Raise if writing `new_size` bytes would push the extension over quota.
 
     `existing_size` is the size of the row being replaced (0 for inserts),
@@ -259,12 +251,11 @@ def _check_quota(
     grows with row count — acceptable at the row counts a single extension
     is expected to accumulate, but not a fully constant-time check.
     """
-    session = session if session is not None else db.session
     quota = _get_quota()
     if quota is None:
         return
     current_usage = (
-        session.query(func.coalesce(func.sum(ExtensionStorage.value_size), 0))
+        db.session.query(func.coalesce(func.sum(ExtensionStorage.value_size), 0))
         .filter(ExtensionStorage.extension_id == extension_id)
         .scalar()
     )
@@ -293,143 +284,6 @@ def _decrypt_if_needed(
             key,
         )
         return None
-
-
-def _stored_value(key: str, value: bytes, user_fk: int | None, encrypt: bool) -> bytes:
-    """`value` as a write stores it, once the key and the value pass the limits."""
-    _validate_key_length(key)
-    _validate_value_size(value)
-    if not encrypt:
-        return value
-    return _enc_type(user_fk).process_bind_param(value, db.engine.dialect)
-
-
-@contextmanager
-def _locked_entry(  # noqa: PLR0913
-    extension_id: str,
-    key: str,
-    user_fk: int | None,
-    resource_type: str | None,
-    resource_uuid: str | None,
-    session: Session,
-) -> Iterator[ExtensionStorage | None]:
-    """The entry at a scoped key, read in ``session`` under the extension-wide
-    write lock.
-
-    Every write runs and commits inside it, and rolls back inside it when it
-    fails; see `ExtensionStorageDAO.set()`. The lock has to be its own unit of
-    work: taken inside a caller's `@transaction()`, a lock row isn't committed
-    and a held lock isn't reported as one, so the second writer of a race
-    fails where it should wait its turn.
-    The entry is read as the database holds it now: the session may hold an
-    older copy from a read before the lock, and a query doesn't overwrite
-    what an object in the session has loaded already. Under READ COMMITTED,
-    Superset's default on MySQL and PostgreSQL, the read sees every write
-    committed under the lock.
-    """
-    with DistributedLock(
-        namespace="extension_storage_set",
-        ttl_seconds=SET_LOCK_TTL_SECONDS,
-        extension_id=extension_id,
-    ):
-        try:
-            entry = (
-                session.query(ExtensionStorage)
-                .filter(
-                    and_(
-                        *_scope_filter(
-                            extension_id, key, user_fk, resource_type, resource_uuid
-                        )
-                    )
-                )
-                .first()
-            )
-            if entry is not None:
-                session.refresh(entry)
-            yield entry
-        except Exception:
-            session.rollback()  # pylint: disable=consider-using-transaction
-            raise
-
-
-def _upsert(  # noqa: PLR0913
-    entry: ExtensionStorage | None,
-    extension_id: str,
-    key: str,
-    stored_value: bytes,
-    codec: str,
-    user_fk: int | None,
-    resource_type: str | None,
-    resource_uuid: str | None,
-    encrypt: bool,
-    session: Session,
-) -> ExtensionStorage:
-    """Write `stored_value` over `entry`, or as a new entry; commit it."""
-    new_size = len(stored_value)
-    existing_size = entry.value_size if entry is not None else 0
-    _check_quota(extension_id, new_size, existing_size, session=session)
-    if entry is not None:
-        entry.value = stored_value
-        entry.value_size = new_size
-        entry.codec = codec
-        entry.is_encrypted = encrypt
-    else:
-        entry = ExtensionStorage(
-            extension_id=extension_id,
-            key=key,
-            value=stored_value,
-            value_size=new_size,
-            codec=codec,
-            user_fk=user_fk,
-            resource_type=resource_type,
-            resource_uuid=resource_uuid,
-            is_encrypted=encrypt,
-        )
-        session.add(entry)
-    session.flush()
-    # Committed here, inside the lock: a commit after the write returns would
-    # come after the lock is released; see `ExtensionStorageDAO.set()`.
-    session.commit()  # pylint: disable=consider-using-transaction
-    return entry
-
-
-def _replace_unchanged(
-    entry: ExtensionStorage,
-    extension_id: str,
-    stored_value: bytes,
-    codec: str,
-    encrypt: bool,
-    session: Session,
-) -> bool:
-    """Write `stored_value` over `entry` while its row still holds the value
-    read; commit it, and return whether it was written.
-
-    The comparison is part of the write, so a writer that outlives the lock
-    can't overwrite a value written since it read.
-    """
-    entry_id, read_value, read_size = entry.id, entry.value, entry.value_size
-    new_size = len(stored_value)
-    _check_quota(extension_id, new_size, read_size, session=session)
-    written = session.execute(
-        update(ExtensionStorage)
-        .where(ExtensionStorage.id == entry_id, ExtensionStorage.value == read_value)
-        .values(
-            value=stored_value,
-            value_size=new_size,
-            codec=codec,
-            is_encrypted=encrypt,
-        )
-        .execution_options(synchronize_session=False)
-    ).rowcount
-    session.commit()  # pylint: disable=consider-using-transaction
-    return written == 1
-
-
-def _holds(entry: ExtensionStorage | None, expected: Any) -> bool:
-    """Whether `entry` holds `expected`: no entry for `None`, else its value."""
-    if expected is None:
-        return entry is None
-    return entry is not None and ExtensionStorageDAO.decode_entry(entry) == expected
 
 
 def _scope_filter(
@@ -695,7 +549,6 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         resource_type: str | None = None,
         resource_uuid: str | None = None,
         encrypt: bool = False,
-        session: Session | None = None,
     ) -> ExtensionStorage:
         """Upsert a storage entry.  Encrypts value when encrypt=True.
 
@@ -714,19 +567,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
           before the other commits, both pass the check, and land a combined
           write that exceeds the extension's quota.
 
-        The commit happens here, inside the lock — releasing the lock before
-        the row is committed would let a second writer's `SELECT`, run right
-        after acquiring the now-free lock, still miss the first writer's
+        The commit happens here, inside the lock, rather than being left to
+        the caller's `@transaction()` — releasing the lock before the row is
+        committed would let a second writer's `SELECT`, run right after
+        acquiring the now-free lock, still miss the first writer's
         not-yet-committed row under READ COMMITTED isolation, recreating the
-        exact duplicate-row race the lock exists to prevent. So callers don't
-        wrap it in a `@transaction()` of their own, inside which the lock
-        can't be taken as its own unit of work. The write runs in `session`,
-        `db.session` by default; the accessors pass a session of their own,
-        so a write commits apart from whatever their caller has open.
-
-        The lock lasts SET_LOCK_TTL_SECONDS: a section that outlives it, as a
-        slow quota sum or a large value can, no longer excludes a second
-        writer, and two inserts of a new key can then both land.
+        exact duplicate-row race the lock exists to prevent.
 
         :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
         :raises ExtensionStorageValueTooLarge: if `value` exceeds
@@ -734,88 +580,58 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         :raises ExtensionStorageQuotaExceeded: if writing `value` would push
             the extension over its total storage quota.
         """
-        session = session if session is not None else db.session
-        stored_value = _stored_value(key, value, user_fk, encrypt)
-        with _locked_entry(
-            extension_id, key, user_fk, resource_type, resource_uuid, session
-        ) as entry:
-            return _upsert(
-                entry,
-                extension_id,
-                key,
-                stored_value,
-                codec,
-                user_fk,
-                resource_type,
-                resource_uuid,
-                encrypt,
-                session,
-            )
+        _validate_key_length(key)
+        _validate_value_size(value)
+        stored_value = (
+            _enc_type(user_fk).process_bind_param(value, db.engine.dialect)
+            if encrypt
+            else value
+        )
 
-    @staticmethod
-    @backoff.on_exception(
-        backoff.expo,
-        AcquireDistributedLockFailedException,
-        factor=0.1,
-        base=2,
-        max_tries=8,
-    )
-    def compare_and_set(  # noqa: PLR0913
-        extension_id: str,
-        key: str,
-        expected: Any,
-        value: bytes,
-        codec: str = DEFAULT_CODEC,
-        user_fk: int | None = None,
-        resource_type: str | None = None,
-        resource_uuid: str | None = None,
-        encrypt: bool = False,
-        session: Session | None = None,
-    ) -> bool:
-        """Upsert `value` only while the entry's decoded value equals
-        `expected`; return whether it was written.
-
-        `expected=None` means the entry must not exist. The comparison and
-        the write happen under `set()`'s extension-wide lock, and commit
-        inside it, so of two writers that read the same value only the first
-        writes. The write is validated and counted as `set()`'s is, and runs
-        in `session` as `set()`'s does.
-
-        The lock lasts SET_LOCK_TTL_SECONDS. An update compares the value it
-        read as part of its write, so it stays atomic past that; an insert
-        (`expected=None`) has only the lock, so two writers whose sections
-        outlive it can both insert the key, as with `set()`.
-
-        :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
-        :raises ExtensionStorageValueTooLarge: if `value` exceeds
-            MAX_VALUE_SIZE.
-        :raises ExtensionStorageQuotaExceeded: if writing `value` would push
-            the extension over its total storage quota.
-        """
-        session = session if session is not None else db.session
-        stored_value = _stored_value(key, value, user_fk, encrypt)
-        with _locked_entry(
-            extension_id, key, user_fk, resource_type, resource_uuid, session
-        ) as entry:
-            if not _holds(entry, expected):
-                return False
-            if entry is not None:
-                return _replace_unchanged(
-                    entry, extension_id, stored_value, codec, encrypt, session
+        with DistributedLock(
+            namespace="extension_storage_set",
+            ttl_seconds=SET_LOCK_TTL_SECONDS,
+            extension_id=extension_id,
+        ):
+            entry = (
+                db.session.query(ExtensionStorage)
+                .filter(
+                    and_(
+                        *_scope_filter(
+                            extension_id, key, user_fk, resource_type, resource_uuid
+                        )
+                    )
                 )
-            _upsert(
-                None,
-                extension_id,
-                key,
-                stored_value,
-                codec,
-                user_fk,
-                resource_type,
-                resource_uuid,
-                encrypt,
-                session,
+                .first()
             )
-            return True
+            new_size = len(stored_value)
+            existing_size = entry.value_size if entry is not None else 0
+            _check_quota(extension_id, new_size, existing_size)
+            if entry is not None:
+                entry.value = stored_value
+                entry.value_size = new_size
+                entry.codec = codec
+                entry.is_encrypted = encrypt
+            else:
+                entry = ExtensionStorage(
+                    extension_id=extension_id,
+                    key=key,
+                    value=stored_value,
+                    value_size=new_size,
+                    codec=codec,
+                    user_fk=user_fk,
+                    resource_type=resource_type,
+                    resource_uuid=resource_uuid,
+                    is_encrypted=encrypt,
+                )
+                db.session.add(entry)
+            db.session.flush()
+            # Committed here, inside the lock, rather than left to the
+            # caller's @transaction(): that decorator only commits after
+            # this whole function returns, which is after the lock above
+            # has already been released — see the docstring.
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            return entry
 
     # ── Create (disallowed) ─────────────────────────────────────────────────────
 

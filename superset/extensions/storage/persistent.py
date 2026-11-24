@@ -26,7 +26,6 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from sqlalchemy.orm import Session
 from superset_core.extensions.storage.persistent import (
     PersistentListEntry,
     PersistentListOptions,
@@ -35,7 +34,6 @@ from superset_core.extensions.storage.persistent import (
     PersistentState as CorePersistentState,
 )
 
-from superset import db
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec
 from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
 from superset.extensions.storage.utils import (
@@ -86,30 +84,6 @@ def _list(
     )
 
 
-def _compare_and_set(
-    extension_id: str,
-    user_fk: int | None,
-    key: str,
-    expected: Any,
-    value: Any,
-    options: PersistentSetOptions | None,
-) -> bool:
-    """Shared `compare_and_set` implementation for both scopes."""
-    encrypt = options.encrypt if options is not None else False
-    codec = options.codec if options is not None else DEFAULT_CODEC
-    with Session(bind=db.session.get_bind()) as session:
-        return ExtensionStorageDAO.compare_and_set(
-            extension_id,
-            key,
-            expected,
-            get_codec(codec).encode(value),
-            codec=codec,
-            user_fk=user_fk,
-            encrypt=encrypt,
-            session=session,
-        )
-
-
 class SharedPersistentStateAccessor:
     """
     Accessor for shared (global) persistent state.
@@ -128,6 +102,7 @@ class SharedPersistentStateAccessor:
         extension_id = _get_extension_id()
         return ExtensionStorageDAO.get_decoded_value(extension_id, key, user_fk=None)
 
+    @transaction()
     def set(
         self, key: str, value: Any, options: PersistentSetOptions | None = None
     ) -> None:
@@ -148,36 +123,13 @@ class SharedPersistentStateAccessor:
         extension_id = _get_extension_id()
         encrypt = options.encrypt if options is not None else False
         codec = options.codec if options is not None else DEFAULT_CODEC
-        with Session(bind=db.session.get_bind()) as session:
-            ExtensionStorageDAO.set(
-                extension_id,
-                key,
-                get_codec(codec).encode(value),
-                codec=codec,
-                user_fk=None,
-                encrypt=encrypt,
-                session=session,
-            )
-
-    def compare_and_set(
-        self,
-        key: str,
-        expected: Any,
-        value: Any,
-        options: PersistentSetOptions | None = None,
-    ) -> bool:
-        """
-        Set a value in shared persistent state, only while the stored value
-        equals `expected` (`None`: no entry yet).
-
-        :returns: Whether `value` was written.
-        :raises ExtensionStorageValueTooLarge: if the encoded value exceeds
-            MAX_VALUE_SIZE.
-        :raises ExtensionStorageQuotaExceeded: if this write would exceed the
-            extension's configured persistent storage quota.
-        """
-        return _compare_and_set(
-            _get_extension_id(), None, key, expected, value, options
+        ExtensionStorageDAO.set(
+            extension_id,
+            key,
+            get_codec(codec).encode(value),
+            codec=codec,
+            user_fk=None,
+            encrypt=encrypt,
         )
 
     def list(self, options: PersistentListOptions) -> PersistentListResult:
@@ -229,6 +181,7 @@ class PersistentState(CorePersistentState):
         return ExtensionStorageDAO.get_decoded_value(extension_id, key, user_fk=user_id)
 
     @staticmethod
+    @transaction()
     def set(key: str, value: Any, options: PersistentSetOptions | None = None) -> None:
         """
         Set a value in user-scoped persistent state.
@@ -248,41 +201,13 @@ class PersistentState(CorePersistentState):
         user_id = get_current_user_id("persistent_state")
         encrypt = options.encrypt if options is not None else False
         codec = options.codec if options is not None else DEFAULT_CODEC
-        with Session(bind=db.session.get_bind()) as session:
-            ExtensionStorageDAO.set(
-                extension_id,
-                key,
-                get_codec(codec).encode(value),
-                codec=codec,
-                user_fk=user_id,
-                encrypt=encrypt,
-                session=session,
-            )
-
-    @staticmethod
-    def compare_and_set(
-        key: str,
-        expected: Any,
-        value: Any,
-        options: PersistentSetOptions | None = None,
-    ) -> bool:
-        """
-        Set a value in user-scoped persistent state, only while the stored
-        value equals `expected` (`None`: no entry yet).
-
-        :returns: Whether `value` was written.
-        :raises ExtensionStorageValueTooLarge: if the encoded value exceeds
-            MAX_VALUE_SIZE.
-        :raises ExtensionStorageQuotaExceeded: if this write would exceed the
-            extension's configured persistent storage quota.
-        """
-        return _compare_and_set(
-            _get_extension_id(),
-            get_current_user_id("persistent_state"),
+        ExtensionStorageDAO.set(
+            extension_id,
             key,
-            expected,
-            value,
-            options,
+            get_codec(codec).encode(value),
+            codec=codec,
+            user_fk=user_id,
+            encrypt=encrypt,
         )
 
     @staticmethod

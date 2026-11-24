@@ -256,21 +256,6 @@ ctx.storage.persistent.shared.set('global_config', {'version': 2})
 config = ctx.storage.persistent.shared.get('global_config')
 ```
 
-### Compare-and-Swap Writes
-
-When several requests may write the same key, `compare_and_set` writes only while the stored value is still the one you read, so a stale write never wins. Pass `None` as the expected value to write only if the key has no entry yet. The comparison is on the decoded value, and it is one atomic step with the write, as long as the metadata database runs at READ COMMITTED, Superset's default on MySQL and PostgreSQL. It is available on the backend only.
-
-Each write (`set` and `compare_and_set`) runs in a database session of its own, takes the extension's storage lock, and commits inside it: it commits whatever a transaction of yours does. Don't call them inside a `@transaction()` of your own all the same: there, the lock can't be taken as a unit of work of its own, and the second writer of a race fails instead of waiting its turn.
-
-The lock expires after a few seconds, so that a crashed writer can't hold it for long. A `compare_and_set` over an existing entry compares as it writes, so it stays atomic even when its write outlives the lock. A write that creates a key has only the lock: two of them that both outlive it can each create the key.
-
-```python
-config = ctx.storage.persistent.shared.get('global_config')
-updated = {**config, 'version': config['version'] + 1}
-if not ctx.storage.persistent.shared.compare_and_set('global_config', config, updated):
-    ...  # another request changed it meanwhile: read it again, then retry
-```
-
 ### Listing Entries
 
 Both the frontend and backend accessors support listing entries in the caller's scope, without needing to know every key in advance. `page` and `pageSize`/`page_size` are required on every call — `list()` always returns one page of results, never the whole result set, so there's no default that could make that fact easy to miss. Check the returned `count` (total entries matching the scope/filters, across all pages) against `pageSize`/`page_size` to know whether more pages exist.

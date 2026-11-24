@@ -97,11 +97,10 @@ def test_persistent_state_get_returns_none_when_missing(
     assert result is None
 
 
-@patch("superset.extensions.storage.persistent.Session")
-@patch("superset.extensions.storage.persistent.db")
+@patch("superset.db")
 @patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
 def test_persistent_state_set_encodes_value(
-    mock_dao: MagicMock, mock_db: MagicMock, mock_session: MagicMock, app: Flask
+    mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
     """PersistentState.set encodes value as JSON bytes."""
     ctx = create_context()
@@ -118,15 +117,13 @@ def test_persistent_state_set_encodes_value(
         codec="json",
         user_fk=42,
         encrypt=False,
-        session=mock_session.return_value.__enter__.return_value,
     )
 
 
-@patch("superset.extensions.storage.persistent.Session")
-@patch("superset.extensions.storage.persistent.db")
+@patch("superset.db")
 @patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
 def test_persistent_state_set_with_encrypt_option(
-    mock_dao: MagicMock, mock_db: MagicMock, mock_session: MagicMock, app: Flask
+    mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
     """PersistentState.set passes encrypt=True when options.encrypt is set."""
     ctx = create_context()
@@ -143,15 +140,13 @@ def test_persistent_state_set_with_encrypt_option(
         codec="json",
         user_fk=42,
         encrypt=True,
-        session=mock_session.return_value.__enter__.return_value,
     )
 
 
-@patch("superset.extensions.storage.persistent.Session")
-@patch("superset.extensions.storage.persistent.db")
+@patch("superset.db")
 @patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
 def test_shared_accessor_set_with_encrypt_option(
-    mock_dao: MagicMock, mock_db: MagicMock, mock_session: MagicMock, app: Flask
+    mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
     """SharedPersistentStateAccessor.set passes encrypt=True when requested."""
     ctx = create_context()
@@ -169,7 +164,6 @@ def test_shared_accessor_set_with_encrypt_option(
         codec="json",
         user_fk=None,
         encrypt=True,
-        session=mock_session.return_value.__enter__.return_value,
     )
 
 
@@ -321,61 +315,4 @@ def test_shared_accessor_list_uses_null_user_fk(
         resource_uuid=None,
         page=0,
         page_size=10,
-    )
-
-
-@patch("superset.extensions.storage.persistent.Session")
-@patch("superset.extensions.storage.persistent.db")
-@patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
-def test_persistent_state_compare_and_set_is_user_scoped(
-    mock_dao: MagicMock, mock_db: MagicMock, mock_session: MagicMock, app: Flask
-) -> None:
-    """compare_and_set encodes the new value and passes the expected one as is."""
-    ctx = create_context()
-    mock_dao.compare_and_set.return_value = True
-
-    with app.app_context(), use_context(ctx):
-        set_user(42)
-        written = PersistentState.compare_and_set(
-            "prefs", {"theme": "dark"}, {"theme": "light"}
-        )
-
-    assert written is True
-    mock_dao.compare_and_set.assert_called_once_with(
-        "test-org.test-ext",
-        "prefs",
-        {"theme": "dark"},
-        json.dumps({"theme": "light"}).encode(),
-        codec="json",
-        user_fk=42,
-        encrypt=False,
-        session=mock_session.return_value.__enter__.return_value,
-    )
-
-
-@patch("superset.extensions.storage.persistent.Session")
-@patch("superset.extensions.storage.persistent.db")
-@patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
-def test_shared_accessor_compare_and_set_uses_null_user_fk(
-    mock_dao: MagicMock, mock_db: MagicMock, mock_session: MagicMock, app: Flask
-) -> None:
-    ctx = create_context()
-    mock_dao.compare_and_set.return_value = False
-    accessor = SharedPersistentStateAccessor()
-
-    with app.app_context(), use_context(ctx):
-        written = accessor.compare_and_set(
-            "config", None, {"v": 1}, PersistentSetOptions(encrypt=True)
-        )
-
-    assert written is False
-    mock_dao.compare_and_set.assert_called_once_with(
-        "test-org.test-ext",
-        "config",
-        None,
-        json.dumps({"v": 1}).encode(),
-        codec="json",
-        user_fk=None,
-        encrypt=True,
-        session=mock_session.return_value.__enter__.return_value,
     )
