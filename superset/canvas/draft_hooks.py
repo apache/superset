@@ -16,8 +16,9 @@
 # under the License.
 """
 The host's side of ``superset_core.canvas.drafts``: who listens to canvas
-draft events, and which handler undoes and redoes each kind of recorded step.
-The draft commands (``superset.commands.canvas.draft``) read both.
+draft events, which handler undoes and redoes each kind of recorded step, and
+who is asked before a commit. The draft commands
+(``superset.commands.canvas.draft``) read all three.
 
 An extension registers them while it loads, and a draft's requests call them
 much later, when no extension context is set: each runs in the context of the
@@ -37,7 +38,14 @@ import logging
 from collections.abc import Callable
 from typing import TypeVar
 
-from superset_core.canvas.drafts import CanvasDraftEvent, DraftStep, DraftStepHandler
+from flask_babel import gettext as _
+from superset_core.canvas.drafts import (
+    CanvasDraftEvent,
+    CommitRefusedError,
+    DraftCommit,
+    DraftStep,
+    DraftStepHandler,
+)
 
 from superset.extensions.context import (
     bind_context,
@@ -48,11 +56,16 @@ from superset.extensions.context import (
 
 logger = logging.getLogger(__name__)
 
+#: The code of a commit refused by a participant that failed.
+PARTICIPANT_FAILED = "CommitParticipantFailed"
+
 _listeners: list[Callable[[CanvasDraftEvent], None]] = []
 _handlers: dict[str, DraftStepHandler] = {}
+_participants: list[Callable[[DraftCommit], None]] = []
 
 _ListenerT = TypeVar("_ListenerT", bound=Callable[[CanvasDraftEvent], None])
 _HandlerT = TypeVar("_HandlerT", bound=DraftStepHandler)
+_ParticipantT = TypeVar("_ParticipantT", bound=Callable[[DraftCommit], None])
 
 
 class _ExtensionStepHandler:
@@ -140,3 +153,38 @@ def register_step_handler(kind: str, handler: _HandlerT) -> _HandlerT:
 def step_handler(kind: str) -> DraftStepHandler | None:
     """The handler of the steps of ``kind``, if anything registered one."""
     return _handlers.get(kind)
+
+
+def register_commit_participant(participant: _ParticipantT) -> _ParticipantT:
+    """Ask ``participant`` before each commit; return it."""
+    _participants.append(bind_context(participant, get_current_extension_context()))
+    return participant
+
+
+def has_commit_participants() -> bool:
+    """Whether anything is asked before a commit."""
+    return bool(_participants)
+
+
+def check_commit(commit: DraftCommit) -> None:
+    """
+    Ask every commit participant about ``commit``, in the order they came;
+    raise the first refusal, as ``CommitRefusedError``.
+    """
+    for participant in list(_participants):
+        try:
+            participant(commit)
+        except CommitRefusedError:
+            raise
+        except Exception as ex:  # pylint: disable=broad-except
+            # Unlike a listener's, its answer decides: one that can't say the
+            # commit may go ahead hasn't said so, and what goes out can't be
+            # taken back.
+            logger.exception("A canvas commit participant failed")
+            raise CommitRefusedError(
+                PARTICIPANT_FAILED,
+                _(
+                    "Something published with this canvas couldn't be checked, "
+                    "so the canvas wasn't published. Try again."
+                ),
+            ) from ex

@@ -68,6 +68,7 @@ CanvasErrorType = Literal[
     "DraftRevisionConflict",
     "CanvasRevisionConflict",
     "WidgetRevisionConflict",
+    "DraftCommitRefused",
 ]
 
 
@@ -304,6 +305,9 @@ class CanvasDraftResponse(_Compact):
     )
     error: str | None = None
     error_type: CanvasErrorType | None = None
+    refusal_code: str | None = Field(
+        default=None, description="The code of a DraftCommitRefused refusal."
+    )
     errors: list[dict[str, Any]] | None = None
     operation: int | None = Field(
         default=None, description="Index of the operation that failed."

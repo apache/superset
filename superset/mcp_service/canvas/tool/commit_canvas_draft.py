@@ -22,7 +22,11 @@ from typing import Any
 
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.canvas.draft import CommitCanvasDraftCommand, load_draft
+from superset.commands.canvas.draft import (
+    BY_AI,
+    CommitCanvasDraftCommand,
+    load_draft,
+)
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import CanvasDraftResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import error_result
@@ -32,7 +36,7 @@ from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
 def _commit_canvas_draft_impl(token: str, revision: int) -> dict[str, Any]:
     try:
         draft = load_draft(token)
-        result = CommitCanvasDraftCommand(token, revision).run()
+        result = CommitCanvasDraftCommand(token, revision, by=BY_AI).run()
     except Exception as ex:  # pylint: disable=broad-except
         if (error := error_result(ex)) is None:
             raise
@@ -70,7 +74,8 @@ def commit_canvas_draft(token: str, revision: int) -> CanvasDraftResponse:
     the canvas changed, or ``WidgetRevisionConflict`` if a shared widget
     changed. Widget conflicts can have ``canvas_changed=false``.
     ``DraftUnavailable`` means the token cannot be used. No conflict publishes
-    partial changes.
+    partial changes. ``DraftCommitRefused``: something that goes out with the
+    canvas isn't published yet, so nothing was; ``error`` says what to do.
     """
     return CanvasDraftResponse.model_validate(
         _commit_canvas_draft_impl(token, revision)

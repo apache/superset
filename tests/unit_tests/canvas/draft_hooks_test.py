@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Canvas draft events and recorded steps (``superset_core.canvas.drafts``):
-what a widget whose content keeps a draft of its own hears of a canvas draft,
-and how the canvas's undo and redo reach its steps.
+Canvas draft events, recorded steps and commit participants
+(``superset_core.canvas.drafts``): what a widget whose content keeps a draft
+of its own hears of a canvas draft, how the canvas's undo and redo reach its
+steps, and how it refuses a commit that would publish the canvas without it.
 """
 
 from __future__ import annotations
@@ -28,10 +29,17 @@ from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
-from superset_core.canvas.drafts import CanvasDraftEvent, DraftStep, DraftStepError
+from superset_core.canvas.drafts import (
+    CanvasDraftEvent,
+    CommitRefusedError,
+    DraftCommit,
+    DraftStep,
+    DraftStepError,
+)
 
 from superset.canvas.definition.schemas import DraftOperationsRequest, empty_definition
 from superset.commands.canvas.exceptions import (
+    DraftCommitRefusedError,
     DraftConflictError,
     DraftStepFailedError,
 )
@@ -74,11 +82,13 @@ class Handler:
 
 @pytest.fixture(autouse=True)
 def draft_hooks_registry(mocker: MockerFixture) -> None:
-    """Each test starts with no listener and no step handler, and leaves none."""
+    """Each test starts with no listener, step handler or participant, and
+    leaves none."""
     from superset.canvas import draft_hooks
 
     mocker.patch.object(draft_hooks, "_listeners", [])
     mocker.patch.dict(draft_hooks._handlers, clear=True)
+    mocker.patch.object(draft_hooks, "_participants", [])
 
 
 @pytest.fixture
@@ -106,7 +116,12 @@ def core_drafts(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     from superset.core.api.core_api_injection import inject_canvas_draft_implementations
 
     # Puts back whatever the app injected, once the test ends.
-    for name in ("on_draft_event", "register_step_handler", "record_step"):
+    for name in (
+        "on_draft_event",
+        "register_step_handler",
+        "record_step",
+        "register_commit_participant",
+    ):
         monkeypatch.setattr(drafts, name, getattr(drafts, name))
     inject_canvas_draft_implementations()
     return drafts
@@ -126,6 +141,26 @@ def handler() -> Handler:
     from superset.canvas import draft_hooks
 
     return draft_hooks.register_step_handler(KIND, Handler())
+
+
+class Participant:
+    """Keeps every commit it was asked about, and refuses while told to."""
+
+    def __init__(self) -> None:
+        self.asked: list[DraftCommit] = []
+        self.refusal: CommitRefusedError | None = None
+
+    def __call__(self, commit: DraftCommit) -> None:
+        self.asked.append(commit)
+        if self.refusal is not None:
+            raise self.refusal
+
+
+@pytest.fixture
+def participant() -> Participant:
+    from superset.canvas import draft_hooks
+
+    return draft_hooks.register_commit_participant(Participant())
 
 
 def placed_draft() -> Any:
@@ -480,6 +515,182 @@ def test_the_draft_says_when_its_canvas_moved_on(
     assert drafts.draft_payload(drafts.load_draft(draft.token))["canvasChanged"]
 
 
+def test_a_participant_refuses_a_commit_and_nothing_is_published(
+    store: Store,
+    widget_types: FakeResolver,
+    events: list[CanvasDraftEvent],
+    participant: Participant,
+    mocker: MockerFixture,
+) -> None:
+    """An agent's commit while the notes it changed wait for their owner."""
+    from superset.commands.canvas import draft as drafts
+
+    draft = placed_draft()
+    draft = drafts.RecordCanvasDraftStepCommand(draft.token, step("v1")).run()
+    participant.refusal = CommitRefusedError(
+        "NOTES_UNPUBLISHED", "Have the person publish the canvas from its page."
+    )
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+
+    with pytest.raises(DraftCommitRefusedError) as excinfo:
+        drafts.CommitCanvasDraftCommand(
+            draft.token, draft.revision, by=drafts.BY_AI
+        ).run()
+
+    assert excinfo.value.to_payload() == {
+        "message": "Have the person publish the canvas from its page.",
+        "error_type": "DraftCommitRefused",
+        "refusalCode": "NOTES_UNPUBLISHED",
+        "draftRevision": draft.revision,
+    }
+    assert excinfo.value.status == 409
+    command.assert_not_called()
+    # The draft is as it was, and nothing heard of a commit.
+    assert drafts.load_draft(draft.token).to_value() == draft.to_value()
+    assert events == []
+    (asked,) = participant.asked
+    assert asked == DraftCommit(
+        canvas_id=7,
+        token=draft.token,
+        widget_types={"chart-1": "chart"},
+        steps=(step("v1"),),
+        by="ai",
+    )
+
+
+def test_a_participant_that_lets_the_commit_through_publishes_it(
+    store: Store,
+    widget_types: FakeResolver,
+    events: list[CanvasDraftEvent],
+    participant: Participant,
+    mocker: MockerFixture,
+) -> None:
+    """The canvas page's commit, once what goes with the canvas went out."""
+    from superset.commands.canvas import draft as drafts
+
+    draft = placed_draft()
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    command.return_value.run.return_value = MagicMock(revision=4)
+
+    result = drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    assert result.revision == 4
+    assert [commit.by for commit in participant.asked] == ["user"]
+    assert [event.kind for event in events] == ["committed"]
+    assert store.entries == {}
+
+
+def test_a_draft_that_writes_nothing_is_asked_about_too(
+    store: Store,
+    widget_types: FakeResolver,
+    participant: Participant,
+    mocker: MockerFixture,
+) -> None:
+    """Recorded steps alone change no canvas, and still publish the notes."""
+    from superset.commands.canvas import draft as drafts
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    draft = drafts.RecordCanvasDraftStepCommand(draft.token, step("v1")).run()
+    participant.refusal = CommitRefusedError("NOTES_UNPUBLISHED", "Not yet.")
+
+    with pytest.raises(DraftCommitRefusedError):
+        drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    (asked,) = participant.asked
+    assert asked.widget_types == {}
+    assert asked.steps == (step("v1"),)
+    assert drafts.load_draft(draft.token).revision == draft.revision
+
+
+def test_the_first_refusal_ends_the_commit(
+    store: Store,
+    widget_types: FakeResolver,
+    participant: Participant,
+) -> None:
+    from superset.canvas import draft_hooks
+    from superset.commands.canvas import draft as drafts
+
+    draft = placed_draft()
+    participant.refusal = CommitRefusedError("FIRST", "The first says no.")
+    second = draft_hooks.register_commit_participant(Participant())
+    with pytest.raises(DraftCommitRefusedError, match="first says no"):
+        drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    assert len(participant.asked) == 1
+    assert second.asked == []
+
+
+def test_a_participant_that_breaks_refuses_the_commit(
+    store: Store,
+    widget_types: FakeResolver,
+    events: list[CanvasDraftEvent],
+    mocker: MockerFixture,
+) -> None:
+    """What it would have refused is unknown, and what goes out stays out."""
+    from superset.canvas import draft_hooks
+    from superset.commands.canvas import draft as drafts
+
+    draft = placed_draft()
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+
+    @draft_hooks.register_commit_participant
+    def broken(_commit: DraftCommit) -> None:
+        raise RuntimeError("secret store details")
+
+    with pytest.raises(DraftCommitRefusedError) as excinfo:
+        drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    assert excinfo.value.code == draft_hooks.PARTICIPANT_FAILED
+    assert "secret" not in str(excinfo.value.message)
+    command.assert_not_called()
+    assert events == []
+    assert drafts.load_draft(draft.token).revision == draft.revision
+
+
+def test_a_canvas_that_moved_on_is_refused_before_participants_are_asked(
+    store: Store,
+    widget_types: FakeResolver,
+    participant: Participant,
+    mocker: MockerFixture,
+) -> None:
+    """Nobody is sent to publish what goes with a canvas that can't go out."""
+    from superset.commands.canvas import draft as drafts
+
+    draft = placed_draft()
+    draft.canvas.revision = 4
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+
+    with pytest.raises(DraftConflictError) as excinfo:
+        drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    assert excinfo.value.recovery_type == "CanvasRevisionConflict"
+    assert excinfo.value.draft_revision == draft.revision
+    assert excinfo.value.current_canvas_revision == 4
+    assert participant.asked == []
+    command.assert_not_called()
+
+
+def test_without_participants_a_commit_asks_nothing(
+    store: Store,
+    widget_types: FakeResolver,
+    mocker: MockerFixture,
+) -> None:
+    """A host where nothing registered commits as it always did."""
+    from superset.canvas import draft_hooks
+    from superset.commands.canvas import draft as drafts
+
+    assert not draft_hooks.has_commit_participants()
+    draft = placed_draft()
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    command.return_value.run.return_value = MagicMock(revision=4)
+    check = mocker.spy(draft_hooks, "check_commit")
+
+    assert drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    check.assert_not_called()
+    command.assert_called_once()
+
+
 def test_extensions_reach_the_draft_hooks_through_superset_core(
     store: Store,
     widget_types: FakeResolver,
@@ -506,15 +717,40 @@ def test_extensions_reach_the_draft_hooks_through_superset_core(
         core_drafts.record_step("not-a-token", step("v2"))
 
 
+def test_extensions_take_part_in_commits_through_superset_core(
+    store: Store,
+    widget_types: FakeResolver,
+    core_drafts: ModuleType,
+) -> None:
+    """``register_commit_participant`` returns the participant, so it works as
+    a decorator."""
+    from superset.commands.canvas import draft as drafts
+
+    asked: list[int] = []
+
+    @core_drafts.register_commit_participant
+    def notes_published(commit: DraftCommit) -> None:
+        asked.append(commit.canvas_id)
+        raise core_drafts.CommitRefusedError("NOTES_UNPUBLISHED", "Not yet.")
+
+    draft = placed_draft()
+    with pytest.raises(DraftCommitRefusedError, match="Not yet"):
+        drafts.CommitCanvasDraftCommand(draft.token, draft.revision).run()
+
+    assert asked == [7]
+    refusing = Participant()
+    assert core_drafts.register_commit_participant(refusing) is refusing
+
+
 def test_what_an_extension_registers_runs_in_its_extension_context(
     store: Store,
     widget_types: FakeResolver,
     mocker: MockerFixture,
 ) -> None:
     """
-    An extension registers its listener and step handler while it loads, and
-    a draft's requests call each much later, in that extension's context; the
-    host's own run as they are.
+    An extension registers its listener, step handler and participant while
+    it loads, and a draft's requests call each much later, in that extension's
+    context; the host's own run as they are.
     """
     from superset.canvas import draft_hooks
     from superset.commands.canvas import draft as drafts
@@ -542,6 +778,7 @@ def test_what_an_extension_registers_runs_in_its_extension_context(
     with extension_context(create_manifest("acme", "notes")):
         draft_hooks.on_draft_event(lambda event: heard(event.kind))
         draft_hooks.register_step_handler("edit", steps)
+        draft_hooks.register_commit_participant(lambda _commit: heard("asked"))
     draft_hooks.on_draft_event(
         lambda _event: host.append(get_current_extension_context())
     )
@@ -564,6 +801,7 @@ def test_what_an_extension_registers_runs_in_its_extension_context(
         ("undone", acme),
         ("redo", acme),
         ("redone", acme),
+        ("asked", acme),
         ("committed", acme),
     ]
     assert host == [None, None, None]
