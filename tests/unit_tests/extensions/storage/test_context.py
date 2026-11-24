@@ -158,3 +158,35 @@ def test_bind_context_runs_the_function_in_the_captured_context():
     assert bound.__name__ == "whoami"
     assert get_current_extension_context() is None
     assert bind_context(whoami, None) is whoami
+
+
+def test_a_context_names_a_fixed_user_or_resolves_it_when_asked():
+    """As apache/superset#45894 shapes it: a worker's fixed principal, or a
+    request's, resolved after authentication."""
+    manifest = create_manifest("acme", "tools")
+    users = iter([7, 8])
+
+    with extension_context(manifest, user_id=42) as fixed:
+        assert fixed.user_id == 42
+    with extension_context(manifest, user_id=lambda: next(users)) as resolved:
+        assert (resolved.user_id, resolved.user_id) == (7, 8)
+    with extension_context(manifest) as nobody:
+        assert nobody.user_id is None
+    assert ConcreteExtensionContext(manifest).manifest is manifest
+
+
+def test_a_restored_context_runs_for_whoever_the_call_runs_for(mocker):
+    """The user is the caller's when the host calls the extension, not the
+    user who was signed in while it loaded."""
+    manifest = create_manifest("acme", "tools")
+    with extension_context(manifest, user_id=1):
+        captured = get_current_extension_context()
+    caller = mocker.patch("superset.utils.core.get_user_id", return_value=5)
+
+    with restore_context(captured):
+        assert get_context().user_id == 5
+        caller.return_value = 6
+        assert get_context().user_id == 6
+
+    bound = bind_context(lambda: get_context().user_id, captured)
+    assert bound() == 6
