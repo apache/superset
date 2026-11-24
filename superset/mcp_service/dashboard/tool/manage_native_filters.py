@@ -585,13 +585,16 @@ def _merge_filter_update(  # noqa: C901
     return merged
 
 
-def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
+def _filter_summary(
+    conf: dict[str, Any], existing_ids: set[str] | None = None
+) -> NativeFilterSummary:
     """Summarize a filter (or divider) config for the response.
 
     Returns the id, name, filterType, parent filter IDs, and non-empty targets;
     empty target entries (e.g. for time filters) are dropped so the summary only lists
     real dataset/column targets. All user-controlled and operational fields
     preserve their application values so clients can pass them back verbatim.
+    Parent IDs absent from the dashboard are omitted when ``existing_ids`` is given.
 
     Dividers store their display text under "title" and have no
     "filterType"; both are normalized here so a divider shows up with a
@@ -606,7 +609,7 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
         name=name,
         filter_type=filter_type,
         targets=targets,
-        cascade_parent_ids=native_filter_cascade_parent_ids(conf),
+        cascade_parent_ids=native_filter_cascade_parent_ids(conf, existing_ids),
     )
 
 
@@ -705,8 +708,10 @@ def _apply_cascade_changes(
 
     ``requested_ids`` are the filters whose parents the request set explicitly;
     they are validated against the dashboard as it will be after the request.
-    Every other surviving filter silently loses parents that this request
-    removes, matching the filter bar, so no dangling parent IDs are stored.
+    Already-stored parents absent from the original dashboard are dropped from
+    explicit updates, but new unknown IDs are rejected. Every other surviving
+    filter silently loses parents that this request removes. This cleanup is
+    performed here rather than relying on the frontend to persist it.
     Such filters are appended to ``modified`` when they were not already.
     """
     final_by_id = {
@@ -733,6 +738,17 @@ def _apply_cascade_changes(
             ]
 
     for fid in sorted(requested_ids):
+        stale_parents = {
+            parent
+            for parent in native_filter_cascade_parent_ids(current_by_id.get(fid, {}))
+            if parent not in current_by_id
+        }
+        if stale_parents:
+            final_by_id[fid]["cascadeParentIds"] = [
+                parent
+                for parent in native_filter_cascade_parent_ids(final_by_id[fid])
+                if parent not in stale_parents
+            ]
         _validate_cascade_parents(fid, final_by_id)
 
 
@@ -797,6 +813,11 @@ def _build_native_filters_payload(  # noqa: C901
             cascade_requested_ids.add(config["id"])
 
     _apply_cascade_changes(current_by_id, removed_ids, modified, cascade_requested_ids)
+    updated_filter_ids.extend(
+        conf["id"]
+        for conf in modified
+        if conf["id"] in current_by_id and conf["id"] not in updated_filter_ids
+    )
 
     payload: dict[str, Any] = {}
     if request.remove:
@@ -976,13 +997,14 @@ def manage_native_filters(
             len(updated_ids),
             len(request.remove),
         )
+        existing_ids = {f["id"] for f in configuration if isinstance(f.get("id"), str)}
         return ManageNativeFiltersResponse(
             dashboard_id=request.dashboard_id,
             dashboard_url=dashboard_url,
             added_filter_ids=added_ids,
             updated_filter_ids=updated_ids,
             removed_filter_ids=list(request.remove),
-            filters=[_filter_summary(conf) for conf in configuration],
+            filters=[_filter_summary(conf, existing_ids) for conf in configuration],
         )
 
     except DashboardNotFoundError:

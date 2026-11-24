@@ -2057,17 +2057,24 @@ def _parse_json_metadata(json_metadata_str: str | None) -> Dict[str, Any] | None
     return metadata
 
 
-def native_filter_cascade_parent_ids(conf: Dict[str, Any]) -> List[str]:
+def native_filter_cascade_parent_ids(
+    conf: Dict[str, Any], existing_ids: set[str] | None = None
+) -> List[str]:
     """Return a filter's direct parent filter IDs, ignoring malformed entries.
 
     Dividers never have dependencies, so they always report none.
+    When projecting a dashboard, omit parents absent from ``existing_ids``.
     """
     if _is_divider(conf):
         return []
     parents = conf.get("cascadeParentIds")
     if not isinstance(parents, list):
         return []
-    return [parent for parent in parents if isinstance(parent, str)]
+    return [
+        parent
+        for parent in parents
+        if isinstance(parent, str) and (existing_ids is None or parent in existing_ids)
+    ]
 
 
 def _extract_native_filters(
@@ -2096,6 +2103,11 @@ def _extract_native_filters(
     if not isinstance(native_filters, list):
         return []
 
+    existing_ids = {
+        f["id"]
+        for f in native_filters
+        if isinstance(f, dict) and isinstance(f.get("id"), str)
+    }
     summaries: List[NativeFilterSummary] = []
     for f in native_filters:
         if not isinstance(f, dict):
@@ -2115,7 +2127,7 @@ def _extract_native_filters(
                 name=f.get("title") if is_divider else f.get("name"),
                 filter_type="divider" if is_divider else f.get("filterType"),
                 targets=targets,
-                cascade_parent_ids=native_filter_cascade_parent_ids(f),
+                cascade_parent_ids=native_filter_cascade_parent_ids(f, existing_ids),
             )
         )
     return summaries

@@ -3345,7 +3345,7 @@ async def test_remove_parent_strips_it_from_dependent_filters(
     by_id = {f["id"]: f for f in data["filters"]}
     assert by_id["city"]["cascade_parent_ids"] == ["region"]
     assert by_id["unrelated"]["cascade_parent_ids"] == ["region"]
-    assert data["updated_filter_ids"] == []
+    assert data["updated_filter_ids"] == ["city"]
     # The stored config of the dependent filter is otherwise unchanged.
     expected = _child_filter("city", ["region"])
     assert captured["payload"]["modified"][0] == expected
@@ -3370,6 +3370,7 @@ async def test_remove_parent_strips_it_from_filter_updated_in_same_request(
     assert [m["id"] for m in captured["payload"]["modified"]] == ["city"]
     assert captured["payload"]["modified"][0]["cascadeParentIds"] == []
     assert captured["payload"]["modified"][0]["name"] == "City"
+    assert data["updated_filter_ids"] == ["city"]
 
 
 @pytest.mark.asyncio
@@ -3456,3 +3457,73 @@ async def test_remove_parent_preserves_malformed_dependency_entries(
     assert next(f for f in data["filters"] if f["id"] == "city")[
         "cascade_parent_ids"
     ] == ["region"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("echo_dead_parent", [False, True])
+async def test_dead_parent_read_modify_write(
+    mcp_server: object, echo_dead_parent: bool
+) -> None:
+    """Hidden legacy parents do not prevent editing the visible dependencies."""
+    from superset.mcp_service.dashboard.schemas import _extract_native_filters
+
+    filters = [
+        _child_filter("country", []),
+        _child_filter("region", []),
+        _child_filter("city", ["deleted", "region"]),
+    ]
+    summaries = _extract_native_filters(
+        json.dumps({"native_filter_configuration": filters})
+    )
+    assert summaries[2].cascade_parent_ids == ["region"]
+    # Also exercise the manage response's separate summary path.
+    data, _ = await _manage(
+        mcp_server, filters, {"update": [{"id": "city", "name": "City"}]}
+    )
+    assert data["filters"][2]["cascade_parent_ids"] == ["region"]
+    parents = [*summaries[2].cascade_parent_ids, "country"]
+    if echo_dead_parent:
+        parents.append("deleted")
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "city", "cascade_parent_ids": parents}]},
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "region",
+        "country",
+    ]
+    assert filters[2]["cascadeParentIds"] == ["deleted", "region"]
+
+
+@pytest.mark.asyncio
+async def test_stale_parent_on_another_filter_is_still_unknown(
+    mcp_server: object,
+) -> None:
+    """Only dead parents already stored on this filter may be silently dropped."""
+    data, captured = await _manage(
+        mcp_server,
+        [_child_filter("city", ["deleted"]), _child_filter("region", [])],
+        {"update": [{"id": "region", "cascade_parent_ids": ["deleted"]}]},
+    )
+    assert "not on the dashboard" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_remove_reports_all_trimmed_children_once(mcp_server: object) -> None:
+    """Implicit and explicit child updates are reported without duplicates."""
+    data, captured = await _manage(
+        mcp_server,
+        [
+            _child_filter("country", []),
+            _child_filter("region", ["country"]),
+            _child_filter("city", ["country", "region"]),
+            _child_filter("unrelated", []),
+        ],
+        {"remove": ["country"], "update": [{"id": "region", "name": "Region"}]},
+    )
+    assert data["error"] is None
+    assert data["updated_filter_ids"] == ["region", "city"]
+    assert [f["id"] for f in captured["payload"]["modified"]] == ["region", "city"]

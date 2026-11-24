@@ -2464,7 +2464,10 @@ on update it replaces the current parents and `[]` clears them. Each parent must
 be an existing `filter_select`, `filter_range`, or `filter_time` filter on the
 same dashboard (not a time-grain filter, time-column filter, or divider), and a
 filter cannot depend on itself or create a cycle. Removing a filter also removes
-it from the parents of any filter that depended on it.
+it from the parents of any filter that depended on it, and reports those children
+in `updated_filter_ids`. Reads omit parent IDs absent from the dashboard. When
+updating dependencies, already-stored absent parent IDs are silently dropped;
+genuinely new unknown IDs are rejected.
 
 Dividers are visual separators and are always in scope. When adding or updating
 a `divider` with `manage_native_filters`, use `name` for its title and
