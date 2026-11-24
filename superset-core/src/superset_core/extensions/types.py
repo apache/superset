@@ -25,11 +25,17 @@ Two distinct schemas:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, computed_field, Field  # noqa: I001
+from pydantic import (  # noqa: I001
+    BaseModel,
+    computed_field,
+    Field,
+    field_validator,
+)
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
     PUBLISHER_PATTERN,
+    RESERVED_PUBLISHERS,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
 )
@@ -77,6 +83,24 @@ class BaseExtension(BaseModel):
         default_factory=list,
         description="Permissions required by this extension",
     )
+
+    @field_validator("publisher")
+    @classmethod
+    def _publisher_is_not_reserved(cls, publisher: str) -> str:
+        """Refuse a publisher the host already answers routes for.
+
+        An extension's REST endpoints are served under ``/extensions/`` --
+        the same prefix as ``/extensions/list/`` and
+        ``/extensions/pages/<id>``, which are the host's own. A publisher
+        named for one of those would have its API shadowed by whichever rule
+        Flask matched first, silently, so the name is refused here instead.
+        """
+        if publisher in RESERVED_PUBLISHERS:
+            raise ValueError(
+                f"'{publisher}' is reserved by Superset, which serves "
+                f"/extensions/{publisher}/ itself; choose another publisher"
+            )
+        return publisher
 
     @computed_field(description="Composite extension ID (publisher.name)")  # type: ignore[prop-decorator]
     @property

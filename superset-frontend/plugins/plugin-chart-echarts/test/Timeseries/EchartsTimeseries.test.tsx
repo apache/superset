@@ -1009,33 +1009,36 @@ test.each(['line', 'area', 'categorical line'])(
   },
 );
 
-test('forced categorical temporal Drill by formats the bucket instead of an epoch label', async () => {
-  const onContextMenu = jest.fn();
-  const timestamp = Date.UTC(2003, 9, 1);
-  renderTimeseries({
-    onContextMenu,
-    groupby: [],
-    resolvedTimeGrain: TimeGranularity.MONTH,
-    formData: { ...DEFAULT_FORM_DATA, xAxisForceCategorical: true },
-    xAxis: { label: 'order_date', type: AxisType.Category },
-    coltypeMapping: { order_date: GenericDataType.Temporal },
-  });
-  await getLatestEchartProps().eventHandlers?.contextmenu?.({
-    componentType: 'series',
-    seriesIndex: 0,
-    seriesName: 'Sales',
-    data: [timestamp, 158],
-    name: String(timestamp),
-    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
-  });
-  expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters[0]).toEqual({
-    col: 'order_date',
-    op: '==',
-    val: timestamp,
-    grain: TimeGranularity.MONTH,
-    formattedVal: 'Oct 2003',
-  });
-});
+test.each(['order_date', 'Order date'])(
+  'forced categorical temporal Drill by formats the bucket with axis label %s',
+  async label => {
+    const onContextMenu = jest.fn();
+    const timestamp = Date.UTC(2003, 9, 1);
+    renderTimeseries({
+      onContextMenu,
+      groupby: [],
+      resolvedTimeGrain: TimeGranularity.MONTH,
+      formData: { ...DEFAULT_FORM_DATA, xAxisForceCategorical: true },
+      xAxis: { label, column: 'order_date', type: AxisType.Category },
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+    });
+    await getLatestEchartProps().eventHandlers?.contextmenu?.({
+      componentType: 'series',
+      seriesIndex: 0,
+      seriesName: 'Sales',
+      data: [timestamp, 158],
+      name: String(timestamp),
+      event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters[0]).toEqual({
+      col: 'order_date',
+      op: '==',
+      val: timestamp,
+      grain: TimeGranularity.MONTH,
+      formattedVal: 'Oct 2003',
+    });
+  },
+);
 
 test('ungrained markerless Timeseries Drill by keeps its series-only scope', async () => {
   const onContextMenu = jest.fn();

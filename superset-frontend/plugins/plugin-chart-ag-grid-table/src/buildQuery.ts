@@ -77,6 +77,9 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
     extra_form_data,
   } = formData;
   const queryMode = getQueryMode(formData);
+  const isSemanticView = formData.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  );
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
@@ -203,6 +206,7 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
+            ...(isSemanticView ? { isColumnReference: true } : {}),
           } as AdhocColumn;
           temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
@@ -242,6 +246,9 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       ['csv', 'xlsx'].includes(formData?.result_format || '') ||
       (formData?.result_format === 'json' &&
         formData?.result_type === 'results');
+    const isFileExport = ['csv', 'xlsx'].includes(
+      formData?.result_format || '',
+    );
 
     if (isDownloadQuery) {
       moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
@@ -747,7 +754,10 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
           ? getTotalsMetrics(metrics ?? [], totalsAggregate)
           : undefined;
 
-    if (showAggregateTotals || rawSummaryColumns.length > 0) {
+    if (
+      !isFileExport &&
+      (showAggregateTotals || rawSummaryColumns.length > 0)
+    ) {
       // Start from the original, pre-filter extras (captured before any AG Grid
       // complexWhere/havingClause fragments were merged in above) rather than
       // trying to subtract those fragments back out of the now-combined

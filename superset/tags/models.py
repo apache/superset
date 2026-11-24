@@ -90,7 +90,10 @@ class Tag(CoreTag, AuditMixinNullable):
     __tablename__ = "tag"
     id = Column(Integer, primary_key=True)
     name = Column(String(250), unique=True)
-    type = Column(Enum(TagType))
+    # VARCHAR on Postgres, native enum elsewhere; see ``TaggedObject.object_type``.
+    type = Column(
+        Enum(TagType).with_variant(Enum(TagType, native_enum=False), "postgresql")
+    )
     description = Column(Text)
 
     objects = relationship(
@@ -119,7 +122,18 @@ class TaggedObject(Model, AuditMixinNullable):
     # slices FK. The original migration (c82ee8a39623) defined no FK here. See
     # issue #35941.
     object_id = Column(Integer)
-    object_type = Column(Enum(ObjectType))
+    # On Postgres, migration 07f9a902af1b converted this column (and ``tag.type``)
+    # to plain VARCHAR and does not guarantee a native ``objecttype`` type
+    # exists. SQLAlchemy 2.0's postgresql "insertmanyvalues" feature casts each
+    # bound parameter to its column type's DDL name (``p2::objecttype``) when
+    # inserting two or more rows at once, which fails if that type is absent.
+    # The Postgres variant is a non-native enum so the model matches the
+    # VARCHAR column. Stored values remain the enum member names and no CHECK
+    # constraint is added. Other dialects keep the native enum, deliberately
+    # unchanged so Alembic sees no new difference against their existing columns.
+    object_type = Column(
+        Enum(ObjectType).with_variant(Enum(ObjectType, native_enum=False), "postgresql")
+    )
 
     tag = relationship(
         "Tag",

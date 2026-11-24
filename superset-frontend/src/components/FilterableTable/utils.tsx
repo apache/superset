@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core/translation';
 import { safeHtmlSpan } from '@superset-ui/core';
 import { JsonModal } from '../JsonModal';
 import { safeJsonObjectParse } from '../JsonModal/utils';
+import { TextModal } from '../TextModal';
 import { NULL_STRING, CellDataType } from './useCellContentParser';
 
 type CellParams = {
@@ -29,8 +30,24 @@ type CellParams = {
 
 type Params = CellParams & {
   allowHTML?: boolean;
+  expandLongText?: boolean;
   getCellContent?: (args: CellParams) => string;
 };
+
+/**
+ * Plain-text values longer than this many characters open in a text modal
+ * when `expandLongText` is enabled. Column width is not known at render
+ * time, so a character count stands in for "wider than the cell".
+ */
+export const LONG_TEXT_THRESHOLD = 100;
+
+/**
+ * Whether a string value needs a modal to be read in full: either it is
+ * longer than the threshold, or it spans several lines, which the
+ * single-line grid row cuts off after the first line.
+ */
+export const isLongText = (value: string): boolean =>
+  value.length > LONG_TEXT_THRESHOLD || value.includes('\n');
 
 // Result cells carry untrusted warehouse data, so HTML rendering is opt-in:
 // even sanitized markup keeps active capabilities (img/video fetch beacons,
@@ -41,6 +58,7 @@ export const renderResultCell = ({
   getCellContent,
   columnKey,
   allowHTML = false,
+  expandLongText = false,
 }: Params) => {
   const cellNode =
     getCellContent?.({ cellData, columnKey }) ?? String(cellData);
@@ -59,7 +77,28 @@ export const renderResultCell = ({
     );
   }
   if (allowHTML && typeof cellData === 'string') {
-    return safeHtmlSpan(cellNode);
+    const htmlNode = safeHtmlSpan(cellNode);
+    // Only real markup takes this branch. Plain text falls through so long
+    // or multi-line values still get the modal.
+    if (typeof htmlNode !== 'string') {
+      return htmlNode;
+    }
+  }
+  // The modal body and the copied text use the raw value; the in-grid
+  // trigger keeps the formatted cell content.
+  if (
+    expandLongText &&
+    typeof cellData === 'string' &&
+    cellNode &&
+    isLongText(cellData)
+  ) {
+    return (
+      <TextModal
+        modalTitle={t('Cell content')}
+        value={cellData}
+        triggerNode={cellNode}
+      />
+    );
   }
   return cellNode;
 };

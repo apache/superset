@@ -23,6 +23,7 @@ import contextlib
 import copy
 import re
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -1350,6 +1351,205 @@ def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
         "SUM(CASE WHEN a > {{ 1 + 1 }} THEN 1 END)",
         "a>2",
     )
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    ["a : b", "2024-02-01 : 2024-01-01"],
+)
+def test_get_sqla_query_rejects_a_bad_range_in_a_second_temporal_filter(
+    database: Database, time_range: str
+) -> None:
+    """
+    Building the SQL parses every temporal filter, not just the one the query
+    context was built from, so a bad range in any of them is a bad request.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="other_ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        table.get_sqla_query(
+            columns=["a"],
+            metrics=[],
+            granularity="ds",
+            is_timeseries=False,
+            row_limit=100,
+            filter=[
+                # The range the query context is built from, which is parsed
+                # and reported on well before this point.
+                {
+                    "col": "ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "2024-01-01 : 2024-12-31",
+                },
+                {
+                    "col": "other_ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": time_range,
+                },
+            ],
+        )
+
+    assert "other_ds" in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "filters,message",
+    [
+        pytest.param(
+            [
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+                {"col": "other_ds", "val": "a : b"},
+            ],
+            "Cannot parse time string [a]",
+            id="unreadable range in the last temporal filter",
+        ),
+        pytest.param(
+            [
+                {"col": "other_ds", "val": "a : b"},
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+            ],
+            "Cannot parse time string [a]",
+            id="unreadable range in an earlier temporal filter",
+        ),
+        pytest.param(
+            [
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+                {"col": "other_ds", "val": "2024-02-01 : 2024-01-01"},
+            ],
+            "From date cannot be larger than to date",
+            id="reversed range in the last temporal filter",
+        ),
+    ],
+)
+def test_processing_time_offsets_rejects_a_bad_temporal_range(
+    database: Database, filters: list[dict[str, str]], message: str
+) -> None:
+    """
+    A time comparison parses the temporal filters twice, once to find the
+    enclosing range and once to shift each of them, and neither is covered by
+    the parsing the query context was built from.
+
+    The two ways a range fails arrive as different exceptions, so both have to
+    be caught for the answer to be a 400. A range the parser cannot read raises
+    ``TimeRangeParseFailError``, which is a marshmallow ``ValidationError``; a
+    range whose bounds are the wrong way round raises a bare ``ValueError``.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="other_ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+    query_object = QueryObject(
+        datasource=table,
+        columns=["a"],
+        metrics=[],
+        is_timeseries=False,
+        row_limit=10,
+        time_offsets=["1 week ago"],
+        from_dttm=datetime(2024, 1, 1),
+        to_dttm=datetime(2024, 12, 31),
+        filters=[
+            {"col": flt["col"], "op": FilterOperator.TEMPORAL_RANGE, "val": flt["val"]}
+            for flt in filters
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        # The index column is absent from the frame, which is what sends a
+        # relative offset down the branch that shifts every temporal filter.
+        table.processing_time_offsets(pd.DataFrame({"a": [1, 2]}), query_object)
+
+    assert message in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "offset,message",
+    [
+        pytest.param(
+            "2024-01-01:2024-12-31",
+            "Cannot parse time string [2024-01-01:2024-12-31]",
+            id="colon without the surrounding spaces",
+        ),
+        pytest.param(
+            "2024-02-01 : 2024-01-01",
+            "From date cannot be larger than to date",
+            id="reversed bounds",
+        ),
+    ],
+)
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_processing_time_offsets_rejects_a_bad_date_range_offset(
+    database: Database, offset: str, message: str
+) -> None:
+    """
+    A date-range time offset that cannot be used is a bad request too.
+
+    ``is_valid_date_range`` splits the offset on ``:`` while the range parser
+    wants ``" : "``, so an offset written without the spaces passes the check
+    and is then sent down this branch, where it cannot be read. That failure is
+    a marshmallow ``ValidationError``, which is not a ``ValueError``, while
+    reversed bounds fail as a bare ``ValueError``.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+    query_object = QueryObject(
+        datasource=table,
+        columns=["a"],
+        metrics=[],
+        is_timeseries=False,
+        row_limit=10,
+        time_offsets=[offset],
+        from_dttm=datetime(2024, 1, 1),
+        to_dttm=datetime(2024, 12, 31),
+        filters=[
+            {
+                "col": "ds",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        table.processing_time_offsets(pd.DataFrame({"a": [1, 2]}), query_object)
+
+    assert message in excinfo.value.message
 
 
 def test_cache_key_stable_across_query_build(database: Database) -> None:
@@ -3790,6 +3990,47 @@ def test_calculated_column_series_limit_join_on_is_parenthesized(
     )
 
 
+def test_series_limit_others_with_shortened_series_label(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    "Group remaining as Others" finds the series column of the limit subquery
+    when the engine shortens its label, as Oracle before 12.2 does past 30 bytes.
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    column_name = "c" * 29
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name=column_name, type="INTEGER")],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+    mocker.patch.object(
+        table.db_engine_spec,
+        "make_label_compatible",
+        side_effect=lambda label, _database=None: (
+            f"short_{len(label)}" if len(label) > 30 else label
+        ),
+    )
+
+    sqla_query = table.get_sqla_query(
+        groupby=[column_name],
+        metrics=["count"],
+        series_columns=[column_name],
+        series_limit=10,
+        group_others_when_limit_reached=True,
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert "AS short_31" in sql
+    assert "series_limit.short_31 IS NOT NULL" in sql
+
+
 def test_calculated_column_top_groups_predicate_is_parenthesized(
     database: Database,
 ) -> None:
@@ -4103,6 +4344,44 @@ def test_adhoc_column_type_probe_propagates_db_error(database: Database) -> None
 
     assert db_error_message in str(excinfo.value)
     assert not isinstance(excinfo.value, ColumnNotFoundException)
+
+
+def test_adhoc_column_type_probe_db_error_names_the_expression(
+    database: Database,
+) -> None:
+    """
+    A database rejecting a user-authored adhoc expression (e.g. an unsupported
+    function) is reported against the expression, as a warning-level error.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.errors import ErrorLevel
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "DATE_PARSE(a, '%Y%m%d')",
+        "label": "d",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=SupersetGenericDBErrorException("no such function: DATE_PARSE"),
+    ):
+        with pytest.raises(SupersetGenericDBErrorException) as excinfo:
+            table.adhoc_column_to_sqla(adhoc_col, force_type_check=True)
+
+    assert "DATE_PARSE(a, '%Y%m%d')" in excinfo.value.error.message
+    assert "no such function: DATE_PARSE" in excinfo.value.error.message
+    assert excinfo.value.error.level == ErrorLevel.WARNING
 
 
 def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
@@ -7084,3 +7363,58 @@ def test_not_in_filter_null_check_uses_the_engine_spec_hook(
     kql = compile_not_in()
     assert "isnull(state)" in kql
     assert "IS NULL" not in kql
+
+
+def test_get_query_result_leaves_a_custom_operation_fault_unwrapped(
+    database: "Database",
+) -> None:
+    """
+    A fault inside a custom operation must not be reported as a bad request.
+
+    An operation registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` is the
+    operator's own code. ``exec_post_processing`` leaves its exceptions alone,
+    and this path must not convert them either, or a bug in that operation
+    answers 400 and tells the caller their request was malformed.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    def _raise_type_error(df: pd.DataFrame, **options: Any) -> pd.DataFrame:
+        raise TypeError("a fault inside the operator's own code")
+
+    table = SqlaTable(table_name="t", database=database)
+    df = pd.DataFrame({"metric": [1.0, 2.0]})
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "_raise_type_error"}],
+    )
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        patch.dict(
+            "superset.common.query_object.current_app.config",
+            {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_raise_type_error]},
+        ),
+        pytest.raises(TypeError, match="operator's own code") as excinfo,
+    ):
+        table.get_query_result(query_object)
+
+    assert not isinstance(excinfo.value, QueryObjectValidationError)

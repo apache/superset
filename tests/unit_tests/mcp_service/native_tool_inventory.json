@@ -24,13 +24,13 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 284,
-      "description_chars": 2782,
+      "description_chars": 3286,
       "entry_bytes": {
-        "structured": 8779,
-        "text_only": 6103
+        "structured": 9965,
+        "text_only": 6980
       },
-      "input_schema_bytes": 2951,
-      "output_schema_bytes": 2660
+      "input_schema_bytes": 3309,
+      "output_schema_bytes": 2969
     },
     "create_dataset": {
       "annotations": {
@@ -264,10 +264,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 250,
-      "description_chars": 3577,
+      "description_chars": 3667,
       "entry_bytes": {
-        "structured": 26411,
-        "text_only": 6037
+        "structured": 26509,
+        "text_only": 6135
       },
       "input_schema_bytes": 2037,
       "output_schema_bytes": 20358
@@ -408,10 +408,10 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 261,
-      "description_chars": 692,
+      "description_chars": 703,
       "entry_bytes": {
-        "structured": 1532,
-        "text_only": 1130
+        "structured": 1544,
+        "text_only": 1142
       },
       "input_schema_bytes": 171,
       "output_schema_bytes": 386
@@ -1112,12 +1112,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 146,
-      "description_chars": 1348,
+      "description_chars": 1577,
       "entry_bytes": {
-        "structured": 12912,
-        "text_only": 10786
+        "structured": 13965,
+        "text_only": 11839
       },
-      "input_schema_bytes": 9121,
+      "input_schema_bytes": 9942,
       "output_schema_bytes": 2110
     },
     "open_sql_lab_with_context": {
@@ -1331,12 +1331,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 555995,
-      "text_only": 228596
+      "structured": 558344,
+      "text_only": 230636
     },
     "compact_catalog_bytes": {
-      "structured": 498428,
-      "text_only": 171029
+      "structured": 499916,
+      "text_only": 172208
     },
     "largest_entry": {
       "structured": {
@@ -1344,7 +1344,7 @@
         "name": "update_chart"
       },
       "text_only": {
-        "bytes": 10786,
+        "bytes": 11839,
         "name": "manage_native_filters"
       }
     },

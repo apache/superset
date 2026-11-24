@@ -17,11 +17,25 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { renderResultCell } from './utils';
+import { isLongText, LONG_TEXT_THRESHOLD, renderResultCell } from './utils';
 
 jest.mock('src/components/JsonModal', () => ({
   ...jest.requireActual('src/components/JsonModal'),
   JsonModal: () => <div data-test="mock-json-modal" />,
+}));
+
+jest.mock('src/components/TextModal', () => ({
+  TextModal: ({
+    value,
+    triggerNode,
+  }: {
+    value: string;
+    triggerNode: string;
+  }) => (
+    <div data-test="mock-text-modal" data-value={value}>
+      {triggerNode}
+    </div>
+  ),
 }));
 
 const unexpectedGetCellContent = () => 'none';
@@ -104,4 +118,121 @@ test('should transform cell data by getCellContent for the regular text', () => 
     </>,
   );
   expect(container).toHaveTextContent('regular_text:a');
+});
+
+const longText = 'x'.repeat(LONG_TEXT_THRESHOLD + 1);
+
+const renderCell = (
+  cellData: string | number | null,
+  options: { expandLongText?: boolean; allowHTML?: boolean } = {},
+) =>
+  render(
+    <>
+      {renderResultCell({
+        cellData,
+        columnKey: 'a',
+        expandLongText: true,
+        ...options,
+      })}
+    </>,
+  );
+
+test('isLongText flags values over the threshold or with line breaks', () => {
+  expect(isLongText('x'.repeat(LONG_TEXT_THRESHOLD))).toBe(false);
+  expect(isLongText('x'.repeat(LONG_TEXT_THRESHOLD + 1))).toBe(true);
+  expect(isLongText('short\ntext')).toBe(true);
+  expect(isLongText('short text')).toBe(false);
+});
+
+test('should render TextModal for long text when expandLongText is on', () => {
+  const { getByTestId } = renderCell(longText);
+  expect(getByTestId('mock-text-modal')).toHaveAttribute(
+    'data-value',
+    longText,
+  );
+  expect(getByTestId('mock-text-modal')).toHaveTextContent(longText);
+});
+
+test('should render TextModal for multi-line text when expandLongText is on', () => {
+  const multiLine = 'line one\nline two';
+  const { getByTestId } = renderCell(multiLine);
+  expect(getByTestId('mock-text-modal')).toHaveAttribute(
+    'data-value',
+    multiLine,
+  );
+});
+
+test('should keep the formatted cell content as the TextModal trigger', () => {
+  const { getByTestId } = render(
+    <>
+      {renderResultCell({
+        cellData: longText,
+        columnKey: 'a',
+        expandLongText: true,
+        getCellContent: () => 'formatted',
+      })}
+    </>,
+  );
+  expect(getByTestId('mock-text-modal')).toHaveTextContent('formatted');
+  expect(getByTestId('mock-text-modal')).toHaveAttribute(
+    'data-value',
+    longText,
+  );
+});
+
+test('should not render TextModal for text at the threshold', () => {
+  const atThreshold = 'x'.repeat(LONG_TEXT_THRESHOLD);
+  const { container, queryByTestId } = renderCell(atThreshold);
+  expect(queryByTestId('mock-text-modal')).not.toBeInTheDocument();
+  expect(container).toHaveTextContent(atThreshold);
+});
+
+test('should not render TextModal for short text', () => {
+  const { container, queryByTestId } = renderCell('short text');
+  expect(queryByTestId('mock-text-modal')).not.toBeInTheDocument();
+  expect(container).toHaveTextContent('short text');
+});
+
+test('should not render TextModal for numbers', () => {
+  const longNumber = Number('9'.repeat(LONG_TEXT_THRESHOLD + 1));
+  const { container, queryByTestId } = renderCell(longNumber);
+  expect(queryByTestId('mock-text-modal')).not.toBeInTheDocument();
+  expect(container).toHaveTextContent(String(longNumber));
+});
+
+test('should render NULL rather than TextModal for null', () => {
+  const { container, queryByTestId } = renderCell(null);
+  expect(queryByTestId('mock-text-modal')).not.toBeInTheDocument();
+  expect(container).toHaveTextContent('NULL');
+});
+
+test('should render JsonModal rather than TextModal for long JSON', () => {
+  const longJson = JSON.stringify({ key: longText });
+  const { getByTestId, queryByTestId } = renderCell(longJson);
+  expect(getByTestId('mock-json-modal')).toBeInTheDocument();
+  expect(queryByTestId('mock-text-modal')).not.toBeInTheDocument();
+});
+
+test('should not render TextModal for long text when expandLongText is off', () => {
+  const { container, queryByTestId } = renderCell(longText, {
+    expandLongText: false,
+  });
+  expect(queryByTestId('mock-text-modal')).not.toBeInTheDocument();
+  expect(container).toHaveTextContent(longText);
+});
+
+test('should keep HTML rendering for long text when allowHTML is on', () => {
+  const longHtml = `<b>bold</b>${longText}`;
+  const { container, queryByTestId } = renderCell(longHtml, {
+    allowHTML: true,
+  });
+  expect(queryByTestId('mock-text-modal')).not.toBeInTheDocument();
+  expect(container.querySelector('b')).toBeInTheDocument();
+});
+
+test('should open the text modal for plain multi-line text when allowHTML is on', () => {
+  const { queryByTestId } = renderCell('first line\nsecond line', {
+    allowHTML: true,
+  });
+  expect(queryByTestId('mock-text-modal')).toBeInTheDocument();
 });

@@ -16,10 +16,11 @@
 # under the License.
 
 from collections.abc import Callable, Iterator
+from copy import deepcopy
 from dataclasses import replace
 from datetime import date, datetime, time, timezone
 from itertools import permutations
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, Mock
 from zoneinfo import ZoneInfo
 
@@ -41,6 +42,7 @@ from superset_core.semantic_layers.types import (
     Metric,
     Operator,
     OrderDirection,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticRequest,
@@ -83,7 +85,7 @@ from superset.semantic_layers.mapper import (
     ValidatedQueryObject,
     ValidatedQueryObjectFilterClause,
 )
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, QueryObjectDict
 from superset.utils.core import FilterOperator
 
 # Alias for convenience
@@ -442,6 +444,9 @@ def test_get_filters_from_extras_rejects_sql(extras: dict[str, str]) -> None:
     [
         {"where": "customer_id > 100"},
         {"having": "SUM(sales) > 1000"},
+        {"having": "SUM(sales) != 1000"},
+        {"having": "MAX(category) NOT LIKE 'a%'"},
+        {"having": "MAX(category) NOT ILIKE 'A%'"},
         {"where": "region = 'US'", "having": "COUNT(*) > 10"},
     ],
 )
@@ -619,6 +624,20 @@ def test_convert_query_object_filter_ilike(
         assert result is not None
         assert len(result) == 1
         converted: FilterExpression = next(iter(result))
+        if expected == Operator.NOT_ILIKE:
+            assert isinstance(converted, OrFilter)
+            assert (
+                Filter(
+                    PredicateType.WHERE,
+                    all_dimensions["category"],
+                    Operator.IS_NULL,
+                    None,
+                )
+                in converted.filters
+            )
+            converted = next(
+                leaf for leaf in converted.filters if leaf.operator == expected
+            )
         assert isinstance(converted, Filter)
         assert converted.operator == expected
         assert converted.column == all_dimensions["category"]
@@ -1613,7 +1632,7 @@ def test_get_grain_time_axis_column_returns_granularity_when_set(
     """Legacy path: ``granularity`` short-circuits scanning ``columns``."""
     qo = mocker.Mock()
     qo.granularity = "order_date"
-    assert _get_grain_time_axis_column(qo, {}) == "order_date"
+    assert _get_grain_time_axis_column(qo, {}, ()) == "order_date"
 
 
 def test_get_grain_time_axis_column_finds_temporal_in_columns(
@@ -1637,7 +1656,10 @@ def test_get_grain_time_axis_column_finds_temporal_in_columns(
     qo = mocker.Mock()
     qo.granularity = None
     qo.columns = ["category", "order_date"]
-    assert _get_grain_time_axis_column(qo, all_dims) == "order_date"
+    assert (
+        _get_grain_time_axis_column(qo, all_dims, tuple(all_dims.values()))
+        == "order_date"
+    )
 
 
 def test_get_grain_time_axis_column_skips_unknown_columns(
@@ -1656,7 +1678,7 @@ def test_get_grain_time_axis_column_skips_unknown_columns(
     qo.granularity = None
     qo.columns = ["does_not_exist", "category"]
     # No temporal dim in columns — returns None.
-    assert _get_grain_time_axis_column(qo, all_dims) is None
+    assert _get_grain_time_axis_column(qo, all_dims, tuple(all_dims.values())) is None
 
 
 def test_get_grain_time_axis_column_skips_unparseable_adhoc_columns(
@@ -1676,7 +1698,10 @@ def test_get_grain_time_axis_column_skips_unparseable_adhoc_columns(
     # First column is an adhoc dict without ``isColumnReference`` — raises in
     # ``_normalize_column`` and the loop should keep going.
     qo.columns = [{"label": "unsupported", "sqlExpression": "lower(x)"}, "order_date"]
-    assert _get_grain_time_axis_column(qo, all_dims) == "order_date"
+    assert (
+        _get_grain_time_axis_column(qo, all_dims, tuple(all_dims.values()))
+        == "order_date"
+    )
 
 
 def test_get_grain_time_axis_column_returns_none_on_multiple_temporal_columns(
@@ -1706,7 +1731,7 @@ def test_get_grain_time_axis_column_returns_none_on_multiple_temporal_columns(
     qo = mocker.Mock()
     qo.granularity = None
     qo.columns = ["created_at", "shipped_at"]
-    assert _get_grain_time_axis_column(qo, all_dims) is None
+    assert _get_grain_time_axis_column(qo, all_dims, tuple(all_dims.values())) is None
 
 
 def test_get_grain_time_axis_column_returns_none_when_no_temporal_columns(
@@ -1724,7 +1749,7 @@ def test_get_grain_time_axis_column_returns_none_when_no_temporal_columns(
     qo = mocker.Mock()
     qo.granularity = None
     qo.columns = ["category"]
-    assert _get_grain_time_axis_column(qo, all_dims) is None
+    assert _get_grain_time_axis_column(qo, all_dims, tuple(all_dims.values())) is None
 
 
 def test_convert_query_object_filter_unknown_operator(
@@ -1781,33 +1806,33 @@ def test_validate_query_object_undefined_dimension_error(
         validate_query_object(query_object)
 
 
-def test_validate_query_object_time_grain_without_column_error(
+def test_validate_query_object_text_groupings_ignore_time_grain(
     mock_datasource: MagicMock,
 ) -> None:
-    """
-    Test validation error when time grain provided without time column.
-    """
-    query_object = ValidatedQueryObject(
+    """A field named order_date is still categorical when its metadata says text."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["order_date", "category"],
-        granularity=None,  # No time column
         extras={"time_grain_sqla": "P1D"},
     )
-
-    with pytest.raises(
-        QueryObjectValidationError, match="time column must be specified"
-    ):
-        validate_query_object(query_object)
+    assert validate_query_object(query_object)
+    assert all(
+        dimension.grain is None
+        for dimension in map_query_object(query_object)[0].dimensions
+    )
 
 
 def test_validate_query_object_unsupported_time_grain_error(
-    mock_datasource: MagicMock,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test validation error for unsupported time grain.
     """
-    query_object = ValidatedQueryObject(
+    mock_datasource: MagicMock = _make_grain_variant_datasource(
+        mocker, granularity_dim_grain=Grains.DAY
+    )
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["order_date", "category"],
@@ -1989,14 +2014,31 @@ def test_convert_query_object_filter(
 
     result = _convert_query_object_filter(filter_, all_dimensions)
 
-    assert result == {
-        Filter(
-            type=PredicateType.WHERE,
-            column=all_dimensions["category"],
-            operator=expected_operator,
-            value="Electronics",
-        )
-    }
+    expected: Filter = Filter(
+        type=PredicateType.WHERE,
+        column=all_dimensions["category"],
+        operator=expected_operator,
+        value="Electronics",
+    )
+    assert result == (
+        {
+            OrFilter(
+                frozenset(
+                    {
+                        expected,
+                        Filter(
+                            PredicateType.WHERE,
+                            all_dimensions["category"],
+                            Operator.IS_NULL,
+                            None,
+                        ),
+                    }
+                )
+            )
+        }
+        if filter_op == "!="
+        else {expected}
+    )
 
 
 def test_convert_query_object_filter_like() -> None:
@@ -2155,6 +2197,75 @@ def test_get_results_without_time_offsets(
 
     # Verify DataFrame matches main query result
     pd.testing.assert_frame_equal(result.df, main_df)
+
+
+def test_date_resample_fills_gaps_through_get_results(
+    mock_datasource: MagicMock, mocker: MockerFixture
+) -> None:
+    """Provider DATE results fill chart gaps without shifting the selected range."""
+    mock_datasource.implementation._dimensions = {
+        Dimension("orders.order_date", "order_date", pa.date32())
+    }
+    mock_datasource.implementation.get_table = mocker.Mock(
+        side_effect=[
+            SemanticResult(
+                requests=[],
+                results=pa.table(
+                    {
+                        "order_date": pa.array(
+                            [date(2026, 1, 5), date(2026, 1, 7)], type=pa.date32()
+                        ),
+                        "total_sales": [1, 3],
+                    }
+                ),
+            ),
+        ]
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2026, 1, 5),
+        to_dttm=datetime(2026, 1, 8),
+        metrics=["total_sales"],
+        columns=["order_date"],
+        granularity="order_date",
+        post_processing=[
+            {
+                "operation": "pivot",
+                "options": {
+                    "index": ["order_date"],
+                    "columns": [],
+                    "aggregates": {
+                        "total_sales": {"operator": "mean"},
+                    },
+                },
+            },
+            {
+                "operation": "resample",
+                "options": {"method": "asfreq", "rule": "1D", "fill_value": 0},
+            },
+            {"operation": "flatten"},
+        ],
+    )
+    result: QueryResult = get_results(query)
+    frame: pd.DataFrame = query.exec_post_processing(result.df)
+    assert frame["total_sales"].tolist() == [1, 0, 3]
+    assert frame["order_date"].dt.date.tolist() == [
+        date(2026, 1, 5),
+        date(2026, 1, 6),
+        date(2026, 1, 7),
+    ]
+    main_query: SemanticQuery = mock_datasource.implementation.get_table.call_args_list[
+        0
+    ].args[0]
+    assert main_query.filters is not None
+    conditions: list[Filter] = [
+        item for item in main_query.filters if isinstance(item, Filter)
+    ]
+    assert len(conditions) == len(main_query.filters)
+    assert {(item.operator, item.value) for item in conditions} == {
+        (Operator.GREATER_THAN_OR_EQUAL, datetime(2026, 1, 5)),
+        (Operator.LESS_THAN, datetime(2026, 1, 8)),
+    }
 
 
 def test_get_results_with_single_time_offset(
@@ -5117,10 +5228,11 @@ def test_row_offset_mapping_without_advertised_capability(
     assert queries[0].order[0][0].name == "category"
 
 
+@pytest.mark.parametrize("offset", [0, 2])
 def test_unadvertised_offset_reaches_provider(
-    mock_datasource: MagicMock, mocker: MockerFixture
+    mock_datasource: MagicMock, mocker: MockerFixture, offset: int
 ) -> None:
-    """Do not add host-wide rejection for capable but unadvertised providers."""
+    """Keep first and later page offsets for capable providers."""
     mock_datasource.implementation.features = frozenset()
     result: SemanticResult = SemanticResult(
         requests=[], results=pa.table({"category": ["third"], "total_sales": [3.0]})
@@ -5131,14 +5243,14 @@ def test_unadvertised_offset_reaches_provider(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["category"],
-        row_offset=2,
+        row_offset=offset,
         row_limit=2,
     )
 
     get_results(query_object)
 
     execute.assert_called_once()
-    assert execute.call_args.args[0].offset == 2
+    assert execute.call_args.args[0].offset == offset
     assert execute.call_args.args[0].limit == 2
 
 
@@ -5558,3 +5670,477 @@ def test_legacy_sunburst_dashboard_grain_reaches_semantic_mapper(
         "order_date": Grains.DAY,
         "category": None,
     }
+
+
+def _dormant_grain_datasource(mocker: MockerFixture, dtype: pa.DataType) -> MagicMock:
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.uid = "test_semantic_view"
+    datasource.database = None
+    datasource.fetch_values_predicate = None
+    datasource.implementation = MockSemanticView(
+        dimensions={
+            Dimension("segment.id", "segment", dtype),
+            Dimension("date.raw", "event_time", pa.timestamp("us")),
+            Dimension("date.day", "event_time", pa.timestamp("us"), grain=Grains.DAY),
+            Dimension(
+                "date.month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+            ),
+        },
+        metrics={Metric("revenue", "revenue", pa.float64(), "SUM(revenue)")},
+        features=frozenset(),
+    )
+    return datasource
+
+
+@pytest.mark.parametrize("grain", ["P1D", "P1M"])
+@pytest.mark.parametrize("dtype", [pa.string(), pa.int64(), pa.bool_()])
+@pytest.mark.parametrize(
+    "shape", ["axis", "axis-only", "reference", "query", "legacy", "metric-only"]
+)
+def test_dormant_grain_preserves_non_temporal_grouping(
+    mocker: MockerFixture, grain: str, dtype: pa.DataType, shape: str
+) -> None:
+    """Default, saved and dashboard grains cannot change categorical grouping."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, dtype)
+    columns: list[str | AdhocColumn] = ["segment"]
+    if shape in {"axis", "axis-only", "reference"}:
+        columns = [
+            {
+                "sqlExpression": "segment",
+                "label": "segment",
+                "isColumnReference": True,
+                "timeGrain": grain,
+                "columnType": "BASE_AXIS"
+                if shape in {"axis", "axis-only"}
+                else "SERIES",
+            }
+        ]
+    elif shape == "metric-only":
+        columns = []
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=columns,
+        metrics=["revenue"],
+        granularity="segment" if shape == "legacy" else None,
+        extras={} if shape == "axis-only" else {"time_grain_sqla": grain},
+    )
+    saved: QueryObjectDict = deepcopy(query.to_dict())
+    cache_key: str = query.cache_key()
+    assert validate_query_object(query)
+    mapped: SemanticQuery = map_query_object(query)[0]
+    assert [(dimension.id, dimension.grain) for dimension in mapped.dimensions] == (
+        [] if shape == "metric-only" else [("segment.id", None)]
+    )
+    assert [metric.id for metric in mapped.metrics] == ["revenue"]
+    assert query.to_dict() == saved
+    assert query.cache_key() == cache_key
+
+
+@pytest.mark.parametrize("grain", ["P1D", "P1M", "PT1H"])
+@pytest.mark.parametrize("attached", [True, False])
+def test_dormant_grain_keeps_temporal_validation(
+    mocker: MockerFixture, grain: str, attached: bool
+) -> None:
+    """Only supported temporal grains reach the provider; raw bounds stay raw."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    columns: list[str | AdhocColumn] = ["event_time", "segment"]
+    if attached:
+        columns = [
+            {
+                "sqlExpression": name,
+                "label": name,
+                "columnType": "BASE_AXIS",
+                "isColumnReference": True,
+                "timeGrain": grain,
+            }
+            for name in ["event_time", "segment"]
+        ]
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=columns,
+        metrics=["revenue"],
+        extras={"time_grain_sqla": grain},
+        from_dttm=datetime(2026, 1, 1),
+        to_dttm=datetime(2026, 2, 1),
+    )
+    if grain == "PT1H":
+        with pytest.raises(
+            QueryObjectValidationError,
+            match=(
+                "The time grain is not supported for the time column "
+                "in the Semantic View"
+            ),
+        ):
+            validate_query_object(query)
+        return
+    assert validate_query_object(query)
+    mapped: SemanticQuery = map_query_object(query)[0]
+    assert [(dimension.id, dimension.grain) for dimension in mapped.dimensions] == [
+        ("date.day", Grains.DAY) if grain == "P1D" else ("date.month", Grains.MONTH),
+        ("segment.id", None),
+    ]
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
+    assert {condition.value for condition in conditions} == {
+        datetime(2026, 1, 1),
+        datetime(2026, 2, 1),
+    }
+
+
+@pytest.mark.parametrize("shape", ["query", "axis", "legacy", "legacy-unselected"])
+@pytest.mark.parametrize("unknown", ["type", "reference"])
+def test_dormant_grain_still_refuses_unknown_metadata(
+    mocker: MockerFixture, shape: str, unknown: str
+) -> None:
+    """An unknown type or unresolved reference is not a known categorical field."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.null())
+    name: str = "segment" if unknown == "type" else "missing"
+    columns: list[str | AdhocColumn] = [] if shape == "legacy-unselected" else [name]
+    if shape == "axis":
+        columns = [
+            {
+                "sqlExpression": name,
+                "label": name,
+                "columnType": "BASE_AXIS",
+                "isColumnReference": True,
+                "timeGrain": "P1D",
+            }
+        ]
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=columns,
+        metrics=["revenue"],
+        granularity=name if shape.startswith("legacy") else None,
+        extras={"time_grain_sqla": "P1D"},
+    )
+    expected: str
+    if unknown == "reference":
+        if shape == "axis":
+            expected = "Adhoc dimensions are not supported in Semantic Views"
+        elif shape == "legacy-unselected":
+            expected = "The time column must be defined in the Semantic View dimensions"
+        else:
+            expected = "All dimensions must be defined in the Semantic View"
+    elif shape == "query":
+        expected = "A time column must be specified when a time grain is provided"
+    else:
+        expected = (
+            "The time grain is not supported for the time column in the Semantic View"
+        )
+    with pytest.raises(QueryObjectValidationError, match=expected):
+        validate_query_object(query)
+
+
+@pytest.mark.parametrize("dtype", [pa.date32(), pa.time64("us"), pa.timestamp("us")])
+def test_dormant_grain_retains_each_temporal_type(
+    mocker: MockerFixture, dtype: pa.DataType
+) -> None:
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    datasource.implementation._dimensions = {
+        replace(dimension, type=dtype) if dimension.name == "event_time" else dimension
+        for dimension in datasource.implementation.get_dimensions()
+    }
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["event_time"],
+        metrics=["revenue"],
+        extras={"time_grain_sqla": "P1M"},
+    )
+    assert validate_query_object(query)
+    assert map_query_object(query)[0].dimensions[0].grain == Grains.MONTH
+
+
+def test_dormant_grain_replays_stored_chart_context(mocker: MockerFixture) -> None:
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    datasource.implementation.get_table = mocker.Mock(
+        return_value=SemanticResult(
+            requests=[],
+            results=pa.table(
+                {"segment": ["Books", "Clothing"], "revenue": [500.0, 750.0]}
+            ),
+        )
+    )
+    datasource.get_query_result.side_effect = get_results
+    datasource.column_names = ["segment", "revenue"]
+    datasource.columns = []
+    datasource.type = "semantic_view"
+    datasource.cache_timeout = 0
+    datasource.get_extra_cache_keys.return_value = []
+    datasource.changed_on = None
+    datasource.database = None
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=[
+            {
+                "sqlExpression": "segment",
+                "label": "segment",
+                "columnType": "BASE_AXIS",
+                "isColumnReference": True,
+                "timeGrain": "P1M",
+            }
+        ],
+        metrics=["revenue"],
+        extras={"time_grain_sqla": "P1M"},
+    )
+    context: QueryContext = QueryContext(
+        datasource=datasource,
+        queries=[query],
+        slice_=None,
+        form_data=None,
+        result_type=ChartDataResultType.FULL,
+        result_format=ChartDataResultFormat.JSON,
+        force=True,
+        cache_values={"queries": [query.to_dict()]},
+    )
+    before: str | None = context.query_cache_key(query)
+    payload: dict[str, Any] = ChartDataCommand(context).run()
+    assert payload["queries"][0]["data"] == [
+        {"segment": "Books", "revenue": 500.0},
+        {"segment": "Clothing", "revenue": 750.0},
+    ]
+    assert context.query_cache_key(query) == before
+    assert query.extras["time_grain_sqla"] == "P1M"
+    assert (
+        datasource.implementation.get_table.call_args.args[0].dimensions[0].grain
+        is None
+    )
+
+
+@pytest.mark.parametrize("columns", [[], ["segment"]])
+def test_dormant_grain_ignores_filter_only_temporal_axis(
+    mocker: MockerFixture, columns: list[str | AdhocColumn]
+) -> None:
+    """A time-range axis is not a temporal grouping, including metric-only queries."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=columns,
+        metrics=["revenue"],
+        granularity="event_time",
+        extras={"time_grain_sqla": "PT1H"},
+        from_dttm=datetime(2026, 1, 1),
+        to_dttm=datetime(2026, 2, 1),
+    )
+    assert validate_query_object(query)
+    mapped: SemanticQuery = map_query_object(query)[0]
+    assert [dimension.name for dimension in mapped.dimensions] == columns
+    assert all(dimension.grain is None for dimension in mapped.dimensions)
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
+
+
+@pytest.mark.parametrize("dtype", [pa.string(), pa.int64()])
+@pytest.mark.parametrize("shape", ["axis", "legacy"])
+@pytest.mark.parametrize("grain", ["P1M", "PT1H"])
+def test_dormant_grain_preserves_advertised_variants(
+    mocker: MockerFixture, dtype: pa.DataType, shape: str, grain: str
+) -> None:
+    """A non-temporal default type cannot hide an advertised grain variant."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, dtype)
+    datasource.implementation._dimensions.update(
+        {
+            Dimension("segment.day", "segment", dtype, grain=Grains.DAY),
+            Dimension("segment.month", "segment", dtype, grain=Grains.MONTH),
+        }
+    )
+    columns: list[str | AdhocColumn] = ["segment"]
+    if shape == "axis":
+        columns = [
+            {
+                "sqlExpression": "segment",
+                "isColumnReference": True,
+                "columnType": "BASE_AXIS",
+                "timeGrain": grain,
+            }
+        ]
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=columns,
+        metrics=["revenue"],
+        granularity="segment" if shape == "legacy" else None,
+        extras={"time_grain_sqla": grain},
+    )
+    if grain == "PT1H":
+        with pytest.raises(
+            QueryObjectValidationError,
+            match="The time grain is not supported for the time column",
+        ):
+            validate_query_object(query)
+        return
+    assert validate_query_object(query)
+    mapped: SemanticQuery = map_query_object(query)[0]
+    assert [(dimension.id, dimension.grain) for dimension in mapped.dimensions] == [
+        ("segment.month", Grains.MONTH),
+    ]
+
+
+@pytest.mark.parametrize("columns", [[], ["segment"], ["event_time", "segment"]])
+@pytest.mark.parametrize("bounds", ["none", "start", "end", "both"])
+def test_categorical_legacy_grain_refuses_time_bounds(
+    mocker: MockerFixture, columns: list[str | AdhocColumn], bounds: str
+) -> None:
+    """Refuse bounded categorical axes with a grain; grainless bounds are separate."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=columns,
+        metrics=["revenue"],
+        granularity="segment",
+        extras={"time_grain_sqla": "P1M"},
+        from_dttm=datetime(2026, 1, 1) if bounds in {"start", "both"} else None,
+        to_dttm=datetime(2026, 2, 1) if bounds in {"end", "both"} else None,
+    )
+    if bounds != "none":
+        with pytest.raises(
+            QueryObjectValidationError,
+            match="The time grain is not supported for the time column",
+        ):
+            validate_query_object(query)
+        return
+    assert validate_query_object(query)
+    mapped: SemanticQuery = map_query_object(query)[0]
+    assert [dimension.name for dimension in mapped.dimensions] == columns
+    assert all(dimension.grain is None for dimension in mapped.dimensions)
+    assert not mapped.filters
+
+
+def test_query_grain_on_text_variants_requires_temporal_axis(
+    mocker: MockerFixture,
+) -> None:
+    """Advertised text variants do not infer an axis for a query-level grain."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    datasource.implementation._dimensions.add(
+        Dimension("segment.month", "segment", pa.string(), grain=Grains.MONTH)
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["segment"],
+        metrics=["revenue"],
+        extras={"time_grain_sqla": "P1M"},
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match="A time column must be specified when a time grain is provided",
+    ):
+        validate_query_object(query)
+
+
+def test_categorical_legacy_attached_grain_refuses_time_bounds(
+    mocker: MockerFixture,
+) -> None:
+    """An attached-only grain must not bypass the categorical legacy refusal."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=[
+            {
+                "sqlExpression": "segment",
+                "isColumnReference": True,
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1M",
+            },
+            "event_time",
+        ],
+        metrics=["revenue"],
+        granularity="segment",
+        from_dttm=datetime(2026, 1, 1),
+        to_dttm=datetime(2026, 2, 1),
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match="The time grain is not supported for the time column",
+    ):
+        validate_query_object(query)
+
+
+@pytest.mark.parametrize("attached", [False, True])
+def test_dormant_grain_launch_shapes_keep_dashboard_time_range(
+    mocker: MockerFixture, attached: bool
+) -> None:
+    """Real launch shapes keep date predicates without a categorical legacy axis."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    datasource.type = "semantic_view"
+    columns: list[str | AdhocColumn] = ["segment"]
+    if attached:
+        columns = [
+            {
+                "sqlExpression": "segment",
+                "isColumnReference": True,
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1M",
+            }
+        ]
+    factory: QueryObjectFactory = QueryObjectFactory(
+        {"ROW_LIMIT": 1000, "SAMPLES_ROW_LIMIT": 1000}, mocker.MagicMock()
+    )
+    query: QueryObject = factory.create(
+        parent_result_type=ChartDataResultType.FULL,
+        datasource_model_instance=datasource,
+        columns=columns,
+        metrics=["revenue"],
+        extras={"time_grain_sqla": "P1M"},
+        time_range="2026-01-01 : 2026-02-01",
+        filters=[
+            {
+                "col": "event_time",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-01-01 : 2026-02-01",
+                "isExtra": True,
+            }
+        ],
+    )
+    assert query.granularity is None
+    assert query.from_dttm == datetime(2026, 1, 1)
+    assert query.to_dttm == datetime(2026, 2, 1)
+    assert validate_query_object(query)
+    mapped: SemanticQuery = map_query_object(cast(ValidatedQueryObject, query))[0]
+    assert [(dimension.id, dimension.grain) for dimension in mapped.dimensions] == [
+        ("segment.id", None),
+    ]
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
+    assert {condition.value for condition in conditions} == {
+        datetime(2026, 1, 1),
+        datetime(2026, 2, 1),
+    }
+
+
+@pytest.mark.parametrize(
+    "declarations",
+    [None, 7, "GROUP_LIMIT", ["GROUP_LIMIT"], {SemanticViewFeature.GROUP_LIMIT: True}],
+)
+def test_group_limit_requires_projected_enum_grant(
+    mock_datasource: MagicMock,
+    declarations: object,
+) -> None:
+    """Malformed declarations and strings cannot grant group limiting."""
+    mock_datasource.implementation.features = declarations
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=["category"],
+        series_limit=10,
+    )
+    with pytest.raises(
+        QueryObjectValidationError, match="Group limit is not supported"
+    ):
+        validate_query_object(query)
