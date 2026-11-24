@@ -62,6 +62,9 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
 - `superset_core.security.can_access_datasource`, the host's decision whether the current
   user may read a dataset on its own, as its chart data and SQL paths make it. See
   [extension development](../docs/developer_docs/extensions/development.md).
+- `metadata_only` on `superset_core.mcp.tool`: a tool that reads only Superset's metadata
+  database declares it, so that its calls take no warehouse slot. See the
+  [MCP guide](../docs/developer_docs/extensions/mcp.md).
 
 ### Compatibility
 
