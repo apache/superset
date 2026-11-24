@@ -190,4 +190,3 @@ def test_a_restored_context_runs_for_whoever_the_call_runs_for(mocker):
 
     bound = bind_context(lambda: get_context().user_id, captured)
     assert bound() == 6
-
