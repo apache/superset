@@ -26,10 +26,12 @@ its bindings itself (``Widget.build_bindings``), and the host answers each as
 the dataset of its name. A binding has the shape of a ``dataBinding``: a
 dataset, its metrics, dimensions, filters, sort and row limit.
 
-This is a stand-in, not SIP-231's query API. That one has widgets build
-``WidgetQuery`` objects around a ``SemanticQuery`` from a semantic view and
-the props (``QueryMixin.build_queries``); these names stay clear of it, so it
-can land with its own shape.
+This module and ``Widget.build_bindings`` are provisional: a stand-in until
+SIP-231's query API, in which widgets build ``WidgetQuery`` objects around a
+``SemanticQuery`` from a semantic view and the props
+(``QueryMixin.build_queries``). They may change, or be replaced by that API,
+under the package's deprecation policy. Their names differ from that API's,
+so it can land with its own shape.
 
 The host checks every binding a type builds as it checks a stored one when it
 is written, then runs it as the caller, with their dataset access, row level
@@ -47,7 +49,7 @@ A widget type decides what its widgets query, never who may read their data.
 
 A widget type may also refuse a data request (``WidgetDataRefusedError``),
 such as one that names content the widget no longer serves; the host then
-answers with the type's code and message instead of any dataset.
+presents the type's code and message instead of any dataset.
 """
 
 from __future__ import annotations
@@ -59,7 +61,11 @@ from typing import Any
 
 @dataclass(frozen=True)
 class BindingRequest:
-    """A data request for a widget: where the host read it, and what it names."""
+    """
+    A data request for a widget: where the host read the widget, all of which
+    the host has checked the caller may read. The caller's only input is the
+    runtime filters, which the host applies to the bindings a type builds.
+    """
 
     # The canvas, by id or UUID, and the placement the data request names;
     # ``None`` for a saved widget asked for on its own, without a canvas.
@@ -73,13 +79,13 @@ class BindingRequest:
     # it. The host has checked that the draft is the caller's own, and that
     # they may still edit the canvas.
     canvas_draft_token: str | None = None
-    # A draft and a version of the widget's own content that the request names
-    # (the ``X-Widget-Draft`` and ``X-Widget-Version`` headers), for a type
-    # that keeps drafts or versions of what it shows. The host passes them as
-    # they came, unchecked: they locate content, and grant nothing, so a type
-    # that reads them checks that the caller may read what they name.
-    widget_draft_token: str | None = None
-    widget_version: str | None = None
+    # The UUID of the saved version of the canvas the host read the placement
+    # from, when the request previews one, as the canvas page names it in
+    # ``X-Canvas-Version``. Only the canvas's editors can read a version, and
+    # the host has checked that the caller is one. ``None`` when no version is
+    # previewed, or when the placement came from the caller's draft, which
+    # wins over a version.
+    canvas_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -94,22 +100,19 @@ class WidgetBinding:
 class WidgetDataRefusedError(Exception):
     """
     A widget type's refusal of a data request: the host runs none of the
-    widget's bindings and answers with ``code`` and ``message`` as they are,
-    over HTTP with ``status``.
+    widget's bindings and presents the refusal instead of any dataset, with
+    ``code`` and ``message``, the same way whatever the code.
 
     ``code`` is for programs, such as the widget's renderer deciding what to
-    do next. ``message`` reaches whoever made the request, so it must say
-    nothing they may not know. ``status`` is a client error, by default 409
-    for a request that names what the widget no longer serves, but not 401
-    or 407: the frontend answers a 401 by sending the person to sign in.
+    do next: the type's own name for why it refused, which keeps its meaning
+    from one release to the next. The host passes it on without reading it.
+    ``message`` reaches whoever made the request as it is, so it must say
+    nothing they may not know.
     """
 
-    def __init__(self, code: str, message: str, status: int = 409) -> None:
+    def __init__(self, code: str, message: str) -> None:
         if not isinstance(code, str) or not code:
             raise ValueError("a widget data refusal needs a code")
-        if not 400 <= status < 500 or status in {401, 407}:
-            raise ValueError(f"a widget data refusal can't answer {status}")
         super().__init__(message)
         self.code = code
         self.message = message
-        self.status = status

@@ -63,16 +63,12 @@ class GetPlacementDataCommand(BaseCommand):
         runtime_filters: list[RuntimeFilter],
         draft_token: str | None = None,
         version_uuid: UUID | None = None,
-        widget_draft_token: str | None = None,
-        widget_version: str | None = None,
     ) -> None:
         self._id_or_uuid = id_or_uuid
         self._placement_id = placement_id
         self._runtime_filters = runtime_filters
         self._draft_token = draft_token
         self._version_uuid = version_uuid
-        self._widget_draft_token = widget_draft_token
-        self._widget_version = widget_version
         self._bindings: dict[str, dict[str, Any]] = {}
 
     def run(self) -> dict[str, PlacementData]:
@@ -91,6 +87,7 @@ class GetPlacementDataCommand(BaseCommand):
         if canvas is None:
             raise CanvasNotFoundError()
         resolver = get_widget_resolver()
+        version: str | None = None
         if self._draft_token:
             draft = load_draft(self._draft_token)
             if draft.canvas_id != canvas.id:
@@ -99,6 +96,7 @@ class GetPlacementDataCommand(BaseCommand):
             resolver = draft.resolver()
         elif self._version_uuid:
             definition = version_snapshot(canvas, self._version_uuid)["definition"]
+            version = str(self._version_uuid)
         else:
             definition = CanvasDAO.load(canvas)
         node = definition["nodes"].get(self._placement_id)
@@ -118,8 +116,7 @@ class GetPlacementDataCommand(BaseCommand):
                 props,
                 widget_id=widget_id or None,
                 canvas_draft_token=self._draft_token or None,
-                widget_draft_token=self._widget_draft_token or None,
-                widget_version=self._widget_version or None,
+                canvas_version=version,
             ),
         )
         if not self._bindings:

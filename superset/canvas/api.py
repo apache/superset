@@ -35,12 +35,7 @@ from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
 from superset import is_feature_enabled
-from superset.canvas.data import (
-    data_response,
-    PlacementDataRequest,
-    WIDGET_DRAFT_HEADER,
-    WIDGET_VERSION_HEADER,
-)
+from superset.canvas.data import data_response, PlacementDataRequest
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
@@ -1137,15 +1132,12 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             default the stored `dataBinding` as the dataset `main`, as the
             caller, each narrowed by `runtime_filters` on its dataset, and
             answers each as a dataset of its name. One failing binding fails
-            the request. A widget type may refuse the request: it is then
-            answered with the type's `code` and `message`, by default as a
-            409.
+            the request. A widget type may refuse the request instead, which
+            is answered as a 400 whose `error_type` is `WidgetDataRefused`,
+            with the type's own `code`, for programs, and `message`.
             With the `X-Canvas-Draft` header, reads the placement from the
             caller's draft of this canvas; with `X-Canvas-Version`, from that
-            version of it, which only its editors can read. `X-Widget-Draft`
-            and `X-Widget-Version` name a draft and a version of the widget's
-            own content, which go to its widget type unchecked, for a type
-            that keeps them; the type checks them itself. Each dataset
+            version of it, which only its editors can read. Each dataset
             includes the query that ran when the caller can view queries.
           parameters:
           - in: path
@@ -1211,10 +1203,6 @@ class CanvasRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
-            409:
-              description: >-
-                The widget's type refused the request, as its `code` says; a
-                type may answer another client error
             422:
               $ref: '#/components/responses/422'
         """
@@ -1248,8 +1236,6 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 body.runtime_filters,
                 token,
                 version,
-                widget_draft_token=request.headers.get(WIDGET_DRAFT_HEADER),
-                widget_version=request.headers.get(WIDGET_VERSION_HEADER),
             ).run,
             on_error,
         )

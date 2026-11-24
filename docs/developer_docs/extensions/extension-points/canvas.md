@@ -35,11 +35,15 @@ A widget's data is always queried on the server, from what is stored: the caller
 | `POST /api/v1/canvas/<id_or_uuid>/placement/<placement_id>/data` | A placement, from the stored canvas, the caller's draft of it (`X-Canvas-Draft`), or one of its versions (`X-Canvas-Version`) | The canvas, and the binding's dataset |
 | `POST /api/v1/widget/<uuid>/data` | A saved widget on its own, without a canvas | `can_read` on `Widget`, the widget itself, and the binding's dataset |
 
-Both take `{"runtime_filters": [{"datasetId": 1, "column": "country", "values": ["FR"]}]}` and answer `{"result": {"datasets": [{"name": "main", "row_count": 1, "inline_data": [...], "coltypes": {...}}]}}`, one dataset per binding the widget runs (see below); a dataset carries the `query` that ran, and its `language`, only for a caller who may view queries. One failing binding fails the request. Both also take `X-Widget-Draft` and `X-Widget-Version`, which name a draft and a version of the widget's own content for its widget type.
+Both take `{"runtime_filters": [{"datasetId": 1, "column": "country", "values": ["FR"]}]}` and answer `{"result": {"datasets": [{"name": "main", "row_count": 1, "inline_data": [...], "coltypes": {...}}]}}`, one dataset per binding the widget runs (see below); a dataset carries the `query` that ran, and its `language`, only for a caller who may view queries. One failing binding fails the request, and a widget type may refuse it.
 
-The saved widget endpoint is synchronous, and stands in for the asynchronous one [SIP-231](https://github.com/apache/superset/issues/44875) section 8 describes, which answers a manifest of Arrow datasets, or a task while the result isn't cached yet. Its answer, and possibly its path, will change when that lands.
+The saved widget endpoint is synchronous, and stands in for the asynchronous one [SIP-231](https://github.com/apache/superset/issues/44875) section 8 describes, which answers a manifest of Arrow datasets, or a task while the result isn't cached yet. Its answer and its path may change when that lands.
 
 ## A widget type's bindings
+
+:::note Provisional
+`build_bindings` and the types it uses (`BindingRequest`, `WidgetBinding` and `WidgetDataRefusedError`, in `superset_core.widgets.bindings`) are provisional: a stand-in until SIP-231's query API, `QueryMixin.build_queries` with `WidgetQuery` and `SemanticQuery`. They may change, or be replaced by that API, under the [deprecation policy](../dependencies.md#api-evolution).
+:::
 
 By default a widget's data is its props' `dataBinding`, run as the dataset `main`. A widget type whose data isn't in its props, such as one whose props only refer to content it stores elsewhere, builds the bindings itself, by overriding `build_bindings`:
 
@@ -57,17 +61,15 @@ from superset_core.widgets import (
 class Board(Widget):
     @classmethod
     def build_bindings(cls, request: BindingRequest) -> list[WidgetBinding] | None:
-        content = load_content(request.widget_id, request.widget_version)
+        content = load_content(request.props["contentId"], request.canvas_version)
         if content is None:
             raise WidgetDataRefusedError("CONTENT_CHANGED", "Reload this board")
         return [WidgetBinding(name, binding) for name, binding in content.items()]
 ```
 
-- **What it gets.** `BindingRequest` says where the host read the widget: the canvas and placement (both `None` for a saved widget on its own), the saved widget's UUID, its props, and the caller's canvas draft when the placement came from it, which the host has checked. `widget_draft_token` and `widget_version` are whatever `X-Widget-Draft` and `X-Widget-Version` said, passed on unchecked: they locate content and grant nothing, so a type that reads them checks that the caller may read what they name.
+- **What it gets.** `BindingRequest` says where the host read the widget, all of which the host has checked the caller may read: the canvas and placement (both `None` for a saved widget on its own), the saved widget's UUID, its props, the caller's canvas draft when the placement came from it, and `canvas_version`, the UUID of the canvas version the placement came from when the page previews one (`X-Canvas-Version`; `getActiveCanvas().previewedVersion` on the frontend), which only the canvas's editors can read. A draft wins over a version, and `canvas_version` is then `None`. The caller's only input is the runtime filters, which the host applies to the bindings.
 - **What it returns.** A binding has the shape of a `dataBinding`: `datasetId`, `metrics`, `dimensions`, `filters`, `orderBy` and `rowLimit`. Each is answered as the dataset of its name, so names must be unique. Return `None` to keep the host's default.
 - **What the host checks.** Every binding a type builds is checked as a stored one is when it is written, before any of them runs: it must be a valid `dataBinding` with a plain integer `datasetId`, and the caller must be able to read its dataset. A binding without a `datasetId` isn't bound yet and is left out. A request runs at most `CANVAS_WIDGET_MAX_BINDINGS` bindings (20 by default), and Superset's row limits clamp a binding's own. A type that breaks these rules fails the request with a server error. The bindings then run as the caller, narrowed by the runtime filters on their datasets: a widget type decides what its widgets query, never who may read their data.
-- **Refusing.** Raise `WidgetDataRefusedError(code, message, status=409)` to answer a request with your own code and message instead of any dataset, such as one that names content the widget no longer serves. The message reaches the caller, so it must say nothing they may not know.
+- **Refusing.** Raise `WidgetDataRefusedError(code, message)` to refuse a request instead of building bindings, such as one that names content the widget no longer serves; none of the widget's bindings then runs. `code` is for programs: your own name for why you refused, which keeps its meaning from one release to the next, so that your renderer can act on it, such as by reloading. `message` reaches whoever made the request as it is, so it must say nothing they may not know. The host presents a refusal the same way whatever its code: both data endpoints answer it as a 400 whose `error_type` is `WidgetDataRefused`, with your `code` and `message`.
 
-Agents read the same bindings: the MCP tools `preview_widget` and `get_canvas_data` run what a widget type builds, with the same checks, and answer each as a dataset of its name; a refusal reaches them as `error_type` `WidgetDataRefused`, with the type's code in `error_code`.
-
-`build_bindings` stands in for SIP-231's `QueryMixin.build_queries`, which builds `WidgetQuery` objects around a `SemanticQuery`. It will be replaced when that lands.
+Agents read the same bindings: the MCP tools `preview_widget` and `get_canvas_data` run what a widget type builds, with the same checks, and answer each as a dataset of its name, within the tools' own caps (`get_canvas_data` counts every binding against its `max_widgets`). A refusal reaches them as `error_type` `WidgetDataRefused`, with the type's code in `error_code`.
