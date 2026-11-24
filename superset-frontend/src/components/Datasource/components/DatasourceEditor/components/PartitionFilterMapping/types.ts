@@ -63,6 +63,7 @@ export interface PartitionMappingDatasource {
       message: string;
     } | null;
   } | null;
+  supports_partition_filter_mapping?: boolean;
 }
 
 /** Response shape of `POST /api/v1/dataset/<pk>/partition_mapping/preview/`. */
@@ -84,6 +85,7 @@ export interface PartitionMappingPreview {
     | 'escaping'
     | 'transform_escaping'
     | 'unsaved'
+    | 'null_result'
     | 'engine'
     | 'type'
     | 'unconfigured';

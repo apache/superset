@@ -353,6 +353,9 @@ def test_sync_permissions_command_rename_db_in_perms(
     find_pvm_mock = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.find_permission_view_menu"
     )
+    rename_pvm_mock = mocker.patch(
+        "superset.commands.database.sync_permissions.rename_permission_view_menu"
+    )
     mock_catalog_perm = mocker.MagicMock()
     mock_catalog_perm.view_menu.name = "[old_name].[catalog]"
     mock_schema_perm = mocker.MagicMock()
@@ -396,12 +399,15 @@ def test_sync_permissions_command_rename_db_in_perms(
         ]
     )
 
-    assert (
-        mock_catalog_perm.view_menu.name == f"[{database_with_catalog.name}].[catalog1]"
-    )
-    assert (
-        mock_schema_perm.view_menu.name
-        == f"[{database_with_catalog.name}].[catalog1].[schema1]"
+    rename_pvm_mock.assert_has_calls(
+        [
+            mocker.call(
+                mock_catalog_perm, f"[{database_with_catalog.name}].[catalog1]"
+            ),
+            mocker.call(
+                mock_schema_perm, f"[{database_with_catalog.name}].[catalog1].[schema1]"
+            ),
+        ]
     )
     assert mock_dataset.catalog_perm == f"[{database_with_catalog.name}].[catalog1]"
     assert (

@@ -68,7 +68,7 @@ def rejection_message(code: SemanticQueryErrorCode) -> str:
         )
     if code == SemanticQueryErrorCode.UNSUPPORTED_GROUP_OTHERS_METRIC:
         return _(
-            '"Group remaining as Others" cannot be calculated for this metric '
+            'Group remaining as "Others" cannot be calculated for this metric '
             "on a semantic view. Turn it off, or choose a sum, count, minimum, "
             "or maximum metric."
         )
@@ -90,11 +90,13 @@ def rejection_message(code: SemanticQueryErrorCode) -> str:
 class SemanticLayerQueryRejectedError(SupersetErrorException):
     """A deliberate provider rejection that must not become a cached payload."""
 
-    def __init__(self, code: SemanticQueryErrorCode) -> None:
+    def __init__(
+        self, code: SemanticQueryErrorCode, *, message: str | None = None
+    ) -> None:
         self.code: SemanticQueryErrorCode = code
         super().__init__(
             SupersetError(
-                message=sanitize_error_message(rejection_message(code)),
+                message=sanitize_error_message(message or rejection_message(code)),
                 error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
                 level=ErrorLevel.WARNING,
             ),
