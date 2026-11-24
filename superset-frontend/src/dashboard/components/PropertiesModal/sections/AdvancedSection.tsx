@@ -22,7 +22,7 @@ import type { editors } from '@apache-superset/core';
 import { EditorHost } from 'src/core/editors';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
-import { Select } from '@superset-ui/core/components'
+import { Select } from '@superset-ui/core/components';
 
 type EditorAnnotation = editors.EditorAnnotation;
 

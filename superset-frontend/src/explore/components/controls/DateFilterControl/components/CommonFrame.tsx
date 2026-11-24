@@ -17,8 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio'
-import { useMemo } from 'react';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import {
