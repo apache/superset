@@ -219,6 +219,10 @@ from superset.utils.core import (
     write_zip_entry,
 )
 from superset.utils.file import get_filename
+from superset.utils.i18n import (
+    is_asset_translation_enabled,
+    translate_many,
+)
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -344,6 +348,7 @@ BASE_LIST_COLUMNS = [
     "created_by.id",
     "created_by.last_name",
     "dashboard_title",
+    "localized_title",
     "editors.id",
     "editors.label",
     "editors.type",
@@ -1037,6 +1042,16 @@ class DashboardRestApi(
             dashboard_grant = security_manager.has_promiscuous_dashboard_access(
                 DashboardDAO.get_by_id_or_slug(id_or_slug)
             )
+            # This is the payload the dashboard actually renders from, so it is
+            # where batching has to happen: resolve every chart name up front and
+            # the per-chart ``localized_name`` lookups below read from the request
+            # memo instead of calling the translation hook once per chart.
+            if is_asset_translation_enabled():
+                translate_many(
+                    (chart.slice_name for chart in charts),
+                    model_name="Slice",
+                    field_name="slice_name",
+                )
             result = [
                 self._serialize_dashboard_chart(chart, dashboard_grant=dashboard_grant)
                 for chart in charts
