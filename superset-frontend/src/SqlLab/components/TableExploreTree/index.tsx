@@ -218,6 +218,7 @@ export const TableBrowser = ({
 
   const previousDbIdRef = useRef<number | undefined>(dbId);
   const previousCatalogRef = useRef<string | null | undefined>(catalog);
+  const selectedTableIdRef = useRef<string | null>(null);
 
   // Single effect handles both loading and persisting pinned schemas.
   // Using refs to detect source changes avoids the race condition where the
@@ -230,6 +231,7 @@ export const TableBrowser = ({
     if (dbChanged || catalogChanged) {
       previousDbIdRef.current = dbId;
       previousCatalogRef.current = catalog;
+      selectedTableIdRef.current = null;
       setPinnedSchemas(getPinnedSchemasFromStorage(dbId, catalog));
       return;
     }
@@ -305,6 +307,24 @@ export const TableBrowser = ({
   // without needing it as a dependency (we only want to re-open on data change).
   const manuallyOpenedNodesRef = useRef(manuallyOpenedNodes);
   manuallyOpenedNodesRef.current = manuallyOpenedNodes;
+
+  // Collapse the previously previewed table when a different table is selected.
+  const handlePreviewTable = useCallback(
+    (table: TableReference) => {
+      const tableId = `table:${dbId}:${table.schema}:${table.table_name}`;
+      const previousId = selectedTableIdRef.current;
+      if (previousId && previousId !== tableId) {
+        treeRef.current?.close(previousId);
+        setManuallyOpenedNodes(prev =>
+          prev[previousId] ? { ...prev, [previousId]: false } : prev,
+        );
+      }
+      selectedTableIdRef.current = tableId;
+      onPreviewTable?.(table);
+    },
+    [dbId, onPreviewTable],
+  );
+  const previewTableHandler = onPreviewTable ? handlePreviewTable : undefined;
 
   // When treeData changes (e.g., children arrive after an async fetch),
   // react-arborist may reset the open state of nodes that just received children.
@@ -397,7 +417,7 @@ export const TableBrowser = ({
         sortedTables={sortedTables}
         toggleSortColumns={toggleSortColumns}
         showTablePins={Boolean(toolbarViewId)}
-        onPreviewTable={onPreviewTable}
+        onPreviewTable={previewTableHandler}
       />
     ),
     [
@@ -417,7 +437,7 @@ export const TableBrowser = ({
       manuallyOpenedNodes,
       deferredSearchTerm,
       toolbarViewId,
-      onPreviewTable,
+      previewTableHandler,
     ],
   );
 
@@ -430,6 +450,7 @@ export const TableBrowser = ({
         onClick={() => {
           treeRef.current?.closeAll();
           setManuallyOpenedNodes({});
+          selectedTableIdRef.current = null;
         }}
         tooltip={t('Collapse all')}
       />

@@ -130,6 +130,11 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   const table = { schema, table_name: tableName };
   const isManuallyOpen = node.isOpen && !node.data.disableCheckbox;
   const isLoading = loadingNodes[data.id] ?? false;
+  const isTablePreviewMode = Boolean(onPreviewTable);
+  const nodeOpacity =
+    isTablePreviewMode && identifier === 'table'
+      ? getOpacity(!node.isSelected)
+      : getOpacity(data.disableCheckbox);
 
   const renderIcon = () => {
     if (identifier === 'schema') {
@@ -180,10 +185,16 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
 
   // Column nodes use ColumnElement
   if (identifier === 'column' && data.columnData) {
+    const columnOpacity = isTablePreviewMode
+      ? getOpacity(!node.isSelected && !node.parent?.isSelected)
+      : 1;
     return (
       <StyledColumnNode
         className="tree-node"
         style={style}
+        css={css`
+          opacity: ${columnOpacity};
+        `}
         data-selected={node.isSelected}
         onClick={() => node.select()}
       >
@@ -225,7 +236,10 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       data-selected={node.isSelected}
       onClick={e => {
         e.stopPropagation();
-        if (data.type === 'table') onPreviewTable?.(table);
+        if (data.type === 'table' && onPreviewTable) {
+          node.select();
+          onPreviewTable(table);
+        }
         if (node.isLeaf) {
           node.select();
         } else {
@@ -233,7 +247,10 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         }
       }}
       onKeyDown={handleKeyboardActivation(() => {
-        if (data.type === 'table') onPreviewTable?.(table);
+        if (data.type === 'table' && onPreviewTable) {
+          node.select();
+          onPreviewTable(table);
+        }
         if (node.isLeaf) {
           node.select();
         } else {
@@ -244,7 +261,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       <span
         className="tree-node-icon"
         css={css`
-          opacity: ${getOpacity(data.disableCheckbox)};
+          opacity: ${nodeOpacity};
         `}
       >
         {renderIcon()}
@@ -252,7 +269,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       <Typography.Text
         className="tree-node-title"
         css={css`
-          opacity: ${getOpacity(data.disableCheckbox)};
+          opacity: ${nodeOpacity};
         `}
         ellipsis={{
           tooltip: { title: data.name, placement: 'topLeft' },
