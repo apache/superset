@@ -434,14 +434,15 @@ class WidgetRestApi(BaseSupersetModelRestApi):
             narrowed by `runtime_filters` on its dataset, without a canvas, and
             answers each as a dataset of its name, as a placement's data is
             answered. One failing binding fails the request. A widget type may
-            refuse the request: it is then answered with the type's `code` and
-            `message`, by default as a 409. Reading needs access to the widget
+            refuse the request instead, which is answered as a 400 whose
+            `error_type` is `WidgetDataRefused`, with the type's own `code`,
+            for programs, and `message`. Reading needs access to the widget
             and to each binding's dataset. Each dataset includes the query that
-            ran when the caller can view queries. This synchronous
-            endpoint stands in for the asynchronous one SIP-231 section 8
-            describes, which answers a manifest of Arrow datasets, or a task
-            while the result isn't cached yet; its answer and its path may
-            change when that lands.
+            ran when the caller can view queries. This synchronous endpoint
+            stands in for the asynchronous one SIP-231 section 8 describes,
+            which answers a manifest of Arrow datasets, or a task while the
+            result isn't cached yet; its answer and its path may change when
+            that lands.
           parameters:
           - in: path
             schema:
@@ -502,10 +503,6 @@ class WidgetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
-            409:
-              description: >-
-                The widget's type refused the request, as its `code` says; a
-                type may answer another client error
             422:
               $ref: '#/components/responses/422'
         """

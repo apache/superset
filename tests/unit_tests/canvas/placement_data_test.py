@@ -418,15 +418,17 @@ def test_one_failing_binding_fails_the_request(
     assert client.post(URL.format("chart"), json={}).status_code == 403
 
 
-@pytest.mark.parametrize("status", [409, 403])
-def test_a_widget_type_refuses_with_its_code_and_message(
+@pytest.mark.parametrize("code", ["CONTENT_CHANGED", "CONTENT_GONE"])
+def test_the_host_presents_a_widget_types_refusal_as_a_400(
     client: Any,
     full_api_access: None,
     canvas: Any,
     run_binding: MagicMock,
     mocker: MockerFixture,
-    status: int,
+    code: str,
 ) -> None:
+    """The same status whatever the type's code, with the code and message
+    the type wrote."""
     from superset_core.widgets import WidgetDataRefusedError
 
     from superset.widgets.registry import registry
@@ -435,23 +437,21 @@ def test_a_widget_type_refuses_with_its_code_and_message(
         registry["chart"],
         "build_bindings",
         MagicMock(
-            side_effect=WidgetDataRefusedError(
-                "CONTENT_CHANGED", "This widget changed: reload it", status
-            )
+            side_effect=WidgetDataRefusedError(code, "This widget changed: reload it")
         ),
     )
     report = mocker.patch("superset.canvas.api._report_canvas_error")
 
     response = client.post(URL.format("chart"), json={})
 
-    assert response.status_code == status
+    assert response.status_code == 400
     assert response.json == {
         "message": "This widget changed: reload it",
         "error_type": "WidgetDataRefused",
-        "code": "CONTENT_CHANGED",
+        "code": code,
     }
     run_binding.assert_not_called()
-    assert report.call_args.args[2] == status
+    assert report.call_args.args[2] == 400
 
 
 def test_an_already_classified_failure_keeps_its_classification() -> None:

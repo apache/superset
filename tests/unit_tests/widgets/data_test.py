@@ -152,7 +152,7 @@ def test_a_widget_types_refusal_comes_through_with_its_code(
         GetWidgetDataCommand(widget.uuid, []).run()
 
     assert (caught.value.error.status, caught.value.error.code) == (
-        409,
+        400,
         "CONTENT_CHANGED",
     )
     run_binding.assert_not_called()
@@ -251,12 +251,12 @@ def test_the_route_answers_the_datasets_envelope(
 
 
 @api_flags
-def test_the_route_answers_a_refusal_with_its_code_and_message(
+def test_the_route_answers_a_refusal_as_a_400_with_its_code_and_message(
     client: Any, full_api_access: None, mocker: MockerFixture
 ) -> None:
     from superset_core.widgets import WidgetDataRefusedError
 
-    refused = WidgetDataRefusedError("CONTENT_CHANGED", "Reload it", 410)
+    refused = WidgetDataRefusedError("CONTENT_GONE", "Reload it")
     command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
     command.return_value.run.side_effect = CanvasQueryFailedError(
         canvas_query_error(refused)
@@ -264,11 +264,11 @@ def test_the_route_answers_a_refusal_with_its_code_and_message(
 
     response = client.post(URL.format(WIDGET), json={})
 
-    assert response.status_code == 410
+    assert response.status_code == 400
     assert response.json == {
         "message": "Reload it",
         "error_type": "WidgetDataRefused",
-        "code": "CONTENT_CHANGED",
+        "code": "CONTENT_GONE",
     }
 
 
