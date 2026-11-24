@@ -4849,6 +4849,32 @@ def test_working_state_timeout_same_window_falls_back_to_error(
     retry_cls.assert_not_called()
 
 
+def test_working_state_timeout_same_execution_id_falls_back_to_error(
+    mocker: MockerFixture,
+) -> None:
+    """A redelivery carrying the stuck execution's own id is never re-executed."""
+    state, cas_update, _, find_reset = _make_stuck_working_state(mocker)
+    state._report_schedule.execution_owner = str(state._execution_id)
+    update_and_log = mocker.patch.object(state, "update_report_schedule_and_log")
+    notify = mocker.patch.object(state, "_notify_working_timeout")
+    retry_cls = mocker.patch(
+        "superset.commands.report.execute.ReportNotTriggeredErrorState"
+    )
+
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
+
+    # The id match short-circuits before the stuck-reset log lookup.
+    find_reset.assert_not_called()
+    assert cas_update.call_args.args[0] == {ReportSchedule.execution_owner: None}
+    update_and_log.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+    notify.assert_called_once()
+    retry_cls.assert_not_called()
+
+
 def test_working_state_timeout_lost_takeover_does_not_retry(
     mocker: MockerFixture,
 ) -> None:
