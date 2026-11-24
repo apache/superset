@@ -19,9 +19,11 @@ The host's access decisions, for extensions.
 
 An extension that lets a person bind, query or show a dataset asks the host
 whether that person may read it, rather than deciding from what a DAO's list
-returns: the host's decision is the one its chart data and SQL paths enforce,
-and counts more than a list filter does, such as a dataset's editors, schema
-and database access, and the datasets a guest token grants.
+returns. The host decides for the dataset on its own, as its chart data and
+SQL paths do before anything else: access to the dataset itself, or to its
+schema, catalog or database, and the dataset's editors. It counts no access
+that comes only through a dashboard, such as a guest token's or dashboard
+role-based access, since none is named.
 
 Usage:
     from superset_core.security import can_access_datasource
@@ -40,8 +42,8 @@ if TYPE_CHECKING:
 
 def can_access_datasource(datasource: Dataset) -> bool:
     """
-    Whether the current user may read ``datasource``'s data, by the host's own
-    decision, the one that guards the dataset's charts and queries.
+    Whether the current user may read ``datasource``'s data, by the host's
+    decision for the dataset on its own (``raise_for_access(datasource=...)``).
 
     Host implementations will replace this function during initialization
     with a concrete implementation providing actual functionality.

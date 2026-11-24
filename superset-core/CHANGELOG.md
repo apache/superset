@@ -45,6 +45,9 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
 - A provider conformance test kit in `superset_core.semantic_layers.testing`; install
   `apache-superset-core[testing]` for its pytest dependency.
+- `superset_core.security.can_access_datasource`, the host's decision whether the current
+  user may read a dataset on its own, as its chart data and SQL paths make it. See
+  [extension development](../docs/developer_docs/extensions/development.md).
 
 ### Compatibility
 
