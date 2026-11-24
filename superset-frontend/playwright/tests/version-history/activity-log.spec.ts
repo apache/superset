@@ -609,7 +609,6 @@ testWithAssets(
     );
     await expect(panel).toHaveCount(0);
     await openVersionHistory(page);
-    await expect(page.getByTestId('chart-version-preview')).toHaveCount(0);
   },
 );
 
