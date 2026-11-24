@@ -24,6 +24,11 @@ much later, when no extension context is set: each runs in the context of the
 extension that registered it, made afresh for each call (``bind_context``), so
 that ``get_context()`` and extension storage find that extension. What the
 host registers runs as it is.
+
+The kinds of recorded steps are prefixed with the id of the extension whose
+context names them (``step_kind``), where a handler is registered and where a
+step is recorded alike, as the host prefixes an extension's MCP tools and REST
+APIs.
 """
 
 from __future__ import annotations
@@ -93,10 +98,34 @@ def emit(event: CanvasDraftEvent) -> None:
             logger.exception("A canvas draft listener failed on %s", event.kind)
 
 
-def register_step_handler(kind: str, handler: _HandlerT) -> _HandlerT:
-    """Make ``handler`` undo and redo the steps of ``kind``; return it."""
+def step_kind(kind: str) -> str:
+    """
+    ``kind`` as the host keeps it: in an extension's context, prefixed with the
+    extension's id (``extensions.<publisher>.<name>.<kind>``); outside any, as
+    it is.
+    """
     if not kind:
         raise ValueError("A recorded step's kind can't be empty")
+    context = get_current_extension_context()
+    if context is None:
+        return kind
+    if kind.startswith("extensions."):
+        # Prefixed again, it would name the extension's id twice, or nest
+        # another extension's under it: refused rather than guessed at.
+        raise ValueError(
+            f"Recorded step kind {kind!r} starts with 'extensions.': an "
+            "extension names its kinds without a prefix, which the host adds"
+        )
+    extension = context.extension
+    return f"extensions.{extension.publisher}.{extension.name}.{kind}"
+
+
+def register_step_handler(kind: str, handler: _HandlerT) -> _HandlerT:
+    """
+    Make ``handler`` undo and redo the steps of ``kind``, prefixed as
+    ``step_kind`` says; return it.
+    """
+    kind = step_kind(kind)
     existing = _handlers.get(kind)
     if existing is None:
         context = get_current_extension_context()

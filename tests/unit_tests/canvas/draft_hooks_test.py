@@ -22,6 +22,7 @@ and how the canvas's undo and redo reach its steps.
 
 from __future__ import annotations
 
+from types import ModuleType
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -37,6 +38,7 @@ from superset.commands.canvas.exceptions import (
 from tests.unit_tests.canvas.draft_test import DRAFT, Store
 from tests.unit_tests.canvas.fixtures import FakeResolver
 
+#: The kind the acme.notes extension names ``edit``, as the host keeps it.
 KIND = "extensions.acme.notes.edit"
 ADD = {"op": "add", "id": "notes", "widgetId": "chart-1"}
 
@@ -94,6 +96,20 @@ def store(mocker: MockerFixture, widget_types: FakeResolver) -> Store:
     dao.load.return_value = empty_definition()
     mocker.patch(f"{DRAFT}.security_manager", new_callable=MagicMock)
     return fake
+
+
+@pytest.fixture
+def core_drafts(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
+    """``superset_core.canvas.drafts`` as an extension imports it, injected."""
+    from superset_core.canvas import drafts
+
+    from superset.core.api.core_api_injection import inject_canvas_draft_implementations
+
+    # Puts back whatever the app injected, once the test ends.
+    for name in ("on_draft_event", "register_step_handler", "record_step"):
+        monkeypatch.setattr(drafts, name, getattr(drafts, name))
+    inject_canvas_draft_implementations()
+    return drafts
 
 
 @pytest.fixture
@@ -454,17 +470,9 @@ def test_extensions_reach_the_draft_hooks_through_superset_core(
     store: Store,
     widget_types: FakeResolver,
     handler: Handler,
-    monkeypatch: pytest.MonkeyPatch,
+    core_drafts: ModuleType,
 ) -> None:
-    from superset_core.canvas import drafts as core_drafts
-
-    from superset.core.api.core_api_injection import inject_canvas_draft_implementations
-
-    # Puts back whatever the app injected, once the test ends.
-    for name in ("on_draft_event", "register_step_handler", "record_step"):
-        monkeypatch.setattr(core_drafts, name, getattr(core_drafts, name))
-    inject_canvas_draft_implementations()
-
+    """Outside any extension's context, a kind stays as it is named."""
     from superset.commands.canvas import draft as drafts
 
     draft = placed_draft()
@@ -519,7 +527,7 @@ def test_what_an_extension_registers_runs_in_its_extension_context(
     steps = Steps()
     with extension_context(create_manifest("acme", "notes")):
         draft_hooks.on_draft_event(lambda event: heard(event.kind))
-        draft_hooks.register_step_handler(KIND, steps)
+        draft_hooks.register_step_handler("edit", steps)
     draft_hooks.on_draft_event(
         lambda _event: host.append(get_current_extension_context())
     )
@@ -546,3 +554,67 @@ def test_what_an_extension_registers_runs_in_its_extension_context(
     ]
     assert host == [None, None, None]
     assert get_current_extension_context() is None
+
+
+def test_an_extensions_step_kinds_carry_its_id(
+    store: Store,
+    widget_types: FakeResolver,
+    events: list[CanvasDraftEvent],
+    core_drafts: ModuleType,
+) -> None:
+    """
+    An extension names its kind ``write``, and its steps are kept, handed to
+    its handler and told to listeners as ``extensions.acme.notes.write``, as
+    the host prefixes an extension's MCP tools and REST APIs.
+    """
+    from superset.canvas import draft_hooks
+    from superset.commands.canvas import draft as drafts
+    from superset.extensions.context import extension_context
+    from tests.unit_tests.extensions.storage.conftest import create_manifest
+
+    steps = Handler()
+    draft = placed_draft()
+    with extension_context(create_manifest("acme", "notes")):
+        core_drafts.register_step_handler("write", steps)
+        revision = core_drafts.record_step(
+            draft.token, DraftStep(kind="write", widget_id="chart-1")
+        )
+
+    kept = DraftStep(kind="extensions.acme.notes.write", widget_id="chart-1")
+    assert drafts.load_draft(draft.token).steps[-1][drafts.RECORDED]["kind"] == (
+        kept.kind
+    )
+    assert draft_hooks.step_handler("write") is None
+    drafts.RewindCanvasDraftCommand(draft.token, revision).run()
+    assert steps.calls == [("undo", kept, draft.token)]
+    assert events[-1].steps == (kept,)
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["", "extensions.acme.notes.write", "extensions.other.tool.write"],
+)
+def test_an_extension_names_its_step_kinds_without_a_prefix(
+    store: Store,
+    widget_types: FakeResolver,
+    core_drafts: ModuleType,
+    kind: str,
+) -> None:
+    """
+    A prefix of its own would be prefixed again, so registering and recording
+    refuse it alike, as they refuse an empty kind; nothing is kept.
+    """
+    from superset.canvas import draft_hooks
+    from superset.commands.canvas import draft as drafts
+    from superset.extensions.context import extension_context
+    from tests.unit_tests.extensions.storage.conftest import create_manifest
+
+    draft = placed_draft()
+    with extension_context(create_manifest("acme", "notes")):
+        with pytest.raises(ValueError, match="kind"):
+            core_drafts.register_step_handler(kind, Handler())
+        with pytest.raises(ValueError, match="kind"):
+            core_drafts.record_step(draft.token, DraftStep(kind=kind))
+
+    assert draft_hooks._handlers == {}
+    assert drafts.load_draft(draft.token).revision == draft.revision

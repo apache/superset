@@ -29,7 +29,9 @@ follows the canvas draft here:
   committed, undone or redone. A draft that expires fires nothing.
 - ``record_step`` adds a step of its own to a canvas draft's history, so that
   the canvas's undo and redo reach it like any other step: they call the
-  handler that ``register_step_handler`` registered for the step's kind.
+  handler that ``register_step_handler`` registered for the step's kind. In an
+  extension's context, the host prefixes the kind with the extension's id
+  (``extensions.<publisher>.<name>.<kind>``) at both calls alike.
 
 Usage:
     from superset_core.canvas import drafts
@@ -41,11 +43,11 @@ Usage:
         def undo(self, step: drafts.DraftStep, token: str) -> None: ...
         def redo(self, step: drafts.DraftStep, token: str) -> None: ...
 
-    drafts.register_step_handler("extensions.acme.notes.edit", NoteSteps())
+    drafts.register_step_handler("edit", NoteSteps())
     drafts.record_step(
         token,
         drafts.DraftStep(
-            kind="extensions.acme.notes.edit",
+            kind="edit",
             payload={"before": "v1", "after": "v2"},
             widget_id=widget_uuid,
         ),
@@ -71,8 +73,12 @@ class DraftStep:
     A step recorded in a canvas draft's history by whatever keeps the widget's
     content.
 
-    ``kind`` names the handler that undoes and redoes it; namespace it as an
-    extension's widget types are, ``extensions.<publisher>.<name>.<step>``.
+    ``kind`` names the handler that undoes and redoes it. An extension names it
+    without a prefix, such as ``edit``: in the extension's context, the host
+    prefixes it with the extension's id where the handler is registered and
+    where the step is recorded, so the step is kept, handed to its handler and
+    told to listeners as ``extensions.<publisher>.<name>.edit``. Outside any
+    extension's context, as in the host's own code, the kind stays as named.
     ``payload`` is what that handler needs, as JSON, which the draft keeps with
     the step. ``widget_id`` is the saved widget the step changed: the draft's
     list of changes names it wherever the draft places it.
@@ -171,10 +177,12 @@ def register_step_handler(kind: str, handler: _HandlerT) -> _HandlerT:
     Host implementations will replace this function during initialization
     with a concrete implementation providing actual functionality.
 
-    :param kind: The kind of the steps it handles.
+    :param kind: The kind of the steps it handles, prefixed in an extension's
+        context as ``DraftStep`` says.
     :param handler: What undoes and redoes them.
     :returns: ``handler``.
-    :raises ValueError: If ``kind`` has another handler.
+    :raises ValueError: If ``kind`` is empty, or starts with ``extensions.`` in
+        an extension's context, or has another handler.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
@@ -195,8 +203,11 @@ def record_step(token: str, step: DraftStep, *, by: StepAuthor = "user") -> int:
     :param token: The canvas draft's token. It must be the caller's own draft,
         on a canvas they may still edit.
     :param step: The step, with what its handler needs to undo and redo it.
+        Its kind is prefixed in an extension's context as ``DraftStep`` says.
     :param by: Who asked for it, as the draft lists the change.
     :returns: The draft's revision after the step.
+    :raises ValueError: If the step's kind is empty, or starts with
+        ``extensions.`` in an extension's context, or its payload isn't JSON.
     :raises DraftNotFoundError: If the caller has no such draft.
     """
     raise NotImplementedError("Function will be replaced during initialization")
