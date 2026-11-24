@@ -17,18 +17,18 @@
 import re
 from typing import Any, Mapping, Union
 
-from marshmallow import fields, post_dump, post_load, pre_load, Schema, validates, 
+from marshmallow import fields, post_dump, post_load, pre_load, Schema, validates
 from marshmallow.validate import Length, OneOf, ValidationError
 
 from superset import security_manager
 from superset.subjects.schemas import SubjectReferenceField, SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import json
+from superset.utils.date_parser import get_since_until
 from superset.utils.schema import (
     DiscardIsManagedExternallyMixin,
     validate_external_url,
 )
-from superset.utils.date_parser import get_since_until
 
 get_delete_ids_schema = {
     "type": "array",
@@ -239,7 +239,9 @@ class DashboardJSONMetadataSchema(Schema):
     custom_time_presets = fields.List(
         fields.Str(),
         allow_none=True,
-        metadata={"description": "List of custom time range presets for this dashboard."}
+        metadata={
+            "description": "List of custom time range presets for this dashboard."
+        },
     )
     @validates("custom_time_presets")
     def validate_custom_time_presets(self, presets: list[str], **kwargs: Any) -> None:
@@ -257,7 +259,9 @@ class DashboardJSONMetadataSchema(Schema):
             try:
                 get_since_until(preset)
             except ValueError as e:
-                raise ValidationError(f"Invalid Time range preset '{preset}': {e}") from e
+                raise ValidationError(
+                    f"Invalid Time range preset '{preset}': {e}"
+                ) from e
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
