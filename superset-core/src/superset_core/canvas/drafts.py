@@ -30,9 +30,6 @@ follows the canvas draft here:
 - ``record_step`` adds a step of its own to a canvas draft's history, so that
   the canvas's undo and redo reach it like any other step: they call the
   handler that ``register_step_handler`` registered for the step's kind.
-- what ``register_commit_participant`` registers is asked before every
-  commit, and refuses one that would publish the canvas without what has to
-  go out with it.
 
 Usage:
     from superset_core.canvas import drafts
@@ -41,15 +38,8 @@ Usage:
         def undo(self, step: drafts.DraftStep, token: str) -> None: ...
         def redo(self, step: drafts.DraftStep, token: str) -> None: ...
 
-    def notes_published(commit: drafts.DraftCommit) -> None:
-        if unpublished_notes(commit.token, commit.widget_types):
-            raise drafts.CommitRefusedError(
-                "NOTES_UNPUBLISHED", "Publish the canvas from its page first."
-            )
-
     drafts.register_step_handler("extensions.acme.notes.edit", NoteSteps())
     drafts.on_draft_event(lambda event: ...)
-    drafts.register_commit_participant(notes_published)
     drafts.record_step(
         token,
         drafts.DraftStep(
@@ -112,27 +102,6 @@ class CanvasDraftEvent:
     steps: tuple[DraftStep, ...] = ()
 
 
-@dataclass(frozen=True)
-class DraftCommit:
-    """
-    A canvas draft about to be committed, as a commit participant reads it.
-
-    ``token`` is the draft's token, as on ``CanvasDraftEvent``. ``widget_types``
-    are the saved widgets the draft places, by UUID, each with its widget type:
-    what publishing it shows viewers, widgets the draft made included, whether
-    or not the committer may see them. ``steps`` are its recorded steps, undone
-    ones included. ``by`` is who asked for the commit, the agent through its
-    tool or else the person, so that a refusal speaks to them; it grants
-    nothing, since anything signed in as the person can call the REST API.
-    """
-
-    canvas_id: int
-    token: str
-    widget_types: Mapping[str, str] = field(default_factory=dict)
-    steps: tuple[DraftStep, ...] = ()
-    by: StepAuthor = "user"
-
-
 class DraftStepHandler(Protocol):
     """Undoes and redoes the recorded steps of one kind."""
 
@@ -158,22 +127,6 @@ class DraftNotFoundError(LookupError):
     someone else's draft look the same, as does one whose canvas the caller
     may no longer edit.
     """
-
-
-class CommitRefusedError(Exception):
-    """
-    A commit participant refuses a commit: nothing is published, the draft
-    stays as it was, and whoever asked gets ``code`` and ``message``.
-
-    ``code`` is the participant's own, for a caller to tell its refusals apart,
-    such as ``NOTES_UNPUBLISHED``. ``message`` says what to do instead, in the
-    words of whoever asked (``DraftCommit.by``).
-    """
-
-    def __init__(self, code: str, message: str) -> None:
-        super().__init__(message)
-        self.code = code
-        self.message = message
 
 
 def on_draft_event(
@@ -239,36 +192,5 @@ def record_step(token: str, step: DraftStep, *, by: StepAuthor = "user") -> int:
     :param by: Who asked for it, as the draft lists the change.
     :returns: The draft's revision after the step.
     :raises DraftNotFoundError: If the caller has no such draft.
-    """
-    raise NotImplementedError("Function will be replaced during initialization")
-
-
-def register_commit_participant(
-    participant: Callable[[DraftCommit], None],
-) -> Callable[[], None]:
-    """
-    Ask ``participant`` before each commit of a canvas draft, whichever way it
-    was asked (the canvas page, the REST API or an agent's tool), in the
-    request that asks, which runs as the draft's owner.
-
-    It is asked under the draft's write lock, once the draft is known to be at
-    the revision committed and its canvas unchanged, and before anything is
-    written; an empty draft is asked about too. It refuses by raising
-    ``CommitRefusedError``: the commit fails with its code and message,
-    nothing is written, and the draft stays. The first refusal ends the
-    commit, and the participants after it aren't asked. A participant that
-    raises anything else refuses the commit too, with the host's message:
-    what it would have said is unknown.
-
-    What the canvas page publishes with a draft (its publish participants in
-    ``@apache-superset/core``) is published before the page commits, so the
-    page's commit passes where a commit that skipped the page's confirmation,
-    such as an agent's, is refused.
-
-    Host implementations will replace this function during initialization
-    with a concrete implementation providing actual functionality.
-
-    :param participant: Called with each commit; raises to refuse it.
-    :returns: A function that unregisters ``participant``.
     """
     raise NotImplementedError("Function will be replaced during initialization")

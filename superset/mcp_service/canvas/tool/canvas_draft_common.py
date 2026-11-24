@@ -26,7 +26,6 @@ from superset.commands.canvas.exceptions import (
     CanvasForbiddenError,
     CanvasNotFoundError,
     DefinitionInvalidError,
-    DraftCommitRefusedError,
     DraftConflictError,
 )
 from superset.mcp_service.canvas.tool.canvas_ops_common import (
@@ -72,8 +71,6 @@ def error_result(ex: Exception) -> dict[str, Any] | None:
             "error": "Only the canvas' editors can draft changes to it",
             "error_type": "CanvasForbiddenError",
         }
-    if isinstance(
-        ex, (DraftConflictError, DefinitionInvalidError, DraftCommitRefusedError)
-    ):
+    if isinstance(ex, (DraftConflictError, DefinitionInvalidError)):
         return payload_result(ex)
     return None

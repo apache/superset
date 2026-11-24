@@ -27,7 +27,6 @@ from superset.canvas.query_errors import canvas_query_error
 from superset.commands.canvas.exceptions import (
     DefinitionConflictError,
     DefinitionInvalidError,
-    DraftCommitRefusedError,
     DraftConflictError,
 )
 from superset.mcp_service.utils.oauth2_utils import (
@@ -46,7 +45,6 @@ _RESULT_KEYS = {
     "widgets": "changed_widgets",
     "draftRevision": "draft_revision",
     "currentCanvasRevision": "current_canvas_revision",
-    "refusalCode": "refusal_code",
 }
 
 
@@ -57,10 +55,7 @@ def absolute_url(path: str | None) -> str | None:
 
 
 def payload_result(
-    ex: DefinitionConflictError
-    | DefinitionInvalidError
-    | DraftConflictError
-    | DraftCommitRefusedError,
+    ex: DefinitionConflictError | DefinitionInvalidError | DraftConflictError,
 ) -> dict[str, Any]:
     """The tool result for a command error that has a REST error body."""
     return {_RESULT_KEYS.get(key, key): value for key, value in ex.to_payload().items()}

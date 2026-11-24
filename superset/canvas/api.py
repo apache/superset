@@ -84,7 +84,6 @@ from superset.commands.canvas.exceptions import (
     CanvasVersionNotFoundError,
     DefinitionConflictError,
     DefinitionInvalidError,
-    DraftCommitRefusedError,
     DraftConflictError,
     DraftStepFailedError,
 )
@@ -222,7 +221,6 @@ def _handle_canvas_errors(
         except (
             DefinitionConflictError,
             DefinitionInvalidError,
-            DraftCommitRefusedError,
             DraftConflictError,
             DraftStepFailedError,
         ) as ex:
@@ -1089,10 +1087,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
           summary: Commit a canvas draft
           description: >-
             Replays the draft's operations on the canvas and deletes the draft.
-            Rejected with 409 for a stale draft revision, if the canvas or a
-            widget the draft changed was saved since the draft started, or if
-            something that has to be published with the canvas refuses
-            (`DraftCommitRefused`, with the refusal's `refusalCode` and `message`).
+            Rejected with 409 for a stale draft revision, or if the canvas or
+            a widget the draft changed was saved since the draft started.
             An empty draft closes without a write and returns the published
             revision observed by the command.
           responses:
@@ -1101,9 +1097,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
             409:
-              description: >-
-                The draft, canvas, or a changed widget conflicts, or something
-                published with the canvas refuses the commit
+              description: The draft, canvas, or a changed widget conflicts
             422:
               description: An operation no longer applies
         """
