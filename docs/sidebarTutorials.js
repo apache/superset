@@ -96,6 +96,7 @@ const sidebars = {
         'extensions/security',
         'extensions/storage',
         'extensions/tasks',
+        'extensions/realtime',
         'extensions/registry',
       ],
     },

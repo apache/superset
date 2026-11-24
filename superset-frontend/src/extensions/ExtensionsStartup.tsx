@@ -30,6 +30,7 @@ import {
   extensions,
   menus,
   navigation,
+  realtime,
   useNavigationTracker,
   sqlLab,
   views,
@@ -65,6 +66,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       extensions,
       menus,
       navigation,
+      realtime,
       sqlLab,
       views,
     };

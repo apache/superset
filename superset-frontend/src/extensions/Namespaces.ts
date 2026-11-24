@@ -36,6 +36,7 @@ import type {
   extensions,
   menus,
   navigation,
+  realtime,
   sqlLab,
   views,
 } from 'src/core';
@@ -51,6 +52,7 @@ export interface Namespaces {
   extensions: typeof extensions;
   menus: typeof menus;
   navigation: typeof navigation;
+  realtime: typeof realtime;
   sqlLab: typeof sqlLab;
   views: typeof views;
 }

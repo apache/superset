@@ -104,6 +104,7 @@ test('sets up global superset object when user is logged in', async () => {
     expect((window as any).superset.menus).toBeDefined();
     expect((window as any).superset.views).toBeDefined();
     expect((window as any).superset.sqlLab).toBeDefined();
+    expect(window.superset.realtime.onDidChangeEntity).toBeInstanceOf(Function);
   });
 
   initializeSpy.mockRestore();

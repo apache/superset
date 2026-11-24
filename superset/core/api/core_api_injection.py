@@ -23,7 +23,9 @@ into the abstract superset-core API modules. This allows the core API
 to be used with direct imports while maintaining loose coupling.
 """
 
+import logging
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from uuid import UUID
 
 from sqlalchemy.orm import scoped_session
 
@@ -36,6 +38,8 @@ from superset.extensions.context import (
 if TYPE_CHECKING:
     from superset_core.common.models import Database, Dataset
     from superset_core.rest_api.api import RestApi
+
+logger = logging.getLogger(__name__)
 
 
 def inject_dao_implementations() -> None:
@@ -493,6 +497,43 @@ def inject_storage_implementations() -> None:
     core_storage_dao.ExtensionStorageDAO = ExtensionStorageDAO  # type: ignore[misc,assignment]
 
 
+def inject_realtime_implementations() -> None:
+    """
+    Replace the abstract publisher in superset_core.realtime with one that sends
+    ``entity.changed`` nudges over Superset's realtime channel.
+    """
+    import superset_core.realtime as core_realtime_module
+
+    from superset.realtime.publish import publish_realtime
+
+    def publish_entity_changed(entity_type: str, entity_id: int | str | UUID) -> bool:
+        if not isinstance(entity_type, str) or not entity_type:
+            raise ValueError("entity_type must be a non-empty string")
+        if isinstance(entity_id, UUID):
+            entity_id = str(entity_id)
+        elif isinstance(entity_id, bool) or not isinstance(entity_id, int | str):
+            raise ValueError("entity_id must be an integer, a string or a UUID")
+        if entity_id == "":
+            raise ValueError("entity_id must not be empty")
+        try:
+            return publish_realtime(
+                topic="entity.changed",
+                scope="authenticated_global",
+                payload={"entity_type": entity_type, "id": entity_id},
+            )
+        except Exception:  # noqa: BLE001 pylint: disable=broad-except
+            # A nudge is never worth failing the change that sent it.
+            logger.warning(
+                "Failed to publish a change of %s %s",
+                entity_type,
+                entity_id,
+                exc_info=True,
+            )
+            return False
+
+    core_realtime_module.publish_entity_changed = publish_entity_changed
+
+
 def inject_extension_context() -> None:
     """
     Replace abstract get_context in superset_core.extensions.context
@@ -539,4 +580,5 @@ def initialize_core_api_dependencies() -> None:
     inject_canvas_draft_implementations()
     inject_security_implementations()
     inject_storage_implementations()
+    inject_realtime_implementations()
     inject_extension_context()
