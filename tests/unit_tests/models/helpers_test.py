@@ -7423,6 +7423,8 @@ def test_get_query_result_leaves_a_custom_operation_fault_unwrapped(
 
 
 COMPARISON_COLUMN = "COUNT(*)__2026-05-12 : 2026-06-12"
+RELATIVE_COMPARISON_COLUMN = "COUNT(*)__1 week ago"
+OFFSET_VALUES = {"date_range": "2026-05-12 : 2026-06-12", "relative": "1 week ago"}
 
 
 def _date_range_comparison_frame(
@@ -7431,6 +7433,7 @@ def _date_range_comparison_frame(
     *,
     grouped: bool = False,
     empty_window: bool = False,
+    offsets: tuple[str, ...] = ("date_range",),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Run a date-range time comparison on a chart whose x-axis column is ``x_axis``.
@@ -7438,7 +7441,10 @@ def _date_range_comparison_frame(
     The datasource query is stubbed to return the rows of the shifted window, one
     per day (and per ``grp`` series when ``grouped``), labelled with the x-axis
     column exactly as the real query would label them. ``empty_window`` makes the
-    shifted window return no rows. Returns the main frame, then the frame after
+    shifted window return no rows. ``offsets`` lists, in request order, the kinds of
+    offset to compare against: ``"date_range"`` and/or ``"relative"`` (one week
+    ago, only with ``grouped``); the stub answers each offset's query with the
+    rows of that offset's own window. Returns the main frame, then the frame after
     ``processing_time_offsets``.
     """
     from datetime import timedelta
@@ -7478,7 +7484,7 @@ def _date_range_comparison_frame(
         columns=columns,
         metrics=[metric],
         row_limit=1000,
-        time_offsets=["2026-05-12 : 2026-06-12"],
+        time_offsets=[OFFSET_VALUES[offset] for offset in offsets],
         filters=[
             {
                 "col": x_axis,
@@ -7523,15 +7529,31 @@ def _date_range_comparison_frame(
     if empty_window:
         shifted_df = shifted_df.iloc[0:0]
 
+    shifted_frames = {"date_range": shifted_df}
+    if grouped:
+        # the same three days one week earlier, counting 100 + 10 * day for
+        # series "a" and one more for series "b"
+        week_before = list(pd.date_range("2026-06-05", periods=3, freq="D"))
+        shifted_frames["relative"] = pd.DataFrame(
+            {
+                x_axis: [day for day in week_before for _ in "ab"],
+                "grp": ["a", "b"] * 3,
+                "COUNT(*)": [100, 101, 110, 111, 120, 121],
+            }
+        )
+
     with patch.object(
         table,
         "query",
-        return_value=QueryResult(
-            df=shifted_df,
-            query="SELECT 1",
-            duration=timedelta(0),
-            sql_shifted_temporal_labels=set(),
-        ),
+        side_effect=[
+            QueryResult(
+                df=shifted_frames[offset],
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            )
+            for offset in offsets
+        ],
     ):
         result = table.processing_time_offsets(main_df.copy(), query_object)
 
@@ -7614,3 +7636,41 @@ def test_date_range_time_comparison_of_an_empty_window_matches_legacy_axis_name(
         custom[COMPARISON_COLUMN].reset_index(drop=True),
         legacy[COMPARISON_COLUMN].reset_index(drop=True),
     )
+
+
+@pytest.mark.parametrize(
+    "offsets",
+    [
+        pytest.param(("date_range", "relative"), id="date range first"),
+        pytest.param(("relative", "date_range"), id="relative first"),
+    ],
+)
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_and_relative_comparisons_on_a_series_chart_in_either_order(
+    database: Database, offsets: tuple[str, ...]
+) -> None:
+    """
+    A date-range comparison does not disturb a relative one on a series chart,
+    whichever comes first.
+
+    The relative comparison builds its join column from the first column of the
+    frame, so the frame has to keep the time column first after the date-range
+    join, not the series column that join indexes on.
+    """
+    main_df, df = _date_range_comparison_frame(
+        database, "event_ts", grouped=True, offsets=offsets
+    )
+
+    assert len(df) == len(main_df)
+    assert list(df.columns[: len(main_df.columns)]) == list(main_df.columns)
+
+    totals = {"a": 30, "b": 60}
+    assert df[COMPARISON_COLUMN].tolist() == df["grp"].map(totals).tolist()
+
+    # a week earlier, series "a" counted 100 + 10 * day and series "b" one more
+    first_day = main_df["event_ts"].min()
+    expected = [
+        100 + 10 * (day - first_day).days + (grp == "b")
+        for day, grp in zip(df["event_ts"], df["grp"], strict=True)
+    ]
+    assert df[RELATIVE_COMPARISON_COLUMN].tolist() == expected
