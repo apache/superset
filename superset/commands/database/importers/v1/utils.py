@@ -25,6 +25,7 @@ from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.utils import (
     add_permissions,
     import_connection_identity_changed,
+    rename_database_in_permissions,
     ssh_tunnel_rebind_unsafe,
 )
 from superset.commands.exceptions import (
@@ -273,6 +274,7 @@ def import_database(  # noqa: C901
         "Database",
     )
     existing = db.session.query(Database).filter_by(uuid=config["uuid"]).first()
+    old_database_name = existing.database_name if existing else None
     if existing:
         if not overwrite or not can_write:
             if can_write:
@@ -381,6 +383,12 @@ def import_database(  # noqa: C901
 
     if database.id is None:
         db.session.flush()
+
+    if old_database_name and old_database_name != database.database_name:
+        # The rename hook of the database model rewrites the database and dataset
+        # permissions on flush, but not the schema and catalog ones.
+        db.session.flush()
+        rename_database_in_permissions(database, old_database_name)
 
     if ssh_tunnel_config:
         ssh_tunnel_config["database_id"] = database.id

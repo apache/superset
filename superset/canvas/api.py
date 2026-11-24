@@ -35,7 +35,7 @@ from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
 from superset import is_feature_enabled
-from superset.canvas.data import PlacementDataRequest
+from superset.canvas.data import data_response, PlacementDataRequest
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
@@ -46,7 +46,7 @@ from superset.canvas.definition.schemas import (
     Operation,
 )
 from superset.canvas.definition.scopes import resolve_scopes
-from superset.canvas.definition.validation import request_pointer
+from superset.canvas.definition.validation import request_errors
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.canvas.filters import (
     CanvasAccessFilter,
@@ -95,7 +95,6 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager, stats_logger_manager
 from superset.models.canvas import Canvas
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.utils import json
 from superset.utils.log import get_object_ids_from_view_args
 from superset.versioning.api_helpers import (
     list_versions_endpoint,
@@ -260,14 +259,6 @@ def _draft_token() -> str:
     if not token:
         raise CanvasDraftNotFoundError()
     return token
-
-
-def _pydantic_errors(ex: PydanticValidationError) -> list[dict[str, Any]]:
-    """Request errors as JSON-pointer paths into the request body."""
-    return [
-        {"path": request_pointer(error["loc"]), "message": error["msg"]}
-        for error in ex.errors()
-    ]
 
 
 def describe_widget(widget: type[Widget]) -> dict[str, Any]:
@@ -942,7 +933,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             # A malformed ops payload is a real failure mode for an agent
             # writing to a draft, and otherwise leaves no trace.
             _report_canvas_error(self, ex, 400, scope="draft_ops")
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft, ops = ApplyCanvasDraftOperationsCommand(
             _draft_token(), body.revision, body.ops
         ).run()
@@ -1038,7 +1029,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft = RewindCanvasDraftCommand(
             _draft_token(), body.revision, forward=forward
         ).run()
@@ -1079,7 +1070,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft = load_draft(_draft_token())
         # Read before the commit, which deletes the draft.
         add_extra_log_payload(canvas_id=draft.canvas_id)
@@ -1216,7 +1207,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             )
         except PydanticValidationError as ex:
             _report_canvas_error(self, ex, 400, scope="placement_data")
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         token = request.headers.get(DRAFT_TOKEN_HEADER) or None
         try:
             version = UUID(request.headers[VERSION_HEADER])
@@ -1225,38 +1216,19 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         except ValueError as ex:
             _report_canvas_error(self, ex, 400, scope="placement_data")
             return self.response_400(message="Invalid version UUID")
-        try:
-            data = GetPlacementDataCommand(
-                id_or_uuid, placement_id, body.runtime_filters, token, version
-            ).run()
-        except CanvasQueryFailedError as ex:
+
+        def on_error(ex: CanvasQueryFailedError, status: int) -> None:
             # A failing widget query otherwise leaves no backend trace at all.
-            error = ex.error
-            if error.reason == "missing_datasource":
-                _report_canvas_error(self, ex, 404, scope="placement_data")
-                return self.response_404()
-            if error.status >= 500:
+            if status >= 500:
                 logger.warning("Canvas placement query failed", exc_info=True)
-            _report_canvas_error(self, ex, error.status, scope="placement_data")
-            return self.response(error.status, **error.rest_payload())
-        dataset: dict[str, Any] = {
-            "name": "main",
-            "row_count": len(data.rows),
-            "inline_data": data.rows,
-            "coltypes": data.coltypes,
-        }
-        # Classic charts gate "View query" on the same permission.
-        if data.query and security_manager.can_access("can_view_query", "Dashboard"):
-            dataset["query"] = data.query
-            dataset["language"] = data.language
-        return Response(
-            json.dumps(
-                {"result": {"datasets": [dataset]}},
-                default=json.json_int_dttm_ser,
-                ignore_nan=True,
-            ),
-            status=200,
-            mimetype="application/json",
+            _report_canvas_error(self, ex, status, scope="placement_data")
+
+        return data_response(
+            self,
+            GetPlacementDataCommand(
+                id_or_uuid, placement_id, body.runtime_filters, token, version
+            ).run,
+            on_error,
         )
 
     @expose("/<uuid_str>/versions/", methods=("GET",))

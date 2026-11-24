@@ -22,6 +22,7 @@ import { styled } from '@apache-superset/core/theme';
 import { Icons, Tooltip } from '@superset-ui/core/components';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
 import type { ActivityEntityKind, ActivityRecord } from './types';
+import { canOpenRelatedEntity } from './lifecycle';
 import {
   entityDisplayName,
   formatAuthor,
@@ -202,7 +203,7 @@ export default function RelatedUpdateRow({
       impactCount,
     );
   }
-  const linkable = !record.entity_deleted && Boolean(onOpen);
+  const linkable = canOpenRelatedEntity(record) && Boolean(onOpen);
   // Both the server summary and the impact-aware phrasing end with the
   // entity name; split it out so the name can render as a link. Records
   // without a name can't be split (the empty string matches anywhere).

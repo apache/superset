@@ -60,6 +60,11 @@ export interface CanvasWidgetProps {
    * Outside a canvas, the saved widget's UUID.
    */
   nodeId: string;
+  /**
+   * The saved widget's UUID, the same on every canvas that places it. Unset
+   * for containers and text.
+   */
+  widgetId?: string;
   /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
   widgetType: string;
   /**
