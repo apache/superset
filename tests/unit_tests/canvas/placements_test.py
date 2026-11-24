@@ -151,6 +151,88 @@ def test_a_placement_reads_from_the_callers_own_draft(
     draft.assert_called_once_with("token")
 
 
+VERSION = "6f0a3c1e-0000-4000-8000-000000000042"
+
+
+def test_a_placement_reads_from_the_version_the_canvas_page_previews(
+    full_api_access: None,
+    canvas: Any,
+    widget_types: FakeResolver,
+    placements: Any,
+    mocker: MockerFixture,
+) -> None:
+    from uuid import UUID
+
+    widget_types.props["chart-3"] = {"dataBinding": {**BINDING, "datasetId": 15}}
+    snapshot = mocker.patch(
+        "superset.commands.canvas.placement_data.version_snapshot",
+        return_value={"definition": {"nodes": {"chart": {"widgetId": "chart-3"}}}},
+    )
+
+    widget_id, widget = placements.load_placed_widget("100", "chart", version=VERSION)
+
+    assert (widget_id, widget.props["dataBinding"]["datasetId"]) == ("chart-3", 15)
+    assert snapshot.call_args.args[1] == UUID(VERSION)
+    # Without a version, the canvas as stored.
+    assert placements.load_placed_widget("100", "chart")[0] == "chart-1"
+
+
+def test_a_version_the_caller_cant_read_looks_like_no_placement(
+    full_api_access: None,
+    canvas: Any,
+    widget_types: FakeResolver,
+    placements: Any,
+    mocker: MockerFixture,
+) -> None:
+    from superset.commands.canvas.exceptions import (
+        CanvasForbiddenError,
+        CanvasVersionNotFoundError,
+    )
+
+    snapshot = mocker.patch(
+        "superset.commands.canvas.placement_data.version_snapshot",
+        side_effect=CanvasForbiddenError(),
+    )
+    with pytest.raises(placements.PlacementNotFoundError):
+        placements.load_placed_widget("100", "chart", version=VERSION)
+
+    snapshot.side_effect = CanvasVersionNotFoundError()
+    with pytest.raises(placements.PlacementNotFoundError):
+        placements.load_placed_widget("100", "chart", version=VERSION)
+
+    snapshot.reset_mock()
+    with pytest.raises(placements.PlacementNotFoundError):
+        placements.load_placed_widget("100", "chart", version="not-a-uuid")
+    snapshot.assert_not_called()
+
+
+def test_the_callers_draft_wins_over_a_version(
+    full_api_access: None,
+    canvas: Any,
+    widget_types: FakeResolver,
+    placements: Any,
+    mocker: MockerFixture,
+) -> None:
+    from unittest.mock import MagicMock
+
+    mocker.patch(
+        "superset.commands.canvas.placement_data.load_draft",
+        return_value=MagicMock(
+            canvas_id=100,
+            definition={"nodes": {"chart": {"widgetId": "chart-2"}}},
+            resolver=lambda: widget_types,
+        ),
+    )
+    snapshot = mocker.patch("superset.commands.canvas.placement_data.version_snapshot")
+
+    widget_id, _ = placements.load_placed_widget(
+        "100", "chart", "token", version=VERSION
+    )
+
+    assert widget_id == "chart-2"
+    snapshot.assert_not_called()
+
+
 def test_extensions_learn_which_widgets_the_caller_may_change(
     full_api_access: None,
     widget_types: FakeResolver,

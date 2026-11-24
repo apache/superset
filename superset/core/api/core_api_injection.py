@@ -24,6 +24,7 @@ to be used with direct imports while maintaining loose coupling.
 """
 
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from uuid import UUID
 
 from sqlalchemy.orm import scoped_session
 
@@ -395,12 +396,20 @@ def inject_canvas_implementations() -> None:
         canvas_id: str,
         placement_id: str,
         draft_token: str | None = None,
+        *,
+        version: str | None = None,
     ) -> tuple[str, StoredWidget]:
         from superset.commands.canvas.placement_data import load_placement
         from superset.commands.exceptions import ForbiddenError, ObjectNotFoundError
 
         try:
-            placement = load_placement(canvas_id, placement_id, draft_token)
+            version_uuid = UUID(version) if version else None
+        except ValueError as ex:
+            raise PlacementNotFoundError(placement_id) from ex
+        try:
+            placement = load_placement(
+                canvas_id, placement_id, draft_token, version_uuid
+            )
         except (ObjectNotFoundError, ForbiddenError) as ex:
             raise PlacementNotFoundError(placement_id) from ex
         if placement.widget_id is None or placement.widget is None:

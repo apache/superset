@@ -46,8 +46,9 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
 - A provider conformance test kit in `superset_core.semantic_layers.testing`; install
   `apache-superset-core[testing]` for its pytest dependency.
 - `superset_core.canvas.placements`: `load_placed_widget`, the saved widget a canvas
-  placement shows, read with the canvas's access rules, and `editable_widgets`, which
-  of some saved widgets the current user may change. See the
+  placement shows, in the stored canvas, the caller's draft of it or a version it
+  previews, read with the canvas's access rules, and `editable_widgets`, which of
+  some saved widgets the current user may change. See the
   [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
 
 ### Compatibility

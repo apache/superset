@@ -28,7 +28,7 @@ Usage:
     from superset_core.canvas import placements
 
     widget_id, widget = placements.load_placed_widget(
-        canvas_id, placement_id, draft_token
+        canvas_id, placement_id, draft_token, version=previewed_version
     )
     if widget_id in placements.editable_widgets({widget_id}):
         ...
@@ -54,13 +54,16 @@ def load_placed_widget(
     canvas_id: str,
     placement_id: str,
     draft_token: str | None = None,
+    *,
+    version: str | None = None,
 ) -> tuple[str, StoredWidget]:
     """
     The saved widget that placement ``placement_id`` of a canvas shows, as
-    the canvas stores it or as the caller's draft of the canvas holds it: the
-    widget's UUID, and its content as that canvas or draft resolves it. The
-    canvas grants read access to the widgets it places, as a dashboard does to
-    its charts, so a caller who may read the canvas gets the widget.
+    the canvas stores it, as the caller's draft of the canvas holds it, or as
+    a saved version of the canvas placed it: the widget's UUID, and its content
+    as that canvas, draft or version resolves it. The canvas grants read access
+    to the widgets it places, as a dashboard does to its charts, so a caller
+    who may read the canvas gets the widget.
 
     Host implementations will replace this function during initialization
     with a concrete implementation providing actual functionality.
@@ -70,10 +73,15 @@ def load_placed_widget(
     :param draft_token: A draft of the canvas to read the placement from. It
         must be the caller's own draft of this canvas, and the caller must
         still be allowed to edit the canvas.
+    :param version: The UUID of a saved version of the canvas to read the
+        placement from, as the canvas page names the version it previews
+        (``X-Canvas-Version``). Like the rest of a canvas's history, only its
+        editors can read one. A draft, when given too, wins.
     :returns: The widget's UUID and content.
-    :raises PlacementNotFoundError: If the caller can't read the canvas or the
-        draft, the canvas has no such placement, or the placement shows no
-        saved widget (a container or text stores its own content).
+    :raises PlacementNotFoundError: If the caller can't read the canvas, the
+        draft or the version, the canvas has no such placement, or the
+        placement shows no saved widget (a container or text stores its own
+        content).
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
