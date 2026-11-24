@@ -315,7 +315,21 @@ def _asset_error(ex: Exception, asset: str, config: dict[str, Any]) -> ImportAss
     """Log the original failure and return only approved text to the client."""
     reference = uuid4().hex
     recovery = _recovery_message(ex, config)
-    logger.exception("Import failed for %s (reference %s)", asset, reference)
+    status = (
+        403
+        if isinstance(ex, (ForbiddenError, SupersetSecurityException))
+        else (400 if recovery else 500)
+    )
+    # 4xx cases are expected user/permission/config errors already surfaced
+    # with actionable text below; only genuinely unexpected failures (5xx)
+    # need ERROR-level logging, since that's what external log-based alerting
+    # (e.g. Sentry's logging integration) treats as a reportable event.
+    if status >= 500:
+        logger.exception("Import failed for %s (reference %s)", asset, reference)
+    else:
+        logger.warning(
+            "Import failed for %s (reference %s)", asset, reference, exc_info=True
+        )
     error = ImportAssetError(
         _(
             "Could not import %(asset)s. %(recovery)s Reference: %(reference)s",
@@ -328,9 +342,5 @@ def _asset_error(ex: Exception, asset: str, config: dict[str, Any]) -> ImportAss
             reference=reference,
         )
     )
-    error.status = (
-        403
-        if isinstance(ex, (ForbiddenError, SupersetSecurityException))
-        else (400 if recovery else 500)
-    )
+    error.status = status
     return error
