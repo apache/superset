@@ -419,9 +419,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     )
 
     @pre_load
-    def build_sqlalchemy_uri(
-        self, data: dict[str, Any], **kwargs: Any
-    ) -> dict[str, Any]:
+    def build_sqlalchemy_uri(self, data: Any, **kwargs: Any) -> Any:
         """
         Build SQLAlchemy URI from separate parameters.
 
@@ -429,7 +427,19 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         parameters (eg, username, password, host, etc.), instead of requiring
         the constructed SQLAlchemy URI to be passed.
         """
+        if not isinstance(data, dict):
+            # Not a mapping (eg. the client sent a JSON list/string/etc as
+            # the request body). Let marshmallow's own type validation
+            # raise the usual "Invalid input type" error instead of
+            # crashing here with a TypeError.
+            return data
         parameters = data.pop("parameters", {})
+        if not isinstance(parameters, dict):
+            # `parameters` is a client-controlled nested payload; if it's
+            # not a mapping (eg. a list or string), raise a normal
+            # validation error instead of crashing with
+            # "TypeError: pop expected at most 1 argument, got 2" below.
+            raise ValidationError({"parameters": [_("Not a valid mapping type.")]})
         # TODO(AAfghahi) standardize engine.
         engine = (
             data.pop("engine", None)
