@@ -122,3 +122,135 @@ test('dispose removes the menu registration', () => {
 
   expect(menus.getMenu('sqllab.editor')).toBeUndefined();
 });
+
+// An item that does not fit the location it names is thrown out rather
+// than skipped. A skipped item is invisible with nothing said about why,
+// which is the hardest kind of mistake for an author to find -- so the
+// guard turns it into a loud failure, and the cases below pin that it
+// stays loud.
+test('a command item at a page location throws, naming the location', () => {
+  expect(() =>
+    menus.registerMenuItem(
+      { command: 'acme.run', view: 'builtin.editor' },
+      'global.navbar',
+      'primary',
+    ),
+  ).toThrow(/names no page/);
+});
+
+test('a page item at a view location throws', () => {
+  expect(() =>
+    menus.registerMenuItem(
+      { page: 'acme.tools.queue' } as never,
+      'sqllab.editor',
+      'primary',
+    ),
+  ).toThrow(/only "global.navbar" and "global.settingsMenu" open pages/);
+});
+
+test('a refused item is not stored', () => {
+  // The throw has to leave the registry as it was, or a later `getMenu`
+  // would report a row that was rejected.
+  expect(() =>
+    menus.registerMenuItem({} as never, 'global.settingsMenu', 'primary'),
+  ).toThrow();
+
+  expect(menus.getMenu('global.settingsMenu')).toBeUndefined();
+});
+
+test('a page item at a page location is accepted', () => {
+  disposables.push(
+    menus.registerMenuItem(
+      { page: 'acme.tools.queue' },
+      'global.navbar',
+      'primary',
+    ),
+  );
+
+  expect(menus.getMenu('global.navbar')?.pages).toHaveLength(1);
+});
+
+test('a page item is kept out of the command groups', () => {
+  // `primary`, `secondary` and `context` are read by code written against
+  // `MenuItem`, which requires `view` and `command`. A page item has
+  // neither, so it is reported separately.
+  disposables.push(
+    menus.registerMenuItem(
+      { page: 'acme.tools.queue' },
+      'global.navbar',
+      'primary',
+    ),
+  );
+
+  const menu = menus.getMenu('global.navbar');
+  expect(menu?.primary).toBeUndefined();
+  expect(menu?.secondary).toBeUndefined();
+  expect(menu?.context).toBeUndefined();
+  expect(menu?.pages?.[0].page).toBe('acme.tools.queue');
+});
+
+test('the register event carries command items only', () => {
+  // A listener written against `MenuItem` would otherwise receive an item
+  // with no `view` and no `command`.
+  const heard: unknown[] = [];
+  disposables.push(menus.onDidRegisterMenuItem(e => heard.push(e.item)));
+
+  disposables.push(
+    menus.registerMenuItem(
+      { page: 'acme.tools.queue' },
+      'global.navbar',
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'acme.run', view: 'builtin.editor' },
+      'sqllab.editor',
+      'primary',
+    ),
+  );
+
+  expect(heard).toEqual([{ command: 'acme.run', view: 'builtin.editor' }]);
+});
+
+// Pages are sequenced by `order`, then by registration order for ties.
+// Without that the sequence is whichever remote entry finished loading
+// first, which moves with the network rather than with anything an author
+// chose. `Menu.tsx` preserves what this settles, so it is the only place
+// ordering is decided.
+const register = (page: string, order?: number) =>
+  disposables.push(
+    menus.registerMenuItem({ page, order }, 'global.navbar', 'primary'),
+  );
+
+test('a lower order comes first, whatever the arrival', () => {
+  register('acme.c', 3);
+  register('acme.a', 1);
+  register('acme.b', 2);
+
+  expect(menus.getMenu('global.navbar')?.pages?.map(i => i.page)).toEqual([
+    'acme.a',
+    'acme.b',
+    'acme.c',
+  ]);
+});
+
+test('items with no order come last, keeping arrival order', () => {
+  register('acme.none-first');
+  register('acme.ordered', 1);
+  register('acme.none-second');
+
+  expect(menus.getMenu('global.navbar')?.pages?.map(i => i.page)).toEqual([
+    'acme.ordered',
+    'acme.none-first',
+    'acme.none-second',
+  ]);
+});
+
+test('equal orders keep arrival order', () => {
+  register('acme.first', 5);
+  register('acme.second', 5);
+
+  expect(menus.getMenu('global.navbar')?.pages?.map(i => i.page)).toEqual([
+    'acme.first',
+    'acme.second',
+  ]);
+});
