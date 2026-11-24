@@ -53,6 +53,11 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   (`extensions.<publisher>.<name>.<kind>`), where its handler is registered and where
   the step is recorded alike. See the
   [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
+- Commit participants in `superset_core.canvas.drafts` (`register_commit_participant`,
+  `DraftCommit`, `CommitRefusedError`), which can refuse a canvas commit that would
+  publish the canvas without what goes out with it. `register_commit_participant`
+  returns the participant, so it works as a decorator. See the
+  [Canvas extension point](../docs/developer_docs/extensions/extension-points/canvas.md).
 
 ### Compatibility
 

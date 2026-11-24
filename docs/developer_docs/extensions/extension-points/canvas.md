@@ -47,3 +47,30 @@ def on_canvas_draft(event: drafts.CanvasDraftEvent) -> None:
 Listeners and step handlers run in the context of the extension that registered them, for the user the call runs for.
 
 On the frontend, the canvas page tells extensions what it did to the draft it shows, each event with the draft's `canvasId` and `token`: `canvas.onDidPublishDraft` and `canvas.onDidDiscardDraft` fire after it published or discarded the draft, and `canvas.onDidUndoDraftStep` and `canvas.onDidRedoDraftStep` after it undid or redid a step, with `steppedWidgetIds`, the saved widgets whose content a recorded step moved, which their renderers fetch again. They fire only for what the page itself did: not for an edit, nor for what another tab, another REST client or an agent's tool did, which the backend's listeners hear of. `canvas.getActiveCanvas().draft` carries the open draft's `token` and `revision`: send the token only as the `X-Canvas-Draft` header, and never log it.
+
+## Publish participants
+
+A widget whose content keeps a draft of its own, which the canvas draft that places it shows, needs that draft published with the canvas: published alone, the canvas would show viewers nothing where the widget is new, or what it showed before. An extension has the canvas publish its drafts too, from the canvas page, and refuse a commit that would leave them out, on the server.
+
+On the frontend, `canvas.registerPublishParticipant({ prepare })` takes part in publishing a draft from the canvas page, and returns a `Disposable` that ends its part. When the person publishes, the page asks each participant's `prepare(draft)` what publishing the draft also publishes, given the canvas, the draft's token and the saved widgets it places, and lists every part (`title`, `lines`) in a confirmation before anything is published. Once the person confirms, the page publishes each part (`publish()`, which may answer `notices` to show) and then the canvas; the first part that fails stops the publish with its message.
+
+On the backend, `register_commit_participant(participant)` from `superset_core.canvas.drafts` is asked before every commit, whichever way it was asked (the canvas page, the REST API or an agent's tool), under the draft's lock and before anything is written. It returns the participant, so it works as a decorator:
+
+```python
+from superset_core.canvas import drafts
+
+
+@drafts.register_commit_participant
+def notes_published(commit: drafts.DraftCommit) -> None:
+    if unpublished_notes(commit.token, commit.widget_types):
+        raise drafts.CommitRefusedError(
+            "NOTES_UNPUBLISHED", "Publish the canvas from its page."
+        )
+```
+
+A refusal fails the commit with its code and message, a 409 `DraftCommitRefused` with `refusalCode` on the REST API and `refusal_code` on the MCP tool, and nothing is written. A participant runs in the context of the extension that registered it.
+
+Both have limits:
+
+- A publish with parts is several requests, not one transaction: a part that went out stays out when a later part, or the canvas, doesn't. The confirmation then says which went out, and publishing again from it publishes only the parts that didn't.
+- Only the page's publish asks publish participants. A commit that skips the page, such as an agent's, publishes no part, and a commit participant can only refuse it, not publish what it waits for.
