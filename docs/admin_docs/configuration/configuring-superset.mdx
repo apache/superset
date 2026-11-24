@@ -97,6 +97,22 @@ for more information on how to configure it.
 
 At the very least, you'll want to change `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI`. Continue reading for more about each of these.
 
+## BigQuery fetch memory budget
+
+`BQ_FETCH_MAX_MB` limits the estimated size of BigQuery results fetched for
+on-screen charts and SQL Lab. The default is `200` MiB. SQL Lab identifies
+results truncated by this budget with the `MEMORY` limiting factor.
+
+Chart CSV/XLSX/JSON downloads and SQL Lab CSV downloads bypass this memory
+budget, but retain their query row limits. A SQL Lab download reruns a
+memory-truncated query rather than using its incomplete stored result. Scripts
+containing mutating statements are not rerun for this purpose; their stored
+results are exported instead.
+
+To disable the budget for on-screen results too, set `BQ_FETCH_MAX_MB = None`
+(or `0`) in `superset_config.py`. Downloads and uncapped on-screen results can
+use substantially more server and browser memory, respectively.
+
 ## Localizing D3 date and time labels
 
 `BABEL_DEFAULT_LOCALE` controls Superset's application translations, while
