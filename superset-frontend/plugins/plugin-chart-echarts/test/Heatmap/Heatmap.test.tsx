@@ -709,3 +709,48 @@ test('context menu with DTTM_ALIAS and granularitySqla resolves to real column i
     'order_date',
   );
 });
+
+test('resolves x-axis column when formData only contains snake_case x_axis', () => {
+  const { eventHandlers, setDataMask, onContextMenu } = setup({
+    formData: {
+      xAxis: undefined as any,
+      x_axis: 'day_of_week',
+    } as any,
+  });
+
+  eventHandlers.click({
+    data: {
+      xValue: 'Monday',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+  });
+
+  expect(setDataMask).toHaveBeenCalledTimes(1);
+  const [dataMask] = setDataMask!.mock.calls[0];
+  expect(dataMask.extraFormData.filters).toEqual([
+    { col: 'day_of_week', op: 'IN', val: ['Monday'] },
+    { col: 'hour', op: 'IN', val: [9] },
+  ]);
+
+  const stop = jest.fn();
+  eventHandlers.contextmenu({
+    data: {
+      xValue: 'Monday',
+      yValue: 9,
+      value: [0, 0, 10],
+    },
+    event: {
+      stop,
+      event: { clientX: 100, clientY: 200 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, , payload] = onContextMenu!.mock.calls[0];
+  expect(payload.drillToDetail[0].col).toBe('day_of_week');
+  expect(payload.drillBy.xAxisFilters[0].col).toBe('day_of_week');
+  expect(payload.crossFilter.dataMask.extraFormData.filters[0].col).toBe(
+    'day_of_week',
+  );
+});

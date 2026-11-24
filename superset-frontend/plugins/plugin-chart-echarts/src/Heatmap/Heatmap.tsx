@@ -21,6 +21,7 @@ import {
   ContextMenuFilters,
   DataRecordValue,
   TimeGranularity,
+  getXAxisColumn,
 } from '@superset-ui/core';
 import { HeatmapTransformedProps } from './types';
 import Echart from '../components/Echart';
@@ -66,10 +67,13 @@ export default function Heatmap(props: HeatmapTransformedProps) {
     onContextMenu,
   } = props;
 
+  const xAxisColumn =
+    getXAxisColumn(formData) ?? (formData.xAxis as QueryFormColumn | undefined);
   const timeGrain = (formData.extraFormData?.time_grain_sqla ??
     formData.time_grain_sqla ??
     formData.timeGrainSqla) as TimeGranularity | undefined;
   const granularitySqla = (formData.extraFormData?.granularity_sqla ??
+    formData.granularity_sqla ??
     formData.granularitySqla) as string | undefined;
 
   const eventHandlers: EventHandlers = useMemo(() => {
@@ -86,7 +90,7 @@ export default function Heatmap(props: HeatmapTransformedProps) {
         }
         const { xValue, yValue } = event.data;
         const crossFilter = getHeatmapCrossFilterDataMask({
-          xColumn: formData.xAxis,
+          xColumn: xAxisColumn,
           yColumn: formData.groupby,
           xValue,
           yValue,
@@ -108,7 +112,7 @@ export default function Heatmap(props: HeatmapTransformedProps) {
         }
         const { xValue, yValue } = event.data;
         const drillFilters = getHeatmapDrillFilters({
-          xColumn: formData.xAxis,
+          xColumn: xAxisColumn,
           yColumn: formData.groupby,
           xValue,
           yValue,
@@ -118,7 +122,7 @@ export default function Heatmap(props: HeatmapTransformedProps) {
         }) as NonNullable<ContextMenuFilters['drillToDetail']>;
 
         const drillBy = getHeatmapDrillByFilters({
-          xColumn: formData.xAxis,
+          xColumn: xAxisColumn,
           yColumn: formData.groupby,
           xValue,
           yValue,
@@ -130,7 +134,7 @@ export default function Heatmap(props: HeatmapTransformedProps) {
         const crossFilter =
           emitCrossFilters && setDataMask
             ? getHeatmapCrossFilterDataMask({
-                xColumn: formData.xAxis,
+                xColumn: xAxisColumn,
                 yColumn: formData.groupby,
                 xValue,
                 yValue,
@@ -153,11 +157,11 @@ export default function Heatmap(props: HeatmapTransformedProps) {
     emitCrossFilters,
     filterState?.selectedValues,
     formData.groupby,
-    formData.xAxis,
     granularitySqla,
     onContextMenu,
     setDataMask,
     timeGrain,
+    xAxisColumn,
   ]);
 
   return (
@@ -167,7 +171,7 @@ export default function Heatmap(props: HeatmapTransformedProps) {
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
-      vizType={formData.vizType}
+      vizType={formData.vizType ?? formData.viz_type}
     />
   );
 }
