@@ -1565,9 +1565,9 @@ async def _get_chart_preview_internal(  # noqa: C901
                 for warning in validation_result.warnings:
                     await ctx.warning("Dataset warning: %s" % (warning,))
 
-        # If form_data_key is provided, override chart.params with cached
-        # form_data so the preview reflects what the user actually sees
-        if request.form_data_key and getattr(chart, "id", None) is not None:
+        # Unsaved charts already loaded their cached state above. For saved
+        # charts, apply cached edits only when they load successfully.
+        if request.form_data_key and getattr(chart, "id", None):
             with event_logger.log_context(
                 action="mcp.get_chart_preview.unsaved_state_override"
             ):
@@ -1586,22 +1586,26 @@ async def _get_chart_preview_internal(  # noqa: C901
                     cmd_params = CommandParameters(key=request.form_data_key)
                     cached_form_data = GetFormDataCommand(cmd_params).run()
                     if cached_form_data:
-                        chart.params = cached_form_data
                         from superset.utils import json as utils_json
 
                         parsed = utils_json.loads(cached_form_data)
-                        if isinstance(parsed, dict) and "viz_type" in parsed:
+                        if not isinstance(parsed, dict):
+                            raise ValueError("Cached form data must be an object")
+                        chart.params = cached_form_data
+                        if "viz_type" in parsed:
                             chart.viz_type = parsed["viz_type"]
                         await ctx.info(
                             "Chart params overridden with unsaved state from cache"
                         )
                     else:
+                        request = request.model_copy(update={"form_data_key": None})
                         await ctx.warning(
                             "form_data_key provided but no cached data found. "
                             "The cache may have expired. Using saved chart "
                             "configuration."
                         )
                 except (CommandException, ValueError, KeyError) as e:
+                    request = request.model_copy(update={"form_data_key": None})
                     await ctx.warning(
                         "Failed to retrieve cached form_data: %s. "
                         "Using saved chart configuration." % (str(e),)
