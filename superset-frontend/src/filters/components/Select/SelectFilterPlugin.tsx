@@ -197,6 +197,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   // the searchAllOptions dispatch once the deferred value catches up.
   const hasSearchedRef = useRef(false);
   const userClearedRef = useRef(false);
+  const emptyDefaultRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -266,6 +267,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
+      emptyDefaultRef.current = false;
       const emptyFilter =
         enableEmptyFilter && !inverseSelection && !values?.length;
 
@@ -498,7 +500,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       userClearedRef.current = false;
     }
 
-    if (filterState.value !== undefined) {
+    if (
+      filterState.value !== undefined &&
+      !(filterState.value === null && emptyDefaultRef.current)
+    ) {
       // Set the filter state value if it is defined
       updateDataMask(filterState.value);
       return;
@@ -517,6 +522,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           updateDataMask(firstItem);
         } else if (data.length === 0 && filterState.value === undefined) {
           updateDataMask(null);
+          emptyDefaultRef.current = true;
         }
       } else if (formData?.defaultValue) {
         // Handle defalut value case
