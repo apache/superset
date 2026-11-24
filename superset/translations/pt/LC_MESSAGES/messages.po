@@ -29,7 +29,7 @@ msgstr ""
 "Generated-By: Babel 2.17.0\n"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "\n"
 "                <p>Your report/alert was unable to be generated because "
@@ -40,7 +40,7 @@ msgid ""
 msgstr ""
 "\n"
 "                <p>Não foi possível gerar o seu relatório/alerta devido "
-"ao seguinte erro: %(text)s</p>\n"
+"ao erro seguinte: %(text)s</p>\n"
 "                <p>Verifique se o seu dashboard/gráfico tem erros.</p>\n"
 "                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
 "                "
@@ -111,7 +111,7 @@ msgstr ""
 "               "
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "\n"
 "            <p>Your report/alert was unable to be generated because of "
@@ -121,7 +121,7 @@ msgid ""
 msgstr ""
 "\n"
 "            <p>Não foi possível gerar o seu relatório/alerta devido ao "
-"seguinte erro: %(text)s</p>\n"
+"erro seguinte: %(text)s</p>\n"
 "            <p>Verifique se o seu dashboard/gráfico tem erros.</p>\n"
 "            "
 
@@ -220,22 +220,22 @@ msgid "% calculation"
 msgstr "cálculo %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "% of"
 msgstr "% de"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "% of column"
 msgstr "% da coluna"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "% of column total"
 msgstr "% do total da coluna"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "% of grand total"
 msgstr "% do total geral"
 
@@ -246,7 +246,7 @@ msgid "% of parent"
 msgstr "porcentagem do pai"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "% of row total"
 msgstr "% do total da linha"
 
@@ -259,7 +259,7 @@ msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
 msgstr "%(alertType)s \"%(alertName)s\" ativado com sucesso"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "%(column)s is an array column, which cannot be compared against the "
 "single value a transform returns. Mirrored filters on this mapping would "
@@ -267,21 +267,21 @@ msgid ""
 msgstr ""
 "%(column)s é uma coluna de matriz, que não pode ser comparada com o valor"
 " único devolvido por uma transformação. Os filtros espelhados neste "
-"mapeamento falhariam na base de dados. Mapeie antes uma coluna de "
-"partição escalar."
+"mapeamento falhariam na base de dados. Em alternativa, mapeie uma coluna "
+"de partição com um único valor por linha."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%(count)s %(label)s"
 msgstr "%(count)s %(label)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr "%(count)s %(label)s restrito(s) adicional(is)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%(count)s dependent asset is archived."
 msgid_plural "%(count)s dependent assets are archived."
 msgstr[0] "%(count)s ativo dependente está arquivado."
@@ -313,12 +313,12 @@ msgid "%(label)s file"
 msgstr "%(label)s arquivo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s deleted successfully"
 msgstr "%(name)s eliminado com sucesso"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "%(name)s has an advanced data type, so its filters are translated into "
 "their own predicate shape and cannot be mirrored onto the partition "
@@ -329,7 +329,7 @@ msgstr ""
 "espelhados na coluna de partição."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "%(name)s is both the partition column and the default datetime column, so"
 " the mapping points at itself and stays inactive. Set a mapped column "
@@ -341,12 +341,12 @@ msgstr ""
 "data/hora predefinida."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s is not a column on this dataset."
 msgstr "%(name)s não é uma coluna deste conjunto de dados."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s restored successfully"
 msgstr "%(name)s restaurado com sucesso"
 
@@ -361,21 +361,21 @@ msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy, python-format
+#, python-format
 msgid "%(num)d hour"
 msgid_plural "%(num)d hours"
 msgstr[0] "%(num)d hora"
 msgstr[1] "%(num)d horas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy, python-format
+#, python-format
 msgid "%(num)d minute"
 msgid_plural "%(num)d minutes"
 msgstr[0] "%(num)d minuto"
 msgstr[1] "%(num)d minutos"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy, python-format
+#, python-format
 msgid "%(num)d second"
 msgid_plural "%(num)d seconds"
 msgstr[0] "%(num)d segundo"
@@ -447,7 +447,7 @@ msgid "%s %s"
 msgstr "%s %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s (copy from %s)"
 msgstr "%s (cópia de %s)"
 
@@ -462,7 +462,7 @@ msgid "%s Error"
 msgstr "%s Erro"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s MCP scopes"
 msgstr "%s âmbitos MCP"
 
@@ -498,9 +498,9 @@ msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s SENHA DA CHAVE PRIVADA DO TÚNEL SSH"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s Select"
-msgstr "%s Seleção"
+msgstr "%s Selecionado"
 
 # Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
 # placeholder]
@@ -541,21 +541,21 @@ msgid "%s Virtual"
 msgstr "%s Virtual"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s additional restricted chart"
 msgid_plural "%s additional restricted charts"
 msgstr[0] "%s gráfico restrito adicional"
 msgstr[1] "%s gráficos restritos adicionais"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s additional restricted dashboard"
 msgid_plural "%s additional restricted dashboards"
 msgstr[0] "%s dashboard restrito adicional"
 msgstr[1] "%s dashboards restritos adicionais"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s affected chart"
 msgid_plural "%s affected charts"
 msgstr[0] "%s gráfico afetado"
@@ -569,14 +569,14 @@ msgid "%s aggregates(s)"
 msgstr "%s agregado(s)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s chart"
 msgid_plural "%s charts"
 msgstr[0] "%s gráfico"
 msgstr[1] "%s gráficos"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s chart updated"
 msgid_plural "%s charts updated"
 msgstr[0] "%s gráfico atualizado"
@@ -595,21 +595,21 @@ msgid "%s column(s)"
 msgstr "%s coluna(s)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s dashboard"
 msgid_plural "%s dashboards"
 msgstr[0] "%s dashboard"
 msgstr[1] "%s dashboards"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s dashboard updated"
 msgid_plural "%s dashboards updated"
 msgstr[0] "%s dashboard atualizado"
 msgstr[1] "%s dashboards atualizados"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s dataset updated"
 msgid_plural "%s datasets updated"
 msgstr[0] "%s conjunto de dados atualizado"
@@ -624,16 +624,14 @@ msgstr[0] "há %s dia"
 msgstr[1] "há %s dias"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "%s dependent asset is one you can't see. Ask an admin for help."
 msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
-msgstr[0] "%s ativo dependente é um que não pode ver. Peça ajuda a um administrador."
-msgstr[1] ""
-"%s ativos dependentes são ativos que não pode ver. Peça ajuda a um "
-"administrador."
+msgstr[0] "Não pode ver %s recurso dependente. Peça ajuda a um administrador."
+msgstr[1] "Não pode ver %s recursos dependentes. Peça ajuda a um administrador."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s field"
 msgid_plural "%s fields"
 msgstr[0] "%s campo"
@@ -670,7 +668,7 @@ msgstr ""
 "para todos os objetos selecionados."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s key"
 msgid_plural "%s keys"
 msgstr[0] "%s chave"
@@ -689,7 +687,7 @@ msgstr[0] "%s min"
 msgstr[1] "%s mins"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "%s of the selected items is a semantic view, which cannot be archived: it"
 " will be deleted permanently and cannot be recovered."
@@ -804,7 +802,7 @@ msgid "%s updated"
 msgstr "%s atualizado"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "%s — click the chart to return"
 msgstr "%s — clique no gráfico para voltar"
 
@@ -822,7 +820,6 @@ msgid "(Removed)"
 msgstr "(Removido)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "(archived)"
 msgstr "(arquivado)"
 
@@ -863,7 +860,7 @@ msgstr ""
 "    "
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "*%(name)s*\n"
 "\n"
@@ -898,7 +895,7 @@ msgstr ""
 "%(table)s\n"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "*Report Failed - All Retries Exhausted: %(name)s*\n"
 "\n"
@@ -917,7 +914,7 @@ msgstr ""
 "Erro: %(text)s\n"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "*Report Retry [%(attempt)s of %(max)s]: %(name)s*\n"
 "\n"
@@ -968,7 +965,7 @@ msgid "... and %d more"
 msgstr "... e %d mais"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "... and %s more"
 msgid_plural "... and %s more"
 msgstr[0] "... e mais %s"
@@ -981,7 +978,7 @@ msgid "... and %s more records"
 msgstr "... e mais %s registros"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid "... and %s other"
 msgid_plural "... and %s others"
 msgstr[0] "... e mais %s outro"
@@ -1364,7 +1361,6 @@ msgid ">= (Larger or equal)"
 msgstr ">= (Maior ou igual)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "@import is blocked to prevent a dashboard from loading arbitrary remote "
 "CSS. Convert it to inline CSS to keep using it."
@@ -1373,7 +1369,7 @@ msgstr ""
 "remoto arbitrário. Converta-o em CSS inline para continuar a utilizá-lo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
 " a single value cannot describe."
@@ -1382,7 +1378,7 @@ msgstr ""
 "pré-visualização de um único valor não consegue representar."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "A %(operator)s filter is only mirrored when the transform preserves "
 "ordering, which this one is not declared to do."
@@ -1420,7 +1416,6 @@ msgstr ""
 "Detalhes: https://echarts.apache.org/en/option.html. "
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "A SQL expression evaluated against the engine, with :value standing for "
 "the filter bound being mirrored."
@@ -1429,22 +1424,18 @@ msgstr ""
 "do filtro que está a ser espelhado."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "A SQL expression using :value"
 msgstr "Uma expressão SQL que usa :value"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "A Slack channel is required for Slack recipients"
 msgstr "É necessário um canal do Slack para destinatários do Slack"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy
 msgid "A TTL is required for ephemeral state."
 msgstr "É necessário um TTL para o estado efémero."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
@@ -1463,14 +1454,13 @@ msgstr ""
 "intervalos de séries temporais."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "A chart on this dashboard or in this version was permanently deleted "
 "while the dashboard was being restored, so nothing was changed. Please "
 "try again."
 msgstr ""
-"Um gráfico neste dashboard ou nesta versão foi excluído permanentemente "
-"enquanto o dashboard estava sendo restaurado, portanto nada foi alterado."
+"Um gráfico neste dashboard ou nesta versão foi eliminado permanentemente "
+"enquanto o dashboard estava a ser restaurado, portanto nada foi alterado."
 " Tente novamente."
 
 msgid "A comma separated list of columns that should be parsed as dates"
