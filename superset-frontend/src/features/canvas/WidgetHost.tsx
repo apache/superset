@@ -21,7 +21,7 @@ import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
-import { useSavedWidgetRenderers } from 'src/core';
+import { useWidgetRenderers } from 'src/core';
 import type {
   CanvasChild,
   CanvasColors,
@@ -30,12 +30,15 @@ import type {
 } from 'src/core/canvas/types';
 import { useApiV1Resource } from 'src/hooks/apiResources';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { registerBuiltinRenderers } from './builtinRenderers';
+import {
+  registerBuiltinRenderers,
+  RENDERERS_WITHOUT_CANVAS,
+} from './builtinRenderers';
 import { TitledWidget, WidgetPlaceholder } from './CanvasGrid';
 import { Interactive, overflowFor, WidgetBody } from './CanvasGridSurface';
 
-// The built-in data widgets register their saved widget renderers here; the
-// canvas page registers them too, and doing it twice is a no-op.
+// A built-in runs here only while the registry holds it, so a page without a
+// canvas registers them too; registering them again is a no-op.
 registerBuiltinRenderers();
 
 /** A saved widget, as `GET /api/v1/widget/<uuid>` answers it. */
@@ -74,14 +77,13 @@ function Cell({ children }: { children: ReactNode }) {
 /** See `canvas.WidgetHost` in `@apache-superset/core`. */
 export default function WidgetHost({
   widgetId,
-  filters = NO_VALUES,
   refreshKey = 0,
   showTitle = true,
 }: canvasApi.WidgetHostProps) {
   const widget = useApiV1Resource<SavedWidget>(
     `/api/v1/widget/${encodeURIComponent(widgetId)}`,
   );
-  const getRenderer = useSavedWidgetRenderers();
+  const getRenderer = useWidgetRenderers();
 
   if (widget.status === ResourceStatus.Loading) {
     return (
@@ -104,7 +106,13 @@ export default function WidgetHost({
   }
 
   const saved = widget.result;
-  const Renderer = getRenderer(saved.widget_type);
+  const builtin = RENDERERS_WITHOUT_CANVAS.get(saved.widget_type);
+  // Any other renderer, one that replaced a built-in included, is promised
+  // the canvas it renders on, and there is none here.
+  const Renderer =
+    builtin !== undefined && getRenderer(saved.widget_type) === builtin
+      ? builtin
+      : undefined;
   const title = showTitle ? saved.name : undefined;
   const content = Renderer ? (
     <ErrorBoundary>
@@ -115,7 +123,7 @@ export default function WidgetHost({
         props={saved.props}
         schemaVersion={saved.schema_version}
         title={title}
-        filters={filters}
+        filters={NO_VALUES}
         crossFilters={NO_VALUES}
         customizations={NO_VALUES}
         setFilterValue={reachesNothing}
@@ -132,8 +140,7 @@ export default function WidgetHost({
       />
     </ErrorBoundary>
   ) : (
-    // Its extension isn't loaded on this page, or the type renders only on a
-    // canvas: the type id means nothing to a viewer.
+    // The type id would mean nothing to a viewer.
     <WidgetPlaceholder>
       <span>{t('This widget is unavailable')}</span>
     </WidgetPlaceholder>

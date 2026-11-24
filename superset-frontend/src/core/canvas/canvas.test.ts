@@ -21,7 +21,6 @@ import { logging } from '@apache-superset/core/utils';
 import {
   canvas,
   fireDraftEvent,
-  getSavedWidgetRenderer,
   getWidgetRenderer,
   preparePublish,
   setActiveCanvas,
@@ -209,30 +208,4 @@ test('a participant that fails fails the whole publish, before anything is publi
 
 test('extensions get the widget host with the rest of the canvas namespace', () => {
   expect(typeof canvas.WidgetHost).toBe('function');
-});
-
-test('saved widget renderers register apart from canvas renderers', () => {
-  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
-  const OnItsOwn = () => null;
-  const placed = canvas.registerWidgetRenderer('test.kpi', Kpi);
-  const saved = canvas.registerSavedWidgetRenderer('test.kpi', OnItsOwn);
-
-  expect(getWidgetRenderer('test.kpi')).toBe(Kpi);
-  expect(getSavedWidgetRenderer('test.kpi')).toBe(OnItsOwn);
-
-  // A canvas renderer alone doesn't make a type show outside a canvas.
-  saved.dispose();
-  expect(getSavedWidgetRenderer('test.kpi')).toBeUndefined();
-  expect(getWidgetRenderer('test.kpi')).toBe(Kpi);
-
-  const first = canvas.registerSavedWidgetRenderer('test.kpi', OnItsOwn);
-  const second = canvas.registerSavedWidgetRenderer('test.kpi', () => null);
-  expect(warn).toHaveBeenCalledWith(
-    expect.stringContaining('"test.kpi" is already registered'),
-  );
-  first.dispose();
-  expect(getSavedWidgetRenderer('test.kpi')).not.toBe(OnItsOwn);
-  second.dispose();
-  placed.dispose();
-  warn.mockRestore();
 });

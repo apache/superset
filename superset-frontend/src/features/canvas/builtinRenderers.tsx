@@ -19,12 +19,12 @@
 import type { ComponentType } from 'react';
 import type {
   CanvasRendererProps,
-  SavedRendererProps,
+  HostRendererProps,
 } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { SafeMarkdown, Tabs, Typography } from '@superset-ui/core/components';
-import { registerSavedWidgetRenderer, registerWidgetRenderer } from 'src/core';
+import { registerWidgetRenderer } from 'src/core';
 import { CanvasMarkHost, useCanvasMark } from './CanvasGrid';
 import EchartsRenderer from './echarts/EchartsRenderer';
 import type { DataBinding } from './echarts/chartData';
@@ -262,19 +262,23 @@ export const BUILTIN_RENDERERS: Record<string, ComponentType<Props>> = {
 };
 
 /**
- * The built-in data widgets, which a widget host can also show as saved
- * widgets on their own: their data then comes from the saved widget. A filter
- * there would drive nothing, and containers and text are never saved apart
- * from their canvas.
+ * The built-in renderers that also render without a canvas, where the widget
+ * host shows a saved widget on its own: their data then comes from the saved
+ * widget. Containers and text are never saved apart from their canvas, and a
+ * filter there would drive nothing.
+ *
+ * The map itself is never registered: the widget host runs one of these only
+ * while the registry still holds it for its type, so a renderer that replaced
+ * it, which is promised its canvas, never runs without one.
  */
-export const SAVED_WIDGET_RENDERERS: Record<
+export const RENDERERS_WITHOUT_CANVAS: ReadonlyMap<
   string,
-  ComponentType<SavedRendererProps>
-> = {
-  echarts: EchartsRenderer,
-  'metric-tile': MetricTileRenderer,
-  'ag-grid-table': TableRenderer,
-};
+  ComponentType<HostRendererProps>
+> = new Map([
+  ['echarts', EchartsRenderer],
+  ['metric-tile', MetricTileRenderer],
+  ['ag-grid-table', TableRenderer],
+]);
 
 let registered = false;
 
@@ -284,8 +288,5 @@ export function registerBuiltinRenderers(): void {
   registered = true;
   Object.entries(BUILTIN_RENDERERS).forEach(([widgetType, component]) =>
     registerWidgetRenderer(widgetType, component),
-  );
-  Object.entries(SAVED_WIDGET_RENDERERS).forEach(([widgetType, component]) =>
-    registerSavedWidgetRenderer(widgetType, component),
   );
 }

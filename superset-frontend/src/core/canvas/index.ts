@@ -34,13 +34,11 @@ import type { canvas as canvasApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
 import { createEventEmitter, createValueEventEmitter } from '../utils';
-import type { CanvasRendererProps, SavedRendererProps } from './types';
+import type { CanvasRendererProps } from './types';
 
 type WidgetRenderer = ComponentType<CanvasRendererProps>;
-type SavedWidgetRenderer = ComponentType<SavedRendererProps>;
 
 const renderers = new Map<string, WidgetRenderer>();
-const savedRenderers = new Map<string, SavedWidgetRenderer>();
 const listeners = new Set<() => void>();
 let version = 0;
 
@@ -77,51 +75,16 @@ export const getWidgetRenderer = (
   widgetType: string,
 ): WidgetRenderer | undefined => renderers.get(widgetType);
 
-/**
- * Registers the renderer of a saved widget of a type on its own, outside any
- * canvas. Typed with the host's props so the built-in renderers can register
- * here too; an extension's, typed with the core subset, is assignable to it.
- */
-export const registerSavedWidgetRenderer = (
-  widgetType: string,
-  component: SavedWidgetRenderer,
-): Disposable => {
-  if (savedRenderers.has(widgetType)) {
-    logging.warn(
-      `Saved widget renderer "${widgetType}" is already registered. Overwriting the existing renderer.`,
-    );
-  }
-  savedRenderers.set(widgetType, component);
-  notify();
-  return new Disposable(() => {
-    if (savedRenderers.get(widgetType) === component) {
-      savedRenderers.delete(widgetType);
-      notify();
-    }
-  });
-};
-
-export const getSavedWidgetRenderer = (
-  widgetType: string,
-): SavedWidgetRenderer | undefined => savedRenderers.get(widgetType);
-
-const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-};
-
 /** Re-renders the caller when widget renderers are registered or removed. */
 export const useWidgetRenderers = (): typeof getWidgetRenderer => {
-  useSyncExternalStore(subscribe, () => version);
+  useSyncExternalStore(
+    listener => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => version,
+  );
   return getWidgetRenderer;
-};
-
-/** Re-renders the caller when saved widget renderers change. */
-export const useSavedWidgetRenderers = (): typeof getSavedWidgetRenderer => {
-  useSyncExternalStore(subscribe, () => version);
-  return getSavedWidgetRenderer;
 };
 
 const activeCanvas = createValueEventEmitter<
@@ -207,7 +170,6 @@ const WidgetHost: typeof canvasApi.WidgetHost = props =>
 
 export const canvas: typeof canvasApi = {
   registerWidgetRenderer,
-  registerSavedWidgetRenderer,
   getActiveCanvas: activeCanvas.getCurrent,
   onDidChangeActiveCanvas: activeCanvas.subscribe,
   onDidChangeDraft,
