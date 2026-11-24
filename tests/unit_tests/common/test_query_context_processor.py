@@ -75,6 +75,9 @@ def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
     query: QueryObject
     for query in mock_query_context.queries:
         assert query.datasource is not None
+        query.datasource.database.db_engine_spec.has_fetch_memory_cap.return_value = (
+            False
+        )
         query.datasource.database.extra = "{}"
         query.datasource.database.get_embedded_fallback_credentials.return_value = None
         query.datasource.database.embedded_fallback_applies.return_value = False
@@ -197,8 +200,59 @@ def test_query_cache_key_separates_uncapped_downloads(
     kwargs = query_obj.cache_key.call_args.kwargs
     if keyed_apart:
         assert kwargs["fetch_memory_cap"] is False
+    elif engine_has_cap:
+        assert kwargs["fetch_memory_cap"] == db_engine_spec.get_fetch_memory_cap()
     else:
         assert "fetch_memory_cap" not in kwargs
+
+
+@pytest.mark.parametrize(
+    ("result_format", "is_download", "engine_name", "expected_key_count"),
+    [
+        (ChartDataResultFormat.JSON, False, "bigquery", 4),
+        (ChartDataResultFormat.ARROW, False, "bigquery", 4),
+        (ChartDataResultFormat.CSV, False, "bigquery", 1),
+        (ChartDataResultFormat.XLSX, False, "bigquery", 1),
+        (ChartDataResultFormat.JSON, True, "bigquery", 1),
+        (ChartDataResultFormat.JSON, False, "base", 1),
+    ],
+)
+def test_query_cache_key_tracks_fetch_memory_budget(
+    processor: QueryContextProcessor,
+    app: Flask,
+    mocker: MockerFixture,
+    result_format: ChartDataResultFormat,
+    is_download: bool,
+    engine_name: str,
+    expected_key_count: int,
+) -> None:
+    """Changing the budget invalidates rendered results, but not downloads."""
+    from superset.common.query_object import QueryObject
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    processor._query_context.result_format = result_format
+    processor._query_context.is_download = is_download
+    datasource = cast(MagicMock, processor._qc_datasource)
+    datasource.database.db_engine_spec = (
+        BigQueryEngineSpec if engine_name == "bigquery" else BaseEngineSpec
+    )
+    datasource.uid = "table__1"
+    datasource.changed_on = None
+    datasource.get_extra_cache_keys.return_value = []
+    query_obj = QueryObject()
+    keys = []
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security:
+        security.get_rls_cache_key.return_value = []
+        for budget in (200, 100, 1, None, 0):
+            mocker.patch.dict(app.config, {"BQ_FETCH_MAX_MB": budget})
+            keys.append(processor.query_cache_key(query_obj))
+
+    assert len(set(keys)) == expected_key_count
+    assert keys[-2] == keys[-1]  # None and zero both disable the cap.
 
 
 @pytest.mark.parametrize(
@@ -1845,6 +1899,7 @@ def test_get_df_payload_validates_before_cache_key_generation():
     mock_datasource.uid = "test_datasource"
     mock_datasource.cache_timeout = None
     mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.database.db_engine_spec.has_fetch_memory_cap.return_value = False
     mock_datasource.database.extra = "{}"
     mock_datasource.database.get_embedded_fallback_credentials.return_value = None
     mock_datasource.database.embedded_fallback_applies.return_value = False

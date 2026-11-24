@@ -135,6 +135,12 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
         (FetchedRows([(1,), (2,)], truncated=True), [(1,), (2,)], "MEMORY"),
         (FetchedRows([(1,), (2,)], truncated=False), [(1,), (2,)], "NOT_LIMITED"),
         ([(1,), (2,)], [(1,), (2,)], "NOT_LIMITED"),
+        # Dropping only the probe row still displays every row up to the limit.
+        (
+            FetchedRows([(1,), (2,), (3,), (4,), (5,)], truncated=True),
+            [(1,), (2,), (3,), (4,), (5,)],
+            None,
+        ),
         # The extra probe row came back: the limit, not memory, cut the result.
         ([(1,), (2,), (3,), (4,), (5,), (6,)], [(1,), (2,), (3,), (4,), (5,)], None),
         (

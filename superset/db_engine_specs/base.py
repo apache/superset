@@ -1826,6 +1826,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return False
 
     @classmethod
+    def get_fetch_memory_cap(cls) -> int | None:
+        """Return the fetch budget in MiB for rendered-result cache identity."""
+        return None
+
+    @classmethod
     def fetch_data_with_cursor(
         cls,
         database: Database,

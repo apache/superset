@@ -603,12 +603,6 @@ class QueryContextProcessor:
             or getattr(self._query_context, "is_download", False) is True
         )
 
-    def _datasource_has_fetch_cap(self) -> bool:
-        """Whether the datasource's engine may truncate fetches to save memory."""
-        database = getattr(self._qc_datasource, "database", None)
-        db_engine_spec = getattr(database, "db_engine_spec", None)
-        return bool(db_engine_spec and db_engine_spec.has_fetch_memory_cap())
-
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
         Returns a QueryObject cache key for objects in self.queries
@@ -626,9 +620,14 @@ class QueryContextProcessor:
         # Downloads fetch past an engine's memory cap (see
         # ``_execute_query_object``), so key them apart: a capped on-screen
         # result must not be served as an export, and an uncapped export must
-        # not reach the browser.
-        if self._is_download() and self._datasource_has_fetch_cap():
-            kwargs["fetch_memory_cap"] = False
+        # not reach the browser. Rendered results also bind the configured
+        # budget so changing it cannot reuse results fetched under another cap.
+        database = getattr(datasource, "database", None)
+        db_engine_spec = getattr(database, "db_engine_spec", None)
+        if db_engine_spec and db_engine_spec.has_fetch_memory_cap():
+            kwargs["fetch_memory_cap"] = (
+                False if self._is_download() else db_engine_spec.get_fetch_memory_cap()
+            )
 
         cache_key = (
             query_obj.cache_key(

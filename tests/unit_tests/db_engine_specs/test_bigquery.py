@@ -31,6 +31,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
+from superset.app import SupersetApp
 from superset.sql.parse import Table
 from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import json
@@ -804,6 +805,8 @@ def _patch_bq_fetch_deps(
     app = mocker.patch(
         "superset.db_engine_specs.bigquery.current_app", new_callable=mock.MagicMock
     )
+    flask_g.bq_memory_limited = False
+    flask_g.bq_memory_limited_row_count = 0
     # Make current_app truthy and .config.get() return a plain int
     app.__bool__ = mock.Mock(return_value=True)
     app.config = mock.MagicMock()
@@ -901,6 +904,95 @@ def test_fetch_data_eof_probe_preserves_budgeted_rows(
     assert cursor.fetchmany.call_args_list == expected_calls
     assert list(remaining) == []
     cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("sample_rows", [2, 4])
+@pytest.mark.parametrize(
+    ("offset_fetch", "expected_count"),
+    [
+        ("complete", 4),
+        ("empty", 4),
+        ("fallback", 4),
+        ("download", 4),
+        ("disabled", 4),
+        ("smaller_cap", 2),
+        ("larger_cap", 4),
+    ],
+)
+def test_fetch_data_preserves_time_offset_truncation(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    sample_rows: int,
+    offset_fetch: str,
+    expected_count: int,
+) -> None:
+    """An offset fetch cannot erase a main query's cached truncation warning."""
+    from datetime import timedelta
+
+    import pandas as pd
+    from flask import g
+
+    from superset.common.utils.query_cache_manager import QueryCacheManager
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import QueryResult
+    from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
+
+    mocker.patch.dict(app.config, {"BQ_FETCH_MAX_MB": 1})
+    mocker.patch(
+        "superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", sample_rows
+    )
+    # Four rows fill 1 MiB, exercising both sample and second-batch truncation.
+    mocker.patch("superset.db_engine_specs.bigquery.sys.getsizeof", return_value=131072)
+    persist = mocker.patch.object(QueryCacheManager, "set", return_value=True)
+
+    def cursor_for(row_count: int) -> mock.MagicMock:
+        """Build a forward-only cursor for each main or offset query."""
+        rows = [(i,) for i in range(row_count)]
+        remaining = iter(rows)
+        cursor = mock.MagicMock()
+        cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+        cursor.fetchall.return_value = rows
+        return cursor
+
+    with app.test_request_context():
+        main = BigQueryEngineSpec.fetch_data(cursor_for(10))
+        assert len(main) == 4
+        assert g.bq_memory_limited is True
+        offset_cursor = cursor_for(3 if offset_fetch == "complete" else 0)
+        if offset_fetch == "fallback":
+            offset_cursor.fetchmany.side_effect = RuntimeError("initial read failed")
+            offset_cursor.fetchall.return_value = [(1,)]
+        if offset_fetch in {"smaller_cap", "larger_cap"}:
+            mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 2)
+            mocker.patch(
+                "superset.db_engine_specs.bigquery.sys.getsizeof",
+                return_value=262144 if offset_fetch == "smaller_cap" else 65536,
+            )
+            offset_cursor = cursor_for(10)
+        if offset_fetch == "disabled":
+            app.config["BQ_FETCH_MAX_MB"] = None
+        if offset_fetch == "download":
+            with fetch_memory_cap_disabled():
+                BigQueryEngineSpec.fetch_data(offset_cursor)
+        else:
+            BigQueryEngineSpec.fetch_data(offset_cursor)
+
+        cache = QueryCacheManager()
+        cache.set_query_result(
+            key="time-comparison",
+            query_result=QueryResult(
+                df=pd.DataFrame(main), query="", duration=timedelta(0)
+            ),
+        )
+        assert cache.bq_memory_limited is True
+        assert cache.bq_memory_limited_row_count == expected_count
+        assert persist.call_args.kwargs["value"]["bq_memory_limited"] is True
+        assert (
+            persist.call_args.kwargs["value"]["bq_memory_limited_row_count"]
+            == expected_count
+        )
+        assert g.bq_memory_limited is False
+        assert g.bq_memory_limited_row_count == 0
 
 
 def test_fetch_data_empty_result(mocker: MockerFixture) -> None:
