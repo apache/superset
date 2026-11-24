@@ -36,12 +36,8 @@ test('resolveBound prefers the metric value, then the typed value, then the fall
     7,
   );
   expect(resolveBound({ fromMetric: undefined, fixed: '', fallback })).toBe(7);
-});
-
-test('resolveBound keeps a metric value of zero', () => {
-  expect(resolveBound({ fromMetric: 0, fixed: 100, fallback: () => 7 })).toBe(
-    0,
-  );
+  // zero is a real metric value, not a missing one
+  expect(resolveBound({ fromMetric: 0, fixed: 100, fallback })).toBe(0);
 });
 
 test('getMetricValue reads saved and adhoc metrics by label', () => {
