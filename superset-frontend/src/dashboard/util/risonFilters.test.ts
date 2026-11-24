@@ -176,6 +176,21 @@ test('OR that is not one IN is dropped instead of AND-ed', () => {
   ]);
 });
 
+test('NOT and OR drop an operator they do not know', () => {
+  expect(parseRisonFilters('(NOT:(name:(ilike:x)),year:2024)')).toEqual([
+    { subject: 'year', operator: '==', comparator: 2024 },
+  ]);
+  expect(
+    parseRisonFilters('(OR:!((name:(ilike:x)),(name:y)),year:2024)'),
+  ).toEqual([{ subject: 'year', operator: '==', comparator: 2024 }]);
+  expect(
+    parseRisonFilters('(OR:!((name:!((ilike:x))),(name:y)),year:2024)'),
+  ).toEqual([{ subject: 'year', operator: '==', comparator: 2024 }]);
+  expect(parseRisonFilters('(OR:!((name:!n),(name:y)))')).toEqual([
+    { subject: 'name', operator: 'IN', comparator: [null, 'y'] },
+  ]);
+});
+
 test('NOT drops a nested OR or NOT', () => {
   expect(
     parseRisonFilters(

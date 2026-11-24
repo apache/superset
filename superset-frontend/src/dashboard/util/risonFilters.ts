@@ -133,6 +133,18 @@ const NEGATED_OPERATORS: Record<string, string> = {
 };
 
 /**
+ * Whether a parsed comparator is a plain value or a list of plain values. An
+ * unknown operator such as `(ilike:x)` parses as equality with the whole
+ * object, which no filter can apply.
+ */
+function hasPlainComparator(filter: RisonFilter): boolean {
+  const values: unknown[] = Array.isArray(filter.comparator)
+    ? filter.comparator
+    : [filter.comparator];
+  return values.every(value => value === null || typeof value !== 'object');
+}
+
+/**
  * Parse the conditions under NOT, negating each one.
  */
 function parseNotConditions(notValue: Record<string, unknown>): RisonFilter[] {
@@ -140,7 +152,10 @@ function parseNotConditions(notValue: Record<string, unknown>): RisonFilter[] {
   Object.entries(notValue).forEach(([key, value]) => {
     const filter =
       key === 'OR' || key === 'NOT' ? null : parseFilterCondition(key, value);
-    const negated = filter && NEGATED_OPERATORS[filter.operator];
+    const negated =
+      filter &&
+      hasPlainComparator(filter) &&
+      NEGATED_OPERATORS[filter.operator];
     if (filter && negated) {
       filters.push({ ...filter, operator: negated });
     } else {
@@ -175,7 +190,10 @@ function parseOrConditions(branches: unknown[]): RisonFilter | null {
       return null;
     }
     const filter = parseFilterCondition(entries[0][0], entries[0][1]);
-    return filter.operator === '==' || filter.operator === 'IN' ? filter : null;
+    return (filter.operator === '==' || filter.operator === 'IN') &&
+      hasPlainComparator(filter)
+      ? filter
+      : null;
   });
 
   if (parsed.length === 0) {
