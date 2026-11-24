@@ -144,9 +144,8 @@ msgstr "在 '%(highlight)s' 附近"
 msgid " to add calculated columns"
 msgstr "添加计算列"
 
-#, fuzzy
 msgid " to add metrics"
-msgstr "添加指标"
+msgstr "以添加指标"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -647,13 +646,13 @@ msgstr "%s 个语义视图添加失败"
 msgid "%s semantic view(s) failed to add: %s"
 msgstr "%s 个语义视图添加失败：%s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s tab selected"
-msgstr "%s 已选定"
+msgstr "已选择 %s 个选项卡"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s updated"
-msgstr "上次更新 %s"
+msgstr "%s 已更新"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1950,9 +1949,8 @@ msgstr "图例额外的内边距。"
 msgid "Additional parameters"
 msgstr "额外参数"
 
-#, fuzzy
 msgid "Additional settings."
-msgstr "额外的设置"
+msgstr "其他设置。"
 
 msgid "Additional text to add before or after the value, e.g. unit"
 msgstr "在数值前后添加附加文本，例如：单位"
@@ -2471,9 +2469,8 @@ msgstr "获取%ss时出错：%s"
 msgid "An error occurred while fetching available CSS templates"
 msgstr "获取可用的CSS模板时出错"
 
-#, fuzzy
 msgid "An error occurred while fetching available themes"
-msgstr "获取可用的CSS模板时出错"
+msgstr "获取可用主题时出错"
 
 msgid "An error occurred while fetching available views"
 msgstr "获取可用视图时发生错误"
@@ -2698,9 +2695,8 @@ msgstr "更新值时出错。"
 msgid "An error occurred while upserting the extension."
 msgstr "更新扩展时出错。"
 
-#, fuzzy
 msgid "An error occurred while upserting the value."
-msgstr "更新值时出错。"
+msgstr "新增或更新值时出错。"
 
 msgid "An export for this dashboard is already in progress."
 msgstr "此看板的导出操作已在进行中。"
@@ -3309,9 +3305,8 @@ msgstr "基础"
 msgid "Base exponent"
 msgstr "基数指数"
 
-#, fuzzy
 msgid "Base height"
-msgstr "图表高度"
+msgstr "基础高度"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -3352,9 +3347,8 @@ msgstr "图表和图例中的系列应基于什么进行排序"
 msgid "Basic"
 msgstr "基础"
 
-#, fuzzy
 msgid "Basic conditional formatting"
-msgstr "条件格式设置"
+msgstr "基本条件格式"
 
 msgid "Basic information about the chart"
 msgstr "图表的基本信息"
@@ -3721,9 +3715,8 @@ msgstr "日历热力图"
 msgid "Can not move top level tab into nested tabs"
 msgstr "无法将顶级选项卡移动到嵌套选项卡中"
 
-#, fuzzy
 msgid "Can select multiple values"
-msgstr "允许选择多个值"
+msgstr "可选择多个值"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -3989,9 +3982,8 @@ msgstr "已更改一个筛选器"
 msgid "Changed a metric"
 msgstr "已更改一个指标"
 
-#, fuzzy
 msgid "Changed by"
-msgstr "修改人"
+msgstr "更改人"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4053,9 +4045,8 @@ msgstr "没有权限更新此数据集"
 msgid "Changing this dataset is forbidden."
 msgstr "禁止更改此数据集。"
 
-#, fuzzy
 msgid "Changing this datasource is forbidden"
-msgstr "没有权限更新此数据集"
+msgstr "禁止更改此数据源"
 
 msgid "Changing this report is forbidden"
 msgstr "禁止更改此报告"
@@ -4205,7 +4196,6 @@ msgstr "需要图表名称"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, ro, ru, sk, sl, sr, sr_Latn, ta,
 # tr, uk]
-#, fuzzy
 msgid "Chart not found"
 msgstr "未找到图表"
 
@@ -4370,9 +4360,8 @@ msgstr "选择图表类型"
 msgid "Choose columns to be parsed as dates"
 msgstr "选择要解析为日期的列"
 
-#, fuzzy
 msgid "Choose columns to read"
-msgstr "要读取的列"
+msgstr "选择要读取的列"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4593,9 +4582,8 @@ msgstr "点击强制刷新"
 msgid "Click to see difference"
 msgstr "点击查看差异"
 
-#, fuzzy
 msgid "Click to sort ascending"
-msgstr "按照升序进行排序"
+msgstr "点击以升序排序"
 
 msgid "Click to sort descending"
 msgstr "点击降序排序"
@@ -4886,18 +4874,16 @@ msgstr "列设置"
 msgid "Column sum"
 msgstr "列总和"
 
-#, fuzzy
 msgid "Column to group by"
-msgstr "需要进行分组的一列或多列"
+msgstr "用于分组的列"
 
 msgid ""
 "Column to use as the index of the dataframe. If None is given, Index "
 "label is used."
 msgstr "用作数据框索引的列。如果未指定，则使用索引标签。"
 
-#, fuzzy
 msgid "Column type"
-msgstr "列数据类型"
+msgstr "列类型"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4912,9 +4898,9 @@ msgstr "列式上传"
 msgid "Columns"
 msgstr "列"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Columns (%s)"
-msgstr "%s 列"
+msgstr "列 (%s)"
 
 msgid "Columns (horizontal layout)"
 msgstr "列（水平布局）"
@@ -4931,9 +4917,9 @@ msgstr "列和指标应位于文件夹内"
 msgid "Columns folder can only contain column items"
 msgstr "列文件夹只能包含列项目"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
-msgstr "数据源中缺少列：%(invalid_columns)s"
+msgstr "数据集中缺少列：%(invalid_columns)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -5100,9 +5086,8 @@ msgstr "配置 %s"
 msgid "Configure Advanced Time Range "
 msgstr "配置进阶时间范围 "
 
-#, fuzzy
 msgid "Configure Time Range: Current..."
-msgstr "配置时间范围：最近..."
+msgstr "配置时间范围：当前…"
 
 msgid "Configure Time Range: Last..."
 msgstr "配置时间范围：最近..."
@@ -5217,9 +5202,8 @@ msgstr "连接"
 msgid "Connection failed, please check your connection settings"
 msgstr "连接失败，请检查您的连接配置"
 
-#, fuzzy
 msgid "Connection failed, please check your connection settings."
-msgstr "连接失败，请检查您的连接配置"
+msgstr "连接失败，请检查您的连接配置。"
 
 msgid "Connection looks good!"
 msgstr "连接成功!"
@@ -5338,9 +5322,8 @@ msgstr "复制网址"
 msgid "Copy and Paste JSON credentials"
 msgstr "复制和粘贴JSON凭据"
 
-#, fuzzy
 msgid "Copy code to clipboard"
-msgstr "复制到剪贴板"
+msgstr "将代码复制到剪贴板"
 
 msgid "Copy column name"
 msgstr "复制列名"
@@ -5352,9 +5335,8 @@ msgstr "%s 的副本"
 msgid "Copy partition query to clipboard"
 msgstr "将分区查询复制到剪贴板"
 
-#, fuzzy
 msgid "Copy permalink to clipboard"
-msgstr "将查询链接复制到剪贴板"
+msgstr "将永久链接复制到剪贴板"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
 #, fuzzy
@@ -5783,13 +5765,11 @@ msgid ""
 "replace this value."
 msgstr "此处不支持自定义列值。请选择已保存的维度来替换此值。"
 
-#, fuzzy
 msgid "Custom conditional formatting"
-msgstr "条件格式设置"
+msgstr "自定义条件格式"
 
-#, fuzzy
 msgid "Custom date"
-msgstr "自定义"
+msgstr "自定义日期"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -5804,9 +5784,8 @@ msgstr "自定义时间过滤器插件"
 msgid "Custom width of the screenshot in pixels"
 msgstr "截图的像素自定义宽度"
 
-#, fuzzy
 msgid "Custom..."
-msgstr "自定义"
+msgstr "自定义…"
 
 msgid "Customization and styling"
 msgstr "自定义与样式"
@@ -5910,9 +5889,8 @@ msgstr "X 轴标签的 D3 时间格式"
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "D3 时间格式语法：https://github.com/d3/d3-time-format"
 
-#, fuzzy
 msgid "DATETIME"
-msgstr "日期/时间"
+msgstr "日期时间"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -6145,9 +6123,8 @@ msgstr "数据错误"
 msgid "Data for %s"
 msgstr "%s 的数据"
 
-#, fuzzy
 msgid "Data imported"
-msgstr "数据集已导入"
+msgstr "数据已导入"
 
 msgid "Data preview"
 msgstr "数据预览"
@@ -6185,7 +6162,6 @@ msgstr "数据库连接"
 msgid "Database Creation Error"
 msgstr "数据库创建错误"
 
-#, fuzzy
 msgid "Database connected"
 msgstr "数据库已连接"
 
@@ -6377,9 +6353,8 @@ msgstr "数据源"
 msgid "Datasource & Chart Type"
 msgstr "数据源 & 图表类型"
 
-#, fuzzy
 msgid "Datasource does not exist"
-msgstr "数据集不存在"
+msgstr "数据源不存在"
 
 msgid "Datasource is required"
 msgstr "数据源是必需的"
@@ -6438,9 +6413,8 @@ msgstr "%s天"
 msgid "Db engine did not return all queried columns"
 msgstr "数据库引擎未返回所有查询的列"
 
-#, fuzzy
 msgid "Deactivate"
-msgstr "禁用"
+msgstr "停用"
 
 msgid "December"
 msgstr "十二月"
@@ -6466,9 +6440,8 @@ msgstr "减少"
 msgid "Decrease color"
 msgstr "减少颜色"
 
-#, fuzzy
 msgid "Decrease label"
-msgstr "减少"
+msgstr "减小标签"
 
 #, fuzzy
 msgid "Default"
@@ -6825,9 +6798,9 @@ msgstr "已删除 %s 个项目"
 msgid "Deleted group: %s"
 msgstr "已删除组：%s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted groups: %s"
-msgstr "已删除：%s"
+msgstr "已删除分组：%s"
 
 #, python-format
 msgid "Deleted role: %s"
@@ -7059,9 +7032,8 @@ msgid ""
 "tables."
 msgstr "在 SQL 工具箱中获取表的元数据时禁用数据预览。当使用具有非常宽表的数据库时，这样做有助于避免浏览器性能问题。"
 
-#, fuzzy
 msgid "Disable drill to detail"
-msgstr "钻取详情"
+msgstr "禁用钻取到明细"
 
 msgid "Disable embedding?"
 msgstr "禁用嵌入吗？"
@@ -7112,9 +7084,8 @@ msgstr "显示列名"
 msgid "Display configuration"
 msgstr "显示配置"
 
-#, fuzzy
 msgid "Display control configuration"
-msgstr "显示配置"
+msgstr "显示控件配置"
 
 msgid "Display control has default value"
 msgstr "显示控件具有默认值"
@@ -7128,19 +7099,18 @@ msgstr "显示控件设置"
 msgid "Display control type"
 msgstr "显示控件类型"
 
-#, fuzzy
 msgid "Display controls"
-msgstr "显示配置"
+msgstr "显示控件"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: cs, de, es,
 # fr, it, ja, lv, pt, pt_BR, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%d)"
 msgstr "显示控件 (%d)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: cs, de, es,
 # fr, it, ja, lv, pt, pt_BR, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%s)"
 msgstr "显示控件 (%s)"
 
@@ -7313,9 +7283,8 @@ msgstr "在曲线下绘制区域。仅适用于线型。"
 msgid "Draw line from Pie to label when labels outside?"
 msgstr "当标签在外侧时，是否在饼图到标签之间连线？"
 
-#, fuzzy
 msgid "Draw split lines for minor axis ticks"
-msgstr "绘制次要Y轴刻度的分割线"
+msgstr "为次要轴刻度绘制分割线"
 
 msgid "Draw split lines for minor y-axis ticks"
 msgstr "绘制次要Y轴刻度的分割线"
@@ -7448,9 +7417,8 @@ msgid ""
 "database. If left unset, the cache never expires. "
 msgstr "此数据库表的元数据缓存超时时长（单位为秒）。如果不进行设置，缓存将永不过期。"
 
-#, fuzzy
 msgid "Duration Ms"
-msgstr "时长"
+msgstr "时长（毫秒）"
 
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
 msgstr "时长(毫秒)(1.40008 => 1ms 400µs 80ns)"
@@ -7638,9 +7606,8 @@ msgstr "编辑模板"
 msgid "Edit template parameters"
 msgstr "编辑模板参数"
 
-#, fuzzy
 msgid "Edit the dashboard"
-msgstr "编辑看板"
+msgstr "编辑该看板"
 
 msgid "Edit theme properties"
 msgstr "编辑主题属性"
@@ -7891,9 +7858,8 @@ msgstr "结束时间"
 msgid "End angle"
 msgstr "结束角度"
 
-#, fuzzy
 msgid "End date"
-msgstr "结束时间"
+msgstr "结束日期"
 
 msgid "End date excluded from time range"
 msgstr "从时间范围中排除的结束日期"
@@ -7942,9 +7908,8 @@ msgstr "输入对象名称的一部分"
 msgid "Enter a value transform before validating against data."
 msgstr "在对照数据验证之前,请输入值转换。"
 
-#, fuzzy
 msgid "Enter alert name"
-msgstr "告警名称"
+msgstr "输入告警名称"
 
 msgid "Enter duration in seconds"
 msgstr "输入间隔时间(秒)"
@@ -8159,9 +8124,8 @@ msgstr "读取列式文件时出错"
 msgid "Error reading Excel file"
 msgstr "读取Excel文件出错"
 
-#, fuzzy
 msgid "Error saving dataset"
-msgstr "保存数据集时发生错误"
+msgstr "保存数据集时出错"
 
 msgid "Error unfaving chart"
 msgstr "取消收藏图表时发生错误"
@@ -8817,7 +8781,6 @@ msgstr "无法在 worker 上启动远程查询。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
-#, fuzzy
 msgid "Failed to stop query."
 msgstr "停止查询失败。"
 
@@ -9571,13 +9534,11 @@ msgstr "图表布局"
 msgid "Gravity"
 msgstr "重力"
 
-#, fuzzy
 msgid "Greater Than"
-msgstr "大于（>）"
+msgstr "大于"
 
-#, fuzzy
 msgid "Greater Than or Equal"
-msgstr "大于等于(>=)"
+msgstr "大于或等于"
 
 #, fuzzy
 msgid "Greater or equal (>=)"
@@ -9617,9 +9578,8 @@ msgstr "分组"
 msgid "Group By, Metrics or Percentage Metrics must have a value"
 msgstr "分组、指标或百分比指标必须具有值"
 
-#, fuzzy
 msgid "Group Key"
-msgstr "分组"
+msgstr "分组键"
 
 msgid "Group by"
 msgstr "分组"
@@ -10011,9 +9971,8 @@ msgstr "在"
 msgid "In Progress"
 msgstr "进行中"
 
-#, fuzzy
 msgid "In Range"
-msgstr "时间范围"
+msgstr "在范围内"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10092,9 +10051,9 @@ msgstr "索引列"
 msgid "Index label"
 msgstr "索引标签"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Indexes (%s)"
-msgstr "查看键和索引（%s）"
+msgstr "索引 (%s)"
 
 msgid "Info"
 msgstr "信息"
@@ -10149,16 +10108,14 @@ msgstr "内部居中"
 msgid "Inside End"
 msgstr "内部末端"
 
-#, fuzzy
 msgid "Inside bottom"
-msgstr "底部"
+msgstr "内部底部"
 
 msgid "Inside bottom left"
 msgstr "底部左侧"
 
-#, fuzzy
 msgid "Inside bottom right"
-msgstr "底右"
+msgstr "内部右下"
 
 msgid "Inside left"
 msgstr "左内侧"
@@ -10171,9 +10128,8 @@ msgstr "内右"
 msgid "Inside top"
 msgstr "顶部内部"
 
-#, fuzzy
 msgid "Inside top left"
-msgstr "上左"
+msgstr "内部左上"
 
 msgid "Inside top right"
 msgstr "右上角内部"
@@ -10342,9 +10298,9 @@ msgstr "无效的经度/纬度"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, ta, tr, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid metric object: %(metric)s"
-msgstr "无效的指标对象:%(metric)s"
+msgstr "无效的指标对象：%(metric)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10441,9 +10397,8 @@ msgstr "维度"
 msgid "Is empty"
 msgstr "为空"
 
-#, fuzzy
 msgid "Is false"
-msgstr "禁用"
+msgstr "为假"
 
 msgid "Is favorite"
 msgstr "收藏"
@@ -10628,16 +10583,14 @@ msgstr "标签类型"
 msgid "Label already exists"
 msgstr "标签已存在"
 
-#, fuzzy
 msgid "Label ascending"
-msgstr "升序"
+msgstr "标签升序"
 
 msgid "Label color"
 msgstr "标签颜色"
 
-#, fuzzy
 msgid "Label descending"
-msgstr "降序"
+msgstr "标签降序"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -10722,9 +10675,8 @@ msgstr "最后登录时间"
 msgid "Last modified"
 msgstr "最后修改"
 
-#, fuzzy
 msgid "Last month"
-msgstr "上一月"
+msgstr "上个月"
 
 msgid "Last name"
 msgstr "姓氏"
@@ -10929,13 +10881,11 @@ msgstr "长度小于或等于 (<=)"
 msgid "Length less than (<)"
 msgstr "长度小于 (<)"
 
-#, fuzzy
 msgid "Less Than"
-msgstr "小于（<）"
+msgstr "小于"
 
-#, fuzzy
 msgid "Less Than or Equal"
-msgstr "小于等于 (<=)"
+msgstr "小于或等于"
 
 #, fuzzy
 msgid "Less or equal (<=)"
@@ -10971,9 +10921,8 @@ msgstr "喜欢"
 msgid "Like (case insensitive)"
 msgstr "Like（不区分大小写）"
 
-#, fuzzy
 msgid "Limit"
-msgstr "行限制"
+msgstr "限制"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11226,9 +11175,8 @@ msgstr "登录"
 msgid "Login count"
 msgstr "登录次数"
 
-#, fuzzy
 msgid "Login with"
-msgstr "登录方式"
+msgstr "使用…登录"
 
 msgid "Logout"
 msgstr "登出"
@@ -12007,9 +11955,8 @@ msgstr "月"
 msgid "Months %s"
 msgstr "%s月"
 
-#, fuzzy
 msgid "More"
-msgstr "查看更多"
+msgstr "更多"
 
 msgid "More Options"
 msgstr "更多选项"
@@ -12145,14 +12092,13 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr ""
+msgstr "未分组"
 
 msgid "NOV"
 msgstr "十一月"
 
-#, fuzzy
 msgid "NUMERIC"
-msgstr "数字"
+msgstr "数值"
 
 msgid "Name"
 msgstr "名称"
@@ -12210,13 +12156,11 @@ msgstr "需要帮助？学习如何连接到数据库"
 msgid "Need help? Learn more about"
 msgstr "需要帮助？请看"
 
-#, fuzzy
 msgid "Network Error"
-msgstr "网络异常。"
+msgstr "网络错误"
 
-#, fuzzy
 msgid "Network error"
-msgstr "网络异常。"
+msgstr "网络错误"
 
 msgid "Network error while attempting to fetch resource"
 msgstr "获取资源时发生网络错误"
@@ -12270,9 +12214,8 @@ msgstr "新建选项卡 (Ctrl + t)"
 msgid "Next"
 msgstr "下一个"
 
-#, fuzzy
 msgid "Nightingale"
-msgstr "南丁格尔玫瑰图"
+msgstr "南丁格尔"
 
 msgid "Nightingale Rose Chart"
 msgstr "南丁格尔玫瑰图"
@@ -12289,9 +12232,8 @@ msgstr "没有数据"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es, fr,
 # it, ja, lv, pt, pt_BR, ro, ru, sl, sr, sr_Latn, ta, tr, uk]
-#, fuzzy
 msgid "No Logs yet"
-msgstr "暂无日志"
+msgstr "还没有日志"
 
 msgid "No Results"
 msgstr "无结果"
@@ -12427,9 +12369,8 @@ msgstr "无筛选"
 msgid "No filters applied"
 msgstr "未应用筛选"
 
-#, fuzzy
 msgid "No filters are currently added to this dashboard."
-msgstr "此看板中没有过滤条件。"
+msgstr "此看板当前未添加过滤器。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -12676,9 +12617,8 @@ msgstr "通常为默认日期时间列，但此数据集未设置该列。"
 msgid "Not Contains"
 msgstr "不包含"
 
-#, fuzzy
 msgid "Not Equal"
-msgstr "不等于（≠）"
+msgstr "不等于"
 
 msgid "Not Time Series"
 msgstr "非时间序列"
@@ -12745,7 +12685,6 @@ msgstr "尚未预览"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es, fr,
 # it, ja, lv, pt, pt_BR, ro, ru, sl, sr, sr_Latn, ta, tr, uk]
-#, fuzzy
 msgid "Not set"
 msgstr "未设置"
 
@@ -12821,9 +12760,8 @@ msgstr ""
 msgid "Number format"
 msgstr "数字格式化"
 
-#, fuzzy
 msgid "Number format string"
-msgstr "数字格式化"
+msgstr "数字格式字符串"
 
 #, fuzzy
 msgid "Number formatting"
@@ -13499,9 +13437,8 @@ msgstr "需要密码"
 msgid "Password must be at least %(min_length)s characters long."
 msgstr "密码长度必须至少为 %(min_length)s 个字符。"
 
-#, fuzzy
 msgid "Password:"
-msgstr "密码"
+msgstr "密码："
 
 msgid "Passwords do not match!"
 msgstr "密码不匹配！"
@@ -13603,9 +13540,8 @@ msgstr "周期平均值"
 msgid "Periods"
 msgstr "周期"
 
-#, fuzzy
 msgid "Periods must be a whole number"
-msgstr "周期必须是整数值"
+msgstr "周期必须是整数"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15022,9 +14958,8 @@ msgstr "恢复自动刷新"
 msgid "Retry"
 msgstr "重试"
 
-#, fuzzy
 msgid "Retry fetching results"
-msgstr "重新获取结果"
+msgstr "重试获取结果"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15679,9 +15614,8 @@ msgstr "未找到模式。"
 msgid "Schemas allowed for File upload"
 msgstr "允许用于文件上传的模式"
 
-#, fuzzy
 msgid "Scope"
-msgstr "范围"
+msgstr "作用域"
 
 msgid "Scoping"
 msgstr "范围"
@@ -15747,9 +15681,8 @@ msgstr "搜索操作"
 msgid "Search all charts"
 msgstr "搜索所有图表"
 
-#, fuzzy
 msgid "Search all metrics & columns"
-msgstr "搜索指标和列"
+msgstr "搜索所有指标和列"
 
 msgid "Search box"
 msgstr "搜索框"
@@ -15948,9 +15881,8 @@ msgstr "选择维度"
 msgid "Select a linear color scheme"
 msgstr "选择线性颜色方案"
 
-#, fuzzy
 msgid "Select a metric to display on the right axis"
-msgstr "为右轴选择一个指标"
+msgstr "选择要在右轴显示的指标"
 
 msgid ""
 "Select a metric to display. You can use an aggregation function on a "
@@ -16018,9 +15950,8 @@ msgstr "选择渠道"
 msgid "Select chart"
 msgstr "选择图表"
 
-#, fuzzy
 msgid "Select chart to use"
-msgstr "选择图表"
+msgstr "选择要使用的图表"
 
 msgid "Select chart type"
 msgstr "选择图表类型"
@@ -16319,9 +16250,8 @@ msgstr "选择筛选控件中可用的时间粒度。这仅是一个UI允许列�
 msgid "Selected"
 msgstr "已选择"
 
-#, fuzzy
 msgid "Selecting a database is required"
-msgstr "选择要进行查询的数据库"
+msgstr "必须选择一个数据库"
 
 msgid "Selection method"
 msgstr "选择方法"
@@ -16637,9 +16567,8 @@ msgstr "设置"
 msgid "Settings for time series"
 msgstr "时间序列设置"
 
-#, fuzzy
 msgid "Shape"
-msgstr "饼图形状"
+msgstr "形状"
 
 msgid "Share"
 msgstr "分享"
@@ -17011,9 +16940,8 @@ msgstr "显示或隐藏时间序列的标记点。"
 msgid "Sign in"
 msgstr "登录"
 
-#, fuzzy
 msgid "Sign in with"
-msgstr "登录方式"
+msgstr "使用…登录"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -17271,9 +17199,8 @@ msgstr "降序"
 msgid "Sort Metric"
 msgstr "排序指标"
 
-#, fuzzy
 msgid "Sort Series Ascending"
-msgstr "升序排序"
+msgstr "系列升序排序"
 
 msgid "Sort Series By"
 msgstr "按系列排序"
@@ -17457,9 +17384,8 @@ msgstr "起始（经度，纬度）： "
 msgid "Start (inclusive)"
 msgstr "开始 (包含)"
 
-#, fuzzy
 msgid "Start Longitude & Latitude"
-msgstr "起始经度/纬度"
+msgstr "起始经度和纬度"
 
 #, fuzzy
 msgid "Start Time"
@@ -17599,13 +17525,11 @@ msgstr "街道（OSM）"
 msgid "Strength to pull the graph toward center"
 msgstr "将图形拉向中心"
 
-#, fuzzy
 msgid "Stroke Color"
-msgstr "边线颜色"
+msgstr "描边颜色"
 
-#, fuzzy
 msgid "Stroke Width"
-msgstr "线宽"
+msgstr "描边宽度"
 
 #, fuzzy
 msgid "Stroked"
@@ -18077,9 +18001,9 @@ msgstr "模板参数"
 msgid "Template parameters must be a valid JSON object."
 msgstr "模板参数必须是有效的 JSON 对象。"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Template processing error: %(error)s"
-msgstr "错误：%(error)s"
+msgstr "模板处理错误：%(error)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -18367,9 +18291,8 @@ msgstr ""
 "此图表配色方案可能被相关看板的自定义标签颜色覆盖。\n"
 "    请在高级设置中检查 JSON 元数据。"
 
-#, fuzzy
 msgid "The column header label"
-msgstr "列的标题"
+msgstr "列标题标签"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -18777,9 +18700,8 @@ msgstr "几何列的名称"
 msgid "The name of the layer as described in GetCapabilities"
 msgstr "GetCapabilities 中描述的图层名称"
 
-#, fuzzy
 msgid "The name of the rule must be unique"
-msgstr "名称必须是唯一的"
+msgstr "规则名称必须唯一"
 
 msgid "The number color \"steps\""
 msgstr "数字颜色 \"步骤\""
@@ -19505,9 +19427,8 @@ msgid ""
 " a metric."
 msgstr "线条的宽度，可以是固定值，也可以是基于指标的变量宽度。"
 
-#, fuzzy
 msgid "Theme"
-msgstr "时间"
+msgstr "主题"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19535,9 +19456,8 @@ msgstr "未找到主题。"
 msgid "Theme parameters are invalid."
 msgstr "主题参数无效。"
 
-#, fuzzy
 msgid "Themes"
-msgstr "时间"
+msgstr "主题"
 
 msgid "Themes could not be deleted."
 msgstr "无法删除主题。"
@@ -19606,16 +19526,14 @@ msgstr "复制角色时出现问题。请重试。"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # ta, tr, uk]
-#, fuzzy
 msgid "There was an error fetching dataset"
 msgstr "获取数据集时出错"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ro, ru, sl, sr, sr_Latn, ta,
 # tr, uk]
-#, fuzzy
 msgid "There was an error fetching dataset's related objects"
-msgstr "获取数据集相关对象时出错"
+msgstr "获取数据集的相关对象时出错"
 
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
@@ -19623,9 +19541,8 @@ msgstr "获取收藏状态时出错：%s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sl, sr, sr_Latn, ta, uk]
-#, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
-msgstr "获取已筛选的图表和仪表板时出错："
+msgstr "获取已筛选的图表和看板时出错："
 
 msgid "There was an error generating the permalink."
 msgstr "生成永久链接时出错"
@@ -19675,7 +19592,6 @@ msgstr "获取权限时出错"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, lv, pt, ro, ru, sl, sr, sr_Latn, ta, uk]
-#, fuzzy
 msgid "There was an error while fetching users"
 msgstr "获取用户时出错"
 
@@ -19706,9 +19622,9 @@ msgstr "归档时出现问题：%s"
 msgid "There was an issue cancelling the task: %s"
 msgstr "取消任务时出现问题：%s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting %s"
-msgstr "删除时出现问题：%s"
+msgstr "删除 %s 时出现问题"
 
 #, python-format
 msgid "There was an issue deleting %s: %s"
@@ -19780,7 +19696,6 @@ msgstr "导出所选 %s 时出现问题"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es, fr,
 # it, ja, lv, pt, pt_BR, ro, ru, sl, sr, sr_Latn, ta, uk]
-#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "导出所选图表时出现问题"
 
@@ -19798,7 +19713,6 @@ msgstr "收藏此看板时出现问题。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es, fr,
 # it, ja, lv, pt, pt_BR, ru, sl, sr, sr_Latn, ta, uk]
-#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "获取报告时出现问题。"
 
@@ -21001,9 +20915,8 @@ msgstr "图表覆盖的总角度，以度为单位。360°绘制一个完整的�
 msgid "Total color"
 msgstr "总颜色"
 
-#, fuzzy
 msgid "Total label"
-msgstr "总计值"
+msgstr "总计标签"
 
 #, fuzzy
 msgid "Total value"
@@ -21460,9 +21373,8 @@ msgstr "已撤销或重做更改"
 msgid "Undo"
 msgstr "撤销"
 
-#, fuzzy
 msgid "Undo the action"
-msgstr "撤销这个动作"
+msgstr "撤销该操作"
 
 msgid "Undo?"
 msgstr "撤消？"
@@ -21903,9 +21815,8 @@ msgstr "用户名"
 msgid "Username is required"
 msgstr "必须填写用户名"
 
-#, fuzzy
 msgid "Username:"
-msgstr "用户名"
+msgstr "用户名："
 
 msgid "Users"
 msgstr "用户"
@@ -21937,9 +21848,8 @@ msgstr "使用圆圈来可视化数据在系统不同阶段的流动。将鼠标
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "如果维度包含超过25个值，则仅使用前25个。"
 
-#, fuzzy
 msgid "Valid SQL expression"
-msgstr "SQL表达式"
+msgstr "有效的 SQL 表达式"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -21969,9 +21879,8 @@ msgstr "验证结果不确定"
 msgid "Value"
 msgstr "值"
 
-#, fuzzy
 msgid "Value Aggregation"
-msgstr "合计"
+msgstr "值聚合"
 
 msgid "Value Columns"
 msgstr "值列"
@@ -22010,9 +21919,8 @@ msgstr "值超过了允许的最大大小 %(max_size)d 字节。"
 msgid "Value format"
 msgstr "数值格式"
 
-#, fuzzy
 msgid "Value greater than"
-msgstr "`行偏移量` 必须大于或等于0"
+msgstr "值大于"
 
 msgid "Value is required"
 msgstr "需要值"
@@ -22106,9 +22014,8 @@ msgstr "纵向"
 msgid "Vertical (Left)"
 msgstr "纵向（左对齐）"
 
-#, fuzzy
 msgid "View"
-msgstr "预览"
+msgstr "查看"
 
 #, python-format
 msgid "View %(type)s"
@@ -22357,9 +22264,8 @@ msgstr "瀑布图"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es, fr,
 # it, ja, lv, pt, pt_BR, ro, ru, sl, sr, sr_Latn, ta, tr, uk]
-#, fuzzy
 msgid "We are unable to connect to your database."
-msgstr "我们无法连接到您的数据库。"
+msgstr "无法连接到您的数据库。"
 
 msgid "We are working on your query"
 msgstr "我们正在处理您的查询"
@@ -22472,9 +22378,8 @@ msgstr[0] "加载此可视化效果时遇到问题。查询设置为 %s 秒后�
 msgid "What should be shown as the label"
 msgstr "标签上需要显示的内容"
 
-#, fuzzy
 msgid "What should be shown as the tooltip label"
-msgstr "标签上需要显示的内容"
+msgstr "作为提示框标签显示的内容"
 
 msgid "What should be shown on the label?"
 msgstr "标签上需要显示的内容"
@@ -22658,9 +22563,8 @@ msgstr "是否显示编号列"
 msgid "Whether to display the numerical values within the cells"
 msgstr "是否在单元格内显示数值"
 
-#, fuzzy
 msgid "Whether to display the percentage value in the tooltip"
-msgstr "是否在工具提示中包含百分比"
+msgstr "是否在提示框中显示百分比值"
 
 #, fuzzy
 msgid "Whether to display the stroke"
@@ -23790,9 +23694,8 @@ msgstr "代码 国际奥林匹克委员会 (cioc)"
 msgid "color scheme for comparison"
 msgstr "用于比较的颜色方案"
 
-#, fuzzy
 msgid "color type"
-msgstr "颜色"
+msgstr "颜色类型"
 
 msgid "column"
 msgstr "列"
@@ -24147,9 +24050,8 @@ msgstr "热力图：其中所有数值都经过了归一化"
 msgid "hello"
 msgstr "你好"
 
-#, fuzzy
 msgid "here"
-msgstr "点击这里"
+msgstr "这里"
 
 msgid "hour"
 msgstr "小时"
@@ -24181,9 +24083,8 @@ msgstr "应该为数字"
 msgid "is expected to be an integer"
 msgstr "应该为整数"
 
-#, fuzzy
 msgid "is false"
-msgstr "禁用"
+msgstr "为假"
 
 #, python-format
 msgid ""
@@ -24400,9 +24301,8 @@ msgstr "必须填充用于排序的列"
 msgid "original"
 msgstr "起点"
 
-#, fuzzy
 msgid "overall"
-msgstr "全部"
+msgstr "总计"
 
 msgid "p-value precision"
 msgstr "P值精度"
@@ -24438,7 +24338,7 @@ msgstr "未找到持久链接状态"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "透视 xlsx"
 
 msgid "pixels"
 msgstr "像素"
@@ -24564,9 +24464,8 @@ msgstr "语义层"
 msgid "send_failed_reports requires retry_on_failure to be enabled"
 msgstr "send_failed_reports 要求启用 retry_on_failure"
 
-#, fuzzy
 msgid "series"
-msgstr "序列"
+msgstr "系列"
 
 msgid ""
 "series: Treat each series independently; overall: All series use the same"
@@ -24612,13 +24511,11 @@ msgstr "错开"
 msgid "std"
 msgstr "标准差"
 
-#, fuzzy
 msgid "stopped"
-msgstr "停止"
+msgstr "已停止"
 
-#, fuzzy
 msgid "stream"
-msgstr "流式"
+msgstr "流"
 
 #, fuzzy
 msgid "string"
@@ -24643,9 +24540,8 @@ msgstr "superset.example.com"
 msgid "syntax error at position %(position)d."
 msgstr "位置 %(position)d 处存在语法错误。"
 
-#, fuzzy
 msgid "syntax."
-msgstr "语法"
+msgstr "语法。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24708,7 +24604,6 @@ msgstr "未设置"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, ta, uk]
-#, fuzzy
 msgid "updated"
 msgstr "已更新"
 
