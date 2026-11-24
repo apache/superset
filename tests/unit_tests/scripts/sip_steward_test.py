@@ -279,3 +279,115 @@ def test_unrelated_email_matches_nothing() -> None:
     match = sip_steward.match_email(email, ISSUES, lambda e, c: 34384)
     assert match.issue is None
     assert match.candidates == []
+
+
+class FakeGitHub:
+    repo = "apache/superset"
+
+    def __init__(self, comments: Any = None, events: Any = None) -> None:
+        self.comments = comments or []
+        self.events = events or []
+        self.writes: list[tuple[str, str]] = []
+
+    def paginate(self, path: str) -> list[Any]:
+        return self.events if "/events" in path else self.comments
+
+    def call(self, method: str, path: str, data: Any = None) -> Any:
+        self.writes.append((method, path))
+
+
+class FakeModel:
+    def __init__(self, outcome: Optional[str]) -> None:
+        self.outcome = outcome
+
+    def pick_issue(self, email: Any, candidates: Any) -> Optional[int]:
+        return None
+
+    def vote_outcome(self, email: Any) -> Optional[str]:
+        return self.outcome
+
+
+SIP_TITLE = "[SIP-240] Dynamically selecting max values for gauges"
+VOTE = Email(
+    "v" * 32, "[VOTE] SIP-240 Dynamically selecting max values for gauges", 0, ""
+)
+
+
+def make_result(thread: str, body: str) -> Any:
+    return Email(
+        thread,
+        "[RESULT][VOTE] SIP-240 Dynamically selecting max values for gauges",
+        1,
+        body,
+    )
+
+
+def make_steward(model: Any = None, gh: Any = None) -> Any:
+    return sip_steward.Steward(gh or FakeGitHub(), model, True, {})
+
+
+def test_result_without_a_vote_thread_is_not_approved() -> None:
+    issues = {1: make_issue(1, SIP_TITLE)}
+    steward = make_steward(FakeModel("passed"))
+    result = make_result("r" * 32, "The vote passed with 3 binding +1 votes.")
+    assert steward._collect_evidence(issues, [result]) == {}
+
+
+def test_passed_result_with_a_vote_is_approved() -> None:
+    issues = {1: make_issue(1, SIP_TITLE)}
+    steward = make_steward(FakeModel("passed"))
+    result = make_result("r" * 32, "The vote passed with 3 binding +1 votes.")
+    evidence = steward._collect_evidence(issues, [VOTE, result])
+    assert sip_steward.STAGES.index("approved") in evidence[1]
+
+
+def test_result_needs_the_model_to_agree() -> None:
+    issues = {1: make_issue(1, SIP_TITLE)}
+    steward = make_steward(FakeModel(None))
+    result = make_result("r" * 32, "The vote passed with 3 binding +1 votes.")
+    evidence = steward._collect_evidence(issues, [VOTE, result])
+    assert sip_steward.STAGES.index("approved") not in evidence.get(1, {})
+
+
+def test_failed_result_blocks_a_passed_result() -> None:
+    issues = {1: make_issue(1, SIP_TITLE)}
+    steward = make_steward(FakeModel("passed"))
+    failed = make_result("f" * 32, "The vote failed.")
+    passed = make_result("p" * 32, "The vote passed with 3 binding +1 votes.")
+    evidence = steward._collect_evidence(issues, [VOTE, failed, passed])
+    assert sip_steward.STAGES.index("approved") not in evidence.get(1, {})
+
+
+def test_non_sip_thread_is_ignored() -> None:
+    issues = {1: make_issue(1, SIP_TITLE)}
+    steward = make_steward(FakeModel("passed"))
+    other = Email("o" * 32, "[VOTE] Release 5.0 candidate", 0, "")
+    assert steward._collect_evidence(issues, [other]) == {}
+
+
+def _approved_issue() -> Any:
+    issue = make_issue(1, SIP_TITLE)
+    issue.labels = {"sip", "sip:approved"}
+    return issue
+
+
+def _approved_evidence(steward: Any) -> None:
+    result = make_result("r" * 32, "passed")
+    steward._collect_evidence = lambda issues, emails: {1: {2: (result, VOTE)}}
+
+
+def test_reopened_sip_closed_by_the_bot_is_not_closed_again() -> None:
+    event = {"event": "closed", "actor": {"login": "github-actions[bot]"}}
+    gh = FakeGitHub(events=[event])
+    steward = make_steward(gh=gh)
+    _approved_evidence(steward)
+    steward.advance_stages({1: _approved_issue()}, [])
+    assert gh.writes == []
+
+
+def test_approved_open_sip_without_a_close_is_retried() -> None:
+    gh = FakeGitHub()
+    steward = make_steward(gh=gh)
+    _approved_evidence(steward)
+    steward.advance_stages({1: _approved_issue()}, [])
+    assert ("PATCH", "/repos/apache/superset/issues/1") in gh.writes

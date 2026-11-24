@@ -597,6 +597,8 @@ class Steward:
         self.comments = comments
         self.report = Report(live=live)
         self.now = time.time()
+        # VOTE thread ids that some RESULT email reported as failed.
+        self.failed_votes: set[str] = set()
 
     # -- GitHub writes, all gated on live mode ------------------------------
 
@@ -628,6 +630,23 @@ class Steward:
             marker in (c.get("body") or "")
             and (c.get("user") or {}).get("login") == "github-actions[bot]"
             for c in comments
+        )
+
+    def closed_before(self, issue: Issue) -> bool:
+        """Whether the steward already closed this issue as approved once.
+
+        Covers both orders of a close and its comment: the marker comment, or
+        a close event by the workflow's bot, means a later reopen is deliberate.
+        """
+        if self.has_marker(issue, "approved"):
+            return True
+        events = self.gh.paginate(
+            f"/repos/{self.gh.repo}/issues/{issue.number}/events?per_page=100"
+        )
+        return any(
+            e.get("event") == "closed"
+            and (e.get("actor") or {}).get("login") == "github-actions[bot]"
+            for e in events
         )
 
     def comment(
@@ -721,13 +740,16 @@ class Steward:
                 return vote
         return None
 
-    def _vote_passed(self, number: int, result: Email, label: str) -> bool:
+    def _vote_passed(
+        self, number: int, result: Email, label: str, vote_id: str = ""
+    ) -> bool:
         """Approve only when the email says so plainly and the model agrees."""
         outcome = result_regex(result.body)
         confirmed = self.model.vote_outcome(result) if self.model else None
         if outcome == "passed" and confirmed == "passed":
             return True
         if outcome == "failed" or confirmed == "failed":
+            self.failed_votes.add(vote_id)
             self.report.attention.append(
                 f"#{number}: the vote looks like it failed, per {label}"
             )
@@ -753,11 +775,11 @@ class Steward:
                 # unless the approved comment is already there.
                 if STAGES[target] != "approved":
                     continue
-                if self.has_marker(issue, "approved"):
+                if self.closed_before(issue):
                     continue  # already closed once; a reopen is deliberate
                 self.move(issue, target, stages, relabel=False)
                 continue
-            if STAGES[target] == "approved" and self.has_marker(issue, "approved"):
+            if STAGES[target] == "approved" and self.closed_before(issue):
                 continue  # closed as approved once; a reopen is deliberate
             self.move(issue, target, stages)
 
@@ -776,6 +798,21 @@ class Steward:
             )
             < STRONG_SIMILARITY
         )
+
+    def _drop_failed_approvals(
+        self, evidence: dict[int, dict[int, tuple[Email, Optional[Email]]]]
+    ) -> None:
+        """A vote reported as failed is never approved, whatever RESULT order."""
+        approved = STAGES.index("approved")
+        for number, stages in list(evidence.items()):
+            entry = stages.get(approved)
+            if entry and entry[1] and entry[1].id in self.failed_votes:
+                self.report.attention.append(
+                    f"#{number}: a RESULT reported this vote as failed; not approved"
+                )
+                del stages[approved]
+                if not stages:
+                    del evidence[number]
 
     def _collect_evidence(
         self, issues: dict[int, Issue], emails: list[Email]
@@ -819,13 +856,14 @@ class Steward:
                         f"#{number}: {label} has no matching VOTE thread; not approved"
                     )
                     continue
-                if not self._vote_passed(number, email, label):
+                if not self._vote_passed(number, email, label, vote[0].id):
                     continue
                 stage = STAGES.index("approved")
             else:
                 stage = STAGES.index("voting" if kind == "VOTE" else "in-discussion")
             evidence.setdefault(number, {})[stage] = (email, vote[0] if vote else None)
 
+        self._drop_failed_approvals(evidence)
         return evidence
 
     def move(
