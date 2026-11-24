@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import type { canvas as canvasApi } from '@apache-superset/core';
 import type { ScopeKind } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
@@ -26,6 +27,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import CanvasGrid, { EventValues, ScopeValues } from './CanvasGrid';
 import DraftBanner from './DraftBanner';
 import CanvasToolbar from './CanvasToolbar';
+import PublishConfirmation from './PublishConfirmation';
 import { useDraftActions } from './useDraftActions';
 import { useDraftHistory } from './useDraftHistory';
 import { usePublishActiveCanvas } from './useActiveCanvas';
@@ -127,6 +129,24 @@ export default function CanvasBody({
   }, [error, addDangerToast, dismissError]);
   // True while the draft is being published or discarded.
   const [committing, setCommitting] = useState(false);
+  // What a publish participant is told the draft shows viewers once it is
+  // published: its saved widgets, wherever they are placed.
+  const widgets = useMemo<canvasApi.CanvasDraftWidget[]>(
+    () =>
+      Object.entries(result.definition.nodes).flatMap(([nodeId, node]) =>
+        node.widgetId
+          ? [
+              {
+                nodeId,
+                widgetId: node.widgetId,
+                widgetType: result.widgetTypes[nodeId],
+                title: result.titles?.[nodeId],
+              },
+            ]
+          : [],
+      ),
+    [result],
+  );
   const actions = useDraftActions(
     draftToken,
     // The revision the layout writes have reached, not the one the definition
@@ -136,6 +156,7 @@ export default function CanvasBody({
     onDraftClosed,
     setCommitting,
     canvasId,
+    widgets,
   );
   // A step moves the draft on before the refetch shows it, so a gesture made
   // meanwhile is based on the step's revision rather than conflicting.
@@ -240,6 +261,9 @@ export default function CanvasBody({
           titles={result.titles}
         />
       )}
+      {/* What is published with the draft, when anything is, for the person
+          to confirm before anything is published. */}
+      <PublishConfirmation review={actions.review} busy={actions.busy} />
       {isEmpty ? (
         <EmptyState
           size="medium"

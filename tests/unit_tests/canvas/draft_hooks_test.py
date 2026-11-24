@@ -466,6 +466,20 @@ def test_a_kind_has_one_handler(handler: Handler) -> None:
     assert draft_hooks.step_handler(KIND) is handler
 
 
+def test_the_draft_says_when_its_canvas_moved_on(
+    store: Store,
+    widget_types: FakeResolver,
+) -> None:
+    from superset.commands.canvas import draft as drafts
+
+    draft = placed_draft()
+    assert drafts.draft_payload(draft)["canvasChanged"] is False
+
+    draft.canvas.revision = 4
+
+    assert drafts.draft_payload(drafts.load_draft(draft.token))["canvasChanged"]
+
+
 def test_extensions_reach_the_draft_hooks_through_superset_core(
     store: Store,
     widget_types: FakeResolver,

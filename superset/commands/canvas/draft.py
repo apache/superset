@@ -446,6 +446,10 @@ def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
             for step in reversed(draft.steps)
             for change in reversed(_step_changes(step, draft.definition))
         ],
+        # Whether the canvas was published since the draft started, which a
+        # commit refuses. Read before publishing anything that has to go with
+        # the canvas, which a refused commit would leave published alone.
+        "canvasChanged": draft.canvas.revision != draft.base_revision,
         # Whether the user has done anything, which is not the same as whether
         # anything is *listed*: an operation with no node to name it after --
         # a canvas setting, say -- is a step that took effect and leaves

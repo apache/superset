@@ -24,8 +24,9 @@
  * widget id and props, or persisted ones, referenced by UUID. Widgets bring
  * their own renderers. This module lets a widget provider register the React component
  * that renders a widget type on a canvas, lets tools (such as the chat)
- * know which canvas the user has open, and tells either what the canvas page
- * did to the draft it shows.
+ * know which canvas the user has open, tells either what the canvas page
+ * did to the draft it shows, and lets a widget provider publish what goes out
+ * with a draft.
  *
  * @example
  * ```typescript
@@ -229,3 +230,88 @@ export declare const onDidUndoDraftStep: Event<CanvasDraftStepEvent>;
  * page's own redo fires it, as for `onDidUndoDraftStep`.
  */
 export declare const onDidRedoDraftStep: Event<CanvasDraftStepEvent>;
+
+/** A saved widget that a canvas draft places. */
+export interface CanvasDraftWidget {
+  /** The placement's node id. */
+  nodeId: string;
+  /** The saved widget's UUID. */
+  widgetId: string;
+  /** Its widget type, when the widget resolves. */
+  widgetType?: string;
+  /** The title the canvas shows above the placement, if any. */
+  title?: string;
+}
+
+/** The canvas draft about to be published, as a publish participant reads it. */
+export interface CanvasDraftPublish {
+  canvasId: number;
+  /**
+   * The draft's token: send it only as the `X-Canvas-Draft` header of the
+   * requests that name the draft, and never log it.
+   */
+  token: string;
+  /** The saved widgets the draft places, which publishing it shows viewers. */
+  widgets: CanvasDraftWidget[];
+}
+
+/** What publishing a part did, for the confirmation to tell the person. */
+export interface CanvasPublishPartResult {
+  /**
+   * What the person should know of how it went out, a sentence each, such as
+   * a check it was published without: the confirmation shows them under the
+   * part once the canvas is published.
+   */
+  notices?: string[];
+}
+
+/** Something published with a canvas draft, which its confirmation lists. */
+export interface CanvasPublishPart {
+  /** What is published, heading its lines in the confirmation. */
+  title: string;
+  /** What the person should know before they confirm, a sentence each. */
+  lines: string[];
+  /**
+   * Publishes it once the person confirmed, before the canvas itself is
+   * published, and may answer what the person should know of it. A rejection
+   * stops the publish: its message is shown under the part, and the canvas
+   * stays unpublished. When the person then publishes again from the
+   * confirmation, a part that was published isn't asked again.
+   */
+  publish: () => Promise<CanvasPublishPartResult | void>;
+}
+
+/** Takes part in publishing canvas drafts from the canvas page. */
+export interface CanvasPublishParticipant {
+  /**
+   * What publishing `draft` also publishes: none, for a draft it has nothing
+   * in. A rejection stops the publish before anything is published.
+   */
+  prepare: (draft: CanvasDraftPublish) => Promise<CanvasPublishPart[]>;
+}
+
+/**
+ * Takes part in publishing canvas drafts. When the person publishes a draft
+ * from the canvas page, the page asks every participant what publishing it
+ * also publishes, and lists every part in a confirmation before anything is
+ * published; a draft with no parts is published at once, as without
+ * participants. Once the person confirms, the page publishes the parts one
+ * after another, then the canvas. The first part that fails stops the
+ * publish, with its message shown.
+ *
+ * A publish with parts is several requests, not one transaction: a part that
+ * went out stays out when a later part, or the canvas, doesn't. The
+ * confirmation then stays open and says which went out, and publishing again
+ * from there publishes the parts that didn't, then the canvas.
+ *
+ * Only the page's publish asks. A commit that skips the page, such as an
+ * agent's through its tool, publishes no part. A commit participant on the
+ * server (`superset_core.canvas.drafts.register_commit_participant`) can
+ * refuse such a commit while a part waits, but publishes nothing itself.
+ *
+ * @param participant What it publishes with each draft.
+ * @returns A Disposable that ends its part when disposed.
+ */
+export declare function registerPublishParticipant(
+  participant: CanvasPublishParticipant,
+): Disposable;
