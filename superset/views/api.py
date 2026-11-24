@@ -70,8 +70,11 @@ class Api(BaseSupersetView):
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
+        raw_query_context = request.form.get("query_context")
+        if raw_query_context is None:
+            raise QueryObjectValidationError(_("query_context is required"))
         try:
-            query_context_params = json.loads(request.form["query_context"])
+            query_context_params = json.loads(raw_query_context)
         except ValueError as ex:
             raise QueryObjectValidationError(
                 _("query_context must be valid JSON")
