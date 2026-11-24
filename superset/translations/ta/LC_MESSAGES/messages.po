@@ -7816,8 +7816,14 @@ msgstr "திசைசார்ந்த (Directional)"
 msgid "Dynamic group by"
 msgstr "டைனமிக் குழுவாக்கம்"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
+"semantic views-களில் dynamic group by ஆதரிக்கப்படவில்லை. இதைச் "
+"சேமிப்பதைத் தவிர்க்க இந்த display control-ஐ நீக்கவும்."
 
 #, fuzzy
 msgid "Dynamic section description"
@@ -10015,13 +10021,20 @@ msgstr "கோட்டை மறை"
 msgid "Hide chart description"
 msgstr "சார்ட் விளக்கத்தை மறை"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"null மெட்ரிக் மதிப்புகள் மட்டுமே உள்ள நெடுவரிசைகளை மறைக்கவும். "
+"பூஜ்ஜியங்கள் அல்லது காலியல்லாதச் சுருக்கங்களைக் கொண்ட நெடுவரிசைகளைத் "
+"தக்கவைக்கவும். இது மொத்த மதிப்புகள் அல்லது சதவீதங்களை மாற்றாது."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Hide empty columns"
-msgstr ""
+msgstr "காலியான நெடுவரிசைகளை மறைக்கவும்"
 
 msgid "Hide layer"
 msgstr "அடுக்கை மறை"
@@ -10051,8 +10064,17 @@ msgstr "ஒவ்வொரு காலகட்டத்திற்கும�
 msgid "Histogram"
 msgstr "ஹிஸ்டோகிராம் (Histogram)"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
+"இந்த அட்டவணைக்கு Hive-இல் ஒரு partition filter தேவைப்படுகிறது. partition "
+"நெடுவரிசையில் ஒரு filter-ஐயாவோ அல்லது செயல்படும் partition mapping உள்ள "
+"ஒரு நெடுவரிசையில் நேர வரம்பையோ (time range) சேர்த்து மீண்டும் "
+"முயற்சிக்கவும்."
 
 msgid "Home"
 msgstr "முகப்பு"
@@ -10326,8 +10348,12 @@ msgstr "இந்தக் காட்சியில் முதல் 25 வ
 msgid "Inactive"
 msgstr "செயலில் உள்ளதா?"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Include :value in the transform to represent the filter value."
 msgstr ""
+"வடிகட்டி மதிப்பை (filter value) பிரதிநிதித்துவப்படுத்த transform-இல் "
+":value என்பதைச் சேர்க்கவும்."
 
 msgid "Include Series"
 msgstr "தொடர்களைச் சேர்"
@@ -14277,8 +14303,10 @@ msgstr ""
 msgid "Preview"
 msgstr "முன்னோட்டம்"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Preview temporarily unavailable"
-msgstr ""
+msgstr "முன்னோட்டம் (Preview) தற்காலிகமாகத் கிடைக்கவில்லை"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19256,10 +19284,11 @@ msgstr "சார்ட்டுகளுடன் தரவுத்தளங�
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "கீழுள்ள தரவுத்தளங்களை இறக்குமதி செய்ய அவற்றின் கடவுச்சொற்கள் தேவை."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [refs: de, es]
 #. i18n: translate the whole sentence, including the link
 #. text; keep the [text](%(…)s) link syntax, the backticks
 #. and both placeholders unchanged
-#, python-format
+#, fuzzy, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "
 "pattern](%(python_url)s) expression which needs to adhere to the [ISO "
@@ -19272,6 +19301,18 @@ msgid ""
 "specified we fall back to using the optional defaults on a per "
 "database/column name level via the extra parameter."
 msgstr ""
+"timestamp format-ன் வடிவம். சரங்களுக்கு, [Python datetime string "
+"pattern](%(python_url)s) வெளிப்பாட்டைப் பயன்படுத்தவும்; இது அகரவரிசை "
+"வரிசைமுறை (lexicographical ordering) காலவரிசை வரிசைமுறையுடன் "
+"(chronological ordering) ஒத்துப்போவதை உறுதி செய்ய [ISO 8601](%(iso_url)s)"
+" தரநிலையைப் பின்பற்ற வேண்டும். timestamp format ISO 8601 தரநிலையைப் "
+"பின்பற்றவில்லை என்றால், சரத்தை ஒரு தேதி அல்லது timestamp-ஆக மாற்ற ஒரு "
+"expression மற்றும் type-ஐ நீங்கள் வரையறுக்க வேண்டும். குறிப்பு: தற்போது "
+"time zones ஆதரிக்கப்படவில்லை. நேரம் epoch வடிவத்தில் சேமிக்கப்பட்டால், "
+"`epoch_s`, `epoch_ms` அல்லது `epoch_us` என்று குறிப்பிடவும். எந்தவொரு "
+"pattern-ம் குறிப்பிடப்படாவிட்டால், extra parameter மூலம் "
+"தரவுத்தளம்/நெடுவரிசைப் பெயர் மட்டத்தில் விருப்பத்தேர்வு இயல்புநிலைகளைப் "
+"பயன்படுத்தும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19321,8 +19362,10 @@ msgstr "போர்ட் (Port) மூடப்பட்டுள்ளது.
 msgid "The port number is invalid."
 msgstr "போர்ட் எண் செல்லாதது."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "முன்னோட்டத்தை (preview) ஏற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "வில் துண்டு அளவுகளை வரையறுக்க முதன்மை மெட்ரிக் பயன்படுத்தப்படுகிறது"
@@ -19749,9 +19792,19 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "உருமாற்றம் மாதிரி வரிசைகளுடன் பொருந்தியது, முழு தரவுத்தொகுப்புடன் அல்ல."
 
-#, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
+"%(column)s-கான transform %(returned)s-ஐத் திரும்பப் பெற்றது, இது %(kind)s"
+" ஆகும். இந்த mapping-இல் mirror செய்யப்பட்ட வடிகட்டிகள் (mirrored "
+"filters) தரவுத்தளத்தில் தோல்வியடையும். %(type)s-உடன் இணக்கமான மதிப்பைத் "
+"திரும்பப் பெறவும்; பொருத்தமானதாக இருந்தால் transform-இல் ஒரு தெளிவான "
+"CAST-ஐப் பயன்படுத்தவும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19764,8 +19817,14 @@ msgstr ""
 "மாற்றாமல் %(type)s மதிப்பாக வினவலில் எழுத இந்தத் தரவுத்தளத்தால் முடியாது."
 " இந்த மேப்பிங்கின் வடிகட்டிகள் பிரதிபலிக்கப்படாது."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
+"ஒன்று அல்லது அதற்கு மேற்பட்ட preview மதிப்புகளுக்கு transform NULL-ஐத் "
+"திரும்பப் பெற்றது, எனவே partition filter உருவாக்கப்படவில்லை."
 
 msgid "The two passwords that you entered do not match!"
 msgstr "நீங்கள் உள்ளிட்ட இரண்டு கடவுச்சொற்களும் பொருந்தவில்லை!"
@@ -19863,12 +19922,25 @@ msgstr ""
 "முடிவு தற்காலிகமாகச் சேமிக்கப்படுவதால், உருவாக்கப்படும் நிபந்தனை அந்தக் "
 "கணத்தின் நிலையை உறைய வைக்கும்."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Value transform-ஐப் பகுப்பாய்வு செய்ய முடியவில்லை. அதை முன்னோட்டம் "
+"பார்க்க expression-ஐச் சரிசெய்யவும். அது செல்லாததாக இருக்கும் வரை "
+"வடிகட்டிகள் (filters) mirror செய்யப்படாது."
 
-#, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Value transform-ஐப் பகுப்பாய்வு செய்ய முடியவில்லை: %(detail)s அதை "
+"முன்னோட்டம் பார்க்க expression-ஐச் சரிசெய்யவும். அது செல்லாததாக இருக்கும்"
+" வரை வடிகட்டிகள் (filters) mirror செய்யப்படாது."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21464,8 +21536,12 @@ msgstr ""
 "இந்தத் தரவுத்தொகுப்புக்கு மிக அதிகமான முன்னோட்டக் கோரிக்கைகள். சிறிது "
 "நேரம் காத்திருந்து மீண்டும் முயற்சிக்கவும்."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
+"அதிகப்படியான preview கோரிக்கைகள். சிறிது நேரம் காத்திருந்து மீண்டும் "
+"முயற்சிக்கவும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25289,9 +25365,10 @@ msgstr "மாற்றியமை (undo)"
 msgid "unknown type icon"
 msgstr "தெரியாத வகை ஐகான்"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "unmatched parenthesis at position %(position)d."
-msgstr ""
+msgstr "position %(position)d-இல் பொருந்தாத அடைப்புக்குறி."
 
 msgid "unset"
 msgstr "நீக்கு (unset)"
@@ -25304,8 +25381,12 @@ msgid ""
 " than lower percentile."
 msgstr "மேல் சதவீத மதிப்பு 0 மற்றும் 100 க்கு இடையில் இருக்க வேண்டும்."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "use a single SQL expression; this transform contains multiple expressions."
 msgstr ""
+"ஒரே ஒரு SQL expression-ஐப் பயன்படுத்தவும்; இந்த transform பல "
+"expression-களைக் கொண்டுள்ளது."
 
 msgid "use latest_partition template"
 msgstr "சமீபத்திய_பகிர்வு டெம்ப்ளேட்டைப் பயன்படுத்தவும்"

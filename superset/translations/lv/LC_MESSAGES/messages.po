@@ -7761,8 +7761,14 @@ msgstr "Virziena"
 msgid "Dynamic group by"
 msgstr "Dinamisks grupējums pēc"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
+"Dinamiskā 'group by' nav atbalstīta semantiskajos skatījumos. Izņemiet šo"
+" attēlojuma kontroli, lai pārtautu to glabāšanu."
 
 #, fuzzy
 msgid "Dynamic section description"
@@ -9959,13 +9965,20 @@ msgstr "Slēpt līniju"
 msgid "Hide chart description"
 msgstr "Slēpt diagrammas aprakstu"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"Paslēpt sütumnus, kuros ir tikai null metriku vērtības. Saglabāt sütumnus"
+" ar nullas vērtībām vai neapašiem kopsavilkumiem. Tas nemainīs kopsummas "
+"vai procentus."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Hide empty columns"
-msgstr ""
+msgstr "Paslēpt tukšos sütumnus"
 
 msgid "Hide layer"
 msgstr "Slēpt slāni"
@@ -9995,8 +10008,16 @@ msgstr "Katras perioda augstākā vērtība."
 msgid "Histogram"
 msgstr "Histogramma"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
+"Hive šai tabelei ir nepieciešams partīcijas filtrs. Pievienojiet filtru "
+"pie partīcijas kolētas vai laika diaponu pie kolētas ar darbojošu "
+"partīcijas mappingu, un mēģiniet vēlreiz."
 
 msgid "Home"
 msgstr "Sākums"
@@ -10269,8 +10290,10 @@ msgstr "Šajā skatā varat apskatīt pirmās 25 rindas. "
 msgid "Inactive"
 msgstr "Aktīvs"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Include :value in the transform to represent the filter value."
-msgstr ""
+msgstr "Iekļaujiet :value transformā, lai attēlotu filtra vērtību."
 
 msgid "Include Series"
 msgstr "Iekļaut sērijas"
@@ -14255,8 +14278,10 @@ msgstr ""
 msgid "Preview"
 msgstr "Priekšskatījums"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Preview temporarily unavailable"
-msgstr ""
+msgstr "Priekšskatījums pagaidām nav pieejams"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19312,10 +19337,11 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Lai importētu tālāk norādītās datu bāzes, ir nepieciešamas to paroles."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [refs: de, es]
 #. i18n: translate the whole sentence, including the link
 #. text; keep the [text](%(…)s) link syntax, the backticks
 #. and both placeholders unchanged
-#, python-format
+#, fuzzy, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "
 "pattern](%(python_url)s) expression which needs to adhere to the [ISO "
@@ -19328,6 +19354,16 @@ msgid ""
 "specified we fall back to using the optional defaults on a per "
 "database/column name level via the extra parameter."
 msgstr ""
+"Laika zīmju formāta aina. Teksta vērtībām izmantojiet [Python datetime "
+"stringa aina](%(python_url)s) izteiksmi, kurai jāatbilst [ISO "
+"8601](%(iso_url)s) standartam, lai nodrošinātu, ka leksikogrāfiskais "
+"kārtojums sakautos ar hronoloģisko kārtojumu. Ja laika zīmju formāts "
+"neatbilst ISO 8601 standartam, jums būs jādefinē izteiksme un tips, lai "
+"pārvērstu tekstu par datumu vai laika zīmi. Piezīme: pašlaik laika joslas"
+" nav atbalstītas. Ja laiks ir saglabāts epoch formātā, ievadiet "
+"`epoch_s`, `epoch_ms` vai `epoch_us`. Ja aina nav norādīta, izmantojiet "
+"neobligātos noklusējumus katrai datubāzei/kolētas nosaukumam caur 'extra'"
+" parametru."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19379,8 +19415,10 @@ msgstr "Ports ir slēgts."
 msgid "The port number is invalid."
 msgstr "Porta numurs nav derīgs."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "Nevarēja ielādēt priekšskatījumu. Mēģiniet vēlreiz."
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Primārā metrika tiek izmantota loka segmentu izmēru noteikšanai"
@@ -19832,9 +19870,18 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Transformācija atbilda izlases rindām, nevis visai datu kopai."
 
-#, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
+"Transformā %(column)s tika atgriezts %(returned)s, kas ir %(kind)s. "
+"Atspoguļotie filtri šajā mappingā datubāzē neizdosies. Atgrieziet ar "
+"%(type)s saderīgu vērtību; ja nepieciešams, izmantojiet eksplizītu CAST "
+"transformā."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19847,8 +19894,14 @@ msgstr ""
 "nevar ierakstīt vaicājumā kā %(type)s vērtību, to nemainot. Filtri šajā "
 "kartējumā netiks atspoguļoti."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
+"Transformā viena vai vairāku priekšskatījuma vērtību vietā tika atgriezts"
+" NULL, tāpēc partīcijas filtrs netika ģenerēts."
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Abas ievadītās paroles nesakrīt!"
@@ -19947,12 +20000,23 @@ msgstr ""
 "atsevišķā sesijā un rezultāts tiek kešots, tāpēc izveidotais predikāts "
 "iesaldētu šī brīža momentuzņēmumu."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Vērtības transformu nevarēja parsēt. Labojiet izteiksmi, lai to varētu "
+"apskatīt. Filtri netiks atspoguļoti, kamēr tā ir nedarboša."
 
-#, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Vērtības transformu nevarēja parsēt: %(detail)s Labojiet izteiksmi, lai "
+"to varētu apskatīt. Filtri netiks atspoguļoti, kamēr tā ir nedarboša."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21553,8 +21617,12 @@ msgstr ""
 "Pārāk daudz priekšskatījuma pieprasījumu šai datu kopai. Uzgaidiet brīdi "
 "un mēģiniet vēlreiz."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
+"Pārāk daudz priekšskatījuma pieprasījumu. Uzgaidiet brīdi un mēģiniet "
+"vēlreiz."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25384,9 +25452,10 @@ msgstr "atsaukt"
 msgid "unknown type icon"
 msgstr "nezināma veida ikona"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "unmatched parenthesis at position %(position)d."
-msgstr ""
+msgstr "nepasātināts parêntēzs pozīcijā %(position)d."
 
 msgid "unset"
 msgstr "atiestatīt"
@@ -25401,8 +25470,10 @@ msgstr ""
 "augšējam percentīlim jābūt lielākam par 0 un mazākam par 100. Jābūt "
 "lielākam nekā apakšējais percentīlis."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "use a single SQL expression; this transform contains multiple expressions."
-msgstr ""
+msgstr "izmantojiet vienu SQL izteiksmi; šī transformā ir vairākas izteiksmes."
 
 msgid "use latest_partition template"
 msgstr "izmantot latest_partition veidni"

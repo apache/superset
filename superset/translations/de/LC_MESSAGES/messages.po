@@ -7213,8 +7213,14 @@ msgstr "Bezeichnung für dynamischen Abschnitt"
 msgid "Dynamic group by"
 msgstr "Dynamisch gruppieren nach"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
+"Dynamisches Group-by wird in semantischen Views nicht unterstützt. "
+"Entfernen Sie diese Anzeigeoption, um das Speichern zu beenden."
 
 msgid "Dynamic section description"
 msgstr "Beschreibung für dynamischen Abschnitt"
@@ -9246,13 +9252,20 @@ msgstr "Linie ausblenden"
 msgid "Hide chart description"
 msgstr "Diagrammbeschreibung ausblenden"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"Spalten mit nur Null-Metrikwerten ausblenden. Spalten mit Nullen oder "
+"nicht leeren Zusammenfassungen beibehalten. Dies ändert weder Summen noch"
+" Prozentsätze."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Hide empty columns"
-msgstr ""
+msgstr "Leere Spalten ausblenden"
 
 msgid "Hide layer"
 msgstr "Ebene verstecken"

@@ -8352,8 +8352,14 @@ msgstr "اتجاهي"
 msgid "Dynamic group by"
 msgstr "لم يتم تجميعها بواسطة"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
+"لا يتم دعم التجميع الديناميكي (group by) في العروض الدلالية. قم بإزالة "
+"عنصر التحكم في العرض هذا للتوقف عن تخزينه."
 
 #, fuzzy
 msgid "Dynamic section description"
@@ -10766,13 +10772,20 @@ msgstr "إخفاء الخط"
 msgid "Hide chart description"
 msgstr "إخفاء وصف المخطط"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"إخفاء الأعمدة التي تحتوي فقط على قيم مقاييس فارغة (null). الاحتفاظ "
+"بالأعمدة التي تحتوي على أصفار أو ملخصات غير فارغة. هذا لا يغير الإجماليات"
+" أو النسب المئوية."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Hide empty columns"
-msgstr ""
+msgstr "إخفاء الأعمدة الفارغة"
 
 msgid "Hide layer"
 msgstr "إخفاء الطبقة"
@@ -10802,8 +10815,16 @@ msgstr "أعلى قيمة لكل فترة."
 msgid "Histogram"
 msgstr "الرسم البياني"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
+"يتطلب Hive مرشح تقسيم (partition filter) لهذا الجدول. أضف مرشحًا على عمود"
+" التقسيم، أو نطاقًا زمنيًا على عمود يحتوي على تعيين تقسيم صالح، ثم حاول "
+"مرة أخرى."
 
 msgid "Home"
 msgstr "Home"
@@ -11095,8 +11116,10 @@ msgstr "في هذا العرض يمكنك معاينة أول 25 صفاً. "
 msgid "Inactive"
 msgstr "نشط"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Include :value in the transform to represent the filter value."
-msgstr ""
+msgstr "قم بتضمين :value في عملية التحويل لتمثيل قيمة المرشح."
 
 msgid "Include Series"
 msgstr "قم بتضمين السلسلة"
@@ -15318,8 +15341,10 @@ msgstr "يحافظ على موضوع شرط وقت لوحة المعلومات �
 msgid "Preview"
 msgstr "استطلاع"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Preview temporarily unavailable"
-msgstr ""
+msgstr "المعاينة غير متوفرة مؤقتًا"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20702,10 +20727,11 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "كلمات المرور لقواعد البيانات أدناه مطلوبة لاستيرادها."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [refs: de, es]
 #. i18n: translate the whole sentence, including the link
 #. text; keep the [text](%(…)s) link syntax, the backticks
 #. and both placeholders unchanged
-#, python-format
+#, fuzzy, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "
 "pattern](%(python_url)s) expression which needs to adhere to the [ISO "
@@ -20718,6 +20744,15 @@ msgid ""
 "specified we fall back to using the optional defaults on a per "
 "database/column name level via the extra parameter."
 msgstr ""
+"نمط تنسيق الطابع الزمني. بالنسبة للسلاسل النصية، استخدم تعبير [نمط سلسلة "
+"تاريخ ووقت بايثون](%(python_url)s) الذي يجب أن يلتزم بمعيار [ISO "
+"8601](%(iso_url)s) لضمان تطابق الترتيب المعجمي مع الترتيب الزمني. إذا كان"
+" تنسيق الطابع الزمني لا يلتزم بمعيار ISO 8601، فستحتاج إلى تحديد تعبير "
+"ونوع لتحويل السلسلة النصية إلى تاريخ أو طابع زمني. ملاحظة: لا يتم دعم "
+"المناطق الزمنية حاليًا. إذا تم تخزين الوقت بتنسيق epoch، فضع `epoch_s` أو"
+" `epoch_ms` أو `epoch_us`. إذا لم يتم تحديد نمط، فسنعود إلى استخدام القيم"
+" الافتراضية الاختيارية على مستوى اسم قاعدة البيانات/العمود عبر المعلمة "
+"extra."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20767,8 +20802,10 @@ msgstr "المنفذ مغلق."
 msgid "The port number is invalid."
 msgstr "رقم المنفذ غير صالح."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "تعذر تحميل المعاينة. حاول مرة أخرى."
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "يتم استخدام المقياس الأساسي لتحديد أحجام مقاطع القوس"
@@ -21225,9 +21262,18 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "طابق التحويل الصفوف المعاينة فقط، وليس مجموعة البيانات بأكملها."
 
-#, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
+"أعادت عملية التحويل %(returned)s لـ %(column)s، وهي من نوع %(kind)s. "
+"ستفشل المرشحات المنعكسة (Mirrored filters) على هذا التعيين في قاعدة "
+"البيانات. قم بإرجاع قيمة متوافقة مع %(type)s؛ استخدم CAST صريح في عملية "
+"التحويل إذا لزم الأمر."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21240,8 +21286,14 @@ msgstr ""
 "البيانات هذه كتابته في الاستعلام كقيمة من نوع %(type)s دون تغييره. لن "
 "تنعكس المرشحات المطبقة على هذا التعيين."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
+"أعادت عملية التحويل NULL لقيمة معاينة واحدة أو أكثر، لذا لم يتم إنشاء "
+"مرشح تقسيم."
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -21344,12 +21396,23 @@ msgstr ""
 "يُقيَّم التحويل في جلسة منفصلة وتُخزَّن النتيجة مؤقتًا، لذا سيجمّد المسند"
 " الناتج لقطة من تلك اللحظة."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"تعذر تحليل عملية تحويل القيمة. قم بإصلاح التعبير لمعاينته. لن يتم عكس "
+"المرشحات طالما أنه غير صالح."
 
-#, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"تعذر تحليل عملية تحويل القيمة: %(detail)s. قم بإصلاح التعبير لمعاينته. لن"
+" يتم عكس المرشحات طالما أنه غير صالح."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23063,8 +23126,10 @@ msgstr "عنوان URI لطلب الرمز"
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "طلبات معاينة كثيرة جدًا لمجموعة البيانات هذه. انتظر قليلًا وحاول مرة أخرى."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Too many preview requests. Wait a moment and try again."
-msgstr ""
+msgstr "طلبات معاينة كثيرة جدًا. انتظر لحظة وحاول مرة أخرى."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27089,9 +27154,10 @@ msgstr "التراجع"
 msgid "unknown type icon"
 msgstr "رمز نوع غير معروف"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "unmatched parenthesis at position %(position)d."
-msgstr ""
+msgstr "قوس غير متطابق في الموضع %(position)d."
 
 #, fuzzy
 msgid "unset"
@@ -27110,8 +27176,10 @@ msgstr ""
 "يجب أن تكون النسبة المئوية العليا أكبر من 0 وأقل من 100. يجب أن تكون أعلى"
 " من النسبة المئوية الأقل."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "use a single SQL expression; this transform contains multiple expressions."
-msgstr ""
+msgstr "استخدم تعبير SQL واحدًا؛ تحتوي عملية التحويل هذه على تعبيرات متعددة."
 
 msgid "use latest_partition template"
 msgstr "استخدم أحدث قالب_التقسيم"

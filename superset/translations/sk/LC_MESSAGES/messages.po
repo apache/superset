@@ -7989,8 +7989,15 @@ msgstr "Smerový"
 msgid "Dynamic group by"
 msgstr "Dynamické seskupovanie"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
+"Dynamické agrupovanie nie je podporované pri sémantických pohľadoch. "
+"Odstráňte toto ovládanie zobrazenia, aby ste prestali ukladať túto "
+"konfiguráciu."
 
 #, fuzzy
 msgid "Dynamic section description"
@@ -10401,13 +10408,19 @@ msgstr "Skrýt čáru"
 msgid "Hide chart description"
 msgstr "Skrýt popis grafu"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"Skryť stĺpce, ktoré majú iba hodnoty null v metrikách. Zachovať stĺpce s "
+"nulami alebo neprázdnymi súhrnmi. Toto nezmení celky ani percentá."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Hide empty columns"
-msgstr ""
+msgstr "Skryť prázdne stĺpce"
 
 msgid "Hide layer"
 msgstr "Skrýt vrstvu"
@@ -10437,8 +10450,16 @@ msgstr "Najvyššia hodnota za každé obdobie."
 msgid "Histogram"
 msgstr "Histogram"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
+"Hive pre túto tabuľku vyžaduje filter partitionov. Pridajte filter na "
+"stĺpec partitionu alebo časové rozmedzie na stĺpec s funkčným mapovaním "
+"partitionov a skúste to znova."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sl, sr, sr_Latn,
@@ -10747,8 +10768,10 @@ msgstr "V tomto pohľadu môžete prohlédnúť první 25 riadkov."
 msgid "Inactive"
 msgstr "Aktívny"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Include :value in the transform to represent the filter value."
-msgstr ""
+msgstr "Zahrňte :value do transformácie na reprezentáciu hodnoty filtra."
 
 msgid "Include Series"
 msgstr "Zahrnúť série"
@@ -15164,8 +15187,10 @@ msgstr ""
 msgid "Preview"
 msgstr "Náhľad"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Preview temporarily unavailable"
-msgstr ""
+msgstr "Náhľad je dočasne nedostupný"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20635,10 +20660,11 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Na importovanie nižšie uvedených databáz sú potrebné ich heslá."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [refs: de, es]
 #. i18n: translate the whole sentence, including the link
 #. text; keep the [text](%(…)s) link syntax, the backticks
 #. and both placeholders unchanged
-#, python-format
+#, fuzzy, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "
 "pattern](%(python_url)s) expression which needs to adhere to the [ISO "
@@ -20651,6 +20677,16 @@ msgid ""
 "specified we fall back to using the optional defaults on a per "
 "database/column name level via the extra parameter."
 msgstr ""
+"Vzor formátu časovej značky. Pre reťazce použite výraz [vzor reťazca "
+"Python datetime](%(python_url)s), ktorý musí dodržiavať štandard [ISO "
+"8601](%(iso_url)s), aby sa zabezpečilo, že lexikografické poradie sa "
+"zhoduje s chronologickým poradím. Ak formát časovej značky nedodržiava "
+"štandard ISO 8601, budete musieť definovať výraz a typ na transformáciu "
+"reťazca na dátum alebo časovú značku. Poznámka: momentálne nie sú "
+"podporované časové pásma. Ak je čas uložený vo formáte epoch, uveďte "
+"`epoch_s`, `epoch_ms` alebo `epoch_us`. Ak nie je špecifikovaný žiadny "
+"vzor, použijeme voliteľné predvolené hodnoty na úrovni názvu "
+"databázy/stĺpca prostredníctvom parametra extra."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20703,8 +20739,10 @@ msgstr "Port je uzavretý."
 msgid "The port number is invalid."
 msgstr "Číslo portu je neplatné."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "Náhľad sa nepodarilo načítať. Skúste to znova."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sl, sr, sr_Latn,
@@ -21193,9 +21231,18 @@ msgstr ""
 "Transformácia sa zhodovala so vzorkovanými riadkami, nie s celým súborom "
 "údajov."
 
-#, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
+"Transformácia vrátila %(returned)s pre %(column)s, čo je %(kind)s. "
+"Zrkadlené filtre na tomto mapovaní by zlyhali v databáze. Vráťte hodnotu "
+"kompatibilnú s %(type)s; ak je to vhodné, použite v transformácii "
+"explicitný CAST."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21208,8 +21255,14 @@ msgstr ""
 "nedokáže zapísať do dotazu ako hodnotu typu %(type)s bez jej zmeny. "
 "Filtre na tomto mapovaní sa nebudú zrkadliť."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
+"Transformácia vrátila pre jednu alebo viacero náhľadových hodnôt hodnotu "
+"NULL, takže nebol vygenerovaný žiadny filter partitionov."
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -21311,12 +21364,25 @@ msgstr ""
 "relácii a výsledok sa ukladá do vyrovnávacej pamäte, takže vygenerovaný "
 "predikát by zmrazil snímku daného okamihu."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Transformáciu hodnoty sa nepodarilo parsovať. Opravte výraz, aby ste si "
+"ho mohli prezrieť v náhľade. Filtre nebudú zrkadlené, kým nebude výraz "
+"platný."
 
-#, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Transformáciu hodnoty sa nepodarilo parsovať: %(detail)s. Opravte výraz, "
+"aby ste si ho mohli prezrieť v náhľade. Filtre nebudú zrkadlené, kým "
+"nebude výraz platný."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23010,8 +23076,10 @@ msgstr ""
 "Príliš veľa požiadaviek na náhľad tejto množiny údajov. Chvíľu počkajte a"
 " skúste to znova."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Too many preview requests. Wait a moment and try again."
-msgstr ""
+msgstr "Príliš veľa požiadaviek na náhľad. Počkajte chvíľu a skúste to znova."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27150,9 +27218,10 @@ msgstr "späť"
 msgid "unknown type icon"
 msgstr "ikona neznámého typu"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "unmatched parenthesis at position %(position)d."
-msgstr ""
+msgstr "nezhodujúca sa zátvorka na pozícii %(position)d."
 
 msgid "unset"
 msgstr "nenastaveno"
@@ -27167,8 +27236,10 @@ msgstr ""
 "horní percentil musí byť väčší než 0 a menší než 100. Musí byť vyšší než "
 "dolní percentil."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "use a single SQL expression; this transform contains multiple expressions."
-msgstr ""
+msgstr "použite jeden SQL výraz; táto transformácia obsahuje viacero výrazov."
 
 msgid "use latest_partition template"
 msgstr "použít šablonu nejnovejšího_oddílu"

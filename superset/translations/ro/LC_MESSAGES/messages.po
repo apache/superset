@@ -8169,8 +8169,14 @@ msgstr "Etichetă secțiune dinamică"
 msgid "Dynamic group by"
 msgstr "Grupare dinamică"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
+"Gruparea dinamică nu este suportată în vederile semantice. Eliminați "
+"acest control de afișare pentru a înceta stocarea acestuia."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -10502,13 +10508,20 @@ msgstr "Ascunde Linie"
 msgid "Hide chart description"
 msgstr "Ascunde descrierea graficului"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid ""
 "Hide columns with only null metric values. Keep columns with zeros or "
 "non-empty summaries. This does not change totals or percentages."
 msgstr ""
+"Ascundeți coloanele care au doar valori de metrici nule. Păstrați "
+"coloanele cu zero sau rezumate negoale. Acest lucru nu modifică "
+"totalurile sau procentele."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Hide empty columns"
-msgstr ""
+msgstr "Ascundeți coloanele goale"
 
 msgid "Hide layer"
 msgstr "Ascunde strat"
@@ -10538,8 +10551,16 @@ msgstr "Valoarea maximă pentru fiecare perioadă."
 msgid "Histogram"
 msgstr "Histogramă"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
+"Hive necesită un filtru de partiție pentru acest tabel. Adăugați un "
+"filtru pe coloana de partiție sau un interval de timp pe o coloană cu o "
+"mapare de partiție funcțională și încercați din nou."
 
 msgid "Home"
 msgstr "Acasă"
@@ -10834,8 +10855,10 @@ msgstr "În această vedere poți previzualiza primele 25 de rânduri. "
 msgid "Inactive"
 msgstr "Inactiv"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Include :value in the transform to represent the filter value."
-msgstr ""
+msgstr "Includeți :value în transformare pentru a reprezenta valoarea filtrului."
 
 msgid "Include Series"
 msgstr "Include Serie"
@@ -15009,8 +15032,10 @@ msgstr ""
 msgid "Preview"
 msgstr "Previzualizare"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Preview temporarily unavailable"
-msgstr ""
+msgstr "Previzualizarea este temporar indisponibilă"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20383,10 +20408,11 @@ msgstr ""
 "Parolele pentru bazele de date de mai jos sunt necesare pentru a le "
 "importa."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [refs: de, es]
 #. i18n: translate the whole sentence, including the link
 #. text; keep the [text](%(…)s) link syntax, the backticks
 #. and both placeholders unchanged
-#, python-format
+#, fuzzy, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "
 "pattern](%(python_url)s) expression which needs to adhere to the [ISO "
@@ -20399,6 +20425,18 @@ msgid ""
 "specified we fall back to using the optional defaults on a per "
 "database/column name level via the extra parameter."
 msgstr ""
+"Modelul formatului de marcă de timp. Pentru șiruri de caractere, "
+"utilizați o expresie de tip [model de șir de caractere datetime "
+"Python](%(python_url)s) care trebuie să respecte standardul [ISO "
+"8601](%(iso_url)s) pentru a asigura faptul că ordinea lexicografică "
+"coincide cu ordinea cronologică. Dacă formatul marcă de timp nu respectă "
+"standardul ISO 8601, va trebui să definiți o expresie și un tip pentru "
+"transformarea șirului de caractere într-o dată sau o marcă de timp. Notă:"
+" în prezent fusurile orare nu sunt suportate. Dacă timpul este stocat în "
+"format epoch, introduceți `epoch_s`, `epoch_ms` sau `epoch_us`. Dacă nu "
+"este specificat niciun model, revenim la utilizarea valorilor implicite "
+"opționale la nivel de bază de date/nume de coloană prin intermediul "
+"parametrului extra."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20451,8 +20489,10 @@ msgstr "Portul este închis."
 msgid "The port number is invalid."
 msgstr "Numărul portului este invalid."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "The preview could not be loaded. Try again."
-msgstr ""
+msgstr "Previzualizarea nu a putut fi încărcată. Încercați din nou."
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
@@ -20918,9 +20958,18 @@ msgstr ""
 "Transformarea a corespuns rândurilor eșantionate, nu întregului set de "
 "date."
 
-#, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
+"Transformarea a returnat %(returned)s pentru %(column)s, ceea ce este "
+"%(kind)s. Filtrele oglindite pe această mapare ar eșua la nivelul bazei "
+"de date. Returnați o valoare compatibilă cu %(type)s; utilizați un CAST "
+"explicit în transformare, dacă este cazul."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20933,8 +20982,14 @@ msgstr ""
 "bază de date nu îl poate scrie într-o interogare ca valoare %(type)s fără"
 " a-l modifica. Filtrele de pe această mapare nu vor fi oglindite."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
+"Transformarea a returnat NULL pentru una sau mai multe valori de "
+"previzualizare, așa că nu a fost generat niciun filtru de partiție."
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Cele două parole pe care le-ați introdus nu se potrivesc!"
@@ -21044,12 +21099,25 @@ msgstr ""
 "sesiune separată, iar rezultatul este păstrat în cache, astfel încât "
 "predicatul generat ar îngheța o instantanee a acelui moment."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Transformarea valorii nu a putut fi analizată sintactic. Corectați "
+"expresia pentru a o putea previzualiza. Filtrele nu vor fi oglindite "
+"atâta timp cât aceasta este invalidă."
 
-#, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
+"Transformarea valorii nu a putut fi analizată sintactic: %(detail)s "
+"Corectați expresia pentru a o putea previzualiza. Filtrele nu vor fi "
+"oglindite atâta timp cât aceasta este invalidă."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22746,8 +22814,12 @@ msgstr ""
 "Prea multe solicitări de previzualizare pentru acest set de date. "
 "Așteptați un moment și încercați din nou."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
+"Prea multe cereri de previzualizare. Așteptați un moment și încercați din"
+" nou."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26766,9 +26838,10 @@ msgstr "anulează"
 msgid "unknown type icon"
 msgstr "iconiță tip necunoscut"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "unmatched parenthesis at position %(position)d."
-msgstr ""
+msgstr "paranteză fără corespondent la poziția %(position)d."
 
 msgid "unset"
 msgstr "nesetat"
@@ -26783,8 +26856,12 @@ msgstr ""
 "percentila superioară trebuie să fie mai mare decât 0 și mai mică decât "
 "100. Trebuie să fie mai mare decât percentila inferioară."
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy
 msgid "use a single SQL expression; this transform contains multiple expressions."
 msgstr ""
+"utilizați o singură expresie SQL; această transformare conține mai multe "
+"expresii."
 
 msgid "use latest_partition template"
 msgstr "folosește șablonul latest_partition"
