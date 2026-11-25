@@ -58,6 +58,7 @@ import {
   sortComparatorForNoSearchHelper,
   getSuffixIcon,
   dropDownRenderHelper,
+  countPopupRows,
   getPopupPlacement,
   handleFilterOptionHelper,
   makeQuoteAwareTokenizer,
@@ -705,7 +706,9 @@ const AsyncSelect = forwardRef(
         setPopupPlacement(
           getPopupPlacement(
             selectContainerRef.current,
-            fullSelectOptions.length || pageSize,
+            fullSelectOptions.length
+              ? countPopupRows(fullSelectOptions, helperText)
+              : pageSize,
             direction,
           ),
         );

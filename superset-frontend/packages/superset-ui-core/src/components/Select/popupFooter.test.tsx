@@ -18,7 +18,7 @@
  */
 import { render, userEvent, screen, waitFor } from '@superset-ui/core/spec';
 import { AsyncSelect, Select } from '.';
-import { getPopupPlacement } from './utils';
+import { countPopupRows, getPopupPlacement } from './utils';
 
 const ARIA_LABEL = 'Test';
 const options = [
@@ -219,4 +219,37 @@ test('getPopupPlacement keeps the default outside a modal', () => {
   const container = document.createElement('div');
   container.innerHTML = '<div class="ant-select"></div>';
   expect(getPopupPlacement(container, 3)).toBeUndefined();
+});
+
+test('countPopupRows counts group headers, nested options and helper text', () => {
+  const grouped = [
+    {
+      label: 'Group A',
+      options: [
+        { label: 'a1', value: 'a1' },
+        { label: 'a2', value: 'a2' },
+      ],
+    },
+    { label: 'Solo', value: 'solo' },
+  ];
+  expect(countPopupRows(grouped)).toBe(4);
+  expect(countPopupRows(grouped, 'Pick some')).toBe(5);
+  expect(countPopupRows([])).toBe(0);
+});
+
+test('getPopupPlacement flips for a grouped list that would cover the footer', () => {
+  // Two groups of five need ~12 rows; only 200px between trigger and footer.
+  const groups = ['A', 'B'].map(g => ({
+    label: g,
+    options: [1, 2, 3, 4, 5].map(i => ({
+      label: `${g}${i}`,
+      value: `${g}${i}`,
+    })),
+  }));
+  expect(
+    getPopupPlacement(buildModal(0, 248, 480), groups.length),
+  ).toBeUndefined();
+  expect(
+    getPopupPlacement(buildModal(0, 248, 480), countPopupRows(groups)),
+  ).toBe('topLeft');
 });

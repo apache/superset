@@ -44,6 +44,7 @@ import {
 import { debounce, isEqual, uniq } from 'lodash-es';
 import {
   dropDownRenderHelper,
+  countPopupRows,
   getPopupPlacement,
   getOption,
   getSuffixIcon,
@@ -642,7 +643,7 @@ const Select = forwardRef(
         setPopupPlacement(
           getPopupPlacement(
             selectContainerRef.current,
-            fullSelectOptions.length,
+            countPopupRows(fullSelectOptions, helperText),
             direction,
           ),
         );

@@ -289,6 +289,24 @@ export const dropDownRenderHelper = (
   );
 };
 
+/**
+ * Rows the popup list renders: a grouped option takes one header row plus a
+ * row per nested option. A helper text line above the list counts as one
+ * more row.
+ */
+export const countPopupRows = (
+  options: SelectOptionsType,
+  helperText?: string,
+) =>
+  options.reduce(
+    (rows, option) =>
+      rows +
+      ('options' in option && Array.isArray(option.options)
+        ? 1 + option.options.length
+        : 1),
+    helperText ? 1 : 0,
+  );
+
 // Rough popup height used to decide placement before the popup renders:
 // option rows (capped at antd's default listHeight) plus list padding and
 // the footer row. Approximations of the default theme.
@@ -296,11 +314,9 @@ const ESTIMATED_OPTION_HEIGHT = 32;
 const ESTIMATED_POPUP_CHROME = 48;
 const MAX_LIST_HEIGHT = 256;
 
-export const estimatePopupHeight = (optionsLength: number) =>
-  Math.min(
-    Math.max(optionsLength, 1) * ESTIMATED_OPTION_HEIGHT,
-    MAX_LIST_HEIGHT,
-  ) + ESTIMATED_POPUP_CHROME;
+export const estimatePopupHeight = (rowCount: number) =>
+  Math.min(Math.max(rowCount, 1) * ESTIMATED_OPTION_HEIGHT, MAX_LIST_HEIGHT) +
+  ESTIMATED_POPUP_CHROME;
 
 /**
  * Inside a modal the popup is portalled into `.ant-modal-container`, which
@@ -313,7 +329,7 @@ export const estimatePopupHeight = (optionsLength: number) =>
  */
 export const getPopupPlacement = (
   container: Element | null | undefined,
-  optionsLength: number,
+  rowCount: number,
   direction?: string,
 ): 'topLeft' | 'topRight' | undefined => {
   const trigger = container?.querySelector('.ant-select');
@@ -323,7 +339,7 @@ export const getPopupPlacement = (
   const triggerRect = trigger.getBoundingClientRect();
   const spaceBelow = footer.getBoundingClientRect().top - triggerRect.bottom;
   const spaceAbove = triggerRect.top - modal.getBoundingClientRect().top;
-  if (spaceBelow >= estimatePopupHeight(optionsLength)) return undefined;
+  if (spaceBelow >= estimatePopupHeight(rowCount)) return undefined;
   if (spaceAbove <= spaceBelow) return undefined;
   return direction === 'rtl' ? 'topRight' : 'topLeft';
 };
