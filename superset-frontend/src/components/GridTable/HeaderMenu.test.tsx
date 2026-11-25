@@ -179,7 +179,7 @@ test("renders Download to CSV", async () => {
   });
 });
 
-test("renders autosize column", async () => {
+test("renders autosize all columns in the main menu", async () => {
   const { getByText } = await setup({ ...mockedProps, isMain: true });
   await userEvent.click(getByText("Autosize all columns"));
   await waitFor(() =>

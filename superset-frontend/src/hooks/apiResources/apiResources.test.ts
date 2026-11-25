@@ -131,7 +131,7 @@ test("works while loading", () => {
   });
 });
 
-test("resolves to the value from the api", async () => {
+test("useApiV1Endpoint resolves to the value from the api", async () => {
   (makeApi as any).mockReturnValue(
     jest.fn().mockResolvedValue({
       meta: "data",
