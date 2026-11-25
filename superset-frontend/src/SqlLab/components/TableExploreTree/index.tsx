@@ -53,7 +53,7 @@ import {
 import PanelToolbar from 'src/components/PanelToolbar';
 import TreeNodeRenderer from './TreeNodeRenderer';
 import useTreeData, { EMPTY_NODE_ID_PREFIX } from './useTreeData';
-import { type TreeNodeData, type TableReference } from './types';
+import { type TreeNodeData, type TableReference, getTableKey } from './types';
 import type { TableMetaData } from 'src/hooks/apiResources';
 import { ErrorMessageWithStackTrace } from 'src/components';
 
@@ -65,7 +65,11 @@ export interface TableBrowserProps {
   pinnedTables?: Record<string, TableMetaData | undefined>;
   pinnedTableKeys?: Set<string>;
   onPinTable?: (table: string, schema: string, catalog: string | null) => void;
-  onUnpinTable?: (table: string, schema: string) => void;
+  onUnpinTable?: (
+    table: string,
+    schema: string,
+    catalog: string | null,
+  ) => void;
   toolbarViewId?: string;
   onPreviewTable?: (table: TableReference) => void;
 }
@@ -594,10 +598,20 @@ export default function TableExploreTree({
   const pinnedTables = useMemo(
     () =>
       Object.fromEntries(
-        tables.map(({ queryEditorId, dbId, schema, name, persistData }) => [
-          editorId === queryEditorId ? `${dbId}:${schema}:${name}` : '',
-          persistData,
-        ]),
+        tables
+          .filter(({ queryEditorId: qeId }) => editorId === qeId)
+          .map(
+            ({
+              dbId: tableDbId,
+              catalog: tableCatalog,
+              schema,
+              name,
+              persistData,
+            }) => [
+              getTableKey(tableDbId, tableCatalog, schema, name),
+              persistData,
+            ],
+          ),
       ),
     [tables, editorId],
   );
@@ -607,7 +621,9 @@ export default function TableExploreTree({
       new Set(
         tables
           .filter(({ queryEditorId: qeId }) => editorId === qeId)
-          .map(({ dbId, schema, name }) => `${dbId}:${schema}:${name}`),
+          .map(({ dbId: tableDbId, catalog: tableCatalog, schema, name }) =>
+            getTableKey(tableDbId, tableCatalog, schema, name),
+          ),
       ),
     [tables, editorId],
   );
@@ -619,11 +635,12 @@ export default function TableExploreTree({
   );
 
   const handleUnpinTable = useCallback(
-    (tableName: string, schemaName: string) => {
+    (tableName: string, schemaName: string, catalogName: string | null) => {
       const table = tables.find(
         t =>
           t.queryEditorId === editorId &&
           t.dbId === dbId &&
+          (t.catalog ?? null) === catalogName &&
           t.schema === schemaName &&
           t.name === tableName,
       );

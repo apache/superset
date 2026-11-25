@@ -477,3 +477,66 @@ test.each([undefined, 'active-tab-view'])(
     expect(await screen.findByTestId('pin-public-users')).toBeInTheDocument();
   },
 );
+
+test('pin keys include catalog so same-named tables do not share pin state', async () => {
+  const tabViewId = 'active-tab-view';
+  const catalog = 'warehouse';
+  const otherCatalogTable = {
+    ...table,
+    id: 'archive-users',
+    name: 'users',
+    schema: 'public',
+    catalog: 'archive',
+    queryEditorId: tabViewId,
+    persistData: { columns: mockColumns },
+  };
+  const store = createStore(
+    getInitialState({
+      queryEditors: [
+        {
+          ...defaultQueryEditor,
+          dbId: 1,
+          catalog,
+          schema: 'public',
+          tabViewId,
+        },
+      ],
+      tables: [otherCatalogTable],
+    }),
+    reducerIndex,
+  );
+  render(<TableExploreTree queryEditorId={mockedQueryEditorId} />, {
+    useRedux: true,
+    store,
+  });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(await screen.findByText('users'));
+  await screen.findByText('id');
+
+  expect(
+    screen.queryByTestId('pinned-public-users'),
+  ).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByTestId('pin-public-users'));
+  await waitFor(() =>
+    expect((store.getState() as RootState).sqlLab.tables).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          dbId: 1,
+          catalog,
+          schema: 'public',
+          name: 'users',
+          queryEditorId: tabViewId,
+        }),
+        expect.objectContaining({ id: otherCatalogTable.id }),
+      ]),
+    ),
+  );
+
+  await userEvent.click(await screen.findByTestId('unpin-public-users'));
+  await waitFor(() =>
+    expect((store.getState() as RootState).sqlLab.tables).toEqual([
+      otherCatalogTable,
+    ]),
+  );
+});

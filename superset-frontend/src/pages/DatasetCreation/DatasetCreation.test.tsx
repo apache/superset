@@ -192,6 +192,36 @@ test('single-table creation submits the selected schema and keeps the existing e
   });
 });
 
+test('schema-less table selection submits a null schema', async () => {
+  setItem(LocalStorageKeys.Database, {
+    ...database,
+    allow_multi_catalog: false,
+    supports_schemas: false,
+  });
+  fetchMock.post('glob:*/api/v1/dataset/', { id: 11 });
+  render(<AddDataset />, { useRedux: true, useRouter: true });
+  await userEvent.click(await screen.findByText('Tables', { exact: true }));
+  await userEvent.click(await screen.findByText('orders', { exact: true }));
+  await waitFor(() =>
+    expect(screen.getAllByText('order_id').length).toBeGreaterThan(0),
+  );
+  await userEvent.click(
+    screen.getByRole('button', {
+      name: 'Create and explore dataset',
+    }),
+  );
+  await waitFor(() =>
+    expect(mockHistoryPush).toHaveBeenCalledWith('/chart/add/?dataset_id=11'),
+  );
+  const call = fetchMock.callHistory.lastCall('glob:*/api/v1/dataset/');
+  expect(JSON.parse(String(call?.options.body))).toEqual({
+    database: 1,
+    catalog: null,
+    schema: null,
+    table_name: 'orders',
+  });
+});
+
 test('source changes clear the selected table in the dataset reducer', () => {
   const selected = {
     db: database,

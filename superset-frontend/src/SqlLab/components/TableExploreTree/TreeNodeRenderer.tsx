@@ -24,7 +24,7 @@ import { Icons, Typography } from '@superset-ui/core/components';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import copyTextToClipboard from 'src/utils/copy';
-import { type TreeNodeData, type TableReference } from './types';
+import { type TreeNodeData, type TableReference, getTableKey } from './types';
 
 const StyledColumnNode = styled.div`
   & > .ant-flex {
@@ -91,7 +91,11 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
     schemaName: string,
     catalogName: string | null,
   ) => void;
-  handleUnpinTable: (tableName: string, schemaName: string) => void;
+  handleUnpinTable: (
+    tableName: string,
+    schemaName: string,
+    catalogName: string | null,
+  ) => void;
   handlePinSchema: (schemaName: string) => void;
   handleUnpinSchema: (schemaName: string) => void;
   refreshTableSchema: (id: string) => void;
@@ -345,7 +349,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       {identifier === 'table' &&
         (() => {
           const nodeDbId = Number(_dbId);
-          const tableKey = `${nodeDbId}:${schema}:${tableName}`;
+          const tableKey = getTableKey(nodeDbId, catalog, schema, tableName);
           const isPinned = pinnedTableKeys.has(tableKey);
           const selectStar = selectStarMap[tableKey];
           return (
@@ -369,7 +373,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                         `}
                       />
                     }
-                    onClick={() => handleUnpinTable(tableName, schema)}
+                    onClick={() =>
+                      handleUnpinTable(tableName, schema, catalog ?? null)
+                    }
                   />
                 </div>
               )}
@@ -430,7 +436,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                     }
                     onClick={() =>
                       isPinned
-                        ? handleUnpinTable(tableName, schema)
+                        ? handleUnpinTable(tableName, schema, catalog ?? null)
                         : handlePinTable(tableName, schema, catalog ?? null)
                     }
                   />

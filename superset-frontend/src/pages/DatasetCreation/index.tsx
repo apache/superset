@@ -92,9 +92,10 @@ export default function AddDataset() {
   const { datasetId: id } = useParams<{ datasetId: string }>();
   const editPageIsVisible = !Number.isNaN(parseInt(id, 10));
   const handleTableSelection = useCallback((table: TableReference) => {
+    const schema = table.schema || null;
     setDataset({
       type: DatasetActionType.SelectSchema,
-      payload: { name: 'schema', value: table.schema },
+      payload: { name: 'schema', value: schema },
     });
     setDataset({
       type: DatasetActionType.SelectTable,

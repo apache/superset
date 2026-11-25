@@ -200,6 +200,7 @@ export function DatabaseSelector({
   filterBySqlLab = false,
   showSchema = true,
   onOpenModal,
+  onLoadingChange,
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
@@ -415,6 +416,19 @@ export function DatabaseSelector({
     ? displayHierarchyOption(currentCatalog)
     : currentCatalog;
   const sqlLabCompactMode = sqlLabMode && compactMode;
+
+  useEffect(() => {
+    onLoadingChange?.(
+      (showCatalogSelector && loadingCatalogs) ||
+        (showSchemaSelector && loadingSchemas),
+    );
+  }, [
+    onLoadingChange,
+    showCatalogSelector,
+    showSchemaSelector,
+    loadingCatalogs,
+    loadingSchemas,
+  ]);
 
   function changeDatabase(
     value: { label: string; value: number },
@@ -662,12 +676,14 @@ export function DatabaseSelectorPopover({
   const [draftDb, setDraftDb] = useState<DatabaseObject>();
   const [draftCatalog, setDraftCatalog] = useState<string>();
   const [draftSchema, setDraftSchema] = useState<string>();
+  const [loading, setLoading] = useState(false);
 
   const openSelector = () => {
     setSelectionSession(session => session + 1);
     setDraftDb(db ?? undefined);
     setDraftCatalog(catalog ?? undefined);
     setDraftSchema(schema);
+    setLoading(false);
     setOpen(true);
   };
 
@@ -725,6 +741,7 @@ export function DatabaseSelectorPopover({
               setDraftSchema(undefined);
             }}
             onSchemaChange={setDraftSchema}
+            onLoadingChange={setLoading}
           />
           <Flex justify="flex-end" gap="small">
             <Button
@@ -738,7 +755,7 @@ export function DatabaseSelectorPopover({
             </Button>
             <Button
               type="primary"
-              disabled={!draftDb}
+              disabled={!draftDb || loading}
               onClick={event => {
                 event?.stopPropagation();
                 applySelection();

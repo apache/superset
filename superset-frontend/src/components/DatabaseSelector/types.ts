@@ -58,4 +58,5 @@ export interface DatabaseSelectorProps {
   showSchema?: boolean;
   compactMode?: boolean;
   onOpenModal?: () => void;
+  onLoadingChange?: (loading: boolean) => void;
 }

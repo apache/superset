@@ -44,3 +44,16 @@ export interface TableReference {
   schema: string;
   table_name: string;
 }
+
+export const getSchemaKey = (
+  dbId: number | string | undefined,
+  catalog: string | null | undefined,
+  schema: string,
+): string => `${dbId}:${catalog ?? ''}:${schema}`;
+
+export const getTableKey = (
+  dbId: number | string | undefined,
+  catalog: string | null | undefined,
+  schema: string,
+  tableName: string,
+): string => `${getSchemaKey(dbId, catalog, schema)}:${tableName}`;
