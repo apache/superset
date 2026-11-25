@@ -71,7 +71,7 @@ import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { CustomizationsOutOfScopeCollapsible } from '../CustomizationsOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
-import crossFiltersSelector from '../CrossFilters/selectors';
+import { crossFiltersSelector } from '../CrossFilters/selectors';
 import { CrossFilterIndicator } from '../../selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';

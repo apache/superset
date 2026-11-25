@@ -140,47 +140,12 @@ msgstr " novo"
 msgid " at line %(line)d"
 msgstr " v vrstici %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " , ki mora upoštevati "
-
 msgid " for details."
 msgstr " za podrobnosti."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " blizu '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" standard, s katerim zagotovite, da leksikografsko\n"
-"                      razvrščanje sovpada s kronološkim razvrščanjem. Če\n"
-"                      oblika časovnega žiga ne ustreza standardu ISO "
-"8601,\n"
-"                      boste morali določiti izraz in tip za\n"
-"                      pretvorbo niza v datum ali časovni žig. Opomba:\n"
-"                      časovni pasovi trenutno niso podprti. Če je čas "
-"shranjen\n"
-"                      v obliki epoch, vnesite `epoch_s`, `epoch_ms` ali "
-"`epoch_us`. Če vzorec\n"
-"                      ni podan, se uporabijo neobvezne privzete vrednosti"
-" na ravni\n"
-"                      imena podatkovne baze/stolpca prek parametra extra."
 
 msgid " to add calculated columns"
 msgstr " za dodajanje izračunanih stolpcev"
@@ -300,6 +265,16 @@ msgstr ""
 "%(dialect)s ni mogoče uporabiti kot podatkovni vir zaradi varnostnih "
 "razlogov."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
+"»%(undefinedParameter)s«?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "Datoteka %(label)s"
@@ -406,21 +381,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d vrnjenih vrstic"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s namesto »%(undefinedParameter)s?«"
-msgstr[1] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
-msgstr[2] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
-msgstr[3] ""
-"%(firstSuggestions)s ali %(lastSuggestion)s namesto "
-"»%(undefinedParameter)s«?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s namesto »%(undefinedParameter)s«?"
 
 #, python-format
 msgid ""
@@ -6134,7 +6098,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "IZBRIŠI"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9935,6 +9899,7 @@ msgstr "Gost ne more spreminjati atributov grafikona"
 msgid "HTTP Path"
 msgstr "Pot HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10090,9 +10055,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Oznake po ISO 3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13143,7 +13105,7 @@ msgstr "ALI"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PREPIŠI"
+msgstr ""
 
 msgid "October"
 msgstr "Oktober"
@@ -14382,9 +14344,6 @@ msgstr "Postavim oznake zunaj torte?"
 
 msgid "Put your code here"
 msgstr "Vstavite svojo kodo sem"
-
-msgid "Python datetime string pattern"
-msgstr "Pythonov format zapisa datum-časa"
 
 msgid "Quarter"
 msgstr "Četrtletje"
@@ -18115,7 +18074,7 @@ msgstr "TABELE"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "ČASOVNI_OBSEG"
+msgstr ""
 
 msgid "THU"
 msgstr "ČET"
@@ -19156,6 +19115,13 @@ msgstr[3] "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -19235,8 +19201,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Gesla za spodnje zbirke podatkov so potrebna za njihov uvoz."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Format zapisa časovne značke. Za znakovne nize uporabite "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24000,6 +23980,9 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Vaš račun je aktiviran. Lahko se prijavite s svojimi poverilnicami."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "Vaš račun je aktiviran. Lahko se prijavite s svojimi poverilnicami."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Your changes will be lost if you leave without saving."
@@ -24328,7 +24311,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "vijak"
+msgstr ""
 
 msgid "boolean"
 msgstr "logično"
@@ -24491,7 +24474,7 @@ msgstr "deck.gl - plastnice"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl - GeoJson"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl - 3D mreža"
@@ -24545,7 +24528,7 @@ msgstr "dokumentacija"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "datum-čas"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "npr. ********"

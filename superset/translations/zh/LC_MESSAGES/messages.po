@@ -131,9 +131,6 @@ msgstr "另存为新的"
 msgid " at line %(line)d"
 msgstr "在第 %(line)d 行"
 
-msgid " expression which needs to adhere to the "
-msgstr " 表达式必须基于 "
-
 msgid " for details."
 msgstr " 详细信息"
 
@@ -142,35 +139,6 @@ msgstr " 详细信息"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr "在 '%(highlight)s' 附近"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" 标准,以确保字典序\n"
-"                      与时间顺序一致。如果\n"
-"                      时间戳格式不符合 ISO 8601 标准,\n"
-"                      则需要定义一个表达式和类型,\n"
-"                      用于将字符串转换为日期或时间戳。注意:\n"
-"                      目前不支持时区。如果时间\n"
-"                      以 epoch 格式存储,请填写 `epoch_s`、`epoch_ms` 或 "
-"`epoch_us`。如果未指定\n"
-"                      格式,则会通过 extra 参数回退使用按\n"
-"                      数据库/列名级别设置的可选默认值。"
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -285,6 +253,14 @@ msgstr[0] "%(count)s 个依赖资产已归档。"
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "出于安全原因，%(dialect)s 不能用作数据源。"
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
@@ -377,12 +353,10 @@ msgstr "%(report_type)s 计划频率超出限制。请配置每次执行最小�
 msgid "%(rows)d rows returned"
 msgstr "返回了 %(rows)d 行"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 吗？"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 吗？"
 
 #, python-format
 msgid ""
@@ -5957,7 +5931,7 @@ msgstr "十二月"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "删除"
+msgstr ""
 
 msgid "DML"
 msgstr "允许DML"
@@ -7535,9 +7509,8 @@ msgid "ECharts Options (JS object literals)"
 msgstr "ECharts 选项（JS 对象字面量）"
 
 #. do-not-translate
-#, fuzzy
 msgid "EMAIL_REPORTS_CTA"
-msgstr "激活邮件报告"
+msgstr ""
 
 #, fuzzy
 msgid "ERROR"
@@ -9485,9 +9458,8 @@ msgid "Further customize how to display each metric"
 msgstr "进一步定制如何显示每个指标"
 
 #. do-not-translate
-#, fuzzy
 msgid "GROUP BY"
-msgstr "分组"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "甘特图"
@@ -9703,6 +9675,7 @@ msgstr "访客用户无法修改图表负载"
 msgid "HTTP Path"
 msgstr "HTTP 路径"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -9866,9 +9839,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 代码"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12175,7 +12145,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "未分组"
+msgstr ""
 
 msgid "NOV"
 msgstr "十一月"
@@ -12956,7 +12926,7 @@ msgstr "或者"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "覆盖"
+msgstr ""
 
 msgid "October"
 msgstr "十月"
@@ -14195,9 +14165,6 @@ msgstr "是否将标签显示在饼图外侧？"
 
 msgid "Put your code here"
 msgstr "把您的代码放在这里"
-
-msgid "Python datetime string pattern"
-msgstr "Python日期时间字符串模式"
 
 msgid "Quarter"
 msgstr "季度"
@@ -17895,9 +17862,8 @@ msgid "TABLES"
 msgstr "表"
 
 #. do-not-translate
-#, fuzzy
 msgid "TEMPORAL_RANGE"
-msgstr "时间范围"
+msgstr ""
 
 msgid "THU"
 msgstr "星期四"
@@ -18863,6 +18829,13 @@ msgstr[0] "查询中的以下参数未定义：%(parameters)s 。"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr "分区列不能映射到自身。%(name)s 既是分区列又是被映射的列。"
@@ -18932,8 +18905,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "需要以下数据库的密码才能导入它们。"
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "时间戳格式的模式。供字符串使用 "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23405,6 +23392,9 @@ msgstr "您已更改数据集。任何与新数据集匹配的数据控件（列
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "您的账户已激活。您可以使用您的凭据登录。"
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "您的账户已激活。您可以使用您的凭据登录。"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Your changes will be lost if you leave without saving."
@@ -23735,7 +23725,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "螺栓"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -23980,7 +23970,7 @@ msgstr "文档"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "时间"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "例如：********"
@@ -24048,9 +24038,8 @@ msgid "entries"
 msgstr "条目"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "错误信息"
+msgstr ""
 
 msgid "every"
 msgstr "每个"
@@ -24459,7 +24448,7 @@ msgstr "未找到持久链接状态"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "透视表"
+msgstr ""
 
 msgid "pixels"
 msgstr "像素"

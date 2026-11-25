@@ -151,12 +151,6 @@ msgstr "uno nuovo"
 msgid " at line %(line)d"
 msgstr "alla linea %(line)d"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
-msgid " expression which needs to adhere to the "
-msgstr " espressione che deve essere conforme al "
-
 msgid " for details."
 msgstr " per dettagli."
 
@@ -165,39 +159,6 @@ msgstr " per dettagli."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " vicino a '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" standard, in modo che l'ordinamento lessicografico\n"
-"                      coincida con l'ordinamento cronologico. Se il\n"
-"                      formato del timestamp non rispetta lo standard ISO "
-"8601,\n"
-"                      è necessario definire un'espressione e un tipo per\n"
-"                      trasformare la stringa in una data o in un "
-"timestamp. Nota:\n"
-"                      attualmente i fusi orari non sono supportati. Se "
-"l'ora è memorizzata\n"
-"                      in formato epoch, indicare `epoch_s`, `epoch_ms` o "
-"`epoch_us`. Se non è specificato\n"
-"                      alcun pattern, si ricorre ai valori predefiniti "
-"opzionali per\n"
-"                      database/nome di colonna tramite il parametro extra."
 
 msgid " to add calculated columns"
 msgstr "aggiungere colonne calcolate"
@@ -320,6 +281,16 @@ msgstr ""
 "%(dialect)s non può essere utilizzato come sorgente dati per motivi di "
 "sicurezza."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s o %(lastSuggestion)s invece di "
+"\"%(undefinedParameter)s\"?"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
@@ -433,17 +404,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d righe restituite"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
-# mi, ro, ru, sl, sr, sr_Latn, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s invece di \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s o %(lastSuggestion)s invece di "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s invece di \"%(undefinedParameter)s\"?"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11713,6 +11677,7 @@ msgstr "Percorso HTTP"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -11924,12 +11889,6 @@ msgstr "ISO 3166-2"
 # uk, zh, zh_TW]
 msgid "ISO 3166-2 Codes"
 msgstr "Codici ISO 3166-2"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -17240,12 +17199,6 @@ msgstr "Mettere le etichette fuori dalla torta?"
 
 msgid "Put your code here"
 msgstr "Mettere il codice qui"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-msgid "Python datetime string pattern"
-msgstr "Modello di stringa datetime Python"
 
 msgid "Quarter"
 msgstr "Quarto"
@@ -22918,6 +22871,13 @@ msgstr[1] "I seguenti parametri nella query non sono definiti: %(parameters)s."
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -23025,11 +22985,22 @@ msgstr ""
 "Le password per i database elencati di seguito sono necessarie per "
 "importarli."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Il modello del formato del timestamp. "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -28869,6 +28840,9 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Your account is activated. You can log in with your credentials."
+msgstr "Il tuo account è stato attivato. Puoi accedere con le tue credenziali."
+
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "Il tuo account è stato attivato. Puoi accedere con le tue credenziali."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,

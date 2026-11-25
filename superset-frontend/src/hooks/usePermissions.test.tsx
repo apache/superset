@@ -19,10 +19,10 @@
 import { renderHook } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { ReactNode } from 'react';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { usePermissions } from './usePermissions';
 
-const mockStore = configureStore([]);
+const mockStore = createMockStore([]);
 
 const rolesWithAllPerms = {
   Admin: [

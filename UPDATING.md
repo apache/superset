@@ -24,6 +24,50 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard history records related chart archives using the new
+  `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
+  new archive writes with versioning capture enabled. During a rollout, activity
+  reads tolerate a missing scope table and continue returning content history;
+  archive capture skipped before the migration cannot be reconstructed or
+  backfilled. Archive activity adds no content version and does not change
+  recovery or content-restore behavior. Downgrade removes archive scopes and
+  archive records but leaves content history intact; empty activity transactions
+  may remain until normal history retention removes them.
+
+- Version-history commit-time finalization rejects the whole save when a database
+  error occurs outside a recoverable savepoint, including final field or child
+  diff generation and version-transaction lookup. This applies to ordinary
+  content saves as well as chart archives. A lost transaction or savepoint also
+  rejects the save. Optional capture failures isolated by a successful savepoint
+  rollback may still omit history without rejecting the save.
+
+- `list` and `pages` are now reserved extension publisher names. An
+  extension already published under either will fail manifest validation
+  and the `superset-extensions` CLI will refuse to build it; the host owns
+  `/extensions/list/` and `/extensions/pages/<id>`, so a publisher of those
+  names could not be addressed. Rename the publisher and reinstall.
+
+- `navigation.getPage()` can now return `'extension'`, for a page contributed
+  by an extension. Code that switches exhaustively on the `Page` union will
+  not compile until that member is handled, and code that switches without a
+  default may fall through on an extension page at runtime.
+
+- `navigation.getLocation().pathname` is relative to the application root, so
+  on a deployment served under a prefix it does not carry that prefix.
+  `navigation.getApplicationRoot()` reports the prefix for callers that need
+  it, such as a `fetch` built by hand.
+
+- Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
+
+- Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
+  Period Pivot, Nightingale Rose, Horizon, and Paired t-test charts instead of
+  returning misleading or empty data. This includes saved charts and their cached
+  chart images. Fresh dashboard images/PDFs include the refusal tile; old cached
+  dashboard images may show the old tile until expiry or regeneration. Use Line/Bar
+  for time series or Table with an explicit time dimension;
+  use an explicit count metric in Bar/Table for frequencies. Ordinary datasets
+  are unaffected.
+
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard
   as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
@@ -246,6 +290,25 @@ assists people when migrating to a new version.
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
   non-empty viewers list restricts access regardless of the flag), and removing
   viewers remains possible so stale assignments can be cleared.
+
+- [45929](https://github.com/apache/superset/pull/45929): Partition filter
+  mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
+  `supports_partition_filter_mapping = True`: Hive and Impala, plus the specs
+  that inherit from them -- Apache Spark SQL, Databricks Interactive Cluster
+  (`databricks+pyhive://`) and Ascend. On every other engine -- Trino, Presto,
+  PostgreSQL, the other Databricks connectors (Databricks SQL Python, legacy
+  `databricks+connector://`, SQL Endpoint `databricks+pyodbc://`) and the
+  rest -- an existing mapping **silently stops applying** after upgrade: no
+  filter is mirrored onto the partition column, so queries that used to prune
+  partitions scan the whole table. The dataset editor hides the mapping
+  settings and Explore shows no pruning indicator. The stored mapping is kept,
+  not deleted, and applies again if the dataset is pointed at a database on a
+  supported engine.
+  Superset logs a warning (`Ignoring partition filter mapping on dataset ...`)
+  the first time each worker resolves such a mapping; search for it after
+  upgrading to find affected datasets. A deployment that depends on mirroring
+  on another engine has to add a predicate on the partition column to the
+  affected charts, or opt that engine spec in.
 
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
@@ -2083,7 +2146,9 @@ Behavior changes to be aware of:
   fail fast at the first phase check rather than erroring at setup.
 - Dashboard reports whose charts have not mounted are no longer captured
   blank: readiness is polled until the deadline, and the report fails loudly
-  if charts never mount. Large tiled reports also retry Chromium screenshot
+  if charts never mount. A dashboard whose layout never renders keeps the
+  whole report budget; once the layout has rendered with zero chart holders
+  mounted, the wait is bounded by `SCREENSHOT_LOAD_WAIT`. Large tiled reports also retry Chromium screenshot
   stalls and suspicious uniform tiles, while persistent screenshot timeouts
   fail loudly. Large tiled thumbnails use the same bounded retries, but retain
   their previous failure contract after a persistent timeout.
