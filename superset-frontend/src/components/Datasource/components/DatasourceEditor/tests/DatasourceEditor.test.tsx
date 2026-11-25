@@ -368,6 +368,18 @@ test('renders Data type label in calculated columns tab', async () => {
   expect(dataTypeLabels.length).toBeGreaterThanOrEqual(2);
 });
 
+test('the Default URL field has an accessible name', async () => {
+  await asyncRender(createProps());
+  await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+  const panel = within(
+    await screen.findByRole('tabpanel', { name: 'Settings' }),
+  );
+
+  expect(
+    panel.getByRole('textbox', { name: 'Default URL' }),
+  ).toBeInTheDocument();
+});
+
 test('renders isSqla fields', async () => {
   const testProps = createProps();
   await asyncRender({

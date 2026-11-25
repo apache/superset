@@ -25,6 +25,7 @@ import {
   FormItem,
   FormLabel,
 } from '@superset-ui/core/components';
+import TextControl from 'src/explore/components/controls/TextControl';
 
 export interface FieldProps<V> {
   fieldKey: string;
@@ -92,15 +93,19 @@ export default function Field<V>({
       </Tooltip>
     ) : undefined;
 
+  const fieldLabel = label || fieldKey;
   const hookedControl = cloneElement(control, {
     value,
     onChange: onControlChange,
     label: (
       <FormLabel>
-        {label || fieldKey}
+        {fieldLabel}
         {infoTooltip}
       </FormLabel>
     ),
+    ...(control.type === TextControl && {
+      ariaLabel: control.props.ariaLabel ?? fieldLabel,
+    }),
     ...(passItemToControl ? { item } : {}),
   });
 
