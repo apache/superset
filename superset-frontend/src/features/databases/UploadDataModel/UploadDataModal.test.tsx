@@ -26,6 +26,7 @@ import {
   waitFor,
   userEvent,
   fireEvent,
+  within,
 } from 'spec/helpers/testing-library';
 
 const csvProps = {
@@ -816,4 +817,59 @@ test('replacing a workbook with a file too large to preview clears the sheet', a
   )[0].options?.body as FormData;
   expect((formData.get('file') as File).name).toBe('large.xlsx');
   expect(formData.has('sheet_name')).toBe(false);
+});
+
+const getTourPopover = async () => {
+  await waitFor(() =>
+    expect(document.querySelector('.ant-tour')).toBeInTheDocument(),
+  );
+  return within(document.querySelector('.ant-tour') as HTMLElement);
+};
+
+test('the tour button walks through the tour steps', async () => {
+  render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Take a tour' }));
+
+  const tour = await getTourPopover();
+  expect(tour.getByText('Upload your file')).toBeInTheDocument();
+  await userEvent.click(tour.getByRole('button', { name: 'Next' }));
+  await waitFor(() =>
+    expect(tour.getByText('Preview columns')).toBeInTheDocument(),
+  );
+  expect(tour.queryByText('Upload your file')).not.toBeInTheDocument();
+});
+
+test('closing the tour hides it and reopening starts from the first step', async () => {
+  render(<UploadDataModal {...csvProps} />, { useRedux: true });
+  // The modal title re-renders, so query the button fresh each time.
+  const getTourButton = () =>
+    screen.getByRole('button', { name: 'Take a tour' });
+
+  await userEvent.click(getTourButton());
+  let tour = await getTourPopover();
+  await userEvent.click(tour.getByRole('button', { name: 'Next' }));
+  await waitFor(() =>
+    expect(tour.getByText('Preview columns')).toBeInTheDocument(),
+  );
+  await userEvent.click(tour.getByRole('button', { name: 'Close' }));
+  await waitFor(() =>
+    expect(
+      document.querySelector('.ant-tour:not(.ant-tour-hidden)'),
+    ).not.toBeInTheDocument(),
+  );
+
+  await userEvent.click(getTourButton());
+  tour = await getTourPopover();
+  await waitFor(() =>
+    expect(tour.getByText('Upload your file')).toBeInTheDocument(),
+  );
+});
+
+test('showTourOnOpen starts the tour automatically', async () => {
+  render(<UploadDataModal {...csvProps} showTourOnOpen />, { useRedux: true });
+
+  expect(
+    await screen.findByText('Upload your file', {}, { timeout: 2000 }),
+  ).toBeInTheDocument();
 });

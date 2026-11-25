@@ -16,112 +16,74 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { startUploadDataModalTour } from './uploadDataModalTour';
+import {
+  getTourTargetSelector,
+  getUploadDataModalTourSteps,
+  type UploadType,
+} from './uploadDataModalTour';
 
-const mockDrive = jest.fn();
-const mockDriver = jest.fn<{ drive: jest.Mock }, [Record<string, unknown>]>(
-  () => ({
-    drive: mockDrive,
-  }),
-);
-
-jest.mock('driver.js', () => ({
-  driver: (config: Record<string, unknown>) => mockDriver(config),
-}));
-
-// Suppress CSS import in tests
-jest.mock('driver.js/dist/driver.css', () => ({}));
-
-beforeEach(() => {
-  jest.clearAllMocks();
+afterEach(() => {
+  document.body.innerHTML = '';
 });
 
-function getDriverConfig(): Record<string, unknown> {
-  expect(mockDriver).toHaveBeenCalled();
-  const call = mockDriver.mock.calls[0] as unknown[];
-  return call[0] as Record<string, unknown>;
-}
+const TARGETS = [
+  'file-dropzone',
+  'preview',
+  'database',
+  'table-name',
+  'submit-button',
+] as const;
 
-test('startUploadDataModalTour calls driver with correct config for CSV', () => {
-  startUploadDataModalTour('csv');
+test('tour has five steps with titles and descriptions in order', () => {
+  const steps = getUploadDataModalTourSteps('csv');
 
-  expect(mockDriver).toHaveBeenCalledTimes(1);
-  const config = getDriverConfig();
-  expect(config.animate).toBe(false);
-  expect(config.showProgress).toBe(true);
-  expect(config.showButtons).toEqual(['next', 'previous', 'close']);
-  const steps = config.steps as Array<{ element: string }>;
-  expect(steps).toHaveLength(5);
-  expect(steps[0].element).toBe(
-    '[data-tour="upload-modal-csv"] [data-tour="upload-file-dropzone-csv"]',
-  );
-  expect(steps[4].element).toBe(
-    '[data-tour="upload-modal-csv"] [data-tour="upload-submit-button-csv"]',
-  );
-  expect(mockDrive).toHaveBeenCalledTimes(1);
-});
-
-test('startUploadDataModalTour calls driver with correct selectors for Excel', () => {
-  startUploadDataModalTour('excel');
-
-  const config = getDriverConfig();
-  const steps = config.steps as Array<{ element: string }>;
-  expect(steps[0].element).toBe(
-    '[data-tour="upload-modal-excel"] [data-tour="upload-file-dropzone-excel"]',
-  );
-  expect(steps[4].element).toBe(
-    '[data-tour="upload-modal-excel"] [data-tour="upload-submit-button-excel"]',
-  );
-});
-
-test('startUploadDataModalTour calls driver with correct selectors for columnar', () => {
-  startUploadDataModalTour('columnar');
-
-  const config = getDriverConfig();
-  const steps = config.steps as Array<{ element: string }>;
-  expect(steps[0].element).toBe(
-    '[data-tour="upload-modal-columnar"] [data-tour="upload-file-dropzone-columnar"]',
-  );
-  expect(steps[4].element).toBe(
-    '[data-tour="upload-modal-columnar"] [data-tour="upload-submit-button-columnar"]',
-  );
-});
-
-test('startUploadDataModalTour steps have expected popover structure', () => {
-  startUploadDataModalTour('csv');
-
-  const config = getDriverConfig();
-  const expectedTitles = [
+  expect(steps.map(step => step.title)).toEqual([
     'Upload your file',
     'Preview columns',
     'Select database',
     'Table name',
     'Upload',
-  ];
-  const steps = config.steps as Array<{
-    popover: { title: string; description?: string };
-  }>;
-  steps.forEach((step, idx) => {
-    expect(step.popover).toBeDefined();
-    expect(step.popover.title).toBe(expectedTitles[idx]);
-    expect(step.popover.description).toBeDefined();
-    expect(typeof step.popover.description).toBe('string');
+  ]);
+  steps.forEach(step => {
+    expect(typeof step.description).toBe('string');
+    expect(step.description).not.toBe('');
   });
 });
 
-test('startUploadDataModalTour includes all five tour steps with correct element targets', () => {
-  startUploadDataModalTour('csv');
+test.each<UploadType>(['csv', 'excel', 'columnar'])(
+  'getTourTargetSelector scopes %s targets to its upload modal',
+  type => {
+    expect(getTourTargetSelector(type, 'file-dropzone')).toBe(
+      `[data-tour="upload-modal-${type}"] [data-tour="upload-file-dropzone-${type}"]`,
+    );
+  },
+);
 
-  const config = getDriverConfig();
-  const expectedTargets = [
-    'upload-file-dropzone-csv',
-    'upload-preview-csv',
-    'upload-database-csv',
-    'upload-table-name-csv',
-    'upload-submit-button-csv',
-  ];
-  const steps = config.steps as Array<{ element: string }>;
+test('each step targets the matching element inside the right modal', () => {
+  const otherModal = document.createElement('div');
+  otherModal.setAttribute('data-tour', 'upload-modal-excel');
+  otherModal.innerHTML = `<div data-tour="upload-file-dropzone-excel"></div>`;
+  const modal = document.createElement('div');
+  modal.setAttribute('data-tour', 'upload-modal-csv');
+  modal.innerHTML = TARGETS.map(
+    target => `<div data-tour="upload-${target}-csv"></div>`,
+  ).join('');
+  document.body.append(otherModal, modal);
+
+  const steps = getUploadDataModalTourSteps('csv');
+
   steps.forEach((step, idx) => {
-    expect(step.element).toContain(expectedTargets[idx]);
+    const element = (step.target as () => HTMLElement | null)();
+    expect(element).not.toBeNull();
+    expect(element?.getAttribute('data-tour')).toBe(
+      `upload-${TARGETS[idx]}-csv`,
+    );
+    expect(modal.contains(element)).toBe(true);
   });
+});
+
+test('a step target resolves to null when its element is not rendered', () => {
+  const [firstStep] = getUploadDataModalTourSteps('csv');
+
+  expect((firstStep.target as () => HTMLElement | null)()).toBeNull();
 });

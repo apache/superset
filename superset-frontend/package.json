@@ -164,7 +164,6 @@
     "dayjs": "^1.11.23",
     "dom-to-image-more": "^3.11.0",
     "dom-to-pdf": "^0.3.2",
-    "driver.js": "^1.14.0",
     "echarts": "^6.1.0",
     "fuse.js": "^7.5.0",
     "geolib": "^4.0.0",

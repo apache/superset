@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-24 22:03-0300\n"
+"POT-Creation-Date: 2026-11-24 23:23-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19582,9 +19582,6 @@ msgid "your-project-1234-a1"
 msgstr ""
 
 msgid "zoom area"
-msgstr ""
-
-msgid "{{current}} of {{total}}"
 msgstr ""
 
 msgid "© Layer attribution"

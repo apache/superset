@@ -41,6 +41,7 @@ import {
   Input,
   InputNumber,
   Tooltip,
+  Tour,
   Upload,
   type UploadChangeParam,
   type UploadFile,
@@ -62,7 +63,7 @@ import {
 import ColumnsPreview from './ColumnsPreview';
 import { DataPreviewModal } from './DataPreviewModal';
 import StyledFormItemWithTip from './StyledFormItemWithTip';
-import { startUploadDataModalTour } from './uploadDataModalTour';
+import { getUploadDataModalTourSteps } from './uploadDataModalTour';
 
 type UploadType = 'csv' | 'excel' | 'columnar';
 
@@ -248,6 +249,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [activeKey, setActiveKey] = useState<string | string[]>('general');
   const [dataPreviewModalOpen, setDataPreviewModalOpen] =
     useState<boolean>(false);
+  const [tourOpen, setTourOpen] = useState<boolean>(false);
+  const [tourStep, setTourStep] = useState<number>(0);
+  const tourSteps = useMemo(() => getUploadDataModalTourSteps(type), [type]);
   // Identifies the latest file metadata request so responses for a file
   // that has since been replaced or removed are ignored.
   const metadataRequestIdRef = useRef(0);
@@ -339,8 +343,14 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     form.setFieldsValue({ sheet_name: undefined });
   };
 
+  const startTour = () => {
+    setTourStep(0);
+    setTourOpen(true);
+  };
+
   const clearModal = () => {
     metadataRequestIdRef.current += 1;
+    setTourOpen(false);
     setFileList([]);
     fileListRef.current = [];
     setColumns([]);
@@ -624,9 +634,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     if (!show || !showTourOnOpen) {
       return undefined;
     }
-    const timer = setTimeout(() => {
-      startUploadDataModalTour(type);
-    }, 300);
+    const timer = setTimeout(startTour, 300);
     return () => clearTimeout(timer);
   }, [show, showTourOnOpen, type]);
 
@@ -697,7 +705,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           buttonSize="small"
           onClick={e => {
             e.stopPropagation();
-            startUploadDataModalTour(type);
+            startTour();
           }}
           icon={<Icons.QuestionCircleOutlined iconSize="m" />}
           aria-label={t('Take a tour')}
@@ -1270,6 +1278,13 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         sheetName={formValues.sheet_name}
         headerRow={Number(formValues.header_row ?? 0)}
         skipRows={Number(formValues.skip_rows ?? 0)}
+      />
+      <Tour
+        open={tourOpen}
+        current={tourStep}
+        onChange={setTourStep}
+        onClose={() => setTourOpen(false)}
+        steps={tourSteps}
       />
     </>
   );
