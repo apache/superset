@@ -543,15 +543,85 @@ def test_flag_off_a_different_malformed_value_is_checked(
 
 
 @pytest.mark.parametrize("stored, submitted, code", TYPE_CHANGES)
-def test_flag_on_keeps_python_equality_in_the_change_gate(
-    stored: Any, submitted: Any, code: str
+def test_flag_on_a_boolean_number_swap_is_a_change(
+    mocker: MockerFixture, stored: Any, submitted: Any, code: str
 ) -> None:
-    """With the flag on the change gate compares policies as before."""
+    """With the flag on a boolean turned into a number, or back, is a change."""
+    from superset.dashboards.refresh_policy import (
+        log_refresh_policy_change,
+        refresh_settings_changed,
+    )
+
+    add = mocker.patch("superset.extensions.db.session.add")
+    for old, new in ((stored, submitted), (submitted, stored)):
+        assert refresh_settings_changed(
+            {"auto_refresh_policy": new}, {"auto_refresh_policy": old}
+        )
+        log_refresh_policy_change(1, old, new, "put")
+    assert add.call_count == 2
+
+
+@pytest.mark.parametrize(
+    "stored, submitted",
+    [
+        (
+            {"auto_refresh_policy": {"minimum_refresh_interval": bound(1, "minutes")}},
+            {
+                "auto_refresh_policy": {
+                    "minimum_refresh_interval": bound(1.0, "minutes")
+                }
+            },
+        ),
+        ({"refresh_frequency": 60}, {"refresh_frequency": 60.0}),
+        ({}, {"refresh_frequency": 0}),
+    ],
+)
+def test_flag_on_equal_numbers_are_unchanged(
+    mocker: MockerFixture, stored: dict[str, Any], submitted: dict[str, Any]
+) -> None:
+    """With the flag on an integer and an equal float count as unchanged."""
+    from superset.dashboards.refresh_policy import (
+        log_refresh_policy_change,
+        refresh_settings_changed,
+    )
+
+    add = mocker.patch("superset.extensions.db.session.add")
+    assert not refresh_settings_changed(submitted, stored)
+    log_refresh_policy_change(
+        1,
+        stored.get("auto_refresh_policy"),
+        submitted.get("auto_refresh_policy"),
+        "put",
+    )
+    add.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "stored, submitted", [(0, False), (False, 0), (1, True), (True, 1)]
+)
+def test_flag_on_a_boolean_number_frequency_swap_is_a_change(
+    stored: Any, submitted: Any
+) -> None:
+    """With the flag on a refresh frequency turned into a boolean is a change."""
     from superset.dashboards.refresh_policy import refresh_settings_changed
 
-    assert not refresh_settings_changed(
-        {"auto_refresh_policy": submitted}, {"auto_refresh_policy": stored}
+    assert refresh_settings_changed(
+        {"auto_refresh_policy": {}, "refresh_frequency": submitted},
+        {"auto_refresh_policy": {}, "refresh_frequency": stored},
     )
+
+
+def test_a_numeric_bound_over_a_boolean_one_is_checked_against_the_list(
+    mocker: MockerFixture,
+) -> None:
+    """A bound that replaces a boolean one must be a standard interval."""
+    set_intervals(mocker, [[0, "Off"], [30, "30 seconds"], [300, "5 minutes"]])
+    assert codes(
+        check_refresh_policy(
+            {"auto_refresh_policy": {"minimum_refresh_interval": bound(1, "minutes")}},
+            {"minimum_refresh_interval": bound(True, "minutes")},
+        )
+    ) == [(MIN, "invalid_boundary")]
 
 
 def test_huge_configured_interval_is_ignored(mocker: MockerFixture) -> None:

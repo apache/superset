@@ -1204,3 +1204,141 @@ def test_refresh_setting_changes_still_validate(
     """Changing frequency or policy still enforces the refresh contract."""
     dashboard = make_dashboard({"auto_refresh_policy": {}, "refresh_frequency": 60})
     assert put(client, dashboard, metadata).status_code == 422
+
+
+def refresh_settings(policy: Any, frequency: Any = 0) -> dict[str, Any]:
+    """Metadata with a policy and a refresh frequency."""
+    return {"auto_refresh_policy": policy, "refresh_frequency": frequency}
+
+
+def minimum(value: Any) -> dict[str, Any]:
+    """Policy with a shortest interval in minutes."""
+    return {"minimum_refresh_interval": bound(value, "minutes")}
+
+
+WITHOUT_ONE_MINUTE = [[0, "Off"], [30, "30 seconds"], [300, "5 minutes"]]
+BOOLEAN_NUMBER_SWAPS = [
+    pytest.param(
+        refresh_settings({"auto_refresh_allowed": False}),
+        refresh_settings({"auto_refresh_allowed": 0}),
+        None,
+        "invalid_policy",
+        id="switch-false-to-0",
+    ),
+    pytest.param(
+        refresh_settings({"auto_refresh_allowed": 0}, 60),
+        refresh_settings({"auto_refresh_allowed": False}, 60),
+        None,
+        "auto_refresh_prohibited",
+        id="switch-0-to-false-refreshing",
+    ),
+    pytest.param(
+        refresh_settings({"auto_refresh_allowed": 0}),
+        refresh_settings({"auto_refresh_allowed": False}),
+        None,
+        "log",
+        id="switch-0-to-false",
+    ),
+    pytest.param(
+        refresh_settings({"auto_refresh_allowed": True}),
+        refresh_settings({"auto_refresh_allowed": 1}),
+        None,
+        "invalid_policy",
+        id="switch-true-to-1",
+    ),
+    pytest.param(
+        refresh_settings({"auto_refresh_allowed": 1}),
+        refresh_settings({"auto_refresh_allowed": True}),
+        None,
+        "log",
+        id="switch-1-to-true",
+    ),
+    pytest.param(
+        refresh_settings(minimum(1), 60),
+        refresh_settings(minimum(True), 60),
+        None,
+        "invalid_boundary",
+        id="bound-1-to-true",
+    ),
+    pytest.param(
+        refresh_settings(minimum(True), 30),
+        refresh_settings(minimum(1), 30),
+        None,
+        "below_minimum",
+        id="bound-true-to-1-too-short",
+    ),
+    pytest.param(
+        refresh_settings(minimum(True), 60),
+        refresh_settings(minimum(1), 60),
+        None,
+        "log",
+        id="bound-true-to-1",
+    ),
+    pytest.param(
+        refresh_settings(minimum(True)),
+        refresh_settings(minimum(1)),
+        WITHOUT_ONE_MINUTE,
+        "invalid_boundary",
+        id="bound-true-to-1-not-standard",
+    ),
+    pytest.param(
+        refresh_settings({}),
+        refresh_settings({}, False),
+        None,
+        "invalid_refresh_frequency",
+        id="frequency-0-to-false",
+    ),
+    pytest.param(
+        refresh_settings(minimum(1), 60),
+        refresh_settings(minimum(1.0), 60),
+        None,
+        "same",
+        id="bound-1-to-1.0",
+    ),
+    pytest.param(
+        refresh_settings(minimum(1.0), 60),
+        refresh_settings(minimum(1), 60.0),
+        None,
+        "same",
+        id="bound-1.0-to-1",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "current, submitted, intervals, expected",
+    [case for case in BOOLEAN_NUMBER_SWAPS if case.id != "frequency-0-to-false"],
+)
+def test_flag_on_a_boolean_number_swap_is_a_change(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    current: dict[str, Any],
+    submitted: dict[str, Any],
+    intervals: list[list[Any]] | None,
+    expected: str,
+) -> None:
+    """A boolean turned into a number, or back, is validated and logged on PUT."""
+    if intervals:
+        mocker.patch.dict(
+            current_app.config, {"DASHBOARD_AUTO_REFRESH_INTERVALS": intervals}
+        )
+    dashboard = make_dashboard(current)
+    response = put(client, dashboard, submitted)
+    policy = stored(dashboard)["auto_refresh_policy"]
+    if expected in ("log", "same"):
+        assert response.status_code == 200
+        assert json.dumps(policy) == json.dumps(submitted["auto_refresh_policy"])
+        rows = history()
+        assert len(rows) == (expected == "log")
+        if rows:
+            assert json.dumps(rows[0]["old"]) == json.dumps(
+                current["auto_refresh_policy"]
+            )
+            assert json.dumps(rows[0]["new"]) == json.dumps(policy)
+    else:
+        assert response.status_code == 422
+        assert expected in [code for _, code in error_codes(response)]
+        assert json.dumps(policy) == json.dumps(current["auto_refresh_policy"])
+        assert history() == []

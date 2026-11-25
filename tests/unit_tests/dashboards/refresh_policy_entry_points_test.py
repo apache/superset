@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
 from superset.utils import json
+from tests.unit_tests.dashboards.refresh_policy_api_test import BOOLEAN_NUMBER_SWAPS
 
 
 @pytest.fixture(autouse=True)
@@ -198,6 +199,80 @@ def test_restore_flag_off_refuses_a_boolean_number_swap(
         restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
     target.revert.assert_not_called()
     assert dashboard.params_dict == current
+
+
+@pytest.mark.parametrize(
+    "current, submitted, intervals, expected", BOOLEAN_NUMBER_SWAPS
+)
+def test_mcp_update_flag_on_checks_a_boolean_number_swap(
+    mocker: MockerFixture,
+    current: dict[str, Any],
+    submitted: dict[str, Any],
+    intervals: list[list[Any]] | None,
+    expected: str,
+) -> None:
+    """With the flag on MCP validates and logs a boolean turned into a number."""
+    from flask import current_app
+
+    from superset.mcp_service.dashboard.schemas import UpdateDashboardRequest
+    from superset.mcp_service.dashboard.tool.update_dashboard import (
+        _apply_field_updates,
+        _validate_update_request,
+    )
+
+    if intervals:
+        mocker.patch.dict(
+            current_app.config, {"DASHBOARD_AUTO_REFRESH_INTERVALS": intervals}
+        )
+    add = mocker.patch("superset.extensions.db.session.add")
+    dashboard = Dashboard(id=1, json_metadata=json.dumps(current))
+    request = UpdateDashboardRequest(identifier=1, json_metadata_overrides=submitted)
+    error = _validate_update_request(dashboard, request)
+    if expected in ("log", "same"):
+        assert error is None
+        _apply_field_updates(dashboard, request)
+        assert json.dumps(dashboard.params_dict) == json.dumps(submitted)
+        assert add.call_count == (expected == "log")
+    else:
+        assert error is not None
+        assert error.error_type == "InvalidRefreshPolicy"
+        assert dashboard.json_metadata == json.dumps(current)
+
+
+@pytest.mark.parametrize("current, restored, intervals, expected", BOOLEAN_NUMBER_SWAPS)
+def test_restore_flag_on_checks_a_boolean_number_swap(
+    mocker: MockerFixture,
+    current: dict[str, Any],
+    restored: dict[str, Any],
+    intervals: list[list[Any]] | None,
+    expected: str,
+) -> None:
+    """With the flag on a restore validates and logs a boolean turned into a number."""
+    from flask import current_app
+
+    from superset.commands.dashboard.exceptions import (
+        DashboardRefreshPolicyInvalidError,
+    )
+    from superset.versioning.restore import restore_version
+
+    if intervals:
+        mocker.patch.dict(
+            current_app.config, {"DASHBOARD_AUTO_REFRESH_INTERVALS": intervals}
+        )
+    add = mocker.patch("superset.extensions.db.session.add")
+    dashboard = Dashboard(id=1, uuid=uuid4(), json_metadata=json.dumps(current))
+    target = MagicMock(json_metadata=json.dumps(restored))
+    _restore_mocks(mocker, dashboard, target)
+    if expected in ("log", "same"):
+        assert restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
+        assert dashboard.json_metadata == target.json_metadata
+        assert add.call_count == (expected == "log")
+    else:
+        with pytest.raises(DashboardRefreshPolicyInvalidError) as excinfo:
+            restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
+        assert expected in [error["code"] for error in excinfo.value.errors]
+        target.revert.assert_not_called()
+        assert dashboard.json_metadata == json.dumps(current)
 
 
 def _restore_mocks(mocker: MockerFixture, dashboard: Dashboard, target: Any) -> None:

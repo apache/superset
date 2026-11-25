@@ -134,13 +134,34 @@ def same_json_value(incoming: Any, stored: Any) -> bool:
     return type(incoming) is type(stored) and incoming == stored
 
 
+def same_json_type_and_value(left: Any, right: Any) -> bool:
+    """
+    Compare two JSON values: booleans never equal numbers and numbers are equal
+    when Python compares them equal, so ``1`` equals ``1.0``.
+    """
+    if isinstance(left, bool) or isinstance(right, bool):
+        return type(left) is type(right) and left == right
+    if _is_number(left) and _is_number(right):
+        return left == right
+    if isinstance(left, dict) and isinstance(right, dict):
+        return left.keys() == right.keys() and all(
+            same_json_type_and_value(value, right[key]) for key, value in left.items()
+        )
+    if isinstance(left, list) and isinstance(right, list):
+        return len(left) == len(right) and all(
+            same_json_type_and_value(a, b) for a, b in zip(left, right, strict=True)
+        )
+    return type(left) is type(right) and left == right
+
+
 def same_stored_policy(policy: Any, stored_policy: Any) -> bool:
     """
-    Whether a write leaves the stored policy unchanged. With the feature flag off
-    a JSON-type change counts as a change and a browser round trip doesn't.
+    Whether a write leaves the stored policy unchanged. A boolean turned into a
+    number counts as a change. With the feature flag off a browser round trip
+    doesn't.
     """
     if is_feature_enabled("AUTO_REFRESH_POLICY"):
-        return policy == stored_policy
+        return same_json_type_and_value(policy, stored_policy)
     return same_json_value(policy, stored_policy)
 
 
@@ -166,8 +187,9 @@ def refresh_settings_changed(
     """Compare effective policy and frequency with the stored refresh settings."""
     return not same_stored_policy(
         metadata.get(POLICY_KEY), stored_metadata.get(POLICY_KEY)
-    ) or metadata.get("refresh_frequency", 0) != stored_metadata.get(
-        "refresh_frequency", 0
+    ) or not same_json_type_and_value(
+        metadata.get("refresh_frequency", 0),
+        stored_metadata.get("refresh_frequency", 0),
     )
 
 
@@ -180,7 +202,9 @@ def log_refresh_policy_change(
     from superset.models.core import Log
     from superset.utils.core import get_user_id
 
-    if not is_feature_enabled("AUTO_REFRESH_POLICY") or old == new:
+    if not is_feature_enabled("AUTO_REFRESH_POLICY") or same_json_type_and_value(
+        old, new
+    ):
         return
     db.session.add(
         Log(
@@ -262,7 +286,11 @@ def check_refresh_policy(  # noqa: C901
     # an invalid switch counts as the default (allowed)
     allowed = policy.get("auto_refresh_allowed") is not False
     standard = get_standard_refresh_intervals()
-    check_list = not shape_only and allowed and stored_policy != policy
+    check_list = (
+        not shape_only
+        and allowed
+        and not same_json_type_and_value(policy, stored_policy)
+    )
 
     valid: dict[str, int] = {}
     set_bounds = [key for key in BOUND_KEYS if policy.get(key) is not None]
