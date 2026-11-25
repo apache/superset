@@ -5423,3 +5423,283 @@ test.each([0, 30])(
     ]);
   },
 );
+
+type VerboseNameTestSeries = {
+  id?: string;
+  name?: string;
+  stack?: string;
+  itemStyle?: { color?: string };
+  data: [number, number][];
+  label: {
+    formatter: (params: {
+      value: [number, number];
+      dataIndex: number;
+      seriesIndex: number;
+      seriesName?: string;
+    }) => string;
+  };
+};
+
+const verboseNameQueriesData: ChartDataResponseResult[] = [
+  createTestQueryData(
+    [
+      {
+        __timestamp: BASE_TIMESTAMP,
+        'sum__sales, PS4': 50,
+        'sum__sales, Xbox': 40,
+        'count, PS4': 6,
+        'count, Xbox': 4,
+      },
+    ],
+    {
+      colnames: [
+        '__timestamp',
+        'sum__sales, PS4',
+        'sum__sales, Xbox',
+        'count, PS4',
+        'count, Xbox',
+      ],
+      coltypes: [
+        GenericDataType.Temporal,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+      label_map: {
+        'sum__sales, PS4': ['sum__sales', 'PS4'],
+        'sum__sales, Xbox': ['sum__sales', 'Xbox'],
+        'count, PS4': ['count', 'PS4'],
+        'count, Xbox': ['count', 'Xbox'],
+      },
+    },
+  ),
+];
+
+test('shows the metric verbose name in series names with several metrics and a groupby', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['sum__sales', 'count'],
+      groupby: ['platform'],
+      richTooltip: true,
+    },
+    queriesData: verboseNameQueriesData,
+    datasource: {
+      verboseMap: { sum__sales: 'NA Sales' },
+      columnFormats: { sum__sales: '.2%' },
+    },
+  });
+
+  const { echartOptions, labelMap, legendData } = transformProps(chartProps);
+  const series = echartOptions.series as VerboseNameTestSeries[];
+  // series are ordered by value, so compare the names sorted
+  const expectedNames = [
+    'NA Sales, PS4',
+    'NA Sales, Xbox',
+    'count, PS4',
+    'count, Xbox',
+  ].sort();
+
+  expect(series.map(s => s.name).sort()).toEqual(expectedNames);
+  expect(series.map(s => s.id).sort()).toEqual(expectedNames);
+  expect([...(legendData ?? [])].sort()).toEqual(expectedNames);
+  // cross-filters and drill-by resolve the clicked (rendered) series name
+  expect(labelMap['NA Sales, PS4']).toEqual(['sum__sales', 'PS4']);
+  expect(labelMap['count, Xbox']).toEqual(['count', 'Xbox']);
+
+  // the tooltip shows the verbose name and keeps the metric's own format
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+  const tooltipHtml = tooltip.formatter([
+    {
+      seriesId: 'NA Sales, PS4',
+      seriesName: 'NA Sales, PS4',
+      value: [BASE_TIMESTAMP, 0.5],
+    },
+    {
+      seriesId: 'count, PS4',
+      seriesName: 'count, PS4',
+      value: [BASE_TIMESTAMP, 6],
+    },
+  ]);
+  expect(tooltipHtml).toContain('NA Sales, PS4');
+  expect(tooltipHtml).toContain('50.00%');
+  expect(tooltipHtml).not.toContain('sum__sales');
+});
+
+test('keeps the color of a series renamed by a metric verbose name', () => {
+  const withoutVerboseName = transformProps(
+    createTestChartProps({
+      formData: { metrics: ['sum__sales', 'count'], groupby: ['platform'] },
+      queriesData: verboseNameQueriesData,
+    }),
+  ).echartOptions.series as VerboseNameTestSeries[];
+  const withVerboseName = transformProps(
+    createTestChartProps({
+      formData: { metrics: ['sum__sales', 'count'], groupby: ['platform'] },
+      queriesData: verboseNameQueriesData,
+      datasource: { verboseMap: { sum__sales: 'NA Sales' } },
+    }),
+  ).echartOptions.series as VerboseNameTestSeries[];
+
+  expect(withVerboseName.map(s => s.itemStyle)).toEqual(
+    withoutVerboseName.map(s => s.itemStyle),
+  );
+});
+
+test('counts a visible series renamed by a metric verbose name in the stacked total', () => {
+  // legendState is keyed by the rendered (verbose) series names
+  const chartProps = {
+    ...createTestChartProps({
+      formData: {
+        metrics: ['sum__sales', 'count'],
+        groupby: ['platform'],
+        stack: StackControlsValue.Stack,
+        onlyTotal: true,
+        showValue: true,
+      },
+      queriesData: verboseNameQueriesData,
+      datasource: { verboseMap: { sum__sales: 'NA Sales' } },
+    }),
+    legendState: {
+      'NA Sales, PS4': true,
+      'NA Sales, Xbox': false,
+      'count, PS4': true,
+      'count, Xbox': false,
+    },
+  };
+
+  const series = transformProps(chartProps).echartOptions
+    .series as VerboseNameTestSeries[];
+  const labels = series.map((s, seriesIndex) =>
+    s.label.formatter({
+      value: s.data[0],
+      dataIndex: 0,
+      seriesIndex,
+      seriesName: s.name,
+    }),
+  );
+
+  // 50 (NA Sales, PS4) + 6 (count, PS4); the hidden Xbox series are excluded
+  expect(labels.filter(Boolean)).toEqual(['56']);
+});
+
+test('shows the metric verbose name on multi-metric time comparison series', () => {
+  // ported from #37229
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['sum__money', 'testing_count'],
+      timeCompare: ['1 day ago', '1 week ago'],
+      comparisonType: ComparisonType.Values,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            __timestamp: BASE_TIMESTAMP,
+            sum__money: 101,
+            'sum__money, 1 day ago': 90,
+            'sum__money, 1 week ago': 80,
+            testing_count: 1,
+            'testing_count, 1 day ago': 2,
+            'testing_count, 1 week ago': 3,
+          },
+        ],
+        {
+          label_map: {
+            sum__money: ['sum__money'],
+            'sum__money, 1 day ago': ['sum__money', '1 day ago'],
+            'sum__money, 1 week ago': ['sum__money', '1 week ago'],
+            testing_count: ['testing_count'],
+            'testing_count, 1 day ago': ['testing_count', '1 day ago'],
+            'testing_count, 1 week ago': ['testing_count', '1 week ago'],
+          },
+        },
+      ),
+    ],
+    datasource: { verboseMap: { testing_count: 'Testing count' } },
+  });
+
+  const { legendData } = transformProps(chartProps);
+
+  expect([...(legendData ?? [])].sort()).toEqual(
+    [
+      'sum__money',
+      'sum__money, 1 day ago',
+      'sum__money, 1 week ago',
+      'Testing count',
+      'Testing count, 1 day ago',
+      'Testing count, 1 week ago',
+    ].sort(),
+  );
+});
+
+test('leaves a dimension tuple alone when its first value reads like a metric with a verbose name', () => {
+  // a single metric truncated from its columns: the label-map tuple carries
+  // only the dimension values, the first of which happens to equal a metric
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['sum__sales'],
+      groupby: ['product', 'platform'],
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ __timestamp: BASE_TIMESTAMP, 'sum__sales, PS4': 50 }],
+        { label_map: { 'sum__sales, PS4': ['sum__sales', 'PS4'] } },
+      ),
+    ],
+    datasource: { verboseMap: { sum__sales: 'NA Sales' } },
+  });
+
+  const { legendData } = transformProps(chartProps);
+
+  expect(legendData).toEqual(['sum__sales, PS4']);
+});
+
+test('applies metric verbose names safely to dimension values matching prototype properties', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['sales', 'constructor'],
+      groupby: ['category', 'region'],
+      stackDimension: 'category',
+      stack: StackControlsValue.Stack,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            __timestamp: BASE_TIMESTAMP,
+            'sales, __proto__, East': 50,
+            'constructor, constructor, East': 60,
+          },
+        ],
+        {
+          label_map: {
+            'sales, __proto__, East': ['sales', '__proto__', 'East'],
+            'constructor, constructor, East': [
+              'constructor',
+              'constructor',
+              'East',
+            ],
+          },
+        },
+      ),
+    ],
+    // `constructor` has no verbose name, so it must not pick up
+    // Object.prototype.constructor from a plain-object lookup
+    datasource: { verboseMap: { sales: 'Total Sales' } },
+  });
+
+  const { echartOptions, labelMap } = transformProps(chartProps);
+  const series = echartOptions.series as VerboseNameTestSeries[];
+
+  expect(series.map(s => s.name)).toEqual([
+    'Total Sales, __proto__, East',
+    'constructor, constructor, East',
+  ]);
+  expect(series.map(s => s.stack)).toEqual(['__proto__', 'constructor']);
+  expect(labelMap['Total Sales, __proto__, East']).toEqual([
+    'sales',
+    '__proto__',
+    'East',
+  ]);
+});

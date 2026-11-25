@@ -542,6 +542,45 @@ export default function transformProps(
     }
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
+  const hasOwn = (obj: object, key: string) =>
+    Object.prototype.hasOwnProperty.call(obj, key);
+  // rebaseForecastDatum only renames a data column whose whole name has a
+  // verboseMap entry, so a compound `<metric>, <dimensions>` (or
+  // `<metric>, <offset>`) column keeps the raw metric label. The data keys
+  // stay raw (the sort, totals and size lookups below depend on that); the
+  // metric's verbose name is applied only to the rendered series name, the
+  // way MixedTimeseries does. Longest labels first so a metric whose label
+  // extends another's is matched as a whole.
+  const displayedMetricLabels = ensureIsArray(metrics)
+    .map(getMetricLabel)
+    .sort((a, b) => b.length - a.length);
+  const getSeriesDisplayName = (name: string): string => {
+    const { name: baseName } = extractForecastSeriesContext(name);
+    const parts = hasOwn(labelMap, baseName) ? labelMap[baseName] : undefined;
+    // the tuple must carry a leading metric part; a plain dimension tuple
+    // whose first value reads like a metric label is left alone
+    if (!parts || parts.length <= groupBy.length) {
+      return name;
+    }
+    const [leadingPart] = parts;
+    const metricLabel = displayedMetricLabels.find(
+      label =>
+        name.startsWith(`${label}, `) &&
+        (leadingPart === label ||
+          // with dimensions and more than one pivoted metric, a comparison
+          // series leads with the generated `<metric>, <offset>` label
+          (metricOffsetLabels.has(leadingPart) &&
+            leadingPart.startsWith(`${label}, `))),
+    );
+    if (metricLabel === undefined || !hasOwn(verboseMap, metricLabel)) {
+      return name;
+    }
+    const verboseName = verboseMap[metricLabel];
+    if (typeof verboseName !== 'string' || !verboseName) {
+      return name;
+    }
+    return `${verboseName}${name.slice(metricLabel.length)}`;
+  };
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const forecastRebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisColumn = getXAxisLabel(chartProps.rawFormData) as string;
@@ -564,6 +603,26 @@ export default function transformProps(
       // with no explicit x-axis cannot have its x column rebased as data
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
+  // `legendState` is keyed by the rendered series names, while the totals and
+  // value-label helpers look series up by their data keys. Mirror the state of
+  // each series renamed by getSeriesDisplayName onto its data key.
+  let dataKeyLegendState: LegendState | undefined;
+  if (legendState) {
+    const translated: LegendState = Object.create(null);
+    Object.keys(legendState).forEach(key => {
+      translated[key] = legendState[key];
+    });
+    new Set([
+      ...Object.keys(labelMap),
+      ...Object.keys(rebasedData[0] ?? {}),
+    ]).forEach(key => {
+      const displayName = getSeriesDisplayName(key);
+      if (displayName !== key && hasOwn(legendState, displayName)) {
+        translated[key] = legendState[displayName];
+      }
+    });
+    dataKeyLegendState = translated;
+  }
   const isHorizontal = orientation === OrientationType.Horizontal;
   // With dimensions set, the pivot splits a metric into one
   // `<metric>, <dimension values>` column per series. `label_map` lists each
@@ -643,7 +702,7 @@ export default function transformProps(
       stack,
       percentageThreshold,
       xAxisCol: xAxisLabel,
-      legendState,
+      legendState: dataKeyLegendState,
       extraMetricLabels,
     },
   );
@@ -1048,7 +1107,8 @@ export default function transformProps(
       const groupTotals = perGroupTotalStackedValues[group];
       (entry.data as [any, number][] | undefined)?.forEach(
         (datum, dataIndex) => {
-          if (entry.id && legendState && !legendState[entry.id]) return;
+          if (entry.id && dataKeyLegendState && !dataKeyLegendState[entry.id])
+            return;
           const val = isHorizontal ? datum[0] : datum[1];
           if (typeof val === 'number') {
             groupTotals[dataIndex] = (groupTotals[dataIndex] ?? 0) + val;
@@ -1062,11 +1122,11 @@ export default function transformProps(
     stack,
     onlyTotal,
     isHorizontal,
-    legendState,
+    legendState: dataKeyLegendState,
     seriesStackIds,
   });
   const seriesContexts = extractForecastSeriesContexts(
-    rawSeries.map(series => series.name as string),
+    rawSeries.map(series => getSeriesDisplayName(String(series.name ?? ''))),
   );
   const isAreaExpand = stack === StackControlsValue.Expand;
   const series: SeriesOption[] = [];
@@ -1169,9 +1229,17 @@ export default function transformProps(
   let dataMax: number | undefined;
   let dataMin: number | undefined;
 
+  // Rendered series name -> data key, for the series getSeriesDisplayName
+  // renames. Formatters, comparison lookups and `labelMap` stay keyed by the
+  // data key.
+  const dataKeyByDisplayName = new Map<string, string>();
   rawSeries.forEach((entry, seriesIdx) => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
+    const displayName = getSeriesDisplayName(entryName);
+    if (displayName !== entryName) {
+      dataKeyByDisplayName.set(displayName, entryName);
+    }
     // isDerivedSeries checks for time comparison series patterns:
     // - "metric__1 day ago" pattern (via hasTimeOffset)
     // - "1 day ago, groupby" pattern (via hasTimeOffset)
@@ -1272,7 +1340,9 @@ export default function transformProps(
     }
 
     const transformedSeries = transformSeries(
-      entry,
+      displayName === entryName
+        ? entry
+        : { ...entry, id: displayName, name: displayName },
       colorScale,
       colorScaleKey,
       {
@@ -1473,7 +1543,9 @@ export default function transformProps(
   ) {
     for (const s of series) {
       if (s.id && idxSelectedDimension >= 0) {
-        const columnsArr = labelMap[s.id];
+        const seriesId = String(s.id);
+        const columnsArr =
+          labelMap[dataKeyByDisplayName.get(seriesId) ?? seriesId];
         const metricPartCount = Math.max(
           0,
           (columnsArr?.length ?? 0) - groupBy.length,
@@ -1670,7 +1742,7 @@ export default function transformProps(
               extractForecastSeriesContext(entry.name || '').type ===
               ForecastSeriesEnum.Observation,
           )
-          .map(entry => entry.name || '')
+          .map(entry => getSeriesDisplayName(String(entry.name || '')))
           .concat(extractAnnotationLabels(annotationLayers));
 
   const sortedLegendData = [...legendData].sort((a: string, b: string) => {
@@ -2024,22 +2096,29 @@ export default function transformProps(
         // multi-metric charts and every row falls back to `defaultFormatter`,
         // rendering the y-axis/currency format for all metrics.
         //
-        // The tooltip key is the rendered series name, so resolve it through
+        // The tooltip key is the rendered series name, so map a series renamed
+        // by getSeriesDisplayName back to its data key, then resolve it through
         // `labelMap`, whose values lead with the raw metric label. Series
-        // renamed by a verbose_name are absent from that map, so fall back to
+        // renamed whole by rebaseForecastDatum (a metric's own column with a
+        // verbose_name) are absent from that map, so fall back to
         // the verbose-name inversion, as MixedTimeseries does. A Percentage or
         // Ratio comparison row is dimensionless rather than a value in the
         // metric's units, so it takes its own formatter instead of the metric's.
-        const getSeriesFormatter = (seriesKey: string) =>
-          forcePercentFormatter
-            ? percentFormatter
-            : (getComparisonFormatter(seriesKey) ??
-              getCustomFormatter(
-                customFormatters,
-                metrics,
-                labelMap?.[seriesKey]?.[0] ?? inverted[seriesKey],
-              ) ??
-              defaultFormatter);
+        const getSeriesFormatter = (seriesName: string) => {
+          if (forcePercentFormatter) {
+            return percentFormatter;
+          }
+          const seriesKey = dataKeyByDisplayName.get(seriesName) ?? seriesName;
+          return (
+            getComparisonFormatter(seriesKey) ??
+            getCustomFormatter(
+              customFormatters,
+              metrics,
+              labelMap?.[seriesKey]?.[0] ?? inverted[seriesKey],
+            ) ??
+            defaultFormatter
+          );
+        };
 
         // The total row aggregates every series, so it keeps the chart-level
         // formatter rather than any single metric's format.
@@ -2182,6 +2261,16 @@ export default function transformProps(
       : [],
   };
 
+  // Cross-filtering and drill-by in EchartsTimeseries resolve a clicked
+  // series through `labelMap` by its rendered name, so key the renamed series
+  // by their display names too.
+  const displayLabelMap: { [key: string]: string[] } = { ...labelMap };
+  dataKeyByDisplayName.forEach((dataKey, displayName) => {
+    if (hasOwn(labelMap, dataKey)) {
+      displayLabelMap[displayName] = labelMap[dataKey];
+    }
+  });
+
   const onFocusedSeries = (seriesName: string | null) => {
     focusedSeries = seriesName;
   };
@@ -2255,7 +2344,7 @@ export default function transformProps(
     formData,
     groupby: groupBy,
     height,
-    labelMap,
+    labelMap: displayLabelMap,
     selectedValues,
     setDataMask,
     setControlValue,
