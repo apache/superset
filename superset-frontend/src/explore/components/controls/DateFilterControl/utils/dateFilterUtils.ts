@@ -35,7 +35,7 @@ export const guessFrame = (
 ): FrameType => {
   if (
     COMMON_RANGE_VALUES_SET.has(timeRange) ||
-    customPresets.includes(timeRange)
+    customPresets?.includes(timeRange)
   ) {
     return 'Common';
   }

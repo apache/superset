@@ -251,7 +251,13 @@ const PropertiesModal = ({
       );
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
-      setCustomTimePresets(metadata?.custom_time_presets || []);
+      setCustomTimePresets(
+        Array.isArray(metadata?.custom_time_presets)
+          ? metadata.custom_time_presets.filter(
+              (preset: unknown): preset is string => typeof preset === 'string',
+            )
+          : [],
+      );
     },
     [form],
   );

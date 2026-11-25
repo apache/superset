@@ -164,7 +164,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const customPresets = useSelector<
     { dashboardInfo?: { metadata?: { custom_time_presets?: string[] } } },
     string[] | undefined
-  >(state => state.dashboardInfo?.metadata?.custom_time_presets);
+  >(state => state.dashboardInfo?.metadata?.custom_time_presets) ?? [];
 
   const value = props.value ?? defaultTimeFilter;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
