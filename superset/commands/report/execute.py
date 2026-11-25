@@ -3160,11 +3160,16 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                         report_execution_context = replace(
                             report_execution_context, execution_claimed=True
                         )
-                elif report_execution_context is not None:
+                elif (
+                    report_execution_context is not None
+                    and self._model.execution_owner != str(self._execution_id)
+                ):
                     # Entering on WORKING: the state machine may take the
                     # stuck execution over for an immediate retry. Remember
                     # the owner it would replace so the boundary below can
-                    # tell a genuine takeover from a replayed UUID.
+                    # tell a genuine takeover from a replayed UUID. A
+                    # redelivery of the running task itself (same id) never
+                    # takes over, so it must not reach the boundary write.
                     recovery_prior_owner = self._model.execution_owner or ""
                 ReportScheduleStateMachine(
                     self._execution_id,

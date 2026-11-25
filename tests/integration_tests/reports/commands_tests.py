@@ -2587,15 +2587,36 @@ def test_report_schedule_working_timeout_takes_over_owned_execution(
     screenshot_mock,
     slack_should_use_v2_api_mock,
     create_report_slack_chart_working,
+    monkeypatch,
 ):
     """
     ExecuteReport Command: a stuck execution that holds an owner claim and a
     window is taken over by a newer window, and a retry that dies after the
     takeover is terminalized at the command boundary.
     """
-    from celery.exceptions import SoftTimeLimitExceeded
+    original_update = BaseReportState.update_report_schedule_and_log
 
-    screenshot_mock.side_effect = SoftTimeLimitExceeded()
+    def fail_error_transition(
+        state: BaseReportState,
+        report_state: ReportState,
+        error_message: Optional[str] = None,
+    ) -> None:
+        # The retry's own handler cannot persist its Error state, so only the
+        # command-boundary write can terminalize the schedule.
+        if report_state == ReportState.ERROR:
+            raise OperationalError(
+                "UPDATE report_schedule",
+                {},
+                RuntimeError("connection lost before terminal commit"),
+            )
+        original_update(state, report_state, error_message)
+
+    monkeypatch.setattr(
+        BaseReportState,
+        "update_report_schedule_and_log",
+        fail_error_transition,
+    )
+    screenshot_mock.side_effect = Exception("screenshot failed")
     stuck_log = db.session.query(ReportExecutionLog).one()
     create_report_slack_chart_working.execution_owner = str(stuck_log.uuid)
     create_report_slack_chart_working.execution_window = datetime(2020, 1, 1, 0, 0)
