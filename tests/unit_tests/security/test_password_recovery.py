@@ -60,6 +60,7 @@ from superset.security.password_change import (
     password_change_required,
     set_password_must_change,
 )
+from superset.utils import json
 
 OLD_PASSWORD = "Original-Passw0rd!"  # noqa: S105
 NEW_PASSWORD = "Recovered-Passw0rd!"  # noqa: S105
@@ -96,15 +97,26 @@ def sent_emails() -> Iterator[list[dict[str, str]]]:
         yield outbox
 
 
-def _make_user(username: str, *, password: str | None = OLD_PASSWORD) -> User:
-    role = db.session.query(security_manager.role_model).filter_by(name="Admin").one()
+def _make_user(
+    username: str,
+    *,
+    password: str | None = OLD_PASSWORD,
+    role_name: str | None = "Admin",
+) -> User:
+    roles = []
+    if role_name is not None:
+        roles = [
+            db.session.query(security_manager.role_model)
+            .filter_by(name=role_name)
+            .one()
+        ]
     user = User(
         first_name="Recovery",
         last_name="Test",
         username=username,
         email=f"{username}@example.org",
         active=True,
-        roles=[role],
+        roles=roles,
         password=generate_password_hash(password) if password else None,
     )
     db.session.add(user)
@@ -120,6 +132,10 @@ def users() -> Iterator[dict[str, User]]:
         "db": _make_user("recovery_db_user"),
         "external": _make_user("recovery_oauth_user", password=None),
         "inactive": _make_user("recovery_inactive_user"),
+        "target": _make_user("recovery_target_user"),
+        # No roles at all, so no permissions: the negative control for the
+        # admin-only endpoint. ("Gamma" is not seeded in this test app.)
+        "plain": _make_user("recovery_plain_user", role_name=None),
     }
     created["inactive"].active = False
     db.session.commit()
@@ -1071,3 +1087,165 @@ def test_pages_render_when_enabled(recovery_enabled: None, client: Any) -> None:
     ):
         for url in ("/login/forgot_password/", "/login/reset_password/"):
             assert client.get(url).status_code == 200
+
+
+# --- Admin-triggered reset links (issue #36223) ------------------------------
+
+
+ADMIN_URL = "/api/v1/security/password_recovery/admin/"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def admin_recovery_permission(app: Flask) -> None:
+    """Create the admin endpoint's permission, as ``superset init`` does.
+
+    The app is built with ``update_perms=False``, so the permission the
+    admin endpoint needs is never created at startup; without it every
+    admin request answers 403, even for the Admin role.
+    """
+    with app.app_context():
+        pv = security_manager.add_permission_view_menu(
+            "can_admin_request_password_recovery", "PasswordRecoveryRestApi"
+        )
+        admin = security_manager.find_role("Admin")
+        security_manager.add_permission_role(admin, pv)
+
+
+def _login_as(client: Any, user: User) -> None:
+    with client.session_transaction() as session:
+        session["_user_id"] = str(user.id)
+        session["_fresh"] = True
+        session["_login_at"] = time.time() - 5
+
+
+def _admin_request(client: Any, user_id: int) -> Any:
+    response = client.post(ADMIN_URL, json={"user_id": user_id})
+    _close(response)
+    return response
+
+
+def test_admin_request_sends_link_to_the_user(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+    client: Any,
+) -> None:
+    admin = users["db"]
+    target = users["target"]
+    _login_as(client, admin)
+
+    response = _admin_request(client, target.id)
+
+    assert response.status_code == 200
+    assert response.json == {
+        "message": "A password reset link has been sent to the user."
+    }
+    (email,) = sent_emails
+    assert email["to"] == target.email
+    assert target.username in email["html"]
+    assert "An administrator requested a password reset" in email["html"]
+    assert "https://superset.example.org/login/reset_password/#token=" in email["html"]
+
+    entry = (
+        db.session.query(Log)
+        .filter(Log.action == "PasswordRecoveryRequested")
+        .order_by(Log.id.desc())
+        .first()
+    )
+    assert entry is not None
+    assert entry.user_id == admin.id
+    payload = json.loads(entry.json)
+    assert payload["outcome"] == "sent"
+    assert payload["target_user_id"] == target.id
+    assert payload["requested_by_user_id"] == admin.id
+
+
+def test_admin_request_rejects_unknown_user(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+    client: Any,
+) -> None:
+    _login_as(client, users["db"])
+
+    response = _admin_request(client, 999999)
+
+    assert response.status_code == 404
+    assert response.json == {"message": "User not found."}
+    assert sent_emails == []
+
+
+def test_admin_request_rejects_accounts_without_a_local_password(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+    client: Any,
+) -> None:
+    _login_as(client, users["db"])
+
+    response = _admin_request(client, users["external"].id)
+
+    assert response.status_code == 400
+    assert "local password" in response.json["message"]
+    assert sent_emails == []
+
+
+def test_admin_request_rejects_inactive_user(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+    client: Any,
+) -> None:
+    _login_as(client, users["db"])
+
+    response = _admin_request(client, users["inactive"].id)
+
+    assert response.status_code == 400
+    assert "not active" in response.json["message"]
+    assert sent_emails == []
+
+
+def test_admin_request_throttles_repeat_requests(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+    client: Any,
+) -> None:
+    _login_as(client, users["db"])
+
+    first = _admin_request(client, users["target"].id)
+    assert first.status_code == 200
+
+    second = _admin_request(client, users["target"].id)
+    assert second.status_code == 429
+    assert len(sent_emails) == 1
+
+
+def test_admin_request_requires_sign_in(
+    recovery_enabled: None,
+    users: dict[str, User],
+    client: Any,
+) -> None:
+    response = client.post(ADMIN_URL, json={"user_id": users["target"].id})
+    assert response.status_code == 401
+
+
+def test_admin_request_requires_the_admin_permission(
+    recovery_enabled: None,
+    users: dict[str, User],
+    client: Any,
+) -> None:
+    _login_as(client, users["plain"])
+
+    response = _admin_request(client, users["target"].id)
+    assert response.status_code == 403
+
+
+def test_admin_request_is_hidden_when_disabled(
+    users: dict[str, User],
+    client: Any,
+) -> None:
+    _login_as(client, users["db"])
+
+    response = client.post(ADMIN_URL, json={"user_id": users["target"].id})
+    assert response.status_code == 404

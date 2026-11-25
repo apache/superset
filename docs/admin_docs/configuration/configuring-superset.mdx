@@ -946,6 +946,8 @@ Keys you leave out keep their defaults, and so does `token_ttl_minutes` when it 
 
 The response to a recovery request is the same whether or not the address belongs to an account. Only active accounts with a local password receive a link; accounts provisioned through OAuth, LDAP or another backend do not. Requests, completed resets and failed attempts are recorded as `PasswordRecoveryRequested`, `PasswordRecoveryCompleted` and `PasswordRecoveryFailed` events in the action log.
 
+Administrators can trigger the same flow for another user from Settings → List Users, where each row has a "Send password reset email" action while recovery is enabled. It sends the same single-use link (the email says an administrator requested it) and is subject to the same resend cooldown. It only works for active accounts with a local password and an email address, and the request is recorded as a `PasswordRecoveryRequested` event with the requesting admin. Behind the scenes it is `POST /api/v1/security/password_recovery/admin/`, which needs the `admin_request_password_recovery` permission on the password recovery API; the Admin role has it.
+
 Expired tokens are swept whenever a new recovery request comes in. They are also removed by the `prune_key_value` Celery beat task if you enable it.
 
 ## Impala Result Fetching
