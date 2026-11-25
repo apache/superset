@@ -35,6 +35,49 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
+msgid "0.5 (more detail)"
+msgstr ""
+
+msgid "1 (default)"
+msgstr ""
+
+msgid "2 (smoother)"
+msgstr ""
+
+msgid "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles. Switch to the violin style to also show the full shape of each distribution."
+msgstr ""
+
+msgid "Box"
+msgstr ""
+
+msgid "Box shows quartiles and whiskers. Violin also draws the shape of each distribution as a smoothed curve, which reveals clusters and multiple peaks that a box can hide."
+msgstr ""
+
+msgid "Curve smoothness"
+msgstr ""
+
+msgid "Density requires numeric values"
+msgstr ""
+
+msgid "Distribution style"
+msgstr ""
+
+msgid "Draws a narrow box plot inside each violin to mark the median and quartiles."
+msgstr ""
+
+#, python-format
+msgid "Multiplies the automatically chosen kernel bandwidth. Higher values give a smoother curve; lower values follow the data more closely. Must be between %s and %s."
+msgstr ""
+
+msgid "Show inner box"
+msgstr ""
+
+msgid "Violin"
+msgstr ""
+
+msgid "Violin style"
+msgstr ""
+
 #, python-format
 msgid ""
 "\n"
@@ -1846,9 +1889,6 @@ msgid "Alphabetical"
 msgstr ""
 
 msgid "Already at this version"
-msgstr ""
-
-msgid "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles."
 msgstr ""
 
 msgid "Also overwrite all assets (charts, datasets and databases)"
@@ -18691,6 +18731,10 @@ msgstr[1] ""
 msgid "cannot be empty"
 msgstr ""
 
+#, python-format
+msgid "cannot exceed %s"
+msgstr ""
+
 msgid "cell bar"
 msgstr ""
 
@@ -18855,6 +18899,14 @@ msgid "deckGL"
 msgstr ""
 
 msgid "default"
+msgstr ""
+
+#, python-format
+msgid "density_bandwidth must be a number between %(min)s and %(max)s"
+msgstr ""
+
+#, python-format
+msgid "density_points must be an integer between %(min)s and %(max)s"
 msgstr ""
 
 msgid "descendant"
@@ -19161,6 +19213,10 @@ msgid "more than {max} {name}"
 msgstr ""
 
 msgid "multi-value type icon"
+msgstr ""
+
+#, python-format
+msgid "must be at least %s"
 msgstr ""
 
 msgid "must have a value"
