@@ -24032,6 +24032,11 @@ msgstr ""
 "உங்கள் கணக்கு செயல்படுத்தப்பட்டது. உங்கள் அங்கீகாரத் தகவல்களுடன் "
 "உள்நுழையலாம்."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
+"உங்கள் கணக்கு செயல்படுத்தப்பட்டது. உங்கள் அங்கீகாரத் தகவல்களுடன் "
+"உள்நுழையலாம்."
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr "சேமிக்காமல் வெளியேறினால் உங்கள் மாற்றங்கள் இழக்கப்படும்."
 

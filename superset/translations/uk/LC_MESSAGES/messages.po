@@ -24172,6 +24172,9 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Ваш обліковий запис увімкнено. Можете заходити."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "Ваш обліковий запис увімкнено. Можете заходити."
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Ваші зміни буде втрачено, якщо їх не зберегти."
 

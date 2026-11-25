@@ -24317,6 +24317,9 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Votre compte est activé. Vous pouvez vous connecter avec vos identifiants."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "Votre compte est activé. Vous pouvez vous connecter avec vos identifiants."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Your changes will be lost if you leave without saving."
