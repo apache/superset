@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Licensed to the Apache Software Foundation (ASF) under one
 
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
@@ -26,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-23 15:13+0530\n"
+"POT-Creation-Date: 2026-11-24 22:03-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -132,7 +131,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
@@ -152,7 +151,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
@@ -160,7 +159,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr ""
 
@@ -2403,10 +2402,7 @@ msgstr ""
 msgid "Archived by"
 msgstr ""
 
-msgid ""
-"Archived charts and dashboards may still depend on this dataset, including "
-"assets you cannot view. Archiving or permanently deleting this dataset can "
-"prevent those assets from working after they are recovered."
+msgid "Archived charts and dashboards may still depend on this dataset, including assets you cannot view. Archiving or permanently deleting this dataset can prevent those assets from working after they are recovered."
 msgstr ""
 
 msgid "Archived items must be recovered before they can be opened."
@@ -3569,6 +3565,9 @@ msgstr ""
 msgid "Choose the annotation layer type"
 msgstr ""
 
+msgid "Choose the database where you want to store the uploaded data."
+msgstr ""
+
 msgid "Choose the format for legend values"
 msgstr ""
 
@@ -3656,6 +3655,9 @@ msgstr ""
 
 #, python-format
 msgid "Cleared '%s'"
+msgstr ""
+
+msgid "Click Upload to import your data. Make sure you have selected a file, database, and entered a table name."
 msgstr ""
 
 msgid "Click on \"Add or edit filters and controls\" option in Settings to create new dashboard filters"
@@ -4962,6 +4964,9 @@ msgstr ""
 msgid "Data preview"
 msgstr ""
 
+msgid "Data preview is not available for Parquet files."
+msgstr ""
+
 msgid "Data refreshed"
 msgstr ""
 
@@ -5902,6 +5907,12 @@ msgstr ""
 msgid "Drag and drop components to this tab"
 msgstr ""
 
+msgid "Drag and drop your file here"
+msgstr ""
+
+msgid "Drag and drop your file here or click Select to browse. Supported formats: CSV, Excel, or Columnar (Parquet)."
+msgstr ""
+
 msgid "Drag columns and metrics here to customize tooltip content. Order matters - items will appear in the same order in tooltips. Click the button to manually select columns and metrics."
 msgstr ""
 
@@ -6432,6 +6443,9 @@ msgid "Enter CA_BUNDLE"
 msgstr ""
 
 msgid "Enter Primary Credentials"
+msgstr ""
+
+msgid "Enter a name for the new table that will be created from your uploaded file."
 msgstr ""
 
 msgid "Enter a name for this sheet"
@@ -7096,6 +7110,9 @@ msgid "Failed to load version preview"
 msgstr ""
 
 msgid "Failed to open file. Please try again."
+msgstr ""
+
+msgid "Failed to parse file"
 msgstr ""
 
 msgid "Failed to reload the restored version"
@@ -9987,6 +10004,9 @@ msgstr ""
 msgid "No data in file"
 msgstr ""
 
+msgid "No data to preview"
+msgstr ""
+
 msgid "No databases available"
 msgstr ""
 
@@ -11286,13 +11306,22 @@ msgstr ""
 msgid "Preview"
 msgstr ""
 
+msgid "Preview columns"
+msgstr ""
+
+msgid "Preview data"
+msgstr ""
+
+msgid "Preview is not available for files larger than 5MB"
+msgstr ""
+
 msgid "Preview temporarily unavailable"
 msgstr ""
 
 msgid "Preview this version"
 msgstr ""
 
-msgid "Preview uploaded file"
+msgid "Preview will be available for files smaller than 5MB"
 msgstr ""
 
 #, python-format
@@ -14480,6 +14509,9 @@ msgstr ""
 msgid "Tags"
 msgstr ""
 
+msgid "Take a tour"
+msgstr ""
+
 msgid "Target"
 msgstr ""
 
@@ -16548,6 +16580,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Toggle to preview the columns from your uploaded file. The column names will appear here once a file is selected."
+msgstr ""
+
 msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
 msgstr ""
 
@@ -17162,6 +17197,9 @@ msgid "Upload file to database"
 msgstr ""
 
 msgid "Upload file to preview columns"
+msgstr ""
+
+msgid "Upload your file"
 msgstr ""
 
 msgid "Uploading a file is required"
@@ -19544,6 +19582,9 @@ msgid "your-project-1234-a1"
 msgstr ""
 
 msgid "zoom area"
+msgstr ""
+
+msgid "{{current}} of {{total}}"
 msgstr ""
 
 msgid "© Layer attribution"
