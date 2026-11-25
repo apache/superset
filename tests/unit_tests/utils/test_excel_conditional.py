@@ -23,11 +23,13 @@ import pytest
 from openpyxl import load_workbook, Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
+from superset.utils import excel_conditional
 from superset.utils.excel import df_to_excel
 from superset.utils.excel_conditional import (
     _value_matches_rule,
     apply_conditional_formatting,
     polish_explore_xlsx,
+    write_explore_xlsx,
 )
 
 
@@ -901,3 +903,151 @@ def test_polish_explore_xlsx_skips_pivot_percent_display_override() -> None:
     rules = _cf_rules(sheet)
     assert len(rules) == 1
     assert rules[0][1].type == "cellIs"
+
+
+def test_write_explore_xlsx_default_table_bars_skip_openpyxl(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default Table bars are written by xlsxwriter, without reloading openpyxl."""
+
+    def _fail_load(workbook_bytes: bytes) -> None:
+        raise AssertionError(workbook_bytes)
+
+    monkeypatch.setattr(excel_conditional, "_load_first_sheet", _fail_load)
+    df = pd.DataFrame({"sales": [10, 20]})
+    payload = write_explore_xlsx(
+        df,
+        {"viz_type": "table"},
+        include_index=False,
+        number_format=None,
+        export_kwargs={"index": False},
+    )
+    sheet = load_workbook(io.BytesIO(payload)).active
+    assert [rule.type for _, rule in _cf_rules(sheet)] == ["dataBar"]
+
+
+def test_write_explore_xlsx_applies_column_format_without_rules() -> None:
+    """A column d3 format lands in the xlsxwriter workbook when there are no rules."""
+    df = pd.DataFrame({"sales": [1000]})
+    payload = write_explore_xlsx(
+        df,
+        {
+            "viz_type": "table",
+            "show_cell_bars": False,
+            "column_config": {"sales": {"d3NumberFormat": ",.0f"}},
+        },
+        include_index=False,
+        number_format=None,
+        export_kwargs={"index": False},
+    )
+    sheet = load_workbook(io.BytesIO(payload)).active
+    assert sheet["A2"].number_format == "#,##0"
+    assert _cf_rules(sheet) == []
+
+
+def test_write_explore_xlsx_skips_rules_above_row_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Custom rules above the row cap are dropped; default bars still apply."""
+    monkeypatch.setattr(excel_conditional, "OPENPYXL_POLISH_MAX_ROWS", 1)
+    df = pd.DataFrame({"sales": [1, 2]})
+    payload = write_explore_xlsx(
+        df,
+        {
+            "viz_type": "table",
+            "conditional_formatting": [
+                {
+                    "column": "sales",
+                    "operator": ">",
+                    "targetValue": 0,
+                    "colorScheme": "#FF0000",
+                }
+            ],
+        },
+        include_index=False,
+        number_format=None,
+        export_kwargs={"index": False},
+    )
+    sheet = load_workbook(io.BytesIO(payload)).active
+    types = [rule.type for _, rule in _cf_rules(sheet)]
+    assert types == ["dataBar"]
+
+
+def test_write_explore_xlsx_small_frame_keeps_custom_rule() -> None:
+    """A small frame with a custom rule still goes through the openpyxl pass."""
+    df = pd.DataFrame({"sales": [1, 2]})
+    payload = write_explore_xlsx(
+        df,
+        {
+            "viz_type": "table",
+            "show_cell_bars": False,
+            "conditional_formatting": [
+                {
+                    "column": "sales",
+                    "operator": ">",
+                    "targetValue": 0,
+                    "colorScheme": "#FF0000",
+                    "useGradient": False,
+                }
+            ],
+        },
+        include_index=False,
+        number_format=None,
+        export_kwargs={"index": False},
+    )
+    sheet = load_workbook(io.BytesIO(payload)).active
+    assert [rule.type for _, rule in _cf_rules(sheet)] == ["cellIs"]
+
+
+def test_polish_explore_xlsx_skips_openpyxl_above_row_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A frame past the row cap is returned unchanged, even when rules exist."""
+    monkeypatch.setattr(excel_conditional, "OPENPYXL_POLISH_MAX_ROWS", 1)
+    df = pd.DataFrame({"sales": [1, 2]})
+    raw = df_to_excel(df, index=False)
+    polished = polish_explore_xlsx(
+        raw,
+        df,
+        {
+            "viz_type": "table",
+            "conditional_formatting": [
+                {
+                    "column": "sales",
+                    "operator": ">",
+                    "targetValue": 0,
+                    "colorScheme": "#F00",
+                }
+            ],
+        },
+    )
+    assert polished is raw
+
+
+def test_polish_explore_xlsx_falls_back_when_openpyxl_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A polish failure is logged and the original workbook bytes are returned."""
+
+    def _boom(workbook_bytes: bytes) -> None:
+        raise RuntimeError(workbook_bytes)
+
+    monkeypatch.setattr(excel_conditional, "_load_first_sheet", _boom)
+    df = pd.DataFrame({"sales": [1]})
+    raw = df_to_excel(df, index=False)
+    polished = polish_explore_xlsx(
+        raw,
+        df,
+        {
+            "viz_type": "table",
+            "conditional_formatting": [
+                {
+                    "column": "sales",
+                    "operator": ">",
+                    "targetValue": 0,
+                    "colorScheme": "#F00",
+                }
+            ],
+        },
+    )
+    assert polished is raw

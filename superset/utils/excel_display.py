@@ -293,20 +293,14 @@ def refresh_sheet_bounds(sheet: Any) -> None:
     sheet._max_column = None  # noqa: SLF001
 
 
-def apply_column_display(
-    workbook_bytes: bytes,
+def stamp_column_display(
+    sheet: Any,
     styles_by_header: Mapping[str, ExcelColumnDisplay],
     header_rows: int = 1,
-) -> bytes:
-    """Stamp number formats and alignment onto data cells of the first sheet."""
+) -> None:
+    """Stamp number formats and alignment onto data cells of an open sheet."""
     if not styles_by_header:
-        return workbook_bytes
-
-    workbook = load_workbook(io.BytesIO(workbook_bytes))
-    sheet = workbook.active
-    # xlsxwriter often omits a complete dimension; without this, only the
-    # header row is visible to openpyxl and data cells stay unstyled.
-    refresh_sheet_bounds(sheet)
+        return
     header_row = max(header_rows, 1)
     for col_idx in range(1, sheet.max_column + 1):
         header_label = ""
@@ -329,6 +323,22 @@ def apply_column_display(
             if alignment is not None:
                 cell.alignment = alignment
 
+
+def apply_column_display(
+    workbook_bytes: bytes,
+    styles_by_header: Mapping[str, ExcelColumnDisplay],
+    header_rows: int = 1,
+) -> bytes:
+    """Stamp number formats and alignment onto data cells of the first sheet."""
+    if not styles_by_header:
+        return workbook_bytes
+
+    workbook = load_workbook(io.BytesIO(workbook_bytes))
+    sheet = workbook.active
+    # xlsxwriter often omits a complete dimension; without this, only the
+    # header row is visible to openpyxl and data cells stay unstyled.
+    refresh_sheet_bounds(sheet)
+    stamp_column_display(sheet, styles_by_header, header_rows)
     output = io.BytesIO()
     workbook.save(output)
     return output.getvalue()

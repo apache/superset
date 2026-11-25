@@ -33,6 +33,7 @@ the same way Explore does.
 from __future__ import annotations
 
 import io
+import logging
 import operator
 from datetime import date, datetime
 from typing import Any, Mapping, Optional
@@ -52,11 +53,17 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from superset.constants import SHOW_VALUES_AS_PERCENT_MODES
 from superset.utils.excel_display import (
-    apply_column_display,
     refresh_sheet_bounds,
+    stamp_column_display,
     styles_from_pivot_form_data,
     styles_from_table_form_data,
 )
+
+logger = logging.getLogger(__name__)
+
+# Above this row count the download keeps xlsxwriter formats and data bars
+# and does not reload the workbook in openpyxl.
+OPENPYXL_POLISH_MAX_ROWS = 50_000
 
 # Theme tokens used by Table / Pivot Table v2 pickers, plus CSS names.
 _NAMED_COLORS = {
@@ -952,8 +959,8 @@ def _apply_cell_bars(
         _add_data_bar(sheet, cell_range, _data_bar_color(column_color_pn))
 
 
-def apply_conditional_formatting(
-    workbook_bytes: bytes,
+def _stamp_conditional_formatting(
+    sheet: Worksheet,
     rules: list[dict[str, Any]],
     header_rows: int = 1,
     *,
@@ -961,20 +968,8 @@ def apply_conditional_formatting(
     color_pn: bool = True,
     verbose_map: Optional[Mapping[str, Any]] = None,
     column_config: Optional[Mapping[str, Any]] = None,
-) -> bytes:
-    """Attach native Excel CF for Explore rules and optional Table cell bars."""
-    if (
-        not rules
-        and not show_cell_bars
-        and not _column_config_enables_bars(column_config)
-    ):
-        return workbook_bytes
-
-    workbook: Workbook = load_workbook(io.BytesIO(workbook_bytes))
-    sheet = workbook.active
-    # xlsxwriter omits a full dimension; without this openpyxl can see only
-    # the header row and skip every highlight.
-    refresh_sheet_bounds(sheet)
+) -> None:
+    """Stamp rules and default data bars onto an already-open worksheet."""
     header_row = max(header_rows, 1)
     for rule in rules:
         if isinstance(rule, dict):
@@ -994,9 +989,218 @@ def apply_conditional_formatting(
         verbose_map=verbose_map,
     )
 
+
+def _load_first_sheet(workbook_bytes: bytes) -> tuple[Workbook, Worksheet]:
+    """Load a workbook and refresh bounds so xlsxwriter sheets expose every row."""
+    workbook: Workbook = load_workbook(io.BytesIO(workbook_bytes))
+    sheet = workbook.active
+    refresh_sheet_bounds(sheet)
+    return workbook, sheet
+
+
+def _workbook_bytes(workbook: Workbook) -> bytes:
+    """Serialize an openpyxl workbook to bytes."""
     output = io.BytesIO()
     workbook.save(output)
     return output.getvalue()
+
+
+def apply_conditional_formatting(
+    workbook_bytes: bytes,
+    rules: list[dict[str, Any]],
+    header_rows: int = 1,
+    *,
+    show_cell_bars: bool = False,
+    color_pn: bool = True,
+    verbose_map: Optional[Mapping[str, Any]] = None,
+    column_config: Optional[Mapping[str, Any]] = None,
+) -> bytes:
+    """Attach native Excel CF for Explore rules and optional Table cell bars."""
+    if (
+        not rules
+        and not show_cell_bars
+        and not _column_config_enables_bars(column_config)
+    ):
+        return workbook_bytes
+
+    workbook, sheet = _load_first_sheet(workbook_bytes)
+    _stamp_conditional_formatting(
+        sheet,
+        rules,
+        header_rows,
+        show_cell_bars=show_cell_bars,
+        color_pn=color_pn,
+        verbose_map=verbose_map,
+        column_config=column_config,
+    )
+    return _workbook_bytes(workbook)
+
+
+def _form_rules(form_data: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Return Explore conditional-formatting rules from either payload key."""
+    rules = form_data.get("conditionalFormatting") or form_data.get(
+        "conditional_formatting"
+    )
+    if not isinstance(rules, list):
+        return []
+    return [rule for rule in rules if isinstance(rule, dict)]
+
+
+def _flag_for_header(
+    header: str,
+    key: str,
+    default: bool,
+    column_config: Optional[Mapping[str, Any]],
+    verbose_map: Optional[Mapping[str, Any]] = None,
+) -> bool:
+    """Per-column Table flag, falling back to the chart-level default."""
+    config = _column_config_for_header(header, column_config, verbose_map)
+    if key not in config:
+        return default
+    return bool(config[key])
+
+
+def _series_is_bar_numeric(series: pd.Series) -> bool:
+    """True when a column should get a data bar, matching Explore's number check."""
+    if (
+        pd.api.types.is_datetime64_any_dtype(series)
+        or pd.api.types.is_timedelta64_dtype(series)
+        or pd.api.types.is_bool_dtype(series)
+    ):
+        return False
+    if pd.api.types.is_numeric_dtype(series):
+        return True
+    for value in series.head(_NUMERIC_SAMPLE_ROWS):
+        if value is None or value is pd.NA:
+            continue
+        if isinstance(value, float) and pd.isna(value):
+            continue
+        if isinstance(value, (datetime, date, pd.Timestamp)):
+            return False
+        if isinstance(value, (bool,)):
+            return False
+        if isinstance(value, (int, float)):
+            return True
+        return False
+    return False
+
+
+def _display_styles(
+    df: pd.DataFrame,
+    form_data: Mapping[str, Any],
+    verbose_map: Optional[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Number formats and alignment keyed by column header."""
+    headers = [str(column) for column in df.columns]
+    if form_data.get("viz_type") == "table":
+        return styles_from_table_form_data(headers, form_data, verbose_map=verbose_map)
+    return styles_from_pivot_form_data(headers, form_data)
+
+
+def _writer_column_formats(
+    df: pd.DataFrame, styles: Mapping[str, Any]
+) -> dict[int, tuple[Optional[str], Optional[str]]]:
+    """Map styled columns to xlsxwriter ``(num_format, alignment)`` by offset."""
+    column_formats: dict[int, tuple[Optional[str], Optional[str]]] = {}
+    for offset, column in enumerate(df.columns):
+        style = styles.get(str(column))
+        if style is not None and (style.number_format or style.alignment):
+            column_formats[offset] = (style.number_format, style.alignment)
+    return column_formats
+
+
+def xlsxwriter_explore_decorations(
+    df: pd.DataFrame,
+    form_data: Mapping[str, Any],
+    verbose_map: Optional[Mapping[str, Any]] = None,
+) -> Optional[tuple[dict[int, tuple[Optional[str], Optional[str]]], dict[int, str]]]:
+    """Column formats and data bars to apply while writing, or None.
+
+    ``None`` means the workbook still needs the openpyxl pass (custom rules on
+    a frame small enough to reload). Otherwise formats and default bars are
+    written by xlsxwriter and openpyxl is skipped.
+    """
+    viz_type = form_data.get("viz_type")
+    if viz_type not in ("table", "pivot_table_v2"):
+        return {}, {}
+    if _form_rules(form_data) and len(df) <= OPENPYXL_POLISH_MAX_ROWS:
+        return None
+
+    skip_display = viz_type == "pivot_table_v2" and form_data.get("showValuesAs") in (
+        SHOW_VALUES_AS_PERCENT_MODES
+    )
+    styles = {} if skip_display else _display_styles(df, form_data, verbose_map)
+    column_formats = _writer_column_formats(df, styles)
+
+    show_cell_bars = form_data.get("show_cell_bars")
+    if show_cell_bars is None:
+        show_cell_bars = viz_type == "table"
+    color_pn = form_data.get("color_pn")
+    if color_pn is None:
+        color_pn = viz_type == "table"
+    column_config = form_data.get("column_config")
+    if not isinstance(column_config, dict):
+        column_config = None
+    data_bars: dict[int, str] = {}
+    for offset, column in enumerate(df.columns):
+        header = str(column)
+        if not _flag_for_header(
+            header, "showCellBars", bool(show_cell_bars), column_config, verbose_map
+        ):
+            continue
+        if not _series_is_bar_numeric(df.iloc[:, offset]):
+            continue
+        use_pn = _flag_for_header(
+            header,
+            "colorPositiveNegative",
+            bool(color_pn),
+            column_config,
+            verbose_map,
+        )
+        data_bars[offset] = f"#{_data_bar_color(use_pn)}"
+    return column_formats, data_bars
+
+
+def write_explore_xlsx(
+    df: pd.DataFrame,
+    form_data: dict[str, Any],
+    *,
+    include_index: bool,
+    number_format: Optional[str],
+    export_kwargs: Mapping[str, Any],
+    verbose_map: Optional[Mapping[str, Any]] = None,
+) -> bytes:
+    """Write an Explore XLSX, using openpyxl only for small custom-rule exports."""
+    from superset.utils.excel import df_to_excel
+
+    decorations = xlsxwriter_explore_decorations(df, form_data, verbose_map)
+    column_formats = None
+    data_bars = None
+    if decorations is not None:
+        column_formats, data_bars = decorations
+        if _form_rules(form_data) and len(df) > OPENPYXL_POLISH_MAX_ROWS:
+            logger.warning(
+                "Skipping Explore Excel conditional formatting for %s rows "
+                "(limit %s); number formats and data bars are still applied",
+                len(df),
+                OPENPYXL_POLISH_MAX_ROWS,
+            )
+    payload = df_to_excel(
+        df,
+        number_format=number_format,
+        column_formats=column_formats,
+        data_bars=data_bars,
+        **dict(export_kwargs),
+    )
+    if decorations is not None:
+        return payload
+    return polish_explore_xlsx(
+        payload,
+        df,
+        form_data,
+        include_index=include_index,
+        verbose_map=verbose_map,
+    )
 
 
 def polish_explore_xlsx(
@@ -1007,8 +1211,40 @@ def polish_explore_xlsx(
     verbose_map: Optional[Mapping[str, Any]] = None,
 ) -> bytes:
     """Apply Explore number formats and conditional formatting to an XLSX."""
+    try:
+        return _polish_explore_xlsx(
+            workbook_bytes,
+            df,
+            form_data,
+            include_index=include_index,
+            verbose_map=verbose_map,
+        )
+    except Exception:
+        logger.exception(
+            "Explore XLSX polish failed; returning the workbook without "
+            "added conditional formatting"
+        )
+        return workbook_bytes
+
+
+def _polish_explore_xlsx(
+    workbook_bytes: bytes,
+    df: pd.DataFrame,
+    form_data: dict[str, Any],
+    include_index: bool = False,
+    verbose_map: Optional[Mapping[str, Any]] = None,
+) -> bytes:
+    """One openpyxl load/save for display styles, rules, and default bars."""
     viz_type = form_data.get("viz_type")
     if viz_type not in ("table", "pivot_table_v2"):
+        return workbook_bytes
+    if len(df) > OPENPYXL_POLISH_MAX_ROWS:
+        if _form_rules(form_data):
+            logger.warning(
+                "Skipping Explore Excel conditional formatting for %s rows (limit %s)",
+                len(df),
+                OPENPYXL_POLISH_MAX_ROWS,
+            )
         return workbook_bytes
 
     header_rows = getattr(df.columns, "nlevels", 1)
@@ -1018,23 +1254,8 @@ def polish_explore_xlsx(
     skip_display = viz_type == "pivot_table_v2" and form_data.get("showValuesAs") in (
         SHOW_VALUES_AS_PERCENT_MODES
     )
-    if not skip_display:
-        headers = [str(column) for column in df.columns]
-        if viz_type == "table":
-            styles = styles_from_table_form_data(
-                headers, form_data, verbose_map=verbose_map
-            )
-        else:
-            styles = styles_from_pivot_form_data(headers, form_data)
-        workbook_bytes = apply_column_display(
-            workbook_bytes, styles, header_rows=header_rows
-        )
-
-    rules = form_data.get("conditionalFormatting") or form_data.get(
-        "conditional_formatting"
-    )
-    if not isinstance(rules, list):
-        rules = []
+    styles = {} if skip_display else _display_styles(df, form_data, verbose_map)
+    rules = _form_rules(form_data)
     show_cell_bars = form_data.get("show_cell_bars")
     if show_cell_bars is None and viz_type == "table":
         # Table control defaults to on; omitted keys still get bars.
@@ -1046,12 +1267,24 @@ def polish_explore_xlsx(
     if color_pn is None and viz_type == "table":
         # Table Color +/- defaults to on; omitted keys keep the green bars.
         color_pn = True
-    return apply_conditional_formatting(
-        workbook_bytes,
+    if (
+        not styles
+        and not rules
+        and not show_cell_bars
+        and not _column_config_enables_bars(column_config)
+    ):
+        return workbook_bytes
+
+    workbook, sheet = _load_first_sheet(workbook_bytes)
+    if styles:
+        stamp_column_display(sheet, styles, header_rows)
+    _stamp_conditional_formatting(
+        sheet,
         rules,
-        header_rows=header_rows,
+        header_rows,
         show_cell_bars=bool(show_cell_bars),
         color_pn=bool(color_pn),
         verbose_map=verbose_map,
         column_config=column_config,
     )
+    return _workbook_bytes(workbook)

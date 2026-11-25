@@ -2018,27 +2018,29 @@ post_processors = {
 }
 
 
-def _apply_excel_explore_formats(
-    workbook_bytes: bytes,
+def _write_excel_explore_export(
     df: pd.DataFrame,
     form_data: dict[str, Any],
     viz_type: Optional[str],
     include_index: bool,
+    number_format: Optional[str],
+    export_kwargs: Mapping[str, Any],
     verbose_map: Optional[Mapping[str, Any]] = None,
     datasource_data: Optional[Mapping[str, Any]] = None,
 ) -> bytes:
-    """Apply Explore number/date/alignment formats to an already-written xlsx."""
-    from superset.utils.excel_conditional import polish_explore_xlsx
+    """Write an Explore XLSX with formats, bars, and small-frame custom rules."""
+    from superset.utils.excel_conditional import write_explore_xlsx
     from superset.utils.excel_display import attach_datasource_formats
 
     merged = attach_datasource_formats(form_data, datasource_data)
     if viz_type:
         merged["viz_type"] = viz_type
-    return polish_explore_xlsx(
-        workbook_bytes,
+    return write_explore_xlsx(
         df,
         merged,
         include_index=include_index,
+        number_format=number_format,
+        export_kwargs=export_kwargs,
         verbose_map=verbose_map,
     )
 
@@ -2300,8 +2302,14 @@ def apply_client_processing(  # noqa: C901
         elif query["result_format"] == ChartDataResultFormat.XLSX:
             excel.apply_column_types(processed_df, query["coltypes"])
             include_index = show_default_index
-            query["data"] = excel.df_to_excel(
+            ds_data = datasource.data if datasource is not None else None
+            if not isinstance(ds_data, dict):
+                ds_data = None
+            query["data"] = _write_excel_explore_export(
                 processed_df,
+                form_data,
+                viz_type,
+                include_index,
                 # A percent mode leaves every cell a fraction. Excel can render
                 # those as percentages without turning them into text, so the
                 # workbook reads like the chart and still calculates.
@@ -2311,20 +2319,10 @@ def apply_client_processing(  # noqa: C901
                     and effective_show_values_as(form_data) is not None
                     else None
                 ),
-                **{
+                export_kwargs={
                     **current_app.config["EXCEL_EXPORT"],
                     "index": include_index,
                 },
-            )
-            ds_data = datasource.data if datasource is not None else None
-            if not isinstance(ds_data, dict):
-                ds_data = None
-            query["data"] = _apply_excel_explore_formats(
-                query["data"],
-                processed_df,
-                form_data,
-                viz_type,
-                include_index,
                 verbose_map=ds_data.get("verbose_map") if ds_data else None,
                 datasource_data=ds_data,
             )

@@ -918,27 +918,34 @@ class QueryContextProcessor:
                 ):
                     # Keep fractions numeric; Excel percent format matches Explore.
                     number_format = "0.0%"
-                result = excel.df_to_excel(
-                    df,
-                    index=include_index,
-                    number_format=number_format,
-                    **current_app.config["EXCEL_EXPORT"],
-                )
                 # Explore Table / Pivot download uses this path (RESULTS + XLSX),
-                # not apply_client_processing. Stamp formats and CF here.
-                if isinstance(form_data, dict) and isinstance(result, bytes):
-                    from superset.utils.excel_conditional import polish_explore_xlsx
+                # not apply_client_processing. Formats and default bars are
+                # written with xlsxwriter; openpyxl runs only for custom rules
+                # on frames small enough to reload.
+                if isinstance(form_data, dict):
+                    from superset.utils.excel_conditional import write_explore_xlsx
                     from superset.utils.excel_display import attach_datasource_formats
 
                     resolved_verbose = (
                         verbose_map if isinstance(verbose_map, dict) else None
                     )
-                    result = polish_explore_xlsx(
-                        result,
+                    result = write_explore_xlsx(
                         df,
                         attach_datasource_formats(form_data, self._qc_datasource.data),
                         include_index=include_index,
+                        number_format=number_format,
+                        export_kwargs={
+                            **current_app.config["EXCEL_EXPORT"],
+                            "index": include_index,
+                        },
                         verbose_map=resolved_verbose,
+                    )
+                else:
+                    result = excel.df_to_excel(
+                        df,
+                        index=include_index,
+                        number_format=number_format,
+                        **current_app.config["EXCEL_EXPORT"],
                     )
             return result or ""
 
