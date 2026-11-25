@@ -77,8 +77,6 @@ export interface TableBrowserProps {
   ) => void;
   toolbarViewId?: string;
   onPreviewTable?: (table: TableReference) => void;
-  onCreateDataset?: (table: TableReference) => void;
-  creatingDataset?: boolean;
   selectedTables?: TableReference[];
   onSelectionChange?: (tables: TableReference[]) => void;
   maxSelection?: number;
@@ -97,6 +95,10 @@ const StyledTreeContainer = styled.div`
   .tree-node {
     display: flex;
     align-items: center;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
     padding: 0 ${({ theme }) => theme.sizeUnit}px;
     position: relative;
     cursor: pointer;
@@ -126,10 +128,16 @@ const StyledTreeContainer = styled.div`
     }
   }
 
+  .ant-checkbox-wrapper {
+    flex-shrink: 0;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
+  }
+
   .tree-node-icon {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     gap: ${({ theme }) => theme.sizeUnit}px;
   }
 
@@ -138,6 +146,7 @@ const StyledTreeContainer = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 1;
+    min-width: 0;
   }
 
   .highlighted {
@@ -207,8 +216,6 @@ export const TableBrowser = ({
   onUnpinTable: handleUnpinTable = ignorePin,
   toolbarViewId,
   onPreviewTable,
-  onCreateDataset,
-  creatingDataset,
   selectedTables = [],
   onSelectionChange,
   maxSelection = 100,
@@ -470,8 +477,6 @@ export const TableBrowser = ({
         toggleSortColumns={toggleSortColumns}
         showTablePins={Boolean(toolbarViewId)}
         onPreviewTable={previewTableHandler}
-        onCreateDataset={onCreateDataset}
-        creatingDataset={creatingDataset}
         selectedTables={selectedTables}
         onSelectionChange={onSelectionChange}
         maxSelection={maxSelection}
@@ -496,8 +501,6 @@ export const TableBrowser = ({
       deferredSearchTerm,
       toolbarViewId,
       previewTableHandler,
-      onCreateDataset,
-      creatingDataset,
       selectedTables,
       onSelectionChange,
       maxSelection,
@@ -567,12 +570,12 @@ export const TableBrowser = ({
                 loadedSelection.length > maxSelection
               }
               tooltip={t(
-                'Select tables in the loaded schemas that match your search, up to %s tables.',
+                'Select all tables in the loaded schemas that match your search, up to %s tables.',
                 maxSelection,
               )}
               onClick={() => onSelectionChange(loadedSelection)}
             >
-              {t('Select loaded tables')}
+              {t('Select all')}
             </Button>
           )}
           <Button

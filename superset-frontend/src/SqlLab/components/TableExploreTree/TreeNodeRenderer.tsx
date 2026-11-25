@@ -108,8 +108,7 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   toggleSortColumns: (tableId: string) => void;
   showTablePins?: boolean;
   onPreviewTable?: (table: TableReference) => void;
-  onCreateDataset?: (table: TableReference) => void;
-  creatingDataset?: boolean;
+  multiSelect?: boolean;
   selectedTables?: TableReference[];
   onSelectionChange?: (tables: TableReference[]) => void;
   maxSelection?: number;
@@ -135,8 +134,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   toggleSortColumns,
   showTablePins = true,
   onPreviewTable,
-  onCreateDataset,
-  creatingDataset,
+  multiSelect,
   selectedTables = [],
   onSelectionChange,
   maxSelection = 100,
@@ -282,7 +280,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         }
       })}
     >
-      {data.type === 'table' && onSelectionChange && (
+      {data.type === 'table' &&
+        (multiSelect ?? Boolean(onSelectionChange)) &&
+        onSelectionChange && (
         <Checkbox
           aria-label={t('Select table %s.%s', schema, tableName)}
           checked={isChecked}
@@ -456,16 +456,6 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                   icon={<Icons.SyncOutlined iconSize="m" />}
                   onClick={() => refreshTableSchema(data.id)}
                 />
-                {onCreateDataset && (
-                  <ActionButton
-                    label={`create-dataset-${schema}-${tableName}`}
-                    tooltip={t('Create dataset')}
-                    icon={<Icons.PlusCircleOutlined iconSize="m" />}
-                    onClick={() => {
-                      if (!creatingDataset) onCreateDataset(table);
-                    }}
-                  />
-                )}
                 {showTablePins && (
                   <ActionButton
                     label={

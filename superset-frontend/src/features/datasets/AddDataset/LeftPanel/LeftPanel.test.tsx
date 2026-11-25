@@ -84,8 +84,6 @@ jest.mock('src/SqlLab/components/TableExploreTree', () => ({
 const props = {
   setDataset: jest.fn(),
   onPreviewTable: jest.fn(),
-  onDatasetCreated: jest.fn(),
-  onBusyChange: jest.fn(),
   dataset: {
     db: { id: 1, database_name: 'examples' },
     catalog: 'main',
@@ -151,4 +149,19 @@ test('toggles multi-select mode and clears selection when disabled', async () =>
     type: DatasetActionType.SelectTableReferences,
     payload: [],
   });
+});
+
+test('previewing a table in multi-select mode preserves selected tables', async () => {
+  render(<LeftPanel {...props} />, { useRedux: true });
+  await userEvent.click(
+    screen.getByRole('checkbox', { name: 'Select multiple tables' }),
+  );
+  props.setDataset.mockClear();
+
+  await userEvent.click(screen.getByText('Preview orders'));
+  expect(props.onPreviewTable).toHaveBeenCalledWith({
+    schema: 'public',
+    table_name: 'orders',
+  });
+  expect(props.setDataset).not.toHaveBeenCalled();
 });

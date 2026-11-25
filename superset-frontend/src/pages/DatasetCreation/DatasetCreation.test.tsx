@@ -293,3 +293,49 @@ test('keeps schema-qualified table selections and clears them when the connectio
     }),
   ).toMatchObject({ schema: 'sales', table_name: 'orders' });
 });
+
+test('shows per-table dataset status and disables bulk creation when all selected exist', async () => {
+  setItem(LocalStorageKeys.Database, { id: 1, database_name: 'examples' });
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    result: ['public', 'sales'],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
+    result: [{ label: 'orders', value: 'orders', type: 'table' }],
+    count: 1,
+  });
+  fetchMock.get('glob:*/api/v1/dataset/?*', {
+    count: 2,
+    result: [
+      { id: 10, schema: 'public', table_name: 'orders' },
+      { id: 11, schema: 'sales', table_name: 'orders' },
+    ],
+  });
+
+  render(<AddDataset />, { useRedux: true });
+
+  await userEvent.click(
+    await screen.findByRole('checkbox', { name: 'Select multiple tables' }),
+  );
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(
+    await screen.findByRole('checkbox', { name: 'Select table public.orders' }),
+  );
+  await userEvent.click(screen.getByText('sales'));
+  await userEvent.click(
+    await screen.findByRole('checkbox', { name: 'Select table sales.orders' }),
+  );
+
+  await waitFor(() =>
+    expect(
+      screen.getByText('All selected tables already have datasets.'),
+    ).toBeVisible(),
+  );
+  expect(
+    screen.getAllByText('Already a dataset (will be skipped)'),
+  ).toHaveLength(2);
+  expect(
+    screen.getByRole('button', { name: 'Create datasets' }),
+  ).toBeDisabled();
+
+  fetchMock.removeRoutes().clearHistory();
+});

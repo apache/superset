@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import { Flex, Table } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
+import { Flex, Table, Tag } from '@superset-ui/core/components';
 import type { TableReference } from 'src/SqlLab/components/TableExploreTree/types';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';
@@ -113,27 +114,21 @@ export default function AddDataset() {
   const [creatingDatasets, setCreatingDatasets] = useState(false);
   const [hasColumns, setHasColumns] = useState(false);
 
-  const { datasets, datasetNames } = useDatasetsList(
+  const activePreview = dataset?.table_name
+    ? { schema: dataset.schema ?? '', table_name: dataset.table_name }
+    : previewTable;
+  const isMultiSelect = (dataset?.selected_tables?.length ?? 0) > 1;
+
+  const { datasets } = useDatasetsList(
     dataset?.db,
-    dataset?.schema,
+    activePreview?.schema ?? dataset?.schema,
     registrationVersion,
     dataset?.catalog,
+    isMultiSelect,
   );
 
   const { datasetId: id } = useParams<{ datasetId: string }>();
   const editPageIsVisible = !Number.isNaN(parseInt(id, 10));
-  const handleTableSelection = useCallback((table: TableReference) => {
-    setPreviewTable(table);
-    const schema = table.schema || null;
-    setDataset({
-      type: DatasetActionType.SelectSchema,
-      payload: { name: 'schema', value: schema },
-    });
-    setDataset({
-      type: DatasetActionType.SelectTable,
-      payload: { name: 'table_name', value: table.table_name },
-    });
-  }, []);
 
   useEffect(() => {
     setPreviewTable(null);
@@ -149,51 +144,96 @@ export default function AddDataset() {
       setDataset={setDataset}
       dataset={dataset}
       disabled={creatingDatasets}
-      onBusyChange={setCreatingDatasets}
-      onPreviewTable={handleTableSelection}
-      onDatasetCreated={() => setRegistrationVersion(version => version + 1)}
+      onPreviewTable={setPreviewTable}
     />
   );
 
   const EditPageComponent = () => <EditPage id={id} />;
 
-  const activePreview = dataset?.table_name
-    ? { schema: dataset.schema ?? '', table_name: dataset.table_name }
-    : previewTable;
+  const existingDatasetKeys = new Set(
+    datasets
+      .filter(item => item.table_name)
+      .map(item => JSON.stringify([item.schema ?? '', item.table_name])),
+  );
 
-  const DatasetPanelComponent = () => (
-    <Flex vertical gap="middle">
-      {(dataset?.selected_tables?.length ?? 0) > 1 && (
+  const previewDatasets = datasets.filter(
+    item =>
+      dataset?.db?.supports_schemas === false ||
+      (item.schema ?? '') === (activePreview?.schema ?? ''),
+  );
+  const previewDatasetNames = previewDatasets.map(item => item.table_name);
+  const allSelectedExist =
+    isMultiSelect &&
+    (dataset?.selected_tables ?? []).every(table =>
+      existingDatasetKeys.has(JSON.stringify([table.schema, table.table_name])),
+    );
+
+  const datasetPanelNode = (
+    <DatasetPanel
+      tableName={activePreview?.table_name}
+      dbId={dataset?.db?.id}
+      catalog={dataset?.catalog}
+      schema={activePreview?.schema}
+      database={dataset?.db}
+      setHasColumns={setHasColumns}
+      datasets={previewDatasets}
+    />
+  );
+
+  const DatasetPanelComponent = () =>
+    isMultiSelect ? (
+      <Flex vertical gap="middle" style={{ height: '100%', minHeight: 0 }}>
+        {allSelectedExist && (
+          <Alert
+            type="info"
+            showIcon
+            message={t('All selected tables already have datasets.')}
+          />
+        )}
         <Table
           rowKey={table => JSON.stringify([table.schema, table.table_name])}
           data={dataset?.selected_tables ?? []}
           columns={[
             { title: t('Schema'), dataIndex: 'schema' },
             { title: t('Selected table or view'), dataIndex: 'table_name' },
+            {
+              title: t('Status'),
+              key: 'status',
+              render: (_: unknown, record: TableReference) =>
+                existingDatasetKeys.has(
+                  JSON.stringify([record.schema, record.table_name]),
+                ) ? (
+                  <Tag color="warning">
+                    {t('Already a dataset (will be skipped)')}
+                  </Tag>
+                ) : (
+                  <Tag color="blue">{t('Ready to create')}</Tag>
+                ),
+            },
           ]}
           usePagination={false}
         />
-      )}
-      <DatasetPanel
-        tableName={activePreview?.table_name}
-        dbId={dataset?.db?.id}
-        catalog={dataset?.catalog}
-        schema={activePreview?.schema}
-        database={dataset?.db}
-        setHasColumns={setHasColumns}
-        datasets={activePreview?.schema === dataset?.schema ? datasets : []}
-      />
-    </Flex>
-  );
+        <div style={{ flex: 1, minHeight: 0 }}>{datasetPanelNode}</div>
+      </Flex>
+    ) : (
+      datasetPanelNode
+    );
 
   const FooterComponent = () => (
     <Footer
       url={prevUrl}
       datasetObject={dataset}
       hasColumns={hasColumns}
-      datasets={datasetNames}
+      datasets={previewDatasetNames}
       onBusyChange={setCreatingDatasets}
       busy={creatingDatasets}
+      allSelectedExist={allSelectedExist}
+      onUpdateSelectedTables={tables =>
+        setDataset({
+          type: DatasetActionType.SelectTableReferences,
+          payload: tables,
+        })
+      }
       onRegistered={() => setRegistrationVersion(version => version + 1)}
     />
   );

@@ -371,3 +371,70 @@ test('registers identically named tables in separate schemas and preserves parti
   expect(mockHistoryPush).not.toHaveBeenCalled();
   fetchMock.removeRoutes().clearHistory();
 });
+
+test('prunes created and skipped tables while keeping failed tables selected', async () => {
+  const onUpdateSelectedTables = jest.fn();
+  fetchMock.post('glob:*/api/v1/dataset/bulk', {
+    results: [
+      { table_name: 'customers', status: 'created', uuid: 'uuid', message: '' },
+      {
+        table_name: 'orders',
+        status: 'skipped',
+        uuid: null,
+        message: 'Dataset already exists.',
+      },
+      {
+        table_name: 'products',
+        status: 'failed',
+        uuid: null,
+        message: 'Access denied',
+      },
+    ],
+  });
+  render(
+    <Footer
+      {...mockPropsWithDataset}
+      onUpdateSelectedTables={onUpdateSelectedTables}
+      datasetObject={{
+        ...mockPropsWithDataset.datasetObject,
+        table_name: null,
+        selected_tables: [
+          { schema: 'public', table_name: 'customers' },
+          { schema: 'public', table_name: 'orders' },
+          { schema: 'public', table_name: 'products' },
+        ],
+      }}
+    />,
+    { useRedux: true },
+  );
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Create datasets' }),
+  );
+  await waitFor(() =>
+    expect(onUpdateSelectedTables).toHaveBeenCalledWith([
+      { schema: 'public', table_name: 'products' },
+    ]),
+  );
+  fetchMock.removeRoutes().clearHistory();
+});
+
+test('disables bulk creation when all selected tables already have datasets', () => {
+  render(
+    <Footer
+      {...mockPropsWithDataset}
+      allSelectedExist
+      datasetObject={{
+        ...mockPropsWithDataset.datasetObject,
+        table_name: null,
+        selected_tables: [
+          { schema: 'public', table_name: 'customers' },
+          { schema: 'public', table_name: 'orders' },
+        ],
+      }}
+    />,
+    { useRedux: true },
+  );
+  expect(
+    screen.getByRole('button', { name: 'Create datasets' }),
+  ).toBeDisabled();
+});

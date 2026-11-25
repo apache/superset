@@ -403,7 +403,7 @@ test('select-all includes only loaded tables matching the search', async () => {
   });
   render(<MultiSelectBrowser />, { useRedux: true });
   expect(
-    screen.getByRole('button', { name: 'Select loaded tables' }),
+    screen.getByRole('button', { name: 'Select all' }),
   ).toBeDisabled();
   await userEvent.click(await screen.findByText('public'));
   await screen.findByRole('checkbox', { name: 'Select table public.orders' });
@@ -411,16 +411,14 @@ test('select-all includes only loaded tables matching the search', async () => {
     screen.getByPlaceholderText('Enter a part of the object name'),
     'orders',
   );
-  await userEvent.click(
-    screen.getByRole('button', { name: 'Select loaded tables' }),
-  );
+  await userEvent.click(screen.getByRole('button', { name: 'Select all' }));
   expect(screen.getByText('1 selected')).toBeVisible();
   expect(
     fetchMock.callHistory.calls('glob:*/api/v1/database/1/tables/*'),
   ).toHaveLength(1);
 });
 
-test('offers creation only when configured and omits checkboxes by default', async () => {
+test('omits checkboxes by default when multi-select is not enabled', async () => {
   fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
     result: ['public'],
   });
@@ -428,17 +426,10 @@ test('offers creation only when configured and omits checkboxes by default', asy
     result: [{ label: 'orders', value: 'orders', type: 'table' }],
     count: 1,
   });
-  const create = jest.fn();
-  render(<TableBrowser dbId={1} onCreateDataset={create} />, {
+  render(<TableBrowser dbId={1} />, {
     useRedux: true,
   });
   await userEvent.click(await screen.findByText('public'));
-  await userEvent.click(
-    await screen.findByRole('button', { name: 'Create dataset' }),
-  );
-  expect(create).toHaveBeenCalledWith({
-    schema: 'public',
-    table_name: 'orders',
-  });
+  await screen.findByText('orders');
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });

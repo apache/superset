@@ -40,6 +40,10 @@ import {
   LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION,
   LOG_ACTIONS_DATASET_CREATION_SUCCESS,
 } from 'src/logger/LogUtils';
+import {
+  tableReferenceKey,
+  type TableReference,
+} from 'src/SqlLab/components/TableExploreTree/types';
 import { DatasetObject } from '../types';
 
 interface FooterProps {
@@ -52,7 +56,9 @@ interface FooterProps {
   datasets?: (string | null | undefined)[] | undefined;
   onBusyChange?: (busy: boolean) => void;
   onRegistered?: () => void;
+  onUpdateSelectedTables?: (tables: TableReference[]) => void;
   busy?: boolean;
+  allSelectedExist?: boolean;
 }
 
 interface RegistrationResult {
@@ -79,7 +85,9 @@ function Footer({
   datasets,
   onBusyChange,
   onRegistered,
+  onUpdateSelectedTables,
   busy = false,
+  allSelectedExist = false,
 }: FooterProps) {
   const history = useHistory();
   const theme = useTheme();
@@ -202,6 +210,21 @@ function Footer({
         }
       }
       setBulkResults(results);
+      const failedKeys = new Set(
+        results
+          .filter(result => result.status === 'failed')
+          .map(result =>
+            tableReferenceKey({
+              schema: result.schema ?? '',
+              table_name: result.table_name,
+            }),
+          ),
+      );
+      onUpdateSelectedTables?.(
+        selectedTables.filter(table =>
+          failedKeys.has(tableReferenceKey(table)),
+        ),
+      );
       onRegistered?.();
     } finally {
       setBulkLoading(false);
@@ -242,11 +265,18 @@ function Footer({
           <Button
             buttonStyle="primary"
             loading={bulkLoading}
-            disabled={busy || !datasetObject?.db || selectedTables.length > 100}
+            disabled={
+              busy ||
+              !datasetObject?.db ||
+              selectedTables.length > 100 ||
+              allSelectedExist
+            }
             tooltip={
               selectedTables.length > 100
                 ? t('Select up to 100 tables per request.')
-                : undefined
+                : allSelectedExist
+                  ? t('All selected tables already have datasets.')
+                  : undefined
             }
             onClick={onBulkSave}
           >

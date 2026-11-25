@@ -37,6 +37,7 @@ const useDatasetsList = (
   schema: string | null | undefined,
   refreshKey = 0,
   catalog?: string | null,
+  fetchAllSchemas = false,
 ) => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
   const requestVersion = useRef(0);
@@ -84,7 +85,7 @@ const useDatasetsList = (
   useEffect(() => {
     const filters = [
       { col: 'database', opr: 'rel_o_m', value: db?.id },
-      ...(supportsSchemas
+      ...(supportsSchemas && !fetchAllSchemas
         ? [{ col: 'schema', opr: 'eq', value: encodedSchema }]
         : []),
       ...(catalog !== undefined
@@ -96,7 +97,10 @@ const useDatasetsList = (
     requestVersion.current += 1;
     const version = requestVersion.current;
     setDatasets([]);
-    if (db?.id !== undefined && (schema || !supportsSchemas)) {
+    if (
+      db?.id !== undefined &&
+      (fetchAllSchemas || schema || !supportsSchemas)
+    ) {
       getDatasetsList(filters, version);
     }
   }, [
@@ -104,6 +108,7 @@ const useDatasetsList = (
     schema,
     encodedSchema,
     supportsSchemas,
+    fetchAllSchemas,
     getDatasetsList,
     refreshKey,
     catalog,

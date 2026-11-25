@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useEffect, useState, useCallback, type Dispatch } from 'react';
-import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import {
@@ -43,23 +42,18 @@ interface LeftPanelProps {
   setDataset: Dispatch<DSReducerActionType>;
   dataset?: Partial<DatasetObject> | null;
   onPreviewTable: (table: TableReference) => void;
-  onDatasetCreated: () => void;
   disabled?: boolean;
-  onBusyChange: (busy: boolean) => void;
 }
 
 export default function LeftPanel({
   setDataset,
   dataset,
   onPreviewTable,
-  onDatasetCreated,
   disabled = false,
-  onBusyChange,
 }: LeftPanelProps) {
   const theme = useTheme();
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const { addDangerToast } = useToasts();
   const [multiSelect, setMultiSelect] = useState(false);
-  const [creatingDataset, setCreatingDataset] = useState(false);
   const setDatabase = useCallback(
     (db: DatabaseObject) => {
       setDataset({ type: DatasetActionType.SelectDatabase, payload: { db } });
@@ -75,30 +69,17 @@ export default function LeftPanel({
     if (previous) setDatabase(previous);
   }, [setDatabase]);
 
-  const createSingleDataset = async (table: TableReference) => {
-    if (!dataset?.db || creatingDataset || disabled) return;
-    setCreatingDataset(true);
-    onBusyChange(true);
-    try {
-      await SupersetClient.post({
-        endpoint: '/api/v1/dataset/',
-        jsonPayload: {
-          database: dataset.db.id,
-          catalog: dataset.catalog,
-          schema: table.schema || null,
-          table_name: table.table_name,
-        },
-      });
-      addSuccessToast(t('Dataset "%s" created', table.table_name));
-      onDatasetCreated();
-    } catch {
-      addDangerToast(
-        t('Could not create dataset for "%s"', table.table_name),
-      );
-    } finally {
-      setCreatingDataset(false);
-      onBusyChange(false);
-    }
+  const selectTables = (tables: TableReference[]) => {
+    setDataset({
+      type: DatasetActionType.SelectTableReferences,
+      payload: tables,
+    });
+    if (tables.length === 1) onPreviewTable(tables[0]);
+  };
+
+  const previewTable = (table: TableReference) => {
+    onPreviewTable(table);
+    if (!multiSelect) selectTables([table]);
   };
 
   return (
@@ -158,24 +139,14 @@ export default function LeftPanel({
             supportsSchemas={dataset.db.supports_schemas}
             schema={dataset.schema ?? undefined}
             catalog={dataset.catalog}
-            onPreviewTable={onPreviewTable}
-            onCreateDataset={createSingleDataset}
-            creatingDataset={creatingDataset || disabled}
+            onPreviewTable={previewTable}
             disabled={disabled}
             selectedTables={
               multiSelect ? (dataset.selected_tables ?? []) : undefined
             }
-            onSelectionChange={
-              multiSelect
-                ? selectedTables =>
-                    setDataset({
-                      type: DatasetActionType.SelectTableReferences,
-                      payload: selectedTables,
-                    })
-                : undefined
-            }
+            onSelectionChange={multiSelect ? selectTables : undefined}
             maxSelection={100}
-            showSelectAll={Boolean(dataset.schema)}
+            showSelectAll
           />
         </>
       ) : (
