@@ -941,7 +941,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # identification attributes provided (``catalog`` or ``schema``).
         # The full identification tuple, using ``database_id`` with ``catalog``
         # and ``schema``, can be used to disambiguate datasets sharing the same
-        # ``table_name`` (#30377), whilec partial criteria may match multiple
+        # ``table_name`` (#30377), while partial criteria may match multiple
         # datasets (#35662).
         query = db.session.query(SqlaTable).filter(
             SqlaTable.database_id == database_id,
