@@ -6169,9 +6169,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # A catalog grant already continued above: it covers every
                 # schema in the catalog. Chart and Explore leave this off, so
                 # an unresolved schema there still reaches the dataset lookup.
-                if (
-                    force_dataset_match or reject_unscoped_sql
-                ) and not table_.schema:
+                if (force_dataset_match or reject_unscoped_sql) and not table_.schema:
                     denied.add(table_)
                     continue
 
