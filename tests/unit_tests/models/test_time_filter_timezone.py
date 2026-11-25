@@ -221,7 +221,7 @@ def test_get_time_filter_epoch_column_uses_utc_regardless_of_server_tz(
 def test_get_time_filter_epoch_ms_column_compares_milliseconds(
     app: Flask,
 ) -> None:
-    """A numeric temporal column compares epoch milliseconds only when its format says so."""
+    """Epoch milliseconds are used only when the column format is ``epoch_ms``."""
     database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
     time_col = TableColumn(
         column_name="start_time",
