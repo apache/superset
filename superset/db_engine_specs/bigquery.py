@@ -48,7 +48,10 @@ from superset.db_engine_specs.base import (
     BasicPropertiesType,
     DatabaseCategory,
 )
-from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIOperationalError,
+)
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
@@ -851,6 +854,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
         In BigQuery, a catalog is called a "project".
         """
+        # pylint: disable=import-outside-toplevel
+        from google.api_core.exceptions import Forbidden, TooManyRequests
+
         engine: Engine
         with database.get_sqla_engine() as engine:
             try:
@@ -864,7 +870,17 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 # return {} here, since it will be repopulated when creds are added
                 return set()
 
-            projects = client.list_projects()
+            try:
+                projects = list(client.list_projects())
+            except (Forbidden, TooManyRequests) as ex:
+                if isinstance(ex, Forbidden) and "quota" not in str(ex).lower():
+                    raise
+                raise SupersetDBAPIOperationalError(
+                    __(
+                        "BigQuery quota exceeded while listing projects. Please "
+                        "retry later or request a quota increase from Google Cloud."
+                    )
+                ) from ex
 
         return {project.project_id for project in projects}
 

@@ -1598,3 +1598,38 @@ def test_expand_nested_columns_keeps_user_alias() -> None:
         "calendar.day",
     ]
     assert result[2] is columns[1]
+
+
+def test_get_catalog_names_quota_exceeded(mocker: MockerFixture) -> None:
+    """
+    Test that a BigQuery quota error is surfaced as a typed DBAPI error.
+    """
+    from google.api_core.exceptions import Forbidden
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.exceptions import SupersetDBAPIOperationalError
+
+    client = mock.Mock()
+    client.list_projects.side_effect = Forbidden(
+        "Quota exceeded: Your user exceeded quota for concurrent projects.list requests"
+    )
+    mocker.patch.object(BigQueryEngineSpec, "_get_client", return_value=client)
+
+    with pytest.raises(SupersetDBAPIOperationalError, match="quota exceeded"):
+        BigQueryEngineSpec.get_catalog_names(mock.MagicMock(), mock.MagicMock())
+
+
+def test_get_catalog_names_other_forbidden_propagates(mocker: MockerFixture) -> None:
+    """
+    Test that non-quota 403 errors are not rewritten.
+    """
+    from google.api_core.exceptions import Forbidden
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    client = mock.Mock()
+    client.list_projects.side_effect = Forbidden("permission denied")
+    mocker.patch.object(BigQueryEngineSpec, "_get_client", return_value=client)
+
+    with pytest.raises(Forbidden):
+        BigQueryEngineSpec.get_catalog_names(mock.MagicMock(), mock.MagicMock())
