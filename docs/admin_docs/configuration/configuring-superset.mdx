@@ -277,6 +277,8 @@ ORDER BY event_time DESC
 
 - The user is the logged-in Superset user. The dashboard and chart ids come
   from the request, so treat them as a hint rather than an audit record.
+- Anyone who can read `system.query_log` can see these values, so leave `user`
+  out of the returned string if usernames shouldn't be visible there.
 - Results served from Superset's cache never reach the database, so the log
   shows the queries that ran, not every chart view.
 - Metadata queries (schema, table and column lists) are not tagged.
