@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
 import {
@@ -47,7 +47,7 @@ jest.mock('src/core/editors', () => ({
 }));
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 const setup = (
   otherProps: Partial<TemplateParamsEditorProps> = {},
   store?: Store,

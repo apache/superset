@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from '@superset-ui/core/spec';
-import ButtonCell from './index';
+import { ButtonCell } from './index';
 import { exampleRow } from '../fixtures';
 
 test('renders with default props', async () => {
