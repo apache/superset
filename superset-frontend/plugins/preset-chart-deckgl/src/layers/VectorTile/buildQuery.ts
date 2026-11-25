@@ -20,10 +20,9 @@
 import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
 /**
- * The map data comes straight from the tile server, so this chart needs no
- * rows. Superset still runs a query for every chart, so request the cheapest
- * one possible: a constant from a single row.
- */
+ * Map data comes from the tile server, but Superset runs a query for every
+ * chart, so request the cheapest valid one: a constant from a single row.
+*/
 
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => [

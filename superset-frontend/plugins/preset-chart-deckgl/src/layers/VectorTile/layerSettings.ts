@@ -29,7 +29,6 @@ const MAX_TILE_ZOOM = 24;
 
 export type RGBAColor = [number, number, number, number];
 
-/** The settings this chart saves, as stored in formData. */
 export interface VectorTileFormData extends QueryFormData {
   tile_url?: string;
   source_layer?: string;
@@ -38,7 +37,6 @@ export interface VectorTileFormData extends QueryFormData {
   fill_color_picker?: ColorType;
 }
 
-/** Cleaned-up settings, ready to hand to deck.gl's MVTLayer. */
 export interface VectorTileLayerSettings {
   /** URL template, or null when it is missing {z}, {x} or {y}. */
   tileUrl: string | null;
@@ -73,9 +71,8 @@ const toRGBA = ({ r, g, b, a }: ColorType): RGBAColor => [
 ];
 
 /**
- * Turns the saved form data into settings for the MVTLayer. Used by getLayer,
- * so it works both standalone and inside the deck.gl Multiple Layers chart,
- * which passes raw form data and skips transformProps.
+ * Normalizes saved form data for the MVTLayer. Called from getLayer because the
+ * Multiple Layers chart passes raw form data and skips transformProps.
  */
 export function getLayerSettings(
   formData: VectorTileFormData,
