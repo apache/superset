@@ -63,6 +63,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.chart_types import pin_saved_chart_type
 from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
@@ -207,6 +208,9 @@ class ChartDataRestApi(ChartRestApi):
                     "Chart has no query context saved. Please save the chart again."
                 )
             )
+
+        # The saved chart's type is authoritative for a replayed context.
+        pin_saved_chart_type(json_body, chart.datasource_type, chart.viz_type)
 
         # override saved query context
         json_body["result_format"] = request.args.get(
