@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-20 04:48-0500\n"
+"POT-Creation-Date: 2026-11-25 03:24-0500\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -149,49 +149,12 @@ msgstr " jaunu"
 msgid " at line %(line)d"
 msgstr " rindā %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " izteiksmi, kurai jāatbilst "
-
 msgid " for details."
 msgstr " sīkāka informācija."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " pie '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" standartu, lai leksikogrāfiskā kārtība\n"
-"                      sakristu ar hronoloģisko kārtību. Ja\n"
-"                      laikspiedola formāts neatbilst ISO 8601 standartam,"
-"\n"
-"                      jums būs jādefinē izteiksme un tips, lai\n"
-"                      pārveidotu virkni par datumu vai laikspiedolu. "
-"Ņemiet vērā,\n"
-"                      ka laika joslas pašlaik netiek atbalstītas. Ja "
-"laiks ir glabāts\n"
-"                      epoch formātā, norādiet `epoch_s`, `epoch_ms` vai "
-"`epoch_us`. Ja šablons\n"
-"                      nav norādīts, tiek izmantotas neobligātās "
-"noklusējuma vērtības katram\n"
-"                      datubāzes/kolonnas nosaukumam, izmantojot extra "
-"parametru."
 
 msgid " to add calculated columns"
 msgstr " lai pievienotu aprēķinātās kolonnas"
@@ -298,8 +261,24 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nevar izmantot kā datu avotu drošības apsvērumu dēļ."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s vai %(lastSuggestion)s vietā "
+"\"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid "%(label)s file"
@@ -413,18 +392,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Atgrieztas %(rows)d rindas"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s vietā \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s vai %(lastSuggestion)s vietā "
-"\"%(undefinedParameter)s\"?"
-msgstr[2] ""
-"%(firstSuggestions)s vai %(lastSuggestion)s vietā "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s vietā \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -3288,6 +3259,12 @@ msgstr "Arhivēti %s vienumi; neatgriezeniski izdzēsti %s semantiskie skati"
 msgid "Archived by"
 msgstr "Arhivēja"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3431,6 +3408,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Bulta"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Piešķirt parametru kopu kā"
@@ -4036,6 +4017,11 @@ msgstr "Aprēķina tips"
 msgid "Calendar Heatmap"
 msgstr "Kalendāra siltumkarte"
 
+msgid ""
+"Calendar Heatmap is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "Can not move top level tab into nested tabs"
 msgstr "Nevar pārvietot augstākā līmeņa cilni uz ligzdotajām cilnēm"
 
@@ -4455,6 +4441,10 @@ msgstr "Diagramma [%s] ir saglabāta"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Diagramma [%s] ir pievienota informācijas panelim [%s]"
 
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
+
 msgid "Chart cache timeout"
 msgstr "Diagrammas kešatmiņas noildze"
 
@@ -4544,6 +4534,9 @@ msgstr "Diagrammas virsraksts"
 
 msgid "Chart type"
 msgstr "Diagrammas veids"
+
+msgid "Chart type must be a string."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -6041,10 +6034,10 @@ msgstr "Sarkans"
 msgid "Cross-filter column"
 msgstr "Krusteniskās filtrēšanas tvērums"
 
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
+msgid ""
+"Cross-filter will be applied to the charts in this chart's cross-"
+"filtering scope."
 msgstr ""
-"Krusteniskais filtrs tiks piemērots visām diagrammām, kas izmanto šo datu"
-" kopu."
 
 msgid "Cross-filtering is not enabled for this dashboard."
 msgstr "Krusteniskā filtrēšana nav iespējota šim informācijas panelim."
@@ -6292,7 +6285,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "DZĒST"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -7401,6 +7394,9 @@ msgstr "Apraksta teksts, kas parādās zem lielā skaitļa"
 
 msgid "Deselect all"
 msgstr "Noņemt atlasi visiem"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 msgid "Design with"
 msgstr "Dizainēt ar"
@@ -8913,10 +8909,6 @@ msgstr ""
 msgid "Explore"
 msgstr "Pārlūkot"
 
-#, python-format
-msgid "Explore - %(table)s"
-msgstr "Izpēte — %(table)s"
-
 msgid "Explore the result set in the data exploration view"
 msgstr "Izpētīt rezultātu kopu datu pētniecības skatā"
 
@@ -9068,6 +9060,9 @@ msgstr "Izteiksme nevar būt tukša"
 msgid "Expression evaluated — data not checked"
 msgstr "Izteiksme novērtēta — dati nav pārbaudīti"
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
 msgid ""
@@ -9175,6 +9170,10 @@ msgstr "Kopēt kodu starpliktuvē"
 #, fuzzy
 msgid "Failed to create API key"
 msgstr "Neizdevās izveidot atskaiti"
+
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10005,7 +10004,7 @@ msgstr "Tālāk pielāgot katra rādītāja attēlošanu"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GRUPĒT PĒC"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Ganta diagramma"
@@ -10212,6 +10211,10 @@ msgstr "Viesis nevar modificēt diagrammas datus"
 msgid "HTTP Path"
 msgstr "HTTP ceļš"
 
+msgid "HTTPS will be used to connect to the Druid SQL endpoint."
+msgstr ""
+
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10293,7 +10296,15 @@ msgstr "Katras perioda augstākā vērtība."
 msgid "Histogram"
 msgstr "Histogramma"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgid ""
+"Histogram is not yet supported on semantic views. Use a Bar or Table "
+"chart with an explicit count metric."
+msgstr ""
+
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
 
 msgid "Home"
@@ -10301,6 +10312,9 @@ msgstr "Sākums"
 
 msgid "Horizon Chart"
 msgstr "Horizonta diagramma"
+
+msgid "Horizon is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
 
 msgid "Horizontal"
 msgstr "Horizontāli"
@@ -10371,9 +10385,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 kodi"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11763,9 +11774,6 @@ msgstr "Logaritmiskā x-ass"
 msgid "Logarithmic y-axis"
 msgstr "Logaritmiskā y-ass"
 
-msgid "Login"
-msgstr "Pieteikties"
-
 msgid "Login count"
 msgstr "Pieteikšanās reižu skaits"
 
@@ -12696,7 +12704,7 @@ msgstr "Nav pieejams"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NAV GRUPĒTS PĒC"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -12831,6 +12839,11 @@ msgstr "Lakstīgala"
 msgid "Nightingale Rose Chart"
 msgstr "Lakstīgalas rožu diagramma"
 
+msgid ""
+"Nightingale Rose is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "No"
 msgstr "Nē"
 
@@ -12964,6 +12977,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "Nevienai entītijai pašlaik nav piešķirta šī birka"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Nav filtru"
@@ -13282,6 +13298,9 @@ msgstr "Nav pievienots nevienam informācijas panelim"
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "Nav aizpildīti visi obligātie lauki. Lūdzu, norādiet šādu informāciju:"
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "Nav pieejams"
 
@@ -13491,7 +13510,7 @@ msgstr "VAI"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PĀRRAKSTĪT"
+msgstr ""
 
 msgid "October"
 msgstr "Oktobris"
@@ -13726,6 +13745,9 @@ msgstr "Atvērt SQL laboratorijā"
 msgid "Open in SQL lab"
 msgstr "Atvērt SQL laboratorijā"
 
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -13736,6 +13758,9 @@ msgstr "Atvērt vaicājumu SQL laboratorijā"
 
 msgid "Opening value for each period."
 msgstr "Katras perioda atvēršanas vērtība."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -14021,6 +14046,11 @@ msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Pāru t-testa tabula"
+
+msgid ""
+"Paired t-test is not yet supported on semantic views. Use a Table chart "
+"to inspect the metric by time."
+msgstr ""
 
 msgid "Pandas resample method"
 msgstr "Pandas izlases metode"
@@ -14787,9 +14817,6 @@ msgstr "Vai novietot apzīmējumus ārpus sektoru diagrammas?"
 
 msgid "Put your code here"
 msgstr "Ievietojiet savu kodu šeit"
-
-msgid "Python datetime string pattern"
-msgstr "Python datetime virknes šablons"
 
 msgid "Quarter"
 msgstr "Ceturksnis"
@@ -15608,6 +15635,9 @@ msgstr "Atjaunot paroli"
 
 msgid "Reset state"
 msgstr "Atiestatīt stāvokli"
+
+msgid "Reset to default datetime column"
+msgstr ""
 
 msgid "Reset to default folders?"
 msgstr "Atjaunot noklusējuma mapes?"
@@ -18674,7 +18704,7 @@ msgstr "TABULAS"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "LAIKA_DIAPAZONS"
+msgstr ""
 
 msgid "THU"
 msgstr "CE"
@@ -19109,6 +19139,13 @@ msgstr ""
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "URL trūkst dataset_id vai slice_id parametru."
 
+msgid ""
+"The X-axis is a SQL expression, so time range filtering is not applied "
+"automatically. Without a time filter, queries may scan the entire table. "
+"Add a filter on your dataset's time column in the Filters section to "
+"limit the rows read."
+msgstr ""
+
 msgid "The X-axis is not on the filters list"
 msgstr "X ass nav filtru sarakstā"
 
@@ -19540,6 +19577,11 @@ msgid "The extension %(id)s could not be loaded."
 msgstr "Paplašinājumu %(id)s nevarēja ielādēt."
 
 msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
@@ -19572,6 +19614,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "Šīs diagrammas tika izlaistas, jo eksportēšanas laikā radās kļūda:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19712,6 +19760,10 @@ msgstr "Saite tika izveidota, bet to nevarēja nokopēt: %s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Izojoslas sliekšņa diapazona apakšējā robeža"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -19830,6 +19882,13 @@ msgstr[2] "Sekojoši parametri jūsu vaicājumā nav definēti: %(parameters)s."
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -19890,8 +19949,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Lai importētu tālāk norādītās datu bāzes, ir nepieciešamas to paroles."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Laika zīmoga formāta šablons. Tekstam izmantojiet "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20445,7 +20518,11 @@ msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Transformācija atbilda izlases rindām, nevis visai datu kopai."
 
 #, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -20459,7 +20536,9 @@ msgstr ""
 "nevar ierakstīt vaicājumā kā %(type)s vērtību, to nemainot. Filtri šajā "
 "kartējumā netiks atspoguļoti."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
 
 msgid "The two passwords that you entered do not match!"
@@ -20559,11 +20638,15 @@ msgstr ""
 "atsevišķā sesijā un rezultāts tiek kešots, tāpēc izveidotais predikāts "
 "iesaldētu šī brīža momentuzņēmumu."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -20599,6 +20682,13 @@ msgstr "Servisa versija"
 #, fuzzy
 msgid "The view configuration must be a JSON object."
 msgstr "Skata konfigurācijai jābūt JSON objektam."
+
+msgid ""
+"The virtual dataset query could not be safely parsed, so the tables it "
+"references cannot be resolved. Qualify tables explicitly and avoid "
+"dynamic SQL or statements that change the default schema (e.g. USE, "
+"search_path)."
+msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "Slāņa redzamais virsraksts"
@@ -21257,6 +21347,9 @@ msgstr "Šī diagramma tika atjaunināta, lai izmantotu atjaunoto agregāciju"
 #, fuzzy
 msgid "This chart will be restored to the following version:"
 msgstr "Šī diagramma tiks atjaunota uz šādu versiju:"
+
+msgid "This chart's cross-filtering scope doesn't include any other charts."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22146,8 +22239,18 @@ msgstr ""
 msgid "Time-series Period Pivot"
 msgstr "Laika rindu periodu šķērsgriezums"
 
+msgid ""
+"Time-series Period Pivot is not yet supported on semantic views. Use a "
+"Line or Bar chart."
+msgstr ""
+
 msgid "Time-series Table"
 msgstr "Laika rindu tabula"
+
+msgid ""
+"Time-series Table is not yet supported on semantic views. Use a Table "
+"chart with an explicit time dimension."
+msgstr ""
 
 #, fuzzy
 msgid "Timed Out"
@@ -24434,6 +24537,16 @@ msgstr "Jā, pārrakstīt izmaiņas"
 msgid "You are adding tags to %s %ss"
 msgstr "Jūs pievienojat birkas %s %ss"
 
+msgid ""
+"You are already subscribed to this chart. Your existing report has been "
+"opened for editing."
+msgstr ""
+
+msgid ""
+"You are already subscribed to this dashboard. Your existing report has "
+"been opened for editing."
+msgstr ""
+
 msgid "You are editing a query from the virtual dataset "
 msgstr "Jūs rediģējat vaicājumu no virtuālās datu kopas "
 
@@ -24619,6 +24732,12 @@ msgstr "Jums nav atļaujas rediģēt šo paneli"
 msgid ""
 "You do not have permission to import this asset. Ask its owner or an "
 "administrator for the required access, then retry."
+msgstr ""
+
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
 msgstr ""
 
 #, fuzzy
@@ -24908,7 +25027,7 @@ msgstr ""
 "Jūs mainījāt datu kopas. Visas vadīklas ar datiem (kolonnām, metrikām), "
 "kas atbilst šai jaunajai datu kopai, ir saglabātas."
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "Jūsu konts ir aktivizēts. Jūs varat pieslēgties ar jūsu rekvizītiem."
 
 msgid "Your changes will be lost if you leave without saving."
@@ -25056,6 +25175,9 @@ msgstr "atslēga z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP fails satur vairākus failu veidus"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25251,7 +25373,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "zibens"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25424,7 +25546,7 @@ msgstr "deck.gl kontūra"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl režģis"
@@ -25491,6 +25613,9 @@ msgstr ""
 
 msgid "e.g. 5432"
 msgstr "piem. 5432"
+
+msgid "e.g. 8082 (8888 for the router)"
+msgstr ""
 
 msgid "e.g. AKIAIOSFODNN7EXAMPLE"
 msgstr ""
@@ -25561,7 +25686,7 @@ msgstr "ieraksti"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "kļūdas_ziņojums"
+msgstr ""
 
 msgid "every"
 msgstr "katru"
@@ -26275,7 +26400,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "jūsu-projekts-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "tālummaiņas zona"

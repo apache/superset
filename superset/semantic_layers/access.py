@@ -19,7 +19,10 @@
 
 from typing import TYPE_CHECKING
 
-from superset.exceptions import SupersetException
+from werkzeug.exceptions import BadRequest
+
+from superset.exceptions import QueryObjectValidationError, SupersetException
+from superset.semantic_layers.chart_types import validate_semantic_chart_type
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -33,6 +36,16 @@ class SemanticLayersDisabledError(SupersetException):
     message: str = "Semantic layers are not enabled."
 
 
+class SemanticChartImageError(BadRequest):
+    """Expose the chart refusal unchanged through FAB's safe error handler."""
+
+    status: int = 400
+
+    def __str__(self) -> str:
+        """Return the user message without Werkzeug's HTTP status prefix."""
+        return str(self.description)
+
+
 def is_semantic_layers_enabled() -> bool:
     """Evaluate the host's semantic-layer feature decision on every call."""
     from superset import feature_flag_manager
@@ -41,10 +54,18 @@ def is_semantic_layers_enabled() -> bool:
 
 
 def is_semantic_image_unavailable(resource: "Slice | Dashboard") -> bool:
-    """Refuse an image containing semantic data under the active feature decision."""
-    if is_semantic_layers_enabled():
-        return False
+    """Refuse disabled semantic data or raise for unsupported chart images."""
     from superset.models.slice import Slice
 
     charts: list[Slice] = [resource] if isinstance(resource, Slice) else resource.slices
-    return any(chart.datasource_type == "semantic_view" for chart in charts)
+    if not is_semantic_layers_enabled():
+        return any(chart.datasource_type == "semantic_view" for chart in charts)
+    if not isinstance(resource, Slice):
+        return False
+    for chart in charts:
+        try:
+            validate_semantic_chart_type(chart.datasource_type, chart.viz_type)
+        except QueryObjectValidationError as error:
+            # Image APIs use FAB's safe decorator, which translates BadRequest.
+            raise SemanticChartImageError(error.message) from error
+    return False

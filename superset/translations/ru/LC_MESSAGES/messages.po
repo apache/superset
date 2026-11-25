@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-20 04:48-0500\n"
+"POT-Creation-Date: 2026-11-25 03:24-0500\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -142,47 +142,12 @@ msgstr " новый"
 msgid " at line %(line)d"
 msgstr " в строке %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr ", который должен придерживаться "
-
 msgid " for details."
 msgstr " для получения подробной информации."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " возле '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" стандарту, чтобы лексикографический порядок\n"
-"                      совпадал с хронологическим. Если формат\n"
-"                      метки времени не соответствует стандарту ISO 8601,\n"
-"                      необходимо задать выражение и тип для\n"
-"                      преобразования строки в дату или метку времени. "
-"Обратите внимание:\n"
-"                      часовые пояса в настоящее время не поддерживаются. "
-"Если время хранится\n"
-"                      в формате epoch, укажите `epoch_s`, `epoch_ms` или "
-"`epoch_us`. Если шаблон\n"
-"                      не указан, используются необязательные значения по "
-"умолчанию для каждой\n"
-"                      базы данных/имени столбца через параметр extra."
 
 msgid " to add calculated columns"
 msgstr " для добавления вычисляемых столбцов"
@@ -290,8 +255,24 @@ msgstr ""
 "соображениям безопасности"
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s или %(lastSuggestion)s вместо "
+"\"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid "%(label)s file"
@@ -403,20 +384,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Получено строк: %(rows)d"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] ""
-"%(firstSuggestions)s или %(lastSuggestion)s вместо "
-"\"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s или %(lastSuggestion)s вместо "
-"\"%(undefinedParameter)s\"?"
-msgstr[2] ""
-"%(firstSuggestions)s или %(lastSuggestion)s вместо "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s вместо \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -3209,6 +3180,12 @@ msgstr ""
 msgid "Archived by"
 msgstr "Кто архивировал"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3355,6 +3332,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Стрелка"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Задайте набор параметров в формате"
@@ -3955,6 +3936,11 @@ msgstr "Тип расчета"
 msgid "Calendar Heatmap"
 msgstr "Календарная тепловая карта"
 
+msgid ""
+"Calendar Heatmap is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "Can not move top level tab into nested tabs"
 msgstr "Невозможно перенести вкладку верхнего уровня во вложенную вкладку"
 
@@ -4364,6 +4350,10 @@ msgstr "Диаграмма [%s] сохранена"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Диаграмма [%s] добавлена на дашборд [%s]"
 
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
+
 msgid "Chart cache timeout"
 msgstr "Время жизни кэша диаграммы"
 
@@ -4451,6 +4441,9 @@ msgstr "Заголовок диаграммы"
 
 msgid "Chart type"
 msgstr "Тип диаграммы"
+
+msgid "Chart type must be a string."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -5917,8 +5910,10 @@ msgstr "Малиновый"
 msgid "Cross-filter column"
 msgstr "Столбец кросс-фильтрации"
 
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
-msgstr "Кросс-фильтр будет применен ко всем диаграммам, использующим этот датасет"
+msgid ""
+"Cross-filter will be applied to the charts in this chart's cross-"
+"filtering scope."
+msgstr ""
 
 msgid "Cross-filtering is not enabled for this dashboard."
 msgstr "Кросс-фильтрация отключена на этом дашборде"
@@ -7253,6 +7248,9 @@ msgstr "Описание, отображаемое под Карточкой"
 
 msgid "Deselect all"
 msgstr "Снять выделение"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 msgid "Design with"
 msgstr "Создайте дизайн в"
@@ -8747,10 +8745,6 @@ msgstr ""
 msgid "Explore"
 msgstr "Исследовать"
 
-#, python-format
-msgid "Explore - %(table)s"
-msgstr "Исследовать - %(table)s"
-
 msgid "Explore the result set in the data exploration view"
 msgstr "Создать диаграмму на основе этих данных"
 
@@ -8900,6 +8894,9 @@ msgstr "Выражение не может быть пустым"
 msgid "Expression evaluated — data not checked"
 msgstr "Выражение вычислено — данные не проверены"
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
 msgid ""
@@ -9001,6 +8998,10 @@ msgstr "Не удалось скопировать ошибку в буфер о
 
 msgid "Failed to create API key"
 msgstr "Не удалось создать ключ API"
+
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10024,6 +10025,10 @@ msgstr "Гость не может изменять данные диаграм�
 msgid "HTTP Path"
 msgstr "Путь HTTP"
 
+msgid "HTTPS will be used to connect to the Druid SQL endpoint."
+msgstr ""
+
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10105,7 +10110,15 @@ msgstr "Максимальное значение за каждый период
 msgid "Histogram"
 msgstr "Гистограмма"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgid ""
+"Histogram is not yet supported on semantic views. Use a Bar or Table "
+"chart with an explicit count metric."
+msgstr ""
+
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
 
 msgid "Home"
@@ -10113,6 +10126,9 @@ msgstr "Главная"
 
 msgid "Horizon Chart"
 msgstr "Горизонтальная диаграмма"
+
+msgid "Horizon is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
 
 msgid "Horizontal"
 msgstr "Горизонтально"
@@ -10183,9 +10199,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Коды ISO 3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11562,9 +11575,6 @@ msgstr "Логарифмическая ось X"
 msgid "Logarithmic y-axis"
 msgstr "Логарифмическая ось Y"
 
-msgid "Login"
-msgstr "Вход в систему"
-
 msgid "Login count"
 msgstr "Количество входов"
 
@@ -12608,6 +12618,11 @@ msgstr "Диаграмма Найтингейл"
 msgid "Nightingale Rose Chart"
 msgstr "Диаграмма \"Роза Найтингейл\""
 
+msgid ""
+"Nightingale Rose is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "No"
 msgstr "Нет"
 
@@ -12737,6 +12752,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "Нет объектов, помеченных этим тегом"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Без фильтрации"
@@ -13044,6 +13062,9 @@ msgstr "Не добавлено ни на один дашборд"
 
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "Заполнены не все обязательные поля:"
+
+msgid "Not authorized"
+msgstr ""
 
 msgid "Not available"
 msgstr "Не доступно"
@@ -13485,6 +13506,9 @@ msgstr "Открыть в SQL Lab"
 msgid "Open in SQL lab"
 msgstr "Открыть в SQL Lab"
 
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -13495,6 +13519,9 @@ msgstr "Открыть в SQL Lab"
 
 msgid "Opening value for each period."
 msgstr "Значение открытия за каждый период."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -13788,6 +13815,11 @@ msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Таблица парного t-теста"
+
+msgid ""
+"Paired t-test is not yet supported on semantic views. Use a Table chart "
+"to inspect the metric by time."
+msgstr ""
 
 msgid "Pandas resample method"
 msgstr "Метод ресемплирования данных библиотеки Pandas"
@@ -14535,9 +14567,6 @@ msgstr "Вынести метки за пределы диаграммы"
 
 msgid "Put your code here"
 msgstr "Введите произвольный текст в формате html или markdown"
-
-msgid "Python datetime string pattern"
-msgstr "Шаблон строки даты и времени Python"
 
 msgid "Quarter"
 msgstr "Квартал"
@@ -15355,6 +15384,9 @@ msgstr "Сброс пароля"
 
 msgid "Reset state"
 msgstr "Сбросить текущее состояние"
+
+msgid "Reset to default datetime column"
+msgstr ""
 
 msgid "Reset to default folders?"
 msgstr "Сбросить папки к значениям по умолчанию?"
@@ -18745,6 +18777,13 @@ msgstr ""
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "В URL отсутствуют параметры dataset_id или slice_id."
 
+msgid ""
+"The X-axis is a SQL expression, so time range filtering is not applied "
+"automatically. Without a time filter, queries may scan the entire table. "
+"Add a filter on your dataset's time column in the Filters section to "
+"limit the rows read."
+msgstr ""
+
 msgid "The X-axis is not on the filters list"
 msgstr "Ось X отсутствует в списке фильтров"
 
@@ -19171,6 +19210,11 @@ msgid "The extension %(id)s could not be loaded."
 msgstr "Не удалось загрузить расширение %(id)s."
 
 msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
@@ -19203,6 +19247,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "Следующие диаграммы были пропущены из-за ошибки при экспорте:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19350,6 +19400,10 @@ msgstr "Ссылка создана, но не может быть скопир�
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Нижняя граница диапазона порогов для изополосы"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -19462,6 +19516,13 @@ msgstr[2] "Следующие параметры в запросе не опре
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -19522,8 +19583,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Для импорта баз данных, указанных ниже, необходимы пароли."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Шаблон формата отметки времени (таймштампа). Для строк используйте "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20083,7 +20158,11 @@ msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Преобразование соответствовало строкам выборки, а не всему набору данных."
 
 #, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -20097,7 +20176,9 @@ msgstr ""
 "не может записать в запрос как значение типа %(type)s без изменения. "
 "Фильтры для этого сопоставления не будут отражаться."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
 
 msgid "The two passwords that you entered do not match!"
@@ -20195,11 +20276,15 @@ msgstr ""
 "сеансе, а результат кэшируется, поэтому сформированный предикат "
 "зафиксировал бы снимок этого момента."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -20235,6 +20320,13 @@ msgstr "Версия используемого сервиса"
 #, fuzzy
 msgid "The view configuration must be a JSON object."
 msgstr "Конфигурация представления должна быть объектом JSON."
+
+msgid ""
+"The virtual dataset query could not be safely parsed, so the tables it "
+"references cannot be resolved. Qualify tables explicitly and avoid "
+"dynamic SQL or statements that change the default schema (e.g. USE, "
+"search_path)."
+msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "Отображаемое название слоя"
@@ -20884,6 +20976,9 @@ msgstr "Эта диаграмма была обновлена для испол�
 #, fuzzy
 msgid "This chart will be restored to the following version:"
 msgstr "Этот график будет восстановлен до следующей версии:"
+
+msgid "This chart's cross-filtering scope doesn't include any other charts."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21766,8 +21861,18 @@ msgstr ""
 msgid "Time-series Period Pivot"
 msgstr "Сводная таблица временных периодов"
 
+msgid ""
+"Time-series Period Pivot is not yet supported on semantic views. Use a "
+"Line or Bar chart."
+msgstr ""
+
 msgid "Time-series Table"
 msgstr "Таблица временных рядов"
+
+msgid ""
+"Time-series Table is not yet supported on semantic views. Use a Table "
+"chart with an explicit time dimension."
+msgstr ""
 
 #, fuzzy
 msgid "Timed Out"
@@ -24035,6 +24140,16 @@ msgstr "Да, перезаписать изменения"
 msgid "You are adding tags to %s %ss"
 msgstr "Вы применяете теги к %s %s"
 
+msgid ""
+"You are already subscribed to this chart. Your existing report has been "
+"opened for editing."
+msgstr ""
+
+msgid ""
+"You are already subscribed to this dashboard. Your existing report has "
+"been opened for editing."
+msgstr ""
+
 msgid "You are editing a query from the virtual dataset "
 msgstr "Вы редактируете запрос из виртуального датасета "
 
@@ -24220,6 +24335,12 @@ msgstr "Недостаточно на редактирование этого д
 msgid ""
 "You do not have permission to import this asset. Ask its owner or an "
 "administrator for the required access, then retry."
+msgstr ""
+
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
 msgstr ""
 
 msgid "You do not have permission to perform this operation"
@@ -24501,7 +24622,7 @@ msgstr ""
 "Вы изменили датасеты. Все элементы управления с данными (столбцами, "
 "мерами), которые соответствуют новому датасету, были сохранены."
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr ""
 "Ваша учетная запись активирована. Вы можете войти, используя свои учетные"
 " данные."
@@ -24648,6 +24769,9 @@ msgstr "по алфавиту Я-А"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP-архив содержит файлы разных типов"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25008,7 +25132,7 @@ msgstr "Deck.gl - Контурная карта"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Deck.gl - Сетка"
@@ -25062,7 +25186,7 @@ msgstr "документацией"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "Дата и время"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "например, ********"
@@ -25075,6 +25199,9 @@ msgstr ""
 
 msgid "e.g. 5432"
 msgstr "например, 5432"
+
+msgid "e.g. 8082 (8888 for the router)"
+msgstr ""
 
 msgid "e.g. AKIAIOSFODNN7EXAMPLE"
 msgstr ""

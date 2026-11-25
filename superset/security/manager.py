@@ -23,12 +23,14 @@ import re
 import time
 from collections import defaultdict
 from collections.abc import Set as AbstractSet
+from contextlib import contextmanager
 from math import ceil
 from types import SimpleNamespace
 from typing import (
     Any,
     Callable,
     cast,
+    Iterator,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -2543,9 +2545,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         user = g.user
-        if user.is_anonymous:
-            return self.is_item_public(permission_name, view_name)
-        return self._has_view_access(user, permission_name, view_name)
+        cached: tuple[Any, dict[tuple[str, str], bool]] | None = getattr(
+            g, "_permission_check_cache", None
+        )
+        key: tuple[str, str] = (permission_name, view_name)
+        if cached is not None and cached[0] is user and key in cached[1]:
+            return cached[1][key]
+        allowed: bool = (
+            self.is_item_public(permission_name, view_name)
+            if user.is_anonymous
+            else self._has_view_access(user, permission_name, view_name)
+        )
+        if cached is not None and cached[0] is user:
+            cached[1][key] = allowed
+        return allowed
+
+    @contextmanager
+    def cache_permission_checks(self) -> Iterator[None]:
+        """Memoize exact permission checks during one read-only serialization.
+
+        Do not use around permission writes or authentication changes. The cache
+        belongs to the Flask context and the ``g.user`` binding at scope entry.
+        Reassigning that binding bypasses it; a re-login behind the same
+        LocalProxy would not. The read-only list dump does not authenticate.
+        The cache is discarded even if serialization fails, and custom
+        security-manager overrides still run normally.
+        """
+        previous: tuple[Any, dict[tuple[str, str], bool]] | None = getattr(
+            g, "_permission_check_cache", None
+        )
+        g._permission_check_cache = (getattr(g, "user", None), {})
+        try:
+            yield
+        finally:
+            if previous is None:
+                g.pop("_permission_check_cache", None)
+            else:
+                g._permission_check_cache = previous
 
     def can_access_catalog_scoped(
         self,
@@ -4140,6 +4176,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database_id: int,
         database_name: str,
     ) -> None:
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+            Database,
+        )
+
         view_menu_name = self.get_database_perm(database_id, database_name)
         # Clean database access permission
         self._delete_pvm_on_sqla_event(
@@ -4156,10 +4196,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.permission_model.name == "catalog_access",
                 )
             )
-            .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
+            .filter(
+                self.viewmenu_model.name.startswith(
+                    f"[{database_name}].[", autoescape=True
+                )
+            )
             .all()
         )
+        # A different database can extend the same bracket-delimited prefix.
+        foreign_prefixes = [
+            f"[{name}]."
+            for (name,) in self.session.query(Database.database_name).filter(
+                Database.id != database_id,
+                Database.database_name.startswith(
+                    f"{database_name}].", autoescape=True
+                ),
+            )
+        ]
         for schema_pvm in schema_pvms:
+            if any(
+                schema_pvm.view_menu.name.startswith(prefix)
+                for prefix in foreign_prefixes
+            ):
+                continue
             self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
 
     def _update_vm_database_access(
@@ -4195,13 +4254,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         new_updated_pvm = self.find_permission_view_menu(
             "database_access", new_view_menu_name
         )
-        if new_updated_pvm:
+        if new_updated_pvm and new_updated_pvm.id != db_pvm.id:
             logger.info(
                 "New permission [%s] already exists, deleting the previous",
                 new_view_menu_name,
             )
-            self._delete_vm_database_access(
-                mapper, connection, target.id, old_database_name
+            # Mapper events cannot flush ORM relationship changes: merge grants
+            # through the event connection before deleting the source PVM.
+            source_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id == db_pvm.id
+                    )
+                ).scalars()
+            )
+            destination_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id
+                        == new_updated_pvm.id
+                    )
+                ).scalars()
+            )
+            for role_id in source_roles - destination_roles:
+                connection.execute(
+                    assoc_permissionview_role.insert().values(
+                        role_id=role_id, permission_view_id=new_updated_pvm.id
+                    )
+                )
+            # Leave schema/catalog grants for permission sync to migrate.
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "database_access", old_view_menu_name
             )
             return None
         connection.execute(

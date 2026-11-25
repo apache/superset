@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-11-20 04:48-0500\n"
+"POT-Creation-Date: 2026-11-25 03:24-0500\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -131,9 +131,6 @@ msgstr "另存为新的"
 msgid " at line %(line)d"
 msgstr "在第 %(line)d 行"
 
-msgid " expression which needs to adhere to the "
-msgstr " 表达式必须基于 "
-
 msgid " for details."
 msgstr " 详细信息"
 
@@ -142,35 +139,6 @@ msgstr " 详细信息"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr "在 '%(highlight)s' 附近"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" 标准,以确保字典序\n"
-"                      与时间顺序一致。如果\n"
-"                      时间戳格式不符合 ISO 8601 标准,\n"
-"                      则需要定义一个表达式和类型,\n"
-"                      用于将字符串转换为日期或时间戳。注意:\n"
-"                      目前不支持时区。如果时间\n"
-"                      以 epoch 格式存储,请填写 `epoch_s`、`epoch_ms` 或 "
-"`epoch_us`。如果未指定\n"
-"                      格式,则会通过 extra 参数回退使用按\n"
-"                      数据库/列名级别设置的可选默认值。"
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -282,7 +250,21 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "出于安全原因，%(dialect)s 不能用作数据源。"
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -383,12 +365,10 @@ msgstr "%(report_type)s 计划频率超出限制。请配置每次执行最小�
 msgid "%(rows)d rows returned"
 msgstr "返回了 %(rows)d 行"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 吗？"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 吗？"
 
 #, python-format
 msgid ""
@@ -3080,6 +3060,12 @@ msgstr "已归档 %s 个项目；永久删除了 %s 个语义视图"
 msgid "Archived by"
 msgstr "归档人"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3211,6 +3197,10 @@ msgstr "时间序列面积图与折线图相似，因为它们表示具有相同
 
 msgid "Arrow"
 msgstr "箭头"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "将一组参数指定为"
@@ -3841,6 +3831,11 @@ msgstr "计算类型"
 msgid "Calendar Heatmap"
 msgstr "日历热力图"
 
+msgid ""
+"Calendar Heatmap is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "Can not move top level tab into nested tabs"
 msgstr "无法将顶级选项卡移动到嵌套选项卡中"
 
@@ -4272,6 +4267,10 @@ msgstr "图表 [%s] 已经保存"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "图表 [%s] 已添加到看板 [%s]"
 
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
+
 msgid "Chart cache timeout"
 msgstr "图表缓存超时"
 
@@ -4369,6 +4368,9 @@ msgstr "图表标题"
 
 msgid "Chart type"
 msgstr "图表类型"
+
+msgid "Chart type must be a string."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -5830,11 +5832,10 @@ msgstr "血红色"
 msgid "Cross-filter column"
 msgstr "交叉筛选列"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk]
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
-msgstr "交叉筛选将应用于所有使用此数据集的图表。"
+msgid ""
+"Cross-filter will be applied to the charts in this chart's cross-"
+"filtering scope."
+msgstr ""
 
 #, fuzzy
 msgid "Cross-filtering is not enabled for this dashboard."
@@ -6105,7 +6106,7 @@ msgstr "十二月"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "删除"
+msgstr ""
 
 msgid "DML"
 msgstr "允许DML"
@@ -7137,6 +7138,9 @@ msgstr "在大数字下面显示描述文本"
 msgid "Deselect all"
 msgstr "取消全选"
 
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
+
 msgid "Design with"
 msgstr "使用设计"
 
@@ -7711,9 +7715,8 @@ msgid "ECharts Options (JS object literals)"
 msgstr "ECharts 选项（JS 对象字面量）"
 
 #. do-not-translate
-#, fuzzy
 msgid "EMAIL_REPORTS_CTA"
-msgstr "激活邮件报告"
+msgstr ""
 
 #, fuzzy
 msgid "ERROR"
@@ -8656,10 +8659,6 @@ msgstr "显式格式会根据内置边界验证所有值。支持的国家/地�
 msgid "Explore"
 msgstr "探索"
 
-#, python-format
-msgid "Explore - %(table)s"
-msgstr "查看 - %(table)s"
-
 msgid "Explore the result set in the data exploration view"
 msgstr "在数据探索视图中探索结果集"
 
@@ -8794,6 +8793,9 @@ msgstr "表达式不能为空"
 msgid "Expression evaluated — data not checked"
 msgstr "表达式已计算 — 未检查数据"
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 #, python-format
 msgid ""
 "Extension '%(extension_id)s' has exceeded its persistent storage quota of"
@@ -8898,6 +8900,10 @@ msgstr "复制堆栈跟踪到剪贴板失败"
 
 msgid "Failed to create API key"
 msgstr "创建 API 密钥失败"
+
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9733,9 +9739,8 @@ msgid "Further customize how to display each metric"
 msgstr "进一步定制如何显示每个指标"
 
 #. do-not-translate
-#, fuzzy
 msgid "GROUP BY"
-msgstr "分组"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "甘特图"
@@ -9960,6 +9965,10 @@ msgstr "访客用户无法修改图表负载"
 msgid "HTTP Path"
 msgstr "HTTP 路径"
 
+msgid "HTTPS will be used to connect to the Druid SQL endpoint."
+msgstr ""
+
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10049,7 +10058,15 @@ msgstr "每个周期的最高值。"
 msgid "Histogram"
 msgstr "直方图"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgid ""
+"Histogram is not yet supported on semantic views. Use a Bar or Table "
+"chart with an explicit count metric."
+msgstr ""
+
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
 
 msgid "Home"
@@ -10057,6 +10074,9 @@ msgstr "主页"
 
 msgid "Horizon Chart"
 msgstr "地平线图"
+
+msgid "Horizon is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
 
 #, fuzzy
 msgid "Horizontal"
@@ -10129,9 +10149,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 代码"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11539,9 +11556,6 @@ msgstr "对数 x 轴"
 msgid "Logarithmic y-axis"
 msgstr "对数 y 轴"
 
-msgid "Login"
-msgstr "登录"
-
 msgid "Login count"
 msgstr "登录次数"
 
@@ -12486,7 +12500,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "未分组"
+msgstr ""
 
 msgid "NOV"
 msgstr "十一月"
@@ -12623,6 +12637,11 @@ msgstr "南丁格尔玫瑰图"
 msgid "Nightingale Rose Chart"
 msgstr "南丁格尔玫瑰图"
 
+msgid ""
+"Nightingale Rose is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "No"
 msgstr "否"
 
@@ -12755,6 +12774,9 @@ msgstr ""
 #, fuzzy
 msgid "No entities have this tag currently assigned"
 msgstr "当前没有实体被分配此标签"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "无筛选"
@@ -13061,6 +13083,9 @@ msgstr "没有添加到任何看板"
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "并非所有必填字段都已填写。请提供以下内容："
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "不可用"
 
@@ -13282,7 +13307,7 @@ msgstr "或者"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "覆盖"
+msgstr ""
 
 msgid "October"
 msgstr "十月"
@@ -13509,6 +13534,9 @@ msgstr "在 SQL Lab 中打开"
 msgid "Open in SQL lab"
 msgstr "在 SQL Lab 中打开"
 
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -13519,6 +13547,9 @@ msgstr "在 SQL Lab 中打开查询"
 
 msgid "Opening value for each period."
 msgstr "每个周期的开盘值。"
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -13772,6 +13803,11 @@ msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "配对t检验表"
+
+msgid ""
+"Paired t-test is not yet supported on semantic views. Use a Table chart "
+"to inspect the metric by time."
+msgstr ""
 
 msgid "Pandas resample method"
 msgstr "Pandas 重采样方法"
@@ -14564,9 +14600,6 @@ msgstr "是否将标签显示在饼图外侧？"
 
 msgid "Put your code here"
 msgstr "把您的代码放在这里"
-
-msgid "Python datetime string pattern"
-msgstr "Python日期时间字符串模式"
 
 msgid "Quarter"
 msgstr "季度"
@@ -15370,6 +15403,9 @@ msgstr "重置密码"
 
 msgid "Reset state"
 msgstr "状态重置"
+
+msgid "Reset to default datetime column"
+msgstr ""
 
 msgid "Reset to default folders?"
 msgstr "重置为默认文件夹？"
@@ -18341,9 +18377,8 @@ msgid "TABLES"
 msgstr "表"
 
 #. do-not-translate
-#, fuzzy
 msgid "TEMPORAL_RANGE"
-msgstr "时间范围"
+msgstr ""
 
 msgid "THU"
 msgstr "星期四"
@@ -18738,6 +18773,13 @@ msgstr ""
 # uk]
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "URL缺少dataset_id或slice_id参数。"
+
+msgid ""
+"The X-axis is a SQL expression, so time range filtering is not applied "
+"automatically. Without a time filter, queries may scan the entire table. "
+"Add a filter on your dataset's time column in the Filters section to "
+"limit the rows read."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19151,6 +19193,11 @@ msgstr "用于计算所有尺寸的指数。仅限\"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr "扩展 %(id)s 无法加载。"
 
+msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -19181,6 +19228,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "以下图表因导出时发生错误而被省略："
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19313,6 +19366,10 @@ msgstr "链接已生成,但无法复制:%s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Isoband 阈值范围的下限"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -19413,6 +19470,13 @@ msgstr[0] "查询中的以下参数未定义：%(parameters)s 。"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr "分区列不能映射到自身。%(name)s 既是分区列又是被映射的列。"
@@ -19470,8 +19534,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "需要以下数据库的密码才能导入它们。"
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "时间戳格式的模式。供字符串使用 "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19942,7 +20020,11 @@ msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "该转换匹配的是抽样行，而非整个数据集。"
 
 #, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -19955,7 +20037,9 @@ msgstr ""
 "该转换为 %(column)s 返回了 %(returned)s，此数据库无法在不更改的情况下将其作为 %(type)s "
 "值写入查询。此映射上的过滤器将不会被镜像。"
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
 
 msgid "The two passwords that you entered do not match!"
@@ -20044,11 +20128,15 @@ msgid ""
 "that moment."
 msgstr "该值转换调用了 %(functions)s，其结果取决于运行的时间和地点。转换在单独的会话中求值且结果会被缓存，因此生成的谓词会固化该时刻的快照。"
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -20083,6 +20171,13 @@ msgstr "服务的版本"
 #, fuzzy
 msgid "The view configuration must be a JSON object."
 msgstr "视图配置必须是 JSON 对象。"
+
+msgid ""
+"The virtual dataset query could not be safely parsed, so the tables it "
+"references cannot be resolved. Qualify tables explicitly and avoid "
+"dynamic SQL or statements that change the default schema (e.g. USE, "
+"search_path)."
+msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "图层的可见标题"
@@ -20683,6 +20778,9 @@ msgstr "此图表已更新为使用恢复后的聚合"
 #, fuzzy
 msgid "This chart will be restored to the following version:"
 msgstr "此图表将被恢复到以下版本:"
+
+msgid "This chart's cross-filtering scope doesn't include any other charts."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21513,8 +21611,18 @@ msgstr "时间字符串不明确。请指定为 [%(human_readable)s 前] 还是 
 msgid "Time-series Period Pivot"
 msgstr "时间序列周期透视"
 
+msgid ""
+"Time-series Period Pivot is not yet supported on semantic views. Use a "
+"Line or Bar chart."
+msgstr ""
+
 msgid "Time-series Table"
 msgstr "时间序列-表格"
+
+msgid ""
+"Time-series Table is not yet supported on semantic views. Use a Table "
+"chart with an explicit time dimension."
+msgstr ""
 
 msgid "Timed Out"
 msgstr "已超时"
@@ -23732,6 +23840,16 @@ msgstr "是的，覆盖更改"
 msgid "You are adding tags to %s %ss"
 msgstr "您正在为 %s %ss 添加标签"
 
+msgid ""
+"You are already subscribed to this chart. Your existing report has been "
+"opened for editing."
+msgstr ""
+
+msgid ""
+"You are already subscribed to this dashboard. Your existing report has "
+"been opened for editing."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, uk]
 msgid "You are editing a query from the virtual dataset "
@@ -23903,6 +24021,12 @@ msgstr "您没有编辑此看板的权限"
 msgid ""
 "You do not have permission to import this asset. Ask its owner or an "
 "administrator for the required access, then retry."
+msgstr ""
+
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
 msgstr ""
 
 msgid "You do not have permission to perform this operation"
@@ -24155,9 +24279,7 @@ msgid ""
 "match this new dataset have been retained."
 msgstr "您已更改数据集。任何与新数据集匹配的数据控件（列、指标）均已被保留。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "您的账户已激活。您可以使用您的凭据登录。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
@@ -24295,6 +24417,9 @@ msgstr "Z-A"
 #, fuzzy
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP 文件包含多种文件类型"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24498,7 +24623,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "螺栓"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -24750,7 +24875,7 @@ msgstr "文档"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "时间"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "例如：********"
@@ -24763,6 +24888,9 @@ msgstr ""
 
 msgid "e.g. 5432"
 msgstr "例如：5432"
+
+msgid "e.g. 8082 (8888 for the router)"
+msgstr ""
 
 msgid "e.g. AKIAIOSFODNN7EXAMPLE"
 msgstr ""
@@ -24836,9 +24964,8 @@ msgid "entries"
 msgstr "条目"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "错误信息"
+msgstr ""
 
 msgid "every"
 msgstr "每个"
@@ -25247,7 +25374,7 @@ msgstr "未找到持久链接状态"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "透视表"
+msgstr ""
 
 msgid "pixels"
 msgstr "像素"

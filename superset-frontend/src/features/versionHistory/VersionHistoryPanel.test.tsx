@@ -772,3 +772,23 @@ test('leaves the panel unchanged when no footer is registered', () => {
   expect(screen.getByText('No history yet')).toBeInTheDocument();
   expect(screen.queryByRole('note')).not.toBeInTheDocument();
 });
+
+test('an archive-only dashboard shows activity without a fabricated content version', () => {
+  const timeline = buildTimeline([
+    record({
+      source: 'related',
+      kind: '__archive__',
+      operation: 'announce',
+      version_uuid: null,
+      entity_deletion_state: 'soft_deleted',
+      path: null,
+      to_value: null,
+    }),
+  ]);
+  render(<VersionHistoryPanel {...defaultProps(timeline, 'dashboard')} />);
+  expect(screen.getByText('Chart archived: My chart')).toBeInTheDocument();
+  expect(screen.queryByText('No history yet')).not.toBeInTheDocument();
+  expect(screen.queryByText('Original version')).not.toBeInTheDocument();
+  expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+  expect(screen.queryByText('Preview')).not.toBeInTheDocument();
+});

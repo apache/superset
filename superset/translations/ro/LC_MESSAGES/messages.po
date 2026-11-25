@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-20 04:48-0500\n"
+"POT-Creation-Date: 2026-11-25 03:24-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -150,48 +150,12 @@ msgstr " unul nou"
 msgid " at line %(line)d"
 msgstr " la linia %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " expresie care trebuie să respecte "
-
 msgid " for details."
 msgstr " pentru detalii."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " lângă '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" standard pentru a asigura că ordonarea lexicografică\n"
-"                      coincide cu ordonarea cronologică. Dacă formatul\n"
-"                      marcajului temporal nu respectă standardul ISO "
-"8601,\n"
-"                      va trebui să definiți o expresie și un tip pentru\n"
-"                      transformarea șirului într-o dată sau un marcaj "
-"temporal. Rețineți\n"
-"                      că în prezent fusurile orare nu sunt acceptate. "
-"Dacă timpul este stocat\n"
-"                      în format epoch, introduceți `epoch_s`, `epoch_ms` "
-"sau `epoch_us`. Dacă nu este\n"
-"                      specificat niciun model, se utilizează valorile "
-"implicite opționale la nivel de\n"
-"                      bază de date/nume de coloană prin parametrul extra."
 
 msgid " to add calculated columns"
 msgstr " pentru a adăuga coloane calculate"
@@ -303,8 +267,24 @@ msgstr ""
 "securitate."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
+"\"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid "%(label)s file"
@@ -420,18 +400,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d rânduri returnate"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(lastSuggestion)s în loc de \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
-"\"%(undefinedParameter)s\"?"
-msgstr[2] ""
-"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s în loc de \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -3436,6 +3408,12 @@ msgstr ""
 msgid "Archived by"
 msgstr "Arhivat de"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3583,6 +3561,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Săgeată"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Atribuie un set de parametri ca"
@@ -4211,6 +4193,11 @@ msgstr "Tip calcul"
 msgid "Calendar Heatmap"
 msgstr "Hartă Termică Calendaristică"
 
+msgid ""
+"Calendar Heatmap is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "Can not move top level tab into nested tabs"
 msgstr "Nu se poate muta fila de nivel superior în file imbricate"
 
@@ -4645,6 +4632,10 @@ msgstr "Graficul [%s] a fost salvat"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Graficul [%s] a fost adăugat la panoul de control [%s]"
 
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
+
 msgid "Chart cache timeout"
 msgstr "Expirare cache grafic"
 
@@ -4740,6 +4731,9 @@ msgstr "Titlu grafic"
 
 msgid "Chart type"
 msgstr "Tip grafic"
+
+msgid "Chart type must be a string."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -6302,10 +6296,10 @@ msgstr "Crimson"
 msgid "Cross-filter column"
 msgstr "Coloană de filtrare încrucișată"
 
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
+msgid ""
+"Cross-filter will be applied to the charts in this chart's cross-"
+"filtering scope."
 msgstr ""
-"Filtrarea încrucișată va fi aplicată tuturor graficelor care folosesc "
-"acest set de date."
 
 msgid "Cross-filtering is not enabled for this dashboard."
 msgstr "Filtrarea încrucișată nu este activată pentru acest panou de control."
@@ -6575,7 +6569,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ȘTERGE"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -7751,6 +7745,9 @@ msgstr "Text de descriere care apare sub Numărul tău Mare"
 
 msgid "Deselect all"
 msgstr "Golește"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 msgid "Design with"
 msgstr "Proiectează cu"
@@ -9368,10 +9365,6 @@ msgstr ""
 msgid "Explore"
 msgstr "Explorează"
 
-#, python-format
-msgid "Explore - %(table)s"
-msgstr "Explorează - %(table)s"
-
 msgid "Explore the result set in the data exploration view"
 msgstr "Explorează setul de rezultate în vederea de explorare a datelor"
 
@@ -9533,6 +9526,9 @@ msgstr "Expresia nu poate fi goală"
 msgid "Expression evaluated — data not checked"
 msgstr "Expresie evaluată — datele nu au fost verificate"
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
 msgid ""
@@ -9648,6 +9644,10 @@ msgstr "Copierea stack trace-ului în clipboard a eșuat"
 #, fuzzy
 msgid "Failed to create API key"
 msgstr "Crearea cheii API a eșuat"
+
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10525,7 +10525,7 @@ msgstr "Personalizează suplimentar modul de afișare al fiecărui indicator"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GRUPARE DUPĂ"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Grafic Gantt"
@@ -10747,6 +10747,10 @@ msgstr "Utilizatorul oaspete nu poate modifica payload-ul graficului"
 msgid "HTTP Path"
 msgstr "Cale HTTP"
 
+msgid "HTTPS will be used to connect to the Druid SQL endpoint."
+msgstr ""
+
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10834,7 +10838,15 @@ msgstr "Valoarea maximă pentru fiecare perioadă."
 msgid "Histogram"
 msgstr "Histogramă"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgid ""
+"Histogram is not yet supported on semantic views. Use a Bar or Table "
+"chart with an explicit count metric."
+msgstr ""
+
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
 
 msgid "Home"
@@ -10842,6 +10854,9 @@ msgstr "Acasă"
 
 msgid "Horizon Chart"
 msgstr "Grafic Orizont"
+
+msgid "Horizon is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
 
 msgid "Horizontal"
 msgstr "Orizontal"
@@ -10913,9 +10928,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Coduri ISO 3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12402,9 +12414,6 @@ msgstr "Axă x logaritmică"
 msgid "Logarithmic y-axis"
 msgstr "Axă y logaritmică"
 
-msgid "Login"
-msgstr "Conectare"
-
 msgid "Login count"
 msgstr "Număr conectări"
 
@@ -13368,7 +13377,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NU GRUPAT DUPĂ"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOI"
@@ -13513,6 +13522,11 @@ msgstr "Nightingale"
 msgid "Nightingale Rose Chart"
 msgstr "Grafic Trandafir Nightingale"
 
+msgid ""
+"Nightingale Rose is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "No"
 msgstr "Nu"
 
@@ -13651,6 +13665,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "Nicio entitate nu are această etichetă atribuită în prezent"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Fără filtru"
@@ -13983,6 +14000,9 @@ msgstr ""
 "Nu toate câmpurile obligatorii sunt complete. Vă rugăm să furnizați "
 "următoarele:"
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "Nu este disponibil"
 
@@ -14200,7 +14220,7 @@ msgstr "SAU"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SUPRASCRIE"
+msgstr ""
 
 msgid "October"
 msgstr "Octombrie"
@@ -14437,6 +14457,9 @@ msgstr "Deschide în SQL Lab"
 msgid "Open in SQL lab"
 msgstr "Deschide în SQL lab"
 
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -14447,6 +14470,9 @@ msgstr "Deschide interogare în SQL Lab"
 
 msgid "Opening value for each period."
 msgstr "Valoarea de deschidere pentru fiecare perioadă."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -14744,6 +14770,11 @@ msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Tabel test t pereche"
+
+msgid ""
+"Paired t-test is not yet supported on semantic views. Use a Table chart "
+"to inspect the metric by time."
+msgstr ""
 
 msgid "Pandas resample method"
 msgstr "Metodă de re-eșantionare Pandas"
@@ -15540,9 +15571,6 @@ msgstr "Pune etichetele în afara graficului circular?"
 
 msgid "Put your code here"
 msgstr "Pune codul tău aici"
-
-msgid "Python datetime string pattern"
-msgstr "Model șir datetime Python"
 
 msgid "Quarter"
 msgstr "Trimestru"
@@ -16386,6 +16414,9 @@ msgstr "Resetează parola"
 
 msgid "Reset state"
 msgstr "Resetează starea"
+
+msgid "Reset to default datetime column"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, tr, uk]
@@ -19666,7 +19697,7 @@ msgstr "TABELE"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "INTERVAL_TEMPORAL"
+msgstr ""
 
 msgid "THU"
 msgstr "JOI"
@@ -20131,6 +20162,13 @@ msgstr ""
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "URL-ului îi lipsesc parametrii dataset_id sau slice_id."
 
+msgid ""
+"The X-axis is a SQL expression, so time range filtering is not applied "
+"automatically. Without a time filter, queries may scan the entire table. "
+"Add a filter on your dataset's time column in the Filters section to "
+"limit the rows read."
+msgstr ""
+
 msgid "The X-axis is not on the filters list"
 msgstr "Axa X nu este în lista de filtre"
 
@@ -20582,6 +20620,11 @@ msgid "The extension %(id)s could not be loaded."
 msgstr "Extensia %(id)s nu a putut fi încărcată."
 
 msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
@@ -20619,6 +20662,12 @@ msgid ""
 msgstr ""
 "Următoarele grafice au fost omise deoarece a apărut o eroare la "
 "exportarea lor:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20769,6 +20818,10 @@ msgstr "Linkul a fost generat, dar nu a putut fi copiat: %s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Limita inferioară a intervalului de prag al izobandei"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -20890,6 +20943,13 @@ msgstr[2] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(paramet
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -20954,8 +21014,22 @@ msgstr ""
 "Parolele pentru bazele de date de mai jos sunt necesare pentru a le "
 "importa."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Modelul formatului timestamp. Pentru șiruri folosește "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21523,7 +21597,11 @@ msgstr ""
 "date."
 
 #, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -21537,7 +21615,9 @@ msgstr ""
 "bază de date nu îl poate scrie într-o interogare ca valoare %(type)s fără"
 " a-l modifica. Filtrele de pe această mapare nu vor fi oglindite."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
 
 msgid "The two passwords that you entered do not match!"
@@ -21648,11 +21728,15 @@ msgstr ""
 "sesiune separată, iar rezultatul este păstrat în cache, astfel încât "
 "predicatul generat ar îngheța o instantanee a acelui moment."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -21688,6 +21772,13 @@ msgstr "Versiunea serviciului"
 #, fuzzy
 msgid "The view configuration must be a JSON object."
 msgstr "Configurația vizualizării trebuie să fie un obiect JSON."
+
+msgid ""
+"The virtual dataset query could not be safely parsed, so the tables it "
+"references cannot be resolved. Qualify tables explicitly and avoid "
+"dynamic SQL or statements that change the default schema (e.g. USE, "
+"search_path)."
+msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "Titlul vizibil al stratului"
@@ -22372,6 +22463,9 @@ msgstr "Acest grafic a fost actualizat pentru a utiliza agregarea restaurată"
 #, fuzzy
 msgid "This chart will be restored to the following version:"
 msgstr "Acest grafic va fi restaurat la următoarea versiune:"
+
+msgid "This chart's cross-filtering scope doesn't include any other charts."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23322,8 +23416,18 @@ msgstr ""
 msgid "Time-series Period Pivot"
 msgstr "Serie de timp - Pivot perioadă"
 
+msgid ""
+"Time-series Period Pivot is not yet supported on semantic views. Use a "
+"Line or Bar chart."
+msgstr ""
+
 msgid "Time-series Table"
 msgstr "Tabel serie de timp"
+
+msgid ""
+"Time-series Table is not yet supported on semantic views. Use a Table "
+"chart with an explicit time dimension."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -25715,6 +25819,16 @@ msgstr "Da, suprascrie modificările"
 msgid "You are adding tags to %s %ss"
 msgstr "Adăugați tag-uri la %s %ss"
 
+msgid ""
+"You are already subscribed to this chart. Your existing report has been "
+"opened for editing."
+msgstr ""
+
+msgid ""
+"You are already subscribed to this dashboard. Your existing report has "
+"been opened for editing."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -25908,6 +26022,12 @@ msgstr "Nu aveți permisiunea de a edita acest panou de control"
 msgid ""
 "You do not have permission to import this asset. Ask its owner or an "
 "administrator for the required access, then retry."
+msgstr ""
+
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
@@ -26212,11 +26332,8 @@ msgstr ""
 "Ați schimbat setul de date. Orice controale cu date (coloane, indicatori)"
 " care se potrivesc cu acest nou set de date au fost păstrate."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Your account is activated. You can log in with your credentials."
-msgstr "Contul dvs. este activat. Vă puteți conecta cu acreditările dvs."
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
 
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Modificările dvs. vor fi pierdute dacă plecați fără să salvați."
@@ -26375,6 +26492,9 @@ msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Fișierul ZIP conține mai multe tipuri de fișiere"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26578,7 +26698,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "fulger"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -26840,6 +26960,9 @@ msgstr ""
 msgid "e.g. 5432"
 msgstr "ex. 5432"
 
+msgid "e.g. 8082 (8888 for the router)"
+msgstr ""
+
 msgid "e.g. AKIAIOSFODNN7EXAMPLE"
 msgstr ""
 
@@ -26911,7 +27034,7 @@ msgstr "intrări"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "mesaj_eroare"
+msgstr ""
 
 msgid "every"
 msgstr "fiecare"

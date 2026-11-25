@@ -224,15 +224,16 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     supports_grouping_sets = True
 
     @classmethod
-    def prepare_identifier(
-        cls,
-        name: str,
-        normalize_columns: bool = False,
-    ) -> str:
-        """Preserve exact-case physical identifiers when columns are not normalized."""
-        if normalize_columns:
-            return name
-        return quoted_name(name, quote=True)
+    def prepare_identifier(cls, name: str, exact_case: bool = False) -> str:
+        """
+        Quote exact-case names verbatim. Snowflake folds unquoted identifiers to
+        uppercase, so a case-sensitive lowercase alias such as ``"species"`` in a
+        virtual dataset only resolves when quoted. Physical dataset metadata can
+        be stale or normalized, so it keeps SQLAlchemy's automatic quoting.
+        """
+        if exact_case:
+            return quoted_name(name, quote=True)
+        return name
 
     metadata = {
         "description": "Snowflake is a cloud-native data warehouse.",
@@ -625,9 +626,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ).rstrip("/")
 
         uri = uri.set(database=adjusted_database)
-        if not (schema or current_schema) and "%" in current_catalog:
-            # snowflake-sqlalchemy only decodes the database when a schema path
-            # is present. SQLAlchemy applies connect_args after dialect URL args.
+        if "%" in current_catalog:
+            # snowflake-sqlalchemy 1.x only decodes the database when a schema
+            # path is present, and 2.x does not decode it at all. SQLAlchemy
+            # applies connect_args after dialect URL args, so pass the decoded
+            # name explicitly rather than depend on either behavior.
             connect_args = {
                 **connect_args,
                 "database": parse.unquote_plus(current_catalog),

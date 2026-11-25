@@ -26,6 +26,7 @@ import tomli_w
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
     PUBLISHER_PATTERN,
+    RESERVED_PUBLISHERS,
     TECHNICAL_NAME_PATTERN,
 )
 from superset_extensions_cli.exceptions import ExtensionNameError
@@ -232,6 +233,17 @@ def validate_publisher(publisher: str) -> None:
     if not PUBLISHER_REGEX.match(publisher):
         raise ExtensionNameError(
             "Publisher must start with a letter and contain only lowercase letters, numbers, and hyphens (e.g., 'my-org')"
+        )
+
+    # Said here as well as in the manifest schema, because this is where the
+    # author types the name. An extension's REST endpoints are served under
+    # /extensions/, alongside Superset's own /extensions/list/ and
+    # /extensions/pages/<id>, so a publisher named for one of those would have
+    # its API shadowed by whichever rule Flask matched first.
+    if publisher in RESERVED_PUBLISHERS:
+        raise ExtensionNameError(
+            f"Publisher '{publisher}' is reserved by Superset, which serves "
+            f"/extensions/{publisher}/ itself; choose another publisher"
         )
 
 

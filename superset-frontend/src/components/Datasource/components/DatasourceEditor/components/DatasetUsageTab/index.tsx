@@ -17,6 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
 import { t } from '@apache-superset/core/translation';
 import { styled, css } from '@apache-superset/core/theme';
 import {
@@ -24,7 +26,8 @@ import {
   InfoTooltip,
   Input,
 } from '@superset-ui/core/components';
-import Table, {
+import {
+  Table,
   TableSize,
   SortOrder,
   type TablePaginationConfig,
@@ -32,6 +35,8 @@ import Table, {
 } from '@superset-ui/core/components/Table';
 import { ModifiedInfo, GenericLink } from 'src/components';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import ArchivedLabel from 'src/components/ArchivedLabel';
+import type { ChartLinkedDashboard } from 'src/types/Chart';
 import type Subject from 'src/types/Subject';
 import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 
@@ -40,7 +45,8 @@ const FlexRowContainer = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.sizeUnit}px;
 
-  a {
+  a,
+  > .archived-chart-title {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -54,7 +60,7 @@ const FlexRowContainer = styled.div`
 
 const PAGE_SIZE = 25;
 
-interface Chart {
+export interface UsageChart {
   id?: number;
   slice_name: string;
   url: string;
@@ -69,16 +75,14 @@ interface Chart {
     last_name: string;
     id: number;
   } | null;
-  dashboards: Array<{
-    id: number;
-    dashboard_title: string;
-    url: string;
-  }>;
+  dashboards?: ChartLinkedDashboard[];
+  deleted_at?: string | null;
+  deleted_at_delta_humanized?: string | null;
 }
 
 interface DatasetUsageTabProps {
   datasourceId: number;
-  charts: Chart[];
+  charts: UsageChart[];
   totalCount: number;
   onFetchCharts: (
     page?: number,
@@ -86,7 +90,7 @@ interface DatasetUsageTabProps {
     sortColumn?: string,
     sortDirection?: 'asc' | 'desc',
   ) => Promise<{
-    charts: Chart[];
+    charts: UsageChart[];
     count: number;
     ids: number[];
   }>;
@@ -196,7 +200,7 @@ const DatasetUsageTab = ({
     [handleFetchCharts, sortColumn, sortDirection],
   );
 
-  const handleTableChange: OnChangeFunction<Chart> = useCallback(
+  const handleTableChange: OnChangeFunction<UsageChart> = useCallback(
     (pagination: TablePaginationConfig) => {
       if (pagination?.current && pagination.current !== currentPage)
         handlePageChange(pagination.current);
@@ -210,23 +214,43 @@ const DatasetUsageTab = ({
         title: t('Chart'),
         dataIndex: 'slice_name',
         key: 'slice_name',
-        render: (_: unknown, record: Chart) => (
+        render: (_: unknown, record: UsageChart) => (
           <FlexRowContainer>
-            <GenericLink
-              to={record.url}
-              target="_blank"
-              data-test={`${record.slice_name}-usage-chart-title`}
-            >
-              {record.certified_by && (
-                <>
-                  <CertifiedBadge
-                    certifiedBy={record.certified_by}
-                    details={record.certification_details}
-                  />{' '}
-                </>
-              )}
-              {record.slice_name}
-            </GenericLink>
+            {record.deleted_at ? (
+              <>
+                <span
+                  className="archived-chart-title"
+                  data-test={`${record.slice_name}-usage-chart-title`}
+                >
+                  {record.certified_by && (
+                    <>
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />{' '}
+                    </>
+                  )}
+                  {record.slice_name}
+                </span>
+                <ArchivedLabel />
+              </>
+            ) : (
+              <GenericLink
+                to={record.url}
+                target="_blank"
+                data-test={`${record.slice_name}-usage-chart-title`}
+              >
+                {record.certified_by && (
+                  <>
+                    <CertifiedBadge
+                      certifiedBy={record.certified_by}
+                      details={record.certification_details}
+                    />{' '}
+                  </>
+                )}
+                {record.slice_name}
+              </GenericLink>
+            )}
             {record.description && <InfoTooltip tooltip={record.description} />}
           </FlexRowContainer>
         ),
@@ -245,7 +269,7 @@ const DatasetUsageTab = ({
         title: t('Chart editors'),
         dataIndex: 'editors',
         key: 'editors',
-        render: (_: unknown, record: Chart) => (
+        render: (_: unknown, record: UsageChart) => (
           <SubjectPile subjects={record.editors || []} maxCount={3} />
         ),
         sorter: false,
@@ -255,12 +279,18 @@ const DatasetUsageTab = ({
         title: t('Last modified'),
         dataIndex: 'changed_on_delta_humanized',
         key: 'changed_on_delta_humanized',
-        render: (_, record: Chart) => (
-          <ModifiedInfo
-            date={record.changed_on_delta_humanized}
-            user={record.changed_by || undefined}
-          />
-        ),
+        render: (_, record: UsageChart) =>
+          record.deleted_at ? (
+            <div>
+              <div>{t('Archived')}</div>
+              <div>{record.deleted_at_delta_humanized}</div>
+            </div>
+          ) : (
+            <ModifiedInfo
+              date={record.changed_on_delta_humanized}
+              user={record.changed_by || undefined}
+            />
+          ),
         sorter: true,
         sortOrder:
           sortColumn === 'changed_on_delta_humanized'
@@ -276,14 +306,8 @@ const DatasetUsageTab = ({
         title: t('Dashboard usage'),
         dataIndex: 'dashboards',
         key: 'dashboards',
-        render: (_, record: Chart) => (
-          <DashboardCrossLinks
-            dashboards={record.dashboards.map(d => ({
-              id: d.id,
-              dashboard_title: d.dashboard_title,
-            }))}
-            external
-          />
+        render: (_, record: UsageChart) => (
+          <DashboardCrossLinks dashboards={record.dashboards ?? []} external />
         ),
         sorter: false,
         width: 200,
@@ -322,6 +346,16 @@ const DatasetUsageTab = ({
 
   return (
     <div ref={tableContainerRef}>
+      {isFeatureEnabled(FeatureFlag.SoftDelete) && (
+        <Alert
+          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
+          type="info"
+          closable={false}
+          message={t(
+            'Archived charts and dashboards may still depend on this dataset, including assets you cannot view. Archiving or permanently deleting this dataset can prevent those assets from working after they are recovered.',
+          )}
+        />
+      )}
       <Input.Search
         placeholder={t('Search charts by name, editor, or dashboard')}
         value={searchTerm}
@@ -351,7 +385,7 @@ const DatasetUsageTab = ({
         }
         loading={loading}
         size={TableSize.Middle}
-        rowKey={(record: Chart) =>
+        rowKey={(record: UsageChart) =>
           record.id ? `chart-${record.id}` : `chart-${record.slice_name}`
         }
         tableLayout="fixed"
