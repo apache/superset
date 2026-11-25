@@ -482,6 +482,8 @@ class TestExecuteSql:
         assert rendered_check["sql"] == executed_sql
         assert rendered_check["template_params"] is None
         assert rendered_check["allow_editorship"] is False
+        assert rendered_check["force_dataset_match"] is True
+        assert rendered_check["reject_unscoped_sql"] is True
         assert executed_params is None
 
     @patch("superset.jinja_context.get_template_processor")
@@ -497,9 +499,9 @@ class TestExecuteSql:
     ):
         """A second render that names a new table is denied and not executed.
 
-        That check is ``_authorize_rendered_sql``. Editorship stays excluded
-        there when dataset matching is off; setting ``allow_editorship`` to
-        True fails the assertion below.
+        That check is ``_authorize_rendered_sql``, and it gates the SQL that
+        runs. Setting ``reject_unscoped_sql`` to False, or dropping
+        ``force_dataset_match``, fails the assertion below.
         """
         mock_database = _mock_database()
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
@@ -535,6 +537,8 @@ class TestExecuteSql:
         assert rendered_check["sql"] == "SELECT * FROM secret_table"
         assert rendered_check["template_params"] is None
         assert rendered_check["allow_editorship"] is False
+        assert rendered_check["force_dataset_match"] is True
+        assert rendered_check["reject_unscoped_sql"] is True
         mock_get_template_processor.return_value.process_template.assert_called_once()
         mock_database.execute.assert_not_called()
 
