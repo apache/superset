@@ -2312,8 +2312,11 @@ function DatasourceEditor({
     const newTypes = new Map(
       pendingSync.map(col => [col.column_name, col.type]),
     );
+    // One display label per modified column. `updateColumns` reports a column
+    // as modified for a new type or a newly temporal flag only, so an unchanged
+    // type means the flag.
     // Built outside `t()`: string extraction skips a nested `t()` call.
-    const changed = changes.modified.map(name =>
+    const modifiedLabels = changes.modified.map(name =>
       oldTypes.get(name) === newTypes.get(name)
         ? t('%s (now temporal)', name)
         : t(
@@ -2330,7 +2333,7 @@ function DatasourceEditor({
       changes.added.length > 0 && t('Added: %s', changes.added.join(', ')),
       changes.removed.length > 0 &&
         t('Removed: %s', changes.removed.join(', ')),
-      changed.length > 0 && t('Changed: %s', changed.join(', ')),
+      modifiedLabels.length > 0 && t('Changed: %s', modifiedLabels.join(', ')),
       removesMainDttmCol &&
         t(
           'The default datetime column "%s" will be removed. Choose another default datetime column.',
