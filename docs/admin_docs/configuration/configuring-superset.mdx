@@ -277,6 +277,8 @@ ORDER BY event_time DESC
 
 - The user is the logged-in Superset user. The dashboard and chart ids come
   from the request, so treat them as a hint rather than an audit record.
+- Anyone who can read `system.query_log` can see these values, so leave `user`
+  out of the returned string if usernames shouldn't be visible there.
 - Results served from Superset's cache never reach the database, so the log
   shows the queries that ran, not every chart view.
 - Metadata queries (schema, table and column lists) are not tagged.
@@ -602,6 +604,12 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 - The redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
   When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
   be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+
+- When `OAUTH_PROVIDERS` contains exactly one provider, the login page skips the provider choice and
+  sends users straight to that provider's sign-in. After logging out, users land on the login page
+  and are sent to the provider again, which may sign them straight back in while their provider
+  session is active. Set `LOGOUT_REDIRECT_URL`, or override `logout` in a custom OAuth view as in
+  [OAuth Configuration](/admin-docs/security/oauth), to send them elsewhere or end the provider session.
 
 - If an OAuth2 authorization server supports OpenID Connect 1.0, you could configure its configuration
   document URL only without providing `api_base_url`, `access_token_url`, `authorize_url` and other
