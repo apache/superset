@@ -27,11 +27,12 @@ import pytest
 from superset_core.canvas import StoredWidget
 
 from superset.canvas.data import PlacementData
+from superset.mcp_service.canvas.tool.canvas_draft_common import NOT_FOUND
 from superset.mcp_service.canvas.tool.canvas_ops_common import UNREAD_REASON
 from superset.mcp_service.canvas.tool.get_canvas_data import (
     _get_canvas_data_impl,
+    MAX_LISTED,
     MAX_RESPONSE_BYTES,
-    MAX_UNREAD,
 )
 from superset.utils import json
 
@@ -141,7 +142,8 @@ def test_a_canvas_full_of_unread_widgets_stays_within_the_size_budget() -> None:
 
     result, _ = _run(definition=definition)
 
-    assert len(result["unread"]) == MAX_UNREAD
+    assert len(result["unread"]) == MAX_LISTED
+    assert result["unread_count"] == 400
     assert len(json.dumps(result)) < MAX_RESPONSE_BYTES
 
 
@@ -152,6 +154,7 @@ def test_caps_rows_and_widgets() -> None:
     assert len(only["rows"]) == 2
     assert only["truncated"] is True
     assert result["skipped"] == ["kpi"]
+    assert result["skipped_count"] == 1
     assert run.call_count == 1
 
 
@@ -192,16 +195,69 @@ def test_a_failing_query_is_reported_per_widget(view_query: bool) -> None:
 
 
 def test_rows_are_trimmed_to_fit_the_response_budget() -> None:
-    from superset.mcp_service.canvas.tool.get_canvas_data import _fit_rows
+    from superset.mcp_service.canvas.tool.get_canvas_data import _fit
 
     entries = [
         {"placement_id": "big", "rows": [{"v": "x" * 100}] * 100},
         {"placement_id": "small", "rows": [{"v": 1}] * 3},
     ]
+    result = {"widgets": entries}
 
-    _fit_rows(entries, 2_000)
+    _fit(result, 2_000)
 
-    assert len(json.dumps(entries)) <= 2_000
+    assert len(json.dumps(result)) <= 2_000
     assert entries[0]["truncated"] is True
     assert entries[1]["rows"] == [{"v": 1}] * 3
     assert "truncated" not in entries[1]
+
+
+def test_a_long_skipped_list_is_capped_so_full_rows_still_fit() -> None:
+    """Rows that fill the whole budget plus a thousand skipped ids: the list is
+    capped and counted rather than wiping the rows and still going over."""
+    from superset.mcp_service.canvas.tool.get_canvas_data import _fit
+
+    result: dict[str, Any] = {
+        "widgets": [{"placement_id": "big", "rows": [{"v": "x" * 100}] * 400}],
+        "skipped": [f"placement-{i}" for i in range(1000)],
+        "skipped_count": 1000,
+    }
+
+    _fit(result, MAX_RESPONSE_BYTES)
+
+    assert len(json.dumps(result)) <= MAX_RESPONSE_BYTES
+    assert len(result["skipped"]) == MAX_LISTED
+    assert result["skipped_count"] == 1000
+    assert result["widgets"][0]["rows"]
+
+
+def test_entries_too_heavy_without_rows_are_dropped_into_skipped() -> None:
+    """Columns and errors are not rows; once the rows are gone, an entry that
+    still does not fit is dropped and reported as skipped, not sent over."""
+    from superset.mcp_service.canvas.tool.get_canvas_data import _fit
+
+    result: dict[str, Any] = {
+        "widgets": [
+            {"placement_id": f"w{i}", "error": "e" * 3_000, "rows": []}
+            for i in range(10)
+        ],
+        "skipped": ["later"],
+        "skipped_count": 1,
+    }
+
+    _fit(result, 10_000)
+
+    assert len(json.dumps(result)) <= 10_000
+    kept = [entry["placement_id"] for entry in result["widgets"]]
+    assert kept == ["w0", "w1", "w2"]
+    assert result["skipped"] == ["w3", "w4", "w5", "w6", "w7", "w8", "w9", "later"]
+    assert result["skipped_count"] == 8
+
+
+def test_a_draft_reads_only_the_canvas_it_belongs_to() -> None:
+    draft = MagicMock(canvas_id=8)
+    elsewhere = "draft-of-canvas-8"
+    with patch(f"{MODULE}.load_draft", return_value=draft):
+        result, run = _run(draft_token=elsewhere)
+
+    assert result == {"error": NOT_FOUND}
+    run.assert_not_called()

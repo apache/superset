@@ -538,3 +538,39 @@ def test_real_chart_validation_wrapper_keeps_rest_and_preview_repairable(
     assert isinstance(query.spy_exception, ChartDataQueryValidationError)
     assert image is None
     render.assert_not_called()
+
+
+def test_a_draft_token_previews_only_the_canvas_it_belongs_to(
+    app: SupersetApp,
+    session: Any,
+    aggregate_canvas: Canvas,
+    mocker: MockerFixture,
+) -> None:
+    """Naming another canvas with this canvas's draft token is refused, as the
+    REST placement-data route refuses it, rather than previewing the draft."""
+    from superset.canvas.definition.schemas import empty_definition
+    from superset.commands.canvas.draft import CreateCanvasDraftCommand
+    from superset.utils import json
+
+    g.user = User(id=701, username="canvas-editor", roles=[])
+    other = Canvas(
+        title="Other",
+        slug="other",
+        definition=json.dumps(empty_definition()),
+        definition_version=1,
+        revision=1,
+    )
+    session.add(other)
+    session.commit()
+    draft = CreateCanvasDraftCommand(aggregate_canvas.id).run()
+
+    result, image = _preview_widget_impl(
+        other.id, "amounts", False, draft_token=draft.token
+    )
+
+    assert image is None
+    assert result["error_type"] == "DraftUnavailable"
+    own, _ = _preview_widget_impl(
+        aggregate_canvas.id, "amounts", False, draft_token=draft.token
+    )
+    assert own["canvas_id"] == aggregate_canvas.id

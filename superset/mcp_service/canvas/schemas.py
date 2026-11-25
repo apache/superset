@@ -230,11 +230,23 @@ class GetCanvasDataResponse(_Compact):
     )
     skipped: list[str] | None = Field(
         default=None,
-        description="Placements left out because ``max_widgets`` was reached.",
+        description=(
+            "Placements left out because ``max_widgets`` was reached or the "
+            "response had to be trimmed; at most 20 are listed."
+        ),
+    )
+    skipped_count: int | None = Field(
+        default=None, description="How many placements ``skipped`` stands for."
     )
     unread: list[CanvasUnreadWidget] | None = Field(
         default=None,
-        description="Extension widgets whose data this tool can't run, and why.",
+        description=(
+            "Extension widgets whose data this tool can't run, and why; at "
+            "most 20 are listed."
+        ),
+    )
+    unread_count: int | None = Field(
+        default=None, description="How many placements ``unread`` stands for."
     )
     error: str | None = None
 

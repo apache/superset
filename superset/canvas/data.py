@@ -78,11 +78,16 @@ def query_context_payload(
     metrics = [m for m in binding.get("metrics") or [] if m not in (None, "")]
     filters: list[dict[str, Any]] = []
     where: list[str] = []
+    having: list[str] = []
     for adhoc in binding.get("filters") or []:
+        on_aggregates = adhoc.get("clause") == "HAVING"
         if adhoc.get("expressionType") == "SQL":
             if adhoc.get("sqlExpression"):
-                where.append(f"({adhoc['sqlExpression']})")
-        elif adhoc.get("subject"):
+                clauses = having if on_aggregates else where
+                clauses.append(f"({adhoc['sqlExpression']})")
+        elif adhoc.get("subject") and not on_aggregates:
+            # A simple HAVING filter has no query-object form; the chart
+            # pipeline (``processFilters``) drops it the same way.
             filters.append(
                 {
                     "col": adhoc["subject"],
@@ -111,7 +116,11 @@ def query_context_payload(
                 "columns": [d for d in binding.get("dimensions") or [] if d],
                 "metrics": metrics,
                 "filters": filters,
-                "extras": {"where": " AND ".join(where)} if where else {},
+                "extras": {
+                    key: " AND ".join(clauses)
+                    for key, clauses in (("where", where), ("having", having))
+                    if clauses
+                },
                 "orderby": orderby,
                 "row_limit": binding.get("rowLimit") or 1000,
             }

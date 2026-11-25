@@ -280,6 +280,85 @@ test('a gesture whose widget the refetch no longer has is not reapplied', async 
   expect(fetchMock.callHistory.calls()).toHaveLength(1);
 });
 
+test('saving stays set while a conflict waits on its refetch', async () => {
+  fetchMock.patch(endpoint, 409, { repeat: 1 });
+  fetchMock.patch(endpoint, {
+    result: { revision: 5, ops: [], placements: { kpi: MOVED, trend: TREND } },
+  });
+  const reload = jest.fn();
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), reload),
+    { initialProps: { revision: 3 } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+
+  // The gesture is unsent, so a publish now would drop it.
+  expect(result.current.saving).toBe(true);
+  rerender({ revision: 4 });
+
+  await waitFor(() => expect(result.current.saving).toBe(false));
+  expect(fetchMock.callHistory.calls()).toHaveLength(2);
+});
+
+test('a refetch that ends without moving the revision still replays the gesture', async () => {
+  fetchMock.patch(endpoint, 409, { repeat: 1 });
+  fetchMock.patch(endpoint, {
+    result: { revision: 4, ops: [], placements: { kpi: MOVED, trend: TREND } },
+  });
+  // The reload reports when it is done, as the definition hook's does.
+  const reload = jest.fn(() => Promise.resolve());
+  const { result } = renderHook(() => useCanvasLayout(7, resultAt(3), reload));
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+  expect(
+    JSON.parse(fetchMock.callHistory.calls()[1].options.body as string),
+  ).toEqual({
+    base_revision: 3,
+    ops: [{ op: 'place', id: 'kpi', layout: MOVED }],
+  });
+  await waitFor(() => expect(result.current.saving).toBe(false));
+  expect(result.current.placements.kpi).toEqual(MOVED);
+});
+
+test('the undone notice survives a gesture queued behind the refetch', async () => {
+  fetchMock.patch(endpoint, 409, { repeat: 1 });
+  fetchMock.patch(endpoint, {
+    result: { revision: 5, ops: [], placements: { trend: SETTLED } },
+  });
+  const reload = jest.fn();
+  const { result, rerender } = renderHook(
+    ({ placements }: { placements: Record<string, GridPlacement> }) =>
+      useCanvasLayout(
+        7,
+        resultAt(placements.kpi ? 3 : 4, true, placements),
+        reload,
+      ),
+    { initialProps: { placements: { kpi: KPI, trend: TREND } } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+  // Dropped while the refetch is out: held behind the retry.
+  act(() => result.current.place('trend', QUEUED));
+  // The refetch no longer has the widget the first gesture moved.
+  rerender({ placements: { trend: TREND } });
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+  expect(
+    JSON.parse(fetchMock.callHistory.calls()[1].options.body as string),
+  ).toEqual({
+    base_revision: 4,
+    ops: [{ op: 'place', id: 'trend', layout: QUEUED }],
+  });
+  // Said once the replay went out, not wiped by it.
+  expect(result.current.error).toContain('changed while you were editing');
+});
+
 test('a rejected write names the placement its issue points at', async () => {
   fetchMock.patch(endpoint, {
     status: 422,

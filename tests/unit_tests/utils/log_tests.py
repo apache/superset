@@ -264,3 +264,28 @@ def test_log_accepts_a_logger_that_never_heard_of_canvas(
     assert seen[0]["action"] == "CanvasRestApi.put"
     # It lands in ``**kwargs``, which is why nothing had to change.
     assert seen[0]["kwargs"]["canvas_id"] == 3
+
+
+def test_db_event_logger_labels_each_record_with_its_own_canvas(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A beacon batch names one ``canvas_id`` for the request, taken from its
+    first event. A batch that spans a canvas switch carries the right id on
+    each record, so the record's wins and the request's only fills a gap."""
+    from superset import db
+
+    saved = mocker.patch.object(db.session, "bulk_save_objects")
+    mocker.patch.object(db.session, "commit")
+
+    DBEventLogger().log(
+        None,
+        "canvas_edit_layout",
+        None,
+        None,
+        None,
+        None,
+        records=[{"canvas_id": 4}, {"canvas_id": 9}, {"op": "place"}],
+        canvas_id=4,
+    )
+
+    assert [log.canvas_id for log in saved.call_args.args[0]] == [4, 9, 4]

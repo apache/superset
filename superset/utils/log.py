@@ -553,7 +553,9 @@ class DBEventLogger(AbstractEventLogger):
                 json=json_string,
                 dashboard_id=dashboard_id or record.get("dashboard_id"),
                 slice_id=slice_id or record.get("slice_id"),
-                canvas_id=canvas_id or record.get("canvas_id"),
+                # Each record first: a beacon batch names the canvas its first
+                # event was on, and a batch can span a canvas switch.
+                canvas_id=record.get("canvas_id") or canvas_id,
                 duration_ms=duration_ms,
                 referrer=referrer,
                 user_id=user_id,

@@ -396,7 +396,7 @@ export interface CanvasLayout {
 export function useCanvasLayout(
   canvasId: number,
   result: CanvasDefinitionResult,
-  reload: () => void,
+  reload: () => unknown,
   draftToken?: string,
 ): CanvasLayout {
   const log = useCanvasLogger(canvasId, { isDraft: Boolean(draftToken) });
@@ -447,8 +447,15 @@ export function useCanvasLayout(
   // Newest intent per node while a write is in flight; sent as one batch.
   const queued = useRef(new Map<string, LayoutWrite>());
   // A gesture a 409 reverted, reapplied once the refetch has the newer draft.
-  const retry = useRef<{ entries: [string, LayoutWrite][]; after: number }>();
+  // `settled` says the refetch has ended, moved the revision or not.
+  const retry = useRef<{
+    entries: [string, LayoutWrite][];
+    after: number;
+    settled: boolean;
+  }>();
   const retrying = useRef(false);
+  // Bumped when a refetch ends, for the retry below to run again.
+  const [refetched, setRefetched] = useState(0);
   // The definition's placements, for an optimistic view that has no newer
   // local layout to build on.
   const fetchedPlacements = useRef(result.placements);
@@ -665,9 +672,26 @@ export function useCanvasLayout(
             if (isRetry) {
               setError(UNDONE());
             } else {
-              retry.current = { entries: reverted, after: base };
+              retry.current = {
+                entries: reverted,
+                after: base,
+                settled: false,
+              };
             }
-            reload();
+            const refetch = reload();
+            // A refetch that ends without moving the revision -- it failed,
+            // or the server was already where the draft said -- would leave
+            // the gesture waiting forever. Once it ends, the retry goes out
+            // regardless; a repeat conflict then says the change was undone.
+            if (retry.current && refetch instanceof Promise) {
+              refetch
+                .catch(() => undefined)
+                .then(() => {
+                  if (era !== generation.current || !retry.current) return;
+                  retry.current.settled = true;
+                  setRefetched(count => count + 1);
+                });
+            }
             return;
           }
           // Read before `getClientErrorObject` consumes the body: the issue
@@ -705,7 +729,9 @@ export function useCanvasLayout(
             queued.current.clear();
             // Still saving: the follow-up sets the flag again straight away.
             send(next);
-          } else {
+          } else if (!retry.current) {
+            // A gesture waiting on a 409's refetch is unsent too: Save and
+            // Publish stay held until it is replayed or given up.
             setSaving(false);
           }
         });
@@ -737,8 +763,12 @@ export function useCanvasLayout(
           nodes: entries.length,
         });
       }
-      setError(undefined);
-      setErrorAt(undefined);
+      // Not on a replay, which may follow the notice that another gesture
+      // was undone in the same pass and would wipe it before it is shown.
+      if (!replay) {
+        setError(undefined);
+        setErrorAt(undefined);
+      }
       // Show the drop straight away, built on the newest layout so an earlier
       // gesture isn't undone -- including one from this same batch, which a
       // ref read wouldn't see since refs only advance on render.
@@ -902,7 +932,7 @@ export function useCanvasLayout(
   // everything it names is still there, otherwise say it was undone.
   useEffect(() => {
     const pending = retry.current;
-    if (!pending || revision <= pending.after) return;
+    if (!pending || (revision <= pending.after && !pending.settled)) return;
     retry.current = undefined;
     const present = (id: string) => id in result.placements;
     const fits = pending.entries.every(
@@ -928,10 +958,14 @@ export function useCanvasLayout(
       entries.set(id, entry);
     });
     queued.current.clear();
-    if (entries.size === 0) return;
+    if (entries.size === 0) {
+      // Nothing left to send: the write that conflicted held `saving` for it.
+      if (!writing.current) setSaving(false);
+      return;
+    }
     retrying.current = fits;
     write([...entries], undefined, true);
-  }, [revision, result.placements, write]);
+  }, [revision, result.placements, write, refetched]);
 
   // The definition wins once a fetch catches up to what was applied locally.
   const newer = applied && applied.revision > revision ? applied : undefined;

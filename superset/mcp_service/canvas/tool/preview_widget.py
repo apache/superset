@@ -221,6 +221,11 @@ def _definition(
             draft = load_draft(draft_token)
         except (CanvasDraftNotFoundError, CanvasNotFoundError, CanvasForbiddenError):
             return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
+        # The draft's canvas and the one named have to agree, as the REST
+        # route insists: a token must not read another canvas.
+        canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
+        if canvas is None or canvas.id != draft.canvas_id:
+            return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
         return _PreviewSource(draft.definition, draft.canvas, draft.resolver(), draft)
     canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
     if canvas is None:

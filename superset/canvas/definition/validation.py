@@ -366,16 +366,13 @@ class _Validator:
         )
         layout = doc["nodes"][node_id].get("layout")
         if on_grid and isinstance(layout, dict):
-            # Checked here, not only on the layout a write names: a write that
-            # only adds to a container grows it without naming its layout.
-            if rows > MAX_GRID_ROW_SPAN:
-                self.fail(
-                    pointer("nodes", node_id, "layout", "rowSpan"),
-                    f"its content needs {rows} rows, over the {MAX_GRID_ROW_SPAN} "
-                    "a widget can span",
-                )
-            elif (layout.get("rowSpan") or 1) < rows:
-                layout["rowSpan"] = rows
+            # Clamped rather than refused: content taller than a widget can
+            # span is clipped, where a refusal would also block the write
+            # that narrows the container back and let it grow in the first
+            # place (a write that only adds to a container never names its
+            # layout).
+            if (layout.get("rowSpan") or 1) < rows:
+                layout["rowSpan"] = min(rows, MAX_GRID_ROW_SPAN)
 
     def _resolve_children(
         self,

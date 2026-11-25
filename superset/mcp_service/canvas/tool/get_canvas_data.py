@@ -51,8 +51,9 @@ MAX_WIDGETS = 50
 # Under the MCP response size guard, which fails the whole call when crossed:
 # rows are trimmed to fit instead.
 MAX_RESPONSE_BYTES = 40_000
-# The most ``unread`` entries listed; each repeats the reason.
-MAX_UNREAD = 20
+# The most ``unread`` and ``skipped`` entries listed; the counts say how many
+# there were.
+MAX_LISTED = 20
 
 
 def _in_layout_order(definition: dict[str, Any]) -> Iterator[str]:
@@ -78,8 +79,10 @@ def _load(
             draft = load_draft(draft_token)
         except (CanvasDraftNotFoundError, CanvasNotFoundError, CanvasForbiddenError):
             return NOT_FOUND
-        canvas = CanvasDAO.find_by_id(draft.canvas_id)
-        if canvas is None:
+        # The draft's canvas and the one named have to agree, as the REST
+        # route insists: a token must not read another canvas.
+        canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
+        if canvas is None or canvas.id != draft.canvas_id:
             return NOT_FOUND
         about = {
             "canvas_id": canvas.id,
@@ -188,28 +191,46 @@ def _get_canvas_data_impl(
                 runtime_filters,
             )
         )
-    listed = {
-        key: value
-        for key, value in (("skipped", skipped), ("unread", unread[:MAX_UNREAD]))
-        if value
-    }
-    # The lists share the budget with the rows: trimmed rows alone could still
-    # leave the response past the size guard.
-    _fit_rows(entries, MAX_RESPONSE_BYTES - len(json.dumps(listed)))
     result["widgets"] = entries
-    result.update(listed)
+    _list(result, "skipped", skipped)
+    _list(result, "unread", unread)
+    _fit(result, MAX_RESPONSE_BYTES)
     return result
 
 
-def _fit_rows(entries: list[dict[str, Any]], budget: int) -> None:
-    """Halve the longest row list until the widgets' data fits ``budget``."""
-    while len(json.dumps(entries, default=str)) > budget:
+def _list(result: dict[str, Any], key: str, items: list[Any]) -> None:
+    """``items`` under ``key``, with the count ``_fit`` may cap them against."""
+    if items:
+        result[key], result[f"{key}_count"] = items, len(items)
+
+
+def _fit(result: dict[str, Any], budget: int) -> None:
+    """Trim ``result`` until it serializes within ``budget``.
+
+    The lists are capped first, then the longest row list is halved until the
+    rows are gone, then whole entries are dropped from the end into
+    ``skipped``: an entry's columns, title or error can outweigh its rows.
+    The counts keep saying how many placements each list stands for.
+    """
+    for key in ("skipped", "unread"):
+        if key in result:
+            result[key] = result[key][:MAX_LISTED]
+    entries: list[dict[str, Any]] = result["widgets"]
+    while len(json.dumps(result, default=str)) > budget:
+        if not entries:
+            return
         longest = max(entries, key=lambda entry: len(entry.get("rows") or []))
         rows = longest.get("rows") or []
-        if not rows:
-            return
-        longest["rows"] = rows[: len(rows) // 2]
-        longest["truncated"] = True
+        if rows:
+            longest["rows"] = rows[: len(rows) // 2]
+            longest["truncated"] = True
+            continue
+        dropped = entries.pop()
+        # Ahead of the ones ``max_widgets`` skipped: it comes first in layout.
+        result["skipped"] = [dropped["placement_id"], *result.get("skipped", [])][
+            :MAX_LISTED
+        ]
+        result["skipped_count"] = result.get("skipped_count", 0) + 1
 
 
 @tool(
@@ -237,10 +258,11 @@ def get_canvas_data(
     title, row count, columns and up to ``max_rows`` rows (at most 500);
     rows are trimmed further, marked ``truncated``, to keep the response small.
     Placements without a query (containers, text, filters) are left out;
-    the first 20 extension widgets with no ``dataBinding`` are listed in
-    ``unread``.
+    extension widgets with no ``dataBinding`` are listed in ``unread``.
     ``placement_ids`` limits it to those placements; ``max_widgets`` (at most
-    50) caps how many queries run, and the rest are listed in ``skipped``.
+    50) caps how many queries run, and the rest are listed in ``skipped``, as
+    are widgets dropped to keep the response small. Each list shows at most
+    20 entries; ``skipped_count`` and ``unread_count`` give the totals.
     With ``draft_token``, reads the draft instead of the published canvas.
     ``filters`` narrows the queries the way the canvas's filters do, one
     ``{datasetId, column, values}`` per filter; filters on other datasets

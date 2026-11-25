@@ -138,10 +138,14 @@ def test_a_layout_wider_than_its_narrowed_grid_keeps_its_height() -> None:
     from superset.canvas.definition.render import render_context
 
     layout = {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 3}
+    below = {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 1}
     raw = canvas(
         {
-            "g": inline("group", layout={"colSpan": 12, "rowSpan": 4}, children=["a"]),
+            "g": inline(
+                "group", layout={"colSpan": 12, "rowSpan": 6}, children=["a", "b"]
+            ),
             "a": node("chart-1", layout=layout),
+            "b": node("chart-2", layout=below),
         },
         children=["g"],
     )
@@ -152,23 +156,29 @@ def test_a_layout_wider_than_its_narrowed_grid_keeps_its_height() -> None:
     placed = render_context(result, canvas_widget_types(), FakeResolver())
 
     assert result["nodes"]["a"]["layout"] == layout
-    assert placed["placements"]["a"]["rowSpan"] == 3
-    assert placed["placements"]["a"]["colSpan"] <= 12
+    assert placed["placements"]["a"] == {
+        "col": 1,
+        "row": 1,
+        "colSpan": 12,
+        "rowSpan": 3,
+    }
+    # The sibling placed on the same cell settles under the kept height of 3,
+    # not under the height of 1 an empty layout would give.
+    assert result["nodes"]["b"]["layout"]["row"] == 4
+    assert placed["placements"]["b"]["row"] == 4
 
 
-def test_a_container_grown_past_the_row_span_cap_is_refused() -> None:
+def test_a_container_grown_past_the_row_span_cap_is_clamped() -> None:
+    # Refusing would also refuse the write that shrinks the content back.
     children = {f"c{i}": node(f"chart-{i}", layout={"rowSpan": 200}) for i in (1, 2)}
     raw = canvas(
-        {"g": inline("group", children=list(children)), **children},
+        {"g": inline("group", layout={}, children=list(children)), **children},
         children=["g"],
     )
 
-    assert issues(raw) == [
-        (
-            "/nodes/g/layout/rowSpan",
-            "its content needs 400 rows, over the 200 a widget can span",
-        )
-    ]
+    result = normalize(raw)
+
+    assert result["nodes"]["g"]["layout"]["rowSpan"] == 200
 
 
 def test_a_widget_pushed_past_the_last_row_is_refused() -> None:
