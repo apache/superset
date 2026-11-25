@@ -1710,7 +1710,20 @@ def _create_excel_with_openpyxl(
 def _write_excel_headers(ws: Any, columns: List[str]) -> None:
     """Write headers to Excel worksheet."""
     for idx, col in enumerate(columns, 1):
-        ws.cell(row=1, column=idx, value=col)
+        _set_openpyxl_cell(ws, 1, idx, col)
+
+
+def _set_openpyxl_cell(ws: Any, row: int, column: int, value: Any) -> None:
+    """
+    Write one openpyxl cell, keeping a string as text.
+
+    openpyxl stores a string that starts with ``=`` as a formula, so its text
+    is lost: pandas reads the cell back as empty. Marking the cell as a string
+    keeps the text as the query returned it.
+    """
+    cell = ws.cell(row=row, column=column, value=value)
+    if isinstance(value, str):
+        cell.data_type = "s"
 
 
 def _export_scalar(value: Any) -> Any:
@@ -1809,10 +1822,11 @@ def _write_excel_data(
     """Write data to Excel worksheet."""
     for row_idx, row in enumerate(data, 2):
         for col_idx, col in enumerate(columns, 1):
-            ws.cell(
-                row=row_idx,
-                column=col_idx,
-                value=_excel_scalar(row.get(col, ""), col in temporal_columns),
+            _set_openpyxl_cell(
+                ws,
+                row_idx,
+                col_idx,
+                _excel_scalar(row.get(col, ""), col in temporal_columns),
             )
 
 
@@ -1899,7 +1913,7 @@ def _write_xlsxwriter_data(
     """Write data to xlsxwriter worksheet."""
     # Write headers
     for idx, col in enumerate(columns):
-        worksheet.write(0, idx, col)
+        _write_xlsxwriter_cell(worksheet, 0, idx, col)
 
     # Write data
     for row_idx, row in enumerate(data):
@@ -1909,7 +1923,22 @@ def _write_xlsxwriter_data(
             if cell_format is not None:
                 worksheet.write_datetime(row_idx + 1, col_idx, value, cell_format)
             else:
-                worksheet.write(row_idx + 1, col_idx, value)
+                _write_xlsxwriter_cell(worksheet, row_idx + 1, col_idx, value)
+
+
+def _write_xlsxwriter_cell(worksheet: Any, row: int, col: int, value: Any) -> None:
+    """
+    Write one xlsxwriter cell, keeping a non-empty string as text.
+
+    ``write`` turns a string that starts with ``=``, or one wrapped in ``{=``
+    and ``}``, into a formula, and a URL into a link. ``write_string`` stores
+    the text as it is, as the openpyxl writer does. An empty string still goes
+    through ``write``, which leaves the cell blank.
+    """
+    if isinstance(value, str) and value:
+        worksheet.write_string(row, col, value)
+    else:
+        worksheet.write(row, col, value)
 
 
 def _create_excel_chart_data(

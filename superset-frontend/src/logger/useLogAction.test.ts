@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { renderHook } from '@testing-library/react';
 import { createWrapper } from 'spec/helpers/testing-library';
@@ -25,7 +25,7 @@ import { LOG_ACTIONS_SQLLAB_COPY_LINK } from './LogUtils';
 import { LOG_EVENT } from './actions';
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 test('dispatches logEvent action with static EventData', () => {
   const staticEventData = { staticEventKey: 'value1' };

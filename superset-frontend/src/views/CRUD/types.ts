@@ -61,7 +61,13 @@ export interface Dashboard {
   changed_on_utc?: string;
   changed_by: string;
   dashboard_title: string;
+  // Title resolved for the viewer's locale (read-only). Mirrors
+  // dashboard_title when translation is off or no translation exists.
+  localized_title?: string | null;
+  // Chart fields: this type also describes chart entities on the home
+  // activity list, which is why slice_name lives here too.
   slice_name?: string;
+  localized_name?: string | null;
   id: number;
   published: boolean;
   url: string;

@@ -24,15 +24,15 @@ import {
   waitFor,
   act,
 } from 'spec/helpers/testing-library';
-import configureStore from 'redux-mock-store';
+import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import UserInfo from 'src/pages/UserInfo';
+import { UserInfo } from 'src/pages/UserInfo';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
-const mockStore = configureStore([thunk]);
+const mockStore = configureMockStore([thunk]);
 const store = mockStore({});
 
 const meEndpoint = 'glob:*/api/v1/me/';

@@ -78,6 +78,7 @@ import {
   DatabaseParameters,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
+import StoredSecretExpiryAlert from './StoredSecretExpiryAlert';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
@@ -750,6 +751,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   // Bumped after each successful update, so revealed secret endings reset.
   const [secretsGeneration, setSecretsGeneration] = useState(0);
+  // Bumped to ask the Advanced tab to open and scroll to Secure extra. Never
+  // reset, so a pane that stays mounted across close and reopen sees each new
+  // request; the pending flag keeps a handled or abandoned one from replaying.
+  const [secureExtraFocusRequest, setSecureExtraFocusRequest] = useState(0);
+  const [secureExtraFocusPending, setSecureExtraFocusPending] = useState(false);
+  const onSecureExtraFocused = useCallback(
+    () => setSecureExtraFocusPending(false),
+    [],
+  );
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -1020,6 +1030,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEncryptedExtraSecrets({});
     setConfirmedOverwrite(false);
     setUseSSHTunneling(undefined);
+    // A request to open Secure extra belongs to this session only.
+    setSecureExtraFocusPending(false);
     onHide();
   };
 
@@ -1950,6 +1962,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const tabChange = (key: string) => setTabKey(key);
 
+  const goToSecureExtra = () => {
+    setTabKey(TABS_KEYS.ADVANCED);
+    setSecureExtraFocusRequest(request => request + 1);
+    setSecureExtraFocusPending(true);
+  };
+
   const renderStepTwoAlert = () => {
     const { hostname } = window.location;
     let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
@@ -2278,6 +2296,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         </TabHeader>
       </StyledStickyHeader>
+      <StoredSecretExpiryAlert
+        isEditMode={isEditMode}
+        sensitiveFields={
+          db?.engine_information?.encrypted_extra_sensitive_fields
+        }
+        expirations={db?.engine_information?.encrypted_extra_expirations}
+        onGoToSecureExtra={goToSecureExtra}
+      />
       <TabsStyled
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
@@ -2394,6 +2420,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
                 secretsGeneration={secretsGeneration}
+                focusSecureExtra={
+                  secureExtraFocusPending ? secureExtraFocusRequest : 0
+                }
+                onSecureExtraFocused={onSecureExtraFocused}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
                   handleChangeWithValidation(ActionType.InputChange, {
