@@ -21,6 +21,7 @@ import zoneinfo
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, cast
+from uuid import UUID
 
 import pandas as pd
 import pyarrow as pa
@@ -30,6 +31,7 @@ from pytest_mock import MockerFixture
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import SupersetResultSet
 from superset.superset_typing import DbapiDescription
+from superset.utils import json
 
 _BIG = 2**64 - 1
 
@@ -201,6 +203,56 @@ def test_from_arrow_decodes_dictionary() -> None:
     result_set = SupersetResultSet.from_arrow(table, BaseEngineSpec)
     assert result_set.pa_table.schema.field("c").type == pa.string()
     assert result_set.pa_table.column("c").to_pylist() == ["x", "y", "x"]
+
+
+def test_opaque_numeric_nulls_non_finite_and_keeps_decimal() -> None:
+    opaque = pa.opaque(pa.string(), "numeric", "PostgreSQL")
+    storage = pa.array(["1.50", "NaN", None, "-0.0001", "Infinity"])
+    table = pa.table({"n": pa.ExtensionArray.from_storage(opaque, storage)})
+    result_set = SupersetResultSet.from_arrow(table, BaseEngineSpec)
+    assert result_set.pa_table.column("n").to_pylist() == [
+        Decimal("1.5000"),
+        None,
+        None,
+        Decimal("-0.0001"),
+        None,
+    ]
+
+
+def test_json_extension_is_lazy() -> None:
+    storage = pa.array(['{"a": 1}', None, "5"])
+    table = pa.table({"j": pa.ExtensionArray.from_storage(pa.json_(), storage)})
+    result_set = SupersetResultSet.from_arrow(table, BaseEngineSpec)
+    assert result_set.pa_table.column("j").to_pylist() == ['{"a": 1}', None, "5"]
+    assert result_set.to_pandas_df()["j"].tolist() == [{"a": 1}, None, 5]
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[5, 7, None], ["a", "b"], [5, "a", True], [1.5, 2.25]],
+)
+def test_scalar_json_matches_the_row_path(values: list[Any]) -> None:
+    rows = SupersetResultSet(
+        [(value,) for value in values],
+        cast(DbapiDescription, [("j", "json")]),
+        BaseEngineSpec,
+    )
+    storage = pa.array(
+        [None if value is None else json.dumps(value) for value in values]
+    )
+    table = pa.table({"j": pa.ExtensionArray.from_storage(pa.json_(), storage)})
+    arrow = SupersetResultSet.from_arrow(table, BaseEngineSpec)
+    expected = rows.to_pandas_df()["j"].tolist()
+    assert arrow.to_pandas_df()["j"].tolist() == expected
+    assert arrow.pa_table.column("j").type == rows.pa_table.column("j").type
+    assert arrow.nested_columns == {}
+
+
+def test_uuid_extension_is_stringified() -> None:
+    value = UUID("c4ca4238-a0b9-2382-0dcc-509a6f75849b")
+    table = pa.table({"u": pa.array([value, None], type=pa.uuid())})
+    result_set = SupersetResultSet.from_arrow(table, BaseEngineSpec)
+    assert result_set.pa_table.column("u").to_pylist() == [str(value), None]
 
 
 def test_empty_table_keeps_column_names() -> None:

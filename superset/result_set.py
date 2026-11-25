@@ -142,6 +142,72 @@ def stringify_extension_columns(table: pa.Table) -> pa.Table:
     return table
 
 
+def _opaque_numeric_to_decimal(column: pa.ChunkedArray) -> pa.ChunkedArray:
+    """
+    Cast an ``arrow.opaque`` NUMERIC column (string storage) to a decimal type.
+
+    Some drivers, including the ADBC PostgreSQL driver, return NUMERIC as text
+    rather than as ``decimal128``. The row path receives ``Decimal`` objects.
+
+    * NaN / Infinity become NULL, as ``stringify_values`` does for a
+      non-finite ``Decimal`` ("NaN and Infinity have no exact value").
+    * ``decimal128(38, s)`` is tried first, then ``decimal256(76, s)``.
+      Values that fit neither keep their exact string form.
+    """
+    storage = pa.chunked_array(
+        [chunk.storage for chunk in column.chunks], type=column.type.storage_type
+    )
+    finite = pc.match_substring_regex(storage, pattern=r"^[+-]?[0-9]*\.?[0-9]+$")
+    storage = pc.if_else(finite, storage, pa.scalar(None, pa.string()))
+    if storage.null_count == len(storage):
+        return storage
+    fraction = pc.replace_substring_regex(storage, pattern=r"^[^.]*\.?", replacement="")
+    scale = pc.max(pc.utf8_length(fraction)).as_py() or 0
+    for decimal_type in (pa.decimal128, pa.decimal256):
+        precision = 38 if decimal_type is pa.decimal128 else 76
+        if scale > precision:
+            continue
+        try:
+            return pc.cast(storage, decimal_type(precision, scale))
+        except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
+            continue
+    return storage
+
+
+_HEX_DIGITS = np.frombuffer(b"0123456789abcdef", dtype=np.uint8)
+
+
+def _uuid_to_string(column: pa.ChunkedArray) -> pa.ChunkedArray:
+    """
+    Vectorized ``arrow.uuid`` to the canonical 36-character string.
+
+    ``stringify_extension_columns`` does this with a Python loop over
+    ``to_pylist()``. The bytes are the same as ``str(uuid.UUID)``.
+    """
+    chunks = []
+    for chunk in column.chunks:
+        storage = chunk.storage
+        length = len(storage)
+        if length == 0:
+            chunks.append(pa.array([], type=pa.string()))
+            continue
+        raw = np.frombuffer(
+            storage.buffers()[1], dtype=np.uint8, count=(storage.offset + length) * 16
+        )[storage.offset * 16 :].reshape(length, 16)
+        hexed = np.empty((length, 32), dtype=np.uint8)
+        hexed[:, 0::2] = _HEX_DIGITS[raw >> 4]
+        hexed[:, 1::2] = _HEX_DIGITS[raw & 0x0F]
+        dashed = np.insert(hexed, [8, 12, 16, 20], ord("-"), axis=1)
+        mask = storage.is_null().to_numpy(zero_copy_only=False)
+        values = pa.array(
+            np.ascontiguousarray(dashed).view("S36").ravel(),
+            mask=mask,
+            type=pa.binary(36),
+        )
+        chunks.append(values.cast(pa.string()))
+    return pa.chunked_array(chunks, type=pa.string())
+
+
 def _uint64_over_int64_to_string(column: pa.ChunkedArray) -> pa.ChunkedArray:
     """
     Stringify a uint64 column if any value exceeds int64, as the row path does.
@@ -243,6 +309,7 @@ class SupersetResultSet:
         stringified_arr: NDArray[Any]
         # Track columns with nested/JSON data to preserve them as objects
         self._nested_columns: dict[str, list[Any]] = {}
+        self._lazy_json_columns: dict[str, pa.ChunkedArray] = {}
 
         if cursor_description:
             # get deduped list of column names
@@ -384,6 +451,7 @@ class SupersetResultSet:
         result_set.truncated = truncated
         result_set.db_engine_spec = db_engine_spec
         result_set._nested_columns = {}
+        result_set._lazy_json_columns = {}
 
         column_names = dedup(
             normalize_cursor_description_names(
@@ -424,6 +492,20 @@ class SupersetResultSet:
         if replaced is not None:
             return replaced
         if isinstance(field.type, pa.BaseExtensionType):
+            extension_name = getattr(field.type, "extension_name", "")
+            if extension_name == "arrow.json":
+                column = pa.chunked_array(
+                    [chunk.storage for chunk in column.chunks],
+                    type=field.type.storage_type,
+                )
+                self._lazy_json_columns[name] = column
+                return column
+            if extension_name == "arrow.opaque" and (
+                getattr(field.type, "type_name", "") == "numeric"
+            ):
+                return _opaque_numeric_to_decimal(column)
+            if extension_name == "arrow.uuid":
+                return _uuid_to_string(column)
             return column
         if pa.types.is_nested(field.type):
             values = column.to_pylist()
@@ -442,6 +524,27 @@ class SupersetResultSet:
         if pa.types.is_unsigned_integer(field.type) and field.type.bit_width == 64:
             return _uint64_over_int64_to_string(column)
         return column
+
+    def _materialize_lazy_json_columns(self) -> None:
+        for column, values in self._lazy_json_columns.items():
+            parsed = [
+                None if value is None else json.loads(value)
+                for value in values.to_pylist()
+            ]
+            # Same rule as the row path: only containers count as nested.
+            if any(isinstance(value, (list, dict)) for value in parsed):
+                self._nested_columns[column] = parsed
+                continue
+            try:
+                scalars = pa.array(parsed)
+            except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
+                scalars = pa.array(
+                    [None if value is None else str(value) for value in parsed],
+                    type=pa.string(),
+                )
+            index = self.table.schema.get_field_index(column)
+            self.table = self.table.set_column(index, column, scalars)
+        self._lazy_json_columns = {}
 
     @staticmethod
     def convert_pa_dtype(pa_dtype: pa.DataType) -> Optional[str]:
@@ -493,6 +596,7 @@ class SupersetResultSet:
         return self.db_engine_spec.resolve_column_type(set_type, pa_mapped)
 
     def to_pandas_df(self) -> pd.DataFrame:
+        self._materialize_lazy_json_columns()
         df = self.convert_table_to_df(self.table)
         # Restore nested/JSON columns as Python objects instead of strings
         # This allows JSON data to be used directly in templates like Handlebars.
@@ -506,6 +610,7 @@ class SupersetResultSet:
     @property
     def nested_columns(self) -> dict[str, list[Any]]:
         """Original nested values restored by the synchronous DataFrame path."""
+        self._materialize_lazy_json_columns()
         return self._nested_columns
 
     @property
