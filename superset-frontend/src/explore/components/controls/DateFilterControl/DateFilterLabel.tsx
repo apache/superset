@@ -59,6 +59,7 @@ import {
   DateLabel,
 } from './components';
 import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
+import { useSelector } from 'react-redux';
 
 const StyledRangeType = styled(Select)`
   width: 272px;
@@ -142,6 +143,12 @@ const getTooltipTitle = (
     range || null
   );
 
+const formatActualTimeRange = (range?: string): string =>
+  (range ?? '').replace(
+    /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?/g,
+    '$1 $2',
+  );
+
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
     name,
@@ -154,11 +161,19 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
+  const customPresets = useSelector<
+    { dashboardInfo?: { metadata?: { custom_time_presets?: string[] } } },
+    string[] | undefined
+  >(state => state.dashboardInfo?.metadata?.custom_time_presets);
+
   const value = props.value ?? defaultTimeFilter;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
-  const guessedFrame = useMemo(() => guessFrame(value), [value]);
+  const guessedFrame = useMemo(
+    () => guessFrame(value, customPresets),
+    [value, customPresets],
+  );
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
   const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
@@ -218,18 +233,26 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           ) {
             setActualTimeRange(value);
             setTooltipTitle(
-              getTooltipTitle(labelIsTruncated, value, actualRange),
+              getTooltipTitle(
+                labelIsTruncated,
+                value,
+                formatActualTimeRange(actualRange),
+              ),
             );
           } else {
-            setActualTimeRange(actualRange || '');
+            setActualTimeRange(formatActualTimeRange(actualRange));
             setTooltipTitle(
-              getTooltipTitle(labelIsTruncated, actualRange, value),
+              getTooltipTitle(
+                labelIsTruncated,
+                formatActualTimeRange(actualRange),
+                value,
+              ),
             );
           }
           setValidTimeRange(true);
         }
         setLastFetchedTimeRange(value);
-        setEvalResponse(actualRange || value);
+        setEvalResponse(formatActualTimeRange(actualRange || value));
       },
     );
   }, [displayFormat, guessedFrame, labelIsTruncated, labelRef, value]);
@@ -252,7 +275,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
               setEvalResponse(error || '');
               setValidTimeRange(false);
             } else {
-              setEvalResponse(actualRange || '');
+              setEvalResponse(formatActualTimeRange(actualRange || ''));
               setValidTimeRange(true);
             }
             setLastFetchedTimeRange(timeRangeValue);
@@ -335,11 +358,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       <Divider />
       <div>
         <div className="section-title">{t('Actual time range')}</div>
-        {validTimeRange && (
-          <div>
-            {evalResponse === 'No filter' ? t('No filter') : evalResponse}
-          </div>
-        )}
+        {validTimeRange && <div>{evalResponse}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
             <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
