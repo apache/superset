@@ -1898,6 +1898,9 @@ function DatasourceEditor({
         // partition mapping is the exception, because the merge is what
         // clears it.
         if (!clearDanglingPartitionMapping(liveDatasource, liveColumns)) {
+          if (liveDatasource.id !== undefined) {
+            clearDatasetCache(liveDatasource.id);
+          }
           addSuccessToast(t('Metadata has been synced'));
           setMetadataLoading(false);
           return;
