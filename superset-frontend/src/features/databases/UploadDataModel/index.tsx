@@ -811,7 +811,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                                       )
                                     }
                                     aria-label={t('Preview data')}
-                                    style={{ marginRight: 8 }}
                                   >
                                     {t('Preview data')}
                                   </Button>

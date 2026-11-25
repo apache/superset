@@ -18,7 +18,10 @@
  */
 import { FunctionComponent, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
+  Empty,
+  Loading,
   Modal,
   Table,
   TableSize,
@@ -161,15 +164,11 @@ export const DataPreviewModal: FunctionComponent<DataPreviewModalProps> = ({
       responsive
       centered
     >
-      {loading && (
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          {t('Loading...')}
-        </div>
-      )}
+      {loading && <Loading position="normal" />}
       {error && !loading && (
-        <div style={{ padding: 24, color: 'var(--ant-color-error)' }}>
+        <Alert type="error" closable={false}>
           {error}
-        </div>
+        </Alert>
       )}
       {!loading && !error && columns.length > 0 && (
         <Table
@@ -181,9 +180,7 @@ export const DataPreviewModal: FunctionComponent<DataPreviewModalProps> = ({
         />
       )}
       {!loading && !error && columns.length === 0 && (
-        <div style={{ padding: 24, color: 'var(--ant-color-text-secondary)' }}>
-          {t('No data to preview')}
-        </div>
+        <Empty description={t('No data to preview')} />
       )}
     </Modal>
   );

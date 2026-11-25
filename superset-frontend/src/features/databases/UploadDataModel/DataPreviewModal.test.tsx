@@ -135,7 +135,7 @@ test('shows Loading while parsing', async () => {
   render(<DataPreviewModal {...defaultProps} file={file} type="csv" />);
 
   await waitFor(() => {
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   textSpy.mockRestore();

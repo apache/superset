@@ -78,9 +78,12 @@ export const StyledFormItem = styled(FormItem)`
 `;
 
 export const StyledSwitchContainer = styled.div`
-  display: flex;
-  align-items: center;
-  margin-top: 0;
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit * 2}px;
+    margin-top: 0;
+  `}
 `;
 
 export const antDModalNoPaddingStyles = css`
