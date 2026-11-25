@@ -22,8 +22,8 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Button, Popover } from '@superset-ui/core/components';
 import { FC, useState } from 'react';
 import { MapViewConfigs, MapViewConfigsControlProps } from './types';
-import MapViewPopoverContent from './MapViewPopoverContent';
-import ExtentTag from './ExtentTag';
+import { MapViewPopoverContent } from './MapViewPopoverContent';
+import { ExtentTag } from './ExtentTag';
 import { ControlFormItem } from '../ColumnConfigControl/ControlForm';
 
 export const StyledExtentButton = styled(Button)`

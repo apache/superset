@@ -25,7 +25,7 @@ import { Form } from '@superset-ui/core/components/Form';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { Data as GsData } from 'geostyler-data';
 import { Style as GsStyle } from 'geostyler-style';
-import WfsDataParser, {
+import WfsParser, {
   RequestParams1_1_0,
   RequestParams2_0_0,
 } from 'geostyler-wfs-parser';
@@ -41,7 +41,7 @@ import {
 } from './types';
 import { getServiceVersions, hasAllRequiredWfsParams } from './serviceUtil';
 import { ControlFormItem } from '../ColumnConfigControl/ControlForm';
-import GeoStylerWrapper from './GeoStylerWrapper';
+import { GeoStylerWrapper } from './GeoStylerWrapper';
 
 // Enum for the different tabs
 const LAYER_CONFIG_TABS = {
@@ -298,7 +298,7 @@ export const LayerConfigsPopoverContent: FC<
     }
 
     const readWfsData = async (conf: WfsLayerConf) => {
-      const wfsParser = new WfsDataParser();
+      const wfsParser = new WfsParser();
       try {
         let requestParams: RequestParams1_1_0 | RequestParams2_0_0 = {} as
           | RequestParams1_1_0
