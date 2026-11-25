@@ -37,6 +37,7 @@ _VERSION_TABLES: tuple[str, ...] = (
     "tables_version",
     "table_columns_version",
     "sql_metrics_version",
+    "version_chart_archive_scope",
     "version_changes",
     "version_transaction",
 )
@@ -55,7 +56,8 @@ def _assert_table_list_covers_schema() -> None:
         # Continuum shadow tables are ``<entity_table>_version``; exclude
         # Alembic's own ``alembic_version`` bookkeeping table, which shares
         # the suffix but is not a shadow table.
-        if name.endswith("_version") and name != "alembic_version"
+        if (name.endswith("_version") and name != "alembic_version")
+        or name == "version_chart_archive_scope"
     }
     missing = shadow_tables - known
     assert not missing, (

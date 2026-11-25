@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, PropertyMock
 
 import pandas as pd
 import pytest
+from flask import Flask
 from freezegun import freeze_time
 from jinja2.exceptions import UndefinedError
 from pytest_mock import MockerFixture
@@ -66,95 +67,126 @@ from superset.superset_typing import (
 )
 from superset.utils import json
 
+SNOWFLAKE_URI = "snowflake://user:pass@account/db/sch"
 
-def test_get_sqla_col_quotes_snowflake_case_sensitive_identifier(
-    mocker: MockerFixture,
-) -> None:
-    """Snowflake physical columns retain their exact reflected case in generated SQL."""
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
-    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
-    mocker.patch.object(
-        Database,
-        "get_db_engine_spec",
-        return_value=SnowflakeEngineSpec,
+def _snowflake_dataset(normalize_columns: bool) -> SqlaTable:
+    """A Snowflake dataset whose column metadata is stored lowercase."""
+    pytest.importorskip("snowflake.sqlalchemy")
+    return SqlaTable(
+        table_name="iris",
+        schema="sch",
+        database=Database(id=1, database_name="sf", sqlalchemy_uri=SNOWFLAKE_URI),
+        normalize_columns=normalize_columns,
+        main_dttm_col="added_at",
+        columns=[
+            TableColumn(column_name="species", type="VARCHAR"),
+            TableColumn(column_name="added_at", type="TIMESTAMP_NTZ", is_dttm=True),
+            TableColumn(column_name="amount", type="NUMBER"),
+        ],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
     )
-    table = SqlaTable(
-        table_name="bug_test",
-        database=database,
-        normalize_columns=False,
-    )
-    tbl_column = TableColumn(column_name="id", type="INTEGER", table=table)
 
-    rendered = str(
-        tbl_column.get_sqla_col().compile(
-            dialect=sqlite.dialect(),
+
+def _compile_snowflake(clause: Any) -> str:
+    from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
+
+    return str(
+        clause.compile(
+            dialect=SnowflakeDialect(),
             compile_kwargs={"literal_binds": True},
         )
     )
 
-    assert rendered == '"id"'
+
+@pytest.mark.parametrize("normalize_columns", [False, True])
+def test_get_sqla_col_leaves_snowflake_lowercase_column_unquoted(
+    normalize_columns: bool,
+) -> None:
+    """
+    Lowercase Snowflake column metadata renders unquoted, so Snowflake folds it
+    to the uppercase physical column, whatever ``normalize_columns`` is set to.
+    """
+    table = _snowflake_dataset(normalize_columns)
+    species = table.get_column("species")
+    assert species is not None
+
+    assert _compile_snowflake(species.get_sqla_col()) == "species"
 
 
-@pytest.mark.parametrize("time_grain", [None, "P1D"])
-def test_get_timestamp_expression_quotes_snowflake_case_sensitive_identifier(
-    mocker: MockerFixture,
+def test_get_sqla_col_quotes_snowflake_uppercase_column() -> None:
+    """Exact-case uppercase metadata from a denormalized sync stays quoted."""
+    table = _snowflake_dataset(normalize_columns=False)
+    tbl_column = TableColumn(column_name="SPECIES", type="VARCHAR", table=table)
+
+    assert _compile_snowflake(tbl_column.get_sqla_col()) == '"SPECIES"'
+
+
+@pytest.mark.parametrize("normalize_columns", [False, True])
+def test_get_sqla_col_quotes_snowflake_virtual_column(normalize_columns: bool) -> None:
+    """Virtual column names are exact regardless of the normalization setting."""
+    table = _snowflake_dataset(normalize_columns)
+    table.sql = 'SELECT species AS "species" FROM iris'
+    species = table.get_column("species")
+    assert species is not None
+
+    assert _compile_snowflake(species.get_sqla_col()) == '"species"'
+
+
+@pytest.mark.parametrize("time_grain", [None, "P1M"])
+def test_get_timestamp_expression_quotes_snowflake_virtual_column(
     time_grain: str | None,
 ) -> None:
-    """Snowflake timestamp paths quote exact-case physical columns."""
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    """Both timestamp construction paths preserve exact virtual column names."""
+    table = _snowflake_dataset(normalize_columns=False)
+    table.sql = 'SELECT added_at AS "added_at" FROM iris'
+    added_at = table.get_column("added_at")
+    assert added_at is not None
 
-    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
-    mocker.patch.object(
-        Database,
-        "get_db_engine_spec",
-        return_value=SnowflakeEngineSpec,
-    )
-    table = SqlaTable(
-        table_name="bug_test",
-        database=database,
-        normalize_columns=False,
-    )
-    tbl_column = TableColumn(
-        column_name="created_at",
-        type="TIMESTAMP",
-        table=table,
+    rendered = _compile_snowflake(
+        added_at.get_timestamp_expression(time_grain=time_grain)
     )
 
-    rendered = str(
-        tbl_column.get_timestamp_expression(time_grain=time_grain).compile(
-            dialect=sqlite.dialect(),
-            compile_kwargs={"literal_binds": True},
-        )
-    )
-
-    assert '"created_at"' in rendered
+    assert '"added_at"' in rendered.replace('AS "added_at"', "")
 
 
-def test_adhoc_metric_to_sqla_quotes_snowflake_column_absent_from_columns_by_name(
-    mocker: MockerFixture,
+def test_adhoc_metric_to_sqla_quotes_snowflake_virtual_column_fallback() -> None:
+    """A missing column lookup still preserves exact virtual column names."""
+    table = _snowflake_dataset(normalize_columns=False)
+    table.sql = 'SELECT amount AS "amount" FROM iris'
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "SUM",
+        "column": {"column_name": "amount"},
+        "label": "total",
+    }
+
+    assert 'sum("amount")' in _compile_snowflake(table.adhoc_metric_to_sqla(metric, {}))
+
+
+@pytest.mark.parametrize("time_grain", [None, "P1M"])
+def test_get_timestamp_expression_leaves_snowflake_lowercase_column_unquoted(
+    time_grain: str | None,
 ) -> None:
-    """A SIMPLE adhoc metric quotes exact-case Snowflake columns even when the
-    metric's column is unknown to the dataset.
+    """Timestamp columns, with and without a grain, render lowercase unquoted."""
+    table = _snowflake_dataset(normalize_columns=False)
+    added_at = table.get_column("added_at")
+    assert added_at is not None
 
-    ``adhoc_metric_to_sqla`` only routes through ``TableColumn.get_sqla_col`` when
-    the column is present in ``columns_by_name``; the fallback builds a bare
-    ``column()`` and must apply the same identifier preparation, otherwise
-    SQLAlchemy upper-cases the unquoted name and Snowflake fails to resolve it.
+    rendered = _compile_snowflake(
+        added_at.get_timestamp_expression(time_grain=time_grain)
+    )
+
+    assert '"added_at"' not in rendered.replace('AS "added_at"', "")
+    assert "added_at" in rendered
+
+
+def test_adhoc_metric_to_sqla_leaves_snowflake_lowercase_column_unquoted() -> None:
     """
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
-
-    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
-    mocker.patch.object(
-        Database,
-        "get_db_engine_spec",
-        return_value=SnowflakeEngineSpec,
-    )
-    table = SqlaTable(
-        table_name="bug_test",
-        database=database,
-        normalize_columns=False,
-    )
+    A SIMPLE adhoc metric on a column absent from ``columns_by_name`` falls back
+    to a bare ``column()``, which also renders lowercase unquoted.
+    """
+    table = _snowflake_dataset(normalize_columns=False)
     metric: AdhocMetric = {
         "expressionType": "SIMPLE",
         "aggregate": "SUM",
@@ -163,19 +195,113 @@ def test_adhoc_metric_to_sqla_quotes_snowflake_column_absent_from_columns_by_nam
     }
 
     # Deliberately empty so the lookup misses and the fallback branch runs.
-    sqla_metric = table.adhoc_metric_to_sqla(metric, {})
+    rendered = _compile_snowflake(table.adhoc_metric_to_sqla(metric, {}))
 
-    rendered = str(
-        sqla_metric.compile(
-            dialect=sqlite.dialect(),
-            compile_kwargs={"literal_binds": True},
-        )
+    assert "sum(amount)" in rendered.lower()
+    assert '"amount"' not in rendered
+
+
+@pytest.mark.parametrize("normalize_columns", [False, True])
+def test_snowflake_native_filter_query_leaves_lowercase_columns_unquoted(
+    app: Flask,
+    normalize_columns: bool,
+) -> None:
+    """
+    The native filter values query references lowercase Snowflake columns
+    unquoted. Quoting them makes Snowflake match the name case-sensitively and
+    fail with ``invalid identifier '"species"'`` when the physical column is the
+    case-insensitive (uppercase) ``SPECIES``.
+    """
+    table = _snowflake_dataset(normalize_columns)
+
+    sql = table.get_query_str_extended(
+        {
+            "columns": ["species"],
+            "metrics": [],
+            "orderby": [("species", True)],
+            "filter": [],
+            "extras": {},
+            "is_timeseries": False,
+            "row_limit": 1000,
+        }
+    ).sql
+
+    assert 'SELECT species AS "species"' in sql
+    assert "GROUP BY species" in sql
+    assert "ORDER BY species ASC" in sql
+    assert '"species" ' not in sql.replace('AS "species"', "")
+
+
+@pytest.mark.parametrize("normalize_columns", [False, True])
+def test_snowflake_pivot_query_leaves_lowercase_columns_unquoted(
+    app: Flask,
+    normalize_columns: bool,
+) -> None:
+    """
+    A pivot query (monthly temporal axis, a dimension, a filter and a count
+    metric) references lowercase Snowflake columns unquoted.
+    """
+    table = _snowflake_dataset(normalize_columns)
+
+    sql = table.get_query_str_extended(
+        {
+            "columns": [
+                {
+                    "label": "added_at",
+                    "sqlExpression": "added_at",
+                    "columnType": "BASE_AXIS",
+                    "timeGrain": "P1M",
+                    "isColumnReference": True,
+                },
+                "species",
+            ],
+            "metrics": ["count"],
+            "orderby": [("count", False)],
+            "filter": [{"col": "species", "op": "IN", "val": ["setosa"]}],
+            "extras": {"time_grain_sqla": "P1M"},
+            "is_timeseries": False,
+            "row_limit": 1000,
+        }
+    ).sql
+
+    assert (
+        "SELECT DATE_TRUNC('MONTH', added_at) AS \"added_at\", "
+        'species AS "species", COUNT(*) AS "count"'
+    ) in sql
+    assert "WHERE species IN ('setosa')" in sql
+    assert "GROUP BY DATE_TRUNC('MONTH', added_at), species" in sql
+
+
+def test_snowflake_virtual_dataset_quotes_lowercase_alias(app: Flask) -> None:
+    """
+    Virtual dataset columns are the exact cursor names, so a case-sensitive
+    lowercase alias stays quoted and resolves against the subquery.
+    """
+    pytest.importorskip("snowflake.sqlalchemy")
+    table = SqlaTable(
+        table_name="v",
+        schema="sch",
+        database=Database(id=1, database_name="sf", sqlalchemy_uri=SNOWFLAKE_URI),
+        sql='SELECT species AS "species" FROM iris',
+        normalize_columns=False,
+        columns=[TableColumn(column_name="species", type="VARCHAR")],
     )
 
-    assert '"amount"' in rendered, (
-        f"Expected the exact-case column to be quoted, got: {rendered}"
-    )
-    assert "(amount)" not in rendered, f"Column was aggregated unquoted: {rendered}"
+    sql = table.get_query_str_extended(
+        {
+            "columns": ["species"],
+            "metrics": [],
+            "orderby": [("species", True)],
+            "filter": [{"col": "species", "op": "IN", "val": ["setosa"]}],
+            "extras": {},
+            "is_timeseries": False,
+            "row_limit": 1000,
+        }
+    ).sql
+
+    assert 'SELECT "species" AS "species"' in sql
+    assert "WHERE \"species\" IN ('setosa')" in sql
+    assert 'GROUP BY "species"' in sql
 
 
 def test_query_bubbles_errors(mocker: MockerFixture) -> None:
@@ -1968,6 +2094,64 @@ def test_data_for_slices_falls_back_for_invalid_query_context(
 
     assert [column["column_name"] for column in result["columns"]] == ["state"]
     mock_slice.get_query_context.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "order_by_cols,expected",
+    [
+        # Canonical encoding: a list of JSON strings.
+        (['["price_per_sqm", false]'], ["price_per_sqm", "state"]),
+        # Persisted by older writers as a real list -- used to raise
+        # ``TypeError: unhashable type: 'list'`` and 500 the dashboard
+        # datasets endpoint, leaving every widget without metadata.
+        ([["price_per_sqm", False]], ["price_per_sqm", "state"]),
+        # Non-ASCII column names must survive both encodings.
+        ([["Δ медиана %", True]], ["state", "Δ медиана %"]),
+        # The column half may itself be an adhoc column.
+        (
+            [[{"label": "price_per_sqm", "sqlExpression": "price_per_sqm"}, True]],
+            ["price_per_sqm", "state"],
+        ),
+        # Junk entries are skipped rather than crashing the request.
+        ([[123, False]], ["state"]),
+        ([[]], ["state"]),
+        (['["unclosed'], ["state"]),
+    ],
+)
+def test_data_for_slices_handles_order_by_cols_encodings(
+    mocker: MockerFixture,
+    order_by_cols: list[object],
+    expected: list[str],
+) -> None:
+    """Test ``order_by_cols`` pairs are accepted as JSON strings or raw lists.
+
+    ``order_by_cols`` holds ``[column, ascending]`` pairs. They are canonically
+    stored as JSON strings, but real deployments contain raw lists. A raw list
+    reaching ``set.update()`` raises ``TypeError: unhashable type: 'list'``.
+    """
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="state"),
+            TableColumn(column_name="price_per_sqm"),
+            TableColumn(column_name="Δ медиана %"),
+        ],
+        metrics=[],
+    )
+
+    mock_slice = mocker.MagicMock()
+    mock_slice.form_data = {"groupby": ["state"], "order_by_cols": order_by_cols}
+    mock_slice.query_context = None
+
+    result = table.data_for_slices([mock_slice])
+
+    assert sorted(column["column_name"] for column in result["columns"]) == sorted(
+        expected
+    )
 
 
 def test_data_for_slices_skips_invalid_query_context_entries(

@@ -3990,6 +3990,47 @@ def test_calculated_column_series_limit_join_on_is_parenthesized(
     )
 
 
+def test_series_limit_others_with_shortened_series_label(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    "Group remaining as Others" finds the series column of the limit subquery
+    when the engine shortens its label, as Oracle before 12.2 does past 30 bytes.
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    column_name = "c" * 29
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name=column_name, type="INTEGER")],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+    mocker.patch.object(
+        table.db_engine_spec,
+        "make_label_compatible",
+        side_effect=lambda label, _database=None: (
+            f"short_{len(label)}" if len(label) > 30 else label
+        ),
+    )
+
+    sqla_query = table.get_sqla_query(
+        groupby=[column_name],
+        metrics=["count"],
+        series_columns=[column_name],
+        series_limit=10,
+        group_others_when_limit_reached=True,
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert "AS short_31" in sql
+    assert "series_limit.short_31 IS NOT NULL" in sql
+
+
 def test_calculated_column_top_groups_predicate_is_parenthesized(
     database: Database,
 ) -> None:
@@ -6000,15 +6041,15 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
     )
 
 
-def test_explore_mixin_adhoc_metric_quotes_snowflake_case_sensitive_identifier(
+def test_explore_mixin_adhoc_metric_quotes_snowflake_query_column(
     database: Database,
 ) -> None:
-    """``ExploreMixin.adhoc_metric_to_sqla`` quotes exact-case Snowflake columns.
-
-    Unlike the ``SqlaTable`` override, this implementation builds the aggregate
-    from a bare ``sa.column()`` unconditionally, so every SIMPLE adhoc metric on
-    the query-object path bypassed identifier preparation.
     """
+    ``ExploreMixin.adhoc_metric_to_sqla`` serves SQL Lab ``Query`` datasources,
+    whose column names are the exact cursor names, so a lowercase Snowflake
+    column stays quoted.
+    """
+    snowdialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
     from superset.models.helpers import ExploreMixin
 
@@ -6027,30 +6068,39 @@ def test_explore_mixin_adhoc_metric_quotes_snowflake_case_sensitive_identifier(
         "label": "total",
     }
 
-    with database.get_sqla_engine() as engine:
-        dialect = engine.dialect
+    # A SQL Lab ``Query`` has no ``is_virtual``.
+    del datasource.is_virtual
 
     rendered = str(
         datasource.adhoc_metric_to_sqla(metric, {}).compile(
-            dialect=dialect,
+            dialect=snowdialect.SnowflakeDialect(),
             compile_kwargs={"literal_binds": True},
         )
     )
 
-    assert '"amount"' in rendered, (
-        f"Expected the exact-case column to be quoted, got: {rendered}"
-    )
-    assert "(amount)" not in rendered, f"Column was aggregated unquoted: {rendered}"
+    assert 'sum("amount")' in rendered
 
 
-def test_convert_tbl_column_quotes_snowflake_case_sensitive_identifier(
+@pytest.mark.parametrize(
+    "column_name,expected",
+    [("name", "name"), ("NAME", '"NAME"')],
+)
+@pytest.mark.parametrize("datasource_kind", ["physical", "virtual", "query"])
+def test_convert_tbl_column_snowflake_quotes_only_exact_names(
     database: Database,
     mocker: MockerFixture,
+    column_name: str,
+    expected: str,
+    datasource_kind: str,
 ) -> None:
-    """The chart query-object path quotes exact-case Snowflake physical columns."""
+    """
+    Physical metadata uses dialect quoting; virtual and Query names are exact.
+    """
+    snowdialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
     mocker.patch.object(
         Database,
@@ -6062,19 +6112,22 @@ def test_convert_tbl_column_quotes_snowflake_case_sensitive_identifier(
         table_name="bug_test",
         normalize_columns=False,
     )
-    tbl_column = TableColumn(column_name="name", type="VARCHAR", table=table)
+    tbl_column = TableColumn(column_name=column_name, type="VARCHAR", table=table)
 
-    with database.get_sqla_engine() as engine:
-        dialect = engine.dialect
+    if datasource_kind == "virtual":
+        table.sql = 'SELECT name AS "name" FROM iris'
+    datasource = Query(database=database) if datasource_kind == "query" else table
+    if datasource_kind != "physical":
+        expected = f'"{column_name}"'
 
     rendered = str(
-        table.convert_tbl_column_to_sqla_col(tbl_column).compile(
-            dialect=dialect,
+        datasource.convert_tbl_column_to_sqla_col(tbl_column).compile(
+            dialect=snowdialect.SnowflakeDialect(),
             compile_kwargs={"literal_binds": True},
         )
     )
 
-    assert rendered == '"name"'
+    assert rendered == expected
 
 
 @pytest.mark.parametrize(

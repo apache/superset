@@ -46,9 +46,12 @@ from superset.models.slice import Slice
 
 from ._base import DeletionRetentionTestBase
 
-CHART_PURGE_BASELINE_STATEMENTS: int = 35
-DASHBOARD_PURGE_BASELINE_STATEMENTS: int = 36
-DATASET_PURGE_BASELINE_STATEMENTS: int = 43
+# Archive scopes require an existence probe, scoped candidate collection/deletion,
+# and an extra orphan-reference check. Change-only transactions also contribute
+# candidates. Both shadow endpoints are collected in one SELECT per table.
+CHART_PURGE_BASELINE_STATEMENTS: int = 42
+DASHBOARD_PURGE_BASELINE_STATEMENTS: int = 41
+DATASET_PURGE_BASELINE_STATEMENTS: int = 51
 MAX_STATEMENT_REGRESSION: float = 0.10
 WARMUP_RUNS: int = 5
 MEASURED_RUNS: int = 20

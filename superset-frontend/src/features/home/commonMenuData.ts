@@ -16,7 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isValidElement, type ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
+
+/**
+ * An icon antd can actually render.
+ *
+ * `MenuObjectChildProps.icon` is typed `ReactNode`, and a string satisfies
+ * that -- but Superset's own menu entries carry a Font Awesome *class name*
+ * from FAB (`icon="fa-puzzle-piece"` and friends in `initialization`,
+ * forwarded as a plain string by FAB's `Menu.get_data`). antd does not
+ * validate it: `replaceElement` returns a non-element unchanged, so the class
+ * name renders as visible text -- "fa-table Sources" in the bar, "fa-css3 CSS
+ * Templates" in Settings.
+ *
+ * So only a real element is passed through. A string icon is dropped, which
+ * is what happened before any icon was forwarded at all -- nothing rendered
+ * it. Shared, because the navbar and the Settings dropdown are built by two
+ * different functions in two different files, and guarding only one of them
+ * is how this shipped twice.
+ */
+export const asIcon = (icon: ReactNode): ReactNode =>
+  isValidElement(icon) ? icon : undefined;
 
 /**
  * Shared popup offset configuration for navbar menu dropdowns.

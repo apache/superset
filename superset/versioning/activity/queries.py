@@ -63,6 +63,7 @@ from superset.versioning.changes import (
     ACTION_KINDS,
     version_changes_table,
 )
+from superset.versioning.lifecycle import CHART_ARCHIVE_KIND
 
 logger = logging.getLogger(__name__)
 
@@ -209,6 +210,9 @@ def fetch_change_records(
     entity_window_tuples: list[EntityWindows],
     since: datetime | None,
     until: datetime | None,
+    *,
+    dashboard_id: int | None = None,
+    dashboard_uuid: UUID | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
     """Fetch all ``version_changes`` rows matching any of the supplied
     entity-window tuples, joined with ``version_transaction`` for
@@ -236,7 +240,8 @@ def fetch_change_records(
     over the filtered list — there is no DB-level page ``OFFSET`` here.
     There IS a per-kind safety ceiling (``_MAX_FETCHED_RECORDS``) that
     bounds how much history a single request materializes (to at most
-    ``n_kinds * _MAX_FETCHED_RECORDS``); when a kind exhausts it, the
+    ``(n_kinds + 1) * _MAX_FETCHED_RECORDS`` including dashboard archives);
+    when a stream exhausts it, the
     second return value is ``True``, the returned stream is clamped to a
     clean total-order cut (records below the highest per-kind fetch floor
     are dropped so truncation does not create per-kind holes), and the caller
@@ -246,9 +251,6 @@ def fetch_change_records(
     ``(issued_at DESC, transaction_id DESC, sequence DESC)`` — the
     secondary keys break ties for the stable-ordering contract.
     """
-    if not entity_window_tuples:
-        return [], False
-
     # Group windows by (table_kind, entity_id) and by table_kind for SQL
     # narrowing. The fetch is per-kind; the post-filter is per-entity.
     windows_by_entity: dict[tuple[str, int], list[Window]] = {}
@@ -259,9 +261,6 @@ def fetch_change_records(
             continue
         ids_by_kind.setdefault(table_kind, set()).add(entity_id)
         windows_by_entity.setdefault((table_kind, entity_id), []).extend(windows)
-
-    if not ids_by_kind:
-        return [], False
 
     # Per-kind transaction_id bounds = the union of that kind's windows.
     # Pushing these into the SQL WHERE ensures the per-statement LIMIT
@@ -289,6 +288,18 @@ def fetch_change_records(
         until,
         _MAX_FETCHED_RECORDS,
     )
+    if dashboard_id is not None and dashboard_uuid is not None:
+        archives, archive_truncated, archive_floor = (
+            _fetch_dashboard_archive_candidates(
+                dashboard_id, dashboard_uuid, since, until, _MAX_FETCHED_RECORDS
+            )
+        )
+        rows.extend(archives)
+        truncated = truncated or archive_truncated
+        floors = [
+            floor for floor in (truncation_floor, archive_floor) if floor is not None
+        ]
+        truncation_floor = max(floors) if floors else None
     filtered = rows
     if truncated and truncation_floor is not None:
         # Collapse truncation to a clean cut in the same TOTAL order used by
@@ -311,39 +322,8 @@ def fetch_change_records(
     return filtered, truncated
 
 
-def _select_change_rows_for_kinds(
-    ids_by_kind: dict[str, set[int]],
-    bounds_by_kind: dict[str, tuple[int, int | None]],
-    windows_by_entity: dict[tuple[str, int], list[Window]],
-    since: datetime | None,
-    until: datetime | None,
-    limit: int,
-) -> tuple[list[dict[str, Any]], bool, RecordSortKey | None]:
-    """Fetch bounded candidates per entity kind and ID chunk.
-
-    Each SELECT uses ``entity_id IN (...)`` and joins ``version_transaction``
-    + ``ab_user`` so the orchestrator has the columns it needs for
-    decoration.
-
-    Per-kind, not one query: SQLAlchemy's ``tuple_(entity_kind,
-    entity_id).in_(...)`` would collapse the three queries into one,
-    but its SQL emission is not portable across Postgres, MySQL, and
-    SQLite. The per-kind shape is the correct trade-off given
-    Superset's multi-dialect requirement (at most 3 round-trips per
-    request, bounded by the kind taxonomy). Do not "optimise" into a
-    composite-tuple IN clause without verifying the SQL on all three
-    dialects.
-
-    **Init-order dependency.** ``tx_tbl.c.action_kind`` resolves only
-    after ``init_versioning()`` has run — the column is appended onto
-    Continuum's transaction Table by
-    ``superset.versioning.factory.VersionTransactionFactory`` at app
-    start via ``append_column`` + ``add_property``. This helper is
-    safe to call from request-path code because the app is fully
-    initialised by then; calling it from a script that imports the
-    versioning package without going through ``init_versioning()``
-    will raise ``AttributeError`` on the ``action_kind`` attribute
-    access below."""
+def _change_record_projection() -> tuple[tuple[Any, ...], Any, sa.Table]:
+    """Share the DTO projection between disjoint content and archive streams."""
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
 
@@ -384,6 +364,47 @@ def _select_change_rows_for_kinds(
         user_tbl.c.last_name,
     )
 
+    return select_cols, join_tree, tx_tbl
+
+
+def _select_change_rows_for_kinds(
+    ids_by_kind: dict[str, set[int]],
+    bounds_by_kind: dict[str, tuple[int, int | None]],
+    windows_by_entity: dict[tuple[str, int], list[Window]],
+    since: datetime | None,
+    until: datetime | None,
+    limit: int,
+) -> tuple[list[dict[str, Any]], bool, RecordSortKey | None]:
+    """Fetch bounded candidates per entity kind and ID chunk.
+
+    Each SELECT uses ``entity_id IN (...)`` and joins ``version_transaction``
+    + ``ab_user`` so the orchestrator has the columns it needs for
+    decoration.
+
+    Per-kind, not one query: SQLAlchemy's ``tuple_(entity_kind,
+    entity_id).in_(...)`` would collapse the three queries into one,
+    but its SQL emission is not portable across Postgres, MySQL, and
+    SQLite. The per-kind shape is the correct trade-off given
+    Superset's multi-dialect requirement (at most 3 round-trips per
+    request, bounded by the kind taxonomy). Do not "optimise" into a
+    composite-tuple IN clause without verifying the SQL on all three
+    dialects.
+
+    **Init-order dependency.** ``tx_tbl.c.action_kind`` resolves only
+    after ``init_versioning()`` has run — the column is appended onto
+    Continuum's transaction Table by
+    ``superset.versioning.factory.VersionTransactionFactory`` at app
+    start via ``append_column`` + ``add_property``. This helper is
+    safe to call from request-path code because the app is fully
+    initialised by then; calling it from a script that imports the
+    versioning package without going through ``init_versioning()``
+    will raise ``AttributeError`` on the ``action_kind`` attribute
+    access below."""
+    if not ids_by_kind:
+        return [], False, None
+    select_cols, join_tree, tx_tbl = _change_record_projection()
+    vc = version_changes_table
+
     out: list[dict[str, Any]] = []
     truncated = False
     truncation_floors: list[RecordSortKey] = []
@@ -403,6 +424,7 @@ def _select_change_rows_for_kinds(
                 .select_from(join_tree)
                 .where(
                     vc.c.entity_kind == table_kind,
+                    vc.c.kind != CHART_ARCHIVE_KIND,
                     vc.c.entity_id.in_(chunk),
                 )
             )
@@ -455,6 +477,104 @@ def _select_change_rows_for_kinds(
     return out, truncated, truncation_floor
 
 
+def archive_entity_uuid(record: dict[str, Any]) -> UUID | None:
+    """Validate archive payload identity without borrowing a live incarnation."""
+    payload = record.get("to_value")
+    if not isinstance(payload, dict):
+        return None
+    value = payload.get("entity_uuid")
+    if not isinstance(value, (str, UUID)):
+        return None
+    try:
+        return UUID(str(value))
+    except ValueError:
+        return None
+
+
+def _fetch_dashboard_archive_candidates(
+    path_id: int,
+    path_uuid: UUID,
+    since: datetime | None,
+    until: datetime | None,
+    limit: int,
+) -> tuple[list[dict[str, Any]], bool, RecordSortKey | None]:
+    """Read bounded immutable archive membership independently of content windows."""
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy.exc import DBAPIError
+
+    from superset.versioning.db_errors import is_missing_table_error
+    from superset.versioning.lifecycle import (
+        begin_capture_savepoint,
+        release_capture_savepoint,
+        rollback_capture_savepoint,
+    )
+    from superset.versioning.lifecycle_table import version_chart_archive_scope_table
+
+    scope = version_chart_archive_scope_table
+    vc = version_changes_table
+    columns, join_tree, tx_tbl = _change_record_projection()
+    stmt = (
+        sa.select(*columns, scope.c.chart_uuid.label("scope_chart_uuid"))
+        .select_from(
+            join_tree.join(
+                scope,
+                sa.and_(
+                    scope.c.transaction_id == vc.c.transaction_id,
+                    scope.c.chart_id == vc.c.entity_id,
+                ),
+            )
+        )
+        .where(
+            vc.c.entity_kind == "chart",
+            vc.c.kind == CHART_ARCHIVE_KIND,
+            scope.c.dashboard_id == path_id,
+            scope.c.dashboard_uuid == path_uuid,
+        )
+        .order_by(
+            tx_tbl.c.issued_at.desc(),
+            vc.c.transaction_id.desc(),
+            vc.c.sequence.desc(),
+            vc.c.entity_kind.desc(),
+            vc.c.entity_id.desc(),
+        )
+    )
+    if since is not None:
+        stmt = stmt.where(tx_tbl.c.issued_at >= since)
+    if until is not None:
+        stmt = stmt.where(tx_tbl.c.issued_at < until)
+
+    connection = db.session.connection()
+    outer_transaction = connection.get_transaction()
+    assert outer_transaction is not None
+    savepoint = begin_capture_savepoint(connection, outer_transaction)
+    result = None
+    rows: list[dict[str, Any]] = []
+    try:
+        result = connection.execute(
+            stmt.execution_options(stream_results=True)
+        ).mappings()
+        try:
+            for mapping in result:
+                row = dict(mapping)
+                scope_uuid = row.pop("scope_chart_uuid")
+                if archive_entity_uuid(row) != scope_uuid:
+                    continue
+                rows.append(row)
+                if len(rows) > limit:
+                    break
+        finally:
+            result.close()
+    except Exception as error:
+        rollback_capture_savepoint(connection, savepoint, outer_transaction, error)
+        if isinstance(error, DBAPIError) and is_missing_table_error(error):
+            return [], False, None
+        raise
+    release_capture_savepoint(connection, savepoint, outer_transaction)
+    truncated = len(rows) > limit
+    rows = rows[:limit]
+    return rows, truncated, _record_sort_key(rows[-1]) if truncated else None
+
+
 def _record_sort_key(record: dict[str, Any]) -> RecordSortKey:
     """Return the total newest-first activity ordering key."""
     return (
@@ -499,7 +619,8 @@ def _merge_result_into_heap(
 # Per-KIND safety ceiling on how many change rows a single activity request
 # will retain for one entity kind (shared across that kind's id-chunks).
 # Bounds application memory for a path entity with very long history or many
-# related entities to <= n_kinds * (_MAX_FETCHED_RECORDS + 1) per request.
+# related entities to <= (n_kinds + 1) * (_MAX_FETCHED_RECORDS + 1) per request,
+# including the independent dashboard archive stream.
 # When a kind exhausts its budget the response is flagged ``truncated`` and
 # the returned stream is clamped to a clean total-order cut.
 _MAX_FETCHED_RECORDS: int = 5000
@@ -701,7 +822,7 @@ def resolve_historical_entity_snapshots(
     needed_by_kind: dict[str, set[tuple[int, int]]] = {}
     for record in records:
         api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
-        if api_kind is None:
+        if api_kind is None or record.get("kind") == CHART_ARCHIVE_KIND:
             continue
         needed_by_kind.setdefault(api_kind, set()).add(
             (record["entity_id"], record["transaction_id"])
@@ -735,7 +856,11 @@ def apply_entity_name_denormalization(records: list[dict[str, Any]]) -> None:
     needed_by_kind: dict[str, set[tuple[int, int]]] = {}
     for record in records:
         api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
-        if api_kind is None or api_kind not in NAME_COLUMN:
+        if (
+            api_kind is None
+            or api_kind not in NAME_COLUMN
+            or record.get("kind") == CHART_ARCHIVE_KIND
+        ):
             continue
         needed_by_kind.setdefault(api_kind, set()).add(
             (record["entity_id"], record["transaction_id"])
@@ -751,7 +876,16 @@ def apply_entity_name_denormalization(records: list[dict[str, Any]]) -> None:
     for record in records:
         api_kind_for_record = TABLE_KIND_TO_API.get(record["entity_kind"], "")
         key = (api_kind_for_record, record["entity_id"], record["transaction_id"])
-        record["entity_name"] = resolved.get(key, "")
+        if record.get("kind") == CHART_ARCHIVE_KIND:
+            payload = record.get("to_value")
+            payload_name = (
+                payload.get("entity_name") if isinstance(payload, dict) else None
+            )
+            record["entity_name"] = (
+                payload_name if isinstance(payload_name, str) else ""
+            )
+        else:
+            record["entity_name"] = resolved.get(key, "")
 
 
 # ---- Live-row existence + soft-delete state -------------------------------
