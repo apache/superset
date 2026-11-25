@@ -70,5 +70,18 @@ export interface TableProps<RecordType> {
 
   striped?: boolean;
 
+  /**
+   * Called when the sort state changes, with it translated to a query
+   * `orderby` (`[[columnId, isAscending]]`) so the consumer can re-request
+   * server-sorted data. When multiple columns are sorted, all of them are
+   * included, in the priority order the user applied them.
+   */
+  onServerSort?: (orderby: [string, boolean][]) => void;
+  /**
+   * The order rows arrive in when no sort is applied (`[[columnId,
+   * isAscending]]`). Entries for columns the grid shows get their sort arrow
+   * from the start, and clearing a sort returns to this state.
+   */
+  defaultSort?: [string, boolean][];
   themeOverrides?: GridThemeOverrides;
 }

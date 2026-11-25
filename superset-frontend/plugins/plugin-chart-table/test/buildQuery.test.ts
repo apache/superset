@@ -554,6 +554,29 @@ describe('plugin-chart-table', () => {
       expect(query.orderby).toEqual([['first_metric', false]]);
     });
 
+    test('keeps an explicit orderby over the metric default in aggregate mode', () => {
+      const query = buildQueryCached({
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        groupby: ['col1'],
+        metrics: ['first_metric', 'sort_metric'],
+        timeseries_limit_metric: 'sort_metric',
+        orderby: [['col1', true]],
+      }).queries[0];
+      expect(query.orderby).toEqual([['col1', true]]);
+    });
+
+    test('ignores stale raw-mode order_by_cols when picking the aggregate default', () => {
+      const query = buildQueryCached({
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        groupby: ['col1'],
+        metrics: ['first_metric'],
+        order_by_cols: ['["col1", true]'],
+      }).queries[0];
+      expect(query.orderby).toEqual([['first_metric', false]]);
+    });
+
     test('maps order_by_cols to orderby in raw records mode', () => {
       const query = buildQueryCached({
         ...basicFormData,

@@ -1530,6 +1530,24 @@ describe('plugin-chart-ag-grid-table', () => {
 
       expect(query.metrics).toEqual([]);
     });
+
+    test('should keep an explicit orderby over the metric default in aggregate mode', () => {
+      const query = buildQueryUncached({
+        ...basicFormData,
+        orderby: [['state', true]],
+      }).queries[0];
+
+      expect(query.orderby).toEqual([['state', true]]);
+    });
+
+    test('should default to the first metric when only raw-mode order_by_cols is set', () => {
+      const query = buildQueryUncached({
+        ...basicFormData,
+        order_by_cols: ['["state", true]'],
+      }).queries[0];
+
+      expect(query.orderby).toEqual([['count', false]]);
+    });
   });
 
   describe('buildQuery - label-to-SQL resolution in WHERE/HAVING', () => {

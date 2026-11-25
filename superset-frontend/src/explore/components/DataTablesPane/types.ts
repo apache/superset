@@ -117,4 +117,13 @@ export interface SingleQueryResultPaneProp
   // row-limit selector, not the chart's row_limit, is what capped the result.
   limitReachedMessage?: React.ReactNode;
   onRowLimitChange?: (limit: number) => void;
+  // Re-request data sorted server-side; omitted when the result fits within the
+  // row limit and client-side sorting is already exact.
+  onServerSort?: (orderby: [string, boolean][]) => void;
+  // The order rows arrive in with no sort applied, shown as the grid's
+  // initial sort state.
+  defaultSort?: [string, boolean][];
+  // True while a re-sort/refetch is in flight; surfaced in-place so the grid
+  // stays mounted (and keeps its sort state) instead of being replaced.
+  isLoading?: boolean;
 }

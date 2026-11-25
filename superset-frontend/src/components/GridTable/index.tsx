@@ -16,13 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ThemedAgGridReact } from '@superset-ui/core/components';
 import type {
   CellKeyDownEvent,
   Column,
+  ColumnState,
+  GridApi,
   GridOptions,
+  GridReadyEvent,
+  SortDirection,
   ValueGetterParams,
 } from 'ag-grid-community';
 import type { AgGridReactProps } from 'ag-grid-react';
@@ -37,8 +41,9 @@ const gridComponents = {
   agColumnHeader: Header,
 };
 
-const onSortChanged: AgGridReactProps['onSortChanged'] = ({ api }) =>
-  api.refreshCells();
+const sameOrderby = (a: [string, boolean][], b: [string, boolean][]) =>
+  a.length === b.length &&
+  a.every(([col, asc], i) => col === b[i][0] && asc === b[i][1]);
 
 export function GridTable<RecordType extends object>({
   data,
@@ -50,9 +55,78 @@ export function GridTable<RecordType extends object>({
   showRowNumber,
   enableActions,
   size = GridSize.Middle,
+  onServerSort,
+  defaultSort,
   themeOverrides,
 }: TableProps<RecordType>) {
   const theme = useTheme();
+  const gridApi = useRef<GridApi>();
+
+  // The order the rows arrive in when nobody has sorted, limited to columns
+  // the grid actually shows, so its arrow can be drawn from the start.
+  // Keyed on contents, so a new `columns` array alone doesn't re-seed and wipe
+  // a sort the user has applied.
+  const seededSortKey = JSON.stringify(
+    (defaultSort ?? []).filter(([col]) =>
+      columns.some(({ label }) => label === col),
+    ),
+  );
+  const seededSort = useMemo<[string, boolean][]>(
+    () => JSON.parse(seededSortKey),
+    [seededSortKey],
+  );
+
+  const applySeededSort = useCallback(
+    (api: GridApi) => {
+      api.applyColumnState({
+        state: seededSort.map(([colId, asc], sortIndex): ColumnState => ({
+          colId,
+          sort: asc ? 'asc' : 'desc',
+          sortIndex,
+        })),
+        defaultState: { sort: null },
+      });
+    },
+    [seededSort],
+  );
+
+  useEffect(() => {
+    if (gridApi.current) {
+      applySeededSort(gridApi.current);
+    }
+  }, [applySeededSort]);
+
+  const onGridReady = useCallback(
+    ({ api }: GridReadyEvent) => {
+      gridApi.current = api;
+      applySeededSort(api);
+    },
+    [applySeededSort],
+  );
+
+  const onSortChanged = useCallback<
+    NonNullable<AgGridReactProps['onSortChanged']>
+  >(
+    ({ api }) => {
+      api.refreshCells();
+      const orderby = api
+        .getColumnState()
+        .filter(state => state.sort)
+        // Order the columns by the sequence in which the user applied each
+        // sort so multi-column sort reaches the server in the right priority.
+        .sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0))
+        .map(state => [state.colId, state.sort === 'asc'] as [string, boolean]);
+      if (orderby.length === 0 && seededSort.length > 0) {
+        // Clearing a sort brings back the default order, so show its arrow
+        // again; that re-fires this handler with the seeded state.
+        applySeededSort(api);
+        return;
+      }
+      // The seeded state is the default order, not an explicit sort.
+      onServerSort?.(sameOrderby(orderby, seededSort) ? [] : orderby);
+    },
+    [applySeededSort, onServerSort, seededSort],
+  );
   const isExternalFilterPresent = useCallback(
     () => Boolean(externalFilter),
     [externalFilter],
@@ -85,6 +159,16 @@ export function GridTable<RecordType extends object>({
         copyTextToClipboard(() => Promise.resolve(record));
       }
     }, []);
+  const seededDirections = useMemo(
+    () =>
+      Object.fromEntries(
+        seededSort.map(([col, asc]) => [
+          col,
+          (asc ? ['asc', 'desc'] : ['desc', 'asc']) as SortDirection[],
+        ]),
+      ),
+    [seededSort],
+  );
   const columnDefs = useMemo(
     () =>
       [
@@ -117,6 +201,11 @@ export function GridTable<RecordType extends object>({
             cellRenderer,
             sortable,
             comparator,
+            // A column carrying the default order has no separate unsorted
+            // state, so it only toggles between the two directions.
+            ...(seededDirections[label] && {
+              sortingOrder: seededDirections[label],
+            }),
             ...(index === columns.length - 1 && {
               flex: 1,
               width,
@@ -129,6 +218,7 @@ export function GridTable<RecordType extends object>({
       rowIndexLength,
       columnReorderable,
       columns,
+      seededDirections,
       showRowNumber,
       sortable,
       theme,
@@ -215,6 +305,7 @@ export function GridTable<RecordType extends object>({
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
         onSortChanged={onSortChanged}
+        onGridReady={onGridReady}
         isExternalFilterPresent={isExternalFilterPresent}
         doesExternalFilterPass={externalFilter}
         components={gridComponents}
