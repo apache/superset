@@ -49,12 +49,12 @@ DEFAULT_ACCESS_TOKEN_URL = (
 )
 
 
-# schema for adding a database by providing parameters instead of the
-# full SQLAlchemy URI
 # DuckDB's default ``to_arrow_reader`` batch size.
 DUCKDB_ARROW_BATCH_SIZE = 1_000_000
 
 
+# schema for adding a database by providing parameters instead of the
+# full SQLAlchemy URI
 class DuckDBParametersSchema(Schema):
     access_token = fields.String(
         allow_none=True,
