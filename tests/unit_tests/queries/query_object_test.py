@@ -112,6 +112,31 @@ def test_validate_rejects_non_string_metric_label() -> None:
         query_object.validate()
 
 
+def test_validate_falls_back_when_label_is_non_string() -> None:
+    """A non-string `label` is ignored in favour of the string fallback
+    (`sqlExpression`), so the request succeeds with a usable label.
+    """
+    query_object = QueryObject(
+        metrics=[
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "COUNT(*)",
+                "label": {"not": "a string"},  # type: ignore[typeddict-item]
+            }
+        ],
+        columns=[
+            {
+                "label": {"not": "a string"},  # type: ignore[typeddict-item]
+                "sqlExpression": "source",
+            }
+        ],
+        row_limit=1,
+    )
+    query_object.validate()
+    assert query_object.metric_names == ["COUNT(*)"]
+    assert query_object.column_names == ["source"]
+
+
 @pytest.mark.parametrize("clause", ["where", "having"])
 def test_semantic_view_rejects_custom_sql_extras(clause: str) -> None:
     """Unsupported SQL clauses fail before semantic provider access."""

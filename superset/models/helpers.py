@@ -5285,7 +5285,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get("expressionType")
-        label = utils.get_metric_name(metric)
+        try:
+            label = utils.get_metric_name(metric)
+        except ValueError as ex:
+            raise QueryObjectValidationError(str(ex)) from ex
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             aggregate: Any = metric.get("aggregate")

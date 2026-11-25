@@ -2542,7 +2542,7 @@ class SqlaTable(
 
         return super().get_from_clause(template_processor)
 
-    def adhoc_metric_to_sqla(
+    def adhoc_metric_to_sqla(  # noqa: C901
         self,
         metric: AdhocMetric,
         columns_by_name: dict[str, TableColumn],
@@ -2560,7 +2560,10 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get("expressionType")
-        label = utils.get_metric_name(metric, self.verbose_map)
+        try:
+            label = utils.get_metric_name(metric, self.verbose_map)
+        except ValueError as ex:
+            raise QueryObjectValidationError(str(ex)) from ex
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             aggregate: Any = metric.get("aggregate")
