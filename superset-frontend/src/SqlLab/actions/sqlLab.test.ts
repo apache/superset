@@ -122,6 +122,14 @@ function teardownAsyncHistory() {
   fetchMock.clearHistory();
 }
 
+const datasetEndpoint = "glob:*/api/v1/dataset/*";
+const datasourceMetadataEndpoint = "glob:*/fetch_datasource_metadata*";
+
+function teardownDatasourceRoutes() {
+  fetchMock.removeRoute(datasetEndpoint);
+  fetchMock.removeRoute(datasourceMetadataEndpoint);
+}
+
 const saveQueryEndpoint = "glob:*/api/v1/saved_query/";
 fetchMock.post(saveQueryEndpoint, { results: { json: {} } });
 
@@ -699,8 +707,8 @@ test("calls requestQueryResults", async () => {
 test.skip("parses large number result without losing precision", async () => {
   setupAsyncActions();
   try {
-    await (async () => {
-      return (
+    await (async () => 
+      (
 makeFetchQueryResultsRequest().then(() => {
     expect(fetchMock.callHistory.calls(fetchQueryEndpoint)).toHaveLength(1);
     expect(dispatch.mock.calls.length).toBe(2);
@@ -710,8 +718,8 @@ makeFetchQueryResultsRequest().then(() => {
       ].results.data.toString(),
     ).toBe(mockBigNumber);
   })
-      );
-    })();
+      )
+    )();
   } finally {
     teardownDatasourceRoutes();
     teardownAsyncHistory();
@@ -811,8 +819,8 @@ test("calls startQuery", async () => {
 test("parses large number result without losing precision", async () => {
   setupAsyncActions();
   try {
-    await (async () => {
-      return (
+    await (async () => 
+      (
 makeRunQueryRequest().then(() => {
     expect(fetchMock.callHistory.calls(runQueryEndpoint)).toHaveLength(1);
     expect(dispatch.mock.calls.length).toBe(2);
@@ -822,8 +830,8 @@ makeRunQueryRequest().then(() => {
       ].results.data.toString(),
     ).toBe(mockBigNumber);
   })
-      );
-    })();
+      )
+    )();
   } finally {
     teardownDatasourceRoutes();
     teardownAsyncHistory();
@@ -1268,8 +1276,6 @@ test.each([
 
 // The numeric prefix of a `<id>__query` datasource key is a query id, not a
 // dataset id, so it must never be resolved through the dataset API.
-const datasetEndpoint = "glob:*/api/v1/dataset/*";
-const datasourceMetadataEndpoint = "glob:*/fetch_datasource_metadata*";
 const queryDatasourceMetadata = {
   name: "My tab",
   catalog: "analytics_catalog",
@@ -1316,11 +1322,6 @@ const popDatasourceQuery = (datasourceKey: string, sql?: string) => {
     )
     .then(() => store.getActions());
 };
-
-function teardownDatasourceRoutes() {
-  fetchMock.removeRoute(datasetEndpoint);
-  fetchMock.removeRoute(datasourceMetadataEndpoint);
-}
 
 const isDatasourceToast = (action: AnyAction) =>
   action.type === ADD_TOAST &&
