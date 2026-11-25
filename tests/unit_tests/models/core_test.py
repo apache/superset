@@ -5271,19 +5271,37 @@ def test_default_schema_concurrent_lookups_share_inflight_publication(
     assert write.call_count == 1
 
 
-@pytest.mark.parametrize(
-    ("request_count", "read_delay"),
-    [(8, 0.02), (8, 0.15), (1, 0.15)],
-    ids=["contention", "slow_read_contention", "slow_read"],
-)
+@pytest.mark.parametrize("request_count", [1, 2, 8])
 def test_default_schema_concurrent_cold_engines_use_shared_cache(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     request_count: int,
-    read_delay: float,
 ) -> None:
     """All cold requests reuse shared discovery when the database is unreachable."""
-    from superset.models.core import _retire_cached_engines
+    from superset.models.core import (
+        _DefaultSchemaCacheFlight,
+        _reserve_default_schema_cache_flight,
+        _retire_cached_engines,
+    )
+
+    # Test overlap rather than scheduler speed; timeouts only guard against deadlocks.
+    mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_WAIT", 30)
+    joined = Event()
+    reservations = 0
+
+    def reserve(
+        cache_key: str | None, deadline: float, publication_key: str | None
+    ) -> tuple[_DefaultSchemaCacheFlight | None, bool]:
+        """Keep the read pending until every request has selected its flight."""
+        nonlocal reservations
+        flight = _reserve_default_schema_cache_flight(
+            cache_key, deadline, publication_key
+        )
+        # The caller holds the cache I/O condition, serializing this counter.
+        reservations += 1
+        if reservations == request_count:
+            joined.set()
+        return flight
 
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     assert database.get_default_schema_from_engine(None) == "main"
@@ -5298,10 +5316,13 @@ def test_default_schema_concurrent_cold_engines_use_shared_cache(
     real_get = shared_default_schema_cache.get
 
     def slow_get(key: str) -> str | None:
-        """Simulate a healthy shared cache with nonzero read latency."""
-        Event().wait(read_delay)
+        """Require all requests to overlap the same unfinished cache read."""
+        assert joined.wait(timeout=10)
         return real_get(key)
 
+    mocker.patch(
+        "superset.models.core._reserve_default_schema_cache_flight", side_effect=reserve
+    )
     read = mocker.patch.object(shared_default_schema_cache, "get", side_effect=slow_get)
     barrier = Barrier(request_count)
     app_context = current_app.app_context
@@ -5309,12 +5330,12 @@ def test_default_schema_concurrent_cold_engines_use_shared_cache(
     def lookup() -> str | None:
         """Start independent request contexts on the same cold engine."""
         with app_context():
-            barrier.wait(timeout=5)
+            barrier.wait(timeout=10)
             return database.get_default_schema_from_engine(None)
 
     with ThreadPoolExecutor(max_workers=request_count) as executor:
         requests = [executor.submit(lookup) for _ in range(request_count)]
-        assert [request.result(timeout=5) for request in requests] == [
+        assert [request.result(timeout=15) for request in requests] == [
             "main"
         ] * request_count
     read.assert_called_once()
@@ -5334,6 +5355,8 @@ def test_default_schema_read_is_independent_of_unrelated_cache_io(
         _read_default_schema,
     )
 
+    # Ordering, not the 200 ms production budget, proves I/O independence.
+    mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_WAIT", 30)
     cache = shared_default_schema_cache
     cache.set("first", "first_schema")
     cache.set("second", "second_schema")
@@ -5350,15 +5373,13 @@ def test_default_schema_read_is_independent_of_unrelated_cache_io(
         """Hold the first read while allowing the second entry to return."""
         if key == "first":
             entered.set()
-            assert release.wait(timeout=5)
-        else:
-            Event().wait(0.15)
+            assert release.wait(timeout=15)
         return real_get(key)
 
     def slow_add(key: str, value: str, timeout: int) -> bool:
         """Hold publication while a cold request needs shared discovery."""
         entered.set()
-        assert release.wait(timeout=5)
+        assert release.wait(timeout=15)
         return real_add(key, value, timeout=timeout)
 
     read = mocker.patch.object(cache, "get", side_effect=slow_get)
@@ -5382,15 +5403,15 @@ def test_default_schema_read_is_independent_of_unrelated_cache_io(
     with ThreadPoolExecutor(max_workers=2) as executor:
         first = executor.submit(first_lookup)
         try:
-            assert entered.wait(timeout=1)
+            assert entered.wait(timeout=10)
             second = executor.submit(second_lookup)
-            assert second.result(timeout=0.19) == "second_schema"
+            assert second.result(timeout=10) == "second_schema"
         finally:
             release.set()
-        assert first.result(timeout=1) == (
+        assert first.result(timeout=10) == (
             "first_schema" if pending_operation == "read" else None
         )
-        assert second.result(timeout=1) == "second_schema"
+        assert second.result(timeout=10) == "second_schema"
     read.assert_any_call("second")
     assert read.call_count == (2 if pending_operation == "read" else 1)
 
