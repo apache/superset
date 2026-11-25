@@ -27,11 +27,12 @@ assists people when migrating to a new version.
 ### SQL Lab schema and catalog grants
 
 `SQLLAB_REQUIRE_DATASET_MATCH` defaults to `True`. SQL Lab execution, result
-fetch, CSV and streaming export, cost estimates, SQL formatting, and the MCP
-`execute_sql` tool still require `datasource_access` on a registered dataset
-for every referenced table. Editorship of that dataset is not enough on this
-path. A denial names the dataset requirement, so a role that already holds
-`schema_access` or `catalog_access` is not told those grants are missing.
+fetch, CSV and streaming export, cost estimates, SQL formatting, live SQL
+validation, and the MCP `execute_sql` tool still require `datasource_access`
+on a registered dataset for every referenced table. Editorship of that
+dataset is not enough on this path. A denial names the dataset requirement,
+so a role that already holds `schema_access` or `catalog_access` is not told
+those grants are missing.
 
 Set `SQLLAB_REQUIRE_DATASET_MATCH = False` to authorize those paths from
 `schema_access` or `catalog_access` alone. `schema_access` covers every
@@ -45,8 +46,8 @@ selected schema while the shared cursor reads the schema the script
 switched to. So does SQL that cannot be fully parsed, and a table whose
 schema cannot be determined. A catalog grant still covers every schema in
 that catalog. Chart and Explore checks are unchanged, including for Kusto
-KQL and other SQL the parser cannot fully model. Reports, alerts, MetaDB,
-and SQL validation keep requiring a dataset match.
+KQL and other SQL the parser cannot fully model. Reports, alerts, and
+MetaDB keep requiring a dataset match.
 
 - Dashboard history records related chart archives using the new
   `version_chart_archive_scope` table. Run `superset db upgrade` before deploying

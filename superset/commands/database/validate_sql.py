@@ -44,6 +44,7 @@ from superset.jinja_context import (
 from superset.models.core import Database
 from superset.sql_validators import get_validator_by_name
 from superset.sql_validators.base import BaseSQLValidator
+from superset.sqllab.utils import requires_dataset_match
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
@@ -73,15 +74,19 @@ class ValidateSQLCommand(BaseCommand):
         schema = self._properties.get("schema")
         template_params = self._properties.get("template_params") or {}
 
-        # Check access before rendering the Jinja template (mirrors the SQL
-        # Lab execute path).
+        # Check access before rendering the Jinja template. This is the
+        # editor's live validation, so it uses the same scoping as Run:
+        # dataset matching follows ``SQLLAB_REQUIRE_DATASET_MATCH``, while
+        # editorship and unscoped SQL stay denied either way.
         security_manager.raise_for_access(
             database=self._model,
             sql=sql,
             catalog=catalog,
             schema=schema,
             template_params=template_params,
-            force_dataset_match=True,
+            force_dataset_match=requires_dataset_match(),
+            allow_editorship=False,
+            reject_unscoped_sql=True,
         )
 
         try:

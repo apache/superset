@@ -5747,14 +5747,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             non-strict path). Call sites that execute or return raw row
             data set this to True. SQL Lab execution, result fetch,
             export, formatting, cost estimates, and the MCP ``execute_sql``
-            tool pass ``SQLLAB_REQUIRE_DATASET_MATCH`` (default True), so an
-            operator can restore catalog and schema grants for those paths
-            alone. Those SQL Lab paths also pass ``allow_editorship=False``,
-            so editorship of a dataset does not authorize them when the flag
-            is off, and ``reject_unscoped_sql=True``, so unparsed SQL, schema
+            tool, and the editor's live SQL validation pass
+            ``SQLLAB_REQUIRE_DATASET_MATCH`` (default True), so an operator
+            can restore catalog and schema grants for those paths alone.
+            Those SQL Lab paths also pass ``allow_editorship=False``, so
+            editorship of a dataset does not authorize them when the flag is
+            off, and ``reject_unscoped_sql=True``, so unparsed SQL, schema
             rebinding, and an unresolved schema stay denied on SQL Lab when
-            this flag is off. Reports, alerts, MetaDB, SQL validation, and
-            dashboard scope SQL keep passing True.
+            this flag is off. Reports, alerts, MetaDB, and dashboard scope
+            SQL keep passing True.
             The default (False) preserves the historical semantics for
             chart-data, ``/table_metadata/``, and ``/select_star/`` (dataset
             create/update/import additionally opt out of the editorship accept
