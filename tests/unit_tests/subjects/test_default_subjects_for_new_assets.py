@@ -17,22 +17,24 @@
 """Tests for the configurable default viewers/editors of new assets.
 
 Covers ``DEFAULT_VIEWERS_FOR_NEW_ASSET`` / ``DEFAULT_EDITORS_FOR_NEW_ASSET``,
-the creator-always-an-editor guarantee, the explicit-payload merge rule for
-editors, fail-closed error handling and the wiring at the dashboard-copy and
+parity with the pre-hook behavior when no callable is set, the explicit-payload
+merge rule for editors, error handling and the wiring at the dashboard-copy and
 importer call sites.
 """
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from flask import current_app
+from marshmallow import ValidationError
 
 from superset.commands.utils import populate_subjects
 from superset.models.dashboard import Dashboard
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import (
+    creator_as_editor,
     creator_groups_as_viewers,
     get_default_editors_for_new_asset,
     get_default_viewers_for_groups,
@@ -87,33 +89,34 @@ def test_default_editors_without_a_user_are_empty(app_context) -> None:
     assert get_default_editors_for_new_asset(None, "chart") == []
 
 
-def test_custom_editors_callable_adds_a_role_and_receives_user_and_type(
+def test_creator_as_editor_returns_the_creator_subject(app_context) -> None:
+    with patch("superset.subjects.utils.get_user_subject", return_value=CREATOR):
+        assert creator_as_editor(USER, "chart", properties={}) == [CREATOR]  # type: ignore[arg-type]
+
+
+def test_custom_editors_callable_receives_user_type_and_properties(
     app_context,
 ) -> None:
-    resolver = MagicMock(return_value=[ROLE])
+    resolver = MagicMock(return_value=[CREATOR, ROLE])
+    p1, p2, p3 = _patches()
+    with p1, p2, p3, _config(DEFAULT_EDITORS_FOR_NEW_ASSET=resolver):
+        result = get_default_editors_for_new_asset(
+            5, "dataset", properties={"table_name": "t"}
+        )
 
-    assert _editors("dataset", DEFAULT_EDITORS_FOR_NEW_ASSET=resolver) == [
-        CREATOR,
-        ROLE,
-    ]
-    resolver.assert_called_once_with(USER, "dataset")
+    assert result == [CREATOR, ROLE]
+    resolver.assert_called_once_with(USER, "dataset", properties={"table_name": "t"})
 
 
-def test_creator_is_kept_when_the_callable_omits_or_repeats_them(app_context) -> None:
-    assert _editors(DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t: [ROLE]) == [
-        CREATOR,
-        ROLE,
-    ]
+def test_callable_owns_the_list_and_may_omit_the_creator(app_context) -> None:
+    assert _editors(DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t, **kw: [ROLE]) == [ROLE]
     assert _editors(
-        DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t: [ROLE, CREATOR, ROLE]
-    ) == [
-        CREATOR,
-        ROLE,
-    ]
+        DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t, **kw: [ROLE, CREATOR, ROLE, None]
+    ) == [ROLE, CREATOR]
 
 
-def test_raising_editors_callable_fails_closed_to_the_creator(app_context) -> None:
-    def boom(user: Any, asset_type: str) -> list[Subject]:
+def test_raising_editors_callable_falls_back_to_the_creator_only(app_context) -> None:
+    def boom(user: Any, asset_type: str, **kwargs: Any) -> list[Subject]:
         raise RuntimeError("nope")
 
     assert _editors(DEFAULT_EDITORS_FOR_NEW_ASSET=boom) == [CREATOR]
@@ -145,7 +148,7 @@ def test_custom_viewers_callable_wins_over_the_flag(app_context) -> None:
     flags = {"ENABLE_VIEWERS": True, "ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True}
 
     assert _viewers(flags, DEFAULT_VIEWERS_FOR_NEW_ASSET=resolver) == [ROLE]
-    resolver.assert_called_once_with(USER, "chart")
+    resolver.assert_called_once_with(USER, "chart", properties=None)
 
 
 def test_custom_viewers_callable_is_ignored_while_viewers_disabled(app_context) -> None:
@@ -173,42 +176,134 @@ def test_in_flush_viewers_use_the_custom_callable_with_the_in_memory_user(
         _config(DEFAULT_VIEWERS_FOR_NEW_ASSET=resolver),
     ):
         assert get_default_viewers_for_groups([], user=USER) == [ROLE]  # type: ignore[arg-type]
-    resolver.assert_called_once_with(USER, "dashboard")
+    resolver.assert_called_once_with(USER, "dashboard", properties=None)
 
 
-@patch("superset.commands.utils.get_user_id", return_value=5)
-def test_populate_subjects_uses_defaults_when_no_editors_requested(
-    mock_user_id: MagicMock, app_context
-) -> None:
-    properties: dict[str, Any] = {}
-    p1, p2, p3 = _patches()
-    with p1, p2, p3, _config(DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t: [ROLE]):
-        populate_subjects(properties, [], include_viewers=False, asset_type="chart")
-
-    assert properties["editors"] == [CREATOR, ROLE]
-
-
-@patch("superset.commands.utils.get_user_id", return_value=5)
-@patch("superset.commands.utils.populate_subject_list")
-def test_populate_subjects_adds_defaults_to_explicit_editors(
-    mock_populate: MagicMock, mock_user_id: MagicMock, app_context
-) -> None:
-    other = _subject(9)
-    mock_populate.return_value = [other]
-    properties: dict[str, Any] = {"editors": [9]}
+def _populate(
+    properties: dict[str, Any],
+    *,
+    admin: bool,
+    asset_type: str | None = "chart",
+    **config: Any,
+) -> list[ValidationError]:
+    """Run ``populate_subjects`` through the real ``populate_subject_list``."""
+    exceptions: list[ValidationError] = []
     p1, p2, p3 = _patches()
     with (
         p1,
         p2,
         p3,
+        patch("superset.commands.utils.get_user_id", return_value=5),
         patch("superset.commands.utils.get_user_subject", return_value=CREATOR),
-        _config(DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t: [ROLE]),
+        patch("superset.commands.utils.get_subject", side_effect=_subject),
+        patch("superset.commands.utils.get_user_subject_ids", return_value=[1]),
+        patch("superset.commands.utils.security_manager.is_admin", return_value=admin),
+        patch(
+            "superset.commands.utils._has_extra_editors_resolver", return_value=False
+        ),
+        _config(**config),
     ):
-        populate_subjects(properties, [], include_viewers=False, asset_type="chart")
+        populate_subjects(
+            properties, exceptions, include_viewers=False, asset_type=asset_type
+        )
+    return exceptions
 
-    # The mandated role is added; the creator is not forced in on top of an
-    # explicit list (the existing lockout rule governs that).
-    assert properties["editors"] == [other, ROLE]
+
+def test_no_editors_requested_yields_the_creator_only(app_context) -> None:
+    properties: dict[str, Any] = {}
+    _populate(properties, admin=False)
+
+    assert properties["editors"] == [CREATOR]
+
+
+def test_named_editors_as_admin_can_exclude_the_creator(app_context) -> None:
+    properties: dict[str, Any] = {"editors": [9]}
+    _populate(properties, admin=True)
+
+    assert [s.id for s in properties["editors"]] == [9]
+
+
+def test_named_editors_as_non_admin_re_add_the_creator(app_context) -> None:
+    properties: dict[str, Any] = {"editors": [9]}
+    _populate(properties, admin=False)
+
+    assert [s.id for s in properties["editors"]] == [CREATOR.id, 9]
+
+
+def test_callable_omitting_the_creator_leaves_them_out(app_context) -> None:
+    properties: dict[str, Any] = {}
+    _populate(
+        properties,
+        admin=False,
+        DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t, **kw: [ROLE],
+    )
+
+    assert properties["editors"] == [ROLE]
+
+
+def test_callable_extras_are_appended_to_named_editors_without_the_creator(
+    app_context,
+) -> None:
+    properties: dict[str, Any] = {"editors": [9]}
+    _populate(
+        properties,
+        admin=True,
+        DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t, **kw: [CREATOR, ROLE],
+    )
+
+    # The explicit list excluded the (admin) creator; the callable does not
+    # bring them back, but its other subjects are appended.
+    assert [s.id for s in properties["editors"]] == [9, ROLE.id]
+
+
+def test_callable_extras_follow_the_re_added_creator_for_non_admins(
+    app_context,
+) -> None:
+    properties: dict[str, Any] = {"editors": [9]}
+    _populate(
+        properties,
+        admin=False,
+        DEFAULT_EDITORS_FOR_NEW_ASSET=lambda u, t, **kw: [ROLE, CREATOR],
+    )
+
+    assert [s.id for s in properties["editors"]] == [CREATOR.id, 9, ROLE.id]
+
+
+def test_raising_callable_yields_the_creator_only(app_context) -> None:
+    def boom(user: Any, asset_type: str, **kwargs: Any) -> list[Subject]:
+        raise RuntimeError("nope")
+
+    properties: dict[str, Any] = {}
+    _populate(properties, admin=False, DEFAULT_EDITORS_FOR_NEW_ASSET=boom)
+
+    assert properties["editors"] == [CREATOR]
+
+
+def test_callables_receive_the_chart_payload_as_properties(app_context) -> None:
+    editors = MagicMock(return_value=[CREATOR])
+    viewers = MagicMock(return_value=[GROUP])
+    properties: dict[str, Any] = {
+        "slice_name": "c",
+        "datasource_id": 7,
+        "datasource_type": "table",
+    }
+    payload = dict(properties)
+    p1, p2, p3 = _patches()
+    with (
+        p1,
+        p2,
+        p3,
+        patch("superset.commands.utils.get_user_id", return_value=5),
+        patch("superset.is_feature_enabled", return_value=True),
+        _config(
+            DEFAULT_EDITORS_FOR_NEW_ASSET=editors, DEFAULT_VIEWERS_FOR_NEW_ASSET=viewers
+        ),
+    ):
+        populate_subjects(properties, [], asset_type="chart")
+
+    editors.assert_called_once_with(USER, "chart", properties=payload)
+    viewers.assert_called_once_with(USER, "chart", properties=payload)
+    assert properties["viewers"] == [GROUP]
 
 
 @patch("superset.commands.utils.get_user_id", return_value=5)
@@ -224,6 +319,21 @@ def test_populate_subjects_without_asset_type_skips_the_editors_hook(
 
     assert properties["editors"] == [CREATOR]
     resolver.assert_not_called()
+
+
+def test_bulk_import_viewers_are_resolved_per_asset_only_with_a_custom_callable(
+    app_context,
+) -> None:
+    from superset.subjects.utils import get_default_viewers_for_current_user
+
+    with (
+        patch("superset.utils.core.get_user", return_value=USER),
+        patch("superset.is_feature_enabled", return_value=True),
+        patch("superset.subjects.utils.get_user_group_subjects", return_value=[GROUP]),
+    ):
+        assert get_default_viewers_for_current_user() == [GROUP]
+        with _config(DEFAULT_VIEWERS_FOR_NEW_ASSET=lambda u, t, **kw: [ROLE]):
+            assert get_default_viewers_for_current_user() is None
 
 
 def test_chart_importer_adds_default_editors(app_context) -> None:
@@ -248,7 +358,8 @@ def test_chart_importer_adds_default_editors(app_context) -> None:
         )
 
     assert result.editors == [CREATOR, ROLE]
-    mock_editors.assert_called_once_with(5, "chart")
+    mock_editors.assert_called_once_with(5, "chart", properties=ANY)
+    assert mock_editors.call_args.kwargs["properties"]["uuid"] == "x"
 
 
 def test_dashboard_importer_adds_default_editors(app_context) -> None:
@@ -273,7 +384,8 @@ def test_dashboard_importer_adds_default_editors(app_context) -> None:
         )
 
     assert result.editors == [CREATOR, ROLE]
-    mock_editors.assert_called_once_with(5, "dashboard")
+    mock_editors.assert_called_once_with(5, "dashboard", properties=ANY)
+    assert mock_editors.call_args.kwargs["properties"]["uuid"] == "x"
 
 
 def test_dashboard_copy_dao_uses_default_editors_for_dashboard_and_charts(
@@ -281,6 +393,11 @@ def test_dashboard_copy_dao_uses_default_editors_for_dashboard_and_charts(
 ) -> None:
     from superset.daos import dashboard as dashboard_dao
 
+    copy_data = {
+        "dashboard_title": "copy",
+        "json_metadata": json.dumps({"positions": dashboard_copy_source.position}),
+        "duplicate_slices": True,
+    }
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
         patch.object(
@@ -298,21 +415,16 @@ def test_dashboard_copy_dao_uses_default_editors_for_dashboard_and_charts(
         ),
     ):
         copied = dashboard_dao.DashboardDAO.copy_dashboard(
-            dashboard_copy_source,
-            {
-                "dashboard_title": "copy",
-                "json_metadata": json.dumps(
-                    {"positions": dashboard_copy_source.position}
-                ),
-                "duplicate_slices": True,
-            },
+            dashboard_copy_source, copy_data
         )
 
     assert copied.editors == [CREATOR, ROLE]
     assert all(slc.editors == [CREATOR, ROLE] for slc in copied.slices)
-    assert [c.args for c in mock_editors.call_args_list] == [
-        (5, "dashboard"),
-        (5, "chart"),
+    assert [
+        (c.args, c.kwargs.get("properties")) for c in mock_editors.call_args_list
+    ] == [
+        ((5, "dashboard"), copy_data),
+        ((5, "chart"), None),
     ]
 
 

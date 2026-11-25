@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -146,7 +146,9 @@ def _assigns_creator_groups_as_viewers() -> bool:
     )
 
 
-def creator_groups_as_viewers(user: User, asset_type: str) -> list[Subject]:
+def creator_groups_as_viewers(
+    user: User, asset_type: str, **kwargs: Any
+) -> list[Subject]:
     """Shipped ``DEFAULT_VIEWERS_FOR_NEW_ASSET`` implementation.
 
     Returns the GROUP subjects of every group the creator belongs to. This is
@@ -173,23 +175,41 @@ def _configured_default_resolver(key: str) -> Callable[..., list[Subject]] | Non
     return current_app.config.get(key) if has_app_context() else None
 
 
+def creator_as_editor(user: User, asset_type: str, **kwargs: Any) -> list[Subject]:
+    """Shipped ``DEFAULT_EDITORS_FOR_NEW_ASSET`` implementation.
+
+    Returns the creator's own USER subject, which is the behavior when no
+    callable is configured. A custom callable owns the full default list: to keep
+    the creator as an editor, include ``get_user_subject(user.id)`` in the result.
+    """
+    subject = get_user_subject(user.id)
+    return [subject] if subject else []
+
+
 def _call_default_resolver(
-    resolver: Callable[..., list[Subject]], user: User, asset_type: str
-) -> list[Subject]:
-    """Call a deployment-supplied resolver, failing closed (``[]``) on error."""
+    resolver: Callable[..., list[Subject]],
+    user: User,
+    asset_type: str,
+    properties: dict[str, Any] | None = None,
+) -> list[Subject] | None:
+    """Call a deployment-supplied resolver; ``None`` if it raised."""
     try:
-        return list(resolver(user, asset_type) or [])
+        return [
+            subject
+            for subject in (resolver(user, asset_type, properties=properties) or [])
+            if subject is not None
+        ]
     except Exception:  # pylint: disable=broad-except
         logger.exception(
-            "Default subjects resolver %r failed for %s; ignoring its result",
-            resolver,
-            asset_type,
+            "Default subjects resolver %r failed for %s", resolver, asset_type
         )
-        return []
+        return None
 
 
 def get_default_viewers_for_new_asset(
-    user_id: int | None, asset_type: str = "dashboard"
+    user_id: int | None,
+    asset_type: str = "dashboard",
+    properties: dict[str, Any] | None = None,
 ) -> list[Subject]:
     """Return the viewers a newly created asset should default to.
 
@@ -218,13 +238,14 @@ def get_default_viewers_for_new_asset(
         return []
     if (user := _resolve_user(user_id)) is None:
         return []
-    return _call_default_resolver(resolver, user, asset_type)
+    return _call_default_resolver(resolver, user, asset_type, properties) or []
 
 
 def get_default_viewers_for_groups(
     groups: list[Group],
     user: User | None = None,
     asset_type: str = "dashboard",
+    properties: dict[str, Any] | None = None,
 ) -> list[Subject]:
     """Like :func:`get_default_viewers_for_new_asset`, for in-memory groups.
 
@@ -255,7 +276,7 @@ def get_default_viewers_for_groups(
     if resolver is not None and resolver is not creator_groups_as_viewers:
         if user is None or not is_feature_enabled("ENABLE_VIEWERS"):
             return []
-        return _call_default_resolver(resolver, user, asset_type)
+        return _call_default_resolver(resolver, user, asset_type, properties) or []
     if not groups or not (
         _assigns_creator_groups_as_viewers()
         or (resolver is not None and is_feature_enabled("ENABLE_VIEWERS"))
@@ -271,39 +292,46 @@ def get_default_editors_for_new_asset(
     user_id: int | None,
     asset_type: str,
     user: User | None = None,
+    properties: dict[str, Any] | None = None,
 ) -> list[Subject]:
     """Return the editors a newly created asset should default to.
 
-    The creator's own USER subject is always first, so a custom
-    ``DEFAULT_EDITORS_FOR_NEW_ASSET`` callable can never lock the creator out of
-    their own asset. Subjects returned by the callable are appended (deduped).
-    If the callable raises, the error is logged and only the creator is used.
+    The ``DEFAULT_EDITORS_FOR_NEW_ASSET`` callable owns the full list: nothing is
+    force-added, so a callable that omits the creator leaves the creator without
+    an editor grant. When it is unset the result is the creator's USER subject
+    (:func:`creator_as_editor`). If the callable raises, the error is logged and
+    the creator-only default is used.
 
-    *asset_type* is ``"chart"``, ``"dashboard"`` or ``"dataset"``. Pass *user*
-    when the in-memory user is already at hand (e.g. inside a flush event).
+    *asset_type* is ``"chart"``, ``"dashboard"`` or ``"dataset"``. *properties*
+    is the create payload (or equivalent) where one exists, else ``None``. Pass
+    *user* when the in-memory user is already at hand (e.g. inside a flush event).
     """
     if user_id is None:
         return []
-    editors: list[Subject] = []
-    # An in-memory *user* means a flush event, where backfilling is unsafe.
-    lookup = get_user_subject if user else get_or_create_user_subject
-    if creator := lookup(user_id):
-        editors.append(creator)
     resolver = _configured_default_resolver("DEFAULT_EDITORS_FOR_NEW_ASSET")
     if resolver is None:
-        return editors
+        # An in-memory *user* means a flush event, where backfilling is unsafe.
+        lookup = get_user_subject if user else get_or_create_user_subject
+        subject = lookup(user_id)
+        return [subject] if subject else []
     if (user := user or _resolve_user(user_id)) is None:
-        return editors
-    seen = {subject.id for subject in editors}
-    for subject in _call_default_resolver(resolver, user, asset_type):
-        if subject is not None and subject.id not in seen:
-            seen.add(subject.id)
+        return []
+    resolved = _call_default_resolver(resolver, user, asset_type, properties)
+    if resolved is None:
+        return creator_as_editor(user, asset_type)
+    editors: list[Subject] = []
+    for subject in resolved:
+        if subject not in editors:
             editors.append(subject)
     return editors
 
 
-def get_default_viewers_for_current_user() -> list[Subject]:
+def get_default_viewers_for_current_user() -> list[Subject] | None:
     """Default viewers for the acting user, resolved once for bulk callers.
+
+    Returns ``None`` when a custom ``DEFAULT_VIEWERS_FOR_NEW_ASSET`` callable is
+    set: it may depend on each asset's properties, so importers then resolve per
+    asset (the ``default_viewers=None`` path).
 
     The v1 importers create many assets in a single request; resolving the
     creator's groups once here and passing the result down avoids one
@@ -314,7 +342,11 @@ def get_default_viewers_for_current_user() -> list[Subject]:
     from superset.utils.core import get_user
 
     user = get_user()
-    return get_default_viewers_for_new_asset(user.id) if user else []
+    if user is None:
+        return []
+    if _configured_default_resolver("DEFAULT_VIEWERS_FOR_NEW_ASSET") is not None:
+        return None
+    return get_default_viewers_for_new_asset(user.id)
 
 
 def get_user_subject_ids(user_id: int) -> list[int]:

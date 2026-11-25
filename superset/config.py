@@ -3759,21 +3759,32 @@ EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 # checks and lockout-prevention logic.
 EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Default viewers for every newly created chart/dashboard, across all creation
-# paths (create commands, copy/save-as, imports, MCP). Receives
-# (user, asset_type) with asset_type in {"chart", "dashboard"} and returns a list
-# of ``Subject``. ``user`` is the in-memory creator; the callable must not rely
-# on querying membership tables, as it may run inside a flush event. Explicit
+# paths (create commands, copy/save-as, imports, MCP). Called as
+# ``fn(user, asset_type, **kwargs)`` with asset_type in {"chart", "dashboard"};
+# returns a list of ``Subject``. The callable MUST accept ``**kwargs``: new
+# keyword arguments may be added later. Today ``properties=`` carries the create
+# payload / config dict / copy data where one exists (charts carry
+# ``datasource_id`` and ``datasource_type``), else ``None``. The asset model is
+# usually not available yet. ``user`` is the in-memory creator; don't rely on
+# querying membership tables, as it may run inside a flush event. Explicit
 # ``viewers`` in a create payload replace these defaults. When unset, the
 # ``ASSIGN_CREATOR_GROUPS_AS_VIEWERS`` flag selects
 # ``superset.subjects.utils.creator_groups_as_viewers``. Ignored while
 # ``ENABLE_VIEWERS`` is off. Errors are logged and yield no default viewers.
+# Bulk imports resolve per asset when this is set (once per import otherwise).
 DEFAULT_VIEWERS_FOR_NEW_ASSET: Callable[..., list[Any]] | None = None
-# Default editors for every newly created chart/dashboard/dataset. Receives
-# (user, asset_type) with asset_type in {"chart", "dashboard", "dataset"} and
-# returns *additional* ``Subject`` editors (e.g. a fixed Role). The creator is
-# always kept as an editor, even if omitted from the result, and the returned
-# subjects are added to any editors explicitly requested in a create payload.
-# Errors are logged and fail closed to the creator only.
+# Default editors for every newly created chart/dashboard/dataset. Same
+# signature and ``**kwargs`` requirement as ``DEFAULT_VIEWERS_FOR_NEW_ASSET``,
+# with asset_type in {"chart", "dashboard", "dataset"}. The callable owns the
+# FULL default list: when unset,
+# ``superset.subjects.utils.creator_as_editor`` is used (creator only). If a
+# custom callable omits the creator, the creator is NOT an editor, and a
+# non-admin creator can then be unable to edit their own asset (unless covered
+# by a returned Role/Group or ``EXTRA_EDITORS_RESOLVER``). Keep the creator with
+# ``[get_user_subject(user.id), *extra]``. Explicit ``editors`` in a create
+# payload keep their usual semantics (a non-admin creator is re-added unless
+# covered) and the callable's subjects other than the creator are appended. If
+# the callable raises, the error is logged and the creator-only default is used.
 DEFAULT_EDITORS_FOR_NEW_ASSET: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None

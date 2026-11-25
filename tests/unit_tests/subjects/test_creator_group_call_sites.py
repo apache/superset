@@ -27,7 +27,7 @@ by the v0 importers). The MCP ``generate_dashboard`` tool is covered by
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from sqlalchemy.orm import Session
@@ -558,5 +558,5 @@ def test_dashboard_copy_dao_resolves_creator_subjects_once(
     # One resolution per asset type (dashboard, chart), never one per chart.
     assert mock_user_subject.call_count == 2
     assert mock_viewers.call_count == 2
-    mock_viewers.assert_any_call(5)
+    mock_viewers.assert_any_call(5, "dashboard", properties=ANY)
     mock_viewers.assert_any_call(5, "chart")

@@ -258,7 +258,9 @@ def import_chart(
             get_default_viewers_for_new_asset,
         )
 
-        for editor in get_default_editors_for_new_asset(user.id, "chart"):
+        for editor in get_default_editors_for_new_asset(
+            user.id, "chart", properties=config
+        ):
             if editor not in chart.editors:
                 chart.editors.append(editor)
         # Resolved once by bulk importers and passed in; recomputed here only
@@ -266,7 +268,7 @@ def import_chart(
         viewers = (
             default_viewers
             if default_viewers is not None
-            else get_default_viewers_for_new_asset(user.id, "chart")
+            else get_default_viewers_for_new_asset(user.id, "chart", properties=config)
         )
         for viewer in viewers:
             if viewer not in chart.viewers:

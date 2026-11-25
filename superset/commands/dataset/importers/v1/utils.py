@@ -974,7 +974,9 @@ def import_dataset(  # noqa: C901
     if user:
         from superset.subjects.utils import get_default_editors_for_new_asset
 
-        for editor in get_default_editors_for_new_asset(user.id, "dataset"):
+        for editor in get_default_editors_for_new_asset(
+            user.id, "dataset", properties=config
+        ):
             if editor not in dataset.editors:
                 dataset.editors.append(editor)
 

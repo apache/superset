@@ -501,7 +501,9 @@ def import_dashboard(  # noqa: C901
             get_default_viewers_for_new_asset,
         )
 
-        for editor in get_default_editors_for_new_asset(user.id, "dashboard"):
+        for editor in get_default_editors_for_new_asset(
+            user.id, "dashboard", properties=config
+        ):
             if editor not in dashboard.editors:
                 dashboard.editors.append(editor)
         # Resolved once by bulk importers and passed in; recomputed here only
@@ -509,7 +511,9 @@ def import_dashboard(  # noqa: C901
         viewers = (
             default_viewers
             if default_viewers is not None
-            else get_default_viewers_for_new_asset(user.id, "dashboard")
+            else get_default_viewers_for_new_asset(
+                user.id, "dashboard", properties=config
+            )
         )
         for viewer in viewers:
             if viewer not in dashboard.viewers:

@@ -1382,8 +1382,12 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 get_default_viewers_for_new_asset,
             )
 
-            creator_editors = get_default_editors_for_new_asset(g.user.id, "dashboard")
-            creator_viewers = get_default_viewers_for_new_asset(g.user.id)
+            creator_editors = get_default_editors_for_new_asset(
+                g.user.id, "dashboard", properties=data
+            )
+            creator_viewers = get_default_viewers_for_new_asset(
+                g.user.id, "dashboard", properties=data
+            )
             chart_editors = get_default_editors_for_new_asset(g.user.id, "chart")
             chart_viewers = get_default_viewers_for_new_asset(g.user.id, "chart")
         dash.editors = creator_editors
