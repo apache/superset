@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import { ComponentProps } from 'react';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   render,
   screen,
@@ -26,7 +28,9 @@ import {
 } from 'spec/helpers/testing-library';
 import { Comparator } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
-import ConditionalFormattingControl from './ConditionalFormattingControl';
+import ConditionalFormattingControl, {
+  CloseButton,
+} from './ConditionalFormattingControl';
 import { ConditionalFormattingConfig } from './types';
 
 const columnOptions = [
@@ -436,4 +440,13 @@ test('reports adding and then removing a formatter on an unset value', async () 
   );
   await userEvent.click(screen.getByLabelText('close'));
   expect(lastChange(onChange)).toEqual([]);
+});
+
+test('close button shows a visible focus ring when focused with the keyboard', () => {
+  render(<CloseButton aria-label="Remove" />);
+  expect(screen.getByRole('button', { name: 'Remove' })).toHaveStyleRule(
+    'outline',
+    `2px solid ${supersetTheme.colorPrimary}`,
+    { target: ':focus-visible' },
+  );
 });

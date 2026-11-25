@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import Fieldset from '../Fieldset';
@@ -402,4 +402,56 @@ test('a reveal request leaves rows the user opened open', () => {
   fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
 
   expect(screen.getAllByLabelText('Collapse row')).toHaveLength(2);
+});
+
+const tooltipCollection = ['col_b', 'col_a', 'col_c'].map((name, i) => ({
+  id: i + 1,
+  column_name: name,
+}));
+
+const renderWithHeaderTooltip = () =>
+  render(
+    <CollectionTable
+      collection={tooltipCollection}
+      tableColumns={['column_name']}
+      sortColumns={['column_name']}
+      columnLabelTooltips={{ column_name: 'Help' }}
+    />,
+  );
+
+const rowTexts = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll('.ant-table-tbody tr')).map(
+    row => row.textContent,
+  );
+
+test('shows the header tooltip when the info button is focused', async () => {
+  renderWithHeaderTooltip();
+
+  const infoButton = screen.getByRole('button', { name: 'Show info tooltip' });
+  act(() => infoButton.focus());
+
+  expect(await screen.findByText('Help')).toBeInTheDocument();
+});
+
+test('clicking the header info button does not sort the column', () => {
+  const { container } = renderWithHeaderTooltip();
+  const before = rowTexts(container);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Show info tooltip' }));
+
+  expect(rowTexts(container)).toEqual(before);
+  expect(container.querySelector('.ant-table-column-sort')).toBeNull();
+});
+
+test('pressing Enter on the header info button does not sort the column', () => {
+  const { container } = renderWithHeaderTooltip();
+  const before = rowTexts(container);
+
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Show info tooltip' }), {
+    key: 'Enter',
+    keyCode: 13,
+  });
+
+  expect(rowTexts(container)).toEqual(before);
+  expect(container.querySelector('.ant-table-column-sort')).toBeNull();
 });

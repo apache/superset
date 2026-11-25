@@ -18,7 +18,7 @@
 from typing import Any
 
 from superset import db, security_manager
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError
 from superset.models.sql_lab import SavedQuery
 from superset.utils.core import get_user
 
@@ -53,13 +53,13 @@ def import_saved_query(
         # chart importer.
         user = get_user()
         if user and not (security_manager.is_admin() or existing.created_by == user):
-            raise ImportFailedError(
+            raise ForbiddenError(
                 f"Saved query (uuid {config['uuid']}) already exists and "
                 "user doesn't have permissions to overwrite it"
             )
         config["id"] = existing.id
     elif not can_write:
-        raise ImportFailedError(
+        raise ForbiddenError(
             "Saved query doesn't exist and user doesn't have permission to "
             "create saved queries"
         )

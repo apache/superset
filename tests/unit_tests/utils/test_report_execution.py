@@ -290,3 +290,22 @@ def test_report_execution_config_rejects_invalid_startup_values(
 
 def test_report_execution_config_accepts_defaults() -> None:
     validate_report_execution_config(_report_config())
+
+
+def test_with_empty_tab_pane_shares_rejection_and_approval_state() -> None:
+    context = ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=7,
+        deadline=ReportExecutionDeadline(total_seconds=900),
+    )
+
+    tab_context = context.with_empty_tab_pane("1")
+
+    assert context.empty_tab_pane_suffix is None
+    assert tab_context.empty_tab_pane_suffix == "1"
+    assert tab_context._capture_rejection_reasons is context._capture_rejection_reasons
+    assert tab_context._validated_artifacts is context._validated_artifacts
+    tab_context.reject_capture("blank_standard")
+    assert context.capture_was_rejected is True
+    other_tab = context.with_empty_tab_pane("GRID_ID")
+    assert other_tab.capture_was_rejected is True

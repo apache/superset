@@ -29,8 +29,11 @@ import {
   waitFor,
   fireEvent,
   act,
+  createStore,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import * as hooks from 'src/views/CRUD/hooks';
 import { DatabaseObject, ConfigurationMethod } from '../types';
@@ -622,6 +625,150 @@ describe('DatabaseModal', () => {
 
   test('late edit fetch after X then creating uses POST without the old id', async () => {
     await expectFreshCreateAfterEdit('Late X');
+  });
+
+  test('edit submits string cache timeouts as integers', async () => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    fetchMock.get('glob:*/api/v1/database/10/connection', {
+      result: {
+        id: 10,
+        database_name: 'Existing connection',
+        backend: 'sqlite',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+        sqlalchemy_uri: 'sqlite:///existing.db',
+        extra: JSON.stringify({
+          metadata_params: {},
+          engine_params: {},
+          metadata_cache_timeout: { table_cache_timeout: '1800' },
+          schemas_allowed_for_file_upload: [],
+        }),
+      },
+    });
+    fetchMock.put(DATABASE_FETCH_ENDPOINT, {
+      id: 10,
+      result: { database_name: 'Existing connection' },
+    });
+    fetchMock.post('glob:*/api/v1/database/test_connection/', {
+      message: 'OK',
+    });
+    const expectedTimeouts = { table_cache_timeout: 1800 };
+    try {
+      render(<DatabaseModal {...dbProps} databaseId={10} />, {
+        useRedux: true,
+      });
+      expect(
+        await screen.findByDisplayValue(
+          'Existing connection',
+          {},
+          { timeout: 5000 },
+        ),
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', { name: /test connection/i }),
+      );
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(
+            'glob:*/api/v1/database/test_connection/',
+          ),
+        ).toHaveLength(1),
+      );
+      const validationBody = JSON.parse(
+        fetchMock.callHistory.lastCall(
+          'glob:*/api/v1/database/test_connection/',
+        )!.options.body as string,
+      );
+      expect(JSON.parse(validationBody.extra).metadata_cache_timeout).toEqual(
+        expectedTimeouts,
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+            method: 'PUT',
+          }),
+        ).toHaveLength(1),
+      );
+      const putBody = JSON.parse(
+        fetchMock.callHistory.lastCall(DATABASE_FETCH_ENDPOINT, {
+          method: 'PUT',
+        })!.options.body as string,
+      );
+      expect(JSON.parse(putBody.extra).metadata_cache_timeout).toEqual(
+        expectedTimeouts,
+      );
+    } finally {
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  });
+
+  test('edit shows the server explanation when validation rejects extra', async () => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    const extraMessage =
+      'The table_cache_timeout in metadata_cache_timeout must be a ' +
+      'non-negative integer, but received "abc". Enter a whole number of ' +
+      'seconds (0 or greater) under Advanced > Performance.';
+    fetchMock.get('glob:*/api/v1/database/10/connection', {
+      result: {
+        id: 10,
+        database_name: 'Existing connection',
+        backend: 'postgresql',
+        configuration_method: ConfigurationMethod.DynamicForm,
+        parameters: {
+          host: 'localhost',
+          port: 5432,
+          database: 'postgres',
+          username: 'testdb',
+        },
+        parameters_schema: {
+          properties: { host: { type: 'string' } },
+        },
+        extra: '{"metadata_cache_timeout":{"table_cache_timeout":"abc"}}',
+      },
+    });
+    fetchMock.modifyRoute('validate-params', {
+      response: {
+        status: 422,
+        body: {
+          errors: [
+            {
+              message: extraMessage,
+              error_type: 'INVALID_PAYLOAD_SCHEMA_ERROR',
+              level: 'error',
+              extra: { invalid: ['extra'] },
+            },
+          ],
+        },
+      },
+    });
+    const store = createStore({}, reducerIndex);
+    try {
+      render(<DatabaseModal {...dbProps} databaseId={10} />, { store });
+      expect(
+        await screen.findByDisplayValue('Existing connection'),
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+      await waitFor(() =>
+        expect(
+          (
+            store.getState() as unknown as {
+              messageToasts: { text: string }[];
+            }
+          ).messageToasts.map(toast => toast.text),
+        ).toContain(extraMessage),
+      );
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+          method: 'PUT',
+        }),
+      ).toHaveLength(0);
+    } finally {
+      resourceHook.mockImplementation(previousImplementation);
+    }
   });
 
   /** Fill a new dynamic-form connection without relying on saved state. */
@@ -4158,3 +4305,581 @@ test.each(['postgresql', 'mysql', 'databricks', 'gsheets'])(
     ).toBe(ConfigurationMethod.SqlalchemyUri);
   },
 );
+
+// The plain GET carries the engine's patterns; only /connection lists the stored fields.
+test('editing reads the secret fields from the connection payload, not the plain GET', async () => {
+  const mask = 'XXXXXXXXXX';
+  const saved = {
+    id: 10,
+    database_name: 'Keyed connection',
+    backend: 'sqlite',
+    configuration_method: ConfigurationMethod.SqlalchemyUri,
+    sqlalchemy_uri: 'sqlite:///keyed.db',
+    masked_encrypted_extra: JSON.stringify({
+      api_key: mask,
+      connect_args: mask,
+    }),
+  };
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get(DATABASE_FETCH_ENDPOINT, {
+    result: {
+      ...saved,
+      engine_information: {
+        encrypted_extra_sensitive_fields: { '$.*': 'Encrypted Extra' },
+      },
+    },
+  });
+  fetchMock.get('glob:*/api/v1/database/10/connection', {
+    result: {
+      ...saved,
+      engine_information: {
+        encrypted_extra_sensitive_fields: { '$.api_key': 'api_key' },
+      },
+    },
+  });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  try {
+    render(<DatabaseModal {...dbProps} databaseId={10} />, {
+      useRedux: true,
+      initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+    });
+    expect(
+      await screen.findByDisplayValue('Keyed connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+    await userEvent.click(screen.getByTestId('security-label-test'));
+
+    const fields = await screen.findAllByTestId('secure-extra-hint');
+    expect(fields).toHaveLength(1);
+    expect(fields[0]).toHaveTextContent('api_key');
+    expect(fields[0]).toHaveTextContent('Stored at api_key.');
+    expect(screen.queryByText('Encrypted Extra')).not.toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT)).toHaveLength(
+      0,
+    );
+  } finally {
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+test('a save that keeps the modal open drops revealed endings, so they are fetched again', async () => {
+  // An extension whose save fails keeps the modal open after the update.
+  const extensionsRegistry = getExtensionsRegistry();
+  const previous = extensionsRegistry.get('databaseconnection.extraOption');
+  extensionsRegistry.set('databaseconnection.extraOption', {
+    title: 'Extra',
+    description: () => null,
+    component: () => null,
+    enabled: () => true,
+    onSave: () => Promise.resolve({ error: 'Extension save failed' }),
+  });
+  const saved = {
+    id: 10,
+    database_name: 'Token connection',
+    backend: 'druid',
+    configuration_method: ConfigurationMethod.SqlalchemyUri,
+    sqlalchemy_uri: 'druid://druid:8888/druid/v2/sql/',
+    masked_encrypted_extra: JSON.stringify({
+      connect_args: { jwt: 'XXXXXXXXXX' },
+    }),
+  };
+  const hintsEndpoint = 'glob:*/api/v1/database/10/encrypted_extra_hints/';
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get('glob:*/api/v1/database/10/connection', {
+    result: {
+      ...saved,
+      engine_information: {
+        encrypted_extra_sensitive_fields: { '$.connect_args.jwt': 'JWT Token' },
+      },
+    },
+  });
+  fetchMock.get(hintsEndpoint, {
+    result: [
+      { path: '$.connect_args.jwt', label: 'JWT Token', suffix: 'Ab3dE' },
+    ],
+  });
+  fetchMock.put(DATABASE_FETCH_ENDPOINT, { id: 10, result: saved });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  try {
+    render(<DatabaseModal {...dbProps} databaseId={10} />, {
+      useRedux: true,
+      initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+    });
+    expect(
+      await screen.findByDisplayValue('Token connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+    await userEvent.click(screen.getByTestId('security-label-test'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Show' }));
+    expect(await screen.findByDisplayValue(/Ab3dE$/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /finish/i }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, { method: 'PUT' }),
+      ).toHaveLength(1),
+    );
+    await waitFor(() =>
+      expect(screen.queryByDisplayValue(/Ab3dE$/)).not.toBeInTheDocument(),
+    );
+    expect(screen.getByDisplayValue('Token connection')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Show' }));
+    expect(await screen.findByDisplayValue(/Ab3dE$/)).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(hintsEndpoint)).toHaveLength(2);
+  } finally {
+    extensionsRegistry.set('databaseconnection.extraOption', previous);
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+test('a save that keeps the modal open reloads the stored secret fields', async () => {
+  const extensionsRegistry = getExtensionsRegistry();
+  const previous = extensionsRegistry.get('databaseconnection.extraOption');
+  extensionsRegistry.set('databaseconnection.extraOption', {
+    title: 'Extra',
+    description: () => null,
+    component: () => null,
+    enabled: () => true,
+    onSave: () => Promise.resolve({ error: 'Extension save failed' }),
+  });
+  const saved = {
+    id: 10,
+    database_name: 'Token connection',
+    backend: 'druid',
+    configuration_method: ConfigurationMethod.SqlalchemyUri,
+    sqlalchemy_uri: 'druid://druid:8888/druid/v2/sql/',
+    masked_encrypted_extra: JSON.stringify({
+      connect_args: { jwt: 'XXXXXXXXXX' },
+    }),
+  };
+  // The save added a password next to the token; the server re-masks both
+  // and lists both as stored fields from then on.
+  const afterSave = {
+    ...saved,
+    masked_encrypted_extra: JSON.stringify({
+      connect_args: { jwt: 'XXXXXXXXXX', password: 'XXXXXXXXXX' },
+    }),
+  };
+  const connectionEndpoint = 'glob:*/api/v1/database/10/connection';
+  let connectionCalls = 0;
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get(connectionEndpoint, () => {
+    connectionCalls += 1;
+    return connectionCalls === 1
+      ? {
+          result: {
+            ...saved,
+            engine_information: {
+              encrypted_extra_sensitive_fields: {
+                '$.connect_args.jwt': 'JWT Token',
+              },
+            },
+          },
+        }
+      : {
+          result: {
+            ...afterSave,
+            engine_information: {
+              encrypted_extra_sensitive_fields: {
+                '$.connect_args.jwt': 'JWT Token',
+                '$.connect_args.password': 'Password',
+              },
+            },
+          },
+        };
+  });
+  fetchMock.put(DATABASE_FETCH_ENDPOINT, { id: 10, result: afterSave });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  try {
+    render(<DatabaseModal {...dbProps} databaseId={10} />, {
+      useRedux: true,
+      initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+    });
+    expect(
+      await screen.findByDisplayValue('Token connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+    await userEvent.click(screen.getByTestId('security-label-test'));
+    expect(await screen.findAllByTestId('secure-extra-hint')).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', { name: /finish/i }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, { method: 'PUT' }),
+      ).toHaveLength(1),
+    );
+    expect(screen.getByDisplayValue('Token connection')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getAllByTestId('secure-extra-hint')).toHaveLength(2),
+    );
+    expect(screen.getByText('Password')).toBeInTheDocument();
+    expect(connectionCalls).toBe(2);
+  } finally {
+    extensionsRegistry.set('databaseconnection.extraOption', previous);
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+// Noon, local time, on the calendar day this many days from today, which is
+// how the expiry warning counts days.
+const inCalendarDays = (days: number) =>
+  extendedDayjs().startOf('day').add(days, 'day').hour(12).toISOString();
+const EXPIRED_JWT = {
+  expires_at: '2026-11-03T12:00:00+00:00',
+  expired: true,
+};
+const EXPIRED_TEXT = 'The stored JWT Token expired on Nov 3, 2026.';
+const HINTS_ENDPOINT = 'glob:*/api/v1/database/*/encrypted_extra_hints/';
+
+// Opens the edit modal on a saved Druid database and waits for its payload,
+// without touching any tab or panel.
+const openEditModal = async (
+  expirations?: Record<string, { expires_at: string; expired: boolean }>,
+) => {
+  const saved = {
+    id: 10,
+    database_name: 'Token connection',
+    backend: 'druid',
+    configuration_method: ConfigurationMethod.SqlalchemyUri,
+    sqlalchemy_uri: 'druid://druid:8888/druid/v2/sql/',
+    masked_encrypted_extra: JSON.stringify({
+      connect_args: { jwt: 'XXXXXXXXXX', password: 'XXXXXXXXXX' },
+    }),
+  };
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get(HINTS_ENDPOINT, { result: [] });
+  fetchMock.get('glob:*/api/v1/database/10/connection', {
+    result: {
+      ...saved,
+      engine_information: {
+        encrypted_extra_sensitive_fields: {
+          '$.connect_args.jwt': 'JWT Token',
+          '$.connect_args.password': 'Password',
+        },
+        ...(expirations && { encrypted_extra_expirations: expirations }),
+      },
+    },
+  });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  render(<DatabaseModal {...dbProps} databaseId={10} />, {
+    useRedux: true,
+    initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+  });
+  expect(
+    await screen.findByDisplayValue('Token connection'),
+  ).toBeInTheDocument();
+  return () => {
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  };
+};
+
+const expectNoExpiryWarning = () => {
+  expect(screen.getByRole('tab', { name: /basic/i })).toBeInTheDocument();
+  expect(screen.queryByText(/The stored .* expire/)).not.toBeInTheDocument();
+};
+
+test('editing a database with an expired stored JWT warns as soon as the modal opens', async () => {
+  const cleanup = await openEditModal({ '$.connect_args.jwt': EXPIRED_JWT });
+  try {
+    const alert = screen.getByText(EXPIRED_TEXT).closest('[role="alert"]');
+    expect(alert).toBeInTheDocument();
+    expect(alert?.className).toContain('ant-alert-error');
+    expect(
+      screen.getByRole('tab', { name: /basic/i, selected: true }),
+    ).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(HINTS_ENDPOINT)).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+    expect(screen.getByText(EXPIRED_TEXT)).toBeVisible();
+    expect(screen.getAllByText(EXPIRED_TEXT)).toHaveLength(1);
+  } finally {
+    cleanup();
+  }
+});
+
+test('editing a database whose stored JWT expires within 7 days warns as soon as the modal opens', async () => {
+  const expiresAt = inCalendarDays(5);
+  const cleanup = await openEditModal({
+    '$.connect_args.jwt': { expires_at: expiresAt, expired: false },
+  });
+  try {
+    const text = `The stored JWT Token expires in 5 days (${extendedDayjs(
+      expiresAt,
+    ).format('ll')}).`;
+    const alert = screen.getByText(text).closest('[role="alert"]');
+    expect(alert).toBeInTheDocument();
+
+    await userEvent.click(
+      within(alert as HTMLElement).getByRole('button', { name: /close/i }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText(text)).not.toBeInTheDocument(),
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test('editing a database with several affected secrets lists them in one alert as soon as the modal opens', async () => {
+  const expiresAt = inCalendarDays(1);
+  const cleanup = await openEditModal({
+    '$.connect_args.jwt': EXPIRED_JWT,
+    '$.connect_args.password': { expires_at: expiresAt, expired: false },
+    '$.connect_args.token': {
+      expires_at: inCalendarDays(60),
+      expired: false,
+    },
+  });
+  try {
+    const alert = screen.getByText(EXPIRED_TEXT).closest('[role="alert"]');
+    expect(alert).toBeInTheDocument();
+    expect(
+      within(alert as HTMLElement).getByText(
+        `The stored Password expires in 1 day (${extendedDayjs(
+          expiresAt,
+        ).format('ll')}).`,
+      ),
+    ).toBeInTheDocument();
+    expect(alert?.textContent?.match(/The stored /g)).toHaveLength(2);
+    expect(screen.getAllByText(/The stored .* expire/)).toHaveLength(2);
+  } finally {
+    cleanup();
+  }
+});
+
+test('editing a database whose stored JWT expires in 8 days shows no expiry warning', async () => {
+  const cleanup = await openEditModal({
+    '$.connect_args.jwt': {
+      expires_at: inCalendarDays(8),
+      expired: false,
+    },
+  });
+  try {
+    expectNoExpiryWarning();
+  } finally {
+    cleanup();
+  }
+});
+
+test('editing a database without an expirations map shows no expiry warning', async () => {
+  const cleanup = await openEditModal();
+  try {
+    expectNoExpiryWarning();
+  } finally {
+    cleanup();
+  }
+});
+
+test('the expiry warning link opens Secure extra on the Advanced tab', async () => {
+  // A database not exposed in SQL Lab, the case whose first click used to
+  // leave Security collapsed.
+  const cleanup = await openEditModal({ '$.connect_args.jwt': EXPIRED_JWT });
+  try {
+    expect(
+      screen.queryByTestId('secure-extra-expiry-note'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Go to Secure extra' }),
+    );
+
+    expect(
+      screen.getByRole('tab', { name: /advanced/i, selected: true }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('security-label-test')).toBeVisible();
+    expect(
+      screen.getByTestId('security-label-test').closest('[aria-expanded]'),
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      await screen.findByTestId('secure-extra-expiry-note'),
+    ).toHaveTextContent(EXPIRED_TEXT);
+  } finally {
+    cleanup();
+  }
+});
+
+test('closing the modal forgets a request to open Secure extra', async () => {
+  const scrollIntoView = jest.fn();
+  const originalScroll = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = scrollIntoView;
+  const connection = (
+    id: number,
+    name: string,
+    expirations?: Record<string, { expires_at: string; expired: boolean }>,
+  ) => ({
+    result: {
+      id,
+      database_name: name,
+      // Exposed in SQL Lab, so the accordion keeps an open panel on mount.
+      expose_in_sqllab: true,
+      backend: 'druid',
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+      sqlalchemy_uri: 'druid://druid:8888/druid/v2/sql/',
+      masked_encrypted_extra: JSON.stringify({
+        connect_args: { jwt: 'XXXXXXXXXX' },
+      }),
+      engine_information: {
+        encrypted_extra_sensitive_fields: { '$.connect_args.jwt': 'JWT Token' },
+        ...(expirations && { encrypted_extra_expirations: expirations }),
+      },
+    },
+  });
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get(HINTS_ENDPOINT, { result: [] });
+  fetchMock.get(
+    'glob:*/api/v1/database/10/connection',
+    connection(10, 'Token connection', { '$.connect_args.jwt': EXPIRED_JWT }),
+  );
+  fetchMock.get(
+    'glob:*/api/v1/database/11/connection',
+    connection(11, 'Second connection'),
+  );
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  const options = {
+    useRedux: true,
+    initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+  };
+  try {
+    const { rerender } = render(
+      <DatabaseModal {...dbProps} databaseId={10} />,
+      options,
+    );
+    expect(
+      await screen.findByDisplayValue('Token connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Go to Secure extra' }),
+    );
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled(), {
+      timeout: 3000,
+    });
+    scrollIntoView.mockClear();
+
+    const close = screen
+      .getAllByRole('button', { name: /close/i })
+      .find(button => button.textContent === 'Close');
+    await userEvent.click(close as HTMLElement);
+    // As the database list does: hide, connect a new database, hide, then edit
+    // another one. The edit layout mounts afresh.
+    rerender(<DatabaseModal {...dbProps} show={false} />);
+    rerender(<DatabaseModal {...dbProps} />);
+    await waitFor(() =>
+      expect(screen.getByText('Connect a database')).toBeInTheDocument(),
+    );
+    rerender(<DatabaseModal {...dbProps} show={false} />);
+    rerender(<DatabaseModal {...dbProps} databaseId={11} />);
+    expect(
+      await screen.findByDisplayValue('Second connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+
+    expect(
+      screen.getByTestId('security-label-test').closest('[aria-expanded]'),
+    ).toHaveAttribute('aria-expanded', 'false');
+    await act(() => new Promise(resolve => setTimeout(resolve, 1500)));
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  } finally {
+    Element.prototype.scrollIntoView = originalScroll;
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+test('the expiry warning link opens Secure extra again after the modal is closed and reopened', async () => {
+  const scrollIntoView = jest.fn();
+  const originalScroll = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = scrollIntoView;
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get(HINTS_ENDPOINT, { result: [] });
+  fetchMock.get('glob:*/api/v1/database/10/connection', {
+    result: {
+      id: 10,
+      database_name: 'Token connection',
+      backend: 'druid',
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+      sqlalchemy_uri: 'druid://druid:8888/druid/v2/sql/',
+      masked_encrypted_extra: JSON.stringify({
+        connect_args: { jwt: 'XXXXXXXXXX' },
+      }),
+      engine_information: {
+        encrypted_extra_sensitive_fields: { '$.connect_args.jwt': 'JWT Token' },
+        encrypted_extra_expirations: { '$.connect_args.jwt': EXPIRED_JWT },
+      },
+    },
+  });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  const options = {
+    useRedux: true,
+    initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+  };
+  const securityPanel = () =>
+    screen.getByTestId('security-label-test').closest('[aria-expanded]');
+  try {
+    const { rerender } = render(
+      <DatabaseModal {...dbProps} databaseId={10} />,
+      options,
+    );
+    expect(
+      await screen.findByDisplayValue('Token connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Go to Secure extra' }),
+    );
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled(), {
+      timeout: 3000,
+    });
+    const securityLabel = screen.getByTestId('security-label-test');
+    scrollIntoView.mockClear();
+
+    const close = screen
+      .getAllByRole('button', { name: /close/i })
+      .find(button => button.textContent === 'Close');
+    await userEvent.click(close as HTMLElement);
+    // As the database list does when the same database is edited again.
+    rerender(<DatabaseModal {...dbProps} show={false} databaseId={10} />);
+    rerender(<DatabaseModal {...dbProps} databaseId={10} />);
+    expect(
+      await screen.findByDisplayValue('Token connection'),
+    ).toBeInTheDocument();
+    // The options pane stayed mounted across the close and reopen. Collapse
+    // Security, so the link has to open it again.
+    expect(screen.getByTestId('security-label-test')).toBe(securityLabel);
+    expect(securityPanel()).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(securityLabel);
+    expect(securityPanel()).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Go to Secure extra' }),
+    );
+
+    expect(
+      screen.getByRole('tab', { name: /advanced/i, selected: true }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled(), {
+      timeout: 3000,
+    });
+    expect(securityPanel()).toHaveAttribute('aria-expanded', 'true');
+  } finally {
+    Element.prototype.scrollIntoView = originalScroll;
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
