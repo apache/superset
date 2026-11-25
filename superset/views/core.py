@@ -359,19 +359,17 @@ class Superset(BaseSupersetView):
             if "slice_id" in form_data:
                 form_data.pop("slice_id")  # don't save old slice_id
             from superset.subjects.utils import (
+                get_default_editors_for_new_asset,
                 get_default_viewers_for_new_asset,
-                get_user_subject,
             )
 
-            editors = []
-            if g.user:
-                subj = get_user_subject(g.user.id)
-                if subj:
-                    editors.append(subj)
+            editors = get_default_editors_for_new_asset(
+                g.user.id if g.user else None, "chart"
+            )
             slc = Slice(
                 editors=editors,
                 viewers=get_default_viewers_for_new_asset(
-                    g.user.id if g.user else None
+                    g.user.id if g.user else None, "chart"
                 ),
             )
 
@@ -439,15 +437,13 @@ class Superset(BaseSupersetView):
         if new_dashboard_name and dash is None:
             # Creating the new dashboard now that the chart is saved
             from superset.subjects.utils import (
+                get_default_editors_for_new_asset,
                 get_default_viewers_for_new_asset,
-                get_user_subject,
             )
 
-            editors = []
-            if g.user:
-                subj = get_user_subject(g.user.id)
-                if subj:
-                    editors.append(subj)
+            editors = get_default_editors_for_new_asset(
+                g.user.id if g.user else None, "dashboard"
+            )
             dash = Dashboard(
                 dashboard_title=request.args.get("new_dashboard_name"),
                 editors=editors,

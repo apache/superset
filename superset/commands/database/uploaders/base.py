@@ -187,14 +187,12 @@ class UploadCommand(BaseCommand):
             .one_or_none()
         )
         if not sqla_table:
-            from superset.subjects.utils import get_user_subject
+            from superset.subjects.utils import get_default_editors_for_new_asset
 
             user = get_user()
-            editors = []
-            if user:
-                subj = get_user_subject(user.id)
-                if subj:
-                    editors.append(subj)
+            editors = (
+                get_default_editors_for_new_asset(user.id, "dataset") if user else []
+            )
 
             # The lookup above runs through the soft-delete visibility filter,
             # so a soft-deleted dataset over this table is invisible here.

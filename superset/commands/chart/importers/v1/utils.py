@@ -254,19 +254,21 @@ def import_chart(
     # dashboard importer's ``not existing`` guard.
     if not existing and user:
         from superset.subjects.utils import (
+            get_default_editors_for_new_asset,
             get_default_viewers_for_new_asset,
-            get_user_subject,
         )
 
-        subj = get_user_subject(user.id)
-        if subj and subj not in chart.editors:
-            chart.editors.append(subj)
+        for editor in get_default_editors_for_new_asset(
+            user.id, "chart", properties=config
+        ):
+            if editor not in chart.editors:
+                chart.editors.append(editor)
         # Resolved once by bulk importers and passed in; recomputed here only
         # for direct callers that omit it (one membership query per asset).
         viewers = (
             default_viewers
             if default_viewers is not None
-            else get_default_viewers_for_new_asset(user.id)
+            else get_default_viewers_for_new_asset(user.id, "chart", properties=config)
         )
         for viewer in viewers:
             if viewer not in chart.viewers:

@@ -79,15 +79,13 @@ class Dashboard(BaseSupersetView):
     def new(self) -> FlaskResponse:
         """Creates a new, blank dashboard and redirects to it in edit mode"""
         from superset.subjects.utils import (
+            get_default_editors_for_new_asset,
             get_default_viewers_for_new_asset,
-            get_user_subject,
         )
 
-        editors = []
-        if g.user:
-            subj = get_user_subject(g.user.id)
-            if subj:
-                editors.append(subj)
+        editors = get_default_editors_for_new_asset(
+            g.user.id if g.user else None, "dashboard"
+        )
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",
             editors=editors,

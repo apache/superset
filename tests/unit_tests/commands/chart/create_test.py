@@ -50,7 +50,7 @@ def _base_mocks(mocker: MockerFixture) -> None:
     )
     mocker.patch(
         "superset.commands.chart.create.populate_subjects",
-        side_effect=lambda properties, exceptions: None,
+        side_effect=lambda properties, exceptions, **kwargs: None,
     )
 
 

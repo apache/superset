@@ -97,8 +97,8 @@ def _copy_dashboard_for_user(
     """
     from superset.subjects.models import Subject
     from superset.subjects.utils import (
+        get_default_editors_for_new_asset,
         get_default_viewers_for_groups,
-        get_user_subject,
     )
 
     def _rebind(subjects: Sequence[Subject | None]) -> list[Subject]:
@@ -111,9 +111,13 @@ def _copy_dashboard_for_user(
     if not template:
         return
 
-    editors = _rebind([get_user_subject(target.id)])
+    editors = _rebind(
+        get_default_editors_for_new_asset(target.id, "dashboard", user=target)
+    )
     viewers = _rebind(
-        get_default_viewers_for_groups(list(getattr(target, "groups", []) or []))
+        get_default_viewers_for_groups(
+            list(getattr(target, "groups", []) or []), user=target
+        )
     )
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,

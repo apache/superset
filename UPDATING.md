@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Added the `DEFAULT_VIEWERS_FOR_NEW_ASSET` and `DEFAULT_EDITORS_FOR_NEW_ASSET` config
+  callables, `fn(user, asset_type, **kwargs) -> list[Subject]`, deciding the default
+  viewers and editors of every new chart, dashboard and dataset on all creation paths.
+  Both default to `None` and existing behavior is unchanged:
+  `ASSIGN_CREATOR_GROUPS_AS_VIEWERS` keeps working when no viewers callable is set
+  (it now selects `superset.subjects.utils.creator_groups_as_viewers`), and editors
+  default to the creator alone (`superset.subjects.utils.creator_as_editor`). See the
+  security docs for details.
+
 - Dashboard history records related chart archives using the new
   `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
   new archive writes with versioning capture enabled. During a rollout, activity

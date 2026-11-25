@@ -235,6 +235,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Maps the ``__tablename__`` of ownable models to the ``asset_type`` passed to
+# the ``DEFAULT_{VIEWERS,EDITORS}_FOR_NEW_ASSET`` config callables.
+_ASSET_TYPE_BY_TABLE = {
+    "slices": "chart",
+    "dashboards": "dashboard",
+    "tables": "dataset",
+}
+
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 
@@ -1610,8 +1618,8 @@ class ImportExportMixin(UUIDMixin):
     def reset_ownership(self) -> None:
         """object will belong to the current user"""
         from superset.subjects.utils import (
+            get_default_editors_for_new_asset,
             get_default_viewers_for_new_asset,
-            get_user_subject,
         )
 
         # Reset the audit pointers. When a Flask request context is
@@ -1627,15 +1635,16 @@ class ImportExportMixin(UUIDMixin):
         if g and hasattr(g, "user") and g.user:
             self.created_by = g.user
             self.changed_by = g.user
-            user_subject = get_user_subject(g.user.id)
-            if user_subject:
-                self.editors = [user_subject]
+            asset_type = _ASSET_TYPE_BY_TABLE.get(
+                getattr(self, "__tablename__", ""), "dashboard"
+            )
+            self.editors = get_default_editors_for_new_asset(g.user.id, asset_type)
             # Only dashboards and charts have ``viewers``; this mixin also
             # serves datasets, which have editors only. Defaults never replace
             # viewers already present on the instance, matching the create
             # commands' "explicit viewers win" rule.
             if hasattr(self, "viewers") and not self.viewers:  # type: ignore[has-type]
-                self.viewers = get_default_viewers_for_new_asset(g.user.id)
+                self.viewers = get_default_viewers_for_new_asset(g.user.id, asset_type)
         else:
             self.created_by = None
             self.changed_by = None

@@ -484,6 +484,82 @@ feature flag off.
 The setting assigns groups as *viewers*, not editors, so group members get read-only access and
 cannot modify or delete the asset.
 
+#### Customizing default viewers and editors for new assets
+
+Two config callables decide who is attached to every newly created asset, on every creation path
+(REST API, `/dashboard/new/`, save-as, dashboard copy including cloned charts, the import
+commands, dataset upload and the MCP tools):
+
+- `DEFAULT_VIEWERS_FOR_NEW_ASSET(user, asset_type, **kwargs)` — default viewers for charts and
+  dashboards.
+- `DEFAULT_EDITORS_FOR_NEW_ASSET(user, asset_type, **kwargs)` — default editors for charts,
+  dashboards and datasets. When unset, `superset.subjects.utils.creator_as_editor` is used, which
+  returns the creator alone.
+
+`user` is the in-memory creator (so groups and roles can be read without a query — the callables
+may run inside a flush event, so don't query membership tables) and `asset_type` is `"chart"`,
+`"dashboard"` or `"dataset"`. Both return a list of `Subject` objects.
+
+**Callables must accept `**kwargs`**: new keyword arguments may be added in future releases.
+Currently `properties=` is passed: the create payload (create commands), the config dict
+(importers) or the copy data (dashboard copy), and `None` on paths without one. For charts the
+payload carries `datasource_id` and `datasource_type`. The asset model usually does not exist
+yet, so decisions can only rely on `user`, `asset_type` and `properties`.
+
+```python
+from superset.subjects.utils import get_or_create_role_subject, get_user_subject
+from flask_appbuilder.security.sqla.models import Role
+from superset import db
+
+
+def creator_and_approvers(user, asset_type, **kwargs):
+    # Keep the creator and make the "Approvers" role an editor of every new
+    # chart, dashboard and dataset.
+    editors = [get_user_subject(user.id)]
+    role = db.session.query(Role).filter_by(name="Approvers").one_or_none()
+    if role:
+        editors.append(get_or_create_role_subject(role.id))
+    return editors
+
+
+DEFAULT_EDITORS_FOR_NEW_ASSET = creator_and_approvers
+```
+
+Semantics:
+
+- **Editors.** The callable owns the full default list; nothing is force-added. A callable that
+  omits the creator leaves the creator **without** an editor grant. A non-admin creator can then
+  be unable to edit or delete their own asset, unless a returned Role/Group covers them or
+  `EXTRA_EDITORS_RESOLVER` applies, so include `get_user_subject(user.id)` unless that is
+  intended. If the callable raises, the error is logged and the creator-only default is used.
+- **Explicit editors.** Editors named in the create payload keep their usual behavior: they
+  replace the creator, and a non-admin creator is re-added unless covered by a named Role/Group
+  or `EXTRA_EDITORS_RESOLVER` (admins can exclude themselves). Subjects returned by the callable
+  that are not already present, other than the creator, are then appended.
+- **Viewers.** Viewers named explicitly in the create payload *replace* the defaults. Defaults are
+  ignored while `ENABLE_VIEWERS` is off. If the callable raises, the error is logged and the asset
+  gets no default viewers.
+- **Bulk imports.** Editors are resolved per asset. Viewers are resolved once per import unless a
+  custom `DEFAULT_VIEWERS_FOR_NEW_ASSET` is set, in which case they are resolved per asset so the
+  callable receives that asset's properties.
+- With `DEFAULT_VIEWERS_FOR_NEW_ASSET` unset, `ASSIGN_CREATOR_GROUPS_AS_VIEWERS` behaves exactly as
+  described above (it selects `superset.subjects.utils.creator_groups_as_viewers`). To keep that
+  behavior and add to it, wrap the function:
+
+```python
+from superset.subjects.utils import creator_groups_as_viewers
+
+
+def viewers(user, asset_type, **kwargs):
+    return [*creator_groups_as_viewers(user, asset_type), *my_extra_viewers(user)]
+
+
+DEFAULT_VIEWERS_FOR_NEW_ASSET = viewers
+```
+
+`AFTER_ASSET_CREATE` remains available for post-create side effects, but it isn't invoked on
+every creation path (e.g. dashboard copy and imports), which is why these callables exist.
+
 ### SQL Execution Security Considerations
 
 Apache Superset includes features designed to provide safeguards when interacting with connected databases, such as the `DISALLOWED_SQL_FUNCTIONS` configuration setting. This aims to prevent the execution of potentially harmful database functions or system variables directly from Superset interfaces like SQL Lab.

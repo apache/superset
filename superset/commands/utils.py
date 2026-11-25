@@ -41,6 +41,7 @@ from superset.subjects.exceptions import (
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectReference
 from superset.subjects.utils import (
+    get_default_editors_for_new_asset,
     get_default_viewers_for_new_asset,
     get_or_create_group_subject,
     get_or_create_role_subject,
@@ -217,20 +218,47 @@ def populate_subjects(
     exceptions: list[ValidationError],
     *,
     include_viewers: bool = True,
+    asset_type: str | None = None,
 ) -> None:
     """
     Populate editors (and optionally viewers) on a properties dict for
     create commands.
 
+    When *asset_type* is given, ``DEFAULT_EDITORS_FOR_NEW_ASSET`` owns the editors
+    of an asset created without any (by default, the creator alone). Explicit
+    editors keep their usual semantics (a non-admin creator is re-added unless
+    covered by role/group or ``EXTRA_EDITORS_RESOLVER``); the callable's subjects
+    are then appended, except the creator, who stays out if the explicit list
+    left them out. The callables receive the original payload as ``properties``.
+
     Appends any validation errors to *exceptions*.
     """
+    payload = dict(properties)
     try:
-        properties["editors"] = populate_subject_list(
-            properties.get("editors"),
-            default_to_user=True,
-            ensure_no_lockout=True,
-            field_name="editors",
-        )
+        user_id = get_user_id()
+        if asset_type and not properties.get("editors"):
+            properties["editors"] = get_default_editors_for_new_asset(
+                user_id, asset_type, properties=payload
+            )
+        else:
+            editors = populate_subject_list(
+                properties.get("editors"),
+                default_to_user=True,
+                ensure_no_lockout=True,
+                field_name="editors",
+            )
+            if asset_type:
+                present = {subject.id for subject in editors}
+                creator = get_user_subject(user_id) if user_id else None
+                for subject in get_default_editors_for_new_asset(
+                    user_id, asset_type, properties=payload
+                ):
+                    if subject.id not in present and not (
+                        creator and subject.id == creator.id
+                    ):
+                        present.add(subject.id)
+                        editors.append(subject)
+            properties["editors"] = editors
     except ValidationError as ex:
         exceptions.append(ex)
 
@@ -248,7 +276,9 @@ def populate_subjects(
             properties["viewers"] = viewers
         except ValidationError as ex:
             exceptions.append(ex)
-    elif default_viewers := get_default_viewers_for_new_asset(get_user_id()):
+    elif default_viewers := get_default_viewers_for_new_asset(
+        get_user_id(), asset_type or "dashboard", properties=payload
+    ):
         properties["viewers"] = default_viewers
 
 

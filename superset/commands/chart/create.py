@@ -107,7 +107,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
                 raise DashboardsForbiddenError()
         self._properties["dashboards"] = dashboards
 
-        populate_subjects(self._properties, exceptions)
+        populate_subjects(self._properties, exceptions, asset_type="chart")
 
         if exceptions:
             raise ChartInvalidError(exceptions=exceptions)

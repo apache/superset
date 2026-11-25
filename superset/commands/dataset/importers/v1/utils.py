@@ -972,11 +972,13 @@ def import_dataset(  # noqa: C901
             load_data(data_uri, dataset, dataset.database)
 
     if user:
-        from superset.subjects.utils import get_user_subject
+        from superset.subjects.utils import get_default_editors_for_new_asset
 
-        subj = get_user_subject(user.id)
-        if subj and subj not in dataset.editors:
-            dataset.editors.append(subj)
+        for editor in get_default_editors_for_new_asset(
+            user.id, "dataset", properties=config
+        ):
+            if editor not in dataset.editors:
+                dataset.editors.append(editor)
 
     return dataset
 

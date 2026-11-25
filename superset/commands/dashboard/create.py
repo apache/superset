@@ -86,7 +86,7 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
         if not DashboardDAO.validate_slug_uniqueness(slug):
             exceptions.append(DashboardSlugExistsValidationError())
 
-        populate_subjects(self._properties, exceptions)
+        populate_subjects(self._properties, exceptions, asset_type="dashboard")
 
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)

@@ -392,15 +392,15 @@ def generate_dashboard(  # noqa: C901
                 )
                 if current_user:
                     from superset.subjects.utils import (
+                        get_default_editors_for_new_asset,
                         get_default_viewers_for_new_asset,
-                        get_user_subject,
                     )
 
-                    subj = get_user_subject(current_user.id)
-                    if subj:
-                        dashboard.editors = [subj]
+                    dashboard.editors = get_default_editors_for_new_asset(
+                        current_user.id, "dashboard", user=current_user
+                    )
                     dashboard.viewers = get_default_viewers_for_new_asset(
-                        current_user.id
+                        current_user.id, "dashboard"
                     )
 
                 fresh_charts = (
