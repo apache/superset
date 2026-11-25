@@ -127,11 +127,7 @@ export const getRefreshPolicyErrors = (
     const field = `${POLICY_KEY}.${key}`;
     const seconds = getBoundSeconds(policy[key]);
     if (seconds === null) {
-      add(
-        field,
-        'invalid_boundary',
-        t('Use a whole number of seconds, minutes or hours.'),
-      );
+      add(field, 'invalid_boundary', t('Use a whole number of seconds.'));
     } else if (checkList && !standard.includes(seconds)) {
       add(
         field,

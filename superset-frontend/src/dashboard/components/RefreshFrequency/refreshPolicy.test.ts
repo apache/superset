@@ -166,7 +166,7 @@ const SERVER_CASES: ParityCase[] = [
       },
       'auto_refresh_policy.minimum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -180,7 +180,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.minimum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -194,7 +194,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.minimum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -208,7 +208,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.minimum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -222,7 +222,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.minimum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -236,7 +236,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.minimum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -253,7 +253,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.maximum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -270,7 +270,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.maximum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -288,7 +288,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.maximum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -302,7 +302,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.maximum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
   },
@@ -821,7 +821,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {
       'auto_refresh_policy.minimum_refresh_interval': {
         code: 'invalid_boundary',
-        message: 'Use a whole number of seconds, minutes or hours.',
+        message: 'Use a whole number of seconds.',
       },
     },
     readPolicy: null,

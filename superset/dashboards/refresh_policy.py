@@ -308,7 +308,7 @@ def check_refresh_policy(  # noqa: C901
             add(
                 field,
                 "invalid_boundary",
-                __("Use a whole number of seconds, minutes or hours."),
+                __("Use a whole number of seconds."),
             )
         elif check_list and seconds not in standard:
             add(

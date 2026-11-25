@@ -17232,7 +17232,7 @@ msgstr ""
 msgid "Use a refresh policy"
 msgstr ""
 
-msgid "Use a whole number of seconds, minutes or hours."
+msgid "Use a whole number of seconds."
 msgstr ""
 
 msgid "Use an encrypted connection to the database"

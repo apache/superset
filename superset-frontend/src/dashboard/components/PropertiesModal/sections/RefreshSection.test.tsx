@@ -432,9 +432,7 @@ test('an old-shape bound selects nothing and shows the invalid boundary error', 
   });
   await screen.findByRole('switch', { name: 'Allow auto-refresh' });
   expect(selectValue('Longest interval')).toBeNull();
-  const error = screen.getByText(
-    'Use a whole number of seconds, minutes or hours.',
-  );
+  const error = screen.getByText('Use a whole number of seconds.');
   const longest = screen.getByRole('combobox', { name: 'Longest interval' });
   expect(longest).toHaveAttribute('aria-invalid', 'true');
   expect(longest).toHaveAttribute('aria-describedby', error.id);

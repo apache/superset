@@ -282,7 +282,7 @@ def test_bound_messages(policy: dict[str, Any], expected: str) -> None:
         ),
         (
             {"auto_refresh_policy": {"minimum_refresh_interval": 0}},
-            "Use a whole number of seconds, minutes or hours.",
+            "Use a whole number of seconds.",
         ),
         (
             {"auto_refresh_policy": {"minimum_refresh_interval": 7200}},

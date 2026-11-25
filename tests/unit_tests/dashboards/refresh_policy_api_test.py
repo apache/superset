@@ -291,10 +291,10 @@ def test_put_rules(
         assert stored(dashboard)["auto_refresh_policy"] == policy
 
 
-def test_equal_bounds_in_different_units(
+def test_equal_bounds_are_accepted(
     make_dashboard: Callable[..., Any], client: Any, full_api_access: None
 ) -> None:
-    """Check equal bounds in different units."""
+    """Equal minimum and maximum bounds are accepted."""
     dashboard = make_dashboard({})
     policy = {
         "minimum_refresh_interval": 60,
