@@ -1414,9 +1414,9 @@ def check_query_context_date_ranges(query_context: QueryContext) -> None:
     Check every query of ``query_context`` against the time range limits.
 
     Runs after the access check, before any cache read or SQL. Does nothing while
-    the feature flag is off. A native Select filter option query with no time
-    range is first bounded by the window the limits allow, see
-    ``_bound_value_lists``, so this changes the query. Raises
+    the feature flag is off. A native Select filter option query, or Range filter
+    min and max query, with no time range is first bounded by the window the
+    limits allow, see ``_bound_value_lists``, so this changes the query. Raises
     ``TimeRangeLimitError`` on the first range that breaks the limits, and
     ``TimeRangeLimitsUnavailableError`` when the limits can't be loaded.
     """
@@ -1487,13 +1487,16 @@ def _value_list_column(datasource: SqlaTable, query_object: QueryObject) -> str 
     return datasource.main_dttm_col if datasource.main_dttm_col in dttm_cols else None
 
 
-def _is_select_filter(
+_VALUE_LIST_FILTER_TYPES = {"filter_select", "filter_range"}
+
+
+def _bounds_value_list(
     datasource: Explorable, dashboard: Dashboard, form_data: dict[str, Any]
 ) -> bool:
-    """Whether the request's native filter is a Select filter. A Range filter's
-    min and max aren't bounded: a user can't enter a value past the slider."""
+    """Whether the request's native filter reads a value list: a Select filter's
+    options, or a Range filter's min and max."""
     found = _native_filter(datasource, dashboard, form_data.get("native_filter_id"))
-    return found is not None and found[1].get("filterType") == "filter_select"
+    return found is not None and found[1].get("filterType") in _VALUE_LIST_FILTER_TYPES
 
 
 def _bound_value_lists(
@@ -1506,9 +1509,10 @@ def _bound_value_lists(
     list[tuple[QueryObject, ChartDataResultType, list[DateRange], bool]], list[bool]
 ]:
     """
-    Bound each native Select filter option query on a dataset that has no time
-    range by ``value_list_window`` of the limits that apply on ``dashboard``, and
-    read its ranges again for the check. The window replaces the query's
+    Bound each native Select filter option query, and each Range filter min and
+    max query, on a dataset that has no time range by ``value_list_window`` of
+    the limits that apply on ``dashboard``, and read its ranges again for the
+    check. The window replaces the query's
     ``time_range`` too, as absolute dates, so the cache key names the window.
 
     A query that carries a range keeps it, and the check applies to it as to a
@@ -1526,7 +1530,7 @@ def _bound_value_lists(
         not isinstance(datasource, SqlaTable)
         or dashboard is None
         or not any(native)
-        or not _is_select_filter(datasource, dashboard, query_context.form_data or {})
+        or not _bounds_value_list(datasource, dashboard, query_context.form_data or {})
     ):
         return checks, native
     try:

@@ -704,13 +704,8 @@ def test_empty_window_refuses_the_option_query(
     assert info.value.error.extra["reason_code"] == "UNBOUNDED_RANGE"
 
 
-@freeze_time(NOW)
-@with_flag_on
-@pytest.mark.usefixtures("viewer")
-def test_range_filter_runs_as_before(mocker: MockerFixture) -> None:
-    set_global(mocker, policy(90))
-    use_dashboards(mocker, make_dashboard(RANGE))
-    min_max = {
+def range_min_max(**extra: Any) -> dict[str, Any]:
+    return {
         "columns": [],
         "metrics": [
             {
@@ -721,17 +716,81 @@ def test_range_filter_runs_as_before(mocker: MockerFixture) -> None:
             }
             for aggregate in ("MIN", "MAX")
         ],
+        **extra,
     }
+
+
+RANGE_FORM_DATA = {**FORM_DATA, "native_filter_id": "NATIVE_FILTER-range"}
+
+
+@freeze_time(NOW)
+@with_flag_on
+@pytest.mark.usefixtures("viewer")
+@pytest.mark.parametrize("principal", ["alpha", "guest"], ids=["dashboard", "embedded"])
+def test_range_filter_reads_the_window(mocker: MockerFixture, principal: str) -> None:
+    as_user(mocker, principal)
+    set_global(mocker, policy(90))
+    use_dashboards(mocker, make_dashboard(RANGE))
+
+    query, sql = checked(mocker, make_dataset(), range_min_max(), RANGE_FORM_DATA)
+
+    assert (query.granularity, query.from_dttm, query.to_dttm) == ("ds", *AUG_WINDOW)
+    assert "WHERE ds >= '2026-07-24 00:00:00' AND ds < '2026-10-22 00:00:00'" in sql
+
+
+@freeze_time(NOW)
+@with_flag_on
+@pytest.mark.usefixtures("viewer")
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        lambda: make_dataset(main_dttm_col=None, temporal=()),
+        lambda: make_dataset(main_dttm_col=None),
+    ],
+    ids=["no time column", "no default datetime column"],
+)
+def test_range_filter_without_a_time_column_runs_as_before(
+    mocker: MockerFixture, dataset: Any
+) -> None:
+    set_global(mocker, policy(90))
+    use_dashboards(mocker, make_dashboard(RANGE))
+
+    query, sql = checked(mocker, dataset(), range_min_max(), RANGE_FORM_DATA)
+
+    assert (query.granularity, query.from_dttm, query.to_dttm) == (None, None, None)
+    assert "WHERE" not in sql
+
+
+@freeze_time(NOW)
+@with_flag_on
+@pytest.mark.usefixtures("viewer")
+def test_range_filter_carried_range_is_kept_and_checked(
+    mocker: MockerFixture,
+) -> None:
+    set_global(mocker, policy(90))
+    use_dashboards(mocker, make_dashboard({**RANGE, "granularity_sqla": "ds"}))
+    dataset = make_dataset()
 
     query, sql = checked(
         mocker,
-        make_dataset(),
-        min_max,
-        {**FORM_DATA, "native_filter_id": "NATIVE_FILTER-range"},
+        dataset,
+        range_min_max(granularity="ds", time_range="2026-10-01 : 2026-10-15"),
+        RANGE_FORM_DATA,
     )
+    assert (query.from_dttm, query.to_dttm) == (
+        datetime(2026, 10, 1),
+        datetime(2026, 10, 15),
+    )
+    assert "ds >= '2026-10-01 00:00:00'" in sql
 
-    assert (query.granularity, query.from_dttm, query.time_range) == (None, None, None)
-    assert "WHERE" not in sql
+    with pytest.raises(TimeRangeLimitError) as info:
+        checked(
+            mocker,
+            dataset,
+            range_min_max(granularity="ds", time_range="2025-10-01 : 2026-10-15"),
+            RANGE_FORM_DATA,
+        )
+    assert info.value.error.extra["reason_code"] == "MAX_SPAN_EXCEEDED"
 
 
 @freeze_time(NOW)
