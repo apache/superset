@@ -5451,23 +5451,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return modified_select_exprs, modified_groupby_all_columns
 
-    def _numeric_epoch_millis(
-        self, col: Optional["TableColumn"], dttm: datetime
-    ) -> Optional[int]:
-        """
-        Epoch milliseconds for a numeric column marked temporal with no format.
-
-        The query returns the stored integer, and a time axis reads it as epoch
-        milliseconds. A timestamp literal cannot be compared with that integer.
-        """
-        if col is None or not col.type:
-            return None
-        spec = self.db_engine_spec.get_column_spec(col.type, db_extra=self.db_extra)
-        if spec is None or spec.generic_type != GenericDataType.NUMERIC:
-            return None
-        aware = dttm if dttm.tzinfo is not None else dttm.replace(tzinfo=timezone.utc)
-        return int(aware.timestamp()) * EPOCH_FORMATS["epoch_ms"]
-
     def dttm_sql_literal(self, dttm: datetime, col: "TableColumn") -> str:
         """Convert datetime object to a SQL expression string"""
 
@@ -5501,9 +5484,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 seconds_since_epoch = int(dttm_tz_aware.timestamp())
                 return str(seconds_since_epoch * EPOCH_FORMATS[tf])
             return f"'{dttm.strftime(tf)}'"
-
-        if (epoch_ms := self._numeric_epoch_millis(col, dttm)) is not None:
-            return str(epoch_ms)
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
@@ -5566,8 +5546,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col.column_name
             )
         if not tf:
-            if (epoch_ms := self._numeric_epoch_millis(col, dttm)) is not None:
-                return epoch_ms
             return dttm
 
         if tf in EPOCH_FORMATS:

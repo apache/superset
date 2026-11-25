@@ -218,19 +218,16 @@ def test_get_time_filter_epoch_column_uses_utc_regardless_of_server_tz(
     assert str(expected_epoch) in str(clause)
 
 
-def test_get_time_filter_numeric_temporal_without_format_uses_epoch_millis(
+def test_get_time_filter_epoch_ms_column_compares_milliseconds(
     app: Flask,
 ) -> None:
-    """
-    A temporal integer with no ``python_date_format`` is stored as epoch
-    milliseconds. The bound has to be that integer: a timestamp literal is
-    not a valid bigint.
-    """
+    """A numeric temporal column compares epoch milliseconds only when its format says so."""
     database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
     time_col = TableColumn(
         column_name="start_time",
         is_dttm=1,
         type="LONGINTEGER",
+        python_date_format="epoch_ms",
     )
     table = SqlaTable(
         table_name="project_management",

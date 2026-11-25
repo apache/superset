@@ -27,7 +27,7 @@ columns:
   groupby: true
   is_active: true
   is_dttm: true
-  python_date_format: null
+  python_date_format: epoch_ms
   type: LONGINTEGER
   verbose_name: null
 - advanced_data_type: null
@@ -39,7 +39,7 @@ columns:
   groupby: true
   is_active: true
   is_dttm: true
-  python_date_format: null
+  python_date_format: epoch_ms
   type: LONGINTEGER
   verbose_name: null
 - advanced_data_type: null
