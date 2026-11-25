@@ -16,205 +16,149 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
+import { useEffect, useState, useCallback, type Dispatch } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
-import TableSelector, { TableOption } from 'src/components/TableSelector';
-import { EmptyState } from '@superset-ui/core/components';
-import { type DatabaseObject } from 'src/components';
+import { useTheme } from '@apache-superset/core/theme';
+import {
+  Flex,
+  EmptyState,
+  Divider,
+  Checkbox,
+  Typography,
+} from '@superset-ui/core/components';
+import { DatabaseSelectorPopover } from 'src/components/DatabaseSelector';
+import type { DatabaseObject } from 'src/components';
+import { TableBrowser } from 'src/SqlLab/components/TableExploreTree';
+import type { TableReference } from 'src/SqlLab/components/TableExploreTree/types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
 import {
   DatasetActionType,
   DatasetObject,
-} from 'src/features/datasets/AddDataset/types';
-import { Table } from 'src/hooks/apiResources';
-import { Typography } from '@superset-ui/core/components/Typography';
-import { ensureAppRoot } from 'src/utils/navigationUtils';
+  DSReducerActionType,
+} from '../types';
 
 interface LeftPanelProps {
-  setDataset: Dispatch<SetStateAction<object>>;
+  setDataset: Dispatch<DSReducerActionType>;
   dataset?: Partial<DatasetObject> | null;
-  datasetNames?: (string | null | undefined)[] | undefined;
+  onPreviewTable: (table: TableReference) => void;
+  disabled?: boolean;
 }
-
-const LeftPanelStyle = styled.div`
-  ${({ theme }) => `
-    padding: ${theme.sizeUnit * 4}px;
-    height: 100%;
-    background-color: ${theme.colorBgContainer};
-    position: relative;
-    .emptystate {
-      height: auto;
-      margin-top: ${theme.sizeUnit * 17.5}px;
-    }
-    .section-title {
-      margin-top: ${theme.sizeUnit * 5.5}px;
-      margin-bottom: ${theme.sizeUnit * 11}px;
-      font-weight: ${theme.fontWeightStrong};
-    }
-    .table-title {
-      margin-top: ${theme.sizeUnit * 11}px;
-      margin-bottom: ${theme.sizeUnit * 6}px;
-      font-weight: ${theme.fontWeightStrong};
-    }
-    .options-list {
-      overflow: auto;
-      position: absolute;
-      bottom: 0;
-      top: ${theme.sizeUnit * 92.25}px;
-      left: ${theme.sizeUnit * 3.25}px;
-      right: 0;
-
-      .no-scrollbar {
-        margin-right: ${theme.sizeUnit * 4}px;
-      }
-
-      .options {
-        cursor: pointer;
-        padding: ${theme.sizeUnit * 1.75}px;
-        border-radius: ${theme.borderRadius}px;
-        :hover {
-          background-color: ${theme.colorFillTertiary}
-        }
-      }
-
-      .options-highlighted {
-        cursor: pointer;
-        padding: ${theme.sizeUnit * 1.75}px;
-        border-radius: ${theme.borderRadius}px;
-        background-color: ${theme.colorPrimaryText};
-        color: ${theme.colorTextLightSolid};
-      }
-
-      .options, .options-highlighted {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-    }
-    form > span[aria-label="refresh"] {
-      position: absolute;
-      top: ${theme.sizeUnit * 69}px;
-      left: ${theme.sizeUnit * 42.75}px;
-      font-size: ${theme.sizeUnit * 4.25}px;
-    }
-    .table-form {
-      margin-bottom: ${theme.sizeUnit * 8}px;
-    }
-    .loading-container {
-      position: absolute;
-      top: ${theme.sizeUnit * 89.75}px;
-      left: 0;
-      right: 0;
-      text-align: center;
-      img {
-        width: ${theme.sizeUnit * 20}px;
-        margin-bottom: ${theme.sizeUnit * 2.5}px;
-      }
-      p {
-        color: ${theme.colorTextSecondary};
-      }
-    }
-`}
-`;
 
 export default function LeftPanel({
   setDataset,
   dataset,
-  datasetNames,
+  onPreviewTable,
+  disabled = false,
 }: LeftPanelProps) {
+  const theme = useTheme();
   const { addDangerToast } = useToasts();
-
+  const [multiSelect, setMultiSelect] = useState(false);
   const setDatabase = useCallback(
-    (db: Partial<DatabaseObject>) => {
+    (db: DatabaseObject) => {
       setDataset({ type: DatasetActionType.SelectDatabase, payload: { db } });
     },
     [setDataset],
   );
-  const setCatalog = (catalog: string | null) => {
-    if (catalog) {
-      setDataset({
-        type: DatasetActionType.SelectCatalog,
-        payload: { name: 'catalog', value: catalog },
-      });
-    }
-  };
-  const setSchema = (schema: string) => {
-    if (schema) {
-      setDataset({
-        type: DatasetActionType.SelectSchema,
-        payload: { name: 'schema', value: schema },
-      });
-    }
-  };
-  const setTable = (tableName: string) => {
-    setDataset({
-      type: DatasetActionType.SelectTable,
-      payload: { name: 'table_name', value: tableName },
-    });
-  };
+
   useEffect(() => {
-    const currentUserSelectedDb = getItem(
+    const previous = getItem(
       LocalStorageKeys.Database,
       null,
-    ) as DatabaseObject;
-    if (currentUserSelectedDb) {
-      setDatabase(currentUserSelectedDb);
-    }
+    ) as DatabaseObject | null;
+    if (previous) setDatabase(previous);
   }, [setDatabase]);
 
-  const customTableOptionLabelRenderer = useCallback(
-    (table: Table) => (
-      <TableOption
-        table={
-          datasetNames?.includes(table.value)
-            ? {
-                ...table,
-                extra: {
-                  warning_markdown: t('This table already has a dataset'),
-                },
-              }
-            : table
-        }
-      />
-    ),
-    [datasetNames],
-  );
-  const getDatabaseEmptyState = (emptyResultsWithSearch: boolean) => (
-    <EmptyState
-      image="empty.svg"
-      title={
-        emptyResultsWithSearch
-          ? t('No databases match your search')
-          : t('No databases available')
-      }
-      description={
-        <span>
-          {t('Manage your databases')}{' '}
-          <Typography.Link href={ensureAppRoot('/databaseview/list')}>
-            {t('here')}
-          </Typography.Link>
-        </span>
-      }
-      size="small"
-    />
-  );
+  const selectTables = (tables: TableReference[]) => {
+    setDataset({
+      type: DatasetActionType.SelectTableReferences,
+      payload: tables,
+    });
+    if (tables.length === 1) onPreviewTable(tables[0]);
+  };
+
+  const previewTable = (table: TableReference) => {
+    onPreviewTable(table);
+    if (!multiSelect) selectTables([table]);
+  };
 
   return (
-    <LeftPanelStyle>
-      <TableSelector
-        database={dataset?.db}
+    <Flex
+      vertical
+      gap="small"
+      style={{
+        height: '100%',
+        minHeight: 0,
+        overflow: 'hidden',
+        padding: theme.sizeUnit * 4,
+        position: 'relative',
+      }}
+    >
+      <DatabaseSelectorPopover
+        db={dataset?.db}
         handleError={addDangerToast}
-        emptyState={getDatabaseEmptyState(false)}
         onDbChange={setDatabase}
-        onCatalogChange={setCatalog}
-        onSchemaChange={setSchema}
-        onTableSelectChange={setTable}
-        customTableOptionLabelRenderer={customTableOptionLabelRenderer}
-        {...(dataset?.catalog && { catalog: dataset.catalog })}
-        {...(dataset?.schema && { schema: dataset.schema })}
+        catalog={dataset?.catalog}
+        schema={dataset?.schema ?? undefined}
+        onSchemaChange={schema =>
+          setDataset({
+            type: DatasetActionType.SelectSchema,
+            payload: { name: 'schema', value: schema },
+          })
+        }
+        onCatalogChange={catalog =>
+          setDataset({
+            type: DatasetActionType.SelectCatalog,
+            payload: { name: 'catalog', value: catalog },
+          })
+        }
       />
-    </LeftPanelStyle>
+      <Divider style={{ margin: 0 }} />
+      {dataset?.db ? (
+        <>
+          <Checkbox
+            checked={multiSelect}
+            disabled={disabled}
+            onChange={({ target }) => {
+              setMultiSelect(target.checked);
+              if (!target.checked) {
+                setDataset({
+                  type: DatasetActionType.SelectTableReferences,
+                  payload: [],
+                });
+              }
+            }}
+          >
+            <Typography.Text>
+              {t('Select multiple tables')}
+            </Typography.Text>
+          </Checkbox>
+          <TableBrowser
+            key={`${dataset.db.id}:${dataset.catalog ?? ''}`}
+            dbId={dataset.db.id}
+            supportsSchemas={dataset.db.supports_schemas}
+            schema={dataset.schema ?? undefined}
+            catalog={dataset.catalog}
+            onPreviewTable={previewTable}
+            disabled={disabled}
+            selectedTables={
+              multiSelect ? (dataset.selected_tables ?? []) : undefined
+            }
+            onSelectionChange={multiSelect ? selectTables : undefined}
+            maxSelection={100}
+            showSelectAll
+          />
+        </>
+      ) : (
+        <EmptyState
+          image="empty.svg"
+          size="small"
+          title={t('Select a data connection')}
+          description={t(
+            'Choose a data connection to browse schemas, tables, and views.',
+          )}
+        />
+      )}
+    </Flex>
   );
 }

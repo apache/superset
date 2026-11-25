@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fetchMock from 'fetch-mock';
 import {
   createStore,
   render,
@@ -244,4 +245,196 @@ describe('Footer', () => {
       });
     });
   });
+});
+
+test('submits one bulk request and shows mixed results without opening a chart', async () => {
+  mockHistoryPush.mockClear();
+  fetchMock.post('glob:*/api/v1/dataset/bulk', {
+    results: [
+      { table_name: 'customers', status: 'created', uuid: 'uuid', message: '' },
+      {
+        table_name: 'orders',
+        status: 'skipped',
+        uuid: null,
+        message: 'Dataset already exists.',
+      },
+      {
+        table_name: 'products',
+        status: 'failed',
+        uuid: null,
+        message: 'Access denied',
+      },
+    ],
+  });
+  render(
+    <Footer
+      {...mockPropsWithDataset}
+      hasColumns={false}
+      datasetObject={{
+        ...mockPropsWithDataset.datasetObject,
+        table_name: null,
+        table_names: ['customers', 'orders', 'products'],
+      }}
+    />,
+    { useRedux: true },
+  );
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Create datasets' }),
+  );
+  await waitFor(() => {
+    expect(screen.getByText('Dataset registration results')).toBeVisible();
+  });
+  expect(screen.getByText('Created')).toBeVisible();
+  expect(screen.getByText('Skipped')).toBeVisible();
+  expect(screen.getByText('Access denied')).toBeVisible();
+  expect(mockHistoryPush).not.toHaveBeenCalled();
+  const call = fetchMock.callHistory.lastCall('glob:*/api/v1/dataset/bulk');
+  expect(JSON.parse(String(call?.options.body))).toEqual({
+    database: '1',
+    schema: 'public',
+    tables: ['customers', 'orders', 'products'],
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'View datasets' }));
+  expect(mockHistoryPush).toHaveBeenCalledWith('/tablemodelview/list/');
+  fetchMock.removeRoutes().clearHistory();
+});
+
+test('disables bulk registration when more than 100 tables are selected', () => {
+  render(
+    <Footer
+      {...mockPropsWithDataset}
+      datasetObject={{
+        ...mockPropsWithDataset.datasetObject,
+        table_names: Array.from(
+          { length: 101 },
+          (_, index) => `table_${index}`,
+        ),
+      }}
+    />,
+    { useRedux: true },
+  );
+  expect(
+    screen.getByRole('button', { name: 'Create datasets' }),
+  ).toBeDisabled();
+});
+
+test('registers identically named tables in separate schemas and preserves partial failures', async () => {
+  mockHistoryPush.mockClear();
+  const onRegistered = jest.fn();
+  fetchMock.post('glob:*/api/v1/dataset/bulk', call => {
+    const { schema } = JSON.parse(String(call.options.body)) as {
+      schema: string;
+    };
+    return schema === 'public'
+      ? {
+          results: [
+            {
+              table_name: 'orders',
+              status: 'created',
+              uuid: 'uuid',
+              message: '',
+            },
+          ],
+        }
+      : { status: 403, body: { message: 'Forbidden' } };
+  });
+  render(
+    <Footer
+      {...mockPropsWithDataset}
+      onRegistered={onRegistered}
+      datasetObject={{
+        ...mockPropsWithDataset.datasetObject,
+        table_name: null,
+        selected_tables: [
+          { schema: 'public', table_name: 'orders' },
+          { schema: 'sales', table_name: 'orders' },
+        ],
+      }}
+    />,
+    { useRedux: true },
+  );
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Create datasets' }),
+  );
+  await waitFor(() =>
+    expect(screen.getByText('1 created, 0 skipped, 1 failed')).toBeVisible(),
+  );
+  expect(screen.getByText('public')).toBeVisible();
+  expect(screen.getByText('sales')).toBeVisible();
+  expect(
+    screen.getByText('Request failed. Check the dataset list before retrying.'),
+  ).toBeVisible();
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/dataset/bulk'),
+  ).toHaveLength(2);
+  expect(onRegistered).toHaveBeenCalledTimes(1);
+  expect(mockHistoryPush).not.toHaveBeenCalled();
+  fetchMock.removeRoutes().clearHistory();
+});
+
+test('prunes created and skipped tables while keeping failed tables selected', async () => {
+  const onUpdateSelectedTables = jest.fn();
+  fetchMock.post('glob:*/api/v1/dataset/bulk', {
+    results: [
+      { table_name: 'customers', status: 'created', uuid: 'uuid', message: '' },
+      {
+        table_name: 'orders',
+        status: 'skipped',
+        uuid: null,
+        message: 'Dataset already exists.',
+      },
+      {
+        table_name: 'products',
+        status: 'failed',
+        uuid: null,
+        message: 'Access denied',
+      },
+    ],
+  });
+  render(
+    <Footer
+      {...mockPropsWithDataset}
+      onUpdateSelectedTables={onUpdateSelectedTables}
+      datasetObject={{
+        ...mockPropsWithDataset.datasetObject,
+        table_name: null,
+        selected_tables: [
+          { schema: 'public', table_name: 'customers' },
+          { schema: 'public', table_name: 'orders' },
+          { schema: 'public', table_name: 'products' },
+        ],
+      }}
+    />,
+    { useRedux: true },
+  );
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Create datasets' }),
+  );
+  await waitFor(() =>
+    expect(onUpdateSelectedTables).toHaveBeenCalledWith([
+      { schema: 'public', table_name: 'products' },
+    ]),
+  );
+  fetchMock.removeRoutes().clearHistory();
+});
+
+test('disables bulk creation when all selected tables already have datasets', () => {
+  render(
+    <Footer
+      {...mockPropsWithDataset}
+      allSelectedExist
+      datasetObject={{
+        ...mockPropsWithDataset.datasetObject,
+        table_name: null,
+        selected_tables: [
+          { schema: 'public', table_name: 'customers' },
+          { schema: 'public', table_name: 'orders' },
+        ],
+      }}
+    />,
+    { useRedux: true },
+  );
+  expect(
+    screen.getByRole('button', { name: 'Create datasets' }),
+  ).toBeDisabled();
 });

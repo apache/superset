@@ -20,11 +20,16 @@ import { handleKeyboardActivation } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
-import { Icons, Typography } from '@superset-ui/core/components';
+import { Checkbox, Icons, Typography } from '@superset-ui/core/components';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import copyTextToClipboard from 'src/utils/copy';
-import type { TreeNodeData } from './types';
+import {
+  tableReferenceKey,
+  type TreeNodeData,
+  type TableReference,
+  getTableKey,
+} from './types';
 
 const StyledColumnNode = styled.div`
   & > .ant-flex {
@@ -91,12 +96,23 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
     schemaName: string,
     catalogName: string | null,
   ) => void;
-  handleUnpinTable: (tableName: string, schemaName: string) => void;
+  handleUnpinTable: (
+    tableName: string,
+    schemaName: string,
+    catalogName: string | null,
+  ) => void;
   handlePinSchema: (schemaName: string) => void;
   handleUnpinSchema: (schemaName: string) => void;
   refreshTableSchema: (id: string) => void;
   sortedTables: Record<string, boolean>;
   toggleSortColumns: (tableId: string) => void;
+  showTablePins?: boolean;
+  onPreviewTable?: (table: TableReference) => void;
+  multiSelect?: boolean;
+  selectedTables?: TableReference[];
+  onSelectionChange?: (tables: TableReference[]) => void;
+  maxSelection?: number;
+  disabled?: boolean;
 }
 
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
@@ -116,14 +132,31 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   refreshTableSchema,
   sortedTables,
   toggleSortColumns,
+  showTablePins = true,
+  onPreviewTable,
+  multiSelect,
+  selectedTables = [],
+  onSelectionChange,
+  maxSelection = 100,
+  disabled = false,
 }) => {
   const theme = useTheme();
   const { data } = node;
   const parts = data.id.split(':');
-  const [identifier, _dbId, schema, tableName] = parts;
-
+  const [identifier, _dbId, parsedSchema, parsedTable] = parts;
+  const schema = data.schema ?? parsedSchema;
+  const tableName = data.type === 'table' ? data.name : parsedTable;
+  const table = { schema, table_name: tableName };
+  const isChecked = selectedTables.some(
+    value => tableReferenceKey(value) === tableReferenceKey(table),
+  );
   const isManuallyOpen = node.isOpen && !node.data.disableCheckbox;
   const isLoading = loadingNodes[data.id] ?? false;
+  const isTablePreviewMode = Boolean(onPreviewTable);
+  const nodeOpacity =
+    isTablePreviewMode && identifier === 'table'
+      ? getOpacity(!node.isSelected)
+      : getOpacity(data.disableCheckbox);
 
   const renderIcon = () => {
     if (identifier === 'schema') {
@@ -174,10 +207,16 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
 
   // Column nodes use ColumnElement
   if (identifier === 'column' && data.columnData) {
+    const columnOpacity = isTablePreviewMode
+      ? getOpacity(!node.isSelected && !node.parent?.isSelected)
+      : 1;
     return (
       <StyledColumnNode
         className="tree-node"
         style={style}
+        css={css`
+          opacity: ${columnOpacity};
+        `}
         data-selected={node.isSelected}
         onClick={() => node.select()}
       >
@@ -219,6 +258,10 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       data-selected={node.isSelected}
       onClick={e => {
         e.stopPropagation();
+        if (data.type === 'table' && onPreviewTable) {
+          node.select();
+          onPreviewTable(table);
+        }
         if (node.isLeaf) {
           node.select();
         } else {
@@ -226,6 +269,10 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         }
       }}
       onKeyDown={handleKeyboardActivation(() => {
+        if (data.type === 'table' && onPreviewTable) {
+          node.select();
+          onPreviewTable(table);
+        }
         if (node.isLeaf) {
           node.select();
         } else {
@@ -233,10 +280,33 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         }
       })}
     >
+      {data.type === 'table' &&
+        (multiSelect ?? Boolean(onSelectionChange)) &&
+        onSelectionChange && (
+        <Checkbox
+          aria-label={t('Select table %s.%s', schema, tableName)}
+          checked={isChecked}
+          disabled={
+            disabled || (!isChecked && selectedTables.length >= maxSelection)
+          }
+          onClick={event => event.stopPropagation()}
+          onKeyDown={event => event.stopPropagation()}
+          onChange={() =>
+            onSelectionChange(
+              isChecked
+                ? selectedTables.filter(
+                    value =>
+                      tableReferenceKey(value) !== tableReferenceKey(table),
+                  )
+                : [...selectedTables, table],
+            )
+          }
+        />
+      )}
       <span
         className="tree-node-icon"
         css={css`
-          opacity: ${getOpacity(data.disableCheckbox)};
+          opacity: ${nodeOpacity};
         `}
       >
         {renderIcon()}
@@ -244,7 +314,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       <Typography.Text
         className="tree-node-title"
         css={css`
-          opacity: ${getOpacity(data.disableCheckbox)};
+          opacity: ${nodeOpacity};
         `}
         ellipsis={{
           tooltip: { title: data.name, placement: 'topLeft' },
@@ -320,7 +390,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       {identifier === 'table' &&
         (() => {
           const nodeDbId = Number(_dbId);
-          const tableKey = `${nodeDbId}:${schema}:${tableName}`;
+          const tableKey = getTableKey(nodeDbId, catalog, schema, tableName);
           const isPinned = pinnedTableKeys.has(tableKey);
           const selectStar = selectStarMap[tableKey];
           return (
@@ -344,7 +414,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                         `}
                       />
                     }
-                    onClick={() => handleUnpinTable(tableName, schema)}
+                    onClick={() =>
+                      handleUnpinTable(tableName, schema, catalog ?? null)
+                    }
                   />
                 </div>
               )}
@@ -384,30 +456,32 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                   icon={<Icons.SyncOutlined iconSize="m" />}
                   onClick={() => refreshTableSchema(data.id)}
                 />
-                <ActionButton
-                  label={
-                    isPinned
-                      ? `unpin-${schema}-${tableName}`
-                      : `pin-${schema}-${tableName}`
-                  }
-                  tooltip={
-                    isPinned
-                      ? t('Unpin from the result panel')
-                      : t('Pin to the result panel')
-                  }
-                  icon={
-                    isPinned ? (
-                      <Icons.PushpinFilled iconSize="m" />
-                    ) : (
-                      <Icons.PushpinOutlined iconSize="m" />
-                    )
-                  }
-                  onClick={() =>
-                    isPinned
-                      ? handleUnpinTable(tableName, schema)
-                      : handlePinTable(tableName, schema, catalog ?? null)
-                  }
-                />
+                {showTablePins && (
+                  <ActionButton
+                    label={
+                      isPinned
+                        ? `unpin-${schema}-${tableName}`
+                        : `pin-${schema}-${tableName}`
+                    }
+                    tooltip={
+                      isPinned
+                        ? t('Unpin from the result panel')
+                        : t('Pin to the result panel')
+                    }
+                    icon={
+                      isPinned ? (
+                        <Icons.PushpinFilled iconSize="m" />
+                      ) : (
+                        <Icons.PushpinOutlined iconSize="m" />
+                      )
+                    }
+                    onClick={() =>
+                      isPinned
+                        ? handleUnpinTable(tableName, schema, catalog ?? null)
+                        : handlePinTable(tableName, schema, catalog ?? null)
+                    }
+                  />
+                )}
                 <ActionButton
                   label={`toggle-${schema}-${tableName}`}
                   tooltip={isManuallyOpen ? t('Collapse') : t('Expand')}

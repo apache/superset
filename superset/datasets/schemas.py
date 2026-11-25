@@ -258,6 +258,34 @@ class FolderSchema(Schema):
             raise ValidationError("If 'name' is present, 'children' must be present.")
 
 
+class DatasetBulkCreateSchema(Schema):
+    """Register a bounded selection of physical tables or views."""
+
+    database = fields.Integer(required=True, validate=Range(min=1))
+    catalog = fields.String(allow_none=True, validate=Length(max=250))
+    schema = fields.String(allow_none=True, validate=Length(max=250))
+    tables = fields.List(
+        fields.String(validate=Length(min=1, max=250)),
+        required=True,
+        validate=Length(min=1, max=100),
+    )
+
+    @validates_schema
+    def validate_unique_tables(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """Reject repeated table names within a selection."""
+        if len(data["tables"]) != len(set(data["tables"])):
+            raise ValidationError(_("Select each table only once."), "tables")
+
+
+class DatasetBulkCreateResultSchema(Schema):
+    """Outcome for one table in a bulk registration request."""
+
+    table_name = fields.String()
+    status = fields.String(validate=OneOf(["created", "skipped", "failed"]))
+    uuid = fields.UUID(allow_none=True)
+    message = fields.String()
+
+
 class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
     catalog = fields.String(allow_none=True, validate=Length(0, 250))
