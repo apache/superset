@@ -153,6 +153,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     isOverflowingFilterBar = false,
     hovered: isControlHovered = false,
     displayFormat,
+    calendarFrame,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
@@ -160,7 +161,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
-  const guessedFrame = useMemo(() => guessFrame(value), [value]);
+  const guessedFrame = useMemo(
+    () => guessFrame(value, { calendarFrame }),
+    [value, calendarFrame],
+  );
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
   const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
   const [timeRangeValue, setTimeRangeValue] = useState(value);

@@ -129,4 +129,10 @@ export interface DateFilterControlProps {
    */
   partitionMapping?: PartitionFilterMapping | null;
   displayFormat?: string;
+  /**
+   * Set when the calendar interface was explicitly enabled for this control (e.g. a
+   * native filter with the calendar option on): a fixed whole-day value then opens
+   * on the Calendar frame and is shown as the days the user picked.
+   */
+  calendarFrame?: boolean;
 }

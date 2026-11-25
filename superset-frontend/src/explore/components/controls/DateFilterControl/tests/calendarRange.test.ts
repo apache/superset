@@ -79,6 +79,19 @@ test('formatCalendarRangeLabel shows the picked days with the end day included',
   expect(formatCalendarRangeLabel('Last week')).toBeUndefined();
 });
 
+test('isCalendarRange rejects dates that do not exist instead of rolling them over', () => {
+  expect(isCalendarRange('2026-02-31 : 2026-03-05')).toBe(false);
+  expect(isCalendarRange('2026-13-01 : 2026-13-05')).toBe(false);
+  expect(parseCalendarRange('2026-02-31 : 2026-03-05')).toBeNull();
+});
+
+test('isCalendarRange requires the start to be before the exclusive end', () => {
+  expect(isCalendarRange('2024-02-01 : 2024-01-01')).toBe(false);
+  expect(isCalendarRange('2024-01-01 : 2024-01-01')).toBe(false);
+  expect(isCalendarRange('2024-01-01 : 2024-01-02')).toBe(true);
+  expect(parseCalendarRange('2024-02-01 : 2024-01-01')).toBeNull();
+});
+
 test('isCalendarRange only accepts a fixed whole-day "start : end" range', () => {
   expect(isCalendarRange('2024-01-01 : 2024-02-01')).toBe(true);
   expect(isCalendarRange('Last week')).toBe(false);
@@ -111,11 +124,24 @@ test('resolvedRangeToCalendar returns no range for an open-ended or empty bound'
   expect(resolvedRangeToCalendar(null, null).range).toBeNull();
 });
 
-test('guessFrame opens a fixed whole-day range in the Calendar frame, and leaves other values alone', () => {
-  expect(guessFrame('2024-01-01 : 2024-02-01')).toBe('DateRange');
+test('guessFrame keeps a fixed whole-day range on the frame it always had (Advanced) by default, so saved values are not reinterpreted', () => {
+  expect(guessFrame('2024-01-01 : 2024-02-01')).toBe('Advanced');
   expect(guessFrame('Last week')).toBe('Common');
   expect(guessFrame('Last week : tomorrow')).toBe('Advanced');
   expect(guessFrame('2021-03-16T00:00:00 : 2021-03-17T00:00:00')).toBe(
     'Custom',
   );
+});
+
+test('guessFrame opens a fixed whole-day range in the Calendar frame only when the calendar interface is explicitly enabled', () => {
+  expect(guessFrame('2024-01-01 : 2024-02-01', { calendarFrame: true })).toBe(
+    'DateRange',
+  );
+  // Other values are unaffected by the flag.
+  expect(guessFrame('Last week', { calendarFrame: true })).toBe('Common');
+  expect(
+    guessFrame('2021-03-16T00:00:00 : 2021-03-17T00:00:00', {
+      calendarFrame: true,
+    }),
+  ).toBe('Custom');
 });

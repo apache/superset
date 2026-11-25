@@ -236,7 +236,13 @@ test('a Calendar range shows the picked days with the end day included, not the 
     value: '2024-01-01 ≤ col < 2024-02-01',
   });
 
-  render(setup({ ...defaultProps, value: '2024-01-01 : 2024-02-01' }));
+  render(
+    setup({
+      ...defaultProps,
+      value: '2024-01-01 : 2024-02-01',
+      calendarFrame: true,
+    }),
+  );
 
   expect(
     await screen.findByText('2024-01-01 – 2024-01-31'),
@@ -426,7 +432,7 @@ test.each<[string, FrameName, string]>([
 ])(
   'opens on the frame that matches the value "%s"',
   async (value, expectedFrame, expectedSelectLabel) => {
-    render(setup({ ...defaultProps, value }));
+    render(setup({ ...defaultProps, value, calendarFrame: true }));
 
     await userEvent.click(await screen.findByRole('button'));
 
@@ -434,6 +440,14 @@ test.each<[string, FrameName, string]>([
     expect(screen.getByTitle(expectedSelectLabel)).toBeInTheDocument();
   },
 );
+
+test('a date-only range opens on the Advanced frame unless the calendar interface is enabled', async () => {
+  render(setup({ ...defaultProps, value: '2021-03-16 : 2021-03-18' }));
+
+  await userEvent.click(await screen.findByRole('button'));
+
+  await expectOnlyFrame('Advanced');
+});
 
 test.each<[string, FrameName]>([
   ['Previous', 'Calendar'],

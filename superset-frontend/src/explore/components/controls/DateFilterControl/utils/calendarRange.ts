@@ -17,11 +17,27 @@
  * under the License.
  */
 import dayjs, { Dayjs } from 'dayjs';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 export const DATE_FORMAT = 'YYYY-MM-DD';
 export const RANGE_SEPARATOR = ' : ';
 
 export type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
+
+/**
+ * The start and (exclusive) end of a "YYYY-MM-DD : YYYY-MM-DD" range, only when both
+ * are real calendar dates (strict parsing, so "2026-02-31" is rejected rather than
+ * rolled over to March) and the start is before the end.
+ */
+function parseStrictRange(value?: string | null): [Dayjs, Dayjs] | null {
+  if (!value) return null;
+  const parts = value.split(RANGE_SEPARATOR);
+  if (parts.length !== 2) return null;
+  const start = extendedDayjs(parts[0], DATE_FORMAT, true);
+  const end = extendedDayjs(parts[1], DATE_FORMAT, true);
+  if (!start.isValid() || !end.isValid() || !start.isBefore(end)) return null;
+  return [start, end];
+}
 
 // Superset's time_range filter treats the upper bound as exclusive
 // (`col < end_dttm`, see superset/models/helpers.py get_time_filter), so the
@@ -29,14 +45,10 @@ export type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
 // entire selected end day would be excluded from query results. Displaying
 // it back to the user reverses that offset so round-tripping stays exact.
 export function parseCalendarRange(value?: string | null): DateRangeValue {
-  if (!value) return null;
-  const parts = value.split(RANGE_SEPARATOR);
-  if (parts.length !== 2) return null;
-  const [start, end] = parts;
-  const startDate = dayjs(start);
-  const endDate = dayjs(end);
-  if (!startDate.isValid() || !endDate.isValid()) return null;
-  return [startDate, endDate.subtract(1, 'day')];
+  const range = parseStrictRange(value);
+  if (!range) return null;
+  const [start, end] = range;
+  return [start, end.subtract(1, 'day')];
 }
 
 export function formatCalendarRange(dates: DateRangeValue): string | undefined {
@@ -55,11 +67,9 @@ export function formatCalendarRangeLabel(
   return `${start.format(DATE_FORMAT)} – ${end.format(DATE_FORMAT)}`;
 }
 
-const CALENDAR_RANGE_PATTERN = /^\d{4}-\d{2}-\d{2} : \d{4}-\d{2}-\d{2}$/;
-
 /** True for a fixed, whole-day range as produced by the calendar picker. */
 export const isCalendarRange = (value?: string | null): boolean =>
-  !!value && CALENDAR_RANGE_PATTERN.test(value);
+  parseStrictRange(value) !== null;
 
 /**
  * Turns the since/until the backend resolves for any time range expression
