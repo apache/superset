@@ -108,7 +108,10 @@ from superset.reports.notifications.slack_transport import (
     get_slack_send_retry_deadline,
 )
 from superset.reports.utils import get_dynamic_executor, get_email_addresses
-from superset.semantic_layers.chart_types import UNSUPPORTED_SEMANTIC_CHART_TYPES
+from superset.semantic_layers.chart_types import (
+    pin_saved_chart_type,
+    semantic_chart_refusal,
+)
 from superset.subjects.types import SubjectType
 from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
@@ -1432,16 +1435,27 @@ class BaseReportState:
 
         return pdf
 
+    def _raise_for_semantic_chart_refusal(
+        self, failed_error: type[CommandException]
+    ) -> None:
+        """Refuse an unsupported semantic chart before requesting its data.
+
+        The chart data API redacts its 400 message for report requests, so
+        checking here is what lets the owner see why the report failed.
+        """
+        if refusal := semantic_chart_refusal(
+            self._report_schedule.chart.datasource_type,
+            self._report_schedule.chart.viz_type,
+        ):
+            raise failed_error(refusal)
+
     def _include_semantic_chart_type(self, query_context: dict[str, Any]) -> None:
         """Identify refused charts without activating supported export processors."""
-        if (
-            self._report_schedule.chart.datasource_type == "semantic_view"
-            and self._report_schedule.chart.viz_type in UNSUPPORTED_SEMANTIC_CHART_TYPES
-        ):
-            query_context["form_data"] = dict(
-                query_context.get("form_data") or {},
-                viz_type=self._report_schedule.chart.viz_type,
-            )
+        pin_saved_chart_type(
+            query_context,
+            self._report_schedule.chart.datasource_type,
+            self._report_schedule.chart.viz_type,
+        )
 
     def _get_chart_data_request_payload(
         self,
@@ -1593,6 +1607,8 @@ class BaseReportState:
                 ReportScheduleCsvFailedError,
             )
 
+        self._raise_for_semantic_chart_refusal(failed_error)
+
         start_time: datetime = naive_utcnow()
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
@@ -1688,6 +1704,8 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
+        self._raise_for_semantic_chart_refusal(ReportScheduleDataFrameFailedError)
+
         start_time: datetime = naive_utcnow()
 
         url: str

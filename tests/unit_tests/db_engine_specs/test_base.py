@@ -381,13 +381,6 @@ def test_get_catalog_from_engine_params_no_database() -> None:
     assert BaseEngineSpec.get_catalog_from_engine_params(url, connect_args) is None
 
 
-def test_prepare_identifier_returns_name_unchanged() -> None:
-    name = "physical_column"
-
-    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=False) is name
-    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=True) is name
-
-
 def test_quote_table() -> None:
     """
     Test the `quote_table` function.
@@ -1965,6 +1958,31 @@ def test_base_spec_public_information_includes_supports_offset() -> None:
 
     assert "supports_offset" in info
     assert info["supports_offset"] is True
+
+
+def test_public_information_exposes_the_partition_mapping_capability() -> None:
+    """
+    The dataset editor re-derives partition mapping support from this when the
+    owner switches a dataset to another database.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    base = BaseEngineSpec.get_public_information()
+    assert base["supports_partition_filter_mapping"] is False
+    assert base["partition_value_transform_default"] is None
+
+    hive = HiveEngineSpec.get_public_information()
+    assert hive["supports_partition_filter_mapping"] is True
+    assert hive["partition_value_transform_default"] is None
+
+    class EngineWithDefault(BaseEngineSpec):
+        partition_value_transform_default = "bucket(:value)"
+
+    assert (
+        EngineWithDefault.get_public_information()["partition_value_transform_default"]
+        == "bucket(:value)"
+    )
 
 
 def _parameters(encryption: bool) -> BasicParametersType:

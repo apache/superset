@@ -24312,9 +24312,8 @@ msgstr "해당 시점에 사용 가능한 모든 계열 목록을 표시합니�
 msgid "Shows or hides markers for the time series"
 msgstr "시계열의 마커를 표시하거나 숨깁니다"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "주석"
+msgstr "로그인"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, lv,
 # ro, ru, sr, sr_Latn, tr, uk]
@@ -26965,6 +26964,13 @@ msgstr[0] "쿼리에서 다음 매개변수가 정의되지 않았습니다: %(p
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."

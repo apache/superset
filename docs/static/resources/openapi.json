@@ -6939,6 +6939,9 @@
             "nullable": true,
             "type": "string"
           },
+          "supports_partition_filter_mapping": {
+            "readOnly": true
+          },
           "table_name": {
             "maxLength": 250,
             "type": "string"
@@ -7971,6 +7974,11 @@
             "description": "OAuth2 authentication is enabled on this connection",
             "type": "boolean"
           },
+          "partition_value_transform_default": {
+            "description": "Default partition value transform the dataset editor offers, or null for none",
+            "nullable": true,
+            "type": "string"
+          },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
             "type": "boolean"
@@ -7985,6 +7993,10 @@
           },
           "supports_offset": {
             "description": "The database supports OFFSET in SQL queries. Engines like Elasticsearch SQL return False.",
+            "type": "boolean"
+          },
+          "supports_partition_filter_mapping": {
+            "description": "The dataset editor offers partition filter mapping on this database's datasets",
             "type": "boolean"
           },
           "supports_schemas": {
@@ -15109,6 +15121,11 @@
             },
             "type": "array"
           },
+          "include_archived_dashboards": {
+            "default": false,
+            "description": "Append archived dashboards the caller may enumerate to each returned chart's dashboards, marked archived. Ignored unless soft delete is enabled.",
+            "type": "boolean"
+          },
           "keys": {
             "items": {
               "enum": [
@@ -17009,7 +17026,28 @@
                     },
                     "result": {
                       "items": {
-                        "$ref": "#/components/schemas/ChartRestApi.get_list"
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/ChartRestApi.get_list"
+                          },
+                          {
+                            "properties": {
+                              "dashboards": {
+                                "items": {
+                                  "properties": {
+                                    "archived": {
+                                      "description": "Present when archived dashboard expansion is enabled for the request. True for archived dashboards; false for live ones.",
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "type": "object"
+                                },
+                                "type": "array"
+                              }
+                            },
+                            "type": "object"
+                          }
+                        ]
                       },
                       "type": "array"
                     }
