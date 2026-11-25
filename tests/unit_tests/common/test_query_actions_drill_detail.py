@@ -113,7 +113,17 @@ def _prepare_for_columns(columns: list[Any]) -> "QueryObject":
 )
 @pytest.mark.parametrize(
     "unorderable_type",
-    ["JSON", "json", "ARRAY<STRING>", "STRUCT<a INT64>", "GEOGRAPHY"],
+    [
+        "JSON",
+        "json",
+        "ARRAY<STRING>",
+        "STRUCT<a INT64>",
+        "GEOGRAPHY",
+        "RECORD",
+        "MAP<string,int>",
+        "map(varchar, integer)",
+        "xml",
+    ],
 )
 def test_prepare_drill_detail_query_skips_unorderable_first_column(
     column_factory: Callable[[str, str], Any],
@@ -197,3 +207,25 @@ def test_prepare_drill_detail_query_treats_regular_types_as_orderable(
     )
 
     assert prepared.orderby == [("first", True)]
+
+
+@pytest.mark.parametrize(
+    "column_factory",
+    [_dict_column, _orm_column],
+    ids=["dict-columns", "orm-columns"],
+)
+@pytest.mark.parametrize(
+    "orderable_type",
+    ["JSONB", "jsonb", "INTEGER[]", "text[]", "bitmap"],
+)
+def test_prepare_drill_detail_query_keeps_ordering_for_lookalike_orderable_types(
+    column_factory: Callable[[str, str], Any],
+    orderable_type: str,
+) -> None:
+    """
+    Orderable types whose names merely contain an unorderable family name
+    (e.g. ``JSONB``, array-suffixed types) must not lose ordering.
+    """
+    prepared = _prepare_for_columns([column_factory("payload", orderable_type)])
+
+    assert prepared.orderby == [("payload", True)]

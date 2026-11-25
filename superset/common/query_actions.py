@@ -296,14 +296,15 @@ def _prepare_samples_query(
     return query_obj
 
 
-# Column types that engines commonly cannot use in an ORDER BY (e.g. BigQuery
-# rejects JSON, ARRAY, STRUCT and GEOGRAPHY). The raw type string is matched
-# because the generic type is not populated for these types on every engine.
-# The match is deliberately broad: wrongly skipping an orderable column only
-# changes which column is used for ordering, whereas ordering by an
-# unorderable one makes the whole query fail.
+# Column type families that engines commonly cannot use in an ORDER BY (e.g.
+# BigQuery rejects JSON, ARRAY, STRUCT and GEOGRAPHY). The raw type string is
+# matched because the generic type is not populated for these types on every
+# engine. The match is anchored to the start of the type string and to a word
+# boundary so orderable types that merely contain one of these words (e.g.
+# ``JSONB``, ``INTEGER[]``, ``bitmap``) stay eligible: a false positive only
+# matters when it excludes every column, in which case ordering is dropped.
 _UNORDERABLE_COLUMN_TYPE_PATTERN = re.compile(
-    r"json|array|struct|record|map|geograph|geometr|xml|\[\]",
+    r"^\s*(json|array|struct|record|map|geography|geometry|xml)\b",
     re.IGNORECASE,
 )
 
