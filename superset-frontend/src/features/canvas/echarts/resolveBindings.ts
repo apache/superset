@@ -41,9 +41,13 @@ const BIND_SOURCES = new Set([
   'records',
   'tuples',
 ]);
-// ECharts only accepts functions here. A `$template` stands in for the ones
-// that return text; nothing stands in for `labelLayout`, which returns a
-// layout object.
+// Where a `$template` may stand in for a function: the hooks whose string
+// is drawn as text (on the canvas, or in a tooltip forced to rich text).
+// Nowhere else, because other string-returning hooks, such as the data
+// view's `optionToContent`, are injected as HTML. `valueFormatter` takes
+// nothing but a function; nothing stands in for `labelLayout`, which
+// returns a layout object.
+const TEMPLATE_KEYS = new Set(['formatter', 'valueFormatter']);
 const TEMPLATE_ONLY_KEYS = new Set(['valueFormatter']);
 const FUNCTION_ONLY_KEYS = new Set(['labelLayout']);
 // Opened as URLs by ECharts on click.
@@ -129,7 +133,11 @@ function resolveValue(value: unknown, ctx: BindContext): unknown {
   if ('$bind' in value) {
     return stripUrlKeys(resolveBind(value.$bind as Bind, ctx));
   }
-  if (isTemplate(value)) return compileTemplate(value.$template);
+  if (isTemplate(value)) {
+    throw new Error(
+      `A $template is only accepted as a "formatter" or "valueFormatter"`,
+    );
+  }
   if (typeof value.source === 'string' && BIND_SOURCES.has(value.source)) {
     throw new Error(
       `Found a $bind object without its "$bind" wrapper: ${JSON.stringify(value)}`,
@@ -146,6 +154,9 @@ function resolveValue(value: unknown, ctx: BindContext): unknown {
           throw new Error(
             `"${key}" must be a function in ECharts; use {"$template": "..."} instead`,
           );
+        }
+        if (TEMPLATE_KEYS.has(key) && isTemplate(item)) {
+          return [key, compileTemplate(item.$template)];
         }
         return [key, resolveValue(item, ctx)];
       }),

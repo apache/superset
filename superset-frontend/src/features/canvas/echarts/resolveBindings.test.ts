@@ -190,6 +190,27 @@ test('tuples yield one array per row', () => {
   ]);
 });
 
+test('a $template anywhere but a formatter is refused', () => {
+  // The data view's optionToContent returns HTML that ECharts injects as
+  // markup, so a template there would be stored XSS. Only the hooks whose
+  // string is drawn as text take one.
+  expect(() =>
+    resolveOption(
+      {
+        toolbox: {
+          feature: {
+            dataView: { optionToContent: { $template: '<img src=x>' } },
+          },
+        },
+      },
+      ctx,
+    ),
+  ).toThrow(/only accepted as a "formatter"/);
+  expect(() =>
+    resolveOption({ title: { text: { $template: '{{value}}' } } }, ctx),
+  ).toThrow(/only accepted as a "formatter"/);
+});
+
 test('a $template compiles to a formatter function, valueFormatter included', () => {
   const option = resolveOption(
     {
