@@ -21,7 +21,7 @@ import Map from 'ol/Map.js';
 import View from 'ol/View.js';
 import { toLonLat } from 'ol/proj';
 import { supersetTheme } from '@apache-superset/core/theme';
-import OlChartMap from '../../src/components/OlChartMap';
+import { OlChartMap } from '../../src/components/OlChartMap';
 import { ChartConfig, MapViewConfigs, OlChartMapProps } from '../../src/types';
 
 jest.mock('react-redux', () => ({

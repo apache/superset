@@ -24,7 +24,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import glob from 'glob';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,7 +66,7 @@ function hasStoriesFile(dir) {
   ];
 
   for (const pattern of storiesPatterns) {
-    const matches = glob.sync(pattern, { cwd: ROOT });
+    const matches = fs.globSync(pattern, { cwd: ROOT });
     if (matches.length > 0) {
       return true;
     }
@@ -77,9 +76,9 @@ function hasStoriesFile(dir) {
 
 // Check if a directory contains React components (TSX files)
 function hasReactComponents(dir) {
-  const tsxFiles = glob.sync(path.join(dir, '**', '*.tsx'), {
+  const tsxFiles = fs.globSync(path.join(dir, '**', '*.tsx'), {
     cwd: ROOT,
-    ignore: [
+    exclude: [
       '**/*.test.tsx',
       '**/*.stories.tsx',
       '**/types.tsx',
@@ -113,9 +112,9 @@ function main() {
   // Check plugins
   console.log('Checking plugins...');
   for (const pattern of PLUGIN_PATTERNS) {
-    const pluginDirs = glob.sync(pattern, {
+    const pluginDirs = fs.globSync(pattern, {
       cwd: ROOT,
-      ignore: EXCLUSIONS,
+      exclude: EXCLUSIONS,
     });
 
     for (const pluginDir of pluginDirs) {
@@ -146,9 +145,9 @@ function main() {
   // Check core components
   console.log('\nChecking core components...');
   for (const pattern of CORE_COMPONENT_PATTERNS) {
-    const componentDirs = glob.sync(pattern, {
+    const componentDirs = fs.globSync(pattern, {
       cwd: ROOT,
-      ignore: EXCLUSIONS,
+      exclude: EXCLUSIONS,
     });
 
     for (const componentDir of componentDirs) {

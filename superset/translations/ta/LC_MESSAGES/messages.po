@@ -19189,6 +19189,13 @@ msgstr[1] ""
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -24021,6 +24028,11 @@ msgid ""
 msgstr "நீங்கள் தரவுத்தொகுப்புகளை மாற்றிவிட்டீர்கள்."
 
 msgid "Your account is activated. You can log in with your credentials."
+msgstr ""
+"உங்கள் கணக்கு செயல்படுத்தப்பட்டது. உங்கள் அங்கீகாரத் தகவல்களுடன் "
+"உள்நுழையலாம்."
+
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr ""
 "உங்கள் கணக்கு செயல்படுத்தப்பட்டது. உங்கள் அங்கீகாரத் தகவல்களுடன் "
 "உள்நுழையலாம்."
