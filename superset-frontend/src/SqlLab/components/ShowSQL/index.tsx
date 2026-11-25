@@ -19,7 +19,8 @@
 import { useEffect } from 'react';
 import { IconTooltip, ModalTrigger } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import CodeSyntaxHighlighter, {
+import {
+  CodeSyntaxHighlighter,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 

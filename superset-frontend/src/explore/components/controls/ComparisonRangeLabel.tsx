@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual, noop } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   BinaryAdhocFilter,
   ensureIsArray,
@@ -64,6 +65,7 @@ export const ComparisonRangeLabel = ({
   noop(multi); // This is to avoid unused variable warning, can be removed if not needed
 
   const [labels, setLabels] = useState<string[]>([]);
+  const [isEmptyRange, setIsEmptyRange] = useState(false);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
       state.explore.form_data.adhoc_filters.filter(
@@ -103,6 +105,7 @@ export const ComparisonRangeLabel = ({
       (isEmpty(shiftsArray) && !startDate)
     ) {
       setLabels([]);
+      setIsEmptyRange(false);
     } else if (!isEmpty(shifts) || startDate) {
       let useStartDate = startDate;
       if (!startDate && !isEmpty(previousCustomFilter)) {
@@ -178,6 +181,7 @@ export const ComparisonRangeLabel = ({
       Promise.all(promises).then(res => {
         // access the value property inside the res and set the labels with it in the state
         setLabels(res.map(r => r.value ?? '').filter(Boolean));
+        setIsEmptyRange(res.some(r => 'isEmpty' in r && Boolean(r.isEmpty)));
       });
     }
   }, [currentTimeRangeFilters, shifts, startDate]);
@@ -196,6 +200,11 @@ export const ComparisonRangeLabel = ({
           {label}
         </div>
       ))}
+      {isEmptyRange && (
+        <Alert type="warning" closable={false}>
+          {t('This comparison time range is empty.')}
+        </Alert>
+      )}
     </>
   ) : null;
 };

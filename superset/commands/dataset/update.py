@@ -54,6 +54,7 @@ from superset.connectors.sqla.partition_mapping import (
     is_unfinished,
     stored_expression_error,
     validate_partition_mapping,
+    validate_transform,
 )
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
@@ -108,6 +109,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         override_columns: Optional[bool] = False,
         *,
         preserve_existing_metrics: bool = False,
+        preserve_existing_columns: bool = False,
         delete_metric_ids: set[int] | None = None,
     ):
         self._model_id = model_id
@@ -116,6 +118,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self.override_columns = override_columns
         self._delete_metric_ids = delete_metric_ids
         self._preserve_existing_metrics = preserve_existing_metrics
+        self._preserve_existing_columns = preserve_existing_columns
         self._properties["override_columns"] = override_columns
 
     @transaction(
@@ -154,6 +157,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         raise_if_managed_externally(self._model, DatasetForbiddenError)
 
+        if self._preserve_existing_columns and "columns" in self._properties:
+            self._properties["columns"] = self._with_existing_columns(
+                self._properties["columns"]
+            )
+
         # Validate/Populate editors
         compute_subjects(self._model, self._properties, exceptions)
 
@@ -169,6 +177,45 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
+
+    def _with_existing_columns(
+        self, columns: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Complete an additive ``columns`` payload with the stored columns it omits.
+
+        A ``columns`` payload replaces the dataset's column list, so a caller
+        that only means to add or edit one column would otherwise have to echo
+        every other column back, and a column another writer added or renamed
+        after the caller read the dataset would be dropped or reverted. Filling
+        the gaps from the model loaded by this command keeps those changes, and
+        hands every downstream check (duplicates, partition mapping, folders)
+        the complete list it expects.
+
+        Payload entries that carry an ``id`` but no ``column_name`` take the
+        stored name, since validation keys on it.
+        """
+        model = cast(SqlaTable, self._model)
+        names_by_id = {column.id: column.column_name for column in model.columns}
+        completed: list[dict[str, Any]] = []
+        for column in columns:
+            if "id" in column and "column_name" not in column:
+                column = {**column, "column_name": names_by_id.get(column["id"])}
+            completed.append(column)
+        payload_ids = {column["id"] for column in columns if "id" in column}
+        for existing in model.columns:
+            if existing.id in payload_ids:
+                continue
+            stub: dict[str, Any] = {
+                "id": existing.id,
+                "column_name": existing.column_name,
+            }
+            # The partition mapping check reads the mapped column's transform
+            # from the payload, so carry the stored one rather than hide it.
+            if existing.partition_value_transform is not None:
+                stub["partition_value_transform"] = existing.partition_value_transform
+            completed.append(stub)
+        return completed
 
     def _validate_dataset_source(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model
@@ -522,6 +569,17 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         one is too: with the flag off nothing mirrors, and rejecting a save over
         a mapping that can never be consumed would be a validation error the
         owner has no way to act on.
+
+        The engine gate (`supports_partition_filter_mapping`) narrows it the
+        same way, but only for the column references. On an engine without the
+        capability the editor hides every mapping control and the query path
+        ignores the mapping, so a stored mapping whose partition column a sync
+        removed would otherwise reject every later save with nothing the owner
+        can edit to clear it. The transform is still held to the safety checks
+        and the stored-expression gate: the engine is a property of the
+        database connection, which can change under the dataset without a
+        dataset save, and a transform let through here would then be live
+        without ever having been vetted.
         """
         if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
             return
@@ -574,16 +632,26 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         schema = self._properties.get("schema", self._model.schema)
 
         effective_mapped_column = partition_mapped_column or main_dttm_col
-        transform = self._effective_transform(columns, effective_mapped_column)
+        transform = self._effective_column_attribute(
+            columns, effective_mapped_column, "partition_value_transform"
+        )
 
-        for issue in validate_partition_mapping(
-            column_names=column_names,
-            partition_column=partition_column,
-            partition_mapped_column=partition_mapped_column,
-            main_dttm_col=main_dttm_col,
-            transform=transform,
-            engine=database.backend,
-        ):
+        issues = (
+            validate_partition_mapping(
+                column_names=column_names,
+                partition_column=partition_column,
+                partition_mapped_column=partition_mapped_column,
+                main_dttm_col=main_dttm_col,
+                transform=transform,
+                engine=database.backend,
+                partition_expression=self._effective_column_attribute(
+                    columns, partition_column, "expression"
+                ),
+            )
+            if database.db_engine_spec.supports_partition_filter_mapping
+            else validate_transform(transform, database.backend)
+        )
+        for issue in issues:
             if issue.blocking:
                 exceptions.append(
                     ValidationError(str(issue.message), field_name=issue.field)
@@ -608,29 +676,46 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     ValidationError(reason, field_name="partition_value_transform")
                 )
 
-    def _effective_transform(
+    def _effective_column_attribute(
         self,
         columns: list[dict[str, Any]] | None,
-        mapped_column: str | None,
+        column_name: str | None,
+        attribute: str,
     ) -> str | None:
         """
-        The value transform on the effective mapped column.
+        One attribute of a named column, as this request will leave it.
 
         Reads from the payload when the request carries columns, and from the
         persisted model otherwise -- a PUT that changes only `partition_column`
-        still has to be validated against the transform already stored.
+        still has to be validated against the transform already stored, and
+        against the expression of the column it now names.
+
+        An entry that omits the attribute keeps whatever the row it writes to
+        already holds: `DatasetDAO.update_columns` only sets the keys it is given.
+        Which row that is depends on the write. `_upsert_columns` goes by `id`
+        and treats an entry without one as new; `_override_columns` goes by
+        `column_name` and ignores the `id`. An explicit `None` is a clear.
         """
-        if not mapped_column:
-            return None
-        if columns is not None:
-            for column in columns:
-                if column.get("column_name") == mapped_column:
-                    return column.get("partition_value_transform")
+        if not column_name:
             return None
         model = cast(SqlaTable, self._model)
+        stored_key, stored_value = "column_name", column_name
+        if columns is not None:
+            entry = next(
+                (col for col in columns if col.get("column_name") == column_name),
+                None,
+            )
+            if entry is None:
+                return None
+            if attribute in entry:
+                return entry[attribute]
+            if not self.override_columns:
+                if "id" not in entry:
+                    return None
+                stored_key, stored_value = "id", entry["id"]
         for existing in model.columns:
-            if existing.column_name == mapped_column:
-                return existing.partition_value_transform
+            if getattr(existing, stored_key) == stored_value:
+                return getattr(existing, attribute)
         return None
 
     def _validate_fetch_values_predicate(

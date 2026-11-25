@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import {
   render,
@@ -32,7 +32,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import UsersList from './index';
 
-const mockStore = configureStore([thunk]);
+const mockStore = createMockStore([thunk]);
 const store = mockStore({});
 
 const rolesEndpoint = 'glob:*/security/roles/?*';

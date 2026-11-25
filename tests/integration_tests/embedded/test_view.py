@@ -25,8 +25,10 @@ import pytest
 
 from superset import db
 from superset.daos.dashboard import EmbeddedDashboardDAO
+from superset.extensions import cache_manager
 from superset.models.dashboard import Dashboard
 from superset.utils import json
+from superset.views.base import cached_common_bootstrap_data
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -61,12 +63,25 @@ def test_get_embedded_dashboard(
     embedded = EmbeddedDashboardDAO.upsert(dash, [])
     db.session.flush()
     uri = f"embedded/{embedded.uuid}"
-    with mock.patch.dict(
-        client.application.config,
-        GUEST_TOKEN_HEADER_NAME="X-Custom-Guest",  # noqa: S106
-        GUEST_TOKEN_HEADER_MAX_BYTES=budget,
-    ):
-        response = client.get(uri)
+    # The shell renders for an anonymous user who lacks the realtime permission;
+    # the configured WEBSOCKET_ENABLE is still carried for the guest.
+    cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
+    try:
+        with (
+            mock.patch.dict(
+                client.application.config,
+                GUEST_TOKEN_HEADER_NAME="X-Custom-Guest",  # noqa: S106
+                GUEST_TOKEN_HEADER_MAX_BYTES=budget,
+                WEBSOCKET_ENABLE=True,
+            ),
+            mock.patch(
+                "superset.views.base.can_access_realtime_notifications",
+                return_value=False,
+            ),
+        ):
+            response = client.get(uri)
+    finally:
+        cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
     assert response.status_code == 200
     # The bootstrap payload exposes the (empty) allowed-domains list so the
     # frontend can validate postMessage origins.
@@ -76,6 +91,7 @@ def test_get_embedded_dashboard(
         "GUEST_TOKEN_HEADER_NAME": "X-Custom-Guest",
         "GUEST_TOKEN_HEADER_MAX_BYTES": budget,
     }
+    assert bootstrap["common"]["conf"]["WEBSOCKET_ENABLE"] is True
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

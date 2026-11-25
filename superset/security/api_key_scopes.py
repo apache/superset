@@ -17,6 +17,22 @@
 
 """Canonical resource and action mappings for scoped API keys."""
 
+from werkzeug.exceptions import BadRequest
+
+
+class ApiKeyScopeError(BadRequest, ValueError):
+    """A requested API-key scope exceeds what the issuing user may self-issue.
+
+    A ``BadRequest`` so FAB's ``ApiKeyApi`` (whose ``@safe`` decorator answers
+    with a 400 carrying ``str(exc)``) reports the reason, and a ``ValueError``
+    so callers outside a request (CLI, MCP, Celery) can keep catching that.
+    ``str()`` is the bare reason, without werkzeug's "400 Bad Request: " prefix.
+    """
+
+    def __str__(self) -> str:
+        return self.description or ""
+
+
 # Map FAB method permissions used by MCP tools to the coarser actions supported
 # by API-key scopes. Keep this explicit so an unknown permission fails closed.
 METHOD_PERMISSION_SCOPE_ACTION: dict[str, str] = {

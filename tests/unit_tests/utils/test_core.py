@@ -22,11 +22,13 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pandas as pd
 import pytest
-from flask import current_app
+from flask import current_app, g, session
 from pandas.api.types import is_datetime64_dtype
 from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
+from superset.models.sql_lab import Query
+from superset.utils import json
 from superset.utils.core import (
     build_email_attachment,
     cast_to_boolean,
@@ -39,6 +41,8 @@ from superset.utils.core import (
     generic_find_fk_constraint_name,
     generic_find_uq_constraint_name,
     get_datasource_full_name,
+    get_query_log_comment,
+    get_query_log_context,
     get_query_source_from_request,
     get_stacktrace,
     get_user_agent,
@@ -48,6 +52,7 @@ from superset.utils.core import (
     merge_extra_form_data,
     merge_request_params,
     normalize_dttm_col,
+    override_query_log_context,
     parse_boolean_string,
     parse_js_uri_path_item,
     QueryObjectFilterClause,
@@ -978,6 +983,122 @@ def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None
     assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
         "the custom user agent function result should have been returned"
     )
+
+
+@pytest.mark.parametrize(
+    "path,kwargs,expected",
+    [
+        (
+            "/api/v1/chart/data?form_data=%7B%22slice_id%22%3A12%7D&dashboard_id=3",
+            {"json": {"form_data": {"slice_id": 12, "dashboardId": 3}}},
+            {"dashboard_id": 3, "chart_id": 12},
+        ),
+        (
+            "/api/v1/chart/data",
+            {"json": {"form_data": {"dashboardId": 3, "native_filter_id": "F-1"}}},
+            {"dashboard_id": 3},
+        ),
+        (
+            "/api/v1/chart/data",
+            {"data": {"form_data": json.dumps({"form_data": {"slice_id": 12}})}},
+            {"chart_id": 12},
+        ),
+        (
+            "/api/v1/chart/data?form_data=%7Bbroken",
+            {"json": {"form_data": {"slice_id": 12}}},
+            {"chart_id": 12},
+        ),
+        (
+            "/api/v1/chart/data?dashboard_id=3%27%3B",
+            {"json": {"form_data": {"slice_id": "12 OR 1", "dashboardId": [3]}}},
+            {},
+        ),
+        (
+            "/api/v1/chart/data",
+            {"data": {"form_data": '{"form_data": {"slice_id": 1e999}}'}},
+            {},
+        ),
+        (
+            "/api/v1/chart/warm_up_cache",
+            {"method": "PUT", "json": {"chart_id": 12, "dashboard_id": 3}},
+            {"dashboard_id": 3, "chart_id": 12},
+        ),
+        ("/api/v1/sqllab/execute/", {"json": {"sql": "SELECT 1"}}, {}),
+    ],
+)
+def test_get_query_log_context_from_request(
+    path: str, kwargs: dict[str, Any], expected: dict[str, Any], app_context: None
+) -> None:
+    with current_app.test_request_context(path, **{"method": "POST", **kwargs}):
+        assert get_query_log_context() == expected
+
+
+def test_get_query_log_context_prefers_route_chart_id(app_context: None) -> None:
+    with current_app.test_request_context("/api/v1/chart/224/data/"):
+        g.form_data = {"form_data": {"slice_id": 193}}
+
+        assert get_query_log_context() == {"chart_id": 224}
+
+
+def test_get_query_log_context_from_worker(app_context: None) -> None:
+    g.user = MagicMock(username="alice")
+    g.form_data = {"form_data": {"slice_id": 12, "dashboardId": "3"}}
+
+    assert get_query_log_context() == {
+        "user": "alice",
+        "dashboard_id": 3,
+        "chart_id": 12,
+    }
+
+
+def test_get_query_log_context_from_report_worker(app_context: None) -> None:
+    g.form_data = {"form_data": {"slice_id": 193}}
+
+    with override_query_log_context({"report_id": 9}):
+        with override_query_log_context({"chart_id": 224}):
+            assert get_query_log_context() == {"chart_id": 224, "report_id": 9}
+        assert get_query_log_context() == {"chart_id": 193, "report_id": 9}
+
+    assert get_query_log_context() == {"chart_id": 193}
+
+
+def test_get_query_log_context_from_report_session(app_context: None) -> None:
+    with current_app.test_request_context(
+        "/api/v1/chart/data?form_data=%7B%22slice_id%22%3A224%7D",
+        method="POST",
+        data={"form_data": json.dumps({"form_data": {"slice_id": 193}})},
+    ):
+        session["query_log_context"] = {"report_id": 9}
+
+        assert get_query_log_context() == {"chart_id": 224, "report_id": 9}
+
+
+def test_get_query_log_context_from_sqllab_query(app_context: None) -> None:
+    g.user = MagicMock(username="alice")
+
+    assert get_query_log_context(Query(id=5)) == {
+        "user": "alice",
+        "sqllab_query_id": 5,
+    }
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": None})
+def test_get_query_log_comment_disabled(app_context: None) -> None:
+    assert get_query_log_comment(MagicMock(), Query(id=5)) is None
+
+
+@with_config(
+    {
+        "QUERY_LOG_COMMENT_FUNC": lambda database, context: (
+            f"{database.database_name} {json.dumps(context)}"
+        )
+    }
+)
+def test_get_query_log_comment_custom(app_context: None) -> None:
+    database = MagicMock()
+    database.database_name = "mydb"
+
+    assert get_query_log_comment(database, Query(id=5)) == 'mydb {"sqllab_query_id": 5}'
 
 
 def test_merge_extra_filters():

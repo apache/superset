@@ -22,7 +22,7 @@ import {
   screen,
   userEvent,
 } from 'spec/helpers/testing-library';
-import MapViewControl from './MapViewControl';
+import { MapViewControl } from './MapViewControl';
 import { MapViewConfigs } from './types';
 
 const makeValue = (

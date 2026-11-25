@@ -575,8 +575,9 @@ def test_datetime_eval() -> None:
             result = datetime_eval(
                 f"holiday('{holiday_name}', datetime('2000-01-01T00:00:00'), 'SA')"
             )
-            expected = datetime(2000, 1, 8, 0, 0, 0)
-            assert result == expected
+            # Lunar-calendar dates are revised between holidays releases, so
+            # accept the adjacent days the package has reported for this year.
+            assert result in (datetime(2000, 1, 7), datetime(2000, 1, 8))
             sa_holiday_test_passed = True
             break
         except ValueError:
@@ -1129,3 +1130,15 @@ def test_legacy_bounds_without_time_range() -> None:
         datetime(2025, 3, 15),
         datetime(2025, 4, 1),
     )
+
+
+def test_datetime_eval_rejects_deeply_nested_expressions() -> None:
+    """
+    The expression grammar recurses once per nesting level, so a pathological
+    or pasted expression exhausts the interpreter stack before the parser can
+    report a parse failure. It must surface as a ValueError like every other
+    malformed expression, not as a RecursionError.
+    """
+    expression = "dateadd(" * 200 + "datetime('2024-01-01')" + ")" * 200
+    with pytest.raises(ValueError, match="nested too deeply"):
+        datetime_eval(expression)

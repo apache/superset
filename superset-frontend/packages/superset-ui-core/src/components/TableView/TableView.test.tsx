@@ -88,9 +88,11 @@ test('should render the cells', () => {
 test('should render the pagination', () => {
   render(<TableView {...mockedProps} />);
   expect(screen.getByRole('list')).toBeInTheDocument();
-  expect(screen.getAllByRole('button')).toHaveLength(2);
-  expect(screen.getByTitle('Previous Page')).toBeInTheDocument();
-  expect(screen.getByTitle('Next Page')).toBeInTheDocument();
+  expect(screen.getAllByRole('button')).toHaveLength(4);
+  expect(
+    screen.getByRole('button', { name: 'Previous Page' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Next Page' })).toBeInTheDocument();
 });
 
 test('should show the row count by default', () => {
@@ -133,7 +135,7 @@ test('should change page when pagination is clicked', async () => {
   expect(screen.getByText('Emily')).toBeInTheDocument();
   expect(screen.queryByText('Kate')).not.toBeInTheDocument();
 
-  await userEvent.click(screen.getByTitle('Next Page'));
+  await userEvent.click(screen.getByRole('button', { name: 'Next Page' }));
 
   await waitFor(() => {
     expect(screen.getByText('Kate')).toBeInTheDocument();
@@ -143,7 +145,7 @@ test('should change page when pagination is clicked', async () => {
   expect(screen.getByText('10')).toBeInTheDocument();
   expect(screen.queryByText('Emily')).not.toBeInTheDocument();
 
-  await userEvent.click(screen.getByTitle('Previous Page'));
+  await userEvent.click(screen.getByRole('button', { name: 'Previous Page' }));
 
   await waitFor(() => {
     expect(screen.getByText('Emily')).toBeInTheDocument();
@@ -246,7 +248,7 @@ test('should handle server-side pagination', async () => {
   render(<TableView {...serverPaginationProps} />);
 
   // Click next page
-  await userEvent.click(screen.getByTitle('Next Page'));
+  await userEvent.click(screen.getByRole('button', { name: 'Next Page' }));
 
   await waitFor(() => {
     expect(onServerPagination).toHaveBeenCalledWith({
@@ -306,7 +308,7 @@ test('should scroll to top when scrollTopOnPagination is true', async () => {
   };
   render(<TableView {...scrollProps} />);
 
-  await userEvent.click(screen.getByTitle('Next Page'));
+  await userEvent.click(screen.getByRole('button', { name: 'Next Page' }));
 
   await waitFor(() => {
     expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
@@ -327,7 +329,7 @@ test('should NOT scroll to top when scrollTopOnPagination is false', async () =>
   };
   render(<TableView {...scrollProps} />);
 
-  await userEvent.click(screen.getByTitle('Next Page'));
+  await userEvent.click(screen.getByRole('button', { name: 'Next Page' }));
 
   await waitFor(() => {
     expect(screen.getByText('321')).toBeInTheDocument();
@@ -389,7 +391,7 @@ test('should reset to first page when data reduces below current page', async ()
   const { rerender } = render(<TableView {...props} />);
 
   // Navigate to page 3 (last page)
-  const page3 = screen.getByRole('listitem', { name: '3' });
+  const page3 = screen.getByRole('button', { name: 'Page 3' });
   await userEvent.click(page3);
 
   await waitFor(() => {
@@ -404,4 +406,19 @@ test('should reset to first page when data reduces below current page', async ()
   await waitFor(() => {
     expect(screen.getByText('1-5 of 5')).toBeInTheDocument();
   });
+});
+
+test('keeps the auto layout and content-width scroll of a generic table', () => {
+  render(<TableView {...mockedProps} />);
+  const table = screen.getByRole('table');
+  // List view column sizing is opt-in; TableView keeps the browser's auto
+  // layout, scrolls at its content width and sets no column widths.
+  expect(table.style.tableLayout).toBe('auto');
+  expect(table.style.width).toBe('max-content');
+  expect(
+    Array.from(table.querySelectorAll('colgroup col')).filter(
+      col => (col as HTMLElement).style.width,
+    ),
+  ).toHaveLength(0);
+  expect(table.querySelectorAll('.ant-table-cell-fix-start')).toHaveLength(0);
 });
