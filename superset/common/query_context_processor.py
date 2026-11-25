@@ -52,6 +52,7 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.dataframe import df_to_records
+from superset.db_engine_specs.base import reuse_discovered_default_schema
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -636,6 +637,7 @@ class QueryContextProcessor:
         )
         return cache_key
 
+    @reuse_discovered_default_schema()
     def _annotation_cache_context(  # noqa: C901
         self, query_obj: QueryObject
     ) -> dict[str, Any]:

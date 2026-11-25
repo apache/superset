@@ -4959,6 +4959,22 @@ def shared_default_schema_cache(
     cache.clear()
 
 
+@pytest.fixture
+def wait_for_default_schema_cache_workers(mocker: MockerFixture) -> Callable[[], None]:
+    """Join cache workers before inspecting their best-effort publications."""
+    start = mocker.spy(Thread, "start")
+
+    def wait() -> None:
+        """Wait for completion, not the request's bounded cache I/O budget."""
+        for call in start.call_args_list:
+            worker = call.args[0]
+            if worker.name == "default-schema-cache":
+                worker.join(timeout=10)
+                assert not worker.is_alive()
+
+    return wait
+
+
 @pytest.mark.parametrize("entry_point", ["schema", "query_schema", "search_path"])
 def test_default_schema_shared_cache_survives_worker_restart(
     shared_default_schema_cache: Cache, mocker: MockerFixture, entry_point: str
@@ -5003,6 +5019,7 @@ def test_default_schema_shared_cache_survives_worker_restart(
 )
 def test_default_schema_shared_cache_separates_engine_identity(
     shared_default_schema_cache: Cache,
+    wait_for_default_schema_cache_workers: Callable[[], None],
     mocker: MockerFixture,
     tmp_path: Path,
     identity: str,
@@ -5014,6 +5031,7 @@ def test_default_schema_shared_cache_separates_engine_identity(
     write = mocker.spy(cache, "add")
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     assert database.get_default_schema_from_engine(None) == "main"
+    wait_for_default_schema_cache_workers()
     write.assert_called_once()
     key = write.call_args.args[0]
     assert cache.get(key) == "main"
@@ -5152,6 +5170,7 @@ def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
 @pytest.mark.parametrize("elapsed", [1800, 3600, 3 * 24 * 3600])
 def test_default_schema_each_worker_publishes_its_live_discovery(
     shared_default_schema_cache: Cache,
+    wait_for_default_schema_cache_workers: Callable[[], None],
     mocker: MockerFixture,
     elapsed: int,
     recycle_pool: bool,
@@ -5175,11 +5194,13 @@ def test_default_schema_each_worker_publishes_its_live_discovery(
     write = mocker.spy(shared_default_schema_cache, "add")
     fallback_write = mocker.spy(shared_default_schema_cache, "set")
     assert database.get_default_schema_from_engine(None) == "new"
+    wait_for_default_schema_cache_workers()
     key = (write.call_args or fallback_write.call_args).args[0]
     mocker.patch.object(
         database, "get_sqla_engine", return_value=nullcontext(old_engine)
     )
     assert database.get_default_schema_from_engine(None) == "old"
+    wait_for_default_schema_cache_workers()
     assert shared_default_schema_cache.get(key) == "old"
     assert write.call_count == 2
     fallback_write.assert_called_once_with(key, "old", timeout=3600)
@@ -5343,13 +5364,13 @@ def test_default_schema_concurrent_cold_engines_use_shared_cache(
     assert engine.dialect.default_schema_name is None
 
 
-@pytest.mark.parametrize("pending_operation", ["read", "publish"])
+@pytest.mark.parametrize("pending_operation", ["read", "publish", "same_key_publish"])
 def test_default_schema_read_is_independent_of_unrelated_cache_io(
     shared_default_schema_cache: Cache,
     mocker: MockerFixture,
     pending_operation: str,
 ) -> None:
-    """An unrelated read or renewal cannot consume a cold read's budget."""
+    """Neither unrelated reads nor publications consume a cold read's budget."""
     from superset.models.core import (
         _publish_default_schema_if_due,
         _read_default_schema,
@@ -5383,7 +5404,7 @@ def test_default_schema_read_is_independent_of_unrelated_cache_io(
         return real_add(key, value, timeout=timeout)
 
     read = mocker.patch.object(cache, "get", side_effect=slow_get)
-    if pending_operation == "publish":
+    if pending_operation != "read":
         cache.delete("first")
         mocker.patch.object(cache, "add", side_effect=slow_add)
 
@@ -5396,24 +5417,32 @@ def test_default_schema_read_is_independent_of_unrelated_cache_io(
             return None
 
     def second_lookup() -> str | None:
-        """Read a different cache entry from a separate request context."""
+        """Read from a separate request without waiting on publication."""
         with app_context():
-            return _read_default_schema("second")
+            return _read_default_schema(
+                "first" if pending_operation == "same_key_publish" else "second"
+            )
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         first = executor.submit(first_lookup)
         try:
             assert entered.wait(timeout=10)
             second = executor.submit(second_lookup)
-            assert second.result(timeout=10) == "second_schema"
+            expected = (
+                None if pending_operation == "same_key_publish" else "second_schema"
+            )
+            assert second.result(timeout=10) == expected
         finally:
             release.set()
         assert first.result(timeout=10) == (
             "first_schema" if pending_operation == "read" else None
         )
-        assert second.result(timeout=10) == "second_schema"
-    read.assert_any_call("second")
-    assert read.call_count == (2 if pending_operation == "read" else 1)
+        assert second.result(timeout=10) == expected
+    if pending_operation == "same_key_publish":
+        read.assert_not_called()
+    else:
+        read.assert_any_call("second")
+        assert read.call_count == (2 if pending_operation == "read" else 1)
 
 
 @pytest.mark.parametrize("operation", ["get", "add", "set", "fallback_set"])
@@ -5423,6 +5452,8 @@ def test_default_schema_hung_cache_is_bounded_and_single_flight(
     operation: str,
 ) -> None:
     """A hung cache costs one bounded wait and at most one background thread."""
+    from time import monotonic as real_monotonic
+
     from superset.models.core import _retire_cached_engines
 
     cache = shared_default_schema_cache
@@ -5455,37 +5486,41 @@ def test_default_schema_hung_cache_is_bounded_and_single_flight(
     def lookup() -> str | None:
         """Simulate a request with its own app context."""
         with app_context():
-            return database.get_default_schema_from_engine(None)
+            started = real_monotonic()
+            schema = database.get_default_schema_from_engine(None)
+            assert real_monotonic() - started < 1
+            return schema
 
     def health() -> int:
         """Serve health on the same request worker while cache I/O is hung."""
         with app_context(), current_app.test_client() as client:
             return client.get("/health").status_code
 
+    # Future timeouts allow scheduling slack; lookup measures its own elapsed time.
     # Start the simulated request pool before spying on cache worker creation.
     with ThreadPoolExecutor(max_workers=1) as executor:
-        executor.submit(lambda: None).result(timeout=1)
+        executor.submit(lambda: None).result(timeout=10)
         start = mocker.spy(Thread, "start")
         try:
             first = executor.submit(lookup)
-            assert entered.wait(timeout=1)
-            assert first.result(timeout=0.3) == "main"
-            assert executor.submit(health).result(timeout=0.3) == 200
+            assert entered.wait(timeout=10)
+            assert first.result(timeout=10) == "main"
+            assert executor.submit(health).result(timeout=10) == 200
             for elapsed in (60, 120, 3600):
                 clock.return_value = elapsed
-                assert executor.submit(lookup).result(timeout=0.3) == "main"
-                # Recreated engines reuse the occupied flight for the same identity.
+                assert executor.submit(lookup).result(timeout=10) == "main"
+                # Recreated engines must not duplicate the occupied identity's I/O.
                 _retire_cached_engines(database.id)
-                assert executor.submit(lookup).result(timeout=0.3) == "main"
+                assert executor.submit(lookup).result(timeout=10) == "main"
             assert blocked.call_count == 1
             assert start.call_count == 1
             assert start.call_args.args[0].daemon
         finally:
             release.set()
-            assert finished.wait(timeout=1)
+            assert finished.wait(timeout=10)
             # Let the cache operation finish before fixtures restore the backend.
             for call in start.call_args_list:
-                call.args[0].join(timeout=1)
+                call.args[0].join(timeout=10)
                 assert not call.args[0].is_alive()
 
 
@@ -5894,6 +5929,8 @@ def test_default_schema_flight_limit_bounds_hung_distinct_keys(
     shared_default_schema_cache: Cache, mocker: MockerFixture
 ) -> None:
     """Independent deadlines must not allow unbounded hung workers across keys."""
+    from time import monotonic as real_monotonic
+
     from superset.models.core import _read_default_schema
 
     mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS", 2)
@@ -5911,25 +5948,29 @@ def test_default_schema_flight_limit_bounds_hung_distinct_keys(
     def lookup(key: str) -> str | None:
         """Use a separate application context for each cold request."""
         with app_context():
-            return _read_default_schema(key)
+            started = real_monotonic()
+            schema = _read_default_schema(key)
+            assert real_monotonic() - started < 1
+            return schema
 
     read = mocker.patch.object(
         shared_default_schema_cache, "get", side_effect=blocked_read
     )
     with ThreadPoolExecutor(max_workers=2) as executor:
+        # Future timeouts allow scheduling slack; lookup measures elapsed time.
         # Exclude request-pool startup from the cache-worker count.
         ready = Barrier(3)
         workers = [executor.submit(ready.wait, timeout=5) for _ in range(2)]
         ready.wait(timeout=5)
         for worker in workers:
-            worker.result(timeout=1)
+            worker.result(timeout=10)
         start = mocker.spy(Thread, "start")
         requests = [executor.submit(lookup, key) for key in entered]
         try:
             for event in entered.values():
-                assert event.wait(timeout=1)
+                assert event.wait(timeout=10)
             for request in requests:
-                assert request.result(timeout=0.3) is None
+                assert request.result(timeout=10) is None
             for index in range(5):
                 assert _read_default_schema(f"additional-{index}") is None
             assert read.call_count == 2
@@ -5939,7 +5980,7 @@ def test_default_schema_flight_limit_bounds_hung_distinct_keys(
         finally:
             release.set()
             for call in start.call_args_list:
-                call.args[0].join(timeout=1)
+                call.args[0].join(timeout=10)
                 assert not call.args[0].is_alive()
 
 

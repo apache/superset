@@ -81,6 +81,7 @@ Chart cache keys can depend on template macros and row-level security. If
 collecting template macro keys fails, Superset raises the underlying error
 instead of looking up a result using an incomplete macro cache key.
 While collecting chart cache keys for virtual datasets without a schema,
+including the datasources of chart-reference annotation layers,
 Superset reuses the default schema that
 SQLAlchemy has already discovered on the selected engine, without opening an
 inspector connection. It publishes that discovery in `CACHE_CONFIG` with a
@@ -100,8 +101,9 @@ construction. Each shared-schema read or publication waits at most 200 ms for
 cache I/O. Reads of different entries run independently, including while an
 unrelated engine renews its discovery. Concurrent reads of the same entry share
 its result and original deadline. Warm engines skip publications while cache I/O
-is busy. Once a flight exceeds its deadline, further lookups fall back to local
-discovery or an inspector without waiting for that flight. A successful late read
+is busy. Cold readers skip an in-flight publication for the same entry without
+waiting, since publication cannot supply a schema result to readers. Once a flight
+exceeds its deadline, further lookups fall back to local discovery or an inspector without waiting for that flight. A successful late read
 is available to every lookup for up to 60 seconds after completion, unless evicted
 to admit another key. Reuse does not extend that expiry, and a live engine's
 publication replaces a contradictory retained result.

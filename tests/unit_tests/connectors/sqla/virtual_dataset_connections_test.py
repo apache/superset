@@ -4547,6 +4547,59 @@ def test_discovered_schema_preserves_inner_rls_during_outage(
     connect.assert_not_called()
 
 
+@pytest.mark.parametrize("source_type", ["line", "table"])
+def test_annotation_discovered_schema_preserves_inner_rls_during_outage(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    source_type: str,
+) -> None:
+    """Chart-reference annotations retain schema-qualified physical RLS offline."""
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+
+    virtual, rule = static_schema_datasource
+    virtual.schema = None
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=[],
+        annotation_layers=[
+            {"annotationType": "TIME_SERIES", "sourceType": source_type, "value": 7}
+        ],
+    )
+    processor = QueryContextProcessor(
+        QueryContext(
+            datasource=virtual,
+            queries=[query],
+            slice_=None,
+            form_data={},
+            result_type=ChartDataResultType.FULL,
+            result_format=ChartDataResultFormat.JSON,
+            cache_values={},
+        )
+    )
+    mocker.patch.object(
+        processor, "_annotation_source_datasource", return_value=virtual
+    )
+    online = []
+    for tenant in (1, 2):
+        rule.clause = f"col1 = {tenant}"
+        context = processor._annotation_cache_context(query)
+        assert context["source_inner_rls"] == {"7": [PHYSICAL_RLS_KEYS[tenant]]}
+        online.append(context)
+    assert online[0] != online[1]
+    with virtual.database.get_sqla_engine() as engine:
+        assert engine.dialect.default_schema_name == "main"
+        connect = mocker.patch.object(
+            engine,
+            "raw_connection",
+            side_effect=ConnectionError("database unreachable"),
+        )
+    for tenant in (1, 2):
+        rule.clause = f"col1 = {tenant}"
+        assert processor._annotation_cache_context(query) == online[tenant - 1]
+    connect.assert_not_called()
+
+
 @pytest.mark.parametrize("entry_point", ["run", "execute", "payload"])
 @pytest.mark.parametrize("restart_worker", [False, True])
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True, EMBEDDED_SUPERSET=True)

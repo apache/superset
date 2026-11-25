@@ -227,9 +227,9 @@ def _reserve_default_schema_cache_flight(
     if pending is None:
         publishing = _DEFAULT_SCHEMA_CACHE_FLIGHTS.get(None)
         if publishing is not None and publishing.publication_key == cache_key:
-            # Do not duplicate I/O for an identity already being published. Unlike
-            # a read flight, publication does not supply another worker's schema.
-            pending = publishing
+            # Publication has no schema result for readers. Skip duplicate I/O
+            # without spending the read budget waiting for a guaranteed miss.
+            return None, False
     if pending is not None:
         if not pending.completed.is_set():
             return pending, False
