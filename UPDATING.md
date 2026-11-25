@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Datasource-info responses add optional `capabilities.operations` metadata. An absent list preserves legacy behavior; an empty list explicitly declares no host operations. Existing sample, drill-to-detail and ad-hoc metric flags are projected from the same declaration wherever those keys are returned in authorized metadata. This metadata does not grant access or change query validation.
+
 - Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
 
 - Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series

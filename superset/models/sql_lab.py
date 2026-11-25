@@ -60,6 +60,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.explorables.base import TimeGrainDict
+from superset.explorables.capabilities import ExplorableCapabilities, sql_capabilities
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -185,6 +186,11 @@ class Query(
     changed_on = Column(
         DateTime, default=naive_utcnow, onupdate=naive_utcnow, nullable=True
     )
+
+    @property
+    def explorable_capabilities(self) -> ExplorableCapabilities:
+        """Describe SQL operations, not saved metrics or compatibility discovery."""
+        return sql_capabilities(samples=self.supports_samples, drill_to_detail=True)
 
     @hybrid_property
     def duration(self) -> Optional[float]:

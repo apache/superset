@@ -59,10 +59,15 @@ from superset.exceptions import (
     QueryObjectValidationError,
 )
 from superset.explorables.base import TimeGrainDict
+from superset.explorables.capabilities import (
+    declared_capabilities,
+    ExplorableCapabilities,
+    project_operation_flags,
+)
 from superset.extensions import db, encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
-from superset.semantic_layers.capabilities import supported_view_features
+from superset.semantic_layers.capabilities import supported_view_feature_names
 from superset.semantic_layers.dimension_resolution import (
     DimensionUsage,
     resolve_dimensions,
@@ -81,7 +86,7 @@ from superset.semantic_layers.execution import (
     metadata_namespace,
     SemanticBindingMemo,
 )
-from superset.semantic_layers.mapper import get_results
+from superset.semantic_layers.mapper import get_results, SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.registry import registry
 from superset.utils import json
 from superset.utils.core import GenericDataType, TIME_COMPARISON
@@ -333,6 +338,16 @@ class SemanticView(AuditMixinNullable, Model):
     # affordance from the chart 3-dots menu can return anything meaningful.
     supports_samples: bool = False
     supports_drill_to_detail: bool = False
+
+    @property
+    def explorable_capabilities(self) -> ExplorableCapabilities:
+        """Adapt SDK features without advertising host SQL/raw-row operations."""
+        return ExplorableCapabilities(
+            supported_operators=frozenset(SUPPORTED_FILTER_OPERATORS),
+            features=supported_view_feature_names(
+                getattr(self.implementation, "features", None)
+            ),
+        )
 
     # Semantic views have no dataset-level SQL predicate for fetching filter values.
     fetch_values_predicate: None = None
@@ -702,6 +717,11 @@ class SemanticView(AuditMixinNullable, Model):
 
     @property
     def data(self) -> ExplorableData:
+        flags: dict[str, Any] = {
+            "supports_samples": self.supports_samples,
+            "supports_drill_to_detail": self.supports_drill_to_detail,
+        }
+        project_operation_flags(flags, declared_capabilities(self))
         dimensions = self._unique_dimensions
         metrics = list(self._provider_metrics())
         verbose_map = {
@@ -722,8 +742,7 @@ class SemanticView(AuditMixinNullable, Model):
             "type": "semantic_view",
             # Sorted supported SDK feature values, never provider identity.
             "semantic_view_features": sorted(
-                feature.value
-                for feature in supported_view_features(
+                supported_view_feature_names(
                     getattr(self.implementation, "features", None)
                 )
             ),
@@ -784,8 +803,8 @@ class SemanticView(AuditMixinNullable, Model):
             "sql": None,
             "select_star": None,
             "editors": [],
-            "supports_samples": self.supports_samples,
-            "supports_drill_to_detail": self.supports_drill_to_detail,
+            "supports_samples": flags["supports_samples"],
+            "supports_drill_to_detail": flags["supports_drill_to_detail"],
             "description": self.description,
             "table_name": self.name,
             "column_types": [
