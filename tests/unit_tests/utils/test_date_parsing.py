@@ -78,6 +78,21 @@ def test_normalize_mixed_offsets_preserves_chart_instants(
     assert normalized == [expected[:1], expected]
 
 
+@pytest.mark.parametrize("timezone", [None, "Europe/Berlin"])
+def test_normalize_mixed_offsets_keeps_day_first_format(timezone: str | None) -> None:
+    frame = pd.DataFrame({"date": ["13/02/2024 10:00 +0200", "01/03/2024 10:00 +0100"]})
+    normalize_dttm_col(frame, (DateColumn("date", timezone=timezone),))
+    expected = (
+        [pd.Timestamp("2024-02-13T09:00:00"), pd.Timestamp("2024-03-01T10:00:00")]
+        if timezone
+        else [
+            pd.Timestamp("2024-02-13T10:00:00+02:00"),
+            pd.Timestamp("2024-03-01T10:00:00+01:00"),
+        ]
+    )
+    assert frame["date"].tolist() == expected
+
+
 def capture_warnings(func, *args, **kwargs):
     """Execute function and return any format inference warnings."""
     with warnings.catch_warnings(record=True) as w:

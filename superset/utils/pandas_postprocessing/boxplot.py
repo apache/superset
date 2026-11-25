@@ -143,7 +143,10 @@ def boxplot(  # noqa: C901
     for column in metrics:
         if not is_numeric_dtype(df[column]):
             try:
-                df[column] = to_numeric(df[column], errors="raise")
+                df[column] = to_numeric(
+                    df[column].replace(r"(?i)^nan$", np.nan, regex=True),
+                    errors="raise",
+                )
             except (TypeError, ValueError) as ex:
                 raise InvalidPostProcessingError(
                     _("Boxplot metrics must contain numeric values")

@@ -996,13 +996,21 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
                 ) and "Mixed timezones" not in str(ex):
                     raise
             original = df[column_name].copy()
+            from pandas.tseries.api import guess_datetime_format
+
+            first_value = next(iter(original.dropna()), None)
+            timestamp_format = (
+                guess_datetime_format(first_value)
+                if isinstance(first_value, str)
+                else None
+            )
             result = []
             for val in original:
                 if pd.isna(val):
                     result.append(pd.NaT)
                     continue
                 try:
-                    result.append(pd.to_datetime(val))
+                    result.append(pd.to_datetime(val, format=timestamp_format))
                 except OutOfBoundsDatetime:
                     result.append(pd.NaT)
             converted = pd.Series(result, index=original.index)

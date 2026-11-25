@@ -2111,6 +2111,12 @@ class DateColumn:
 def _parse_mixed_timezone_column(
     series: pd.Series, col: DateColumn, timestamp_format: str | None
 ) -> pd.Series:
+    if timestamp_format is None:
+        from pandas.tseries.api import guess_datetime_format
+
+        first_value = next(iter(series.dropna()), None)
+        if isinstance(first_value, str):
+            timestamp_format = guess_datetime_format(first_value)
     if col.timezone:
         return pd.to_datetime(
             series, utc=True, format=timestamp_format, errors="coerce", exact=False

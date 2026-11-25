@@ -287,7 +287,12 @@ def _append_columns(
         # make sure to return a new DataFrame instead of changing the `base_df`.
         _base_df = base_df.copy()
         for source, target in overwritten.items():
-            _base_df[target] = append_df[source]
+            try:
+                _base_df.loc[:, [target]] = append_df[[source]].rename(
+                    columns={source: target}
+                )
+            except TypeError:
+                _base_df[target] = append_df[source]
     if not appended:
         return _base_df
     # Select before renaming: `append_df` may carry columns the mapping does not

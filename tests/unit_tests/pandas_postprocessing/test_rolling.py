@@ -107,6 +107,21 @@ def test_rolling():
         )
 
 
+def test_rolling_quantile_error_preserves_public_options() -> None:
+    options = {"quantile": 0.25, "invalid": True}
+    with pytest.raises(InvalidPostProcessingError) as error:
+        pp.rolling(
+            df=timeseries_df,
+            columns={"y": "y"},
+            rolling_type="quantile",
+            rolling_type_options=options,
+            window=2,
+        )
+    assert "'quantile': 0.25" in str(error.value)
+    assert "'q':" not in str(error.value)
+    assert options == {"quantile": 0.25, "invalid": True}
+
+
 def test_rolling_rejects_window_over_max():
     """
     ``window`` comes from the unvalidated post-processing options dict; the
@@ -179,8 +194,8 @@ def test_rolling_after_pivot_with_single_metric():
         pd.DataFrame(
             data={
                 "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5.0, 12.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6.0, 14.0],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5, 12],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6, 14],
             }
         )
     )
@@ -230,10 +245,10 @@ def test_rolling_after_pivot_with_multiple_metrics():
         pd.DataFrame(
             data={
                 "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
-                FLAT_COLUMN_SEPARATOR.join(["count_metric", "UK"]): [1.0, 4.0],
-                FLAT_COLUMN_SEPARATOR.join(["count_metric", "US"]): [2.0, 6.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5.0, 12.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6.0, 14.0],
+                FLAT_COLUMN_SEPARATOR.join(["count_metric", "UK"]): [1, 4],
+                FLAT_COLUMN_SEPARATOR.join(["count_metric", "US"]): [2, 6],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5, 12],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6, 14],
             }
         )
     )

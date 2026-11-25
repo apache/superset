@@ -34,6 +34,22 @@ from sqlalchemy.orm import Session
 
 
 class TestConvertTemporalColumns:
+    def test_mixed_offsets_keep_day_first_format(self) -> None:
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        frame = pd.DataFrame(
+            {"ts": ["13/02/2024 10:00 +0200", "01/03/2024 10:00 +0100"]}
+        )
+        _convert_temporal_columns(frame, {"ts": DateTime()})
+        assert frame["ts"].tolist() == [
+            pd.Timestamp("2024-02-13T10:00:00+02:00"),
+            pd.Timestamp("2024-03-01T10:00:00+01:00"),
+        ]
+
     def test_inconsistent_date_formats_raise(self) -> None:
         from sqlalchemy import DateTime
 
@@ -189,10 +205,10 @@ class TestConvertTemporalColumns:
         real_to_datetime = pd.to_datetime
         oob_markers = {"oob1", "oob2"}
 
-        def fake_to_datetime(value: Any) -> Any:
+        def fake_to_datetime(value: Any, **kwargs: Any) -> Any:
             if isinstance(value, pd.Series) or value in oob_markers:
                 raise OutOfBoundsDatetime("forced for test")
-            return real_to_datetime(value)
+            return real_to_datetime(value, **kwargs)
 
         df = pd.DataFrame({"ts": [None, "oob1", "oob2"]})
         with (

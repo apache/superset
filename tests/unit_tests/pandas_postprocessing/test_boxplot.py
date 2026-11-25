@@ -30,6 +30,25 @@ from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 @pytest.mark.parametrize("dtype", ["object", "str"])
 @pytest.mark.parametrize("whisker_type", list(PostProcessingBoxplotWhiskerType))
+def test_boxplot_accepts_nan_text(
+    dtype: str, whisker_type: PostProcessingBoxplotWhiskerType
+) -> None:
+    frame = pd.DataFrame(
+        {"value": pd.Series(["1", "3", "nan", "NaN", None], dtype=dtype)}
+    )
+    result = boxplot(
+        df=frame,
+        groupby=[],
+        metrics=["value"],
+        whisker_type=whisker_type,
+        percentiles=[1, 99],
+    )
+    assert result["value__mean"].iloc[0] == 2
+    assert result["value__count"].iloc[0] == 2
+
+
+@pytest.mark.parametrize("dtype", ["object", "str"])
+@pytest.mark.parametrize("whisker_type", list(PostProcessingBoxplotWhiskerType))
 def test_boxplot_rejects_malformed_metrics(dtype, whisker_type):
     frame = pd.DataFrame({"value": pd.Series(["1", "invalid", None], dtype=dtype)})
     with pytest.raises(InvalidPostProcessingError, match="numeric"):
