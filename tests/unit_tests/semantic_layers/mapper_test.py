@@ -1784,8 +1784,13 @@ def test_validate_query_object_undefined_metric_error(
         columns=["order_date"],
     )
 
-    with pytest.raises(QueryObjectValidationError, match="All metrics must be defined"):
+    with pytest.raises(QueryObjectValidationError) as captured:
         validate_query_object(query_object)
+    assert str(captured.value) == (
+        "Metrics not in this semantic view: 'undefined_metric'. They may have "
+        "been removed or renamed in the semantic layer. Select available "
+        "metrics or remove them."
+    )
 
 
 def test_validate_query_object_undefined_dimension_error(
@@ -1800,10 +1805,38 @@ def test_validate_query_object_undefined_dimension_error(
         columns=["undefined_dimension"],
     )
 
-    with pytest.raises(
-        QueryObjectValidationError, match="All dimensions must be defined"
-    ):
+    with pytest.raises(QueryObjectValidationError) as captured:
         validate_query_object(query_object)
+    assert str(captured.value) == (
+        "Dimensions not in this semantic view: 'undefined_dimension'. They may "
+        "have been removed or renamed in the semantic layer. Select available "
+        "dimensions or remove them."
+    )
+
+
+def test_validate_query_object_names_only_missing_members_in_chart_order(
+    mock_datasource: MagicMock,
+) -> None:
+    """A chart saved before a metric was removed names exactly what is gone."""
+    metrics: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["zeta_removed", "total_sales", "alpha_renamed", "zeta_removed"],
+        columns=["category"],
+    )
+    captured: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(QueryObjectValidationError) as captured:
+        validate_query_object(metrics)
+    assert "view: 'zeta_removed', 'alpha_renamed'. They" in str(captured.value)
+    assert "total_sales" not in str(captured.value)
+
+    dimensions: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["region", "old_region", "category"],
+    )
+    with pytest.raises(QueryObjectValidationError) as captured:
+        validate_query_object(dimensions)
+    assert "not in this semantic view: 'old_region'. They" in str(captured.value)
 
 
 def test_validate_query_object_text_groupings_ignore_time_grain(
@@ -5394,7 +5427,9 @@ def test_execution_reuses_members_but_next_query_fetches_fresh_metadata(
     )
     result: QueryResult = get_results(query)
     assert result.df.to_dict("records") == [{"category": "Books", "total_sales": 10.0}]
-    with pytest.raises(QueryObjectValidationError, match="All metrics must be defined"):
+    with pytest.raises(
+        QueryObjectValidationError, match="Metrics not in this semantic view"
+    ):
         get_results(query)
     assert (metrics.call_count, dimensions.call_count) == (2, 2)
     execute.assert_called_once()
@@ -5826,7 +5861,7 @@ def test_dormant_grain_still_refuses_unknown_metadata(
         elif shape == "legacy-unselected":
             expected = "The time column must be defined in the Semantic View dimensions"
         else:
-            expected = "All dimensions must be defined in the Semantic View"
+            expected = "Dimensions not in this semantic view"
     elif shape == "query":
         expected = "A time column must be specified when a time grain is provided"
     else:

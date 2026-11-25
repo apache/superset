@@ -1606,10 +1606,24 @@ def _validate_metrics(
         )
 
     metric_names: set[str] = {metric.name for metric in metadata.metrics}
-    if not set(query_object.metrics or []) <= metric_names:
+    missing: str | None = _missing_members(query_object.metrics or [], metric_names)
+    if missing:
         raise SemanticQueryInputError(
-            "All metrics must be defined in the Semantic View."
+            _(
+                "Metrics not in this semantic view: %(names)s. They may have been "
+                "removed or renamed in the semantic layer. Select available "
+                "metrics or remove them.",
+                names=missing,
+            )
         )
+
+
+def _missing_members(selected: Sequence[str], available: Collection[str]) -> str | None:
+    """Name the selected members a view no longer has, once each, in chart order."""
+    missing: list[str] = [
+        name for name in dict.fromkeys(selected) if name not in available
+    ]
+    return ", ".join(f"'{name}'" for name in missing) or None
 
 
 def _validate_dimensions(
@@ -1625,9 +1639,15 @@ def _validate_dimensions(
         _normalize_column(column, dimension_names) for column in query_object.columns
     ]
 
-    if not set(normalized_columns) <= dimension_names:
+    missing: str | None = _missing_members(normalized_columns, dimension_names)
+    if missing:
         raise SemanticQueryInputError(
-            "All dimensions must be defined in the Semantic View."
+            _(
+                "Dimensions not in this semantic view: %(names)s. They may have "
+                "been removed or renamed in the semantic layer. Select available "
+                "dimensions or remove them.",
+                names=missing,
+            )
         )
 
 
