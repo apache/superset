@@ -20,7 +20,6 @@ from typing import Any, cast
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
-from flask_caching.backends import NullCache
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled, security_manager
@@ -61,7 +60,7 @@ from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.utils.cache import skip_oversized_cache_value
+from superset.utils.cache import is_null_cache, skip_oversized_cache_value
 from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     apply_max_row_limit,
@@ -85,7 +84,7 @@ def _set_data_cache(cache_key: str, value: Any, timeout: int) -> None:
     (``NullCache``) nothing is written and the size check is skipped, so the value
     is never serialized."""
     data_cache = cache_manager.data_cache
-    if isinstance(data_cache.cache, NullCache):
+    if is_null_cache(data_cache):
         return
     if not skip_oversized_cache_value(data_cache, cache_key, value):
         data_cache.set(cache_key, value, timeout=timeout)

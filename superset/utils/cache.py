@@ -57,6 +57,15 @@ def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str
     return cache_key
 
 
+def is_null_cache(cache_instance: Any) -> bool:
+    """Whether ``cache_instance`` is backed by a ``NullCache``.
+
+    Accepts a Flask-Caching ``Cache`` (whose backend is the ``cache`` attribute) as
+    well as a bare cachelib backend, which has no such attribute.
+    """
+    return isinstance(getattr(cache_instance, "cache", cache_instance), NullCache)
+
+
 def exceeds_max_cache_value_size(cache_key: str, value: Any) -> bool:
     """Check a value against ``DATA_CACHE_MAX_VALUE_SIZE`` before a data-cache write.
 
@@ -106,7 +115,7 @@ def skip_oversized_cache_value(
     """
     if not exceeds_max_cache_value_size(cache_key, value):
         return False
-    if not isinstance(cache_instance.cache, NullCache):
+    if not is_null_cache(cache_instance):
         try:
             cache_instance.delete(cache_key)
         except Exception:  # pylint: disable=broad-except
@@ -139,7 +148,7 @@ def set_and_log_cache(
         gate on this, since a silent skip would otherwise let a follow-up read
         serve a stale value.
     """
-    if isinstance(cache_instance.cache, NullCache):
+    if is_null_cache(cache_instance):
         return False
 
     timeout = (
