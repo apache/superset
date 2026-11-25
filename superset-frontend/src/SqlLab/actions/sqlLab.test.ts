@@ -1392,7 +1392,7 @@ test.each([{ datasetWithSameId: false }, { datasetWithSameId: true }])(
         }),
       }),
     );
-  
+
     })();
   } finally {
     teardownDatasourceRoutes();
@@ -1517,7 +1517,7 @@ test.each([
     expect(
       dispatched.some((action) => action.type === actions.ADD_QUERY_EDITOR),
     ).toBe(false);
-  
+
     })();
   } finally {
     teardownDatasourceRoutes();
@@ -1589,7 +1589,7 @@ test.each([
         queryEditor: expect.objectContaining({ name: "Query", dbId: 7 }),
       }),
     );
-  
+
     })();
   } finally {
     teardownDatasourceRoutes();
