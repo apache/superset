@@ -208,3 +208,26 @@ describe('updateColumns', () => {
     ]);
   });
 });
+
+test('updateColumns does not count a kept temporal flag as a modification', () => {
+  const addSuccessToast = jest.fn();
+  // The column was marked temporal in the dataset; the source does not report
+  // it as temporal, and the merge keeps the flag, so nothing changes.
+  const prevCols = [{ column_name: 'ds', type: 'VARCHAR', is_dttm: true }];
+  const newCols = [{ column_name: 'ds', type: 'VARCHAR', is_dttm: false }];
+  const result = updateColumns(prevCols, newCols, addSuccessToast);
+  expect(result.modified).toEqual([]);
+  expect(result.finalColumns).toEqual(prevCols);
+  expect(addSuccessToast).not.toHaveBeenCalled();
+});
+
+test('updateColumns does not count a null temporal flag as a modification', () => {
+  const addSuccessToast = jest.fn();
+  const prevCols = [{ column_name: 'num', type: 'BIGINT', is_dttm: false }];
+  const newCols = [
+    { column_name: 'num', type: 'BIGINT', is_dttm: null as unknown as boolean },
+  ];
+  const result = updateColumns(prevCols, newCols, addSuccessToast);
+  expect(result.modified).toEqual([]);
+  expect(addSuccessToast).not.toHaveBeenCalled();
+});

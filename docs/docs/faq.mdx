@@ -59,7 +59,7 @@ import FAQSchema from '@site/src/components/FAQSchema';
     {
       question: 'What if the table schema changed?',
       answer:
-        'Go to Data -> Datasets, click the edit icon next to the dataset whose schema has changed, and hit Sync columns from source from the Columns tab. The new columns will get merged.',
+        'Go to Data -> Datasets, click the edit icon next to the dataset whose schema has changed, and hit Sync columns from source from the Columns tab. Review the changes and click Apply.',
     },
     {
       question: 'What database engine can I use as a backend for Superset?',
@@ -288,7 +288,7 @@ Table schemas evolve, and Superset needs to reflect that. It’s pretty common i
 dashboard to want to add a new dimension or metric. To get Superset to discover your new columns,
 all you have to do is to go to **Data -> Datasets**, click the edit icon next to the dataset
 whose schema has changed, and hit **Sync columns from source** from the **Columns** tab.
-Behind the scene, the new columns will get merged. Following this, you may want to re-edit the
+Review the changes and click **Apply**. Following this, you may want to re-edit the
 table afterwards to configure the Columns tab, check the appropriate boxes and save again.
 
 ## What database engine can I use as a backend for Superset?

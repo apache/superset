@@ -1007,6 +1007,7 @@ const renderWithOneColumn = async () => {
 
 const syncColumnsFromSource = async (
   testProps: Awaited<ReturnType<typeof renderWithOneColumn>>,
+  { apply = false } = {},
 ) => {
   const [{ column_name, type, is_dttm }] = testProps.datasource.columns;
   fetchMock.removeRoute(DATASOURCE_ENDPOINT);
@@ -1018,6 +1019,10 @@ const syncColumnsFromSource = async (
   await waitFor(() =>
     expect(fetchMock.callHistory.called(DATASOURCE_ENDPOINT)).toBe(true),
   );
+  if (apply) {
+    // A sync that changes the columns is previewed before it is applied.
+    await userEvent.click(await screen.findByRole('button', { name: 'Apply' }));
+  }
   await waitFor(() => expect(testProps.onChange).toHaveBeenCalled());
   return testProps.onChange.mock.lastCall![0].columns;
 };
@@ -1058,7 +1063,7 @@ test('syncing restores a column deleted in the session as its saved row', async 
     expect(testProps.onChange.mock.lastCall?.[0].columns).toHaveLength(0),
   );
 
-  const columns = await syncColumnsFromSource(testProps);
+  const columns = await syncColumnsFromSource(testProps, { apply: true });
 
   expect(columns).toHaveLength(1);
   expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });

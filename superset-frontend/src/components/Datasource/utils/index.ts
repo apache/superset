@@ -31,7 +31,7 @@ import type { ColumnObject } from 'src/features/datasets/types';
 
 // Type definitions
 
-interface ColumnMetadata {
+export interface ColumnMetadata {
   id?: string | number;
   column_name: string;
   is_dttm?: boolean;
@@ -168,7 +168,9 @@ export function updateColumns(
       columnChanges.added.push(col.column_name);
     } else if (
       currentCol.type !== col.type ||
-      currentCol.is_dttm !== col.is_dttm
+      // The temporal flag is kept once set (see below), so only a flag the
+      // source newly reports changes the column.
+      (!currentCol.is_dttm && col.is_dttm)
     ) {
       // modified column
       columnChanges.finalColumns.push({
