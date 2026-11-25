@@ -278,6 +278,22 @@ function SaveCheckWarning({
         limit: describeLimit(span[0]),
       },
     );
+  } else if (level === 'dashboard' && filters.length) {
+    if (charts.length || unchecked.length) {
+      message = t(
+        'These time ranges don\'t fit this dashboard\'s limits. Viewers see "Waiting for a valid time range" until you change them.',
+      );
+    } else if (filters.some(filter => filter.no_default)) {
+      message = t(
+        'Set default time ranges that fit this dashboard\'s limits. Viewers see "Waiting for a valid time range" until you do.',
+      );
+    } else {
+      message = tn(
+        'This dashboard\'s time range filter defaults to a range these limits don\'t allow. Viewers see "Waiting for a valid time range" until you change it.',
+        'This dashboard\'s time range filters default to ranges these limits don\'t allow. Viewers see "Waiting for a valid time range" until you change them.',
+        filters.length,
+      );
+    }
   } else if (level === 'dashboard') {
     message = t(
       'These charts use their own time range, which this dashboard\'s limits don\'t allow. Viewers see "Waiting for a valid time range" on them until you change it.',

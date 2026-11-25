@@ -714,6 +714,8 @@ test('dataset with no time column shows the stored value, disabled', () => {
 
 const DASHBOARD_HEADING =
   'These charts use their own time range, which this dashboard\'s limits don\'t allow. Viewers see "Waiting for a valid time range" on them until you change it.';
+const MIXED_HEADING =
+  'These time ranges don\'t fit this dashboard\'s limits. Viewers see "Waiting for a valid time range" until you change them.';
 const DATASET_HEADING =
   "These charts on this dataset use their own time range, which these limits don't allow. Their queries stop until you change it.";
 const NOT_CHECKED = 'Time range limits could not be checked for this chart.';
@@ -904,6 +906,73 @@ test('charts warning sentence forms', () => {
   ).toBeInTheDocument();
 });
 
+const REFUSED_FILTER: SaveCheckResult['filters'][number] = {
+  id: 'NATIVE_FILTER-1',
+  name: 'Period',
+  range: 'Last year',
+  no_default: false,
+  reason_code: 'MAX_SPAN_EXCEEDED',
+  rule: 'max_span',
+  source: 'dashboard',
+  message: "Range can't be longer than 90 days. This one is 366 days.",
+};
+
+const FILTER_WITHOUT_DEFAULT: SaveCheckResult['filters'][number] = {
+  id: 'NATIVE_FILTER-2',
+  name: 'Any time',
+  range: null,
+  no_default: true,
+  reason_code: null,
+  rule: null,
+  source: null,
+  message: null,
+};
+
+test.each<{ result: Partial<SaveCheckResult>; heading: string }>([
+  {
+    result: { filters: [REFUSED_FILTER] },
+    heading:
+      'This dashboard\'s time range filter defaults to a range these limits don\'t allow. Viewers see "Waiting for a valid time range" until you change it.',
+  },
+  {
+    result: {
+      filters: [REFUSED_FILTER, { ...REFUSED_FILTER, id: 'NATIVE_FILTER-3' }],
+    },
+    heading:
+      'This dashboard\'s time range filters default to ranges these limits don\'t allow. Viewers see "Waiting for a valid time range" until you change them.',
+  },
+  {
+    result: { filters: [FILTER_WITHOUT_DEFAULT] },
+    heading:
+      'Set default time ranges that fit this dashboard\'s limits. Viewers see "Waiting for a valid time range" until you do.',
+  },
+  {
+    result: {
+      filters: [REFUSED_FILTER],
+      unchecked: [{ id: 5, slice_name: 'Map', url: '/explore/?slice_id=5' }],
+    },
+    heading: MIXED_HEADING,
+  },
+  {
+    result: {
+      charts: [
+        refused(1, 'Old calls', 'Last 2 years', {
+          reason_code: 'MAX_LOOK_BACK_EXCEEDED',
+          rule: 'max_look_back',
+          source: 'global',
+          message: "Start can't be earlier than 1 year ago.",
+        }),
+      ],
+    },
+    heading: DASHBOARD_HEADING,
+  },
+])('uses the dashboard warning heading "$heading"', ({ result, heading }) => {
+  render(<Harness stored={NINETY_DAYS} saveCheck={checked(result)} />, {
+    useRouter: true,
+  });
+  expect(within(warning()).getByText(heading)).toBeInTheDocument();
+});
+
 test('mixed reasons list', () => {
   render(
     <Harness
@@ -923,36 +992,14 @@ test('mixed reasons list', () => {
               'Time comparison "1 year ago": Start can\'t be earlier than 1 year ago.',
           }),
         ],
-        filters: [
-          {
-            id: 'NATIVE_FILTER-1',
-            name: 'Period',
-            range: 'Last year',
-            no_default: false,
-            reason_code: 'MAX_SPAN_EXCEEDED',
-            rule: 'max_span',
-            source: 'dashboard',
-            message:
-              "Range can't be longer than 90 days. This one is 366 days.",
-          },
-          {
-            id: 'NATIVE_FILTER-2',
-            name: 'Any time',
-            range: null,
-            no_default: true,
-            reason_code: null,
-            rule: null,
-            source: null,
-            message: null,
-          },
-        ],
+        filters: [REFUSED_FILTER, FILTER_WITHOUT_DEFAULT],
       })}
     />,
     { useRouter: true },
   );
 
   const alert = warning();
-  expect(within(alert).getByText(DASHBOARD_HEADING)).toBeInTheDocument();
+  expect(within(alert).getByText(MIXED_HEADING)).toBeInTheDocument();
   expect(lineTexts(alert)).toEqual([
     'Time range filter "Period" defaults to Last year: Range can\'t be longer than 90 days. This one is 366 days.',
     'Time range filter "Any time" has no default range.',

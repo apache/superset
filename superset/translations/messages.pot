@@ -13694,6 +13694,9 @@ msgstr ""
 msgid "Set auto-refresh"
 msgstr ""
 
+msgid "Set default time ranges that fit this dashboard's limits. Viewers see \"Waiting for a valid time range\" until you do."
+msgstr ""
+
 msgid "Set filter mapping"
 msgstr ""
 
@@ -16217,6 +16220,9 @@ msgstr ""
 msgid "These limits apply to every time range filter and temporal chart query on this dashboard."
 msgstr ""
 
+msgid "These time ranges don't fit this dashboard's limits. Viewers see \"Waiting for a valid time range\" until you change them."
+msgstr ""
+
 #, python-format
 msgid "This %(schedule)s executes as another user. Only admins can change its content; set the Run As field to your own account to make this change."
 msgstr ""
@@ -16435,6 +16441,11 @@ msgstr ""
 
 msgid "This dashboard will be restored to the following version:"
 msgstr ""
+
+msgid "This dashboard's time range filter defaults to a range these limits don't allow. Viewers see \"Waiting for a valid time range\" until you change it."
+msgid_plural "This dashboard's time range filters default to ranges these limits don't allow. Viewers see \"Waiting for a valid time range\" until you change them."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "This database does not allow creating tables from queries (CTAS). Please contact your administrator for more assistance."
 msgstr ""
