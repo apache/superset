@@ -150,18 +150,20 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
 
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
-      // Fall back to a metric-based default sort only when no explicit orderby
-      // was supplied (e.g. a column sort from the "View as table" results pane).
-      // An explicit orderby from form data takes precedence.
-      if (orderby.length === 0) {
+      // An explicit `orderby` in form data (e.g. a column sort from the "View as
+      // table" results pane) takes precedence over the metric-based default.
+      // `order_by_cols` is the raw-mode sort control and is folded into
+      // `orderby` too, so only the form field itself counts as explicit here.
+      const explicitOrderby = ensureIsArray(formData.orderby);
+      if (explicitOrderby.length > 0) {
+        orderby = explicitOrderby;
+      } else if (sortByMetric) {
         // override orderby with timeseries metric when in aggregation mode
-        if (sortByMetric) {
-          orderby = [[sortByMetric, !orderDesc]];
-        } else if (metrics?.length > 0) {
-          // default to ordering by first metric in descending order
-          // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
-          orderby = [[metrics[0], false]];
-        }
+        orderby = [[sortByMetric, !orderDesc]];
+      } else if (metrics?.length > 0) {
+        // default to ordering by first metric in descending order
+        // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
+        orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
