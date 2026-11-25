@@ -44,6 +44,8 @@ import {
 import { debounce, isEqual, uniq } from 'lodash-es';
 import {
   dropDownRenderHelper,
+  estimatePopupHeight,
+  getPopupPlacement,
   getOption,
   getSuffixIcon,
   getValue,
@@ -63,7 +65,6 @@ import {
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
-  StyledBulkActionsContainer,
   StyledCheckOutlined,
   StyledContainer,
   StyledHeader,
@@ -156,15 +157,17 @@ const Select = forwardRef(
     const isSingleMode = mode === 'single';
     // AntdThemeProvider can supply a context-aware container (e.g. chart
     // fullscreen); an explicit callback below would otherwise shadow it.
-    const { getPopupContainer: configGetPopupContainer } = useContext(
-      ConfigProvider.ConfigContext,
-    );
+    const { getPopupContainer: configGetPopupContainer, direction } =
+      useContext(ConfigProvider.ConfigContext);
     // antd v6 widened `showSearch` to `boolean | SearchConfig`; coerce to a
     // plain boolean for Superset's internal toggles and helpers.
     const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [popupPlacement, setPopupPlacement] = useState<
+      'topLeft' | 'topRight'
+    >();
     const [isSearching, setIsSearching] = useState(false);
     const [visibleOptions, setVisibleOptions] = useState<SelectOptionsType>([]);
     const [onChangeCount, setOnChangeCount] = useState(0);
@@ -635,6 +638,16 @@ const Select = forwardRef(
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
+      if (isDropdownVisible) {
+        // Inside a modal, open upward if the popup would cover the footer.
+        setPopupPlacement(
+          getPopupPlacement(
+            selectContainerRef.current?.querySelector('.ant-select'),
+            estimatePopupHeight(fullSelectOptions.length),
+            direction,
+          ),
+        );
+      }
 
       setVisibleOptions(fullSelectOptions);
       // if no search input value, force sort options because it won't be sorted by
@@ -726,7 +739,7 @@ const Select = forwardRef(
 
     const bulkSelectComponent = useMemo(
       () => (
-        <StyledBulkActionsContainer justify="center" gap="small" wrap>
+        <>
           <Button
             type="link"
             buttonStyle="link"
@@ -759,7 +772,7 @@ const Select = forwardRef(
             {t('Clear')}{' '}
             {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
           </Button>
-        </StyledBulkActionsContainer>
+        </>
       ),
       [
         handleSelectAll,
@@ -770,6 +783,17 @@ const Select = forwardRef(
     );
 
     const isLoading = loading ?? false;
+
+    const closeDropdown = () => handleOnDropdownVisibleChange(false);
+
+    // With `open` controlled, antd does not report closing when the select
+    // becomes disabled while open, so sync the state here.
+    useEffect(() => {
+      if (props.disabled && isDropdownVisible) {
+        handleOnDropdownVisibleChange(false);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [props.disabled]);
 
     const popupRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
@@ -782,6 +806,7 @@ const Select = forwardRef(
         helperText,
         undefined,
         selectAllEnabled ? bulkSelectComponent : undefined,
+        isSingleMode ? undefined : closeDropdown,
       );
 
     const handleClear = () => {
@@ -994,6 +1019,10 @@ const Select = forwardRef(
           data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
           popupRender={popupRender}
+          placement={popupPlacement}
+          // Controlled so the multi-select "Done" action can close the popup;
+          // a mousedown inside the popup would otherwise keep it open.
+          open={isDropdownVisible}
           // Forward-compat: TS 6.0 infers stricter antd option types; local
           // helpers typed against AntdLabeledValue are behaviorally compatible
           // with the broader BaseOptionType/DefaultOptionType antd expects.

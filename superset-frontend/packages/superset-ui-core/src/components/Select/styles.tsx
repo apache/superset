@@ -149,11 +149,9 @@ export const StyledBulkActionsContainer = styled(Flex)`
       font-family: inherit;
       margin-left: 0 !important;
     }
-    & .superset-button:first-of-type {
-      padding-right: 0 !important;
-    }
-    & .superset-button:last-of-type {
+    & .superset-button {
       padding-left: 0 !important;
+      padding-right: 0 !important;
     }
   `}
 `;

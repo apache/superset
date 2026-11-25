@@ -58,6 +58,8 @@ import {
   sortComparatorForNoSearchHelper,
   getSuffixIcon,
   dropDownRenderHelper,
+  estimatePopupHeight,
+  getPopupPlacement,
   handleFilterOptionHelper,
   makeQuoteAwareTokenizer,
   mapOptions,
@@ -161,15 +163,18 @@ const AsyncSelect = forwardRef(
     const isSingleMode = mode === 'single';
     // AntdThemeProvider can supply a context-aware container (e.g. chart
     // fullscreen); an explicit callback below would otherwise shadow it.
-    const { getPopupContainer: configGetPopupContainer } = useContext(
-      ConfigProvider.ConfigContext,
-    );
+    const { getPopupContainer: configGetPopupContainer, direction } =
+      useContext(ConfigProvider.ConfigContext);
     const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
     const [error, setError] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [popupPlacement, setPopupPlacement] = useState<
+      'topLeft' | 'topRight'
+    >();
+    const selectContainerRef = useRef<HTMLDivElement>(null);
     const [page, setPage] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
     const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
@@ -695,6 +700,18 @@ const AsyncSelect = forwardRef(
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
+      if (isDropdownVisible) {
+        // Inside a modal, open upward if the popup would cover the footer.
+        // Options load only after opening, so size for a full page until
+        // they arrive.
+        setPopupPlacement(
+          getPopupPlacement(
+            selectContainerRef.current?.querySelector('.ant-select'),
+            estimatePopupHeight(Math.max(fullSelectOptions.length, pageSize)),
+            direction,
+          ),
+        );
+      }
 
       // loading is enabled when dropdown is open,
       // disabled when dropdown is closed
@@ -732,6 +749,17 @@ const AsyncSelect = forwardRef(
       }
     };
 
+    const closeDropdown = () => handleOnDropdownVisibleChange(false);
+
+    // With `open` controlled, antd does not report closing when the select
+    // becomes disabled while open, so sync the state here.
+    useEffect(() => {
+      if (props.disabled && isDropdownVisible) {
+        handleOnDropdownVisibleChange(false);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [props.disabled]);
+
     const popupRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
     ) =>
@@ -742,6 +770,8 @@ const AsyncSelect = forwardRef(
         fullSelectOptions.length,
         helperText,
         error ? <Error error={error} /> : undefined,
+        undefined,
+        isSingleMode ? undefined : closeDropdown,
       );
 
     const handleClear = () => {
@@ -920,7 +950,7 @@ const AsyncSelect = forwardRef(
     };
 
     return (
-      <StyledContainer headerPosition={headerPosition}>
+      <StyledContainer ref={selectContainerRef} headerPosition={headerPosition}>
         {header && (
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}
@@ -936,6 +966,10 @@ const AsyncSelect = forwardRef(
           data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
           popupRender={popupRender}
+          placement={popupPlacement}
+          // Controlled so the multi-select "Done" action can close the popup;
+          // a mousedown inside the popup would otherwise keep it open.
+          open={isDropdownVisible}
           // Forward-compat: TS 6.0 infers stricter antd option types; local
           // helpers typed against AntdLabeledValue are behaviorally compatible
           // with the broader BaseOptionType/DefaultOptionType antd expects.
