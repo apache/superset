@@ -2735,18 +2735,25 @@ def test_fetch_arrow_none_before_the_description_is_set() -> None:
     assert _ArrowSpec.fetch_arrow(_Cursor()) is None
 
 
-def test_fetch_arrow_limits_a_table() -> None:
+def test_fetch_arrow_skips_a_limited_table_only_fetch() -> None:
+    """A table-only fetch would materialize every row, so ``limit`` skips it."""
     import pyarrow as pa
 
     class _Cursor:
         description = [("a", "int")]
+        called = False
 
         def to_arrow_table(self) -> pa.Table:
+            self.called = True
             return pa.table({"a": pa.array([1, 2, 3, 4, 5])})
 
-    table = _ArrowSpec.fetch_arrow(_Cursor(), limit=2)
+    cursor = _Cursor()
+    assert _ArrowSpec.fetch_arrow(cursor, limit=2) is None
+    assert cursor.called is False
+
+    table = _ArrowSpec.fetch_arrow(_Cursor())
     assert table is not None
-    assert table.column("a").to_pylist() == [1, 2]
+    assert table.column("a").to_pylist() == [1, 2, 3, 4, 5]
 
 
 def test_fetch_arrow_stops_reading_batches_at_the_limit() -> None:

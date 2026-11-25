@@ -1828,7 +1828,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def fetch_arrow(cls, cursor: Any, limit: int | None = None) -> Any:
         """
         Fetch the result as an Arrow table, or None when the engine has not
-        opted in or the cursor has no Arrow fetch method. Callers check the
+        opted in, the cursor has no Arrow fetch method, or a row limit is set
+        and the cursor can only fetch a full table. Callers check the
         ``ARROW_NATIVE_RESULT_SET`` feature flag first.
         """
         if not cls.supports_arrow_result:
@@ -1843,10 +1844,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return None
             if reader_method is not None:
                 return cls._table_from_arrow_reader(reader_method(limit), limit)
-            table = table_method()
+            # A table-only fetch materializes the whole result, so a limited
+            # read falls back to ``fetch_data`` and its ``fetchmany``.
             if limit is not None:
-                return table.slice(0, limit)
-            return table
+                return None
+            return table_method()
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 

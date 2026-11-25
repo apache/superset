@@ -2836,11 +2836,12 @@ class _ArrowAndRowsCursor:
         self.arrow_reads = 0
         self._rows: list[tuple[int, ...]] = [(value,) for value in values]
 
-    def to_arrow_table(self) -> Any:
+    def to_arrow_reader(self, batch_size: int | None = None) -> Any:
         import pyarrow as pa
 
         self.arrow_reads += 1
-        return pa.table({"a": pa.array(self.values, type=pa.int64())})
+        table = pa.table({"a": pa.array(self.values, type=pa.int64())})
+        return table.to_reader(max_chunksize=batch_size or table.num_rows)
 
     def fetchmany(self, size: int | None = None) -> list[tuple[int, ...]]:
         size = len(self._rows) if size is None else size
@@ -2879,17 +2880,17 @@ def test_read_sqllab_payload_uses_arrow_and_trims_the_extra_row(
 
     mocker.patch("superset.is_feature_enabled", return_value=True)
     query = MagicMock(limit=2, limiting_factor="QUERY")
-    table, rows = _read_sqllab_payload(
-        query, _ArrowAndRowsCursor([1, 2, 3]), DuckDBEngineSpec
-    )
+    cursor = _ArrowAndRowsCursor([1, 2, 3])
+    table, rows = _read_sqllab_payload(query, cursor, DuckDBEngineSpec)
     assert rows is None
+    assert cursor.arrow_reads == 1
     assert table.column("a").to_pylist() == [1, 2]
     assert query.limiting_factor == "QUERY"
 
     fitting = MagicMock(limit=10, limiting_factor="QUERY")
-    table, rows = _read_sqllab_payload(
-        fitting, _ArrowAndRowsCursor([1, 2]), DuckDBEngineSpec
-    )
+    fitting_cursor = _ArrowAndRowsCursor([1, 2])
+    table, rows = _read_sqllab_payload(fitting, fitting_cursor, DuckDBEngineSpec)
+    assert fitting_cursor.arrow_reads == 1
     assert table.num_rows == 2
     assert fitting.limiting_factor == LimitingFactor.NOT_LIMITED
 

@@ -4010,11 +4010,12 @@ class _ArrowAndRowsCursor:
         self.arrow_reads = 0
         self._rows: list[tuple[int, ...]] = [(value,) for value in values]
 
-    def to_arrow_table(self) -> Any:
+    def to_arrow_reader(self, batch_size: int | None = None) -> Any:
         import pyarrow as pa
 
         self.arrow_reads += 1
-        return pa.table({"a": pa.array(self.values, type=pa.int64())})
+        table = pa.table({"a": pa.array(self.values, type=pa.int64())})
+        return table.to_reader(max_chunksize=batch_size or table.num_rows)
 
     def fetchmany(self, size: int | None = None) -> list[tuple[int, ...]]:
         size = len(self._rows) if size is None else size
@@ -4054,15 +4055,21 @@ def test_execute_sql_with_cursor_arrow_sets_truncated(
 ) -> None:
     mocker.patch("superset.is_feature_enabled", return_value=True)
 
-    truncated = _run_with_arrow_cursor(mocker, _ArrowAndRowsCursor([1, 2, 3]), 2)
+    truncated_cursor = _ArrowAndRowsCursor([1, 2, 3])
+    truncated = _run_with_arrow_cursor(mocker, truncated_cursor, 2)
+    assert truncated_cursor.arrow_reads == 1
     assert truncated.truncated is True
     assert truncated.pa_table.column("a").to_pylist() == [1, 2]
 
-    exact = _run_with_arrow_cursor(mocker, _ArrowAndRowsCursor([1, 2]), 2)
+    exact_cursor = _ArrowAndRowsCursor([1, 2])
+    exact = _run_with_arrow_cursor(mocker, exact_cursor, 2)
+    assert exact_cursor.arrow_reads == 1
     assert exact.truncated is False
     assert exact.size == 2
 
-    unlimited = _run_with_arrow_cursor(mocker, _ArrowAndRowsCursor([1, 2, 3]), None)
+    unlimited_cursor = _ArrowAndRowsCursor([1, 2, 3])
+    unlimited = _run_with_arrow_cursor(mocker, unlimited_cursor, None)
+    assert unlimited_cursor.arrow_reads == 1
     assert unlimited.truncated is False
     assert unlimited.size == 3
 

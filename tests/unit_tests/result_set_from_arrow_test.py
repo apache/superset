@@ -433,18 +433,45 @@ def test_fetch_arrow_result_leaves_the_cursor_when_the_flag_is_off(
     assert cursor.reads == 0
 
 
+class _ReaderCursor:
+    def __init__(self, values: list[int]) -> None:
+        self.description = [("a", "int")]
+        self.values = values
+        self.reads = 0
+
+    def to_arrow_reader(self) -> pa.RecordBatchReader:
+        self.reads += 1
+        return pa.table({"a": pa.array(self.values)}).to_reader(max_chunksize=1)
+
+
 def test_fetch_arrow_result_reports_truncation(mocker: MockerFixture) -> None:
     from superset.result_set import fetch_arrow_result
 
     mocker.patch("superset.is_feature_enabled", return_value=True)
-    table, truncated = fetch_arrow_result(_ArrowSpec, _TableCursor([1, 2, 3]), 2)
+    table, truncated = fetch_arrow_result(_ArrowSpec, _ReaderCursor([1, 2, 3]), 2)
     assert truncated is True
     assert table is not None
     assert table.column("a").to_pylist() == [1, 2]
 
-    table, truncated = fetch_arrow_result(_ArrowSpec, _TableCursor([1, 2]), 2)
+    table, truncated = fetch_arrow_result(_ArrowSpec, _ReaderCursor([1, 2]), 2)
     assert truncated is False
     assert table is not None
     assert table.num_rows == 2
 
     assert fetch_arrow_result(BaseEngineSpec, _TableCursor([1]), None) == (None, False)
+
+
+def test_fetch_arrow_result_skips_a_limited_table_only_fetch(
+    mocker: MockerFixture,
+) -> None:
+    from superset.result_set import fetch_arrow_result
+
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    cursor = _TableCursor([1, 2, 3])
+    assert fetch_arrow_result(_ArrowSpec, cursor, 2) == (None, False)
+    assert cursor.reads == 0
+
+    table, truncated = fetch_arrow_result(_ArrowSpec, _TableCursor([1, 2, 3]), None)
+    assert truncated is False
+    assert table is not None
+    assert table.column("a").to_pylist() == [1, 2, 3]
