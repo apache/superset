@@ -1925,7 +1925,7 @@ def test_validate_query_object_still_refuses_true_adhoc_dimensions(
     query_object: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
-        columns=[column],
+        columns=[cast(AdhocColumn, column)],
     )
     with pytest.raises(
         QueryObjectValidationError, match="Adhoc dimensions are not supported"
