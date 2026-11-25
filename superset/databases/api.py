@@ -1243,8 +1243,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             # unreachable, etc), not a Superset bug, so it must not log at
             # error/exception level or propagate as an unhandled 500.
             logger.warning(
-                "Unable to fetch table metadata due to a database connection "
-                "error: %s",
+                "Unable to fetch table metadata due to a database connection error: %s",
                 ex,
             )
             return self.response(
