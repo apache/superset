@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -166,7 +167,7 @@ def test_overflowing_range_falls_back_with_log(caplog) -> None:
     assert "overflows" in caplog.text
 
 
-def _assert_finite_and_json_safe(result: dict) -> None:
+def _assert_finite_and_json_safe(result: dict[str, Any]) -> None:
     flat = [v for pair in result["points"] for v in pair]
     assert np.all(np.isfinite(flat))
     json.dumps(result, allow_nan=False, ignore_nan=False)
