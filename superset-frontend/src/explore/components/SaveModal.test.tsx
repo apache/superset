@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import type { QueryFormData } from '@superset-ui/core';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
@@ -100,7 +100,7 @@ jest.mock('@superset-ui/core/components/TreeSelect', () => ({
 }));
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 const initialState = {
   chart: {},
   saveModal: {

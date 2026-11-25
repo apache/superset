@@ -178,6 +178,7 @@ def _partition_transform_error(
 def _partition_mapping_reference_error(
     orm_datasource: Any,
     datasource_dict: dict[str, Any],
+    database_changed: bool,
 ) -> str | None:
     """
     Why this request's partition mapping references cannot be stored, if any.
@@ -200,6 +201,13 @@ def _partition_mapping_reference_error(
     Gated on the feature flag, like `UpdateDatasetCommand`'s own call: with the
     flag off nothing mirrors, and a deployment that never turned the feature on
     should not start failing saves over a reference nothing reads.
+
+    Gated on the engine too, for the same reason and again like
+    `UpdateDatasetCommand`: the editor hides the mapping and the query path
+    ignores it on an engine without the capability, so its owner could not see
+    or repair the reference this would refuse. That engine is the one the request
+    leaves the dataset on, and `save` assigns only `database_id`, so on a move
+    `orm_datasource.database` still answers for the database being left.
     """
     if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
         return None
@@ -208,25 +216,35 @@ def _partition_mapping_reference_error(
     if not partition_column:
         return None
 
-    database = getattr(orm_datasource, "database", None)
-    if database is None:
+    database = (
+        DatasetDAO.get_database_by_id(datasource_dict["database"]["id"])
+        if database_changed
+        else getattr(orm_datasource, "database", None)
+    )
+    if (
+        database is None
+        or not database.db_engine_spec.supports_partition_filter_mapping
+    ):
         return None
 
     # The columns the request is about to write, not the ones in storage:
     # `update_from_object` replaces the collection, so a reference has to be
     # checked against what will be there afterwards.
-    column_names = {
-        column.get("column_name")
+    columns_by_name = {
+        column.get("column_name"): column
         for column in datasource_dict.get("columns") or []
         if column.get("column_name")
     }
     for issue in validate_partition_mapping(
-        column_names=column_names,
+        column_names=set(columns_by_name),
         partition_column=partition_column,
         partition_mapped_column=datasource_dict.get("partition_mapped_column"),
         main_dttm_col=datasource_dict.get("main_dttm_col"),
         transform=None,
         engine=database.backend,
+        partition_expression=columns_by_name.get(partition_column, {}).get(
+            "expression"
+        ),
     ):
         if issue.blocking:
             return str(issue.message)
@@ -573,7 +591,9 @@ class Datasource(BaseSupersetView):
         # And the mapping's own column references, for the same reason: they
         # ride in on `update_from_object` with no validation, and a dangling one
         # fails every later PUT rather than this request.
-        if error := _partition_mapping_reference_error(orm_datasource, datasource_dict):
+        if error := _partition_mapping_reference_error(
+            orm_datasource, datasource_dict, database_changed
+        ):
             return json_error_response(error, status=422)
         if limits_error := _time_range_limits_error(orm_datasource, datasource_dict):
             status, messages = limits_error

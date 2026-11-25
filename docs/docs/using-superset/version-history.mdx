@@ -84,6 +84,13 @@ stops filling — an empty or stale history misrepresents the entity as
 unchanged. History only accrues while capture is on; edits made while it was
 off are not reconstructed.
 
+At commit time, an optional history-capture failure isolated by a successful
+savepoint rollback may omit history while allowing the save to succeed. A database
+error outside that isolation, or a lost transaction or savepoint, rejects the
+whole save. This applies to ordinary content saves as well as archive operations:
+Superset does not report success when it cannot establish that the user's changes
+survived the capture failure.
+
 ## Retention
 
 The `version_history.prune_old_versions` background task prunes expired
@@ -207,6 +214,13 @@ entries without an explicit creation classification can retain **Cloned** or
 
 On a chart, open **… (actions) → View version history** in Explore. A dashboard
 uses the same entry in its own **… (actions)** menu.
+
+History overlays the right side of the Explore workspace below its header,
+including on wide screens, without resizing the chart. It can cover chart content
+such as the last table columns or recent data points, along with the row count,
+cache information, and results controls. Close history to see the full chart.
+Closing history also exits any active version preview and returns to the live
+chart.
 
 The entry appears for users who may edit the entity — the same rule the server
 applies to overwriting it: administrators, plus anyone whose subjects are among
@@ -374,6 +388,49 @@ you are looking at.
 
 Changes made outside a save, such as ownership or permission edits, are not part
 of version history.
+
+### Chart archive activity on dashboards
+
+With `SOFT_DELETE` and versioning capture enabled, archiving a chart records
+an archive event for each dashboard containing it at capture time.
+`VERSION_HISTORY` controls whether the UI and supporting APIs expose that activity;
+turning it off does not stop archive capture. With the flag enabled, dashboards
+show **Chart archived: &lt;chart name&gt;** in related activity. Bulk archives show
+one entry per chart. The entry uses the chart's name and the archive capture time, and remains
+an archive entry after the chart is recovered. Chart history itself contains only
+content activity.
+
+Membership is captured after the archive transaction's changes have been flushed.
+A chart attached while capture was disabled can therefore appear in its dashboard's
+archive activity; one detached during that interval does not. Later membership
+changes do not move old archive entries between dashboards. Archived dashboards
+retain their captured membership and can show the activity after recovery.
+A dashboard with no saved content history can show archive activity without an
+**Original version** entry.
+
+Archive entries have no content preview, restore-version, or open-as-new action.
+Archived charts do not link to Explore; recovering a chart enables the link again.
+Recover charts through **Recently Archived**: restoring a content version does not
+unarchive them. Explicit recovery events are not recorded. The chart's last content
+version remains current after recovery without another save.
+
+History permissions still apply: dashboard history requires edit access, related
+names require access to the related resource, and actor and raw change details
+require edit access to that resource. For archived related resources, actor and
+raw detail remain hidden from non-Admin readers, including the archiver. The panel
+labels a hidden or unavailable actor **System**; this label does not establish that
+the action was automated.
+
+Permanent purge removes a chart's archive entries from all dashboards, even when history retention is disabled or longer
+than archive retention. Normal history retention can also remove expired archive
+activity; archive membership does not keep expired transactions alive.
+
+Deploy the database migration before enabling archive capture. Archives made with
+capture disabled, denied by host policy, or skipped because capture storage was
+unavailable are not backfilled. If capture was disabled during archive and a later
+write creates the first content baseline, its attribution comes from the archived
+row's stored audit fields and can credit the archiver; it does not reconstruct an
+archive event.
 
 ### Resuming capture after a disabled interval
 

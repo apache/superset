@@ -107,7 +107,7 @@ from superset.commands.database.exceptions import DatasetValidationError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.distributed_lock.acquire import AcquireDistributedLock
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
-from superset.commands.exceptions import TagForbiddenError
+from superset.commands.exceptions import CommandException, TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import (
     get_contents_from_bundle,
@@ -244,6 +244,10 @@ from superset.utils.core import (
     write_zip_entry,
 )
 from superset.utils.file import get_filename
+from superset.utils.i18n import (
+    is_asset_translation_enabled,
+    translate_many,
+)
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -271,7 +275,11 @@ from superset.views.base_api import (
     validate_feature_flags,
 )
 from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
-from superset.views.error_handling import handle_api_exception, json_error_response
+from superset.views.error_handling import (
+    command_exception_response,
+    handle_api_exception,
+    json_error_response,
+)
 from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedUsers,
@@ -369,6 +377,7 @@ BASE_LIST_COLUMNS = [
     "created_by.id",
     "created_by.last_name",
     "dashboard_title",
+    "localized_title",
     "editors.id",
     "editors.label",
     "editors.type",
@@ -1069,6 +1078,16 @@ class DashboardRestApi(
             dashboard_grant = security_manager.has_promiscuous_dashboard_access(
                 DashboardDAO.get_by_id_or_slug(id_or_slug)
             )
+            # This is the payload the dashboard actually renders from, so it is
+            # where batching has to happen: resolve every chart name up front and
+            # the per-chart ``localized_name`` lookups below read from the request
+            # memo instead of calling the translation hook once per chart.
+            if is_asset_translation_enabled():
+                translate_many(
+                    (chart.slice_name for chart in charts),
+                    model_name="Slice",
+                    field_name="slice_name",
+                )
             result = [
                 self._serialize_dashboard_chart(chart, dashboard_grant=dashboard_grant)
                 for chart in charts
@@ -3602,7 +3621,12 @@ class DashboardRestApi(
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
             encrypted_extra_secrets=encrypted_extra_secrets,
         )
-        command.run()
+        try:
+            command.run()
+        except CommandException as ex:
+            # Return the same well-formed error body as the global
+            # CommandException handler for expected, client-caused failures.
+            return command_exception_response(ex)
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/embedded", methods=("GET",))

@@ -3900,7 +3900,11 @@ def test_saved_query_context_reads_the_checked_query(
     api = ChartDataRestApi()
     api.datamodel = mocker.MagicMock()
     api.datamodel.get.return_value = SimpleNamespace(
-        id=1, params="{}", query_context=json.dumps(saved)
+        id=1,
+        datasource_type="table",
+        viz_type="table",
+        params="{}",
+        query_context=json.dumps(saved),
     )
     built: list[str] = []
 

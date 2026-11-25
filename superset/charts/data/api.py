@@ -66,6 +66,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.chart_types import pin_saved_chart_type
 from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
@@ -212,6 +213,9 @@ class ChartDataRestApi(ChartRestApi):
                 )
             )
 
+        # The saved chart's type is authoritative for a replayed context.
+        pin_saved_chart_type(json_body, chart.datasource_type, chart.viz_type)
+
         # override saved query context
         json_body["result_format"] = request.args.get(
             "format", ChartDataResultFormat.JSON
@@ -219,8 +223,20 @@ class ChartDataRestApi(ChartRestApi):
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
         json_body["force"] = request.args.get("force")
 
+        if chart.datasource_type == "semantic_view":
+            # Semantic views bind this chart as ``slice_`` below, and the guest
+            # payload check then requires ``form_data.slice_id`` to match it. A
+            # saved context is replayed verbatim, so it can lack the id or, after
+            # "Save as", carry the source chart's; stamp it as the browser does.
+            saved_form_data: object = json_body.get("form_data")
+            json_body["form_data"] = {
+                **(saved_form_data if isinstance(saved_form_data, dict) else {}),
+                "slice_id": chart.id,
+            }
+
         # Apply dashboard filter context when filters_dashboard_id is provided
         dashboard_filter_context: DashboardFilterContext | None = None
+        filters_dashboard_id: int | None
         if "filters_dashboard_id" in request.args:
             raw = request.args.get("filters_dashboard_id")
             try:

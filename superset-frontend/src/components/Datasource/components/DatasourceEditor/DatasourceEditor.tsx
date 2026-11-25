@@ -77,7 +77,7 @@ import {
   Label,
   Modal,
 } from '@superset-ui/core/components';
-import { FilterableTable } from 'src/components';
+import { FilterableTable, ListViewFilterOperator } from 'src/components';
 import {
   executeQuery,
   formatQuery,
@@ -86,12 +86,12 @@ import {
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl, openInNewTab } from 'src/utils/navigationUtils';
-import Subject from 'src/types/Subject';
 import SubjectPicker, {
   normalizeSubjectsToPickerValues,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import { DatabaseSelector } from '../../../DatabaseSelector';
+import type { DatabaseObject } from '../../../DatabaseSelector/types';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -101,7 +101,7 @@ import {
   fetchSyncedColumns,
   updateColumns,
 } from '../../utils';
-import DatasetUsageTab from './components/DatasetUsageTab';
+import DatasetUsageTab, { type UsageChart } from './components/DatasetUsageTab';
 import {
   PartitionColumnFields,
   PartitionMappingSection,
@@ -114,6 +114,7 @@ import {
   defaultTransformFor,
   discardedMappedTransform,
   nextMappedColumnOverride,
+  partitionFilterMappingEnabled,
   partitionMappingErrors,
   resolveMappedColumn,
 } from './components/PartitionFilterMapping/utils';
@@ -225,6 +226,9 @@ interface DatasourceObject {
   partition_mapped_column?: string | null;
   // Engine-supplied pre-fill for a temporal column's value transform. Read-only.
   partition_value_transform_default?: string | null;
+  // Whether the engine's tables are partition-directory laid out. Gates whether
+  // the partition filter mapping UI is offered at all. Engine-supplied, read-only.
+  supports_partition_filter_mapping?: boolean;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -320,28 +324,6 @@ interface DatabaseState {
 
 interface RootState {
   database?: DatabaseState;
-}
-
-interface ChartUsageData {
-  id: number;
-  slice_name: string;
-  url: string;
-  certified_by?: string;
-  certification_details?: string;
-  description?: string;
-  editors?: Subject[];
-  changed_on_delta_humanized?: string;
-  changed_on?: string;
-  changed_by?: {
-    first_name?: string;
-    last_name?: string;
-    id?: number;
-  };
-  dashboards?: Array<{
-    id: number;
-    dashboard_title: string;
-    url: string;
-  }>;
 }
 
 interface AbortControllers {
@@ -480,9 +462,11 @@ const ColumnButtonWrapper = styled.div`
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
-  span {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
+  /* Space the row's items (certified badge, column-name control, PARTITION tag)
+     with a flex gap rather than a span margin: the name is rendered via
+     EditableTitle/TextControl, not a plain span, so the old span-only rule left
+     the tag touching the name. */
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 // The partition column is a technical key rather than something an analyst
@@ -689,8 +673,7 @@ function ColumnCollectionTable({
     />
   );
 
-  const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && Boolean(datasource);
+  const partitionMappingEnabled = partitionFilterMappingEnabled(datasource);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;
@@ -1161,7 +1144,7 @@ function DatasourceEditor({
       ? DATASOURCE_TYPES.virtual.key
       : DATASOURCE_TYPES.physical.key,
   );
-  const [usageCharts, setUsageCharts] = useState<ChartUsageData[]>([]);
+  const [usageCharts, setUsageCharts] = useState<UsageChart[]>([]);
   const [usageChartsCount, setUsageChartsCount] = useState(0);
   const [metricSearchTerm, setMetricSearchTerm] = useState('');
   const [columnSearchTerm, setColumnSearchTerm] = useState('');
@@ -1247,7 +1230,7 @@ function DatasourceEditor({
       // that is a blocking error with no way out -- the partition-column
       // dropdown is physical-only, so reopening such a dataset and changing
       // nothing but its description left Save permanently disabled.
-      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+      if (partitionFilterMappingEnabled(datasource)) {
         validationErrors = validationErrors.concat(
           partitionMappingErrors(datasource, [
             ...databaseColumns,
@@ -1325,6 +1308,24 @@ function DatasourceEditor({
       const newDatasource = { ...prev, [attr]: value };
       return newDatasource;
     });
+  }, []);
+
+  // The partition mapping capability and its transform pre-fill belong to the
+  // engine, and arrive on the dataset payload for the database it was loaded
+  // with. Pointing the dataset at another database has to re-derive both from
+  // the selected database's engine, or the editor keeps offering (or keeps
+  // hiding) partition mapping according to the engine it just left.
+  const onDatabaseChange = useCallback((db: DatabaseObject | undefined) => {
+    if (db === undefined) return;
+    setDatasource(prev => ({
+      ...prev,
+      database: db,
+      supports_partition_filter_mapping: Boolean(
+        db.supports_partition_filter_mapping,
+      ),
+      partition_value_transform_default:
+        db.partition_value_transform_default ?? null,
+    }));
   }, []);
 
   // Effect to trigger validation after datasource changes (skip initial mount)
@@ -1589,11 +1590,13 @@ function DatasourceEditor({
     // calculated column, so both lists are cleared.
     setDatabaseColumns(prev => clearMappingTransforms(prev));
     setCalculatedColumns(prev => clearMappingTransforms(prev));
-    // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- nothing mirrored onto it, and the panel's warning
-    // saying so. The column's own `filterable`/`groupby` flags are untouched:
-    // designating a partition column has never hidden it from Explore (see
-    // `handlePartitionColumnChange`).
+    // The partition column stays designated and the override is cleared. A null
+    // `partition_mapped_column` means "follow `main_dttm_col`", so when the
+    // dataset has a default datetime column the mapping returns to it rather
+    // than going away. Only without one does this reach the 1g state -- no
+    // mapped column, nothing mirrored onto the partition column. The column's
+    // own `filterable`/`groupby` flags are untouched: designating a partition
+    // column has never hidden it from Explore (see `handlePartitionColumnChange`).
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, []);
 
@@ -1630,11 +1633,16 @@ function DatasourceEditor({
       // writes whatever the flag says. The datetime column select itself is
       // not gated, since it predates this feature.
       //
+      // The engine gate applies for the same reason. On an engine without the
+      // capability the mapping is hidden and ignored but kept, so it comes
+      // back if the dataset is pointed at a supported engine; clearing it here
+      // would save the loss as explicit nulls behind a control nobody can see.
+      //
       // Changing the default datetime column is rarely meant as a change to
       // the mapping, so when it would cost the transform the mapping mirrors,
       // the owner confirms that first and cancelling keeps the old column.
       if (
-        !isFeatureEnabled(FeatureFlag.PartitionFilterMapping) ||
+        !partitionFilterMappingEnabled(datasource) ||
         !datasource.partition_column ||
         datasource.partition_mapped_column
       ) {
@@ -1669,6 +1677,7 @@ function DatasourceEditor({
       datasource.main_dttm_col,
       datasource.partition_column,
       datasource.partition_mapped_column,
+      datasource.supports_partition_filter_mapping,
     ],
   );
 
@@ -1973,7 +1982,6 @@ function DatasourceEditor({
             'changed_by.id',
             'dashboards.id',
             'dashboards.dashboard_title',
-            'dashboards.url',
           ],
           filters: [
             {
@@ -1986,7 +1994,19 @@ function DatasourceEditor({
               opr: 'eq',
               value: datasource.datasource_type || datasource.type,
             },
+            ...(isFeatureEnabled(FeatureFlag.SoftDelete)
+              ? [
+                  {
+                    col: 'id',
+                    opr: ListViewFilterOperator.ChartDeletedState,
+                    value: 'include',
+                  },
+                ]
+              : []),
           ],
+          ...(isFeatureEnabled(FeatureFlag.SoftDelete) && {
+            include_archived_dashboards: true,
+          }),
           order_column: sortColumn,
           order_direction: sortDirection,
           page: page - 1,
@@ -2002,7 +2022,7 @@ function DatasourceEditor({
         const ids = json?.ids || [];
 
         const chartsWithIds = charts.map(
-          (chart: Omit<ChartUsageData, 'id'>, index: number) => ({
+          (chart: Omit<UsageChart, 'id'>, index: number) => ({
             ...chart,
             id: ids[index],
           }),
@@ -2286,7 +2306,7 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
-          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+          {partitionFilterMappingEnabled(datasource) && (
             <PartitionColumnFields
               key={discardCancelCount}
               datasource={datasource}
@@ -2629,8 +2649,7 @@ function DatasourceEditor({
                               onDatasourcePropChange('schema', schema)
                             }
                             onDbChange={db =>
-                              isEditMode &&
-                              onDatasourcePropChange('database', db)
+                              isEditMode && onDatabaseChange(db)
                             }
                             formMode={false}
                             handleError={addDangerToast}
@@ -2828,11 +2847,7 @@ function DatasourceEditor({
                             ? schema => onDatasourcePropChange('schema', schema)
                             : undefined
                         }
-                        onDbChange={
-                          isEditMode
-                            ? db => onDatasourcePropChange('database', db)
-                            : undefined
-                        }
+                        onDbChange={isEditMode ? onDatabaseChange : undefined}
                         onTableSelectChange={
                           isEditMode
                             ? table =>
@@ -3291,11 +3306,7 @@ function DatasourceEditor({
           <StyledTableTabWrapper>
             <DatasetUsageTab
               datasourceId={datasource.id ?? 0}
-              charts={
-                usageCharts as React.ComponentProps<
-                  typeof DatasetUsageTab
-                >['charts']
-              }
+              charts={usageCharts}
               totalCount={usageChartsCount}
               onFetchCharts={fetchUsageData}
               addDangerToast={addDangerToast}

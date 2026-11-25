@@ -33,8 +33,8 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.utils import (
     add_pvm,
-    add_vm,
     ping,
+    rename_permission_view_menu,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
@@ -259,7 +259,6 @@ class SyncPermissionsCommand(BaseCommand):
             catalog,
         )
         if catalog:
-            new_catalog_vm = add_vm(db.session, security_manager, new_catalog_perm_name)
             perm = security_manager.get_catalog_perm(
                 self.old_db_connection_name,
                 catalog,
@@ -269,7 +268,7 @@ class SyncPermissionsCommand(BaseCommand):
                 perm,
             )
             if existing_pvm:
-                existing_pvm.view_menu = new_catalog_vm
+                rename_permission_view_menu(existing_pvm, new_catalog_perm_name)
 
         for schema in schemas:
             new_schema_perm_name = security_manager.get_schema_perm(
@@ -289,7 +288,7 @@ class SyncPermissionsCommand(BaseCommand):
                 perm,
             )
             if existing_pvm:
-                existing_pvm.view_menu.name = new_schema_perm_name
+                rename_permission_view_menu(existing_pvm, new_schema_perm_name)
 
             # Rename permissions on datasets and charts. Bypass the
             # soft-delete visibility filter: a soft-deleted dataset's

@@ -37,6 +37,10 @@ from superset import db
 
 PROBE = "superset.connectors.sqla.partition_mapping.evaluate_transform"
 
+# These tests are about the preview, not the engine gate, so every engine they
+# point the dataset at opts in to partition filter mapping.
+pytestmark = pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
+
 
 @pytest.fixture(autouse=True)
 def enable_partition_filter_mapping(app: Flask) -> Any:
@@ -881,6 +885,39 @@ def test_preview_refuses_a_mapped_column_with_an_advanced_data_type(
     assert "emitted_predicate" not in response.json["result"]
 
 
+def test_preview_declines_on_an_engine_without_partition_filter_mapping(
+    client: Any,
+    full_api_access: None,
+    dataset: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    The query path resolves no mapping on an engine that doesn't advertise
+    `supports_partition_filter_mapping`, so the preview mustn't show a
+    predicate there, nor probe the engine for one.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "engine"
+    assert (
+        "doesn't support partition filter mapping" in (response.json["result"]["error"])
+    )
+    assert "emitted_predicate" not in response.json["result"]
+
+
 def test_preview_renders_a_probed_value_read_from_a_dataframe(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
@@ -1301,7 +1338,11 @@ def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
 
 
 def test_preview_and_the_chart_path_agree_about_a_coarse_column(
-    app: Flask, client: Any, full_api_access: None, dataset: Any
+    app: Flask,
+    client: Any,
+    full_api_access: None,
+    dataset: Any,
+    sqlite_supports_partition_filter_mapping: None,
 ) -> None:
     """
     The invariant behind the fix, asserted in both directions: for the same
@@ -1576,3 +1617,39 @@ def test_preview_leaves_guarded_data_validation_not_checked(
     assert response.status_code == 200, response.json
     assert response.json["result"]["data_validation"] == {"status": "not_checked"}
     query.assert_not_called()
+
+
+def test_preview_refuses_a_templated_partition_column(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The emitted predicate is built outside the template processor, so preview
+    used to report a templated partition key valid with raw ``{{ ... }}`` in
+    the predicate. It is refused before anything reaches the engine.
+    """
+    from superset.connectors.sqla.models import TableColumn
+
+    dataset.columns.append(
+        TableColumn(
+            column_name="dt_calc", type="BIGINT", expression="{{ 'dt_' ~ 'epoch' }}"
+        )
+    )
+    db.session.flush()
+
+    with patch(PROBE, return_value=[1768435200]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+                "partition_column": "dt_calc",
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "validation"
+    assert "Jinja" in result["error"]
+    probe.assert_not_called()
