@@ -100,6 +100,7 @@ import Field from '../Field';
 import {
   clearDanglingPartitionMapping,
   type ColumnMetadata,
+  describeColumnSync,
   fetchSyncedColumns,
   updateColumns,
 } from '../../utils';
@@ -2305,41 +2306,11 @@ function DatasourceEditor({
     if (!pendingSync) {
       return null;
     }
-    const changes = updateColumns(currentColumns, pendingSync, () => {});
-    const oldTypes = new Map(
-      currentColumns.map(col => [col.column_name, col.type]),
+    const { lines, removesMainDttmCol } = describeColumnSync(
+      currentColumns,
+      pendingSync,
+      datasource.main_dttm_col,
     );
-    const newTypes = new Map(
-      pendingSync.map(col => [col.column_name, col.type]),
-    );
-    // One display label per modified column. `updateColumns` reports a column
-    // as modified for a new type or a newly temporal flag only, so an unchanged
-    // type means the flag.
-    // Built outside `t()`: string extraction skips a nested `t()` call.
-    const modifiedLabels = changes.modified.map(name =>
-      oldTypes.get(name) === newTypes.get(name)
-        ? t('%s (now temporal)', name)
-        : t(
-            '%s (%s → %s)',
-            name,
-            oldTypes.get(name) ?? '?',
-            newTypes.get(name) ?? '?',
-          ),
-    );
-    const removesMainDttmCol =
-      !!datasource.main_dttm_col &&
-      changes.removed.includes(datasource.main_dttm_col);
-    const lines = [
-      changes.added.length > 0 && t('Added: %s', changes.added.join(', ')),
-      changes.removed.length > 0 &&
-        t('Removed: %s', changes.removed.join(', ')),
-      modifiedLabels.length > 0 && t('Changed: %s', modifiedLabels.join(', ')),
-      removesMainDttmCol &&
-        t(
-          'The default datetime column "%s" will be removed. Choose another default datetime column.',
-          datasource.main_dttm_col,
-        ),
-    ].filter((line): line is string => !!line);
 
     return (
       <Alert
