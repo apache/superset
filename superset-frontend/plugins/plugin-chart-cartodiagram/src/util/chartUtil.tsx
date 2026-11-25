@@ -18,7 +18,7 @@
  */
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { ChartConfig, ChartConfigFeature } from '../types';
-import ChartWrapper from '../components/ChartWrapper';
+import { ChartWrapper } from '../components/ChartWrapper';
 
 /**
  * Create a chart component for a location.

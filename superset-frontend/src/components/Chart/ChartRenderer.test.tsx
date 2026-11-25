@@ -804,3 +804,121 @@ test('semantic member filters still carry the source view identity', () => {
     },
   });
 });
+
+const appliedCrossFilter: DataMask = {
+  extraFormData: { filters: [{ col: 'gender', op: 'IN', val: ['boy'] }] },
+  filterState: { value: ['boy'] },
+};
+
+test.each<[string, DataMask, DataMask | undefined]>([
+  ['drops an applied cross-filter', appliedCrossFilter, undefined],
+  [
+    'keeps the own state of a mask that also applies a cross-filter',
+    { ...appliedCrossFilter, ownState: { page: 2 } },
+    { ownState: { page: 2 } },
+  ],
+  [
+    'passes a cleared cross-filter through',
+    { extraFormData: { filters: [] }, filterState: { value: null } },
+    { extraFormData: { filters: [] }, filterState: { value: null } },
+  ],
+  [
+    'passes an own-state-only mask through',
+    { ownState: { page: 2 } },
+    { ownState: { page: 2 } },
+  ],
+])(
+  'a chart whose cross-filter scope has no targets %s',
+  (_name, mask, expected) => {
+    const updateDataMask = jest.fn();
+    render(
+      <ChartRenderer
+        {...requiredProps}
+        hasCrossFilterTargets={false}
+        formData={{ ...requiredProps.formData, testDataMask: mask }}
+        actions={{ ...requiredProps.actions, updateDataMask }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+    if (expected) {
+      expect(updateDataMask).toHaveBeenCalledWith(
+        requiredProps.chartId,
+        expected,
+      );
+    } else {
+      expect(updateDataMask).not.toHaveBeenCalled();
+    }
+  },
+);
+
+test('a chart whose cross-filter scope has targets applies cross-filters', () => {
+  const updateDataMask = jest.fn();
+  render(
+    <ChartRenderer
+      {...requiredProps}
+      hasCrossFilterTargets
+      formData={{ ...requiredProps.formData, testDataMask: appliedCrossFilter }}
+      actions={{ ...requiredProps.actions, updateDataMask }}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+  expect(updateDataMask).toHaveBeenCalledWith(
+    requiredProps.chartId,
+    appliedCrossFilter,
+  );
+});
+
+test('a SQL chart click mask is excluded from a versioned semantic receiver', () => {
+  const mask: DataMask = {
+    extraFormData: {
+      filters: [{ col: 'Orders.country', op: 'IN', val: ['US'] }],
+    },
+    filterState: { value: ['US'] },
+  };
+  const source = {
+    ...requiredProps.formData,
+    datasource: '12__table',
+    testDataMask: mask,
+  };
+  const updateDataMask = jest.fn();
+  render(
+    <ChartRenderer
+      {...requiredProps}
+      formData={source}
+      latestQueryFormData={source}
+      actions={{ ...requiredProps.actions, updateDataMask }}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+  const emitted: DataMask = updateDataMask.mock.calls[0][1];
+  expect(emitted).toEqual(mask);
+  const merged = getFormDataWithExtraFilters({
+    chart: {
+      id: 2,
+      form_data: {
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    },
+    chartConfiguration: {
+      1: { id: 1, crossFilters: { scope: 'global', chartsInScope: [2] } },
+    },
+    sourceDatasources: { 1: source.datasource },
+    filters: {},
+    sliceId: 2,
+    nativeFilters: {},
+    dataMask: { 1: { id: '1', ...emitted } },
+    extraControls: {},
+    allSliceIds: [1, 2],
+  });
+  expect(merged.extra_form_data?.filters ?? []).toEqual([]);
+  expect(
+    buildQueryObject({
+      extra_form_data: merged.extra_form_data,
+      semantic_selection_version: merged.semantic_selection_version,
+      datasource: '3__semantic_view',
+      viz_type: 'table',
+    }).extras?.semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+});

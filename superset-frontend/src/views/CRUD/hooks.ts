@@ -40,7 +40,7 @@ import type {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilterValue as FilterValue,
 } from 'src/components';
-import Chart, { Slice } from 'src/types/Chart';
+import { Chart, Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getShareableUrl } from 'src/utils/navigationUtils';
 import SupersetText from 'src/utils/textUtils';
@@ -363,10 +363,8 @@ export function useListViewResource<D extends object = any>(
 
     // Nudges are lossy and not replayed, so after recovering from a dropped
     // socket refetch the currently-displayed rows once to reconcile anything
-    // missed while disconnected. Only on a real `reconnect` — not the initial
-    // connect (rows were just fetched) or a seamless `keepalive` token refresh —
-    // so a healthy socket doesn't trigger a full re-fetch every keepalive cycle.
-    // In-place merge, no full-list redraw.
+    // missed while disconnected. Only on a real `reconnect`, not the initial
+    // connect (rows were just fetched). In-place merge, no full-list redraw.
     const unsubscribeOpen = subscribeRealtimeOpen(reason => {
       if (reason !== 'reconnect') return;
       patchRows(collectionRef.current.map(rowId));
@@ -530,6 +528,7 @@ export function useSingleViewResource<
       hideToast = false,
       setLoading = true,
       shouldApplyResponse: () => boolean = () => true,
+      rejectOnError = false,
     ) => {
       // Set loading state
       if (setLoading) {
@@ -569,6 +568,7 @@ export function useSingleViewResource<
               error: errMsg,
             });
 
+            if (rejectOnError) throw errMsg;
             return errMsg;
           }),
         )
@@ -647,12 +647,12 @@ export function useImportResource(
         failed: false,
       });
 
+      const RECOVERY_TEXT = t(
+        'Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import.',
+      );
+
       const formData = new FormData();
       formData.append('formData', bundle);
-
-      const RE_EXPORT_TEXT = t(
-        'Please re-export your file and try importing again',
-      );
 
       /* The import bundle never contains database passwords; if required
        * they should be provided by the user during import.
@@ -736,7 +736,7 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  error.message || error.error,
+                  [error.message || error.error, RECOVERY_TEXT].join('\n'),
                 ),
               );
               return false;
@@ -748,8 +748,8 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    RE_EXPORT_TEXT,
-                  ].join('.\n'),
+                    ...(resourceName !== 'dashboard' ? [RECOVERY_TEXT] : []),
+                  ].join('\n'),
                 ),
               );
             } else {
@@ -776,7 +776,20 @@ export function useImportResource(
     [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
 
-  return { state, importResource };
+  const resetImportState = useCallback(() => {
+    updateState({
+      loading: false,
+      failed: false,
+      passwordsNeeded: [],
+      alreadyExists: [],
+      sshPasswordNeeded: [],
+      sshPrivateKeyNeeded: [],
+      sshPrivateKeyPasswordNeeded: [],
+      encryptedExtraFieldsNeeded: [],
+    });
+  }, [updateState]);
+
+  return { state, importResource, resetImportState };
 }
 
 type FavoriteStatusResponse = {
@@ -893,6 +906,8 @@ export const useChartEditModal = (
 
   function handleChartUpdated(edits: Chart) {
     // update the chart in our state with the edited info
+    // ``edits`` is the chart re-fetched after the save, so it already carries
+    // localized_name resolved for the new canonical name; the spread keeps it.
     const newCharts = charts.map((chart: Chart) =>
       chart.id === edits.id ? { ...chart, ...edits } : chart,
     );

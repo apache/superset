@@ -730,6 +730,56 @@ class TestChartDataValuePreservation:
         assert isinstance(result, ChartData)
         assert result.csv_data == f"id\r\n{identifier}\r\n"
 
+    @pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+    def test_excel_export_keeps_formula_like_text_for_both_writers(
+        self, engine: str
+    ) -> None:
+        """
+        Text that a writer would otherwise store as a formula or a link stays a
+        text cell holding the same text, so it reads back as it was exported.
+        """
+        import base64
+        import io
+
+        from openpyxl import load_workbook
+
+        from superset.mcp_service.chart.tool.get_chart_data import (
+            _create_excel_with_openpyxl,
+            _create_excel_with_xlsxwriter,
+        )
+
+        chart = cast(
+            Any,
+            SimpleNamespace(id=12, slice_name="Formula export", viz_type="table"),
+        )
+        exporter = (
+            _create_excel_with_openpyxl
+            if engine == "openpyxl"
+            else _create_excel_with_xlsxwriter
+        )
+        texts = [
+            '=HYPERLINK("http://x","y")',
+            "=1+1",
+            "{=1+1}",
+            "-122.4,37.8",
+            "http://example.com",
+        ]
+
+        encoded = exporter(
+            chart,
+            [{"=HDR()": text, "n": 3} for text in texts] + [{"=HDR()": None, "n": 3}],
+            ["=HDR()", "n"],
+        )
+        content = io.BytesIO(base64.b64decode(encoded))
+        sheet = load_workbook(content).active
+        cells = [row[0] for row in sheet.iter_rows()]
+
+        assert [cell.value for cell in cells] == ["=HDR()", *texts, None]
+        assert [cell.data_type for cell in cells[:-1]] == ["s"] * (len(texts) + 1)
+        assert [cell.hyperlink for cell in cells] == [None] * (len(texts) + 2)
+        assert [cell.data_type for cell in sheet["B"][1:]] == ["n"] * (len(texts) + 1)
+        assert pd.read_excel(content)["=HDR()"].tolist()[:-1] == texts
+
 
 class _AsyncContext:
     async def report_progress(self, *args: Any, **kwargs: Any) -> None:
@@ -3941,16 +3991,9 @@ class TestOAuthErrorRouting:
 
 
 def _guest_rls_refusal() -> Exception:
-    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-    from superset.exceptions import SupersetSecurityException
+    from superset.exceptions import SemanticViewGuestRLSUnsupportedError
 
-    return SupersetSecurityException(
-        SupersetError(
-            message="Semantic views cannot enforce guest row-level security rules.",
-            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-            level=ErrorLevel.WARNING,
-        )
-    )
+    return SemanticViewGuestRLSUnsupportedError()
 
 
 def _invalid_filter_rejection() -> Exception:

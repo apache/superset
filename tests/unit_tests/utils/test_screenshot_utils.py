@@ -20,6 +20,10 @@ import shutil
 import struct
 import subprocess
 import zlib
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -34,13 +38,19 @@ from superset.utils.report_execution import (
 )
 from superset.utils.screenshot_utils import (
     _stable_readiness_js,
+    CHART_HOLDERS_MOUNTED_JS,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
     FIND_ALL_CHART_HOLDER_STATES_JS,
     FIND_CHART_HOLDER_STATES_JS,
     get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
+    REPORT_ALL_CHART_HOLDERS_READY_JS,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
+    REPORT_CHART_HOLDERS_READY_JS,
+    REPORT_LAYOUT_READY_JS,
+    report_mounted_js,
+    report_ready_js,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
     ScreenshotBlankCaptureError,
@@ -53,6 +63,9 @@ from superset.utils.screenshot_utils import (
     validate_report_screenshot,
     wait_for_stable_readiness,
 )
+
+if TYPE_CHECKING:
+    from playwright.sync_api import Page
 
 
 def _png(width: int, height: int, color: str) -> bytes:
@@ -1383,6 +1396,9 @@ class TestTakeTiledScreenshot:
             polling=None,
         ):
             nonlocal wait_calls
+            if expression == REPORT_LAYOUT_READY_JS:
+                events.append("layout")
+                return
             if wait_calls == 0:
                 events.append("mount")
             elif "__supersetCaptureReadiness" in expression:
@@ -1428,6 +1444,7 @@ class TestTakeTiledScreenshot:
 
         assert result == content_png
         assert events == [
+            "layout",
             "mount",
             "dimensions",
             "ready",
@@ -1439,7 +1456,9 @@ class TestTakeTiledScreenshot:
         """An empty DOM cannot vacuously pass the tiled readiness gate."""
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
-        mock_page.wait_for_function.side_effect = PlaywrightTimeout("zero holders")
+        mock_page.wait_for_function.side_effect = _layout_ready_then(
+            PlaywrightTimeout("zero holders")
+        )
         mock_page.evaluate.return_value = []
 
         with pytest.raises(PlaywrightTimeout):
@@ -1676,7 +1695,10 @@ class TestTakeTiledScreenshot:
             )
 
         # Each call uses viewport-scoped JS and the load_wait timeout
-        mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
+        layout_call, mount_call, *tile_calls = (
+            mock_page.wait_for_function.call_args_list
+        )
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
         assert "length > 0" in mount_call.args[0]
         assert mount_call.kwargs["timeout"] == 30 * 1000
         for call in tile_calls:
@@ -1696,7 +1718,7 @@ class TestTakeTiledScreenshot:
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
         timeout = PlaywrightTimeout("Timeout waiting for chart holders")
-        mock_page.wait_for_function.side_effect = [None, timeout]
+        mock_page.wait_for_function.side_effect = [None, None, timeout]
         mock_page.evaluate.side_effect = [
             {"height": 5000, "top": 100, "left": 50, "width": 800},  # dimensions
             None,  # window.scrollTo(...) for tile 1
@@ -1719,8 +1741,9 @@ class TestTakeTiledScreenshot:
         # a blank or partially-loaded tile.
         mock_page.screenshot.assert_not_called()
 
-        # The mount gate passes and only the first tile readiness poll runs.
-        assert mock_page.wait_for_function.call_count == 2
+        # The layout and mount gates pass and only the first tile readiness
+        # poll runs.
+        assert mock_page.wait_for_function.call_count == 3
 
         # A chart failing to load in time is a customer chart-loading issue,
         # not a Superset system fault -- WARNING, not ERROR (#38130, #38441).
@@ -2599,3 +2622,1228 @@ def test_expand_scrollable_content_resolves_nested_ancestor_clip() -> None:
             assert after_box["height"] >= n_rows * row_height_px
         finally:
             browser.close()
+
+
+# DOM/CSS of the chart-only page that `ChartScreenshot` captures
+# (`standalone=REPORT`), measured on a master build and reduced to the rules that
+# decide layout. Every class is a plain stylesheet rule, never an inline `style`
+# attribute, because that is how the real plugins (emotion) style them and what
+# the inline-`style` selector in EXPAND_SCROLLABLE_CONTENT_JS cannot see.
+#
+# `.shell-*` is the app shell above `.chart-container`: a growable flex `body`
+# (`min-height: 100vh`, GlobalStyles) over flex-column wrappers that fill it, down
+# to the ExploreChartPanel wrapper (`flex: 1; min-height: 0; overflow: hidden`).
+# There is no fixed viewport-height ancestor clamp (percentage heights remain, but
+# they resolve against content-driven parents), so the wrapper grows with its
+# content. The 6.1.0 shell pinned `html, body, #app` to `height: 100%`, which did
+# clamp it; that layout is out of scope here.
+_CHART_CAPTURE_FIXTURE_CSS = """
+html { height: 100%; }
+body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+.shell-app { flex: 1 1 auto; position: relative; display: flex;
+  flex-direction: column; }
+.shell-flex, .shell-layout, .shell-content, .shell-portal { display: flex;
+  flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.shell-portal { height: 100%; }
+.shell-standalone { position: relative; height: 100%; flex: 1 1 auto;
+  display: flex; flex-direction: column; }
+.shell-chart-panel { min-height: 0; flex: 1; overflow: hidden; }
+.dashboard-chart { overflow: hidden; position: relative; height: 400px; }
+.chart-container { min-height: 600px; position: relative; }
+.dashboard-chart .chart-container { min-height: 400px; }
+.slice_container { display: flex; flex-direction: column;
+  justify-content: center; height: 600px; }
+.dashboard-chart .slice_container { height: 400px; }
+.pivot-styles { margin: 16px; height: 568px; width: 760px; }
+.pivot-wrapper { height: 100%; max-width: inherit; overflow: auto; }
+.handlebars-styles { height: 568px; width: 760px; padding: 16px;
+  overflow: auto; }
+.ag-parent { height: 568px; }
+.ag-host { height: 100%; overflow: auto; }
+.legend-viewport { max-height: 100px; overflow-x: hidden; overflow-y: auto;
+  width: 100%; }
+.nest-root { height: 568px; width: 760px; overflow: hidden; }
+.nest-fill { height: 100%; overflow: hidden; }
+.cards { height: 568px; overflow: auto; }
+.card { height: 40px; overflow: hidden; position: relative; }
+.badge { position: absolute; bottom: -20px; }
+td { height: 24px; padding: 0 4px; border: 1px solid #888; font: 12px sans-serif; }
+td.marker { background: #222; color: #fff; }
+"""
+
+_CHART_CAPTURE_ROWS = 300
+
+# More nesting levels than the fixed-point loop used to allow passes for.
+_NESTED_CLIP_DEPTH = 8
+# `.nest-root`'s height, which the whole chain resolves against.
+_NESTED_CLIP_WRAPPER_HEIGHT_PX = 568
+# A height cap small enough that a 300-row fixture clearly overshoots it, so a
+# capped capture is distinguishable from an uncapped one.
+_CHART_CAPTURE_SMALL_CAP_PX = 2000
+# `.chart-container`'s width at the default chart window, which turns a
+# device-pixel budget into the height it allows.
+_CHART_CAPTURE_WIDTH_PX = 800
+# Rows enough to make an inline-overflow table taller than the fixed 16384px
+# cap the device-pixel budget replaced, while staying far inside that budget.
+_INLINE_OVERFLOW_PARITY_ROWS = 1000
+_REPLACED_FIXED_CAP_PX = 16384
+# Enough clipped boxes that re-reading all of them on every pass of the
+# fixed-point loop is measurably quadratic.
+_OVERFLOWING_CARD_COUNT = 200
+# A budget that divides exactly at the default width and a scale factor of 2:
+# 6,400,000 / (800 * 2 * 2) = 2000 CSS px, i.e. a 1600x4000 image.
+_HIGH_DPI_BUDGET_PX = 6_400_000
+_HIGH_DPI_SCALE_FACTOR = 2
+_HIGH_DPI_ALLOWED_CSS_PX = 2000
+
+
+def _chart_capture_rows(n_rows: int) -> str:
+    marked = {0: "first", n_rows // 2: "middle", n_rows - 1: "last"}
+    rows = []
+    for i in range(n_rows):
+        cell = '<td class="marker">' if i in marked else "<td>"
+        row_id = f' id="row-{marked[i]}"' if i in marked else ""
+        rows.append(
+            f"<tr{row_id}>{cell}PRODUCT_{i // 5:03d}</td>"
+            f"{cell}Customer {i:04d}</td><td>{i}</td></tr>"
+        )
+    return "".join(rows)
+
+
+def _pivot_chart_body(n_rows: int) -> str:
+    """Pivot-table DOM shape: a fixed-pixel-height div (no overflow) around a
+    `height: 100%; overflow: auto` div that scrolls the table."""
+    return (
+        '<div class="pivot-styles"><div class="pivot-wrapper">'
+        f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
+        "</div></div>"
+    )
+
+
+def _inline_overflow_chart_body(n_rows: int) -> str:
+    """The shape EXPAND_SCROLLABLE_CONTENT_JS already handles: the scroller
+    carries its fixed height and overflow inline."""
+    return (
+        '<div style="height: 568px; overflow: auto; width: 760px;">'
+        f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
+        "</div>"
+    )
+
+
+def _handlebars_style_chart_body(n_rows: int) -> str:
+    """A class-styled fixed-height scroller around a user-templated table, the
+    shape of the Handlebars chart. Covered only incidentally: the table chain
+    policy does not know which chart type it is looking at."""
+    return (
+        '<div class="handlebars-styles">'
+        f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
+        "</div>"
+    )
+
+
+def _ag_grid_chart_body(n_rows: int) -> str:
+    """A table inside an ag-Grid host whose box is class-styled. No grid API is
+    attached, so the print-layout mechanism has nothing to act on and any change
+    to the box would have to come from the table-chain pass."""
+    return (
+        '<div class="ag-parent"><div class="ag-host" data-themed-ag-grid="true">'
+        f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
+        "</div></div>"
+    )
+
+
+def _deeply_nested_chart_body(n_rows: int) -> str:
+    """`_NESTED_CLIP_DEPTH` class-styled fixed-height wrappers around a long
+    table. Every level's height is exactly its (still-clipped) child's, so a
+    level reports no overflow of its own until the level inside it has been
+    lifted -- the shape that costs the fixed-point loop one pass per level."""
+    html = f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
+    for _ in range(_NESTED_CLIP_DEPTH - 1):
+        html = f'<div class="nest-fill">{html}</div>'
+    return f'<div class="nest-root">{html}</div>'
+
+
+def _overflowing_cards_chart_body(n_cards: int) -> str:
+    """A chart made of `n_cards` fixed-height clipped boxes, each holding its
+    own small table and a badge hanging below its bottom edge.
+
+    A card still reports overflow after it has been lifted, because the badge
+    is positioned past the bottom of its box -- the shape that makes
+    re-checking already-lifted nodes on every pass expensive."""
+    cards = "".join(
+        '<div class="card"><table><tbody>'
+        f"<tr><td>row {i} a</td></tr><tr><td>row {i} b</td></tr>"
+        '</tbody></table><span class="badge">b</span></div>'
+        for i in range(n_cards)
+    )
+    return f'<div class="cards">{cards}</div>'
+
+
+def _legend_and_canvas_chart_body(_n_rows: int) -> str:
+    """Intentionally bounded, non-table content: a legend that scrolls inside a
+    `max-height` box (class-styled, like the ECharts legend viewport) and a
+    canvas host that clips to its own box (the canvas is absolutely positioned,
+    as in the ECharts root, so it leaves no baseline gap that would overflow)."""
+    items = "".join(f"<div>series {i}</div>" for i in range(40))
+    return (
+        f'<div id="legend" class="legend-viewport">{items}</div>'
+        '<div id="canvas-host" style="position: relative; height: 400px; '
+        'width: 760px; overflow: hidden;"><canvas width="760" height="400" '
+        'style="position: absolute; left: 0; top: 0;"></canvas></div>'
+    )
+
+
+def _wrap_chart_capture(body: str, layout: str) -> str:
+    chart = (
+        f'<div class="chart-container"><div class="slice_container">{body}</div></div>'
+    )
+    if layout == "shell":
+        chart = (
+            '<div class="shell-app"><div class="shell-flex"><div class="shell-layout">'
+            '<div class="shell-content"><div class="shell-portal">'
+            '<div class="shell-standalone"><div class="shell-chart-panel">'
+            f"{chart}</div></div></div></div></div></div></div>"
+        )
+    elif layout == "dashboard":
+        chart = f'<div class="dashboard-chart">{chart}</div>'
+    return (
+        f"<!doctype html><html><head><style>{_CHART_CAPTURE_FIXTURE_CSS}</style>"
+        f"</head><body>{chart}</body></html>"
+    )
+
+
+@contextmanager
+def _chart_capture_page(html: str, device_scale_factor: int = 1) -> Iterator["Page"]:
+    """A page at the default chart window size holding `html`.
+
+    `device_scale_factor` is what `get_screenshot` passes as the browser
+    context's scale factor (the `pixel_density` config), so it decides how many
+    image pixels each CSS pixel of the capture costs.
+
+    Skips (does not fail) when Playwright's Python package or its Chromium
+    binary is unavailable, like the other real-browser test in this module;
+    any other launch failure is a real error.
+    """
+    pytest.importorskip("playwright.sync_api")
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
+
+    with sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch()
+        except PlaywrightError as ex:
+            if "Executable doesn't exist" in str(ex):
+                pytest.skip(f"Chromium is not installed for Playwright: {ex}")
+            raise
+        try:
+            # DEFAULT_CHART_WINDOW_SIZE
+            page = browser.new_page(
+                viewport={"width": _CHART_CAPTURE_WIDTH_PX, "height": 600},
+                device_scale_factor=device_scale_factor,
+            )
+            page.set_content(html)
+            yield page
+        finally:
+            browser.close()
+
+
+def _measure_markers(page: "Page") -> dict[str, tuple[int, int]]:
+    """Top and bottom of the first, middle and last row, relative to the top of
+    `.chart-container`."""
+    top = page.locator(".chart-container").bounding_box()
+    assert top is not None
+    markers = {}
+    for name in ("first", "middle", "last"):
+        box = page.locator(f"#row-{name}").bounding_box()
+        assert box is not None
+        markers[name] = (
+            round(box["y"] - top["y"]),
+            round(box["y"] + box["height"] - top["y"]),
+        )
+    return markers
+
+
+def _assert_markers_painted(png: bytes, markers: dict[str, tuple[int, int]]) -> None:
+    image = Image.open(io.BytesIO(png)).convert("L")
+    for name, (y0, y1) in markers.items():
+        assert image.height >= y1, (
+            f"screenshot is {image.height}px tall but the {name} row ends {y1}px "
+            "below the top of the chart: rows are cut off"
+        )
+        # Pillow pads a crop that falls outside the image with black, which
+        # would satisfy the dark-pixel check below, so a row cropped away
+        # (e.g. above the top of the capture) has to be rejected here.
+        assert 0 <= y0 < y1 <= image.height, (
+            f"the {name} row (y={y0}..{y1}) lies outside the {image.height}px capture"
+        )
+        dark = image.crop((0, y0, 200, y1)).point(lambda v: 255 if v < 80 else 0)
+        painted = sum(1 for v in dark.getdata() if v) / (200 * (y1 - y0))
+        assert painted > 0.5, (
+            f"the {name} row (y={y0}..{y1}) is not painted in the capture "
+            f"({painted:.0%} of its marker cell)"
+        )
+
+
+@pytest.mark.parametrize(
+    ("body", "n_rows", "layout"),
+    [
+        # Controls: content the pre-capture expansion is known to cope with.
+        pytest.param(_pivot_chart_body, 10, "shell", id="control-short-pivot"),
+        pytest.param(
+            _inline_overflow_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "bare",
+            id="control-long-inline-overflow-scroller",
+        ),
+        pytest.param(
+            _inline_overflow_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "shell",
+            id="control-long-inline-overflow-scroller-in-shell",
+        ),
+        # Incidental coverage: the same policy also un-clips this table shape.
+        pytest.param(
+            _handlebars_style_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "shell",
+            id="incidental-handlebars-style-table",
+        ),
+        # The reported bug: a long pivot table.
+        pytest.param(
+            _pivot_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "bare",
+            id="long-pivot-scroller-clips-chart-container",
+        ),
+        pytest.param(
+            _pivot_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "shell",
+            id="long-pivot-in-app-shell",
+        ),
+    ],
+)
+def test_chart_container_screenshot_captures_whole_content(
+    body: Callable[[int], str], n_rows: int, layout: str
+) -> None:
+    """Real-browser guard (Playwright/Chromium) for the chart screenshot API:
+    after the production pre-capture step, the PNG that
+    `WebDriverPlaywright._get_screenshot` takes of `.chart-container` must reach
+    down to, and actually paint, the first, middle and last row of the table.
+
+    A pivot table scrolls inside an emotion-styled `overflow: auto` div under a
+    fixed-height parent. Neither carries an inline `style`, so the selector of
+    the expansion script never matches them and `.chart-container` stays at the
+    window height.
+    """
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    with _chart_capture_page(_wrap_chart_capture(body(n_rows), layout)) as page:
+        chart_container = page.locator(".chart-container")
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, chart_container, "chart-container"
+        )
+
+    _assert_markers_painted(png, markers)
+
+
+@pytest.mark.parametrize("element_name", ["standalone", "chart-container"])
+def test_expansion_leaves_dashboard_chart_clip_alone(element_name: str) -> None:
+    """A dashboard tile clips its chart on purpose (`.dashboard-chart` is
+    `overflow: hidden` at a fixed height). The expansion script also runs for
+    dashboard captures, so it must not un-clip the tile or resize it: the
+    table pass is not run for a dashboard target, and refuses on its own when
+    pointed at a chart inside a tile."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_pivot_chart_body(_CHART_CAPTURE_ROWS), "dashboard")
+    with _chart_capture_page(html) as page:
+        measure = """() => {
+            const tile = document.querySelector('.dashboard-chart');
+            const scroller = document.querySelector('.pivot-wrapper');
+            return {
+                tileOverflow: getComputedStyle(tile).overflowY,
+                tileHeight: tile.getBoundingClientRect().height,
+                scrollerOverflow: getComputedStyle(scroller).overflowY,
+                scrollerHeight: scroller.getBoundingClientRect().height,
+            };
+        }"""
+        before = page.evaluate(measure)
+        WebDriverPlaywright._expand_scrollable_content(page, element_name=element_name)
+        after = page.evaluate(measure)
+
+    assert before["tileOverflow"] == "hidden"
+    assert after == before
+
+
+def test_expansion_keeps_ag_grid_print_layout_mechanism() -> None:
+    """ag-Grid is un-clipped through its own API (`domLayout: print`), plus a
+    height reset on its host and the host's parent; that mechanism is separate
+    from the CSS overflow handling and must keep working as is."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = """<!doctype html><html><body>
+      <div id="parent" style="height: 300px;">
+        <div id="grid" data-themed-ag-grid="true" style="height: 300px;"></div>
+      </div></body></html>"""
+    with _chart_capture_page(html) as page:
+        page.evaluate(
+            """() => {
+                const calls = (window.__gridOptions = []);
+                document.getElementById('grid')._agGridApi = {
+                    setGridOption: (key, value) => calls.push([key, value]),
+                    resetRowHeights: () => calls.push(['reset', true]),
+                };
+            }"""
+        )
+        WebDriverPlaywright._expand_scrollable_content(page)
+        recorded = page.evaluate("window.__gridOptions")
+        grid_height = page.evaluate("document.getElementById('grid').style.height")
+        parent_height = page.evaluate("document.getElementById('parent').style.height")
+
+    assert ["domLayout", "print"] in recorded
+    assert grid_height == "auto"
+    assert parent_height == "auto"
+
+
+def test_expansion_leaves_bounded_non_table_widgets_alone() -> None:
+    """Content that scrolls or clips by design and holds no table (a legend in
+    a `max-height` box, a canvas host) must keep its box and its scrolling."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_legend_and_canvas_chart_body(0), "shell")
+    with _chart_capture_page(html) as page:
+        measure = """() => {
+            const legend = document.getElementById('legend');
+            const host = document.getElementById('canvas-host');
+            return {
+                legendOverflow: getComputedStyle(legend).overflowY,
+                legendClient: legend.clientHeight,
+                legendScroll: legend.scrollHeight,
+                hostOverflow: getComputedStyle(host).overflowY,
+                hostHeight: host.getBoundingClientRect().height,
+                chartHeight: document.querySelector('.chart-container')
+                    .getBoundingClientRect().height,
+            };
+        }"""
+        before = page.evaluate(measure)
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        after = page.evaluate(measure)
+
+    # The legend really does scroll before, so "unchanged" is meaningful.
+    assert before["legendScroll"] > before["legendClient"]
+    assert after == before
+
+
+def test_table_pass_excludes_ag_grid_hosts() -> None:
+    """A table inside an ag-Grid host is not the table pass's business: ag-Grid
+    is un-clipped through its own print layout, so the host's box and its
+    parent's must stay as they are."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_ag_grid_chart_body(_CHART_CAPTURE_ROWS), "shell")
+    with _chart_capture_page(html) as page:
+        measure = """() => {
+            const host = document.querySelector('.ag-host');
+            return {
+                hostOverflow: getComputedStyle(host).overflowY,
+                hostHeight: host.getBoundingClientRect().height,
+                parentHeight: host.parentElement.getBoundingClientRect().height,
+                chartHeight: document.querySelector('.chart-container')
+                    .getBoundingClientRect().height,
+            };
+        }"""
+        before = page.evaluate(measure)
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        after = page.evaluate(measure)
+
+    # The host really does clip before, so "unchanged" is meaningful.
+    assert before["hostOverflow"] == "auto"
+    assert after == before
+
+
+@pytest.mark.parametrize("layout", ["bare", "shell"])
+@pytest.mark.parametrize(
+    ("n_rows", "cap_px", "truncates"),
+    [
+        pytest.param(
+            _CHART_CAPTURE_ROWS,
+            _CHART_CAPTURE_SMALL_CAP_PX,
+            True,
+            id="past-a-patched-budget-is-truncated",
+        ),
+        pytest.param(
+            _CHART_CAPTURE_ROWS,
+            None,
+            False,
+            id="within-the-production-budget-is-whole",
+        ),
+    ],
+)
+def test_lifted_chart_height_is_bounded_by_the_cap(
+    n_rows: int, cap_px: int | None, truncates: bool, layout: str
+) -> None:
+    """The lift must stop at `expand_chart_table_max_pixels()`.
+
+    A pivot near its default cell limit would otherwise grow without bound and
+    become a PNG past Pillow's decompression-bomb limit, which
+    `validate_report_screenshot` rejects -- so a huge report would be dropped
+    entirely rather than delivered with its tail truncated. `cap_px` is the
+    height the budget has to allow at this capture's width; `None` means the
+    real budget, which a 300-row fixture is nowhere near.
+
+    What is truncated matters as much as the bound: `.slice_container` centers
+    its content (`superset-frontend/src/components/Chart/Chart.tsx`), so a
+    capped window would show the middle of the table and crop the headings and
+    first rows away along with the tail.
+    """
+    from superset.utils import webdriver
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    budget = (
+        cap_px * _CHART_CAPTURE_WIDTH_PX
+        if cap_px is not None
+        else webdriver.expand_chart_table_max_pixels()
+    )
+    html = _wrap_chart_capture(_pivot_chart_body(n_rows), layout)
+    with _chart_capture_page(html) as page:
+        with patch.object(
+            webdriver, "expand_chart_table_max_pixels", return_value=budget
+        ):
+            WebDriverPlaywright._expand_scrollable_content(
+                page, element_name="chart-container"
+            )
+        table_height = page.evaluate("document.getElementById('content').scrollHeight")
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, page.locator(".chart-container"), "chart-container"
+        )
+
+    captured_height = Image.open(io.BytesIO(png)).height
+    allowed_height = budget // _CHART_CAPTURE_WIDTH_PX
+    if truncates:
+        assert table_height > allowed_height, (
+            "the fixture is not taller than the budget allows, so it cannot "
+            "show what the budget does"
+        )
+        assert captured_height == allowed_height
+        # The tail is truncated by design, but the head of the table has to
+        # stay inside the capture rather than being centered out of it.
+        assert markers["first"][0] >= 0, (
+            f"the first row starts {markers['first'][0]}px above the top of "
+            "the capture: the capped window is not aligned to the top of the "
+            "content"
+        )
+        _assert_markers_painted(png, {"first": markers["first"]})
+    else:
+        assert table_height <= allowed_height
+        assert captured_height >= table_height
+        _assert_markers_painted(png, markers)
+
+
+def test_pixel_budget_is_counted_in_device_pixels() -> None:
+    """The budget bounds the image, and an image is measured in device pixels.
+
+    A capture at `pixel_density` 2 costs four device pixels per CSS pixel, so
+    the budget has to be divided by the width *and* the scale factor twice.
+    Dropping one factor of the ratio would allow twice the pixel area the
+    limit permits at density 2, and dropping both -- dividing by the CSS width
+    alone -- four times. Either mistake is indistinguishable from the correct
+    arithmetic at density 1, which every other test here runs at.
+    """
+    from superset.utils import webdriver
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_pivot_chart_body(_CHART_CAPTURE_ROWS), "shell")
+    with _chart_capture_page(html, _HIGH_DPI_SCALE_FACTOR) as page:
+        assert page.evaluate("window.devicePixelRatio") == _HIGH_DPI_SCALE_FACTOR
+        with patch.object(
+            webdriver,
+            "expand_chart_table_max_pixels",
+            return_value=_HIGH_DPI_BUDGET_PX,
+        ):
+            WebDriverPlaywright._expand_scrollable_content(
+                page, element_name="chart-container"
+            )
+        container_height = page.evaluate(
+            "document.querySelector('.chart-container').getBoundingClientRect().height"
+        )
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, page.locator(".chart-container"), "chart-container"
+        )
+
+    # 6,400,000 device px / (800 CSS px wide * 2 * 2) = 2000 CSS px tall, which
+    # the capture renders at the scale factor in both dimensions: 1600x4000,
+    # exactly the budget. Dividing by `width * dpr` -- one factor of the ratio
+    # -- would allow 4000 CSS px here and a 1600x8000 image, twice the pixels
+    # the budget permits; dividing by the CSS width alone would allow 8000 CSS
+    # px and a 1600x16000 image, four times. The container height catches
+    # either.
+    assert container_height == _HIGH_DPI_ALLOWED_CSS_PX
+    image = Image.open(io.BytesIO(png))
+    assert (image.width, image.height) == (
+        _CHART_CAPTURE_WIDTH_PX * _HIGH_DPI_SCALE_FACTOR,
+        _HIGH_DPI_ALLOWED_CSS_PX * _HIGH_DPI_SCALE_FACTOR,
+    )
+    assert image.width * image.height == _HIGH_DPI_BUDGET_PX
+    # `_measure_markers` reports CSS pixels relative to the container, while
+    # the capture is cropped in image pixels.
+    first_y0, first_y1 = markers["first"]
+    _assert_markers_painted(
+        png,
+        {
+            "first": (
+                first_y0 * _HIGH_DPI_SCALE_FACTOR,
+                first_y1 * _HIGH_DPI_SCALE_FACTOR,
+            )
+        },
+    )
+
+
+def test_tall_inline_overflow_table_is_captured_whole() -> None:
+    """A fixed height cap is a regression for a shape that was already captured
+    whole: the generic expansion pass un-clips an inline-`style` scroller (the
+    classic Table chart) on its own, and a 1,000-row table of that shape is
+    taller than 16384px while nowhere near the decompression-bomb limit. The
+    budget has to be counted in device pixels against the capture's width, so
+    this capture stays whole."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(
+        _inline_overflow_chart_body(_INLINE_OVERFLOW_PARITY_ROWS), "shell"
+    )
+    with _chart_capture_page(html) as page:
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        table_height = page.evaluate("document.getElementById('content').scrollHeight")
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, page.locator(".chart-container"), "chart-container"
+        )
+
+    assert table_height > _REPLACED_FIXED_CAP_PX, (
+        "the fixture no longer exceeds the height a fixed cap would impose, so "
+        "it cannot show that the capture is left whole"
+    )
+    assert Image.open(io.BytesIO(png)).height >= table_height
+    _assert_markers_painted(png, markers)
+
+
+def test_expansion_lifts_more_wrappers_than_a_fixed_pass_count() -> None:
+    """Each pass of the fixed-point loop can only lift one nesting level: an
+    outer fixed-height wrapper reports no overflow of its own until the level
+    inside it has grown. A chart nested more deeply than a fixed pass count
+    would therefore keep an outer wrapper clipped and cut rows, so the loop is
+    bounded by the size of the parent chain it is working on instead."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_deeply_nested_chart_body(_CHART_CAPTURE_ROWS), "shell")
+    with _chart_capture_page(html) as page:
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        table_height = page.evaluate("document.getElementById('content').scrollHeight")
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, page.locator(".chart-container"), "chart-container"
+        )
+
+    assert table_height > _NESTED_CLIP_WRAPPER_HEIGHT_PX
+    _assert_markers_painted(png, markers)
+
+
+def test_expansion_does_not_revisit_a_node_that_stays_overflowing() -> None:
+    """A node that still reports overflow after being lifted has nothing more
+    to give, and re-checking it keeps every pass of the fixed-point loop alive
+    until the bound -- one `scrollHeight` read per chain node per pass, which
+    is quadratic in the size of the chain. Each node is lifted at most once, so
+    the work stays proportional to the chain."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(
+        _overflowing_cards_chart_body(_OVERFLOWING_CARD_COUNT), "bare"
+    )
+    with _chart_capture_page(html) as page:
+        page.evaluate(
+            """() => {
+                window.__scrollHeightReads = 0;
+                const inherited = Object.getOwnPropertyDescriptor(
+                    Element.prototype, 'scrollHeight'
+                );
+                Object.defineProperty(Element.prototype, 'scrollHeight', {
+                    configurable: true,
+                    get() {
+                        window.__scrollHeightReads += 1;
+                        return inherited.get.call(this);
+                    },
+                });
+            }"""
+        )
+        # The cards really do clip before the expansion runs, so a cheap pass
+        # would not be cheap merely because it had nothing to do.
+        assert page.evaluate(
+            "document.querySelector('.card').scrollHeight > "
+            "document.querySelector('.card').clientHeight + 1"
+        )
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        reads = page.evaluate("window.__scrollHeightReads")
+
+    assert reads < 10 * _OVERFLOWING_CARD_COUNT, (
+        f"{reads} scrollHeight reads for {_OVERFLOWING_CARD_COUNT} clipped "
+        "boxes: the loop is re-checking nodes it has already lifted"
+    )
+
+
+# App config for the production `get_screenshot` path, with the tiling
+# thresholds lowered so a modest fixture is measured as a tall page.
+_PRODUCTION_CAPTURE_CONFIG = {
+    "WEBDRIVER_OPTION_ARGS": [],
+    "WEBDRIVER_WINDOW": {"pixel_density": 1},
+    "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+    "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "load",
+    "SCREENSHOT_SELENIUM_HEADSTART": 0,
+    "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+    "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+    "SCREENSHOT_LOCATE_WAIT": 10,
+    "SCREENSHOT_LOAD_WAIT": 10,
+    "SCREENSHOT_TILED_ENABLED": True,
+    "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+    "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 1000,
+    "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 1500,
+}
+
+
+def _chart_report_context() -> ReportExecutionContext:
+    """A deterministic scheduled-report context for a single-chart report, with
+    30 seconds available for readiness like `_report_context`."""
+
+    return ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=11,
+        chart_id=42,
+        expected_chart_count=1,
+        deadline=ReportExecutionDeadline(
+            total_seconds=240,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+        capture_reserve_seconds=60,
+        delivery_reserve_seconds=120,
+        cleanup_reserve_seconds=30,
+    )
+
+
+def _capture_through_get_screenshot(
+    html: str,
+    page_file: Path,
+    *,
+    require_complete_capture: bool = False,
+    report_execution_context: ReportExecutionContext | None = None,
+) -> tuple[bytes | None, dict[str, tuple[int, int]], MagicMock]:
+    """Drive the production `get_screenshot` decision against a local HTML file
+    in real Chromium, with the app config and the browser manager standing in
+    for the Flask app and the worker's long-lived browser.
+
+    Returns the capture, the marker rows measured on a separately expanded copy
+    of the same page, and the patched `take_tiled_screenshot` so a test can
+    assert which capture path ran.
+    """
+    pytest.importorskip("playwright.sync_api")
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
+
+    from superset.utils import webdriver
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    page_file.write_text(html)
+    with sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch()
+        except PlaywrightError as ex:
+            if "Executable doesn't exist" in str(ex):
+                pytest.skip(f"Chromium is not installed for Playwright: {ex}")
+            raise
+        try:
+            measuring_page = browser.new_page(viewport={"width": 800, "height": 600})
+            measuring_page.set_content(html)
+            WebDriverPlaywright._expand_scrollable_content(
+                measuring_page, element_name="chart-container"
+            )
+            markers = _measure_markers(measuring_page)
+
+            browser_manager = MagicMock()
+            browser_manager.get_browser.return_value = browser
+            with (
+                patch.object(
+                    webdriver, "app", MagicMock(config=_PRODUCTION_CAPTURE_CONFIG)
+                ),
+                patch.object(
+                    webdriver,
+                    "take_tiled_screenshot",
+                    wraps=webdriver.take_tiled_screenshot,
+                ) as tiled,
+            ):
+                png = WebDriverPlaywright(
+                    "chrome",
+                    (800, 600),
+                    browser_manager=browser_manager,
+                    require_complete_capture=require_complete_capture,
+                ).get_screenshot(
+                    page_file.as_uri(),
+                    "chart-container",
+                    report_execution_context=report_execution_context,
+                )
+        finally:
+            browser.close()
+    return png, markers, tiled
+
+
+def test_tiled_capture_of_tall_chart_paints_whole_content(tmp_path: Path) -> None:
+    """The production `get_screenshot` decision, with the tiling thresholds
+    lowered so a modest fixture takes the tiled branch: once the pivot is
+    un-clipped the chart is tall enough for `take_tiled_screenshot`, and the
+    combined image must still reach and paint the first, middle and last row.
+
+    This is the thumbnail regime -- no report context, no complete-capture
+    requirement -- whose tiling decision must stay as it is."""
+    png, markers, tiled = _capture_through_get_screenshot(
+        _wrap_chart_capture(_pivot_chart_body(120), "bare"),
+        tmp_path / "chart.html",
+    )
+
+    tiled.assert_called_once()
+    assert png is not None
+    _assert_markers_painted(png, markers)
+
+
+@pytest.mark.parametrize(
+    ("require_complete_capture", "report_execution_context"),
+    [
+        pytest.param(True, None, id="api-or-ui-export"),
+        pytest.param(False, _chart_report_context(), id="scheduled-report"),
+    ],
+)
+def test_strict_tall_chart_capture_does_not_take_the_tiled_path(
+    tmp_path: Path,
+    require_complete_capture: bool,
+    report_execution_context: ReportExecutionContext | None,
+) -> None:
+    """A strict single-chart capture must stay on the standard path.
+
+    Un-clipping a long pivot makes the chart taller than the tiling threshold,
+    and a report context or a complete-capture requirement would then route it
+    to `take_tiled_screenshot`. That path's strict mode waits for dashboard
+    chart holders and the dashboard grid, neither of which a chart-only page
+    ever renders, so the capture times out and the report is never delivered.
+    The standard path has its own `.chart-container` readiness wait, and
+    re-expands the content once readiness confirms the chart rendered."""
+    png, markers, tiled = _capture_through_get_screenshot(
+        _wrap_chart_capture(_pivot_chart_body(120), "bare"),
+        tmp_path / "chart.html",
+        require_complete_capture=require_complete_capture,
+        report_execution_context=report_execution_context,
+    )
+
+    tiled.assert_not_called()
+    assert png is not None
+    _assert_markers_painted(png, markers)
+
+
+_FAKE_DOM_SCRIPT = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+global.window = {innerHeight: 800};
+const elements = input.elements.map(spec => ({
+  id: spec.id,
+  classList: {contains: name => spec.classes.includes(name)},
+  getAttribute: name => (name === 'role' && spec.role ? spec.role : null),
+  querySelector: () => (spec.content ? {} : null),
+  querySelectorAll: () => [],
+  parentElement: null,
+}));
+input.elements.forEach((spec, index) => {
+  if (spec.parent !== null) elements[index].parentElement = elements[spec.parent];
+});
+const holder = ready => ({
+  className: 'dashboard-component-chart-holder dashboard-chart-id-7',
+  getBoundingClientRect: () => ({top: 0, bottom: 100}),
+  querySelectorAll: () => [],
+  querySelector: selector =>
+    (ready && selector.includes('slice_container') ? {} : null),
+});
+const holders = input.holders.map(holder);
+global.document = {
+  querySelectorAll: selector =>
+    selector.includes('tabpanel')
+      ? elements.filter(el => el.getAttribute('role') === 'tabpanel')
+      : holders,
+};
+process.stdout.write(JSON.stringify(eval('(' + input.expression + ')')()));
+"""
+
+
+def _eval_in_fake_dom(
+    expression: str,
+    elements: list[dict[str, object]],
+    holders: list[bool] | None = None,
+) -> bool:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute readiness predicates")
+    assert node is not None
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", _FAKE_DOM_SCRIPT],
+        input=json.dumps(
+            {"expression": expression, "elements": elements, "holders": holders or []}
+        ),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    return bool(json.loads(completed.stdout))
+
+
+def _pane(
+    pane_id: str,
+    *,
+    active: bool = True,
+    content: bool = True,
+    parent: int | None = None,
+    legacy: bool = False,
+) -> dict[str, object]:
+    # The pinned antd (@rc-component/tabs) marks panes ``ant-tabs-content`` /
+    # ``ant-tabs-content-active``; older rc-tabs used ``ant-tabs-tabpane``.
+    base = "ant-tabs-tabpane" if legacy else "ant-tabs-content"
+    classes = [base] + ([f"{base}-active"] if active else [])
+    return {
+        "id": pane_id,
+        "classes": classes,
+        "content": content,
+        "parent": parent,
+        "role": "tabpanel",
+    }
+
+
+@pytest.mark.parametrize("all_holders", [True, False])
+def test_empty_tab_pane_with_no_holders_is_ready(all_holders: bool) -> None:
+    expression = report_ready_js(all_holders, "GRID_ID")
+    assert _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-GRID_ID")])
+
+
+@pytest.mark.parametrize("all_holders", [True, False])
+def test_inactive_empty_tab_pane_is_not_ready(all_holders: bool) -> None:
+    expression = report_ready_js(all_holders, "GRID_ID")
+    panes = [_pane("GRID_ID-panel-GRID_ID", active=False)]
+    assert not _eval_in_fake_dom(expression, panes)
+
+
+def test_empty_tab_pane_with_legacy_markup_is_ready() -> None:
+    expression = report_ready_js(True, "GRID_ID")
+    assert _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-GRID_ID", legacy=True)])
+    assert not _eval_in_fake_dom(
+        expression, [_pane("GRID_ID-panel-GRID_ID", active=False, legacy=True)]
+    )
+
+
+def test_empty_tab_pane_ignores_non_pane_content_wrapper_ancestor() -> None:
+    # Legacy rc-tabs wraps panes in a plain ``ant-tabs-content`` div that never
+    # carries an active class; it must not be treated as an inactive pane.
+    expression = report_ready_js(True, "GRID_ID")
+    wrapper = {
+        "id": "",
+        "classes": ["ant-tabs-content"],
+        "content": False,
+        "parent": None,
+        "role": None,
+    }
+    pane = _pane("GRID_ID-panel-GRID_ID", parent=0, legacy=True)
+    assert _eval_in_fake_dom(expression, [wrapper, pane])
+
+
+def test_empty_tab_pane_without_rendered_content_is_not_ready() -> None:
+    expression = report_ready_js(True, "1")
+    assert not _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-1", content=False)])
+
+
+def test_missing_empty_tab_pane_is_not_ready() -> None:
+    expression = report_ready_js(True, "1")
+    assert not _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-GRID_ID")])
+
+
+def test_empty_tab_pane_with_unready_holder_is_not_ready() -> None:
+    expression = report_ready_js(True, "GRID_ID")
+    panes = [_pane("GRID_ID-panel-GRID_ID")]
+    assert not _eval_in_fake_dom(expression, panes, holders=[False])
+    assert _eval_in_fake_dom(expression, panes, holders=[True])
+
+
+def test_root_tab_suffix_requires_exact_root_pane_id() -> None:
+    expression = report_ready_js(True, "1")
+    assert not _eval_in_fake_dom(expression, [_pane("TABS-n-panel-1")])
+    assert _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-1")])
+
+
+def test_nested_empty_tab_requires_every_ancestor_pane_active() -> None:
+    expression = report_ready_js(True, "TAB-N2")
+    active_chain = [
+        _pane("GRID_ID-panel-1"),
+        _pane("TABS-n-panel-TAB-N2", parent=0),
+    ]
+    assert _eval_in_fake_dom(expression, active_chain)
+    inactive_ancestor = [
+        _pane("GRID_ID-panel-1", active=False),
+        _pane("TABS-n-panel-TAB-N2", parent=0),
+    ]
+    assert not _eval_in_fake_dom(expression, inactive_ancestor)
+    lookalike = [_pane("TABS-n-panel-XTAB-N2")]
+    assert not _eval_in_fake_dom(expression, lookalike)
+
+
+def test_mounted_predicate_accepts_empty_active_pane() -> None:
+    panes = [_pane("GRID_ID-panel-GRID_ID")]
+    assert _eval_in_fake_dom(report_mounted_js("GRID_ID"), panes)
+    assert not _eval_in_fake_dom(report_mounted_js("GRID_ID"), [])
+    assert _eval_in_fake_dom(report_mounted_js("GRID_ID"), [], holders=[False])
+
+
+def test_default_report_predicates_are_unchanged_without_suffix() -> None:
+    assert report_ready_js(False) == REPORT_CHART_HOLDERS_READY_JS
+    assert report_ready_js(True) == REPORT_ALL_CHART_HOLDERS_READY_JS
+    assert report_mounted_js() == CHART_HOLDERS_MOUNTED_JS
+    assert "holders.length > 0" in REPORT_CHART_HOLDERS_READY_JS
+    assert not _eval_in_fake_dom(REPORT_ALL_CHART_HOLDERS_READY_JS, [])
+
+
+def _layout_ready_then(error: Exception):
+    """Let the dashboard layout wait pass, then raise ``error`` on any other wait."""
+
+    def wait_for_function(expression, *args, **kwargs):
+        if expression == REPORT_LAYOUT_READY_JS:
+            return None
+        raise error
+
+    return wait_for_function
+
+
+def _roomy_report_context() -> ReportExecutionContext:
+    """A context whose remaining budget far exceeds the 30s load wait."""
+    return ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=11,
+        dashboard_id=805,
+        expected_chart_count=52,
+        deadline=ReportExecutionDeadline(
+            total_seconds=3600,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+        capture_reserve_seconds=60,
+        delivery_reserve_seconds=120,
+        cleanup_reserve_seconds=30,
+    )
+
+
+class TestTiledEmptyTab:
+    @pytest.fixture
+    def mock_page(self):
+        page = MagicMock()
+        page.locator.return_value = MagicMock()
+        return page
+
+    def _run(self, mock_page, context):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        waits: list[tuple[str, float]] = []
+
+        def wait_for_function(expression, *, arg=None, timeout=None, polling=None):
+            waits.append((expression, timeout))
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if "window.scrollTo" in script:
+                return None
+            return {"total": 0, "contentful": 0}
+
+        mock_page.wait_for_function.side_effect = wait_for_function
+        mock_page.evaluate.side_effect = evaluate
+        # A text-only tab renders as a mostly white page with a few lines of
+        # text; zero chart holders means blank-image validation is skipped.
+        sparse = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(sparse).rectangle((20, 20, 300, 40), fill="black")
+        output = io.BytesIO()
+        sparse.save(output, format="PNG")
+        sparse_png = output.getvalue()
+        mock_page.screenshot.return_value = sparse_png
+        self.sparse_png = sparse_png
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=sparse_png,
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=context,
+            )
+        return result, waits
+
+    def test_empty_tab_proceeds_and_caps_waits_at_load_wait(self, mock_page):
+        context = _roomy_report_context().with_empty_tab_pane("GRID_ID")
+
+        result, waits = self._run(mock_page, context)
+
+        assert result == self.sparse_png
+        (layout_js, layout_timeout), *waits = waits
+        assert layout_js == REPORT_LAYOUT_READY_JS
+        assert layout_timeout > 30_000
+        assert all("emptyPaneReady" in expression for expression, _ in waits[:2])
+        assert all(timeout <= 30_000 for _, timeout in waits)
+
+    def test_without_suffix_readiness_waits_use_remaining_budget(self, mock_page):
+        result, waits = self._run(mock_page, _roomy_report_context())
+
+        assert result == self.sparse_png
+        assert not any("emptyPaneReady" in expression for expression, _ in waits)
+        # Layout bootstrap keeps the whole budget, the zero-holder mount wait is
+        # capped, and per-tile readiness keeps the whole budget.
+        assert waits[0] == (REPORT_LAYOUT_READY_JS, 3_390_000)
+        assert waits[1][1] <= 30_000
+        assert waits[2][1] > 30_000
+
+    def test_mount_timeout_raises_never_mounted_for_reports(self, mock_page):
+        from superset.utils.screenshot_utils import (
+            ChartHoldersNeverMountedError,
+            PlaywrightTimeout,
+        )
+
+        mock_page.wait_for_function.side_effect = _layout_ready_then(
+            PlaywrightTimeout("zero")
+        )
+        mock_page.evaluate.return_value = []
+
+        with pytest.raises(ChartHoldersNeverMountedError):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_roomy_report_context(),
+            )
+
+        layout_call, mount_call = mock_page.wait_for_function.call_args_list
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
+        assert mount_call.kwargs["timeout"] == 30_000
+
+    def test_slow_layout_keeps_budget_then_holders_mount(self, mock_page):
+        """Bootstrap slower than load_wait is not cut short by the mount cap."""
+        result, waits = self._run(mock_page, _roomy_report_context())
+
+        assert result == self.sparse_png
+        layout_js, layout_timeout = waits[0]
+        assert layout_js == REPORT_LAYOUT_READY_JS
+        assert layout_timeout == 3_390_000
+        assert "length > 0" in waits[1][0]
+
+    def test_layout_never_rendering_keeps_base_timeout(self, mock_page):
+        """No layout within the budget raises the plain timeout, as before."""
+        from superset.utils.screenshot_utils import (
+            ChartHoldersNeverMountedError,
+            PlaywrightTimeout,
+        )
+
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("no layout")
+        mock_page.evaluate.return_value = []
+
+        with pytest.raises(PlaywrightTimeout) as exc_info:
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_roomy_report_context(),
+            )
+
+        assert not isinstance(exc_info.value, ChartHoldersNeverMountedError)
+        (layout_call,) = mock_page.wait_for_function.call_args_list
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
+        assert layout_call.kwargs["timeout"] == 3_390_000
+        mock_page.screenshot.assert_not_called()
+
+
+_LAYOUT_FAKE_DOM_SCRIPT = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+const present = new Set(input.present);
+global.document = {
+  querySelector: selector => (present.has(selector) ? {} : null),
+};
+process.stdout.write(JSON.stringify(eval('(' + input.expression + ')')()));
+"""
+
+
+def _eval_layout_dom(expression: str, present: list[str]) -> object:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute readiness predicates")
+    assert node is not None
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", _LAYOUT_FAKE_DOM_SCRIPT],
+        input=json.dumps({"expression": expression, "present": present}),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def test_report_layout_wait_ends_on_a_crashed_page() -> None:
+    from superset.utils.screenshot_utils import (
+        DASHBOARD_CRASH_ALERT_SELECTOR,
+        REPORT_LAYOUT_READY_JS,
+    )
+
+    grid = ".dashboard-grid"
+    crash = DASHBOARD_CRASH_ALERT_SELECTOR
+    # Still bootstrapping: keep waiting (a falsy result keeps the poll going).
+    assert _eval_layout_dom(REPORT_LAYOUT_READY_JS, []) is False
+    # Hydrated layout.
+    assert _eval_layout_dom(REPORT_LAYOUT_READY_JS, [grid]) == "ready"
+    # An error boundary replaced the dashboard: the wait ends and is flagged.
+    assert _eval_layout_dom(REPORT_LAYOUT_READY_JS, [crash]) == "crashed"
+    # An error alert next to a rendered grid is not a crash.
+    assert _eval_layout_dom(REPORT_LAYOUT_READY_JS, [grid, crash]) == "ready"
+
+
+class TestTiledCrashedPage:
+    def test_crashed_page_ends_layout_wait_with_friendly_error(self):
+        from superset.utils.screenshot_utils import (
+            ChartHoldersNeverMountedError,
+            DashboardRenderCrashedError,
+            REPORT_LAYOUT_READY_JS,
+        )
+
+        page = MagicMock()
+        page.wait_for_function.return_value.json_value.return_value = "crashed"
+
+        with pytest.raises(DashboardRenderCrashedError) as exc_info:
+            take_tiled_screenshot(
+                page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_roomy_report_context(),
+            )
+
+        assert isinstance(exc_info.value, ChartHoldersNeverMountedError)
+        (layout_call,) = page.wait_for_function.call_args_list
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
+        page.screenshot.assert_not_called()

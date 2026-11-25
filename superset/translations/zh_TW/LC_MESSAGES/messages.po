@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-16 11:41+0530\n"
+"POT-Creation-Date: 2026-11-25 16:54+0530\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -129,9 +129,6 @@ msgstr "另存為新的"
 msgid " at line %(line)d"
 msgstr " 在第 %(line)d 行"
 
-msgid " expression which needs to adhere to the "
-msgstr " 表達式必須基於 "
-
 #, fuzzy
 msgid " for details."
 msgstr "詳細訊息"
@@ -141,29 +138,6 @@ msgstr "詳細訊息"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " 在 '%(highlight)s' 附近"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" 標準，以確保字典序與時間順序一致。如果時間戳記格式不符合 ISO 8601 "
-"標準，您需要定義一個運算式和類型，將字串轉換為日期或時間戳記。請注意，目前不支援時區。如果時間以 epoch 格式儲存，請填入 "
-"`epoch_s`、`epoch_ms` 或 `epoch_us`。如果未指定模式，我們會回退為透過 extra "
-"參數，依資料庫/欄位名稱層級使用可選的預設值。"
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -245,12 +219,6 @@ msgstr "% 佔列總計"
 msgid "% of total"
 msgstr "% 顯示總計"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "%(alertType)s「%(alertName)s」已成功觸發"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -278,6 +246,24 @@ msgstr[0] "%(count)s 個相依資產已封存。"
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "出於安全原因，%(dialect)s SQLite 資料庫不能用作數據源。"
+
+#, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -365,6 +351,12 @@ msgid ""
 "constraints."
 msgstr "%(prefix)s結果因記憶體限制已截斷至 %(row_count)s 筆。"
 
+#, python-format
+msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
@@ -378,12 +370,10 @@ msgstr "%(report_type)s 排程頻率超過限制。請設定每次執行最短�
 msgid "%(rows)d rows returned"
 msgstr "返回了 %(rows)d 行"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 嗎？"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 嗎？"
 
 #, python-format
 msgid ""
@@ -398,6 +388,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1269,6 +1263,12 @@ msgid ""
 "another semantic view, remove this chart from its scope."
 msgstr "儀表板篩選器或顯示控制項含有不相容的語意選取項目。版本化語意檢視不支援動態分組；請將此圖表從該控制項的範圍中移除。對於其他篩選器或控制項，請重設並重新選取欄位或已儲存的值。若其目標為另一個語意檢視，請將此圖表從其範圍中移除。"
 
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -1488,6 +1488,12 @@ msgstr "為看板生成一個可讀的 URL"
 
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "對 [時間] 配置的引用，會將粒度考慮在内"
+
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "A report named \"%(name)s\" already exists"
@@ -1725,6 +1731,12 @@ msgstr "操作"
 
 msgid "Active"
 msgstr "啟用"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 #, fuzzy
 msgid "Actual Values"
@@ -2248,6 +2260,10 @@ msgstr ""
 #, fuzzy
 msgid "Alert"
 msgstr "警報"
+
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 msgid "Alert Triggered, In Grace Period"
 msgstr "告警已觸發，在寬限期内"
@@ -2926,6 +2942,11 @@ msgstr "此儀表板的匯出作業已在進行中。"
 msgid "An unexpected error occurred"
 msgstr "發生了一個錯誤"
 
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
+
 msgid "Anchor to"
 msgstr "锚定到"
 
@@ -3228,6 +3249,12 @@ msgstr "已封存 %s 個項目；已永久刪除 %s 個語意檢視"
 msgid "Archived by"
 msgstr "封存者"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3378,6 +3405,10 @@ msgstr "時間序列面積圖與折線圖相似，因為它們表示具有相同
 
 msgid "Arrow"
 msgstr "箭頭"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 #, fuzzy
 msgid "Assign a set of parameters as"
@@ -3788,6 +3819,9 @@ msgstr "Y 軸的邊界。當空時，邊界是根据數據的最小/最大值動
 msgid "Box Plot"
 msgstr "箱線圖"
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr "分解"
 
@@ -4035,6 +4069,11 @@ msgstr "計算類型"
 
 msgid "Calendar Heatmap"
 msgstr "時間热力圖"
+
+msgid ""
+"Calendar Heatmap is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
 msgstr "無法將頂級選項卡移動到嵌套選項卡中"
@@ -4489,6 +4528,10 @@ msgstr "圖表 [%s] 已經保存"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "圖表 [%s] 已經增加到看板 [%s]"
 
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
+
 msgid "Chart cache timeout"
 msgstr "圖表缓存超時"
 
@@ -4597,6 +4640,9 @@ msgstr "圖表標題"
 msgid "Chart type"
 msgstr "圖表標題"
 
+msgid "Chart type must be a string."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Chart updated: %s"
@@ -4644,6 +4690,12 @@ msgstr "看看這張圖表："
 
 msgid "Check out this dashboard: "
 msgstr "查看此看板："
+
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -5372,6 +5424,10 @@ msgstr "增加指標"
 msgid "Columns folder can only contain column items"
 msgstr "欄位資料夾只能包含欄位項目"
 
+#, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "數據源中缺少列：%(invalid_columns)s"
@@ -5927,6 +5983,10 @@ msgstr "無法獲取所有保存的圖表"
 msgid "Could not find %s"
 msgstr "找不到 %s"
 
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Could not load SQL Lab"
@@ -5947,6 +6007,10 @@ msgid ""
 "Could not load metadata for this configuration; showing the default form."
 " See the server logs for details."
 msgstr "無法載入此設定的中繼資料；顯示預設表單。詳情請參閱伺服器日誌。"
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -5976,6 +6040,9 @@ msgid ""
 " query was not run, because running it would have connected as the wrong "
 "user."
 msgstr "無法解析資料庫連線上要模擬的使用者。查詢未執行，因為執行查詢會以錯誤的使用者身分連線。"
+
+msgid "Could not save this schedule"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -6147,12 +6214,10 @@ msgstr "血红色"
 msgid "Cross-filter column"
 msgstr "交叉篩選作用域"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk]
-#, fuzzy
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
-msgstr "交叉篩選器將套用至所有使用此資料集的圖表。"
+msgid ""
+"Cross-filter will be applied to the charts in this chart's cross-"
+"filtering scope."
+msgstr ""
 
 #, fuzzy
 msgid "Cross-filtering is not enabled for this dashboard."
@@ -6449,7 +6514,7 @@ msgstr "十二月"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "删除"
+msgstr ""
 
 msgid "DML"
 msgstr "允許 DML"
@@ -6483,6 +6548,10 @@ msgstr "看板"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "找不到看板 %(dashboard_id)s"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -7563,6 +7632,9 @@ msgstr "在大數字下面顯示描述文本"
 msgid "Deselect all"
 msgstr "反選所有"
 
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
+
 #, fuzzy
 msgid "Design with"
 msgstr "最小寬度"
@@ -7939,6 +8011,9 @@ msgstr "根據 LIMIT 設定正在下載 %(rows)s 列。如果您想要完整的�
 msgid "Draft"
 msgstr "草稿"
 
+msgid "Draft dashboard access"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -8151,6 +8226,11 @@ msgstr "方向"
 msgid "Dynamic group by"
 msgstr "需要進行分組的一列或多列"
 
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "動態聚合函數"
@@ -8166,7 +8246,7 @@ msgstr "從資料集動態選擇群組欄位"
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "ECharts 圖表"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -8175,9 +8255,8 @@ msgid "ECharts Options (JS object literals)"
 msgstr "ECharts 選項（JS 物件字面量）"
 
 #. do-not-translate
-#, fuzzy
 msgid "EMAIL_REPORTS_CTA"
-msgstr "啟用郵件報告"
+msgstr ""
 
 #, fuzzy
 msgid "ERROR"
@@ -8621,6 +8700,10 @@ msgstr "结束日期必須大於起始日期"
 #, fuzzy
 msgid "Ends With"
 msgstr "邊缘寬度"
+
+#, python-format
+msgid "Ends with %s."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Ends with (ILIKE %x)"
@@ -9129,6 +9212,14 @@ msgstr "實驗"
 msgid "Expired"
 msgstr "探索"
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Expires on"
@@ -9144,10 +9235,6 @@ msgstr "明確格式會依據內建邊界驗證所有值。支援的國家/地�
 
 msgid "Explore"
 msgstr "探索"
-
-#, python-format
-msgid "Explore - %(table)s"
-msgstr "查看 - %(table)s"
 
 msgid "Explore the result set in the data exploration view"
 msgstr "在數據探索視圖中探索结果集"
@@ -9316,6 +9403,9 @@ msgstr "不能為空"
 msgid "Expression evaluated — data not checked"
 msgstr "運算式已評估 — 未檢查資料"
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
 msgid ""
@@ -9427,6 +9517,10 @@ msgstr "複製到剪貼簿"
 #, fuzzy
 msgid "Failed to create API key"
 msgstr "創建報告發生錯誤"
+
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9610,10 +9704,6 @@ msgid "Failed to revoke API key"
 msgstr "撤銷 API 金鑰失敗"
 
 #, fuzzy
-msgid "Failed to save chart customization"
-msgstr "保存交叉篩選作用域失敗"
-
-#, fuzzy
 msgid "Failed to save cross-filter scoping"
 msgstr "保存交叉篩選作用域失敗"
 
@@ -9656,11 +9746,13 @@ msgstr "儲存查詢結果失敗，請再試一次。"
 msgid "Failed to tag items"
 msgstr "給對象打標籤失敗"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "觸發 %(alertType)s「%(alertName)s」失敗：%(error)s"
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "更新報告失敗"
@@ -10333,9 +10425,8 @@ msgid "Further customize how to display each metric"
 msgstr "進一步定制如何顯示每個指標"
 
 #. do-not-translate
-#, fuzzy
 msgid "GROUP BY"
-msgstr "分組"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10416,6 +10507,9 @@ msgid ""
 "Go to Recently Archived to restore and repoint archived assets, or delete"
 " them permanently, or ask an admin for help."
 msgstr "請前往「最近封存」以還原並重新指向已封存的資產、永久刪除它們，或向管理員尋求協助。"
+
+msgid "Go to Secure extra"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10521,6 +10615,12 @@ msgstr "群組名稱"
 msgid "Group remaining as \"Others\""
 msgstr "將剩餘項目分組為「其他」"
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -10564,6 +10664,10 @@ msgstr "訪客使用者無法修改圖表資料"
 msgid "HTTP Path"
 msgstr "HTTP 路徑"
 
+msgid "HTTPS will be used to connect to the Druid SQL endpoint."
+msgstr ""
+
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10622,6 +10726,14 @@ msgstr "隐藏線"
 msgid "Hide chart description"
 msgstr "隐藏圖表說明"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "隐藏 Layer"
 
@@ -10652,11 +10764,25 @@ msgstr "每個週期的最高值。"
 msgid "Histogram"
 msgstr "直方圖"
 
+msgid ""
+"Histogram is not yet supported on semantic views. Use a Bar or Table "
+"chart with an explicit count metric."
+msgstr ""
+
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "主頁"
 
 msgid "Horizon Chart"
 msgstr "横向圖表"
+
+msgid "Horizon is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
 
 #, fuzzy
 msgid "Horizontal"
@@ -10695,6 +10821,12 @@ msgstr "小時偏移"
 msgid "How do you want to enter service account credentials?"
 msgstr "您希望如何输入服務帳戶憑證？"
 
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -10727,9 +10859,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 代碼"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10932,6 +11061,9 @@ msgstr "在此視圖中，您可以預覽前 25 行。 "
 #, fuzzy
 msgid "Inactive"
 msgstr "啟用"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "包含系列"
@@ -11214,6 +11346,10 @@ msgstr "累積運算符無效：%(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "已儲存指標中的貨幣代碼無效"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "無效的日期/時間戳格式"
 
@@ -11327,14 +11463,19 @@ msgstr "無效狀態。"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "無效的標籤頁 ID：%(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "欄位 %(column)s 的時間篩選值無效"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "重新取樣的時間範圍邊界無效：%(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11552,6 +11693,12 @@ msgstr "標籤内容"
 
 msgid "Label Line"
 msgstr "標籤線"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -12235,9 +12382,6 @@ msgstr "對數軸"
 msgid "Logarithmic y-axis"
 msgstr "對數軸"
 
-msgid "Login"
-msgstr "登入"
-
 #, fuzzy
 msgid "Login count"
 msgstr "計數"
@@ -12330,6 +12474,9 @@ msgstr "最小值"
 msgid "Main navigation"
 msgstr "動画"
 
+msgid "Make draft"
+msgstr ""
+
 #, fuzzy
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
@@ -12341,6 +12488,9 @@ msgstr "此查詢没有返回任何结果。如果希望返回结果，請確保
 #, fuzzy
 msgid "Make the x-axis categorical"
 msgstr "將X軸設為類別型"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -12493,6 +12643,17 @@ msgid ""
 " their validation guards."
 msgstr "標記透過 MCP 地理合約建立的圖表，以便 Explore 保留其驗證防護。"
 
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Markup 類型"
 
@@ -12606,6 +12767,11 @@ msgstr "最大值"
 
 msgid "Maximum value on the gauge axis"
 msgstr "量規軸上的最大值"
+
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
 
 #, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
@@ -13215,9 +13381,8 @@ msgid "N/A"
 msgstr "N/A"
 
 #. do-not-translate
-#, fuzzy
 msgid "NOT GROUPED BY"
-msgstr "需要進行分組的一列或多列"
+msgstr ""
 
 msgid "NOV"
 msgstr "十一月"
@@ -13364,6 +13529,11 @@ msgstr "南丁格爾玫瑰圖"
 msgid "Nightingale Rose Chart"
 msgstr "南丁格爾玫瑰圖"
 
+msgid ""
+"Nightingale Rose is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "No"
 msgstr "否"
 
@@ -13500,11 +13670,17 @@ msgstr "没有與您的搜索匹配的資料庫"
 msgid "No description available."
 msgstr "没有可用的描述"
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "No entities have this tag currently assigned"
 msgstr "目前沒有任何實體被分配此標籤"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "無篩選"
@@ -13834,9 +14010,15 @@ msgstr "没有增加到任何看板"
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "並非所有必填欄位都已填寫完整。請提供以下資訊："
 
+msgid "Not authorized"
+msgstr ""
+
 #, fuzzy
 msgid "Not available"
 msgstr "没有可用訊息"
+
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14065,7 +14247,7 @@ msgstr "或者"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "覆盖"
+msgstr ""
 
 msgid "October"
 msgstr "十月"
@@ -14209,6 +14391,10 @@ msgstr "僅支持單個查詢"
 msgid "Only the default catalog is supported for this connection"
 msgstr "此連線僅支援預設目錄"
 
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Only the first %s values are listed."
@@ -14301,6 +14487,9 @@ msgstr "在 SQL 工具箱中打開"
 msgid "Open in SQL lab"
 msgstr "在 SQL 工具箱中打開"
 
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -14311,6 +14500,9 @@ msgstr "在 SQL 工具箱中打開查詢"
 
 msgid "Opening value for each period."
 msgstr "每個週期的開盤值。"
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -14577,8 +14769,16 @@ msgstr "頁長"
 msgid "Page navigation"
 msgstr "合計"
 
+msgid "Page not found"
+msgstr ""
+
 msgid "Paired t-test Table"
 msgstr "配對 T 檢测表"
+
+msgid ""
+"Paired t-test is not yet supported on semantic views. Use a Table chart "
+"to inspect the metric by time."
+msgstr ""
 
 msgid "Pandas resample method"
 msgstr "Pandas 重採樣方法"
@@ -14696,6 +14896,9 @@ msgstr "更新"
 #, fuzzy
 msgid "Paste Private Key here"
 msgstr "在此貼上私鑰"
+
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
 
 #, fuzzy
 msgid "Paste content of service credentials JSON file here"
@@ -14920,6 +15123,22 @@ msgstr "編輯模式"
 msgid "Pivot Table"
 msgstr "透視表"
 
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
+
 msgid "Pivot operation must include at least one aggregate"
 msgstr "數據透視操作必須至少包含一個聚合"
 
@@ -15055,13 +15274,6 @@ msgstr "請提供兩個時間界限（起始與截止）"
 
 msgid "Please re-enter the password."
 msgstr "請重新输入密碼。"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk]
-#, fuzzy
-msgid "Please re-export your file and try importing again"
-msgstr "請重新匯出您的檔案並再次嘗試匯入"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fi, fr, it, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -15263,6 +15475,9 @@ msgstr "在 Explore 中儲存時，保留所產生的儀表板時間謂詞主體
 msgid "Preview"
 msgstr "預覽"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -15397,9 +15612,6 @@ msgstr "是否將標籤顯示在餅圖外側？"
 
 msgid "Put your code here"
 msgstr "把您的代碼放在這里"
-
-msgid "Python datetime string pattern"
-msgstr "Python 日期格式模板"
 
 msgid "Quarter"
 msgstr "季度"
@@ -15568,6 +15780,11 @@ msgstr "原始紀錄"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -15577,6 +15794,9 @@ msgstr "重新選擇欄位"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "重新選擇此圖表的欄位"
+
+msgid "Read from the token's exp claim."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15947,6 +16167,10 @@ msgstr "在寄送時，將警示與報告電子郵件主旨中的 strftime 日�
 msgid "Report"
 msgstr "報表"
 
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Report Failed - All Retries Exhausted: %(name)s"
@@ -16252,6 +16476,9 @@ msgstr "重設密碼"
 msgid "Reset state"
 msgstr "狀態重置"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "刷新預設值"
@@ -16330,6 +16557,11 @@ msgid_plural ""
 "Restoring will remove %s charts added after this version from this "
 "dashboard. The charts themselves will not be deleted."
 msgstr[0] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 msgid "Results"
 msgstr "结果"
@@ -18548,9 +18780,8 @@ msgstr "顯示那個時間點可用的所有系列的列表。"
 msgid "Shows or hides markers for the time series"
 msgstr "顯示或隐藏時間序列的標記點。"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "Not In"
+msgstr "登入"
 
 #, fuzzy
 msgid "Sign in with"
@@ -19175,6 +19406,10 @@ msgid ""
 "characters."
 msgstr "儲存鍵超過允許的最大長度 %(max_length)d 個字元。"
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 #, fuzzy
 msgid "Stream"
 msgstr "直方圖"
@@ -19369,6 +19604,11 @@ msgstr "Superset 的嵌入 SDK 文檔。"
 msgid "Superset chart"
 msgstr "Superset 圖表"
 
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
+
 #, fuzzy
 msgid "Superset docs link"
 msgstr "Superset 圖表"
@@ -19481,9 +19721,8 @@ msgid "TABLES"
 msgstr "表"
 
 #. do-not-translate
-#, fuzzy
 msgid "TEMPORAL_RANGE"
-msgstr "時間範圍"
+msgstr ""
 
 msgid "THU"
 msgstr "星期四"
@@ -19777,11 +20016,12 @@ msgstr "郵件中嵌入的文本"
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "此資料庫不支援 %(aggregate)s 聚合"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
-msgstr "metadata_cache_timeout 中的 %(key)s 必須是非負整數。"
+#, python-format
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19922,12 +20162,25 @@ msgstr ""
 "          節點代表各個階段，以描繪數值流動的連結線相互連接。節點\n"
 "          高度對應視覺化指標，清楚呈現數值的分佈與轉換情況。"
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
 #, fuzzy
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "URL 缺少 dataset_id 或 slice_id 參數。"
+
+msgid ""
+"The X-axis is a SQL expression, so time range filtering is not applied "
+"automatically. Without a time filter, queries may scan the entire table. "
+"Add a filter on your dataset's time column in the Filters section to "
+"limit the rows read."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19950,6 +20203,16 @@ msgstr "X 軸不在篩選器清單中，這將導致無法在儀表板的時間�
 msgid "The `%(field)s` field must be a string."
 msgstr "`%(field)s` 欄位必須是字串。"
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19968,9 +20231,22 @@ msgstr "注释已保存。"
 msgid "The annotation has been updated"
 msgstr "注释已更新。"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 #, fuzzy
 msgid "The background color of the charts."
 msgstr "給圖表增加名稱"
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -20114,6 +20390,13 @@ msgid ""
 "unavailable."
 msgstr "無法識別目前的版本。暫時無法還原。"
 
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
+
 msgid "The dashboard has been saved"
 msgstr "該看板已成功保存。"
 
@@ -20140,13 +20423,34 @@ msgid ""
 "be previewed"
 msgstr "此版本所依據的資料已不存在，因此無法預覽"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 #, fuzzy
 msgid "The database columns that contains lines information"
 msgstr "包含線段訊息的資料庫列"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 #, fuzzy
 msgid "The database could not be found"
 msgstr "資料庫没有找到"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "資料庫當前運行的查詢太多"
@@ -20158,6 +20462,17 @@ msgid ""
 "The database referenced in this query was not found. Please contact an "
 "administrator for further assistance or try again."
 msgstr "找不到此查詢中引用的資料庫。請與管理員聯繫以獲得進一步帮助，或重試。"
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "資料庫返回意外錯誤。"
@@ -20213,6 +20528,12 @@ msgstr "這里公開的數據集配置會影響使用此數據集的所有圖表
 msgid "The dataset has been saved"
 msgstr "數據集已保存"
 
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20263,9 +20584,18 @@ msgid ""
 "-1 to bypass the cache."
 msgstr "缓存失效前的持續時間（以秒為單位）"
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 #, fuzzy
 msgid "The encoding format of the lines"
 msgstr "線條的编碼格式"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
@@ -20285,6 +20615,11 @@ msgstr "用於計算所有大小的指數。僅適用於「EXP」"
 #, fuzzy, python-format
 msgid "The extension %(id)s could not be loaded."
 msgstr "無法載入擴充功能 %(id)s。"
+
+msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -20322,6 +20657,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "以下圖表因匯出時發生錯誤而被略過："
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20469,6 +20810,10 @@ msgstr "連結已產生，但無法複製：%s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "等值帶閾值範圍的下限"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -20574,6 +20919,13 @@ msgstr[0] "查詢中的以下参數未定義：%(parameters)s 。"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr "分區欄位無法對應到自身。%(name)s 同時是分區欄位和對應欄位。"
@@ -20633,8 +20985,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "匯入以下資料庫需要提供其密碼。"
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "時間戳格式的模式。供字符串使用 "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20674,10 +21040,8 @@ msgstr "端口已關闭。"
 msgid "The port number is invalid."
 msgstr "端口值無效"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "無法載入預覽。"
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主計量指標用於定義弧段大小。"
@@ -20947,6 +21311,19 @@ msgstr "平方單元的大小，以像素為單位"
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "用於計算所有大小的斜率。僅適用於「LINEAR」"
 
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
+
 #, fuzzy
 msgid "The submitted payload failed validation."
 msgstr "提交的有效負载的模式不正確。"
@@ -21021,6 +21398,14 @@ msgstr "每個块的時間單位。應該是主域域粒度更小的單位。應
 msgid "The time unit used for the grouping of blocks"
 msgstr "用於块分組的時間單位"
 
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -21076,12 +21461,13 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "該轉換僅符合取樣的資料列，而非整個資料集。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
-msgstr "該轉換為 %(column)s 傳回 %(returned)s，其為 %(kind)s。此對應上的鏡像篩選器將在資料庫端失敗。"
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21092,6 +21478,11 @@ msgid ""
 msgstr ""
 "該轉換為 %(column)s 傳回 %(returned)s，此資料庫無法在不變更的情況下將其作為 %(type)s "
 "值寫入查詢。此對應上的篩選器將不會被鏡像。"
+
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -21191,19 +21582,16 @@ msgstr ""
 "值轉換呼叫了 "
 "%(functions)s，其結果取決於執行的時間與位置。該轉換在獨立的工作階段中評估且結果會被快取，因此產生的謂詞會凍結該時刻的快照。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr "無法解析值轉換。對應已儲存，但在解析成功前仍處於停用狀態。"
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr "無法解析值轉換：%(detail)s 對應已儲存，但在解析成功前仍處於停用狀態。"
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21238,6 +21626,13 @@ msgstr "選擇圖例的位置"
 #, fuzzy
 msgid "The view configuration must be a JSON object."
 msgstr "檢視設定必須是 JSON 物件。"
+
+msgid ""
+"The virtual dataset query could not be safely parsed, so the tables it "
+"references cannot be resolved. Qualify tables explicitly and avoid "
+"dynamic SQL or statements that change the default schema (e.g. USE, "
+"search_path)."
+msgstr ""
 
 #, fuzzy
 msgid "The visible title of the layer"
@@ -21897,6 +22292,9 @@ msgstr "此圖表已更新為使用還原後的彙總"
 msgid "This chart will be restored to the following version:"
 msgstr "此圖表將還原至以下版本："
 
+msgid "This chart's cross-filtering scope doesn't include any other charts."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "This column holds the mapping instead of the default datetime column."
@@ -21914,6 +22312,9 @@ msgstr "此圖表可能與過濾器不兼容(數據集不匹配)"
 
 msgid "This column must contain date/time information."
 msgstr "此列必須包含日期時間訊息。"
+
+msgid "This comparison time range is empty."
+msgstr ""
 
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
@@ -21975,6 +22376,27 @@ msgid ""
 "administrator to enable background exports, or lower the row limits of "
 "its charts."
 msgstr "此儀表板的資料量過大，無法直接下載。請聯絡管理員啟用背景匯出，或降低其圖表的列數上限。"
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22141,6 +22563,11 @@ msgid ""
 "This field is used as a unique identifier to attach the metric to charts."
 " It is also used as the alias in the SQL query."
 msgstr "此欄位用作唯一識別符，以將指標附加到圖表。它也用作 SQL 查詢中的別名。"
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 #, fuzzy
 msgid "This filter already exist on the report"
@@ -22351,15 +22778,12 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr "此樞紐分析表使用了舊版的每表彙總設定，視您升級前的版本而定，該設定可能已過時或不正確。現在已能正確計算，因此總計與小計可能與先前不同。請先驗證，然後確認此通知或儲存圖表。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"此報告以 %(username)s "
-"的身分執行，但該使用者無法存取此%(kind)s。請選擇該使用者可存取的%(kind)s，或選擇其他使用者來執行此報告。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22367,6 +22791,12 @@ msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
 msgstr "此已儲存的篩選器狀態早於成員 ID 格式。請將其重設，並明確地重新選擇其值。"
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22465,6 +22895,9 @@ msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
 msgstr "此主題使用淺色演算法。系統將改以深色演算法呈現，因此其色彩可能與設計不符。"
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22644,6 +23077,11 @@ msgstr "應用時間範圍的時間列"
 msgid "Time comparison"
 msgstr "時間比較"
 
+msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -22728,8 +23166,18 @@ msgstr "時間字符串不明確。請指定為 [%(human_readable)s 前] 還是 
 msgid "Time-series Period Pivot"
 msgstr "時間序列 - 週期軸"
 
+msgid ""
+"Time-series Period Pivot is not yet supported on semantic views. Use a "
+"Line or Bar chart."
+msgstr ""
+
 msgid "Time-series Table"
 msgstr "時間序列 - 表格"
+
+msgid ""
+"Time-series Table is not yet supported on semantic views. Use a Table "
+"chart with an explicit time dimension."
+msgstr ""
 
 #, fuzzy
 msgid "Timed Out"
@@ -22832,6 +23280,9 @@ msgstr "權杖請求 URI"
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "此資料集的預覽請求過多。請稍候片刻後再試一次。"
 
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Too many requests. Please wait and try again."
@@ -22850,6 +23301,12 @@ msgid ""
 "Too many views in one request: %(count)s provided, at most %(limit)s "
 "allowed."
 msgstr "單一請求中的檢視過多：已提供 %(count)s 個，最多允許 %(limit)s 個。"
+
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -23004,6 +23461,9 @@ msgstr "立即觸發"
 #, fuzzy
 msgid "True"
 msgstr "星期二"
+
+msgid "Truncate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -25054,6 +25514,16 @@ msgstr "是的，覆盖"
 msgid "You are adding tags to %s %ss"
 msgstr "你給 %s %ss 增加了標籤"
 
+msgid ""
+"You are already subscribed to this chart. Your existing report has been "
+"opened for editing."
+msgstr ""
+
+msgid ""
+"You are already subscribed to this dashboard. Your existing report has "
+"been opened for editing."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -25149,6 +25619,9 @@ msgstr "您可以在編輯模式下新增元件。"
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "您也可以直接點擊圖表以套用交叉篩選。"
 
+msgid "You can also select an authorized account in Run as."
+msgstr ""
+
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
@@ -25222,6 +25695,17 @@ msgstr "您没有編輯此圖表的權限"
 
 msgid "You do not have permission to edit this dashboard"
 msgstr "您没有編輯此看板的權限"
+
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
+
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
 
 #, fuzzy
 msgid "You do not have permission to perform this operation"
@@ -25504,11 +25988,8 @@ msgid ""
 "match this new dataset have been retained."
 msgstr "您已變更資料集。任何與此新資料集相符的資料控制項（欄位、指標）均已保留。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Your account is activated. You can log in with your credentials."
-msgstr "您的帳戶已啟用。您可以使用您的憑證登入。"
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -25551,6 +26032,10 @@ msgstr ""
 "您的看板過大，無法儲存：序列化版面配置長度為 %s，但限制為 %s。請縮減看板大小（例如，將其拆分為多個看板）或提高 "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT 設定值。"
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25582,6 +26067,10 @@ msgstr "您的「%(title)s」匯出無法完成。"
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "您的「%(title)s」匯出已就緒。"
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25650,6 +26139,9 @@ msgstr "z-a 鍵"
 #, fuzzy
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP 檔案包含多種檔案類型"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25861,7 +26353,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "螺栓"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25978,9 +26470,8 @@ msgid "create dataset from SQL query"
 msgstr "從 SQL 查詢創建數據集"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "計數"
+msgstr ""
 
 msgid "css"
 msgstr "css"
@@ -26008,6 +26499,10 @@ msgstr "資料庫連接"
 
 msgid "database"
 msgstr "資料庫"
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
 
 #, fuzzy
 msgid "databases"
@@ -26056,9 +26551,8 @@ msgid "deck.gl Contour"
 msgstr "Deck.gl - 等高線"
 
 #. do-not-translate
-#, fuzzy
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - Geojson"
+msgstr ""
 
 #, fuzzy
 msgid "deck.gl Grid"
@@ -26131,7 +26625,7 @@ msgstr "文檔"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "時間"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "例如：********"
@@ -26144,6 +26638,9 @@ msgstr ""
 
 msgid "e.g. 5432"
 msgstr "例如：5432"
+
+msgid "e.g. 8082 (8888 for the router)"
+msgstr ""
 
 msgid "e.g. AKIAIOSFODNN7EXAMPLE"
 msgstr ""
@@ -26225,9 +26722,8 @@ msgid "entries"
 msgstr "序列"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "錯誤訊息"
+msgstr ""
 
 msgid "every"
 msgstr "任意"
@@ -26646,9 +27142,8 @@ msgid "permalink state not found"
 msgstr "未找到持久链接狀態"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "旋轉"
+msgstr ""
 
 msgid "pixels"
 msgstr "像素"
@@ -26812,9 +27307,8 @@ msgid ""
 msgstr "show_values_as 僅支援加總型彙總(總和、計數);以下指標使用了非加總運算子:%(metrics)s。"
 
 #. do-not-translate
-#, fuzzy
 msgid "sql"
-msgstr "SQL"
+msgstr ""
 
 #, fuzzy
 msgid "square"
@@ -26903,6 +27397,9 @@ msgstr "Handlebars 圖表文件"
 msgid "theme"
 msgstr "時間"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "顯示時間戳"
@@ -26923,6 +27420,10 @@ msgstr "還原"
 msgid "unknown type icon"
 msgstr "未知類型圖標"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "六月"
@@ -26937,6 +27438,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "上百分位數必須大於 0 且小於 100。而且必須高於下百分位。"
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 #, fuzzy
 msgid "use latest_partition template"
@@ -27016,6 +27520,9 @@ msgstr "y：每行內的值已正規化"
 
 msgid "year"
 msgstr "年"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

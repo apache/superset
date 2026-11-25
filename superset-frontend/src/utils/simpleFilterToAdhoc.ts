@@ -78,12 +78,16 @@ export const simpleFilterToAdhoc = (
     result = {
       expressionType: 'SQL',
       clause,
-      sqlExpression: translateToSql({
-        expressionType: ExpressionTypes.Simple,
-        subject: `(${filterClause.col.sqlExpression})`,
-        operator: filterClause.op,
-        comparator: 'val' in filterClause ? filterClause.val : undefined,
-      } as SimpleAdhocFilter),
+      // This expression is executed, not displayed as a filter option label.
+      sqlExpression: translateToSql(
+        {
+          expressionType: ExpressionTypes.Simple,
+          subject: `(${filterClause.col.sqlExpression})`,
+          operator: filterClause.op,
+          comparator: 'val' in filterClause ? filterClause.val : undefined,
+        } as SimpleAdhocFilter,
+        { useDisplayValues: false },
+      ),
     };
   } else {
     result = {

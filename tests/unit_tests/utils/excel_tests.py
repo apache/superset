@@ -82,6 +82,50 @@ def test_quote_formulas() -> None:
     ]
 
 
+def test_quote_formulas_with_leading_whitespace() -> None:
+    """
+    Formulas are quoted even when a space, tab, or newline comes first.
+
+    Whitespace in front of the prefix stops XlsxWriter recognising a formula at
+    all, so a value with whitespace in front of it is written as a plain string
+    cell whether or not it is quoted. This is an export-consistency check
+    rather than a guard against the workbook evaluating anything: the streaming
+    writer (``excel_streaming``) and the CSV writer both strip before reading
+    the prefix, so without this the same cell goes out quoted from two of the
+    three paths and bare from this one.
+    """
+    df = pd.DataFrame(
+        {"formula": [" =1+1", "\t=1+1", "\n=1+1", "  @SUM(A1)", "normal"]}
+    )
+    contents = df_to_excel(df)
+    assert pd.read_excel(io.BytesIO(contents))["formula"].tolist() == [
+        "' =1+1",
+        "'\t=1+1",
+        "'\n=1+1",
+        "'  @SUM(A1)",
+        "normal",
+    ]
+
+
+def test_quote_formulas_leaves_blank_and_whitespace_only_cells_alone() -> None:
+    """
+    A cell that is empty or holds only whitespace comes back unchanged.
+
+    ``lstrip`` leaves nothing to inspect in either, so testing the stripped
+    value before reading its first character is what keeps a whitespace-only
+    cell from raising ``IndexError``. The plain ``len(value)`` guard this
+    replaced only covered the empty string, because it read the first
+    character of the original value rather than of the stripped one.
+
+    The assertion is made on ``quote_formulas`` directly rather than through a
+    round-trip, since a blank cell reads back out of a sheet as a missing value
+    and would hide the result.
+    """
+    df = pd.DataFrame({"cell": ["", " \t\n", "   "]})
+
+    assert quote_formulas(df)["cell"].tolist() == ["", " \t\n", "   "]
+
+
 def test_quote_formulas_in_headers_and_index() -> None:
     """
     Test that formulas in column headers and index labels are quoted too.
@@ -123,6 +167,57 @@ def test_quote_formulas_in_axis_names() -> None:
     # exercised end-to-end to confirm it doesn't error when the axis names
     # are written out as sheet header cells
     df_to_excel(df)
+
+
+def test_quote_formulas_in_array_formula_form() -> None:
+    """
+    A string wrapped in ``{=`` and ``}`` goes out as text, not an array formula.
+
+    XlsxWriter stores that form as an array formula cell, so it needs the quote
+    as much as a leading ``=`` does, in cells, headers, index labels and axis
+    names alike.
+    """
+    df = pd.DataFrame(
+        {"{=1+1}": ["{=SUM(A1:A2)}", " {=1+1}"]},
+        index=pd.Index(["{=2+2}", "row"], name="{=3+3}"),
+    )
+
+    sheet = load_workbook(io.BytesIO(df_to_excel(df))).active
+    cells = [cell for row in sheet.iter_rows() for cell in row]
+
+    assert [cell.value for cell in cells] == [
+        "'{=3+3}",
+        "'{=1+1}",
+        "'{=2+2}",
+        "'{=SUM(A1:A2)}",
+        "row",
+        "' {=1+1}",
+    ]
+    assert {cell.data_type for cell in cells} == {"s"}
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param('{"a": 1}', id="json"),
+        pytest.param("{1+1}", id="no equals sign"),
+        pytest.param("{=1+1", id="no closing brace"),
+        pytest.param("{=1+1} ", id="trailing space"),
+    ],
+)
+def test_quote_formulas_leaves_other_braced_text_alone(value: str) -> None:
+    """
+    Only the exact array-formula form is quoted.
+
+    XlsxWriter stores each of these as a plain string, so quoting one would
+    change what the cell reads for nothing.
+    """
+    df = pd.DataFrame({"cell": [value]})
+
+    cell = load_workbook(io.BytesIO(df_to_excel(df, index=False))).active["A2"]
+
+    assert cell.value == value
+    assert cell.data_type == "s"
 
 
 def test_document_properties_are_neutral() -> None:

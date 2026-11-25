@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
-import type { DataMaskStateWithId } from '@superset-ui/core';
+import {
+  ChartCustomization,
+  ChartCustomizationType,
+  DatasourceType,
+  Preset,
+  type ChartCustomizationDivider,
+  type DataMaskStateWithId,
+} from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
 import type {
   DropdownContainerProps,
   DropdownItem,
@@ -239,6 +246,35 @@ const renderHorizontal = (
 
 const latestProps = () =>
   dropdownContainerProps[dropdownContainerProps.length - 1];
+
+test('hidden semantic Dynamic group by leaves no horizontal divider', async () => {
+  const filter = createSelectNativeFilter('NATIVE_FILTER-1', 'Country');
+  const hiddenControl: ChartCustomization = {
+    id: 'CHART_CUSTOMIZATION-hidden',
+    name: 'Dynamic Group By',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.DynamicGroupBy,
+    targets: [{ datasetId: 7, datasourceType: DatasourceType.SemanticView }],
+    scope: { rootPath: [], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+  };
+  render(
+    <FilterControls
+      dataMaskSelected={buildDataMaskSelected([filter])}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[hiddenControl]}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: buildHorizontalState([filter]),
+    },
+  );
+  await waitFor(() => expect(latestProps()).toBeDefined());
+  expect(latestProps().items.map(item => item.id)).toEqual([filter.id]);
+});
 
 const fireOverflow = (overflowed: string[], notOverflowed: string[]) => {
   if (!callbackRef.current) {
@@ -862,4 +898,43 @@ test('keeps native controls reachable in row or More popover with real DropdownC
   } finally {
     rectSpy.mockRestore();
   }
+});
+
+test('an overflowed chart customization renders in the More filters popover', async () => {
+  const divider: ChartCustomizationDivider = {
+    id: 'CHART_CUSTOMIZATION_DIVIDER-overflow',
+    type: ChartCustomizationType.Divider,
+    title: 'Overflowed customization',
+    description: '',
+    removed: false,
+  };
+  // Everything overflows, so the popover receives the customization item.
+  mockOverflowingIndex = 0;
+
+  render(
+    <FilterControls
+      dataMaskSelected={{}}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[divider]}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: buildHorizontalState([]),
+    },
+  );
+
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+  fireOverflow([`chart-customization-${divider.id}`], []);
+
+  const popover = await screen.findByTestId('dropdown-content-mock');
+  expect(
+    within(popover).getByText('Overflowed customization'),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getByTestId('dropdown-items')).queryByText(
+      'Overflowed customization',
+    ),
+  ).not.toBeInTheDocument();
 });

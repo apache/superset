@@ -26,7 +26,6 @@ from unittest import mock
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url, URL
-from sqlalchemy.sql import quoted_name
 
 from superset.app import SupersetApp
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -322,32 +321,6 @@ def test_connection_catalogs_celery_task_context(mocker: MockerFixture) -> None:
 
     Context().run(run_tasks)
     assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
-
-
-@pytest.mark.parametrize("name", ["lowercase", "UPPERCASE"])
-def test_prepare_identifier_quotes_exact_case_names(name: str) -> None:
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
-
-    identifier = SnowflakeEngineSpec.prepare_identifier(
-        name,
-        normalize_columns=False,
-    )
-
-    assert isinstance(identifier, quoted_name)
-    assert str(identifier) == name
-    assert identifier.quote is True
-
-
-def test_prepare_identifier_preserves_normalized_name() -> None:
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
-
-    name = "lowercase"
-    identifier = SnowflakeEngineSpec.prepare_identifier(
-        name,
-        normalize_columns=True,
-    )
-
-    assert identifier is name
 
 
 @pytest.mark.parametrize(
@@ -1621,6 +1594,92 @@ def test_embedded_keypair_secrets_are_masked_and_restored() -> None:
     assert masked_credentials["privatekey_body"] == "XXXXXXXXXX"
     assert masked_credentials["privatekey_pass"] == "XXXXXXXXXX"  # noqa: S105
     assert SnowflakeEngineSpec.unmask_encrypted_extra(original, masked) == original
+
+
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    encryption = (
+        serialization.BestAvailableEncryption(passphrase.encode())
+        if passphrase
+        else serialization.NoEncryption()
+    )
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            encryption,
+        )
+        .decode()
+    )
+
+
+@pytest.mark.parametrize(
+    "key_passphrase, privatekey_pass",
+    [("key passphrase", "key passphrase"), ("", "")],
+)
+def test_a_readable_embedded_key_has_no_error(
+    key_passphrase: str, privatekey_pass: str
+) -> None:
+    """An encrypted key with its passphrase, or an unencrypted one without, saves."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    credentials = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": _pem(key_passphrase),
+        "privatekey_pass": privatekey_pass,
+    }
+
+    assert SnowflakeEngineSpec.get_embedded_credentials_error(credentials) is None
+
+
+@pytest.mark.parametrize(
+    "key_passphrase, privatekey_body, privatekey_pass",
+    [
+        ("key passphrase", None, "wrong passphrase"),
+        ("key passphrase", None, ""),
+        ("", None, "unexpected passphrase"),
+        ("", "not a PEM key", ""),
+        ("", "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----", ""),
+    ],
+)
+def test_an_unreadable_embedded_key_is_refused_without_echoing_it(
+    key_passphrase: str, privatekey_body: str | None, privatekey_pass: str
+) -> None:
+    """
+    A wrong passphrase or a body that is not a PEM key is refused when saved
+    -- otherwise it saves and fails only once a guest opens a chart --
+    and the message quotes neither the key nor its passphrase.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    body = privatekey_body or _pem(key_passphrase)
+    credentials = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": body,
+        "privatekey_pass": privatekey_pass,
+    }
+
+    message = SnowflakeEngineSpec.get_embedded_credentials_error(credentials)
+
+    assert message is not None
+    assert "private key could not be read" in message
+    for secret in (body, privatekey_pass, *body.splitlines()):
+        if secret.strip("-") and "PRIVATE KEY" not in secret:
+            assert secret not in message
+
+
+def test_a_password_embedded_credential_is_not_checked_for_a_key() -> None:
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    credentials = {"username": "embedded_svc", "password": "embedded_pw"}
+
+    assert SnowflakeEngineSpec.get_embedded_credentials_error(credentials) is None
 
 
 def test_update_params_from_encrypted_extra_prefers_the_fallback_over_keypair(

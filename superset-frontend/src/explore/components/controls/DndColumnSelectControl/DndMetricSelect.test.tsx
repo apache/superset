@@ -18,6 +18,7 @@
  */
 import { useState } from 'react';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -27,6 +28,7 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import { Metric } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
@@ -650,6 +652,97 @@ test('saves a new simple adhoc metric with a custom title from an empty drop zon
     }),
   );
   expect(await screen.findByText('Total revenue')).toBeInTheDocument();
+});
+
+const droppableColumns: ColumnMeta[] = [
+  {
+    column_name: 'revenue',
+    verbose_name: 'Revenue',
+    type_generic: GenericDataType.Numeric,
+  },
+  {
+    column_name: 'country',
+    verbose_name: 'Country',
+    type_generic: GenericDataType.String,
+  },
+];
+
+const getColumnField = async () => {
+  const columnSelect = await screen.findByRole('combobox', {
+    name: 'Select column',
+  });
+  return columnSelect.closest('.ant-select') as HTMLElement;
+};
+
+test('preselects the dropped column in the add-metric popover after the popover was opened and cancelled once', async () => {
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={droppableColumns}
+      value={[]}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  await userEvent.click(screen.getByText('Drop columns/metrics here or click'));
+  await screen.findByRole('tab', { name: 'Simple' });
+  await userEvent.keyboard('{Escape}');
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('tab', { name: 'Simple' }),
+    ).not.toBeInTheDocument(),
+  );
+
+  act(() => {
+    simulateDrop(captured, {
+      type: DndItemType.Column,
+      value: droppableColumns[0],
+    });
+  });
+
+  // A dropped column opens the popover on the Simple tab with that column
+  // selected, rather than on the Saved metrics tab with nothing selected.
+  expect(await screen.findByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(await getColumnField()).toHaveTextContent('Revenue');
+});
+
+test('shows the newly dropped column, not the previously dropped one, in the add-metric popover', async () => {
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={droppableColumns}
+      value={[]}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  act(() => {
+    simulateDrop(captured, {
+      type: DndItemType.Column,
+      value: droppableColumns[0],
+    });
+  });
+  expect(await getColumnField()).toHaveTextContent('Revenue');
+  await userEvent.keyboard('{Escape}');
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('combobox', { name: 'Select column' }),
+    ).not.toBeInTheDocument(),
+  );
+
+  act(() => {
+    simulateDrop(captured, {
+      type: DndItemType.Column,
+      value: droppableColumns[1],
+    });
+  });
+
+  expect(await getColumnField()).toHaveTextContent('Country');
 });
 
 test('removes only the clicked metric when its remove control is used', async () => {

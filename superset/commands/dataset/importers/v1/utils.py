@@ -43,7 +43,7 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
     TEMPLATE_RENDER_ERRORS,
 )
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError, ImportFailedError
 from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.commands.importers.v1.utils import (
     find_existing_by_import_identity,
@@ -577,7 +577,7 @@ def import_dataset(  # noqa: C901
                 # without write permission — that would let the importer
                 # reattach charts/dashboards to a deleted dataset and produce
                 # broken charts.
-                raise ImportFailedError(
+                raise ForbiddenError(
                     f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
                     "was deleted and re-import requires can_write permission "
                     "to restore it"
@@ -590,7 +590,7 @@ def import_dataset(  # noqa: C901
                 not security_manager.is_editor(existing)
                 and not security_manager.is_admin()
             ):
-                raise ImportFailedError(
+                raise ForbiddenError(
                     f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
                     "already exists and user doesn't have permissions to "
                     "restore it"
@@ -663,7 +663,7 @@ def import_dataset(  # noqa: C901
                 not security_manager.is_editor(existing)
                 and not security_manager.is_admin()
             ):
-                raise ImportFailedError(
+                raise ForbiddenError(
                     f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
                     "already exists and user doesn't have permissions to "
                     "overwrite it"
@@ -695,7 +695,7 @@ def import_dataset(  # noqa: C901
             config["id"] = existing.id
 
     elif not can_write:
-        raise ImportFailedError(
+        raise ForbiddenError(
             "Dataset doesn't exist and user doesn't have permission to create datasets"
         )
     else:
