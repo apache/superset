@@ -182,3 +182,18 @@ def test_prepare_drill_detail_query_keeps_ordering_by_orderable_first_column(
     )
 
     assert prepared.orderby == [("campaign", True)]
+
+
+@pytest.mark.parametrize(
+    "orderable_type",
+    ["STRING", "INT64", "BYTES", "BIGNUMERIC", "TIMESTAMP", "varchar(255)", None],
+)
+def test_prepare_drill_detail_query_treats_regular_types_as_orderable(
+    orderable_type: str | None,
+) -> None:
+    """Regular, unknown or missing types stay eligible for ordering."""
+    prepared = _prepare_for_columns(
+        [{"column_name": "first", "type": orderable_type}],
+    )
+
+    assert prepared.orderby == [("first", True)]
