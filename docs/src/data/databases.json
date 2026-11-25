@@ -5657,9 +5657,9 @@
       "get_metrics": false,
       "where_latest_partition": false,
       "expand_data": false,
-      "query_cost_estimation": true,
+      "query_cost_estimation": false,
       "sql_validation": false,
-      "score": 84,
+      "score": 74,
       "max_score": 201,
       "documentation": {
         "description": "Materialize is a streaming SQL database that maintains up-to-date query results as underlying data changes.",
