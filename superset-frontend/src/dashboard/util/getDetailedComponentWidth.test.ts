@@ -251,3 +251,21 @@ describe('getDetailedComponentWidth', () => {
     });
   });
 });
+
+test('falls back to the grid width when rows are nested under each other', () => {
+  const components = {
+    rowA: {
+      id: 'rowA',
+      type: types.ROW_TYPE,
+      children: ['rowB', 'chart'],
+    },
+    rowB: { id: 'rowB', type: types.ROW_TYPE, children: ['rowA'] },
+    chart: { id: 'chart', type: types.CHART_TYPE, meta: { width: 4 } },
+  };
+
+  expect(getDetailedComponentWidth({ id: 'rowA', components })).toEqual({
+    width: GRID_COLUMN_COUNT,
+    occupiedWidth: 4,
+    minimumWidth: 4,
+  });
+});
