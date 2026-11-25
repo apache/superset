@@ -90,3 +90,37 @@ test('should render the "+ {x} more"', async () => {
   expect(await screen.findByTestId('plus-more')).toBeInTheDocument();
   expect(await screen.findByText('+ 3 more')).toBeInTheDocument();
 });
+
+test('renders archived tooltip entries as labelled blocks alongside live links', async () => {
+  setup({
+    crossLinks: [
+      { to: '/dashboard/1', title: 'Live dashboard' },
+      { to: '/dashboard/2', title: 'Archived dashboard', archived: true },
+      { to: '/dashboard/3', title: 'Other archived dashboard', archived: true },
+    ],
+  });
+  await userEvent.hover(screen.getByText('Hover me'));
+
+  const archived = await screen.findByText('Archived dashboard');
+  expect(archived.tagName).toBe('DIV');
+  expect(archived.closest('a')).toBeNull();
+  expect(screen.getByText('Other archived dashboard').tagName).toBe('DIV');
+  expect(screen.getAllByLabelText('Archived')).toHaveLength(2);
+  expect(screen.getAllByRole('link')).toHaveLength(1);
+  expect(screen.getByRole('link', { name: 'Live dashboard' })).toHaveAttribute(
+    'href',
+    '/dashboard/1',
+  );
+});
+
+test('archived tooltip label inherits the tooltip text color', async () => {
+  setup({
+    crossLinks: [{ to: '/dashboard/2', title: 'Archived', archived: true }],
+  });
+  await userEvent.hover(screen.getByText('Hover me'));
+
+  const label = await screen.findByLabelText('Archived');
+  // The tooltip overlay is dark in the light theme; secondary text color
+  // (dark grey) would be unreadable there.
+  expect(getComputedStyle(label).color).toBe('inherit');
+});

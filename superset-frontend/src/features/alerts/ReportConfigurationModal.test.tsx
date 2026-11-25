@@ -325,7 +325,7 @@ test('paginates configuration conflicts without losing later entries', async () 
   const list = await screen.findByTestId('impacted-schedules');
   expect(within(list).getAllByRole('listitem')).toHaveLength(10);
   expect(screen.queryByText('Conflict 10')).not.toBeInTheDocument();
-  await userEvent.click(screen.getByTitle('Next Page'));
+  await userEvent.click(screen.getByRole('button', { name: 'Next Page' }));
   expect(within(list).getAllByRole('listitem')).toHaveLength(1);
   expect(screen.getByText('Conflict 10')).toBeInTheDocument();
 });

@@ -19,7 +19,7 @@
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { ModalTrigger, Tabs } from '@superset-ui/core/components';
-import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
+import { CodeSyntaxHighlighter } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 
 export interface HighlightedSqlProps {
   sql: string;
