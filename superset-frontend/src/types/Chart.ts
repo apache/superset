@@ -28,6 +28,7 @@ import Subject from './Subject';
 export type ChartLinkedDashboard = {
   id: number;
   dashboard_title: string;
+  archived?: boolean;
 };
 
 export interface Chart {
