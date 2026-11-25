@@ -111,6 +111,35 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
+def test_values_for_column_wraps_query_error(database: Database) -> None:
+    """
+    A raw DBAPI/SQLAlchemy error raised while querying (or connecting, e.g. a
+    broken semantic-layer backend failing its on-connect metadata query)
+    should surface as a typed, WARNING-level ``SupersetGenericDBErrorException``
+    (400) instead of escaping unhandled.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.errors import ErrorLevel
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        side_effect=Exception("boom"),
+    ):
+        with pytest.raises(SupersetGenericDBErrorException) as excinfo:
+            table.values_for_column("a")
+
+    assert excinfo.value.status == 400
+    assert excinfo.value.error.level == ErrorLevel.WARNING
+
+
 def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
     import sqlalchemy as sa
 
