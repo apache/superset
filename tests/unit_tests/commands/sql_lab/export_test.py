@@ -266,6 +266,16 @@ def test_csv_export_rejects_mutating_scripts_without_stored_results(
         "BEGIN SELECT 1; EXCEPTION WHEN ERROR THEN INSERT INTO t VALUES (1); END;",
         "REPEAT INSERT INTO t VALUES (1); UNTIL TRUE END REPEAT;",
         "block: BEGIN INSERT INTO t VALUES (1); END block;",
+        "IF FALSE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;",
+        "IF FALSE THEN SELECT 1; ELSE UPDATE t SET n=1; END IF;",
+        "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF; DELETE FROM t WHERE TRUE;",
+        "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF; CREATE TABLE t(n INT64);",
+        "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF; "
+        "IF FALSE THEN SELECT 3; ELSE INSERT INTO t VALUES (1); END IF;",
+        "LOAD DATA INTO t FROM FILES(format='CSV', uris=['gs://bucket/data.csv']);",
+        "LOAD DATA OVERWRITE t FROM FILES(format='CSV', uris=['gs://bucket/data.csv']);",
+        "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF;",
+        "BEGIN SELECT 1; END;",
     ],
 )
 @pytest.mark.parametrize(

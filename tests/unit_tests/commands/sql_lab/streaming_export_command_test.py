@@ -1010,15 +1010,38 @@ def test_streaming_non_finite_decimal_csv(decimal_separator: str | None) -> None
 
 
 @pytest.mark.parametrize("use_select_sql", [False, True])
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        ("INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 4", "postgresql"),
+        ("IF FALSE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;", "bigquery"),
+        (
+            "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF; DELETE FROM t WHERE TRUE;",
+            "bigquery",
+        ),
+        (
+            "LOAD DATA INTO t FROM FILES(format='CSV', uris=['gs://bucket/data.csv']);",
+            "bigquery",
+        ),
+        (
+            "LOAD DATA OVERWRITE t FROM FILES(format='CSV', uris=['gs://bucket/data.csv']);",
+            "bigquery",
+        ),
+    ],
+)
 def test_streaming_export_rejects_mutating_scripts(
-    mocker: MockerFixture, mock_query: MagicMock, use_select_sql: bool
+    mocker: MockerFixture,
+    mock_query: MagicMock,
+    use_select_sql: bool,
+    sql: str,
+    engine: str,
 ) -> None:
     """Without stored rows, streaming exports must reject repeated writes."""
     mocker.patch("superset.commands.sql_lab.export.results_backend", None)
     mock_db = mocker.patch("superset.commands.sql_lab.export.db")
     query_result = mock_db.session.query.return_value.filter_by.return_value
     query_result.one_or_none.return_value = mock_query
-    sql = "INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 4"
+    mock_query.database.db_engine_spec.engine = engine
     mock_query.select_sql = sql if use_select_sql else None
     mock_query.executed_sql = "SELECT 1" if use_select_sql else sql
     command = StreamingSqlResultExportCommand("client_id")
@@ -1030,26 +1053,48 @@ def test_streaming_export_rejects_mutating_scripts(
 
     assert exc.value.status == 400
     execute.assert_not_called()
+    mock_query.database.get_df.assert_not_called()
     mock_query.database.get_sqla_engine.assert_not_called()
+
+    # The streaming executor's direct SQL accessor must reject it as well.
+    with pytest.raises(SupersetErrorException, match="modify data or schema"):
+        command._get_sql_and_database()
 
 
 @pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig", "utf-16"])
 @pytest.mark.parametrize("use_select_sql", [False, True])
-@pytest.mark.parametrize("script_block", [False, True])
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        ("INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 100001", "postgresql"),
+        ("BEGIN INSERT INTO log VALUES (1); SELECT n FROM t; END;", "bigquery"),
+        ("IF FALSE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;", "bigquery"),
+        (
+            "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF; DELETE FROM t WHERE TRUE;",
+            "bigquery",
+        ),
+        (
+            "LOAD DATA INTO t FROM FILES(format='CSV', uris=['gs://bucket/data.csv']);",
+            "bigquery",
+        ),
+        (
+            "LOAD DATA OVERWRITE t FROM FILES(format='CSV', uris=['gs://bucket/data.csv']);",
+            "bigquery",
+        ),
+    ],
+)
 def test_streaming_export_buffers_mutating_script_results(
     mocker: MockerFixture,
     mock_query: MagicMock,
     encoding: str,
     use_select_sql: bool,
-    script_block: bool,
+    sql: str,
+    engine: str,
 ) -> None:
     """Large-limit memory-capped scripts export stored rows, never repeat writes."""
     from superset.commands.streaming_export.base import encode_csv_stream
 
-    sql = "INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 100001"
-    if script_block:
-        sql = f"BEGIN {sql}; END;"
-        mock_query.database.db_engine_spec.engine = "bigquery"
+    mock_query.database.db_engine_spec.engine = engine
     mock_query.select_sql = sql if use_select_sql else None
     mock_query.executed_sql = "SELECT 1" if use_select_sql else sql
     mock_query.limiting_factor = LimitingFactor.MEMORY

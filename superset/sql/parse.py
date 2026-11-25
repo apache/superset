@@ -2236,6 +2236,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # PostgreSQL and other dialects; without them an opaque exp.Command
             # check would still miss the structured-parse path.
             exp.Copy,  # COPY <table> FROM/TO (server-side file ingest)
+            exp.LoadData,  # LOAD DATA INTO/OVERWRITE ingests external files
             exp.Grant,
             exp.Revoke,
             # COMMENT ON TABLE/COLUMN/etc. writes to system catalog pg_description.

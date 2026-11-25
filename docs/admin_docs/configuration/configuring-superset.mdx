@@ -115,8 +115,10 @@ memory-truncated read-only query rather than using its incomplete stored result.
 Scripts containing mutating statements, including inside BigQuery scripting
 blocks, use only stored rows, so their downloads may remain memory-capped.
 Large downloads fall back from streaming to buffered export for these scripts.
-Scripts whose syntax cannot be parsed also use stored rows rather than risk
-repeating writes. If stored results are unavailable, the export fails without
+Scripts whose syntax cannot be fully parsed (including opaque BigQuery
+`IF ... ELSE ... END IF` bodies) also use stored rows rather than risk
+repeating writes. `LOAD DATA INTO` and `LOAD DATA OVERWRITE` are writes too.
+If stored results are unavailable, the export fails without
 rerunning the script.
 
 To disable the budget for on-screen results too, set `BQ_FETCH_MAX_MB = None`

@@ -16,6 +16,8 @@
 # under the License.
 from unittest import mock
 
+import pytest
+
 from superset.sqllab.utils import bootstrap_sqllab_data
 
 
@@ -50,3 +52,26 @@ def test_bootstrap_sqllab_data_includes_non_ansi_identifier_quote() -> None:
         "supports_offset": True,
         "identifier_quote": {"start": "`", "end": "`"},
     }
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("IF FALSE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;", False),
+        (
+            "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF; DELETE FROM t WHERE TRUE;",
+            False,
+        ),
+        ("IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF;", False),
+        ("BEGIN SELECT 1; END;", False),
+        ("SELECT (", False),
+        ("SELECT 1; SELECT IF(TRUE, 'LOAD DATA', 'INSERT'); -- DELETE FROM t", True),
+    ],
+)
+def test_export_sql_requires_fully_parsed_read_only_script(
+    sql: str, expected: bool
+) -> None:
+    """Opaque or invalid SQL cannot prove that export re-execution is safe."""
+    from superset.sqllab.utils import is_export_sql_read_only
+
+    assert is_export_sql_read_only(sql, "bigquery") is expected

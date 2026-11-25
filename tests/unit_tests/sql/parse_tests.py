@@ -9683,3 +9683,14 @@ def test_has_mutation_in_bigquery_script_blocks(sql: str) -> None:
 def test_bigquery_non_scripting_command_body_is_not_scanned(sql: str) -> None:
     """Only control-flow bodies are scanned; ``SHOW CREATE TABLE`` stays read-only."""
     assert not SQLScript(sql, "bigquery").has_mutation()
+
+
+@pytest.mark.parametrize("operation", ["INTO", "OVERWRITE"])
+def test_has_mutation_in_bigquery_load_data(operation: str) -> None:
+    """Loading external files writes data, even without an INSERT AST node."""
+    sql = (
+        f"LOAD DATA {operation} t "
+        "FROM FILES(format='CSV', uris=['gs://bucket/data.csv']); SELECT 1;"
+    )
+    assert SQLStatement(sql.split(";")[0], "bigquery").is_mutating()
+    assert SQLScript(sql, "bigquery").has_mutation()
