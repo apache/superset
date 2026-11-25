@@ -187,6 +187,10 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
 #, python-format
+msgid "%(engine)s doesn't support partition filter mapping, so charts won't mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -2397,6 +2401,12 @@ msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
 msgstr ""
 
 msgid "Archived by"
+msgstr ""
+
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, including "
+"assets you cannot view. Archiving or permanently deleting this dataset can "
+"prevent those assets from working after they are recovered."
 msgstr ""
 
 msgid "Archived items must be recovered before they can be opened."
@@ -9047,9 +9057,6 @@ msgstr ""
 msgid "Logarithmic y-axis"
 msgstr ""
 
-msgid "Login"
-msgstr ""
-
 msgid "Login count"
 msgstr ""
 
@@ -12023,6 +12030,9 @@ msgstr ""
 msgid "Reset state"
 msgstr ""
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr ""
 
@@ -14922,6 +14932,9 @@ msgstr ""
 msgid "The following charts were omitted because an error occurred while exporting them:"
 msgstr ""
 
+msgid "The following charts were omitted because their chart type is not yet supported on semantic views. To include them, switch each chart to a supported type such as Table, Bar or Line."
+msgstr ""
+
 msgid "The following charts were omitted because their size cannot be determined before they run. Ask an administrator to enable background exports to include them."
 msgstr ""
 
@@ -15005,6 +15018,10 @@ msgstr ""
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr ""
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid "The maximum number of subdivisions of each group; lower values are pruned first"
 msgstr ""
 
@@ -15076,6 +15093,10 @@ msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
 msgstr[0] ""
 msgstr[1] ""
+
+#, python-format
+msgid "The partition column cannot be a calculated column whose expression uses Jinja templating. %(name)s is templated, so the predicate mirrored onto it could not be rendered."
+msgstr ""
 
 #, python-format
 msgid "The partition column cannot be mapped onto itself. %(name)s is both the partition column and the mapped column."
@@ -18378,7 +18399,7 @@ msgstr ""
 msgid "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained."
 msgstr ""
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr ""
 
 msgid "Your changes will be lost if you leave without saving."

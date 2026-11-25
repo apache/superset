@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { render, screen } from 'spec/helpers/testing-library';
 import { INVALID_DATE } from '@superset-ui/chart-controls';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -24,7 +24,7 @@ import TimeOffsetControls, {
   TimeOffsetControlsProps,
 } from './TimeOffsetControl';
 
-const mockStore = configureStore([]);
+const mockStore = createMockStore([]);
 
 const defaultProps: TimeOffsetControlsProps = {
   onChange: jest.fn(),
