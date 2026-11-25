@@ -73,6 +73,7 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    contains_jinja,
     declares_array_type,
     epoch_mapping_refusal,
     equality_mirrors_safely,
@@ -1474,7 +1475,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
         Historically a TableColumn object (from an ORM perspective) was tightly bound to
         a SqlaTable object, however with the introduction of the Query datasource this
-        is no longer true, i.e., the SqlaTable relationship is optional.
+        is no longer true, i.e., the SqlaTable relationship is optional. Tableless
+        Query columns retain exact result-set names, just like virtual dataset columns.
 
         Now the TableColumn is either directly associated with the Database object (
         which is unknown to the ORM) or indirectly via the SqlaTable object (courtesy of
@@ -1633,11 +1635,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             # surrounding operator precedence (e.g. COUNT(DISTINCT ...)).
             col = Grouping(literal_column(expression, type_=type_))
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            col = column(identifier, type_=type_)
         col = self.database.make_sqla_column_compatible(col, label)
         return col
 
@@ -1671,11 +1675,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            sqla_col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            sqla_col = column(identifier, type_=type_)
             return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
             if template_processor:
@@ -1716,11 +1722,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            col = column(identifier, type_=type_)
         if (
             apply_dataset_offset
             and time_grain
@@ -2365,6 +2373,7 @@ class SqlaTable(
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
         transform = mapped_column.partition_value_transform if mapped_column else None
+        partition_column = columns_by_name.get(self.partition_column)
         safety_refusal = epoch_mapping_refusal(
             self, mapped_column_name, self.partition_column, transform
         ) or raw_instant_refusal(
@@ -2372,8 +2381,9 @@ class SqlaTable(
         )
         active = bool(
             not safety_refusal
-            and self.partition_column in columns_by_name
-            and not declares_array_type(columns_by_name[self.partition_column].type)
+            and partition_column is not None
+            and not declares_array_type(partition_column.type)
+            and not contains_jinja(partition_column.expression)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
             and is_transform_active(transform, self.database.backend)
@@ -2586,8 +2596,7 @@ class SqlaTable(
             else:
                 sqla_column = column(
                     self.db_engine_spec.prepare_identifier(
-                        column_name,
-                        normalize_columns=bool(self.normalize_columns),
+                        column_name, exact_case=self.is_virtual
                     )
                 )
 

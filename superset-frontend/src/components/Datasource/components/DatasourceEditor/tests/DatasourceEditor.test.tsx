@@ -77,65 +77,109 @@ test('renders Tabs', async () => {
   expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
 });
 
-test('Usage excludes semantic-view charts whose datasource id matches the dataset', async () => {
-  const testProps = createProps();
-  const charts = [
-    {
-      id: 101,
-      slice_name: 'Dataset chart',
-      datasource_id: testProps.datasource.id,
-      datasource_type: DatasourceType.Table,
-    },
-    {
-      id: 102,
-      slice_name: 'Semantic view chart',
-      datasource_id: testProps.datasource.id,
-      datasource_type: DatasourceType.SemanticView,
-    },
-    {
-      id: 103,
-      slice_name: 'Other dataset chart',
-      datasource_id: testProps.datasource.id + 1,
-      datasource_type: DatasourceType.Table,
-    },
-  ];
-  fetchMock.removeRoutes();
-  fetchMock.get(DATASOURCE_ENDPOINT, []);
-  fetchMock.get('glob:*/api/v1/chart/*', ({ url }) => {
-    const { filters } = rison.decode<{
-      filters: {
-        col: 'datasource_id' | 'datasource_type';
-        opr: string;
-        value: string | number;
-      }[];
-    }>(new URL(url, 'http://localhost').searchParams.get('q') ?? '');
-    const matches = charts.filter(chart =>
-      filters.every(filter => chart[filter.col] === filter.value),
+test.each([false, true])(
+  'Usage preserves datasource filters and opts into archives only with soft delete enabled (%s)',
+  async softDelete => {
+    jest
+      .mocked(isFeatureEnabled)
+      .mockImplementation(
+        flag => flag === FeatureFlag.SoftDelete && softDelete,
+      );
+    const testProps = createProps();
+    const charts = [
+      {
+        id: 101,
+        slice_name: 'Dataset chart',
+        datasource_id: testProps.datasource.id,
+        datasource_type: DatasourceType.Table,
+      },
+      {
+        id: 102,
+        slice_name: 'Semantic view chart',
+        datasource_id: testProps.datasource.id,
+        datasource_type: DatasourceType.SemanticView,
+      },
+      {
+        id: 104,
+        slice_name: 'Archived dataset chart',
+        datasource_id: testProps.datasource.id,
+        datasource_type: DatasourceType.Table,
+        deleted_at: '2024-08-13T10:00:00Z',
+        deleted_at_delta_humanized: 'an hour ago',
+      },
+      {
+        id: 103,
+        slice_name: 'Other dataset chart',
+        datasource_id: testProps.datasource.id + 1,
+        datasource_type: DatasourceType.Table,
+      },
+    ];
+    fetchMock.removeRoutes();
+    fetchMock.get(DATASOURCE_ENDPOINT, []);
+    fetchMock.get('glob:*/api/v1/chart/*', ({ url }) => {
+      const { filters, include_archived_dashboards, columns } = rison.decode<{
+        include_archived_dashboards?: boolean;
+        columns: string[];
+        filters: {
+          col: 'datasource_id' | 'datasource_type' | 'id';
+          opr: string;
+          value: string | number;
+        }[];
+      }>(new URL(url, 'http://localhost').searchParams.get('q') ?? '');
+      expect(include_archived_dashboards).toBe(softDelete ? true : undefined);
+      expect(columns).not.toContain('dashboards.url');
+      expect(
+        filters.filter(filter => filter.opr === 'chart_deleted_state'),
+      ).toEqual(
+        softDelete
+          ? [{ col: 'id', opr: 'chart_deleted_state', value: 'include' }]
+          : [],
+      );
+      const matches = charts.filter(
+        chart =>
+          (!chart.deleted_at || softDelete) &&
+          filters.every(
+            filter =>
+              filter.opr === 'chart_deleted_state' ||
+              chart[filter.col] === filter.value,
+          ),
+      );
+      return {
+        count: matches.length,
+        ids: matches.map(chart => chart.id),
+        result: matches.map(chart => ({
+          ...chart,
+          url: `/explore/?slice_id=${chart.id}`,
+          changed_on_delta_humanized: 'a day ago',
+          changed_by: null,
+          dashboards: [],
+        })),
+      };
+    });
+    setupDatasourceEditorMocks();
+
+    await asyncRender(testProps);
+    await userEvent.click(screen.getByRole('tab', { name: /usage/i }));
+
+    expect(
+      await screen.findByRole('link', { name: 'Dataset chart' }),
+    ).toBeVisible();
+    expect(screen.queryByText('Semantic view chart')).not.toBeInTheDocument();
+    expect(screen.queryByText('Other dataset chart')).not.toBeInTheDocument();
+    expect(screen.queryAllByText('Archived dataset chart')).toHaveLength(
+      softDelete ? 1 : 0,
     );
-    return {
-      count: matches.length,
-      ids: matches.map(chart => chart.id),
-      result: matches.map(chart => ({
-        ...chart,
-        url: `/explore/?slice_id=${chart.id}`,
-        changed_on_delta_humanized: 'a day ago',
-        changed_by: null,
-        dashboards: [],
-      })),
-    };
-  });
-  setupDatasourceEditorMocks();
-
-  await asyncRender(testProps);
-  await userEvent.click(screen.getByRole('tab', { name: /usage/i }));
-
-  expect(
-    await screen.findByRole('link', { name: 'Dataset chart' }),
-  ).toBeVisible();
-  expect(screen.queryByText('Semantic view chart')).not.toBeInTheDocument();
-  expect(screen.queryByText('Other dataset chart')).not.toBeInTheDocument();
-  expect(screen.getByRole('tab', { name: /usage/i })).toHaveTextContent('1');
-});
+    expect(
+      screen.queryByRole('link', { name: 'Archived dataset chart' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryAllByText('an hour ago')).toHaveLength(
+      softDelete ? 1 : 0,
+    );
+    expect(screen.getByRole('tab', { name: /usage/i })).toHaveTextContent(
+      softDelete ? '2' : '1',
+    );
+  },
+);
 
 test('recommends a registered client route for the default URL', async () => {
   await asyncRender(createProps());

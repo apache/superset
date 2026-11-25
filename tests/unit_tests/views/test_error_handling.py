@@ -40,6 +40,7 @@ from werkzeug.exceptions import (
     Unauthorized,
 )
 
+from superset.commands.exceptions import CommandInvalidError, UpdateFailedError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
@@ -311,6 +312,56 @@ class TestShowSupersetException:
         assert response.status_code == 500
         assert response.content_type.startswith("text/html")
         mock_send_file.assert_called_once()
+
+
+class TestShowCommandErrors:
+    def _build_app_with_handlers(self) -> Flask:
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/invalid")
+        def invalid_view() -> FlaskResponse:
+            raise CommandInvalidError("bad bundle")
+
+        @test_app.route("/failed")
+        def failed_view() -> FlaskResponse:
+            raise UpdateFailedError()
+
+        return test_app
+
+    @pytest.mark.parametrize("accept", ["text/html", "*/*"])
+    def test_4xx_command_error_keeps_status_and_json_for_html_accept(self, accept: str):
+        client = self._build_app_with_handlers().test_client()
+
+        with patch("superset.views.error_handling.send_file") as mock_send_file:
+            response = client.get("/invalid", headers={"Accept": accept})
+
+        assert response.status_code == 422
+        assert response.content_type.startswith("application/json")
+        mock_send_file.assert_not_called()
+
+    def test_5xx_command_error_serves_branded_page_for_html_accept(self):
+        client = self._build_app_with_handlers().test_client()
+
+        with patch(
+            "superset.views.error_handling.send_file",
+            return_value=Response("<html>500</html>", mimetype="text/html"),
+        ) as mock_send_file:
+            response = client.get("/failed", headers={"Accept": "text/html"})
+
+        assert response.status_code == 500
+        assert response.content_type.startswith("text/html")
+        mock_send_file.assert_called_once()
+
+    def test_5xx_command_error_returns_json_for_json_accept(self):
+        client = self._build_app_with_handlers().test_client()
+
+        response = client.get("/failed", headers={"Accept": "application/json"})
+
+        assert response.status_code == 500
+        assert response.content_type.startswith("application/json")
 
 
 class TestShowHttpException:

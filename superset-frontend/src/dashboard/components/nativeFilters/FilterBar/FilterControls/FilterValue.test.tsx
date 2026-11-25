@@ -23,7 +23,7 @@ import {
   userEvent,
 } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import {
   NativeFilterType,
@@ -97,7 +97,7 @@ jest.mock('./state', () => ({
     mockUseTransitiveParentIds(...args),
 }));
 
-const mockStore = configureStore([thunk]);
+const mockStore = createMockStore([thunk]);
 
 const createMockFilter = (overrides: Partial<Filter> = {}): Filter => ({
   id: 'NATIVE_FILTER-1',

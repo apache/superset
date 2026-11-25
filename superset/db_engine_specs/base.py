@@ -3713,15 +3713,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return name
 
     @classmethod
-    def prepare_identifier(
-        cls,
-        name: str,
-        normalize_columns: bool = False,
-    ) -> str:
+    def prepare_identifier(cls, name: str, exact_case: bool = False) -> str:
         """
-        Prepare a physical identifier for SQLAlchemy column construction.
+        Prepare a column name for SQLAlchemy ``column()`` construction.
 
-        The default preserves SQLAlchemy's automatic identifier-quoting behavior.
+        ``exact_case`` is True when the stored name is known to be the exact
+        identifier returned by the database cursor (virtual datasets and SQL Lab
+        queries). The default keeps SQLAlchemy's automatic identifier quoting.
         """
         return name
 
