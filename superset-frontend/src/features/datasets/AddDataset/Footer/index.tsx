@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import { SupersetClient } from '@superset-ui/core';
 import {
   Button,
   DropdownButton,
   Menu,
   Flex,
+  Modal,
+  Table,
 } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -46,6 +50,17 @@ interface FooterProps {
   onDatasetAdd?: (dataset: DatasetObject) => void;
   hasColumns?: boolean;
   datasets?: (string | null | undefined)[] | undefined;
+  onBusyChange?: (busy: boolean) => void;
+  onRegistered?: () => void;
+  busy?: boolean;
+}
+
+interface RegistrationResult {
+  schema?: string | null;
+  table_name: string;
+  status: 'created' | 'skipped' | 'failed';
+  uuid: string | null;
+  message: string;
 }
 
 const INPUT_FIELDS = ['db', 'schema', 'table_name'];
@@ -62,9 +77,23 @@ function Footer({
   addSuccessToast,
   hasColumns = false,
   datasets,
+  onBusyChange,
+  onRegistered,
+  busy = false,
 }: FooterProps) {
   const history = useHistory();
   const theme = useTheme();
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResults, setBulkResults] = useState<RegistrationResult[] | null>(
+    null,
+  );
+  const selectedTables =
+    datasetObject?.selected_tables ??
+    (datasetObject?.table_names ?? []).map(table_name => ({
+      schema: datasetObject?.schema ?? '',
+      table_name,
+    }));
+  const isBulk = selectedTables.length > 1;
   const { createResource, state } = useSingleViewResource<
     Partial<DatasetObject>
   >('dataset', t('dataset'), addDangerToast);
@@ -99,29 +128,85 @@ function Footer({
       const data = {
         database: datasetObject.db?.id,
         catalog: datasetObject.catalog,
-        schema: datasetObject.schema,
+        schema: datasetObject.schema || null,
         table_name: datasetObject.table_name,
       };
-      createResource(data).then(response => {
-        if (!response) {
-          return;
-        }
-        if (typeof response === 'number') {
-          logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
-          // When a dataset is created the response we get is its ID number
-          if (createChart) {
-            addSuccessToast(t('The dataset has been saved'));
-            history.push(`/chart/add/?dataset_id=${response}`);
-          } else {
-            history.push('/tablemodelview/list/');
+      onBusyChange?.(true);
+      createResource(data)
+        .then(response => {
+          if (!response) {
+            return;
           }
-        }
-      });
+          if (typeof response === 'number') {
+            logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
+            // When a dataset is created the response we get is its ID number
+            if (createChart) {
+              addSuccessToast(t('The dataset has been saved'));
+              history.push(`/chart/add/?dataset_id=${response}`);
+            } else {
+              history.push('/tablemodelview/list/');
+            }
+            onRegistered?.();
+          }
+        })
+        .finally(() => onBusyChange?.(false));
     }
   };
 
   const onSaveOnly = () => {
     onSave(false);
+  };
+
+  const onBulkSave = async () => {
+    if (bulkLoading || !datasetObject?.db || selectedTables.length > 100)
+      return;
+    setBulkLoading(true);
+    onBusyChange?.(true);
+    const results: RegistrationResult[] = [];
+    const groups = new Map<string, string[]>();
+    selectedTables.forEach(({ schema, table_name }) => {
+      groups.set(schema, [...(groups.get(schema) ?? []), table_name]);
+    });
+    try {
+      for (const [schema, tables] of groups) {
+        try {
+          // Each schema uses the existing bulk API, which commits per table.
+          // eslint-disable-next-line no-await-in-loop
+          const { json } = await SupersetClient.post({
+            endpoint: '/api/v1/dataset/bulk',
+            jsonPayload: {
+              database: datasetObject.db.id,
+              catalog: datasetObject.catalog,
+              schema: schema || null,
+              tables,
+            },
+          });
+          results.push(
+            ...(json.results as RegistrationResult[]).map(result => ({
+              ...result,
+              schema,
+            })),
+          );
+        } catch {
+          results.push(
+            ...tables.map(table_name => ({
+              schema,
+              table_name,
+              status: 'failed' as const,
+              uuid: null,
+              message: t(
+                'Request failed. Check the dataset list before retrying.',
+              ),
+            })),
+          );
+        }
+      }
+      setBulkResults(results);
+      onRegistered?.();
+    } finally {
+      setBulkLoading(false);
+      onBusyChange?.(false);
+    }
   };
 
   const CREATE_DATASET_TEXT = t('Create and explore dataset');
@@ -144,28 +229,95 @@ function Footer({
   );
 
   return (
-    <Flex align="center" justify="flex-end" gap="8px">
-      <Button buttonStyle="secondary" onClick={cancelButtonOnClick}>
-        {t('Cancel')}
-      </Button>
-      <DropdownButton
-        type="primary"
-        disabled={disabledCheck}
-        loading={loading}
-        tooltip={!datasetObject?.table_name ? tooltipText : undefined}
-        onClick={() => onSave(true)}
-        popupRender={() => dropdownMenu}
-        icon={
-          <Icons.DownOutlined
-            iconSize="xs"
-            iconColor={theme.colorTextLightSolid}
-          />
+    <>
+      <Flex align="center" justify="flex-end" gap="8px">
+        <Button
+          buttonStyle="secondary"
+          onClick={cancelButtonOnClick}
+          disabled={bulkLoading || busy}
+        >
+          {t('Cancel')}
+        </Button>
+        {isBulk ? (
+          <Button
+            buttonStyle="primary"
+            loading={bulkLoading}
+            disabled={busy || !datasetObject?.db || selectedTables.length > 100}
+            tooltip={
+              selectedTables.length > 100
+                ? t('Select up to 100 tables per request.')
+                : undefined
+            }
+            onClick={onBulkSave}
+          >
+            {t('Create datasets')}
+          </Button>
+        ) : (
+          <DropdownButton
+            type="primary"
+            disabled={disabledCheck || busy}
+            loading={loading}
+            tooltip={!datasetObject?.table_name ? tooltipText : undefined}
+            onClick={() => onSave(true)}
+            popupRender={() => dropdownMenu}
+            icon={
+              <Icons.DownOutlined
+                iconSize="xs"
+                iconColor={theme.colorTextLightSolid}
+              />
+            }
+            trigger={['click']}
+          >
+            {CREATE_DATASET_TEXT}
+          </DropdownButton>
+        )}
+      </Flex>
+      <Modal
+        show={bulkResults !== null}
+        title={t('Dataset registration results')}
+        onHide={() => setBulkResults(null)}
+        width={800}
+        footer={
+          <Button
+            buttonStyle="primary"
+            onClick={() => history.push('/tablemodelview/list/')}
+          >
+            {t('View datasets')}
+          </Button>
         }
-        trigger={['click']}
       >
-        {CREATE_DATASET_TEXT}
-      </DropdownButton>
-    </Flex>
+        <p>
+          {t(
+            '%s created, %s skipped, %s failed',
+            bulkResults?.filter(result => result.status === 'created').length ??
+              0,
+            bulkResults?.filter(result => result.status === 'skipped').length ??
+              0,
+            bulkResults?.filter(result => result.status === 'failed').length ??
+              0,
+          )}
+        </p>
+        <Table<RegistrationResult>
+          rowKey={result => JSON.stringify([result.schema, result.table_name])}
+          data={bulkResults ?? []}
+          columns={[
+            { title: t('Schema'), dataIndex: 'schema' },
+            { title: t('Table or view'), dataIndex: 'table_name' },
+            {
+              title: t('Status'),
+              dataIndex: 'status',
+              render: (status: RegistrationResult['status']) =>
+                ({
+                  created: t('Created'),
+                  skipped: t('Skipped'),
+                  failed: t('Failed'),
+                })[status],
+            },
+            { title: t('Details'), dataIndex: 'message' },
+          ]}
+        />
+      </Modal>
+    </>
   );
 }
 

@@ -20,11 +20,16 @@ import { handleKeyboardActivation } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
-import { Icons, Typography } from '@superset-ui/core/components';
+import { Checkbox, Icons, Typography } from '@superset-ui/core/components';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import copyTextToClipboard from 'src/utils/copy';
-import { type TreeNodeData, type TableReference, getTableKey } from './types';
+import {
+  tableReferenceKey,
+  type TreeNodeData,
+  type TableReference,
+  getTableKey,
+} from './types';
 
 const StyledColumnNode = styled.div`
   & > .ant-flex {
@@ -103,6 +108,12 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   toggleSortColumns: (tableId: string) => void;
   showTablePins?: boolean;
   onPreviewTable?: (table: TableReference) => void;
+  onCreateDataset?: (table: TableReference) => void;
+  creatingDataset?: boolean;
+  selectedTables?: TableReference[];
+  onSelectionChange?: (tables: TableReference[]) => void;
+  maxSelection?: number;
+  disabled?: boolean;
 }
 
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
@@ -124,6 +135,12 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   toggleSortColumns,
   showTablePins = true,
   onPreviewTable,
+  onCreateDataset,
+  creatingDataset,
+  selectedTables = [],
+  onSelectionChange,
+  maxSelection = 100,
+  disabled = false,
 }) => {
   const theme = useTheme();
   const { data } = node;
@@ -132,6 +149,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   const schema = data.schema ?? parsedSchema;
   const tableName = data.type === 'table' ? data.name : parsedTable;
   const table = { schema, table_name: tableName };
+  const isChecked = selectedTables.some(
+    value => tableReferenceKey(value) === tableReferenceKey(table),
+  );
   const isManuallyOpen = node.isOpen && !node.data.disableCheckbox;
   const isLoading = loadingNodes[data.id] ?? false;
   const isTablePreviewMode = Boolean(onPreviewTable);
@@ -262,6 +282,27 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         }
       })}
     >
+      {data.type === 'table' && onSelectionChange && (
+        <Checkbox
+          aria-label={t('Select table %s.%s', schema, tableName)}
+          checked={isChecked}
+          disabled={
+            disabled || (!isChecked && selectedTables.length >= maxSelection)
+          }
+          onClick={event => event.stopPropagation()}
+          onKeyDown={event => event.stopPropagation()}
+          onChange={() =>
+            onSelectionChange(
+              isChecked
+                ? selectedTables.filter(
+                    value =>
+                      tableReferenceKey(value) !== tableReferenceKey(table),
+                  )
+                : [...selectedTables, table],
+            )
+          }
+        />
+      )}
       <span
         className="tree-node-icon"
         css={css`
@@ -415,6 +456,16 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                   icon={<Icons.SyncOutlined iconSize="m" />}
                   onClick={() => refreshTableSchema(data.id)}
                 />
+                {onCreateDataset && (
+                  <ActionButton
+                    label={`create-dataset-${schema}-${tableName}`}
+                    tooltip={t('Create dataset')}
+                    icon={<Icons.PlusCircleOutlined iconSize="m" />}
+                    onClick={() => {
+                      if (!creatingDataset) onCreateDataset(table);
+                    }}
+                  />
+                )}
                 {showTablePins && (
                   <ActionButton
                     label={

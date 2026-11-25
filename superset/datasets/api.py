@@ -37,6 +37,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 from superset import db, event_logger, is_feature_enabled, security_manager
+from superset.commands.dataset.bulk_create import BulkCreateDatasetsCommand
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -89,6 +90,8 @@ from superset.datasets.filters import (
     DatasetIsNullOrEmptyFilter,
 )
 from superset.datasets.schemas import (
+    DatasetBulkCreateResultSchema,
+    DatasetBulkCreateSchema,
     DatasetCacheWarmUpRequestSchema,
     DatasetCacheWarmUpResponseSchema,
     DatasetDrillInfoSchema,
@@ -259,6 +262,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        "bulk_create": "write",
         "restore_version": "write",
         "purge": "write",
         "purge_impact": "write",
@@ -275,6 +279,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
         "bulk_delete",
+        "bulk_create",
         "bulk_related_objects",
         "restore",
         "purge",
@@ -548,6 +553,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "get_related_objects_ids_schema": get_related_objects_ids_schema,
     }
     openapi_spec_component_schemas = (
+        DatasetBulkCreateSchema,
+        DatasetBulkCreateResultSchema,
         DatasetCacheWarmUpRequestSchema,
         DatasetCacheWarmUpResponseSchema,
         DatasetRelatedObjectsResponse,
@@ -703,6 +710,54 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # (ORM/driver error text, connection info) back to the caller.
             logger.exception("Unexpected error in DatasetRestApi.post")
             return self.response_500(message="Fatal error")
+
+    @expose("/bulk", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_create",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def bulk_create(self) -> Response:
+        """Register up to 100 tables or views, preserving individual results.
+        ---
+        post:
+          summary: Register multiple tables or views as datasets
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DatasetBulkCreateSchema'
+          responses:
+            200:
+              description: Batch processed; inspect each result for its outcome
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DatasetBulkCreateResultSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            data = DatasetBulkCreateSchema().load(request.json)
+        except ValidationError as ex:
+            return self.response_400(message=ex.messages)
+        results = BulkCreateDatasetsCommand(data).run()
+        return self.response(200, results=results)
 
     def _lock_contention_response(self) -> Response:
         """The shared retryable 409 for a conditional save losing a lock race.

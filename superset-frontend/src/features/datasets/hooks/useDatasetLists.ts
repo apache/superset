@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
@@ -35,45 +35,51 @@ type DatasetListDatabase = Partial<
 const useDatasetsList = (
   db: DatasetListDatabase | undefined,
   schema: string | null | undefined,
+  refreshKey = 0,
+  catalog?: string | null,
 ) => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
+  const requestVersion = useRef(0);
   const supportsSchemas = db?.supports_schemas !== false;
   const encodedSchema = schema ? encodeURIComponent(schema) : null;
 
-  const getDatasetsList = useCallback(async (filters: object[]) => {
-    let results: DatasetObject[] = [];
-    let page = 0;
-    let count;
+  const getDatasetsList = useCallback(
+    async (filters: object[], version: number) => {
+      let results: DatasetObject[] = [];
+      let page = 0;
+      let count;
 
-    // If count is undefined or less than results, we need to
-    // asynchronously retrieve a page of dataset results
-    while (count === undefined || results.length < count) {
-      const queryParams = rison.encode_uri({ filters, page });
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/dataset/?q=${queryParams}`,
-        });
+      // If count is undefined or less than results, we need to
+      // asynchronously retrieve a page of dataset results
+      while (count === undefined || results.length < count) {
+        const queryParams = rison.encode_uri({ filters, page });
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          const response = await SupersetClient.get({
+            endpoint: `/api/v1/dataset/?q=${queryParams}`,
+          });
 
-        // Reassign local count to response's count
-        ({ count } = response.json);
+          // Reassign local count to response's count
+          ({ count } = response.json);
 
-        const {
-          json: { result },
-        } = response;
+          const {
+            json: { result },
+          } = response;
 
-        results = [...results, ...result];
+          results = [...results, ...result];
 
-        page += 1;
-      } catch (error) {
-        addDangerToast(t('There was an error fetching dataset'));
-        logging.error(t('There was an error fetching dataset'), error);
-        break;
+          page += 1;
+        } catch (error) {
+          addDangerToast(t('There was an error fetching dataset'));
+          logging.error(t('There was an error fetching dataset'), error);
+          break;
+        }
       }
-    }
 
-    setDatasets(results);
-  }, []);
+      if (version === requestVersion.current) setDatasets(results);
+    },
+    [],
+  );
 
   useEffect(() => {
     const filters = [
@@ -81,13 +87,27 @@ const useDatasetsList = (
       ...(supportsSchemas
         ? [{ col: 'schema', opr: 'eq', value: encodedSchema }]
         : []),
+      ...(catalog !== undefined
+        ? [{ col: 'catalog', opr: 'eq', value: catalog }]
+        : []),
       { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
     ];
 
+    requestVersion.current += 1;
+    const version = requestVersion.current;
+    setDatasets([]);
     if (db?.id !== undefined && (schema || !supportsSchemas)) {
-      getDatasetsList(filters);
+      getDatasetsList(filters, version);
     }
-  }, [db?.id, schema, encodedSchema, supportsSchemas, getDatasetsList]);
+  }, [
+    db?.id,
+    schema,
+    encodedSchema,
+    supportsSchemas,
+    getDatasetsList,
+    refreshKey,
+    catalog,
+  ]);
 
   const datasetNames = useMemo(
     () => datasets?.map(dataset => dataset.table_name),

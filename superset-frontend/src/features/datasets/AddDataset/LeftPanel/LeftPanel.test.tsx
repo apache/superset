@@ -43,9 +43,19 @@ jest.mock('src/components/DatabaseSelector', () => ({
   ),
 }));
 jest.mock('src/SqlLab/components/TableExploreTree', () => ({
-  TableBrowser: ({ dbId, catalog, onPreviewTable }: TableBrowserProps) => (
+  TableBrowser: ({
+    dbId,
+    catalog,
+    onPreviewTable,
+    onSelectionChange,
+    selectedTables,
+  }: TableBrowserProps) => (
     <>
       <span>{`Browser ${dbId}:${catalog ?? ''}`}</span>
+      <span data-testid="selection-mode">
+        {onSelectionChange ? 'multi' : 'single'}
+      </span>
+      <span data-testid="selected-count">{selectedTables?.length ?? 0}</span>
       <button
         type="button"
         onClick={() =>
@@ -54,6 +64,19 @@ jest.mock('src/SqlLab/components/TableExploreTree', () => ({
       >
         Preview orders
       </button>
+      {onSelectionChange && (
+        <button
+          type="button"
+          onClick={() =>
+            onSelectionChange([
+              { schema: 'public', table_name: 'orders' },
+              { schema: 'sales', table_name: 'orders' },
+            ])
+          }
+        >
+          Select two tables
+        </button>
+      )}
     </>
   ),
 }));
@@ -61,6 +84,8 @@ jest.mock('src/SqlLab/components/TableExploreTree', () => ({
 const props = {
   setDataset: jest.fn(),
   onPreviewTable: jest.fn(),
+  onDatasetCreated: jest.fn(),
+  onBusyChange: jest.fn(),
   dataset: {
     db: { id: 1, database_name: 'examples' },
     catalog: 'main',
@@ -99,5 +124,31 @@ test('changing the schema dispatches the existing table-reset action', async () 
   expect(props.setDataset).toHaveBeenCalledWith({
     type: DatasetActionType.SelectSchema,
     payload: { name: 'schema', value: 'sales' },
+  });
+});
+
+test('toggles multi-select mode and clears selection when disabled', async () => {
+  render(<LeftPanel {...props} />, { useRedux: true });
+  expect(screen.getByTestId('selection-mode')).toHaveTextContent('single');
+
+  const toggle = screen.getByRole('checkbox', {
+    name: 'Select multiple tables',
+  });
+  await userEvent.click(toggle);
+  expect(screen.getByTestId('selection-mode')).toHaveTextContent('multi');
+
+  await userEvent.click(screen.getByText('Select two tables'));
+  expect(props.setDataset).toHaveBeenCalledWith({
+    type: DatasetActionType.SelectTableReferences,
+    payload: [
+      { schema: 'public', table_name: 'orders' },
+      { schema: 'sales', table_name: 'orders' },
+    ],
+  });
+
+  await userEvent.click(toggle);
+  expect(props.setDataset).toHaveBeenCalledWith({
+    type: DatasetActionType.SelectTableReferences,
+    payload: [],
   });
 });

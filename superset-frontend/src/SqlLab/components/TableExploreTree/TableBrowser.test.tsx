@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import fetchMock from 'fetch-mock';
 import { Tree } from 'react-arborist';
 import {
@@ -29,7 +29,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { TableBrowser } from '.';
 import TreeNodeRenderer from './TreeNodeRenderer';
-import type { TreeNodeData } from './types';
+import type { TableReference, TreeNodeData } from './types';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import type { RootState } from 'src/views/store';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -319,4 +319,126 @@ test('table nodes retain working pin controls when showTablePins is omitted', as
     await screen.findByRole('button', { name: 'Pin to the result panel' }),
   );
   expect(handlePinTable).toHaveBeenCalledWith('orders', 'public', null);
+});
+
+function MultiSelectBrowser({
+  maxSelection = 100,
+}: {
+  maxSelection?: number;
+}) {
+  const [selectedTables, setSelectedTables] = useState<TableReference[]>([]);
+  return (
+    <TableBrowser
+      dbId={1}
+      selectedTables={selectedTables}
+      onSelectionChange={setSelectedTables}
+      maxSelection={maxSelection}
+      showSelectAll
+    />
+  );
+}
+
+test('selects tables from different schemas and clears selection', async () => {
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    result: ['public', 'sales'],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
+    result: [{ label: 'orders', value: 'orders', type: 'table' }],
+    count: 1,
+  });
+  render(<MultiSelectBrowser />, { useRedux: true });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(
+    await screen.findByRole('checkbox', { name: 'Select table public.orders' }),
+  );
+  await userEvent.click(screen.getByText('sales'));
+  await userEvent.click(
+    await screen.findByRole('checkbox', { name: 'Select table sales.orders' }),
+  );
+  expect(screen.getByText('2 selected')).toBeVisible();
+  expect(
+    screen.getByRole('checkbox', { name: 'Select table public.orders' }),
+  ).toBeChecked();
+  expect(
+    screen.getByRole('checkbox', { name: 'Select table sales.orders' }),
+  ).toBeChecked();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Clear selection' }),
+  );
+  expect(screen.getByText('0 selected')).toBeVisible();
+});
+
+test('limits selection and permits deselecting at the limit', async () => {
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    result: ['public', 'sales'],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
+    result: [{ label: 'orders', value: 'orders', type: 'table' }],
+    count: 1,
+  });
+  render(<MultiSelectBrowser maxSelection={1} />, { useRedux: true });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(
+    await screen.findByRole('checkbox', { name: 'Select table public.orders' }),
+  );
+  await userEvent.click(screen.getByText('sales'));
+  expect(
+    await screen.findByRole('checkbox', { name: 'Select table sales.orders' }),
+  ).toBeDisabled();
+  await userEvent.click(
+    screen.getByRole('checkbox', { name: 'Select table public.orders' }),
+  );
+  expect(
+    screen.getByRole('checkbox', { name: 'Select table sales.orders' }),
+  ).toBeEnabled();
+});
+
+test('select-all includes only loaded tables matching the search', async () => {
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    result: ['public', 'sales'],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
+    result: [{ label: 'orders', value: 'orders', type: 'table' }],
+    count: 1,
+  });
+  render(<MultiSelectBrowser />, { useRedux: true });
+  expect(
+    screen.getByRole('button', { name: 'Select loaded tables' }),
+  ).toBeDisabled();
+  await userEvent.click(await screen.findByText('public'));
+  await screen.findByRole('checkbox', { name: 'Select table public.orders' });
+  await userEvent.type(
+    screen.getByPlaceholderText('Enter a part of the object name'),
+    'orders',
+  );
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Select loaded tables' }),
+  );
+  expect(screen.getByText('1 selected')).toBeVisible();
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/database/1/tables/*'),
+  ).toHaveLength(1);
+});
+
+test('offers creation only when configured and omits checkboxes by default', async () => {
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    result: ['public'],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
+    result: [{ label: 'orders', value: 'orders', type: 'table' }],
+    count: 1,
+  });
+  const create = jest.fn();
+  render(<TableBrowser dbId={1} onCreateDataset={create} />, {
+    useRedux: true,
+  });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Create dataset' }),
+  );
+  expect(create).toHaveBeenCalledWith({
+    schema: 'public',
+    table_name: 'orders',
+  });
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });

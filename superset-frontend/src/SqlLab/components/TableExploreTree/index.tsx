@@ -53,7 +53,12 @@ import {
 import PanelToolbar from 'src/components/PanelToolbar';
 import TreeNodeRenderer from './TreeNodeRenderer';
 import useTreeData, { EMPTY_NODE_ID_PREFIX } from './useTreeData';
-import { type TreeNodeData, type TableReference, getTableKey } from './types';
+import {
+  type TreeNodeData,
+  type TableReference,
+  getTableKey,
+  tableReferenceKey,
+} from './types';
 import type { TableMetaData } from 'src/hooks/apiResources';
 import { ErrorMessageWithStackTrace } from 'src/components';
 
@@ -72,6 +77,13 @@ export interface TableBrowserProps {
   ) => void;
   toolbarViewId?: string;
   onPreviewTable?: (table: TableReference) => void;
+  onCreateDataset?: (table: TableReference) => void;
+  creatingDataset?: boolean;
+  selectedTables?: TableReference[];
+  onSelectionChange?: (tables: TableReference[]) => void;
+  maxSelection?: number;
+  disabled?: boolean;
+  showSelectAll?: boolean;
 }
 
 const EMPTY_PINNED_TABLES = {};
@@ -195,6 +207,13 @@ export const TableBrowser = ({
   onUnpinTable: handleUnpinTable = ignorePin,
   toolbarViewId,
   onPreviewTable,
+  onCreateDataset,
+  creatingDataset,
+  selectedTables = [],
+  onSelectionChange,
+  maxSelection = 100,
+  disabled = false,
+  showSelectAll = true,
 }: TableBrowserProps) => {
   const theme = useTheme();
   const treeRef = useRef<TreeApi<TreeNodeData>>(null);
@@ -400,6 +419,35 @@ export const TableBrowser = ({
     return displayTreeData.some(node => checkNode(node));
   }, [deferredSearchTerm, displayTreeData]);
 
+  const loadedTables = useMemo(() => {
+    const lowerTerm = deferredSearchTerm.trim().toLowerCase();
+    return displayTreeData.flatMap(schemaNode =>
+      (schemaNode.children ?? [])
+        .filter(
+          tableNode =>
+            tableNode.type === 'table' &&
+            (!lowerTerm ||
+              tableNode.name.toLowerCase().includes(lowerTerm) ||
+              schemaNode.name.toLowerCase().includes(lowerTerm)),
+        )
+        .map(tableNode => ({
+          schema: tableNode.schema ?? schemaNode.name,
+          table_name: tableNode.name,
+        })),
+    );
+  }, [displayTreeData, deferredSearchTerm]);
+
+  const loadedSelection = useMemo(() => {
+    const selectedByKey = new Map<string, TableReference>();
+    selectedTables.forEach(table =>
+      selectedByKey.set(tableReferenceKey(table), table),
+    );
+    loadedTables.forEach(table =>
+      selectedByKey.set(tableReferenceKey(table), table),
+    );
+    return Array.from(selectedByKey.values());
+  }, [loadedTables, selectedTables]);
+
   // Node renderer for react-arborist
   const renderNode = useCallback(
     (props: Parameters<typeof TreeNodeRenderer>[0]) => (
@@ -422,6 +470,12 @@ export const TableBrowser = ({
         toggleSortColumns={toggleSortColumns}
         showTablePins={Boolean(toolbarViewId)}
         onPreviewTable={previewTableHandler}
+        onCreateDataset={onCreateDataset}
+        creatingDataset={creatingDataset}
+        selectedTables={selectedTables}
+        onSelectionChange={onSelectionChange}
+        maxSelection={maxSelection}
+        disabled={disabled}
       />
     ),
     [
@@ -442,6 +496,12 @@ export const TableBrowser = ({
       deferredSearchTerm,
       toolbarViewId,
       previewTableHandler,
+      onCreateDataset,
+      creatingDataset,
+      selectedTables,
+      onSelectionChange,
+      maxSelection,
+      disabled,
     ],
   );
 
@@ -496,6 +556,35 @@ export const TableBrowser = ({
           margin-bottom: 2px;
         `}
       />
+      {onSelectionChange && (
+        <Flex gap="small" align="center" wrap>
+          {showSelectAll && (
+            <Button
+              buttonSize="small"
+              disabled={
+                disabled ||
+                !loadedTables.length ||
+                loadedSelection.length > maxSelection
+              }
+              tooltip={t(
+                'Select tables in the loaded schemas that match your search, up to %s tables.',
+                maxSelection,
+              )}
+              onClick={() => onSelectionChange(loadedSelection)}
+            >
+              {t('Select loaded tables')}
+            </Button>
+          )}
+          <Button
+            buttonSize="small"
+            disabled={disabled || !selectedTables.length}
+            onClick={() => onSelectionChange([])}
+          >
+            {t('Clear selection')}
+          </Button>
+          <span>{t('%s selected', selectedTables.length)}</span>
+        </Flex>
+      )}
       {errorPayload && (
         <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
       )}

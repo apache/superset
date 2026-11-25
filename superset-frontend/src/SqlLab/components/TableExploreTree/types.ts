@@ -45,6 +45,9 @@ export interface TableReference {
   table_name: string;
 }
 
+export const tableReferenceKey = (table: TableReference): string =>
+  JSON.stringify([table.schema, table.table_name]);
+
 export const getSchemaKey = (
   dbId: number | string | undefined,
   catalog: string | null | undefined,
