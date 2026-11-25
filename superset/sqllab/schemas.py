@@ -50,6 +50,15 @@ class EstimateQueryCostSchema(Schema):
     schema = fields.String(
         allow_none=True, metadata={"description": "The database schema"}
     )
+    check_warning = fields.Boolean(
+        load_default=False,
+        metadata={"description": "Run the connection's advisory pre-execution check"},
+    )
+    query_limit = fields.Integer(
+        allow_none=True,
+        strict=True,
+        metadata={"description": "The SQL Lab dropdown row limit"},
+    )
 
 
 class FormatQueryPayloadSchema(Schema):
@@ -66,6 +75,7 @@ class FormatQueryPayloadSchema(Schema):
 
 
 class ExecutePayloadSchema(Schema):
+    prepared_query_id = fields.UUID(required=False, allow_none=True)
     database_id = fields.Integer(required=True)
     sql = fields.String(required=True)
     client_id = fields.String(allow_none=True)
@@ -83,6 +93,15 @@ class ExecutePayloadSchema(Schema):
     select_as_cta = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)  # noqa: N815
     expand_data = fields.Boolean(allow_none=True)
+
+
+class QueryWarningSchema(EstimateQueryCostSchema):
+    """Assess a query, optionally retaining its execution preparation."""
+
+    execution = fields.Nested(ExecutePayloadSchema, required=False)
+
+    class Meta:
+        exclude = ("check_warning",)
 
 
 class QueryResultSchema(Schema):
@@ -175,6 +194,16 @@ class SQLLabBootstrapDatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_multi_catalog = fields.Boolean()
     allows_cost_estimate = fields.Boolean(allow_none=True)
+    query_cost_warning = fields.Dict(allow_none=True)
+    query_warning_state = fields.String(
+        validate=validate.OneOf(["unsupported", "disabled", "ready", "invalid"]),
+        metadata={
+            "description": (
+                "Warning readiness for the requesting user; disabled also includes "
+                "users outside the connection's warning audience"
+            )
+        },
+    )
     allows_subquery = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean()
     disable_data_preview = fields.Boolean()

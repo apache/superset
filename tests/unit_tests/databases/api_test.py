@@ -338,6 +338,8 @@ def test_database_connection(
             "database_name": "my_database",
             "driver": "gsheets",
             "engine_information": {
+                "query_cost_warning_metric": None,
+                "query_warning_supported": False,
                 "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
                 "encrypted_extra_expirations": {},
@@ -437,12 +439,16 @@ def test_database_connection(
             "allow_dml": False,
             "allow_file_upload": False,
             "allow_run_async": False,
+            "query_cost_warning": {"enabled": False},
+            "query_warning_state": "unsupported",
             "backend": "gsheets",
             "cache_timeout": None,
             "configuration_method": "sqlalchemy_form",
             "database_name": "my_database",
             "driver": "gsheets",
             "engine_information": {
+                "query_cost_warning_metric": None,
+                "query_warning_supported": False,
                 "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
                 "encrypted_extra_sensitive_fields": {

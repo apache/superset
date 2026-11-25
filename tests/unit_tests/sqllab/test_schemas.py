@@ -14,6 +14,76 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
+from marshmallow import ValidationError
+
+from superset.sqllab.schemas import EstimateQueryCostSchema
+
+
+@pytest.mark.parametrize(
+    "rule,state,supported",
+    [
+        (None, "invalid", True),
+        ({"enabled": False}, "disabled", True),
+        ({"enabled": False}, "unsupported", False),
+        ({"enabled": True}, "ready", True),
+        ({"enabled": True, "metric": "total_cost", "threshold": 10}, "ready", True),
+    ],
+)
+def test_sqllab_bootstrap_database_allows_null_warning_rule(
+    rule: dict[str, object] | None, state: str, supported: bool
+) -> None:
+    """Invalid saved rules are represented by null in the connection response."""
+    from superset.sqllab.schemas import SQLLabBootstrapDatabaseSchema
+
+    schema = SQLLabBootstrapDatabaseSchema()
+    payload = {
+        "query_cost_warning": rule,
+        "query_warning_state": state,
+        "engine_information": {"query_warning_supported": supported},
+    }
+    assert schema.load(payload) == payload
+    assert schema.dump(payload) == payload
+
+
+def test_estimate_schema_keeps_manual_defaults() -> None:
+    """Existing clients need neither warning checks nor a dropdown limit."""
+    assert EstimateQueryCostSchema().load({"database_id": 1, "sql": "SELECT 1"}) == {
+        "database_id": 1,
+        "sql": "SELECT 1",
+        "check_warning": False,
+    }
+
+
+@pytest.mark.parametrize("limit", [None, 0, 100, -1])
+def test_estimate_schema_accepts_execution_limits(limit: int | None) -> None:
+    """Integer limits use the same normalization as SQL Lab execution."""
+    result = EstimateQueryCostSchema().load(
+        {
+            "database_id": 1,
+            "sql": "SELECT 1",
+            "check_warning": True,
+            "query_limit": limit,
+        }
+    )
+    assert result["query_limit"] == limit
+    assert result["check_warning"] is True
+
+
+@pytest.mark.parametrize("limit", ["100", True, 1.5, {}, float("inf")])
+def test_estimate_schema_rejects_invalid_warning_limit(limit: object) -> None:
+    """Do not silently coerce malformed request limits before checking usage."""
+    with pytest.raises(ValidationError, match="Not a valid integer"):
+        EstimateQueryCostSchema().load(
+            {
+                "database_id": 1,
+                "sql": "SELECT 1",
+                "check_warning": True,
+                "query_limit": limit,
+            }
+        )
+
+
 def test_sqllab_bootstrap_database_schema_includes_engine_information() -> None:
     """
     The OpenAPI contract for `GET /api/v1/sqllab/` documents `engine_information`

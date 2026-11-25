@@ -678,7 +678,7 @@ class TestSqlLab(SupersetTestCase):
             SELECT /*+ hint */ @value AS foo;
         """
         )
-        mock_query = mock.MagicMock(select_as_cta=False)
+        mock_query = mock.MagicMock(select_as_cta=False, extra={})
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
         mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
@@ -779,6 +779,7 @@ class TestSqlLab(SupersetTestCase):
         )
         mock_query = mock.MagicMock(
             select_as_cta=True,
+            extra={},
             ctas_method=CTASMethod.TABLE.name,
             tmp_table_name="table",
             tmp_schema_name="schema",

@@ -2821,6 +2821,10 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
     return sql
 
 
+# Retain the built-in identity when user configuration replaces the public hook.
+_default_sql_query_mutator = SQL_QUERY_MUTATOR
+
+
 # Hook for translating user-authored asset metadata (chart names, dashboard
 # titles, labels) into the viewer's locale. Gated by the
 # ``ENABLE_I18N_ASSET_TRANSLATIONS`` feature flag and a multi-language

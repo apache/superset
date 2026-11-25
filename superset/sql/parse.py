@@ -4303,6 +4303,14 @@ def process_jinja_sql(
     )
 
     processor = get_template_processor(database)
+    if isinstance(processor, NoOpTemplateProcessor):
+        script = SQLScript(sql, engine=database.db_engine_spec.engine)
+        return JinjaSQLResult(
+            script=script,
+            tables={
+                table for statement in script.statements for table in statement.tables
+            },
+        )
     ast = processor.env.parse(sql)
 
     tables = set()
@@ -4345,33 +4353,29 @@ def process_jinja_sql(
 
     # Render the neutralized template once, using the same context
     # ``process_template`` builds at execution time, so the validated SQL
-    # matches the executed SQL. A no-op processor runs the raw SQL at
-    # execution time, so validate that raw SQL directly.
-    if isinstance(processor, NoOpTemplateProcessor):
-        rendered_sql = processor.process_template(sql)
-    else:
-        code = processor.env.compile(ast)
-        template = Template.from_code(
-            processor.env,
-            code,
-            globals=processor.env.globals,
-        )
-        # Replace live partition macros with stubs so a call that survives
-        # neutralization (e.g. via a dynamic attribute lookup) does not
-        # execute during this render.
-        context = processor.get_template_context(**(template_params or {}))
-        if (engine := getattr(processor, "engine", None)) and isinstance(
-            context.get(engine), dict
-        ):
-            context[engine] = {
-                key: (
-                    (lambda *args, **kwargs: raise_for_unresolvable_macro())
-                    if key in PARTITION_MACRO_NAMES
-                    else value
-                )
-                for key, value in context[engine].items()
-            }
-        rendered_sql = template.render(context)
+    # matches the executed SQL.
+    code = processor.env.compile(ast)
+    template = Template.from_code(
+        processor.env,
+        code,
+        globals=processor.env.globals,
+    )
+    # Replace live partition macros with stubs so a call that survives
+    # neutralization (e.g. via a dynamic attribute lookup) does not
+    # execute during this render.
+    context = processor.get_template_context(**(template_params or {}))
+    if (engine := getattr(processor, "engine", None)) and isinstance(
+        context.get(engine), dict
+    ):
+        context[engine] = {
+            key: (
+                (lambda *args, **kwargs: raise_for_unresolvable_macro())
+                if key in PARTITION_MACRO_NAMES
+                else value
+            )
+            for key, value in context[engine].items()
+        }
+    rendered_sql = template.render(context)
 
     parsed_script = SQLScript(
         rendered_sql,

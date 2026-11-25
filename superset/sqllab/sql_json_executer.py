@@ -17,7 +17,6 @@
 # pylint: disable=too-few-public-methods, invalid-name
 from __future__ import annotations
 
-import dataclasses
 import logging
 from abc import ABC
 from typing import Any, Callable, TYPE_CHECKING
@@ -180,13 +179,6 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
                 expand_data=execution_context.expand_data,
                 log_params=log_params,
             )
-            try:
-                task.forget()
-            except NotImplementedError:
-                logger.warning(
-                    "Unable to forget Celery task as backend"
-                    "does not support this operation"
-                )
         except Exception as ex:
             logger.exception("Query %i: %s", query_id, str(ex))
 
@@ -196,10 +188,12 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
                 error_type=SupersetErrorType.ASYNC_WORKERS_ERROR,
                 level=ErrorLevel.ERROR,
             )
-            error_payload = dataclasses.asdict(error)
-            query = execution_context.query
-            query.set_extra_json_key("errors", [error_payload])
-            query.status = QueryStatus.FAILED
-            query.error_message = message
             raise SupersetErrorException(error) from ex
+        # Submission succeeded. Result-backend cleanup cannot undo delivery.
+        try:
+            task.forget()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Query %i: Unable to forget Celery task", query_id, exc_info=True
+            )
         return SqlJsonExecutionStatus.QUERY_IS_RUNNING

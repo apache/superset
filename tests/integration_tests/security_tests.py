@@ -1859,6 +1859,7 @@ class TestSecurityManager(SupersetTestCase):
     def test_raise_for_access_query(self, mock_can_access, mock_is_editor):
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="bar",
             sql="SELECT * FROM foo",
             catalog=None,
@@ -1905,6 +1906,7 @@ class TestSecurityManager(SupersetTestCase):
         """
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="bar",
             sql="SELECT * FROM foo",
             catalog=None,
@@ -1931,6 +1933,7 @@ class TestSecurityManager(SupersetTestCase):
         """
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="bar",
             sql="SELECT * FROM table_with_no_dataset",
             catalog=None,
@@ -1961,6 +1964,7 @@ class TestSecurityManager(SupersetTestCase):
         """
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="bar",
             sql="SELECT * FROM foo",
             catalog=None,
@@ -1990,6 +1994,7 @@ class TestSecurityManager(SupersetTestCase):
         """
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="bar",
             sql="SELECT * FROM foo",
             catalog=None,
@@ -2017,6 +2022,7 @@ class TestSecurityManager(SupersetTestCase):
         """
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="bar",
             sql="SELECT * FROM foo",
             catalog=None,
@@ -2045,6 +2051,7 @@ class TestSecurityManager(SupersetTestCase):
         """
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="bar",
             sql="SELECT * FROM foo",
             catalog=None,
@@ -2111,6 +2118,7 @@ class TestSecurityManager(SupersetTestCase):
         """
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="public",
             # CALL on Postgres parses as exp.Command with no parseable
             # literal, yielding zero extracted tables.
@@ -2141,8 +2149,6 @@ class TestSecurityManager(SupersetTestCase):
         ``executed_sql`` (the rendered SQL that actually ran) when it is set
         to keep the table set aligned with the execute-time check.
         """
-        from superset.sql.parse import JinjaSQLResult, SQLScript
-
         query = Mock(
             database=get_example_database(),
             schema="bar",
@@ -2150,18 +2156,19 @@ class TestSecurityManager(SupersetTestCase):
             executed_sql="SELECT * FROM bar.foo",
             catalog=None,
         )
-        mock_process_jinja.return_value = JinjaSQLResult(
-            script=SQLScript("SELECT * FROM bar.foo", "postgresql"),
-            tables=set(),
+        mock_query_datasources.return_value = [Mock(perm="allowed")]
+        mock_can_access.side_effect = (
+            lambda permission, _view: permission == "datasource_access"
         )
-        mock_query_datasources.return_value = []
-        mock_can_access.return_value = False
         mock_is_editor.return_value = False
 
         security_manager.raise_for_access(query=query, force_dataset_match=True)
-
-        sql_passed = mock_process_jinja.call_args.args[0]
-        assert sql_passed == "SELECT * FROM bar.foo"
+        assert mock_query_datasources.call_args.args[1] == "foo"
+        assert mock_query_datasources.call_args.kwargs["schema"] == "bar"
+        mock_query_datasources.return_value = []
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+        mock_process_jinja.assert_not_called()
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
     @patch("superset.security.SupersetSecurityManager.is_editor")
@@ -2207,6 +2214,7 @@ class TestSecurityManager(SupersetTestCase):
         """
         query = Mock(
             database=get_example_database(),
+            executed_sql=None,
             schema="bar",
             sql="SELECT * FROM table_with_no_dataset",
             catalog=None,

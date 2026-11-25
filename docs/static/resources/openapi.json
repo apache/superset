@@ -5495,6 +5495,12 @@
           "is_managed_externally": {
             "type": "boolean"
           },
+          "query_cost_warning": {
+            "readOnly": true
+          },
+          "query_warning_state": {
+            "readOnly": true
+          },
           "uuid": {
             "format": "uuid",
             "nullable": true,
@@ -5593,6 +5599,12 @@
           },
           "id": {
             "type": "integer"
+          },
+          "query_cost_warning": {
+            "readOnly": true
+          },
+          "query_warning_state": {
+            "readOnly": true
           },
           "uuid": {
             "format": "uuid",
@@ -7979,6 +7991,13 @@
             "nullable": true,
             "type": "string"
           },
+          "query_cost_warning_metric": {
+            "nullable": true,
+            "type": "string"
+          },
+          "query_warning_supported": {
+            "type": "boolean"
+          },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
             "type": "boolean"
@@ -8013,8 +8032,18 @@
             "nullable": true,
             "type": "string"
           },
+          "check_warning": {
+            "default": false,
+            "description": "Run the connection's advisory pre-execution check",
+            "type": "boolean"
+          },
           "database_id": {
             "description": "The database id",
+            "type": "integer"
+          },
+          "query_limit": {
+            "description": "The SQL Lab dropdown row limit",
+            "nullable": true,
             "type": "integer"
           },
           "schema": {
@@ -8057,6 +8086,11 @@
           "expand_data": {
             "nullable": true,
             "type": "boolean"
+          },
+          "prepared_query_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           },
           "queryLimit": {
             "nullable": true,
@@ -9100,6 +9134,45 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "QueryWarningSchema": {
+        "properties": {
+          "catalog": {
+            "description": "The database catalog",
+            "nullable": true,
+            "type": "string"
+          },
+          "database_id": {
+            "description": "The database id",
+            "type": "integer"
+          },
+          "execution": {
+            "$ref": "#/components/schemas/ExecutePayloadSchema"
+          },
+          "query_limit": {
+            "description": "The SQL Lab dropdown row limit",
+            "nullable": true,
+            "type": "integer"
+          },
+          "schema": {
+            "description": "The database schema",
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "description": "The SQL query to estimate",
+            "type": "string"
+          },
+          "template_params": {
+            "description": "The SQL query template params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "database_id",
+          "sql"
+        ],
         "type": "object"
       },
       "RLSRestApi.get": {
@@ -12022,6 +12095,20 @@
           "id": {
             "description": "The database id",
             "type": "integer"
+          },
+          "query_cost_warning": {
+            "nullable": true,
+            "type": "object"
+          },
+          "query_warning_state": {
+            "description": "Warning readiness for the requesting user; disabled also includes users outside the connection's warning audience",
+            "enum": [
+              "unsupported",
+              "disabled",
+              "ready",
+              "invalid"
+            ],
+            "type": "string"
           }
         },
         "type": "object"
@@ -36593,14 +36680,80 @@
                 "schema": {
                   "properties": {
                     "result": {
-                      "type": "object"
+                      "oneOf": [
+                        {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "proceed"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "confirm"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "items": {
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value"
+                                ],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "reason": {
+                              "enum": [
+                                "warning",
+                                "unavailable"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action",
+                            "reason",
+                            "message"
+                          ],
+                          "type": "object"
+                        }
+                      ]
                     }
                   },
                   "type": "object"
                 }
               }
             },
-            "description": "Query estimation result"
+            "description": "Formatted manual estimate, or a warning decision when check_warning is true. The action is proceed when this check does not require confirmation. A confirm action includes a warning or unavailable reason, a nonempty message, and optional plain-text label/value details."
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -37044,6 +37197,164 @@
           }
         ],
         "summary": "Get the result of a SQL query execution",
+        "tags": [
+          "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/warning/": {
+      "post": {
+        "description": "Requires SQL execution permission and access to the queried data. Users outside the connection's warning audience receive proceed without an assessment. This endpoint does not execute the submitted query or grant access to manual estimation.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryWarningSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "prepared_query_id": {
+                      "description": "Owned execution preparation identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "result": {
+                      "oneOf": [
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "proceed"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "confirm"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "items": {
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value"
+                                ],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "reason": {
+                              "enum": [
+                                "warning",
+                                "unavailable"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action",
+                            "reason",
+                            "message"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Advisory decision, not authorization to execute SQL"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Check for advisory warnings before executing SQL",
+        "tags": [
+          "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/warning/{client_id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The owned preparation was discarded or no longer exists"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Discard an unexecuted SQL Lab preparation",
         "tags": [
           "SQL Lab"
         ]

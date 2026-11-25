@@ -73,7 +73,10 @@ def test_validate_rendered_access_authorizes_the_literal_rendered_sql() -> None:
     assert query.executed_sql is None
 
 
-def test_validate_rendered_access_resets_executed_sql_on_denial() -> None:
+@pytest.mark.parametrize("executed_sql", [None, "SELECT * FROM sales LIMIT 10"])
+def test_validate_rendered_access_restores_executed_sql_on_denial(
+    executed_sql: str | None,
+) -> None:
     """
     A denial for the rendered SQL must still surface as
     ``QueryIsForbiddenToAccessException`` and must not leave
@@ -81,13 +84,13 @@ def test_validate_rendered_access_resets_executed_sql_on_denial() -> None:
     """
     command = _make_command()
     query = MagicMock()
-    query.executed_sql = None
+    query.executed_sql = executed_sql
     command._access_validator.validate.side_effect = Exception("access denied")  # type: ignore[attr-defined]  # noqa: E501
 
     with pytest.raises(QueryIsForbiddenToAccessException):
         command._validate_rendered_access(query, "SELECT * FROM secret_payroll")
 
-    assert query.executed_sql is None
+    assert query.executed_sql == executed_sql
 
 
 # ---------------------------------------------------------------------------

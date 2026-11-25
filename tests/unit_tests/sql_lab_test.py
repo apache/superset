@@ -236,7 +236,7 @@ def test_execute_sql_statement_exceeds_payload_limit(
     """
 
     # Mock the query object and database
-    query = mocker.MagicMock()
+    query = mocker.MagicMock(extra={})
     query.limit = 1
     query.database = mocker.MagicMock()
     query.database.cache_timeout = 100
@@ -296,7 +296,7 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) 
     """
 
     # Mock the query object and database
-    query = mocker.MagicMock()
+    query = mocker.MagicMock(extra={})
     query.limit = 1
     query.database = mocker.MagicMock()
     query.database.cache_timeout = 100
@@ -391,7 +391,7 @@ def test_execute_sql_statements_mutates_before_split_by_default(
     statement blocks, for engines that execute statements individually rather
     than as one. Regression guard for issue #30169.
     """
-    query = mocker.MagicMock()
+    query = mocker.MagicMock(extra={})
     query.limit = 1
     query.database = mocker.MagicMock()
     query.database.cache_timeout = 100
@@ -455,7 +455,7 @@ def test_execute_sql_statements_mutates_per_statement_when_run_as_one(
     """
     mocker.patch.dict(app.config, {"MUTATE_AFTER_SPLIT": True})
 
-    query = mocker.MagicMock()
+    query = mocker.MagicMock(extra={})
     query.limit = 1
     query.database = mocker.MagicMock()
     query.database.cache_timeout = 100
@@ -516,7 +516,7 @@ def test_execute_sql_statements_raises_when_mutator_strips_all_statements(
     comments/whitespace) must raise a clean error instead of silently
     producing an empty block list.
     """
-    query = mocker.MagicMock()
+    query = mocker.MagicMock(extra={})
     query.limit = 1
     query.database = mocker.MagicMock()
     query.database.cache_timeout = 100
@@ -561,7 +561,7 @@ def test_execute_sql_statements_raises_when_mutator_strips_single_block(
     """
     mocker.patch.dict(app.config, {"MUTATE_AFTER_SPLIT": True})
 
-    query = mocker.MagicMock()
+    query = mocker.MagicMock(extra={})
     query.limit = 1
     query.database = mocker.MagicMock()
     query.database.cache_timeout = 100
@@ -669,6 +669,7 @@ def test_get_sql_results_oauth2(
         # is ever reached -- doesn't try to compare an unconfigured MagicMock
         # against an int.
         query = mocker.MagicMock(
+            extra={},
             select_as_cta=False,
             select_as_cta_used=False,
             limit=None,

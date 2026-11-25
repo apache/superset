@@ -153,7 +153,7 @@ const QueryTable = ({
     };
 
     const openQueryInNewTab = (query: QueryResponse) => {
-      dispatch(cloneQueryToNewTab(query, true));
+      dispatch(cloneQueryToNewTab(query, true, 'history'));
     };
 
     const statusAttributes = {
