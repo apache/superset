@@ -390,6 +390,7 @@ export default function transformProps(
     chartProps.colorScale ??
     CategoricalColorNamespace.getScale(colorScheme as string);
 
+  const isSliceVisible = (name: string) => legendState?.[name] !== false;
   let totalValue = 0;
 
   const transformedData: PieSeriesOption[] = data.map(datum => {
@@ -404,7 +405,10 @@ export default function transformProps(
       filterState.selectedValues && !filterState.selectedValues.includes(name);
     const value = datum[metricLabel];
 
-    if (typeof value === 'number' || typeof value === 'string') {
+    if (
+      isSliceVisible(name) &&
+      (typeof value === 'number' || typeof value === 'string')
+    ) {
       totalValue += convertInteger(value);
     }
 
@@ -421,7 +425,9 @@ export default function transformProps(
   });
   if (otherDatum) {
     transformedData.push(otherDatum);
-    totalValue += otherSum;
+    if (isSliceVisible(otherDatum.name)) {
+      totalValue += otherSum;
+    }
   }
 
   const selectedValues = (filterState.selectedValues || []).reduce(
