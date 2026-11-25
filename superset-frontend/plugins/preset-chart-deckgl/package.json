@@ -35,6 +35,7 @@
     "@deck.gl/mapbox": "~9.4.0",
     "@deck.gl/maplibre": "~9.4.0",
     "@deck.gl/mesh-layers": "~9.4.0",
+    "@loaders.gl/mvt": "^4.4.3",
     "@luma.gl/constants": "~9.4.0",
     "@luma.gl/core": "~9.4.0",
     "@luma.gl/engine": "~9.4.0",
