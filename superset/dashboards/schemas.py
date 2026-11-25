@@ -32,12 +32,13 @@ from superset import db, security_manager
 from superset.subjects.schemas import SubjectReferenceField, SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.time_range_limits.policy import (
+    check_stricter_than_global,
+    imported_dashboard_errors,
     limits_errors,
     limits_shape_error,
     parse_time_range_limits,
     parse_written_policy,
     stored_limits,
-    stricter_errors,
     TIME_RANGE_LIMITS_KEY,
     TimeRangeLimitsInvalidError,
 )
@@ -858,11 +859,9 @@ class ImportV1DashboardSchema(Schema):
     ) -> None:
         from superset.models.dashboard import Dashboard
 
-        policy = parse_written_policy(
-            (data.get("metadata") or {}).get(TIME_RANGE_LIMITS_KEY)
-        )
+        raw = (data.get("metadata") or {}).get(TIME_RANGE_LIMITS_KEY)
 
-        def find_stored() -> dict[str, Any] | None:
+        def find_existing() -> Dashboard | None:
             from superset.commands.importers.v1.utils import find_existing_for_import
 
             # The row the import overwrites or restores, as import_dashboard finds it.
@@ -873,11 +872,16 @@ class ImportV1DashboardSchema(Schema):
                     .filter(Dashboard.slug == slug, Dashboard.deleted_at.is_(None))
                     .one_or_none()
                 )
-            if existing is None:
-                return None
-            return stored_limits(existing.json_metadata)
+            return existing
 
-        if errors := stricter_errors(policy, "dashboard", find_stored):
+        if errors := check_stricter_than_global(
+            parse_written_policy(raw), None, "dashboard"
+        ):
+            if (existing := find_existing()) is not None:
+                errors = imported_dashboard_errors(
+                    raw, stored_limits(existing.json_metadata)
+                )
+        if errors:
             raise ValidationError(
                 {"metadata": limits_errors(TIME_RANGE_LIMITS_KEY, errors)}
             )

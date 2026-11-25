@@ -47,12 +47,13 @@ from superset.time_range_limits.adjustments import (
     TimeRangeAdjustment,
 )
 from superset.time_range_limits.policy import (
+    check_stricter_than_global,
     clamp_imported_dashboard_limits,
+    imported_dashboard_errors,
     limits_errors,
     limits_shape_error,
     parse_written_policy,
     stored_limits,
-    stricter_errors,
     TIME_RANGE_LIMITS_KEY,
     TimeRangeLimitsInvalidError,
 )
@@ -109,9 +110,12 @@ def import_chart(
 
 
 def _find_existing_dashboard(remote_id: Any) -> Optional[Dashboard]:
-    """The dashboard a V0 import overrides: the last one with that ``remote_id``."""
+    """
+    The dashboard a V0 import overrides: of those with that ``remote_id``, the
+    one with the highest id.
+    """
     existing_dashboard = None
-    for dash in db.session.query(Dashboard).all():
+    for dash in db.session.query(Dashboard).order_by(Dashboard.id).all():
         if (
             "remote_id" in dash.params_dict
             and dash.params_dict["remote_id"] == remote_id
@@ -177,24 +181,22 @@ def _json_metadata_limits_errors(
         policy = parse_written_policy(raw)
     except TimeRangeLimitsInvalidError as ex:
         return limits_shape_error(TIME_RANGE_LIMITS_KEY, ex)
-    errors = stricter_errors(
-        policy,
-        "dashboard",
-        lambda: (
-            stored_limits(existing.json_metadata)
-            if (existing := find_existing())
-            else None
-        ),
-    )
+    if errors := check_stricter_than_global(policy, None, "dashboard"):
+        if (existing := find_existing()) is not None:
+            errors = imported_dashboard_errors(
+                raw, stored_limits(existing.json_metadata)
+            )
     return limits_errors(TIME_RANGE_LIMITS_KEY, errors)
 
 
-def _remote_ids(dashboard: dict[str, Any]) -> list[Any]:
+_NO_REMOTE_ID = object()
+
+
+def _metadata_remote_id(dashboard: dict[str, Any]) -> Any:
     """
-    The ``remote_id`` values whose row an import of ``dashboard`` changes: the row
-    found by its ``id``, and the row that gets its ``json_metadata.remote_id``.
+    The ``remote_id`` an import of ``dashboard`` leaves on the row it writes: its
+    ``json_metadata.remote_id``, or ``_NO_REMOTE_ID`` when it has none.
     """
-    remote_ids = [dashboard.get("id")]
     json_metadata = dashboard.get("json_metadata")
     try:
         metadata = (
@@ -205,22 +207,36 @@ def _remote_ids(dashboard: dict[str, Any]) -> list[Any]:
     except (TypeError, ValueError, RecursionError):
         metadata = None
     if isinstance(metadata, dict) and "remote_id" in metadata:
-        remote_ids.append(metadata["remote_id"])
-    return remote_ids
+        return metadata["remote_id"]
+    return _NO_REMOTE_ID
 
 
-def _find_unchanged_dashboard(
+def _find_kept_dashboard(
     remote_id: Any, earlier: list[dict[str, Any]]
 ) -> Optional[Dashboard]:
     """
-    The dashboard an import overrides, or ``None`` when a dashboard imported
-    before it changes that row: the row then has no stored value to keep.
-    Compared with ``==``, as ``_find_existing_dashboard`` does: an ``id`` may be
-    unhashable.
+    The stored dashboard an import overrides once the dashboards imported before
+    it, ``earlier``, are written, or ``None`` when it writes a new row or a row an
+    earlier dashboard added. Replays how ``import_dashboard`` finds its row: the
+    last one whose ``remote_id`` is the dashboard's ``id``, else a new one; the
+    row then has the dashboard's ``json_metadata.remote_id``. Compared with
+    ``==``, as ``_find_existing_dashboard`` does: an ``id`` may be unhashable.
     """
-    if any(remote_id in _remote_ids(dashboard) for dashboard in earlier):
-        return None
-    return _find_existing_dashboard(remote_id)
+    rows: list[list[Any]] = [
+        [dash, dash.params_dict.get("remote_id", _NO_REMOTE_ID)]
+        for dash in db.session.query(Dashboard).order_by(Dashboard.id).all()
+    ]
+
+    def target(key: Any) -> Optional[list[Any]]:
+        return next((row for row in reversed(rows) if row[1] == key), None)
+
+    for dashboard in earlier:
+        if (row := target(dashboard.get("id"))) is None:
+            row = [None, _NO_REMOTE_ID]
+            rows.append(row)
+        row[1] = _metadata_remote_id(dashboard)
+    found = target(remote_id)
+    return found[0] if found else None
 
 
 def _limits_errors(
@@ -244,7 +260,7 @@ def _limits_errors(
         if isinstance(json_metadata := dashboard.get("json_metadata"), str) and (
             found := _json_metadata_limits_errors(
                 json_metadata,
-                partial(_find_unchanged_dashboard, dashboard.get("id"), earlier),
+                partial(_find_kept_dashboard, dashboard.get("id"), earlier),
             )
         ):
             dashboard_errors[index] = {"json_metadata": found}

@@ -723,10 +723,15 @@ def stricter_errors(
     return errors
 
 
-def clamp_inherited_copy_limits(
-    raw: dict[str, Any] | None, stored: dict[str, Any] | None
+def _fit_dashboard_rules(
+    raw: dict[str, Any] | None,
+    stored: dict[str, Any] | None,
+    fit_changed: bool,
 ) -> dict[str, Any] | None:
-    """Replace unchanged stale dashboard rules, validating any replacements."""
+    """
+    Replace the dashboard rules looser than the global one by the global rule:
+    only rules equal to ``stored``, or every rule when ``fit_changed``.
+    """
     if (policy := parse_written_policy(raw)) is None:
         return raw
     global_limits = load_global_limits() or TimeRangeLimits()
@@ -735,12 +740,19 @@ def clamp_inherited_copy_limits(
         for rule in RULES
         if (value := getattr(policy, rule)) is not None
         and (limit := getattr(global_limits, rule)) is not None
-        and not _changed(policy, stored, rule)
+        and (fit_changed or not _changed(policy, stored, rule))
         and _looser_than(rule, value, limit, "dashboard") is not None
     }
-    if not replacements:
+    return {**(raw or {}), **replacements} if replacements else raw
+
+
+def clamp_inherited_copy_limits(
+    raw: dict[str, Any] | None, stored: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """Replace unchanged stale dashboard rules, validating any replacements."""
+    clamped = _fit_dashboard_rules(raw, stored, fit_changed=False)
+    if clamped is raw:
         return raw
-    clamped = {**(raw or {}), **replacements}
     if errors := check_stricter_than_global(
         parse_written_policy(clamped), raw, "dashboard"
     ):
@@ -748,21 +760,46 @@ def clamp_inherited_copy_limits(
     return clamped
 
 
+def imported_dashboard_errors(
+    raw: dict[str, Any] | None, stored: dict[str, Any] | None
+) -> dict[str, list[str]]:
+    """
+    ``check_stricter_than_global`` errors of a policy imported over an existing
+    dashboard, whose ``stored`` is the raw stored policy or ``None``. The import
+    fits every rule looser than the global one, so only the errors fitting can't
+    fix are left.
+    """
+    return check_stricter_than_global(
+        parse_written_policy(_fit_dashboard_rules(raw, stored, fit_changed=True)),
+        stored,
+        "dashboard",
+    )
+
+
 def clamp_imported_dashboard_limits(
     metadata: dict[str, Any], stored: dict[str, Any] | None
 ) -> bool:
-    """Clamp valid inherited rules in import metadata and report changes.
+    """Fit the rules looser than the global one in the metadata of an import over
+    an existing dashboard, whose ``stored`` is the raw stored policy or ``None``,
+    and report changes.
 
-    Import schemas validate supplied policies. When metadata is omitted, an
-    existing policy can predate the import schema or use a disabled time grain.
+    The file's rule can equal the stored one, or differ from it because an earlier
+    import already fitted the stored one. When metadata is omitted, an existing
+    policy can predate the import schema or use a disabled time grain.
     """
-    if stored is None or TIME_RANGE_LIMITS_KEY not in metadata:
+    if TIME_RANGE_LIMITS_KEY not in metadata:
         return False
     raw = metadata[TIME_RANGE_LIMITS_KEY]
     try:
-        clamped = clamp_inherited_copy_limits(raw, stored)
+        clamped = _fit_dashboard_rules(raw, stored, fit_changed=True)
     except TimeRangeLimitsInvalidError:
         return False
+    if clamped is not raw and (
+        errors := check_stricter_than_global(
+            parse_written_policy(clamped), stored, "dashboard"
+        )
+    ):
+        raise ValidationError(errors)
     if raw == clamped:
         return False
     metadata[TIME_RANGE_LIMITS_KEY] = clamped

@@ -502,7 +502,8 @@ def import_dashboard(  # noqa: C901
         del config["metadata"]["show_native_filters"]
 
     adjustments: list[TimeRangeAdjustment] = []
-    if existing and (stored := stored_limits(existing.json_metadata)) is not None:
+    if existing:
+        stored = stored_limits(existing.json_metadata)
         metadata = config.get("metadata")
         metadata = existing.params_dict if metadata is None else metadata.copy()
         raw = metadata.get(TIME_RANGE_LIMITS_KEY)
