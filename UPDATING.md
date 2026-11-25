@@ -32,11 +32,14 @@ assists people when migrating to a new version.
   version without it, run
   `UPDATE query SET limiting_factor = 'NOT_LIMITED' WHERE limiting_factor = 'MEMORY'`
   so older code can load those queries. Set `BQ_FETCH_MAX_MB = None` (or `0`) to
-  turn the cap off. The fetch budget is part of BigQuery chart cache keys, so
-  existing cached charts miss once after upgrading and exports re-run queries
-  rather than reuse pre-upgrade cached results. SQL Lab exports of scripts that
-  modify data or schema use only stored rows (which may be memory-capped) and
-  fail if those results are unavailable; streaming exports reject those scripts.
+  turn the cap off. The fetch budget is part of BigQuery chart, SQL executor,
+  and column-values cache keys, so existing entries miss once after upgrading
+  and exports re-run queries rather than reuse pre-upgrade cached results.
+  SQL Lab exports of scripts that modify data or schema use only stored rows (which may be memory-capped) and
+  fail if those results are unavailable. Streaming downloads fall back to the
+  buffered export for these scripts. BigQuery control-flow bodies that the
+  parser cannot inspect are checked for mutation tokens; scripts with unsupported
+  syntax use stored rows rather than risk repeating writes.
 
 - Dashboard history records related chart archives using the new
   `version_chart_archive_scope` table. Run `superset db upgrade` before deploying

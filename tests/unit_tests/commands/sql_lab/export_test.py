@@ -246,3 +246,72 @@ def test_csv_export_rejects_mutating_scripts_without_stored_results(
 
     assert exc.value.status == 400
     query.database.get_df.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "BEGIN INSERT INTO t VALUES (1); SELECT 1; END;",
+        "BEGIN UPDATE t SET n=1; SELECT 1; END;",
+        "BEGIN DELETE FROM t WHERE TRUE; SELECT 1; END;",
+        "BEGIN MERGE t USING s ON FALSE WHEN NOT MATCHED THEN INSERT ROW; END;",
+        "BEGIN CREATE TABLE t(n INT64); SELECT 1; END;",
+        "BEGIN ALTER TABLE t ADD COLUMN n INT64; END;",
+        "BEGIN DROP TABLE t; END;",
+        "IF TRUE THEN INSERT INTO t VALUES (1); END IF;",
+        "WHILE TRUE DO UPDATE t SET n=1; END WHILE;",
+        "LOOP DELETE FROM t WHERE TRUE; END LOOP;",
+        "FOR r IN (SELECT 1) DO IF TRUE THEN INSERT INTO t VALUES (1); "
+        "END IF; END FOR;",
+        "BEGIN SELECT 1; EXCEPTION WHEN ERROR THEN INSERT INTO t VALUES (1); END;",
+        "REPEAT INSERT INTO t VALUES (1); UNTIL TRUE END REPEAT;",
+        "block: BEGIN INSERT INTO t VALUES (1); END block;",
+    ],
+)
+@pytest.mark.parametrize(
+    ("stored_results", "limiting_factor"),
+    [
+        (False, LimitingFactor.NOT_LIMITED),
+        (False, LimitingFactor.MEMORY),
+        (True, LimitingFactor.MEMORY),
+    ],
+)
+def test_csv_export_never_reruns_bigquery_script_blocks(
+    mocker: MockerFixture,
+    sql: str,
+    stored_results: bool,
+    limiting_factor: LimitingFactor,
+) -> None:
+    """Opaque scripting bodies must not repeat writes during CSV downloads."""
+    from superset.exceptions import SupersetErrorException
+
+    backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
+    backend.get.return_value = b"blob" if stored_results else None
+    mocker.patch(
+        "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
+    )
+    mocker.patch(
+        "superset.commands.sql_lab.export._deserialize_results_payload",
+        return_value={"data": [{"n": 1}], "columns": [{"name": "n"}]},
+    )
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+    query = MagicMock()
+    query.results_key = "key"
+    query.select_sql = None
+    query.executed_sql = sql
+    query.limiting_factor = limiting_factor
+    query.database.db_engine_spec.engine = "bigquery"
+    command = SqlResultExportCommand("client_id")
+    mocker.patch.object(command, "validate")
+    command._query = query
+
+    if stored_results:
+        assert command.run()["data"] == b"n\n1\n"
+        backend.get.assert_called_once_with("key")
+    else:
+        with pytest.raises(SupersetErrorException) as exc:
+            command.run()
+        assert exc.value.status == 400
+    query.database.get_df.assert_not_called()

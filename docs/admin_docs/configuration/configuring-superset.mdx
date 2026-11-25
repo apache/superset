@@ -107,14 +107,17 @@ comparison fetch fits within the budget. Changing the budget also changes the
 cache identity of rendered BigQuery chart results; download cache entries are
 independent of the budget.
 
+The fetch budget is also included in SQL executor and column-values cache keys.
+
 Chart CSV/XLSX/JSON downloads and SQL Lab CSV downloads bypass this memory
 budget, but retain their query row limits. A SQL Lab download reruns a
-memory-truncated query rather than using its incomplete stored result. Scripts
-containing mutating statements are not rerun for this purpose; their stored
-results are exported instead, so their downloads may remain memory-capped.
-If stored results are unavailable, the export fails rather than repeating the
-writes. Streaming SQL Lab downloads reject mutating scripts; use a read-only
-query to export their data.
+memory-truncated read-only query rather than using its incomplete stored result.
+Scripts containing mutating statements, including inside BigQuery scripting
+blocks, use only stored rows, so their downloads may remain memory-capped.
+Large downloads fall back from streaming to buffered export for these scripts.
+Scripts whose syntax cannot be parsed also use stored rows rather than risk
+repeating writes. If stored results are unavailable, the export fails without
+rerunning the script.
 
 To disable the budget for on-screen results too, set `BQ_FETCH_MAX_MB = None`
 (or `0`) in `superset_config.py`. Downloads and uncapped on-screen results can

@@ -32,7 +32,7 @@ from superset.exceptions import SupersetErrorException, SupersetSecurityExceptio
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.sqllab.limiting_factor import LimitingFactor, PADDED_LIMIT_FACTORS
-from superset.sqllab.utils import validate_export_sql
+from superset.sqllab.utils import is_export_sql_read_only, validate_export_sql
 from superset.utils import core as utils, csv
 from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
 from superset.views.utils import _deserialize_results_payload
@@ -116,8 +116,7 @@ class SqlResultExportCommand(BaseCommand):
         if self._query.limiting_factor != LimitingFactor.MEMORY:
             return False
         sql = self._query.select_sql or self._query.executed_sql
-        script = SQLScript(sql, self._query.database.db_engine_spec.engine)
-        return not script.has_mutation()
+        return is_export_sql_read_only(sql, self._query.database.db_engine_spec.engine)
 
     def run(
         self,

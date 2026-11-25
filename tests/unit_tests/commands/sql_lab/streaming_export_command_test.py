@@ -1013,7 +1013,11 @@ def test_streaming_non_finite_decimal_csv(decimal_separator: str | None) -> None
 def test_streaming_export_rejects_mutating_scripts(
     mocker: MockerFixture, mock_query: MagicMock, use_select_sql: bool
 ) -> None:
-    """Streaming exports must reject writes before creating a CSV generator."""
+    """Without stored rows, streaming exports must reject repeated writes."""
+    mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    mock_db = mocker.patch("superset.commands.sql_lab.export.db")
+    query_result = mock_db.session.query.return_value.filter_by.return_value
+    query_result.one_or_none.return_value = mock_query
     sql = "INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 4"
     mock_query.select_sql = sql if use_select_sql else None
     mock_query.executed_sql = "SELECT 1" if use_select_sql else sql
@@ -1026,4 +1030,59 @@ def test_streaming_export_rejects_mutating_scripts(
 
     assert exc.value.status == 400
     execute.assert_not_called()
+    mock_query.database.get_sqla_engine.assert_not_called()
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig", "utf-16"])
+@pytest.mark.parametrize("use_select_sql", [False, True])
+@pytest.mark.parametrize("script_block", [False, True])
+def test_streaming_export_buffers_mutating_script_results(
+    mocker: MockerFixture,
+    mock_query: MagicMock,
+    encoding: str,
+    use_select_sql: bool,
+    script_block: bool,
+) -> None:
+    """Large-limit memory-capped scripts export stored rows, never repeat writes."""
+    from superset.commands.streaming_export.base import encode_csv_stream
+
+    sql = "INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 100001"
+    if script_block:
+        sql = f"BEGIN {sql}; END;"
+        mock_query.database.db_engine_spec.engine = "bigquery"
+    mock_query.select_sql = sql if use_select_sql else None
+    mock_query.executed_sql = "SELECT 1" if use_select_sql else sql
+    mock_query.limiting_factor = LimitingFactor.MEMORY
+    mock_query.limit = 100000
+    mock_query.rows = 1
+    mock_query.results_key = "key"
+    _setup_sqllab_mocks(mocker, mock_query)
+    mock_db = mocker.patch("superset.commands.sql_lab.export.db")
+    query_result = mock_db.session.query.return_value.filter_by.return_value
+    query_result.one_or_none.return_value = mock_query
+    backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
+    backend.get.return_value = b"blob"
+    mocker.patch(
+        "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
+    )
+    mocker.patch(
+        "superset.commands.sql_lab.export._deserialize_results_payload",
+        return_value={"data": [{"n": 1}], "columns": [{"name": "n"}]},
+    )
+    mocker.patch.dict(
+        "superset.commands.sql_lab.export.app.config",
+        {"CSV_EXPORT": {"encoding": encoding}},
+    )
+    command = StreamingSqlResultExportCommand("client_id")
+    command.validate()
+    execute = mocker.patch.object(command, "_execute_query_and_stream")
+
+    result = b"".join(encode_csv_stream(command.run()(), encoding))
+
+    assert result == "n\n1\n".encode(encoding)
+    backend.get.assert_called_once_with("key")
+    execute.assert_not_called()
+    mock_query.database.get_df.assert_not_called()
     mock_query.database.get_sqla_engine.assert_not_called()

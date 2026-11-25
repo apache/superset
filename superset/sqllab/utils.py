@@ -25,7 +25,7 @@ from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException
+from superset.exceptions import SupersetErrorException, SupersetParseError
 from superset.models.sql_lab import TabState
 from superset.sql.parse import SQLScript
 
@@ -123,9 +123,19 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
     }
 
 
+def is_export_sql_read_only(sql: str, engine: str) -> bool:
+    """Only rerun scripts whose parsed statements can be proven read-only."""
+    try:
+        return not SQLScript(sql, engine).has_mutation()
+    except SupersetParseError:
+        # Unsupported scripting syntax may hide writes. Stored results can
+        # still be exported, but the script must never be re-executed.
+        return False
+
+
 def validate_export_sql(sql: str, engine: str) -> None:
     """Reject export re-execution of scripts that can repeat writes."""
-    if SQLScript(sql, engine).has_mutation():
+    if not is_export_sql_read_only(sql, engine):
         raise SupersetErrorException(
             SupersetError(
                 message=__(

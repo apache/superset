@@ -9645,3 +9645,29 @@ def test_extract_tables_cte_folds_only_ascii(
         expected.add(Table(reference))
     assert SQLStatement(sql, "oracle").tables == expected
     assert extract_tables_from_sql(sql, "oracle") == expected
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "BEGIN INSERT INTO t VALUES (1); END;",
+        "BEGIN UPDATE t SET n=1; END;",
+        "BEGIN DELETE FROM t WHERE TRUE; END;",
+        "BEGIN MERGE t USING s ON FALSE WHEN NOT MATCHED THEN INSERT ROW; END;",
+        "BEGIN CREATE TABLE t(n INT64); END;",
+        "BEGIN ALTER TABLE t ADD COLUMN n INT64; END;",
+        "BEGIN DROP TABLE t; END;",
+        "IF TRUE THEN INSERT INTO t VALUES (1); END IF;",
+        "WHILE TRUE DO UPDATE t SET n=1; END WHILE;",
+        "LOOP DELETE FROM t WHERE TRUE; END LOOP;",
+        "BEGIN SELECT 1; EXCEPTION WHEN ERROR THEN INSERT INTO t VALUES (1); END;",
+    ],
+)
+def test_has_mutation_in_bigquery_script_blocks(sql: str) -> None:
+    """Writes inside opaque BigQuery scripting commands must not look read-only."""
+    assert SQLScript(sql, "bigquery").has_mutation()
+    assert not SQLScript(
+        "BEGIN SELECT REPLACE('INSERT', 'UPDATE', 'DELETE'), t.update, `MERGE` "
+        "FROM t; -- DELETE FROM t\nEND;",
+        "bigquery",
+    ).has_mutation()

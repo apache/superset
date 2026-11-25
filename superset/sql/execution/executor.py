@@ -1688,6 +1688,10 @@ class SQLExecutor:
             str(opts.limit) if opts.limit is not None else "",
         ]
 
+        engine_spec = self.database.db_engine_spec
+        if engine_spec.has_fetch_memory_cap():
+            key_parts.append(f"fetch_memory_cap:{engine_spec.get_fetch_memory_cap()}")
+
         if self._connection_carries_user_identity():
             user_id = utils.get_user_id()
             if user_id is None:
