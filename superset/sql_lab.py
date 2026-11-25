@@ -387,7 +387,14 @@ def _execute_query(
                 )
                 increased_limit = None if query.limit is None else query.limit + 1
                 data = db_engine_spec.fetch_data(cursor, increased_limit)
-                if query.limit is not None and len(data) >= query.limit:
+                if query.limit is not None and (
+                    len(data) > query.limit
+                    or (
+                        len(data) == query.limit
+                        and isinstance(data, FetchedRows)
+                        and data.truncated
+                    )
+                ):
                     # All rows up to the limit are present, even if the engine
                     # dropped the extra probe row to stay within its memory cap.
                     data = data[: query.limit]

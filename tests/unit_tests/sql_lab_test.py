@@ -180,6 +180,33 @@ def test_execute_query_reports_memory_truncation(
     assert query.limiting_factor == (expected_factor or LimitingFactor.DROPDOWN)
 
 
+@pytest.mark.parametrize("wrap_fetched_rows", [False, True])
+def test_execute_query_exact_limit_without_truncation_is_not_limited(
+    mocker: MockerFixture, app: None, wrap_fetched_rows: bool
+) -> None:
+    """An exact-size PostgreSQL result does not imply dropdown truncation."""
+    from superset.sqllab.limiting_factor import LimitingFactor
+
+    query = mocker.MagicMock()
+    query.database.db_engine_spec = PostgresEngineSpec
+    query.executed_sql = "SELECT n FROM t"
+    query.limit = 5
+    query.limiting_factor = LimitingFactor.DROPDOWN
+    rows = [(1,), (2,), (3,), (4,), (5,)]
+    fetched = FetchedRows(rows, truncated=False) if wrap_fetched_rows else rows
+    fetch = mocker.patch.object(PostgresEngineSpec, "fetch_data", return_value=fetched)
+    mocker.patch.object(PostgresEngineSpec, "execute_with_cursor")
+    mocker.patch("superset.sql_lab.db.session.refresh")
+    result_set = mocker.patch("superset.sql_lab.SupersetResultSet")
+    cursor = mocker.MagicMock()
+
+    execute_query(query, cursor=cursor, log_params={})
+
+    fetch.assert_called_once_with(cursor, 6)
+    assert list(result_set.call_args.args[0]) == rows
+    assert query.limiting_factor == LimitingFactor.NOT_LIMITED
+
+
 def test_execute_query_converts_stopped_exception_to_sqllab_query_stopped(
     mocker: MockerFixture, app: None
 ) -> None:

@@ -30,6 +30,7 @@ from superset.exceptions import SupersetErrorException, SupersetSecurityExceptio
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.sqllab.limiting_factor import PADDED_LIMIT_FACTORS
+from superset.sqllab.utils import validate_export_sql
 
 
 class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
@@ -112,6 +113,7 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
 
         # Get the SQL query
         sql = select_sql or executed_sql
+        validate_export_sql(sql, database.db_engine_spec.engine)
 
         return sql, database, self._query.catalog, self._query.schema
 

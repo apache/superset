@@ -32,6 +32,7 @@ from superset.exceptions import SupersetErrorException, SupersetSecurityExceptio
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.sqllab.limiting_factor import LimitingFactor, PADDED_LIMIT_FACTORS
+from superset.sqllab.utils import validate_export_sql
 from superset.utils import core as utils, csv
 from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
 from superset.views.utils import _deserialize_results_payload
@@ -149,6 +150,8 @@ class SqlResultExportCommand(BaseCommand):
 
             logger.info("Using pandas to convert to CSV")
         else:
+            sql = self._query.select_sql or self._query.executed_sql
+            validate_export_sql(sql, self._query.database.db_engine_spec.engine)
             logger.info("Running a query to turn into CSV")
             if self._query.select_sql:
                 sql = self._query.select_sql

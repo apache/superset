@@ -19,11 +19,15 @@ from __future__ import annotations
 from typing import Any
 
 import pyarrow as pa
+from flask_babel import gettext as __
 
 from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.daos.database import DatabaseDAO
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.models.sql_lab import TabState
+from superset.sql.parse import SQLScript
 
 DATABASE_KEYS = [
     "allow_file_upload",
@@ -117,3 +121,20 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
         "active_tab": active_tab.to_dict() if active_tab else None,
         "databases": databases,
     }
+
+
+def validate_export_sql(sql: str, engine: str) -> None:
+    """Reject export re-execution of scripts that can repeat writes."""
+    if SQLScript(sql, engine).has_mutation():
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "Scripts that modify data or schema cannot be re-executed "
+                    "for export. Export their stored results instead; if those "
+                    "results have expired, run a read-only query to export the data."
+                ),
+                error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+            ),
+            status=400,
+        )

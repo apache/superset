@@ -1007,3 +1007,23 @@ def test_streaming_non_finite_decimal_csv(decimal_separator: str | None) -> None
     if decimal_separator:
         expected = expected.replace(".", decimal_separator)
     assert buffer.getvalue() == expected
+
+
+@pytest.mark.parametrize("use_select_sql", [False, True])
+def test_streaming_export_rejects_mutating_scripts(
+    mocker: MockerFixture, mock_query: MagicMock, use_select_sql: bool
+) -> None:
+    """Streaming exports must reject writes before creating a CSV generator."""
+    sql = "INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 4"
+    mock_query.select_sql = sql if use_select_sql else None
+    mock_query.executed_sql = "SELECT 1" if use_select_sql else sql
+    command = StreamingSqlResultExportCommand("client_id")
+    command._query = mock_query
+    execute = mocker.patch.object(command, "_execute_query_and_stream")
+
+    with pytest.raises(SupersetErrorException, match="modify data or schema") as exc:
+        command.run()
+
+    assert exc.value.status == 400
+    execute.assert_not_called()
+    mock_query.database.get_sqla_engine.assert_not_called()

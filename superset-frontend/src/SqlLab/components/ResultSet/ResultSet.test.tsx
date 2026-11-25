@@ -605,7 +605,7 @@ describe('ResultSet', () => {
       csv: true,
       canExport: true,
       message:
-        'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads include all rows up to the query limit.',
+        'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun read-only queries up to the query limit. Scripts that modify data or schema export only the stored rows.',
     },
     {
       csv: true,
@@ -645,6 +645,39 @@ describe('ResultSet', () => {
       ).toBeInTheDocument();
     },
   );
+
+  test('memory-capped mutating scripts warn that CSV downloads use stored rows', async () => {
+    setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: { ...user, roles: { sql_lab: [['can_export_csv', 'SQLLab']] } },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: {
+              ...queries[0],
+              executedSql: 'INSERT INTO log VALUES (1); SELECT n FROM t',
+              limitingFactor: 'MEMORY',
+            },
+          },
+        },
+      }),
+    );
+
+    await userEvent.hover(await screen.findByText('42 rows'));
+
+    expect(
+      await screen.findByText(
+        '42 rows returned. The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun read-only queries up to the query limit. Scripts that modify data or schema export only the stored rows.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /CSV downloads include all rows up to the query limit/,
+      ),
+    ).not.toBeInTheDocument();
+  });
 
   test.each([
     { limitingFactor: 'MEMORY', expectedRows: undefined },

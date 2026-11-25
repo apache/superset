@@ -12649,6 +12649,9 @@ msgstr ""
 msgid "Screenshot width must be between %(min)spx and %(max)spx"
 msgstr ""
 
+msgid "Scripts that modify data or schema cannot be re-executed for export. Export their stored results instead; if those results have expired, run a read-only query to export the data."
+msgstr ""
+
 msgid "Scroll"
 msgstr ""
 
@@ -15070,7 +15073,7 @@ msgid "The number of rows displayed is limited to %(rows)d due to memory constra
 msgstr ""
 
 #, python-format
-msgid "The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads include all rows up to the query limit."
+msgid "The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads rerun read-only queries up to the query limit. Scripts that modify data or schema export only the stored rows."
 msgstr ""
 
 msgid "The number of seconds before expiring the cache"

@@ -134,7 +134,9 @@ def test_csv_export_reruns_memory_truncated_results_without_cap(
     incomplete, so the export reruns the query without the cap, keeping the
     row limit. Other stored results are exported as they are.
     """
-    results_backend = mocker.patch("superset.commands.sql_lab.export.results_backend")
+    results_backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
     results_backend.get.return_value = b"blob"
     mocker.patch(
         "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
@@ -180,7 +182,9 @@ def test_csv_export_never_reruns_mutating_memory_truncated_scripts(
     Rerunning a memory-truncated script that mutates data would apply the
     mutation again, so its stored rows are exported instead.
     """
-    results_backend = mocker.patch("superset.commands.sql_lab.export.results_backend")
+    results_backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
     results_backend.get.return_value = b"blob"
     mocker.patch(
         "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
@@ -203,4 +207,42 @@ def test_csv_export_never_reruns_mutating_memory_truncated_scripts(
     result = SqlResultExportCommand("client_id").run()
 
     assert result["count"] == 1
+    query.database.get_df.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "limiting_factor", [LimitingFactor.MEMORY, LimitingFactor.NOT_LIMITED]
+)
+@pytest.mark.parametrize("missing_results", ["backend", "key", "blob"])
+@pytest.mark.parametrize("use_select_sql", [False, True])
+def test_csv_export_rejects_mutating_scripts_without_stored_results(
+    mocker: MockerFixture,
+    limiting_factor: LimitingFactor,
+    missing_results: str,
+    use_select_sql: bool,
+) -> None:
+    """Missing stored results must not cause an export to repeat writes."""
+    from superset.exceptions import SupersetErrorException
+
+    backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
+    backend.get.return_value = None
+    if missing_results == "backend":
+        mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    query = MagicMock()
+    query.results_key = None if missing_results == "key" else "key"
+    sql = "INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 4"
+    query.select_sql = sql if use_select_sql else None
+    query.executed_sql = "SELECT 1" if use_select_sql else sql
+    query.limiting_factor = limiting_factor
+    query.database.db_engine_spec.engine = "bigquery"
+    command = SqlResultExportCommand("client_id")
+    mocker.patch.object(command, "validate")
+    command._query = query
+
+    with pytest.raises(SupersetErrorException, match="modify data or schema") as exc:
+        command.run()
+
+    assert exc.value.status == 400
     query.database.get_df.assert_not_called()
