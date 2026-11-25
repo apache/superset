@@ -2459,7 +2459,8 @@ class BaseReportState:
         report shows, with the native filters its page renders. A dashboard
         report is also checked with the time filter values stored on it, whether
         or not its page applies them. A chart that can't be checked fails while a
-        limit could apply. Alerts aren't checked.
+        limit could apply. An alert is checked the same way once it triggers,
+        when its notification attaches the chart or dashboard.
 
         The report's missing target, missing executor and the executor's
         dashboard access fail first, with their own errors.
@@ -2469,7 +2470,7 @@ class BaseReportState:
         """
         if (
             not feature_flag_manager.is_feature_enabled(TIME_RANGE_LIMITS_FLAG)
-            or self._report_schedule.type != ReportScheduleType.REPORT
+            or not self._attachments_enabled()
         ):
             return
         chart = self._report_schedule.chart

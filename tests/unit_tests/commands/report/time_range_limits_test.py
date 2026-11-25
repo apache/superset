@@ -414,6 +414,76 @@ def test_chart_report_breaking_the_limits_fails(
     assert sql_runs == []
 
 
+def alert_triggers(mocker: MockerFixture, triggered: bool = True) -> MagicMock:
+    mocker.patch(
+        "superset.commands.report.execute.alerts_attach_reports_enabled",
+        return_value=True,
+    )
+    command = mocker.patch("superset.commands.report.execute.AlertCommand")
+    command.return_value.run.return_value = (
+        triggered,
+        None if triggered else "Alert not triggered",
+    )
+    return command
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize("report_format", ["CSV", "PNG"])
+def test_chart_alert_breaking_the_limits_fails(
+    sql_runs: list[str], mocker: MockerFixture, report_format: str
+) -> None:
+    from superset.commands.report.exceptions import ReportScheduleTimeRangeLimitError
+
+    set_global(mocker, policy(90))
+    alert_triggers(mocker)
+
+    with flags():
+        result = run(mocker, report(chart(11), report_format, report_type="Alert"))
+
+    assert_failed(result, GUARD)
+    assert isinstance(result.error, ReportScheduleTimeRangeLimitError)
+    assert GUARD in result.bodies[0]
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_alert_breaking_the_limits_fails(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11), native_filters=[time_filter("Last year")])
+    use_dashboards(mocker, board)
+    alert_triggers(mocker)
+
+    with flags():
+        result = run(mocker, report(board, report_type="Alert"))
+
+    assert_failed(result, f"Calls by day: {GUARD}")
+    assert result.error.errors[0].extra["chart_id"] == 11
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_untriggered_alert_runs_no_time_range_check(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    from superset.commands.report import execute
+
+    set_global(mocker, policy(90))
+    alert_triggers(mocker, triggered=False)
+    check = mocker.spy(execute.BaseReportState, "_check_date_ranges")
+
+    with flags():
+        result = run(mocker, report(chart(11), report_type="Alert"))
+
+    assert result.error is None, result
+    assert result.logs == [("Working", None), ("Not triggered", "Alert not triggered")]
+    assert result.renders == []
+    assert result.sent == []
+    check.assert_not_called()
+    assert sql_runs == []
+
+
 @freeze_time(NOW)
 @pytest.mark.parametrize("on_dashboard", [True, False], ids=["on", "off"])
 def test_chart_report_saved_dashboard_limits(
@@ -2026,7 +2096,7 @@ def test_limits_unavailable_stays_retryable(
 
 
 @freeze_time(NOW)
-def test_alert_attachment_not_prechecked(
+def test_alert_without_attachment_not_prechecked(
     sql_runs: list[str], mocker: MockerFixture
 ) -> None:
     set_global(mocker, policy(90))
@@ -2035,7 +2105,7 @@ def test_alert_attachment_not_prechecked(
     )
     mocker.patch(
         "superset.commands.report.execute.alerts_attach_reports_enabled",
-        return_value=True,
+        return_value=False,
     )
     check = mocker.patch(
         "superset.commands.report.execute.check_chart_date_ranges",
@@ -2048,7 +2118,7 @@ def test_alert_attachment_not_prechecked(
     with flags():
         result = run(mocker, report(chart(11), report_type="Alert"))
 
-    assert_rendered(result, ["screenshot"])
+    assert_rendered(result, [])
     check.assert_not_called()
     executor.assert_not_called()
 
