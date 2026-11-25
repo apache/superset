@@ -70,6 +70,30 @@ test('stops at the page limit and says how many rows it drew', () => {
   expect(shownRows).toBeLessThan(2000);
 });
 
+test('draws the totals row after the rows', () => {
+  const { doc } = buildTablePdf({
+    title: 'With totals',
+    headers: makeHeaders(2),
+    rows: makeRows(3, 2),
+    footerRows: [['unique-totals-label', '42']],
+  });
+
+  expect(String(doc.output())).toContain('(unique-totals-label)');
+});
+
+test('keeps the totals row when the page limit cuts the rows', () => {
+  const { doc, shownRows } = buildTablePdf({
+    title: 'Very long with totals',
+    headers: makeHeaders(3),
+    rows: makeRows(2000, 3),
+    footerRows: [['unique-totals-label', '1', '2']],
+  });
+
+  expect(doc.getNumberOfPages()).toBe(PDF_MAX_PAGES);
+  expect(shownRows).toBeLessThan(2000);
+  expect(String(doc.output())).toContain('(unique-totals-label)');
+});
+
 test('drops the columns that cannot fit the page width instead of continuing on more pages', () => {
   const { doc, shownColumns } = buildTablePdf({
     title: 'Wide',

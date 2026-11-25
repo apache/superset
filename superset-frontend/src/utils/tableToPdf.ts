@@ -22,6 +22,8 @@ export interface PdfTable {
   title: string;
   headers: string[];
   rows: string[][];
+  /** Totals rows, drawn after the body rows and kept when the page limit cuts them. */
+  footerRows?: string[][];
 }
 
 export interface TablePdf {
@@ -79,8 +81,8 @@ const isSupportedChar = (char: string) => {
 };
 const isSupportedText = (text: string) => [...text].every(isSupportedChar);
 
-export const canDrawInPdf = ({ headers, rows }: PdfTable) =>
-  [...headers, ...rows.flat()].every(isSupportedText);
+export const canDrawInPdf = ({ headers, rows, footerRows = [] }: PdfTable) =>
+  [...headers, ...rows.flat(), ...footerRows.flat()].every(isSupportedText);
 
 /**
  * Draws a table as real PDF content (sharp, selectable text) rather than a
@@ -93,6 +95,7 @@ export default function buildTablePdf({
   title,
   headers,
   rows,
+  footerRows = [],
 }: PdfTable): TablePdf {
   const doc = new jsPDF({
     orientation: headers.length > WIDE_TABLE_COLUMNS ? 'landscape' : 'portrait',
@@ -118,7 +121,7 @@ export default function buildTablePdf({
       doc.setFont('helvetica', 'bold');
       let widest = doc.getTextWidth(header);
       doc.setFont('helvetica', 'normal');
-      rows.slice(0, MEASURED_ROWS).forEach(row => {
+      [...rows.slice(0, MEASURED_ROWS), ...footerRows].forEach(row => {
         widest = Math.max(widest, doc.getTextWidth(row[column] ?? ''));
       });
       return Math.max(MIN_COLUMN_WIDTH, widest + 2 * CELL_PADDING);
@@ -172,8 +175,8 @@ export default function buildTablePdf({
     ];
   };
 
-  const layoutRow = (texts: string[], header: boolean) => {
-    doc.setFont('helvetica', header ? 'bold' : 'normal');
+  const layoutRow = (texts: string[], bold: boolean) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
     const cells = columns.map(column => ({
       width: widths[column],
       lines: wrap(texts[column] ?? '', widths[column]),
@@ -188,10 +191,13 @@ export default function buildTablePdf({
   const drawRow = (
     layout: ReturnType<typeof layoutRow>,
     y: number,
-    options: { header?: boolean; striped?: boolean },
+    options: { header?: boolean; striped?: boolean; bold?: boolean },
   ) => {
     const { cells, height } = layout;
-    doc.setFont('helvetica', options.header ? 'bold' : 'normal');
+    doc.setFont(
+      'helvetica',
+      options.header || options.bold ? 'bold' : 'normal',
+    );
     if (options.header || options.striped) {
       // jsPDF types a single-value fill color as a string, so pass r, g, b.
       const fill = options.header
@@ -238,11 +244,16 @@ export default function buildTablePdf({
   drawRow(headerLayout, y, { header: true });
   y += headerLayout.height;
 
+  // Totals are always drawn: on the last page the body rows leave room for them.
+  const footerLayouts = footerRows.map(row => layoutRow(row, true));
+  const footerHeight = total(footerLayouts.map(layout => layout.height));
+
   let shownRows = 0;
   for (let index = 0; index < rows.length; index += 1) {
     const layout = layoutRow(rows[index], false);
-    if (y + layout.height > bodyBottom) {
-      if (doc.getNumberOfPages() >= PDF_MAX_PAGES) break;
+    const onLastPage = doc.getNumberOfPages() >= PDF_MAX_PAGES;
+    if (y + layout.height > bodyBottom - (onLastPage ? footerHeight : 0)) {
+      if (onLastPage) break;
       startPage(false);
       y = topOfTable;
       drawRow(headerLayout, y, { header: true });
@@ -251,6 +262,22 @@ export default function buildTablePdf({
     drawRow(layout, y, { striped: index % 2 === 1 });
     y += layout.height;
     shownRows += 1;
+  }
+
+  if (footerLayouts.length > 0) {
+    if (
+      y + footerHeight > bodyBottom &&
+      doc.getNumberOfPages() < PDF_MAX_PAGES
+    ) {
+      startPage(false);
+      y = topOfTable;
+      drawRow(headerLayout, y, { header: true });
+      y += headerLayout.height;
+    }
+    footerLayouts.forEach(layout => {
+      drawRow(layout, y, { bold: true });
+      y += layout.height;
+    });
   }
 
   const pages = doc.getNumberOfPages();
