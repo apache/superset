@@ -106,6 +106,7 @@ function SaveModal({
   };
 
   const saveDashboard = () => {
+    const trimmedNewDashName = newDashName.trim();
     // check refresh frequency is for current session or persist
     const refreshFrequencyToUse = shouldPersistRefreshFrequency
       ? refreshFrequency
@@ -116,7 +117,9 @@ function SaveModal({
       certification_details: dashboardInfo.certification_details,
       css: customCss,
       dashboard_title:
-        saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
+        saveType === SAVE_TYPE_NEWDASHBOARD
+          ? trimmedNewDashName
+          : dashboardTitle,
       duplicate_slices: duplicateSlices,
       last_modified_time: lastModifiedTime,
       editors: dashboardInfo.editors,
@@ -131,7 +134,7 @@ function SaveModal({
       data.viewers = dashboardInfo.viewers;
     }
 
-    if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {
+    if (saveType === SAVE_TYPE_NEWDASHBOARD && !trimmedNewDashName) {
       addDangerToast(t('You must pick a name for the new dashboard'));
     } else {
       onSave(data, dashboardId, saveType);
