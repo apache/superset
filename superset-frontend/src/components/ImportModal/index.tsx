@@ -27,6 +27,10 @@ import {
 } from '@superset-ui/core/components/Upload';
 import { Button, Input, Checkbox, Modal } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import {
+  TimeRangeAdjustmentList,
+  type TimeRangeAdjustment,
+} from 'src/components/TimeRangeAdjustmentList';
 import { ImportErrorAlert } from './ImportErrorAlert';
 import type { ImportModelsModalProps } from './types';
 import isPrivateKeyField from './isPrivateKeyField';
@@ -102,6 +106,11 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
   const [encryptedExtraSecrets, setEncryptedExtraSecrets] = useState<
     Record<string, Record<string, string>>
   >({});
+  const [timeRangeAdjustments, setTimeRangeAdjustments] = useState<
+    TimeRangeAdjustment[]
+  >([]);
+  const [adjustFingerprint, setAdjustFingerprint] = useState<string>();
+  const needsAdjustConfirm = Boolean(adjustFingerprint);
 
   const clearModal = () => {
     setFileList([]);
@@ -120,6 +129,8 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
     setSSHTunnelPrivateKeyPasswords({});
     setEncryptedExtraFields([]);
     setEncryptedExtraSecrets({});
+    setTimeRangeAdjustments([]);
+    setAdjustFingerprint(undefined);
   };
 
   const handleErrorMsg = (msg: string) => {
@@ -134,10 +145,21 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       sshPrivateKeyNeeded,
       sshPrivateKeyPasswordNeeded,
       encryptedExtraFieldsNeeded,
+      timeRangeAdjustments: timeRangeAdjustmentsNeeded,
+      timeRangeAdjustmentsFingerprint,
+      timeRangeAdjustmentsChanged,
     },
     importResource,
     resetImportState,
   } = useImportResource(resourceName, resourceLabel, handleErrorMsg);
+
+  useEffect(() => {
+    setTimeRangeAdjustments(timeRangeAdjustmentsNeeded);
+    setAdjustFingerprint(timeRangeAdjustmentsFingerprint);
+    if (timeRangeAdjustmentsFingerprint) {
+      setImportingModel(false);
+    }
+  }, [timeRangeAdjustmentsNeeded, timeRangeAdjustmentsFingerprint]);
 
   useEffect(() => {
     setPasswordFields(passwordsNeeded);
@@ -204,6 +226,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       encryptedExtraSecrets,
       confirmedOverwrite,
       overwriteAll,
+      adjustFingerprint,
     ).then(result => {
       setImportingModel(false);
       if (result) {
@@ -432,6 +455,58 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
     );
   };
 
+  const renderTimeRangeAdjustments = () => {
+    if (!needsAdjustConfirm) {
+      return null;
+    }
+    if (timeRangeAdjustments.length === 0) {
+      return (
+        <StyledContainer data-test="time-range-adjustments">
+          <div>
+            {t(
+              'The changes needed changed since you reviewed them. No changes are needed any more.',
+            )}
+          </div>
+        </StyledContainer>
+      );
+    }
+
+    return (
+      <StyledContainer data-test="time-range-adjustments">
+        {timeRangeAdjustmentsChanged && (
+          <div>
+            {t(
+              'The changes needed changed since you reviewed them. Review the new list.',
+            )}
+          </div>
+        )}
+        <div>
+          {t(
+            "The time ranges in this file don't fit the time range limits. Importing it makes these changes:",
+          )}
+        </div>
+        <TimeRangeAdjustmentList
+          adjustments={timeRangeAdjustments}
+          showDashboard
+        />
+        <div>
+          {t(
+            'Adjust and import to import with these changes, or cancel to import nothing.',
+          )}
+        </div>
+      </StyledContainer>
+    );
+  };
+
+  const primaryButtonName = () => {
+    if (needsAdjustConfirm && timeRangeAdjustments.length > 0) {
+      return t('Adjust and import');
+    }
+    return needsOverwriteConfirm && !needsAdjustConfirm
+      ? t('Overwrite')
+      : t('Import');
+  };
+
   // Show/hide
   if (isHidden && show) {
     setIsHidden(false);
@@ -448,7 +523,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       }
       onHandledPrimaryAction={onUpload}
       onHide={hide}
-      primaryButtonName={needsOverwriteConfirm ? t('Overwrite') : t('Import')}
+      primaryButtonName={primaryButtonName()}
       primaryButtonStyle={needsOverwriteConfirm ? 'danger' : 'primary'}
       width="750px"
       show={show}
@@ -478,6 +553,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       )}
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
+      {renderTimeRangeAdjustments()}
     </Modal>
   );
 };

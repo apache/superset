@@ -31,7 +31,10 @@ import {
   getSSHPasswordsNeeded,
   getSSHPrivateKeysNeeded,
   getSSHPrivateKeyPasswordsNeeded,
+  getTimeRangeAdjustments,
+  getTimeRangeAdjustmentsFingerprint,
   hasTerminalValidation,
+  isTimeRangeAdjustments,
   isAlreadyExists,
   isNavigationHandledByLink,
   isNeedsEncryptedExtraField,
@@ -810,4 +813,64 @@ test.each([true, false])(
 
 test('treats import errors without extra metadata as terminal', () => {
   expect(hasTerminalValidation([{ message: 'Import failed' }])).toBe(true);
+});
+
+const adjustment = {
+  kind: 'filter_default',
+  dashboard: 'Sales',
+  name: 'Date',
+  field: 'default',
+  old: null,
+  new: 'Last week',
+  old_label: 'No filter',
+  new_label: 'Last week',
+};
+
+test('reads time range adjustments and their fingerprint from import errors', () => {
+  const errors = [
+    {
+      message: 'Adjust',
+      extra: {
+        'dashboards/a.yaml': { time_range_adjustments: [adjustment] },
+        time_range_adjustments_fingerprint: 'abc',
+      },
+    },
+  ];
+
+  expect(getTimeRangeAdjustments(errors)).toEqual([adjustment]);
+  expect(getTimeRangeAdjustmentsFingerprint(errors)).toBe('abc');
+  expect(hasTerminalValidation(errors)).toBe(false);
+});
+
+test('treats a fingerprint without changes as a prompt, not a failure', () => {
+  const errors = [
+    {
+      message: 'No longer needed',
+      extra: { time_range_adjustments_fingerprint: 'abc' },
+    },
+  ];
+
+  expect(hasTerminalValidation(errors)).toBe(false);
+  expect(getTimeRangeAdjustments(errors)).toEqual([]);
+  expect(getTimeRangeAdjustmentsFingerprint(errors)).toBe('abc');
+});
+
+test('ignores malformed time range adjustment payloads', () => {
+  const malformed = [
+    { extra: { 'dashboards/a.yaml': { time_range_adjustments: [{}] } } },
+    { extra: { 'dashboards/b.yaml': { time_range_adjustments: 'x' } } },
+    { extra: { time_range_adjustments_fingerprint: 3 } },
+    { extra: null },
+    'error',
+  ];
+
+  expect(getTimeRangeAdjustments(malformed)).toEqual([]);
+  expect(getTimeRangeAdjustmentsFingerprint(malformed)).toBeUndefined();
+  expect(getTimeRangeAdjustments(undefined)).toEqual([]);
+  expect(isTimeRangeAdjustments({ time_range_adjustments: [{}] })).toBe(false);
+  expect(
+    hasTerminalValidation([
+      { extra: { 'dashboards/a.yaml': { time_range_adjustments: [{}] } } },
+    ]),
+  ).toBe(true);
 });

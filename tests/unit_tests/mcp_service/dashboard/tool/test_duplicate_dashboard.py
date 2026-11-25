@@ -910,8 +910,12 @@ async def test_copy_clamps_inherited_time_range_limits(
 
     content = result.structured_content
     if max_span > 0:
-        assert content["error"] is None
-        assert content["dashboard"]["id"] == 2
+        assert content["dashboard"] is None
+        assert content["error"] == (
+            "The copy's time ranges don't fit the time range limits. Copying would "
+            'change: Dashboard "Copy": maximum span 13 weeks → 12 weeks. Use Save '
+            "as in Superset to review and apply these changes."
+        )
         mock_copy_dashboard.assert_called_once()
         payload = mock_copy_dashboard.call_args.args[1]
         assert json.loads(payload["json_metadata"])["time_range_limits"] == policy

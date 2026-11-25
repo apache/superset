@@ -17,6 +17,7 @@
 import logging
 import time
 from copy import copy
+from dataclasses import replace
 from datetime import datetime
 from functools import partial
 from typing import Any, Callable, Optional
@@ -40,6 +41,11 @@ from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.time_range_limits.adjustments import (
+    check_consent,
+    limit_adjustments,
+    TimeRangeAdjustment,
+)
 from superset.time_range_limits.policy import (
     clamp_imported_dashboard_limits,
     limits_errors,
@@ -257,8 +263,13 @@ def import_dashboard(  # noqa: C901
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[dict[int, int]] = None,
     import_time: Optional[int] = None,
+    adjustments: Optional[list[TimeRangeAdjustment]] = None,
 ) -> int:
     """Imports the dashboard from the object to the database.
+
+    The time range changes the import makes are added to ``adjustments`` for
+    the caller to agree to; without that list, an import needing them is
+    refused.
 
     Once dashboard is imported, json_metadata field is extended and stores
     remote_id and import_time. It helps to decide if the dashboard has to
@@ -396,7 +407,9 @@ def import_dashboard(  # noqa: C901
         )
 
     # override the dashboard
+    remote_id = str(dashboard_to_import.id)
     existing_dashboard = _find_existing_dashboard(dashboard_to_import.id)
+    raw_limits = old_json_metadata.get(TIME_RANGE_LIMITS_KEY)
     try:
         clamped = existing_dashboard is not None and clamp_imported_dashboard_limits(
             old_json_metadata, stored_limits(existing_dashboard.json_metadata)
@@ -444,10 +457,23 @@ def import_dashboard(  # noqa: C901
     )
     # Migrate any filter-box charts to native dashboard filters.
     migrate_dashboard(dashboard)
-    if clamped and (errors := fit_copy_filter_defaults(dashboard, datetime.now())):
-        raise CommandInvalidError(
-            _("Error importing dashboard"), [ValidationError(errors)]
+    if clamped:
+        changes = limit_adjustments(
+            dashboard.dashboard_title or "",
+            raw_limits,
+            old_json_metadata[TIME_RANGE_LIMITS_KEY],
+            remote_id,
         )
+        if errors := fit_copy_filter_defaults(
+            dashboard, datetime.now(), changes, remote_id
+        ):
+            raise CommandInvalidError(
+                _("Error importing dashboard"), [ValidationError(errors)]
+            )
+        if adjustments is None:
+            check_consent(changes, adjust_time_ranges=False)
+        else:
+            adjustments.extend(changes)
     db.session.flush()
     return dashboard.id
 
@@ -478,8 +504,13 @@ def import_dashboards(
     content: str,
     database_id: Optional[int] = None,
     import_time: Optional[int] = None,
+    adjustments: Optional[list[TimeRangeAdjustment]] = None,
 ) -> None:
-    """Imports dashboards from a stream to databases"""
+    """
+    Imports dashboards from a stream to databases, adding the time range
+    changes they need to ``adjustments``; without that list, an import needing
+    them is refused.
+    """
     current_tt = int(time.time())
     import_time = current_tt if import_time is None else import_time
     data = json.loads(content, object_hook=decode_dashboards)
@@ -503,8 +534,15 @@ def import_dashboards(
         params = json.loads(table.params)
         dataset_id_mapping[params["remote_id"]] = new_dataset_id
 
+    changes: list[TimeRangeAdjustment] = []
     for dashboard in data["dashboards"]:
-        import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
+        import_dashboard(
+            dashboard, dataset_id_mapping, import_time=import_time, adjustments=changes
+        )
+    if adjustments is None:
+        check_consent(changes, adjust_time_ranges=False)
+    else:
+        adjustments.extend(changes)
 
 
 class ImportDashboardsCommand(BaseCommand):
@@ -521,14 +559,19 @@ class ImportDashboardsCommand(BaseCommand):
     ):
         self.contents = contents
         self.database_id = database_id
+        self.adjust_time_ranges: bool = kwargs.get("adjust_time_ranges", False)
 
     @transaction()
     def run(self) -> None:
         self.validate()
 
+        adjustments: list[TimeRangeAdjustment] = []
         for file_name, content in self.contents.items():
             logger.info("Importing dashboard from file %s", file_name)
-            import_dashboards(content, self.database_id)
+            changes: list[TimeRangeAdjustment] = []
+            import_dashboards(content, self.database_id, adjustments=changes)
+            adjustments.extend(replace(item, file_name=file_name) for item in changes)
+        check_consent(adjustments, self.adjust_time_ranges)
 
     def validate(self) -> None:
         # ensure all files are JSON

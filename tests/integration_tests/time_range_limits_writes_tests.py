@@ -314,15 +314,78 @@ class TestDashboardWrites(LimitsTestCase):
             self.login(ADMIN_USERNAME)
             admin = span_policy(14)
             admin["max_look_back"] = {"quantity": 30, "time_grain": "P1D"}
+            body = {
+                "dashboard_title": "copy",
+                "json_metadata": json.dumps(request_metadata),
+                "duplicate_slices": duplicate_slices,
+            }
+            counts = (
+                db.session.query(Dashboard).count(),
+                db.session.query(Slice).count(),
+            )
+            identity = {
+                "dashboard": "copy",
+                "dashboard_key": str(dashboard.uuid),
+                "file": None,
+            }
             with patch.dict(app.config, {"TIME_RANGE_LIMITS_GLOBAL": admin}):
+                refused = self.client.post(
+                    f"/api/v1/dashboard/{dashboard.id}/copy/", json=body
+                )
+                odd = self.client.post(
+                    f"/api/v1/dashboard/{dashboard.id}/copy/",
+                    json={
+                        **body,
+                        "adjust_time_ranges": True,
+                        "time_range_adjustments_fingerprint": "\ud800 é ✓",
+                    },
+                )
+                after_refusal = (
+                    db.session.query(Dashboard).count(),
+                    db.session.query(Slice).count(),
+                )
                 response = self.client.post(
                     f"/api/v1/dashboard/{dashboard.id}/copy/",
                     json={
-                        "dashboard_title": "copy",
-                        "json_metadata": json.dumps(request_metadata),
-                        "duplicate_slices": duplicate_slices,
+                        **body,
+                        "adjust_time_ranges": True,
+                        "time_range_adjustments_fingerprint": refused.json[
+                            "time_range_adjustments_fingerprint"
+                        ],
                     },
                 )
+            assert refused.status_code == 422, refused.json
+            assert refused.json["time_range_adjustments"] == [
+                {
+                    **identity,
+                    "kind": "time_range_limit",
+                    "name": "copy",
+                    "filter_id": None,
+                    "field": "max_span",
+                    "old": {"quantity": 30, "time_grain": "P1D"},
+                    "new": {"quantity": 14, "time_grain": "P1D"},
+                    "old_label": "30 days",
+                    "new_label": "14 days",
+                },
+                {
+                    **identity,
+                    "kind": "filter_default",
+                    "name": "NATIVE_FILTER-time",
+                    "filter_id": "NATIVE_FILTER-time",
+                    "field": "default",
+                    "old": "Last 30 days",
+                    "new": 'DATEADD(DATETIME("today"), -14, day) : today',
+                    "old_label": "Last 30 days",
+                    "new_label": "Last 14 days",
+                },
+            ]
+            assert "adjust_time_ranges" in refused.json["message"]
+            assert odd.status_code == 422, odd.json
+            assert (
+                odd.json["time_range_adjustments"]
+                == (refused.json["time_range_adjustments"])
+            )
+            assert after_refusal == counts
             assert response.status_code == 200, response.json
             copied = db.session.get(Dashboard, response.json["result"]["id"])
             self.track(copied)
@@ -514,6 +577,123 @@ class TestImports(LimitsTestCase):
         response = self.client.delete(f"/api/v1/{resource}/{row.id}")
         assert response.status_code == 200, response.json
         db.session.expire_all()
+
+    def test_dashboard_import_asks_before_adjusting_time_ranges(self) -> None:
+        """An import that would change time ranges stores nothing until the
+        caller agrees, then applies exactly the listed changes."""
+        native = [
+            {
+                "id": "NATIVE_FILTER-time",
+                "name": "Date",
+                "filterType": "filter_time",
+                "defaultDataMask": {"filterState": {"value": "No filter"}},
+            }
+        ]
+        self.login(ADMIN_USERNAME)
+        with with_flag_and_global({"TIME_RANGE_LIMITS_GLOBAL": None}):
+            first = self.import_dashboard(self.dashboard_bundle(span_policy(30)))
+        assert first.status_code == 200, first.json
+        db.session.expire_all()
+        before = (
+            db.session.query(Dashboard)
+            .filter_by(uuid=dashboard_config["uuid"])
+            .one()
+            .json_metadata
+        )
+
+        def bundle() -> BytesIO:
+            return self.dashboard_bundle(
+                span_policy(30),
+                metadata={
+                    **dashboard_config["metadata"],
+                    KEY: span_policy(30),
+                    "native_filter_configuration": native,
+                },
+            )
+
+        with with_flag_and_global():
+            refused = self.import_dashboard(bundle())
+            db.session.expire_all()
+            after_refusal = (
+                db.session.query(Dashboard)
+                .filter_by(uuid=dashboard_config["uuid"])
+                .one()
+                .json_metadata
+            )
+
+            def agree(fingerprint: str) -> Any:
+                return self.client.post(
+                    "/api/v1/dashboard/import/",
+                    data={
+                        "formData": (bundle(), "export.zip"),
+                        "overwrite": "true",
+                        "adjust_time_ranges": "true",
+                        "time_range_adjustments_fingerprint": fingerprint,
+                    },
+                    content_type="multipart/form-data",
+                )
+
+            fingerprint = refused.json["errors"][0]["extra"][
+                "time_range_adjustments_fingerprint"
+            ]
+            stale = agree("an earlier preview")
+            db.session.expire_all()
+            after_stale = (
+                db.session.query(Dashboard)
+                .filter_by(uuid=dashboard_config["uuid"])
+                .one()
+                .json_metadata
+            )
+            adjusted = agree(fingerprint)
+
+        assert refused.status_code == 422, refused.json
+        assert stale.status_code == 422, stale.json
+        assert stale.json["errors"][0]["extra"] == refused.json["errors"][0]["extra"]
+        assert after_stale == before
+        error = refused.json["errors"][0]
+        fitted = 'DATEADD(DATETIME("today"), -14, day) : today'
+        identity = {
+            "dashboard": dashboard_config["dashboard_title"],
+            "dashboard_key": dashboard_config["uuid"],
+            "file": "dashboards/dash.yaml",
+        }
+        assert error["extra"]["dashboards/dash.yaml"] == {
+            "time_range_adjustments": [
+                {
+                    **identity,
+                    "kind": "time_range_limit",
+                    "name": dashboard_config["dashboard_title"],
+                    "filter_id": None,
+                    "field": "max_span",
+                    "old": {"quantity": 30, "time_grain": "P1D"},
+                    "new": {"quantity": 14, "time_grain": "P1D"},
+                    "old_label": "30 days",
+                    "new_label": "14 days",
+                },
+                {
+                    **identity,
+                    "kind": "filter_default",
+                    "name": "Date",
+                    "filter_id": "NATIVE_FILTER-time",
+                    "field": "default",
+                    "old": None,
+                    "new": fitted,
+                    "old_label": "No filter",
+                    "new_label": "Last 14 days",
+                },
+            ]
+        }
+        assert "adjust_time_ranges" in error["message"]
+        assert "maximum span 30 days → 14 days" in error["message"]
+        assert after_refusal == before
+        assert adjusted.status_code == 200, adjusted.json
+        db.session.expire_all()
+        imported = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+        )
+        assert stored_policy(imported.json_metadata) == span_policy(14)
+        mask = imported.params_dict["native_filter_configuration"][0]["defaultDataMask"]
+        assert mask["filterState"]["value"] == fitted
 
     def test_v0_dashboard_import_refuses_a_looser_policy(self) -> None:
         content = copy.deepcopy(dashboard_export)
@@ -1273,6 +1453,48 @@ class TestLimitsApi(LimitsTestCase):
         assert "503" in paths["/api/v1/dataset/{pk}"]["put"]["responses"]
         assert "503" in paths["/api/v1/report/"]["post"]["responses"]
         assert "503" in paths["/api/v1/report/{pk}"]["put"]["responses"]
+
+    def test_openapi_describes_the_time_range_adjustments_422(self) -> None:
+        self.login(ADMIN_USERNAME)
+        spec = self.client.get("/api/v1/_openapi").json
+        paths = spec["paths"]
+        copy_path = next(
+            path
+            for path in paths
+            if path.startswith("/api/v1/dashboard/{id_or_slug}/copy")
+        )
+
+        def schema_ref(path: str) -> str:
+            response = paths[path]["post"]["responses"]["422"]
+            return response["content"]["application/json"]["schema"]["$ref"]
+
+        assert schema_ref(copy_path).endswith("/TimeRangeAdjustmentsResponseSchema")
+        for path in ("/api/v1/dashboard/import/", "/api/v1/assets/import/"):
+            assert schema_ref(path).endswith("/TimeRangeAdjustmentsImportErrorSchema")
+        schemas = spec["components"]["schemas"]
+        response = schemas["TimeRangeAdjustmentsResponseSchema"]["properties"]
+        assert set(response) == {
+            "message",
+            "time_range_adjustments",
+            "time_range_adjustments_fingerprint",
+        }
+        item = response["time_range_adjustments"]["items"]["$ref"].split("/")[-1]
+        assert {"dashboard_key", "filter_id", "old_label"} <= set(
+            schemas[item]["properties"]
+        )
+        copy_body = schemas["DashboardCopySchema"]["properties"]
+        assert "time_range_adjustments_fingerprint" in copy_body
+        assert {"type": "object"} in response["message"]["oneOf"]
+        errors = schemas["TimeRangeAdjustmentsImportErrorSchema"]["properties"]
+        error = errors["errors"]["items"]["$ref"].split("/")[-1]
+        extra = schemas[error]["properties"]["extra"]
+        assert extra["properties"]["time_range_adjustments_fingerprint"]["type"] == (
+            "string"
+        )
+        per_file = extra["additionalProperties"]["$ref"].split("/")[-1]
+        assert schemas[per_file]["properties"]["time_range_adjustments"]["items"] == {
+            "$ref": f"#/components/schemas/{item}"
+        }
 
 
 @pytest.mark.usefixtures("limits_data")

@@ -269,6 +269,275 @@ test('shows recovery instructions and permits retry after an import failure', as
   expect(queryByText(/test-reference/)).not.toBeInTheDocument();
 });
 
+const adjustmentsPrompt = (weeks = 12, fingerprint = 'fingerprint-12') => {
+  const identity = {
+    dashboard: 'Sales',
+    dashboard_key: 'sales-uuid',
+    file: 'dashboards/sales.yaml',
+  };
+  return {
+    errors: [
+      {
+        message: "The dashboard time ranges don't fit the time range limits.",
+        error_type: 'GENERIC_COMMAND_ERROR',
+        extra: {
+          'dashboards/sales.yaml': {
+            time_range_adjustments: [
+              {
+                ...identity,
+                kind: 'time_range_limit',
+                name: 'Sales',
+                filter_id: null,
+                field: 'max_span',
+                old: { quantity: 20, time_grain: 'P1W' },
+                new: { quantity: weeks, time_grain: 'P1W' },
+                old_label: '20 weeks',
+                new_label: `${weeks} weeks`,
+              },
+              {
+                ...identity,
+                kind: 'filter_default',
+                name: 'Date',
+                filter_id: 'NATIVE_FILTER-date',
+                field: 'default',
+                old: null,
+                new: 'DATEADD(DATETIME("today"), -14, day) : today',
+                old_label: 'No filter',
+                new_label: 'Last 14 days',
+              },
+            ],
+          },
+          time_range_adjustments_fingerprint: fingerprint,
+        },
+      },
+    ],
+  };
+};
+const ADJUSTMENTS_PROMPT = adjustmentsPrompt();
+
+const selectDashboardFile = async (
+  getByTestId: (id: string) => HTMLElement,
+  getByRole: (role: string, options: { name: string }) => HTMLElement,
+) => {
+  fireEvent.change(getByTestId('model-file-input'), {
+    target: { files: [new File(['bundle'], 'dashboard.zip')] },
+  });
+  await waitFor(() =>
+    expect(getByRole('button', { name: 'Import' })).toBeEnabled(),
+  );
+};
+
+test('asks before adjusting time ranges and imports with the adjustments on confirm', async () => {
+  const endpoint = 'glob:*/api/v1/dashboard/import/';
+  fetchMock.postOnce(endpoint, { status: 422, body: ADJUSTMENTS_PROMPT });
+  const onModelImport = jest.fn();
+  const { getByTestId, getByRole, findByRole, getByText, queryByText } = setup({
+    resourceName: 'dashboard',
+    resourceLabel: 'dashboard',
+    onModelImport,
+  });
+  await selectDashboardFile(getByTestId, getByRole);
+
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+
+  const confirm = await findByRole('button', { name: 'Adjust and import' });
+  expect(
+    getByText('Dashboard "Sales" (dashboards/sales.yaml)'),
+  ).toBeInTheDocument();
+  expect(
+    getByText('Time range limit "Maximum span": "20 weeks" → "12 weeks"'),
+  ).toBeInTheDocument();
+  expect(
+    getByText('Time range filter "Date": default "No filter" → "Last 14 days"'),
+  ).toBeInTheDocument();
+  expect(queryByText(/An error occurred/)).not.toBeInTheDocument();
+  expect(queryByText(/changed since you reviewed/)).not.toBeInTheDocument();
+  expect(onModelImport).not.toHaveBeenCalled();
+  const first = fetchMock.callHistory.lastCall(endpoint)?.options
+    .body as FormData;
+  expect(first.get('adjust_time_ranges')).toBeNull();
+
+  fetchMock.postOnce(endpoint, { result: 'OK' });
+  fireEvent.click(confirm);
+
+  await waitFor(() => expect(onModelImport).toHaveBeenCalledTimes(1));
+  expect(fetchMock.callHistory.calls(endpoint)).toHaveLength(2);
+  const second = fetchMock.callHistory.lastCall(endpoint)?.options
+    .body as FormData;
+  expect(second.get('adjust_time_ranges')).toBe('true');
+  expect(second.get('time_range_adjustments_fingerprint')).toBe(
+    'fingerprint-12',
+  );
+});
+
+test('shows the new list when the changes differ from the reviewed ones', async () => {
+  const endpoint = 'glob:*/api/v1/dashboard/import/';
+  fetchMock.postOnce(endpoint, { status: 422, body: ADJUSTMENTS_PROMPT });
+  const onModelImport = jest.fn();
+  const { getByTestId, getByRole, findByRole, findByText, queryByText } = setup(
+    {
+      resourceName: 'dashboard',
+      resourceLabel: 'dashboard',
+      onModelImport,
+    },
+  );
+  await selectDashboardFile(getByTestId, getByRole);
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  fetchMock.postOnce(endpoint, {
+    status: 422,
+    body: adjustmentsPrompt(10, 'fingerprint-10'),
+  });
+
+  fireEvent.click(await findByRole('button', { name: 'Adjust and import' }));
+
+  expect(
+    await findByText(
+      'Time range limit "Maximum span": "20 weeks" → "10 weeks"',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    queryByText('Time range limit "Maximum span": "20 weeks" → "12 weeks"'),
+  ).not.toBeInTheDocument();
+  expect(
+    queryByText(
+      'The changes needed changed since you reviewed them. Review the new list.',
+    ),
+  ).toBeInTheDocument();
+  expect(onModelImport).not.toHaveBeenCalled();
+  fetchMock.postOnce(endpoint, { result: 'OK' });
+
+  fireEvent.click(getByRole('button', { name: 'Adjust and import' }));
+
+  await waitFor(() => expect(onModelImport).toHaveBeenCalledTimes(1));
+  const fingerprints = fetchMock.callHistory
+    .calls(endpoint)
+    .map(call =>
+      (call.options.body as FormData).get('time_range_adjustments_fingerprint'),
+    );
+  expect(fingerprints).toEqual([null, 'fingerprint-12', 'fingerprint-10']);
+});
+
+test('imports nothing when the time range adjustments are cancelled', async () => {
+  const endpoint = 'glob:*/api/v1/dashboard/import/';
+  fetchMock.postOnce(endpoint, { status: 422, body: ADJUSTMENTS_PROMPT });
+  const onModelImport = jest.fn();
+  const onHide = jest.fn();
+  const { getByTestId, getByRole, findByRole } = setup({
+    resourceName: 'dashboard',
+    resourceLabel: 'dashboard',
+    onModelImport,
+    onHide,
+  });
+  await selectDashboardFile(getByTestId, getByRole);
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  await findByRole('button', { name: 'Adjust and import' });
+
+  fireEvent.click(getByRole('button', { name: 'Cancel' }));
+
+  expect(onHide).toHaveBeenCalledTimes(1);
+  expect(onModelImport).not.toHaveBeenCalled();
+  expect(fetchMock.callHistory.calls(endpoint)).toHaveLength(1);
+});
+
+test('asks for the overwrite first and keeps it when asking for the adjustments', async () => {
+  const endpoint = 'glob:*/api/v1/dashboard/import/';
+  fetchMock.postOnce(endpoint, {
+    status: 422,
+    body: {
+      errors: [
+        {
+          message: 'Error importing dashboard',
+          error_type: 'GENERIC_COMMAND_ERROR',
+          extra: {
+            'dashboards/sales.yaml':
+              'Dashboard already exists and `overwrite=true` was not passed',
+          },
+        },
+      ],
+    },
+  });
+  const onModelImport = jest.fn();
+  const { getByTestId, getByRole, findByRole, findByTestId } = setup({
+    resourceName: 'dashboard',
+    resourceLabel: 'dashboard',
+    onModelImport,
+  });
+  await selectDashboardFile(getByTestId, getByRole);
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  fireEvent.change(await findByTestId('overwrite-modal-input'), {
+    target: { value: 'OVERWRITE' },
+  });
+  fetchMock.postOnce(endpoint, { status: 422, body: ADJUSTMENTS_PROMPT });
+  fireEvent.click(getByRole('button', { name: 'Overwrite' }));
+  const confirm = await findByRole('button', { name: 'Adjust and import' });
+  fetchMock.postOnce(endpoint, { result: 'OK' });
+
+  fireEvent.click(confirm);
+
+  await waitFor(() => expect(onModelImport).toHaveBeenCalledTimes(1));
+  const bodies = fetchMock.callHistory
+    .calls(endpoint)
+    .map(call => call.options.body as FormData);
+  expect(bodies.map(body => body.get('overwrite'))).toEqual([
+    null,
+    'true',
+    'true',
+  ]);
+  expect(bodies.map(body => body.get('adjust_time_ranges'))).toEqual([
+    null,
+    null,
+    'true',
+  ]);
+});
+
+test('lets the import continue when the reviewed changes are no longer needed', async () => {
+  const endpoint = 'glob:*/api/v1/dashboard/import/';
+  fetchMock.postOnce(endpoint, { status: 422, body: ADJUSTMENTS_PROMPT });
+  const onModelImport = jest.fn();
+  const { getByTestId, getByRole, findByRole, findByText, queryByText } = setup(
+    {
+      resourceName: 'dashboard',
+      resourceLabel: 'dashboard',
+      onModelImport,
+    },
+  );
+  await selectDashboardFile(getByTestId, getByRole);
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  fetchMock.postOnce(endpoint, {
+    status: 422,
+    body: {
+      errors: [
+        {
+          message: 'The time range changes you agreed to are no longer needed.',
+          error_type: 'GENERIC_COMMAND_ERROR',
+          extra: { time_range_adjustments_fingerprint: 'fingerprint-empty' },
+        },
+      ],
+    },
+  });
+
+  fireEvent.click(await findByRole('button', { name: 'Adjust and import' }));
+
+  expect(
+    await findByText(
+      'The changes needed changed since you reviewed them. No changes are needed any more.',
+    ),
+  ).toBeInTheDocument();
+  expect(queryByText(/An error occurred/)).not.toBeInTheDocument();
+  expect(queryByText(/Time range limit/)).not.toBeInTheDocument();
+  fetchMock.postOnce(endpoint, { result: 'OK' });
+
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+
+  await waitFor(() => expect(onModelImport).toHaveBeenCalledTimes(1));
+  const last = fetchMock.callHistory.lastCall(endpoint)?.options
+    .body as FormData;
+  expect(last.get('adjust_time_ranges')).toBe('true');
+  expect(last.get('time_range_adjustments_fingerprint')).toBe(
+    'fingerprint-empty',
+  );
+});
+
 function StatefulImportModal() {
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<

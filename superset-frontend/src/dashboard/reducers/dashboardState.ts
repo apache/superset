@@ -44,6 +44,7 @@ import {
   ON_FILTERS_REFRESH_SUCCESS,
   SET_DATASETS_STATUS,
   SET_OVERRIDE_CONFIRM,
+  SET_COPY_ADJUST_CONFIRM,
   SAVE_DASHBOARD_STARTED,
   SAVE_DASHBOARD_FINISHED,
   SET_DASHBOARD_LABELS_COLORMAP_SYNCABLE,
@@ -105,6 +106,7 @@ interface DashboardStateShape {
   fullSizeChartId?: number | null;
   datasetsStatus?: string;
   overwriteConfirmMetadata?: JsonObject;
+  copyAdjustConfirmMetadata?: JsonObject;
   nativeFiltersBarOpen?: boolean;
   chartStates?: Record<string, ChartStateEntry>;
   css?: string;
@@ -144,6 +146,7 @@ interface DashboardStateAction {
   inactiveTabs?: string[];
   prevTabId?: string;
   overwriteConfirmMetadata?: JsonObject;
+  copyAdjustConfirmMetadata?: JsonObject;
   isOpen?: boolean;
   vizType?: string;
   chartState?: JsonObject;
@@ -384,6 +387,12 @@ export default function dashboardStateReducer(
       return {
         ...state,
         overwriteConfirmMetadata: action.overwriteConfirmMetadata,
+      };
+    },
+    [SET_COPY_ADJUST_CONFIRM](): DashboardStateShape {
+      return {
+        ...state,
+        copyAdjustConfirmMetadata: action.copyAdjustConfirmMetadata,
       };
     },
     [SET_FOCUSED_FILTER_FIELD](): DashboardStateShape {

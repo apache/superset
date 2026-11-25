@@ -22,18 +22,23 @@ copies. These checks run no data queries.
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from operator import attrgetter
 from typing import Any, Callable, cast, TYPE_CHECKING
 
-from dateutil.parser import parse as parse_datetime
 from marshmallow import ValidationError
 
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.constants import NO_TIME_RANGE
 from superset.extensions import feature_flag_manager
+from superset.time_range_limits.adjustments import (
+    APPLIED_RANGE,
+    DEFAULT,
+    FILTER_DEFAULT,
+    TimeRangeAdjustment,
+)
 from superset.time_range_limits.enforcement import (
     chart_date_ranges,
     chart_range_label,
@@ -48,7 +53,6 @@ from superset.time_range_limits.policy import (
     date_range_failure,
     DateRangeFailure,
     FEATURE_FLAG,
-    fit_copy_date_range,
     load_dataset_limits,
     load_global_limits,
     load_level,
@@ -382,30 +386,6 @@ def _copy_time_filter_mask(mask: Any, value: str) -> dict[str, Any]:
     }
 
 
-def _fixed_copy_default(value: str | None) -> bool:
-    """Recognize complete fixed dates, including Custom offsets from a fixed date."""
-    parts = (value or "").split(" : ")
-    if len(parts) != 2:
-        return False
-    for part in parts:
-        match = re.fullmatch(
-            r'DATEADD\(DATETIME\("([^"]+)"\),\s*-?\d+,\s*\w+\)',
-            part,
-            re.IGNORECASE,
-        )
-        literal = match[1] if match else part
-        if literal.startswith('DATETIME("') and literal.endswith('")'):
-            literal = literal[10:-2]
-        try:
-            if parse_datetime(literal, default=datetime(2001, 1, 1)) != parse_datetime(
-                literal, default=datetime(2002, 2, 2)
-            ):
-                return False
-        except (ValueError, OverflowError):
-            return False
-    return True
-
-
 def _valid_copy_default(
     resolved: tuple[datetime | None, datetime | None] | None,
     limits: ResolvedTimeRangeLimits,
@@ -426,26 +406,92 @@ def _fit_copy_default(
     levels: Sequence[tuple[str, TimeRangeLimits | None]],
     now: datetime,
 ) -> str | None:
-    """Keep fixed defaults fixed and prefer a checked rolling replacement otherwise."""
+    """
+    Keep a default that fits, fixed or relative; replace one that doesn't with
+    a checked rolling range, which reads the same whenever it is fitted. A
+    fixed period is never clipped into another fixed window: that window would
+    move with the clock between the question and the answer. ``None`` when no
+    rolling range fits.
+    """
     resolved = _resolve(value) if value is not None else None
     if _valid_copy_default(resolved, limits):
         return value
-    if not _fixed_copy_default(value):
-        candidate = copy_relative_time_range(limits, levels, now)
-        if candidate is not None and _valid_copy_default(_resolve(candidate), limits):
-            return candidate
-    window = fit_copy_date_range(*(resolved or (None, None)), limits, now)
-    return (
-        " : ".join(bound.isoformat(timespec="seconds") for bound in window)
-        if window is not None
-        else None
-    )
+    candidate = copy_relative_time_range(limits, levels, now)
+    if candidate is not None and _valid_copy_default(_resolve(candidate), limits):
+        return candidate
+    return None
 
 
-def fit_copy_filter_defaults(
-    dashboard: Dashboard, now: datetime
+def _applied_range(mask: Any) -> str | None:
+    """The range a saved Time Range filter mask sends to charts, if any."""
+    extra = mask.get("extraFormData") if isinstance(mask, dict) else None
+    value = extra.get("time_range") if isinstance(extra, dict) else None
+    if not isinstance(value, str) or not value or value == NO_TIME_RANGE:
+        return None
+    return value
+
+
+@dataclass(frozen=True)
+class _FilterChangeContext:
+    """What identifies a dashboard's filter changes across attempts."""
+
+    dashboard: Dashboard
+    dashboard_key: str
+    filter_keys: dict[str, str]
+
+
+def _filter_changes(
+    context: _FilterChangeContext,
+    native_filter: dict[str, Any],
+    original: str | None,
+    applied: str | None,
+    value: str,
+) -> list[TimeRangeAdjustment]:
+    """
+    The changes fitting a filter to ``value`` makes: its default, when that
+    changes, and the range its saved state applies, when that changes and
+    differed from the default.
+    """
+    dashboard = context.dashboard
+    filter_id = str(native_filter.get("id"))
+    migrated = context.filter_keys.get(filter_id)
+    return [
+        TimeRangeAdjustment(
+            FILTER_DEFAULT,
+            dashboard.dashboard_title or "",
+            native_filter.get("name") or filter_id,
+            field,
+            old,
+            value,
+            dashboard_key=context.dashboard_key,
+            filter_id=filter_id,
+            filter_key=f"migrated:{migrated}" if migrated else f"native:{filter_id}",
+        )
+        for field, old in ((DEFAULT, original), (APPLIED_RANGE, applied))
+        if old != value and (field == DEFAULT or old != original)
+    ]
+
+
+def _dashboard_key(dashboard: Dashboard, dashboard_key: str | None) -> str:
+    if dashboard_key is not None:
+        return dashboard_key
+    return str(dashboard.uuid) if dashboard.uuid else ""
+
+
+def fit_copy_filter_defaults(  # pylint: disable=too-many-arguments
+    dashboard: Dashboard,
+    now: datetime,
+    changes: list[TimeRangeAdjustment] | None = None,
+    dashboard_key: str | None = None,
+    filter_keys: dict[str, str] | None = None,
 ) -> dict[str, list[str]]:
-    """Fit a copy's native Time Range defaults without changing its source."""
+    """
+    Fit a copy's native Time Range defaults without changing its source. Each
+    default whose value changes, and each saved applied range the fitted mask
+    replaces, is added to ``changes``, identified by ``dashboard_key`` (the
+    dashboard's UUID unless given) and the filter's id, or its entry in
+    ``filter_keys`` when the import generated that id.
+    """
     if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
         return {}
     metadata = dashboard.params_dict
@@ -468,10 +514,15 @@ def fit_copy_filter_defaults(
     limits = resolve_time_range_limits(levels, now)
     if limits is None:
         return {}
+    context = _FilterChangeContext(
+        dashboard, _dashboard_key(dashboard, dashboard_key), filter_keys or {}
+    )
     errors: dict[str, list[str]] = {}
     for native_filter in filters:
-        value = time_filter_value("filter_time", native_filter.get("defaultDataMask"))
-        value = _fit_copy_default(value, limits, levels, now)
+        mask = native_filter.get("defaultDataMask")
+        original = time_filter_value("filter_time", mask)
+        applied = _applied_range(mask)
+        value = _fit_copy_default(original, limits, levels, now)
         if value is None:
             field = (
                 f"native_filter_configuration.{native_filter.get('id')}.defaultDataMask"
@@ -481,9 +532,11 @@ def fit_copy_filter_defaults(
                 raise TimeRangeLimitsUnavailableError(source="dashboard", field=field)
             errors[f"json_metadata.{field}"] = [failure.message]
             continue
-        native_filter["defaultDataMask"] = _copy_time_filter_mask(
-            native_filter.get("defaultDataMask"), value
-        )
+        if changes is not None:
+            changes.extend(
+                _filter_changes(context, native_filter, original, applied, value)
+            )
+        native_filter["defaultDataMask"] = _copy_time_filter_mask(mask, value)
     if not errors:
         dashboard.json_metadata = json.dumps(metadata)
     return errors

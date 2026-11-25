@@ -176,6 +176,8 @@ from superset.dashboards.schemas import (
     screenshot_query_schema,
     TabsPayloadSchema,
     thumbnail_query_schema,
+    TimeRangeAdjustmentsImportErrorSchema,
+    TimeRangeAdjustmentsResponseSchema,
 )
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
@@ -216,6 +218,7 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
+from superset.time_range_limits.adjustments import TimeRangeAdjustmentsRequiredError
 from superset.time_range_limits.policy import (
     dashboard_limits_payload,
     FEATURE_FLAG,
@@ -745,6 +748,8 @@ class DashboardRestApi(
         DashboardCopySchema,
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
+        TimeRangeAdjustmentsImportErrorSchema,
+        TimeRangeAdjustmentsResponseSchema,
         DashboardExportXlsxPostSchema,
         DashboardExportXlsxResponseSchema,
         TabsPayloadSchema,
@@ -3537,6 +3542,20 @@ class DashboardRestApi(
                       description: >-
                         overwrite all existing assets within the dashboard?
                       type: boolean
+                    adjust_time_ranges:
+                      description: >-
+                        apply the changes a dashboard's time ranges need to fit
+                        the time range limits? Without it, an import that needs
+                        them answers 422 listing the changes, and nothing is
+                        imported.
+                      type: boolean
+                    time_range_adjustments_fingerprint:
+                      description: >-
+                        the time_range_adjustments_fingerprint of the 422 the
+                        caller agreed to. With it, adjust_time_ranges applies
+                        only those changes and answers a new 422 if they changed
+                        since; without it, whatever changes are needed.
+                      type: string
                     ssh_tunnel_passwords:
                       description: >-
                         JSON map of passwords for each ssh_tunnel associated to a
@@ -3583,7 +3602,16 @@ class DashboardRestApi(
             401:
               $ref: '#/components/responses/401'
             422:
-              $ref: '#/components/responses/422'
+              description: >-
+                The file is invalid or needs confirmation from the caller (an
+                overwrite, a password, or time range changes). Nothing is
+                imported. For time range changes, errors[0].extra maps each
+                dashboard file to {"time_range_adjustments": [...]} and holds
+                time_range_adjustments_fingerprint.
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/TimeRangeAdjustmentsImportErrorSchema'
             500:
               $ref: '#/components/responses/500'
         """
@@ -3616,6 +3644,10 @@ class DashboardRestApi(
             passwords=passwords,
             overwrite=overwrite,
             overwrite_all=overwrite_all,
+            adjust_time_ranges=request.form.get("adjust_time_ranges") == "true",
+            time_range_adjustments_fingerprint=request.form.get(
+                "time_range_adjustments_fingerprint"
+            ),
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
@@ -3852,7 +3884,15 @@ class DashboardRestApi(
             404:
               $ref: '#/components/responses/404'
             422:
-              $ref: '#/components/responses/422'
+              description: >-
+                Invalid parameters, with message mapping fields to errors, or
+                time ranges that need changes to fit the time range limits and
+                that the request has not agreed to: message describes them,
+                time_range_adjustments lists them, and nothing is copied.
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/TimeRangeAdjustmentsResponseSchema'
             500:
               $ref: '#/components/responses/500'
             503:
@@ -3871,6 +3911,13 @@ class DashboardRestApi(
             return self.response_403()
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except TimeRangeAdjustmentsRequiredError as ex:
+            return self.response(
+                422,
+                message=ex.message,
+                time_range_adjustments=ex.payload(),
+                time_range_adjustments_fingerprint=ex.fingerprint,
+            )
         except TimeRangeLimitsUnavailableError as ex:
             return json_error_response([ex.error], status=ex.status)
         except DashboardCopyError:

@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from superset import db
 from superset.commands.dashboard.importers import v0
 from superset.models.dashboard import Dashboard
+from superset.time_range_limits.adjustments import TimeRangeAdjustmentsRequiredError
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -96,7 +97,7 @@ def test_import_dashboards_skips_check_without_user(mocker: MockerFixture) -> No
 
 
 @with_feature_flags(TIME_RANGE_LIMITS=True)
-def test_legacy_import_clamps_an_inherited_override(
+def test_legacy_import_lists_every_dashboard_before_clamping(
     session: Session, mocker: MockerFixture
 ) -> None:
     Dashboard.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -108,24 +109,63 @@ def test_legacy_import_clamps_an_inherited_override(
     }
     stale = {**global_limits, "max_span": {"quantity": 90, "time_grain": "P1D"}}
     mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_limits})
-    metadata = json.dumps({"remote_id": 1234, "time_range_limits": stale})
-    db.session.add(Dashboard(dashboard_title="Original", json_metadata=metadata))
-    db.session.flush()
-    content = {
-        "datasources": [],
-        "dashboards": [
-            {
-                "__Dashboard__": {
-                    "id": 1234,
-                    "dashboard_title": "Imported",
-                    "json_metadata": metadata,
+    contents: dict[str, str] = {}
+    for remote_id in (1234, 5678):
+        metadata = json.dumps({"remote_id": remote_id, "time_range_limits": stale})
+        db.session.add(
+            Dashboard(dashboard_title=f"Original {remote_id}", json_metadata=metadata)
+        )
+        content = {
+            "datasources": [],
+            "dashboards": [
+                {
+                    "__Dashboard__": {
+                        "id": remote_id,
+                        "dashboard_title": f"Imported {remote_id}",
+                        "json_metadata": metadata,
+                    }
                 }
-            }
-        ],
-    }
+            ],
+        }
+        contents[f"dashboard_{remote_id}.json"] = json.dumps(content)
+    db.session.commit()
 
-    v0.ImportDashboardsCommand({"dashboard.json": json.dumps(content)}).run()
+    with pytest.raises(TimeRangeAdjustmentsRequiredError) as excinfo:
+        v0.ImportDashboardsCommand(contents).run()
 
-    dashboard = db.session.query(Dashboard).one()
-    assert dashboard.dashboard_title == "Imported"
-    assert dashboard.params_dict["time_range_limits"] == global_limits
+    assert excinfo.value.payload() == [
+        {
+            "kind": "time_range_limit",
+            "dashboard": f"Imported {remote_id}",
+            "dashboard_key": str(remote_id),
+            "file": f"dashboard_{remote_id}.json",
+            "name": f"Imported {remote_id}",
+            "filter_id": None,
+            "field": "max_span",
+            "old": {"quantity": 90, "time_grain": "P1D"},
+            "new": {"quantity": 60, "time_grain": "P1D"},
+            "old_label": "90 days",
+            "new_label": "60 days",
+        }
+        for remote_id in (1234, 5678)
+    ]
+    dashboards = db.session.query(Dashboard).order_by(Dashboard.id).all()
+    assert [dashboard.dashboard_title for dashboard in dashboards] == [
+        "Original 1234",
+        "Original 5678",
+    ]
+    assert all(
+        dashboard.params_dict["time_range_limits"] == stale for dashboard in dashboards
+    )
+
+    v0.ImportDashboardsCommand(contents, adjust_time_ranges=True).run()
+
+    dashboards = db.session.query(Dashboard).order_by(Dashboard.id).all()
+    assert [dashboard.dashboard_title for dashboard in dashboards] == [
+        "Imported 1234",
+        "Imported 5678",
+    ]
+    assert all(
+        dashboard.params_dict["time_range_limits"] == global_limits
+        for dashboard in dashboards
+    )

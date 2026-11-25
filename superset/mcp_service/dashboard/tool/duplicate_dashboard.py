@@ -31,6 +31,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.exceptions import CommandInvalidError
 from superset.daos.dashboard import _layout_chart_id
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
@@ -275,10 +276,24 @@ async def _resolve_source(
             )
 
 
-def _invalid_copy_response(messages: dict[str, Any]) -> DuplicateDashboardResponse:
+def _invalid_copy_response(exc: CommandInvalidError) -> DuplicateDashboardResponse:
     """The tool error for a copy the command refused as invalid. A refused time
-    range limits value carries field-keyed messages."""
-    if messages:
+    range limits value carries field-keyed messages, and a copy whose time
+    ranges would change lists the changes."""
+    from superset.time_range_limits.adjustments import (
+        TimeRangeAdjustmentsRequiredError,
+    )
+
+    if isinstance(exc, TimeRangeAdjustmentsRequiredError):
+        changes = "; ".join(item.describe() for item in exc.adjustments)
+        return DuplicateDashboardResponse(
+            error=(
+                "The copy's time ranges don't fit the time range limits. Copying "
+                f"would change: {changes}. Use Save as in Superset to review and "
+                "apply these changes."
+            ),
+        )
+    if messages := exc.normalized_messages():
         return DuplicateDashboardResponse(
             error=f"Dashboard duplication parameters were invalid: {messages}",
         )
@@ -328,6 +343,9 @@ async def duplicate_dashboard(
         DashboardForbiddenError,
         DashboardInvalidError,
         DashboardLayoutInvalidError,
+    )
+    from superset.time_range_limits.adjustments import (
+        TimeRangeAdjustmentsRequiredError,
     )
 
     try:
@@ -414,8 +432,8 @@ async def duplicate_dashboard(
                 "Repair the source layout before duplicating the dashboard."
             ),
         )
-    except DashboardInvalidError as exc:
-        return _invalid_copy_response(exc.normalized_messages())
+    except (DashboardInvalidError, TimeRangeAdjustmentsRequiredError) as exc:
+        return _invalid_copy_response(exc)
     except DashboardCopyError as exc:
         _safe_rollback("dashboard duplication")
         await ctx.error("Dashboard duplication failed: %s" % (str(exc),))

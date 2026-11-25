@@ -25,6 +25,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import select
 
+from superset.time_range_limits.adjustments import TimeRangeAdjustmentsRequiredError
 from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
 from tests.unit_tests.fixtures.assets_configs import (
@@ -287,7 +288,7 @@ def test_import_threads_overwrite_flag(mocker: MockerFixture, session: Session) 
     )
     mocked_chart.return_value.viz_type = "table"
     mocked_dash = mocker.patch.object(assets_module, "import_dashboard")
-    mocked_dash.return_value = (mocker.Mock(), False)
+    mocked_dash.return_value = (mocker.Mock(), [])
     mocker.patch.object(assets_module, "find_chart_uuids", return_value=[])
     mocker.patch.object(assets_module, "update_id_refs", side_effect=lambda c, *_: c)
     mocker.patch.object(assets_module, "migrate_dashboard")
@@ -727,8 +728,61 @@ def test_import_assets_overwrite_clamps_an_inherited_override(
     assert dashboard.params_dict["time_range_limits"] == span(20)
 
     mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_limits})
-    ImportAssetsCommand(contents, overwrite=True).run()
+    with pytest.raises(TimeRangeAdjustmentsRequiredError) as excinfo:
+        ImportAssetsCommand(contents, overwrite=True).run()
+    assert excinfo.value.status == 422
+    assert list(excinfo.value.normalized_messages()) == [
+        "dashboards/Video_Game_Sales_11.yaml",
+        "time_range_adjustments_fingerprint",
+    ]
+    assert [item["new_label"] for item in excinfo.value.payload()] == ["12 weeks"]
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.params_dict["time_range_limits"] == span(20)
+
+    ImportAssetsCommand(contents, overwrite=True, adjust_time_ranges=True).run()
+    dashboard = db.session.query(Dashboard).one()
     assert dashboard.params_dict["time_range_limits"] == span(12)
+
+
+def test_import_assets_refuses_an_unfittable_time_default_with_422(
+    limits: None, mocker: MockerFixture
+) -> None:
+    """Like the dashboard import, a Time Range default no rolling range can
+    replace is a 422 naming the filter, not the bundle's generic 500."""
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.dashboard import Dashboard
+    from superset.time_range_limits.adjustments import TimeRangeDefaultsInvalidError
+
+    zero_hours = {"quantity": 0, "time_grain": "PT1H"}
+    contents = assets_bundle(
+        span(20), dataset_limits={**span(12), "max_look_forward": zero_hours}
+    )
+    file_name = "dashboards/Video_Game_Sales_11.yaml"
+    config = yaml.safe_load(contents[file_name])
+    config["metadata"]["native_filter_configuration"] = [
+        {"id": "NATIVE_FILTER-time", "filterType": "filter_time"}
+    ]
+    contents[file_name] = yaml.safe_dump(config)
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": span(20)})
+    ImportAssetsCommand(contents).run()
+    mocker.patch.dict(
+        current_app.config,
+        {"TIME_RANGE_LIMITS_GLOBAL": {**span(12), "max_look_back": zero_hours}},
+    )
+
+    with pytest.raises(TimeRangeDefaultsInvalidError) as excinfo:
+        ImportAssetsCommand(contents, overwrite=True, adjust_time_ranges=True).run()
+
+    assert excinfo.value.status == 422
+    errors = excinfo.value.normalized_messages()[file_name]
+    assert list(errors) == [
+        "json_metadata.native_filter_configuration.NATIVE_FILTER-time.defaultDataMask"
+    ]
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.params_dict["time_range_limits"] == span(20)
 
 
 def test_import_assets_flag_off_accepts_a_looser_override(

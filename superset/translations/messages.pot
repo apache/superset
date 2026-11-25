@@ -233,7 +233,15 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
 #, python-format
+msgid "%(duration)s after %(time)s"
+msgstr ""
+
+#, python-format
 msgid "%(duration)s ago"
+msgstr ""
+
+#, python-format
+msgid "%(duration)s before %(time)s"
 msgstr ""
 
 #, python-format
@@ -402,6 +410,10 @@ msgstr ""
 
 #, python-format
 msgid "%(rule)s unit"
+msgstr ""
+
+#, python-format
+msgid "%(start)s to %(end)s"
 msgstr ""
 
 #. i18n: %(suggestion)s is one quoted parameter name.
@@ -1700,10 +1712,22 @@ msgstr ""
 msgid "Adhoc metric aggregate is invalid"
 msgstr ""
 
+msgid "Adjust and copy"
+msgstr ""
+
+msgid "Adjust and import"
+msgstr ""
+
+msgid "Adjust and import to import with these changes, or cancel to import nothing."
+msgstr ""
+
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr ""
 
 msgid "Adjust performance settings of this database."
+msgstr ""
+
+msgid "Adjust time ranges?"
 msgstr ""
 
 #, python-format
@@ -4977,6 +5001,26 @@ msgid "Dashboard"
 msgstr ""
 
 #, python-format
+msgid "Dashboard \"%(dashboard)s\": %(rule)s %(old)s → %(new)s"
+msgstr ""
+
+#, python-format
+msgid "Dashboard \"%(dashboard)s\": time range filter \"%(name)s\" applied range \"%(old)s\" → \"%(new)s\""
+msgstr ""
+
+#, python-format
+msgid "Dashboard \"%(dashboard)s\": time range filter \"%(name)s\" default \"%(old)s\" → \"%(new)s\""
+msgstr ""
+
+#, python-format
+msgid "Dashboard \"%s\""
+msgstr ""
+
+#, python-format
+msgid "Dashboard \"%s\" (%s)"
+msgstr ""
+
+#, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr ""
 
@@ -7870,6 +7914,9 @@ msgstr ""
 msgid "From date cannot be larger than to date"
 msgstr ""
 
+msgid "From now to the end of the current hour"
+msgstr ""
+
 msgid "Full name"
 msgstr ""
 
@@ -8886,6 +8933,10 @@ msgstr ""
 msgid "Last"
 msgstr ""
 
+#, python-format
+msgid "Last %(duration)s"
+msgstr ""
+
 msgid "Last 30 days"
 msgstr ""
 
@@ -9613,6 +9664,12 @@ msgstr ""
 msgid "Maximum folder nesting depth reached"
 msgstr ""
 
+msgid "Maximum look-back"
+msgstr ""
+
+msgid "Maximum look-forward"
+msgstr ""
+
 msgid "Maximum number of features to fetch from service"
 msgstr ""
 
@@ -9620,6 +9677,9 @@ msgid "Maximum number of retry attempts (1–10)"
 msgstr ""
 
 msgid "Maximum radius size of the circle, in pixels. As the zoom level changes, this insures that the circle respects this maximum radius."
+msgstr ""
+
+msgid "Maximum span"
 msgstr ""
 
 msgid "Maximum value"
@@ -10182,6 +10242,10 @@ msgid "New tab (Ctrl + t)"
 msgstr ""
 
 msgid "Next"
+msgstr ""
+
+#, python-format
+msgid "Next %(duration)s"
 msgstr ""
 
 msgid "Nightingale"
@@ -15048,6 +15112,12 @@ msgstr ""
 msgid "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used."
 msgstr ""
 
+msgid "The changes needed changed since you reviewed them. No changes are needed any more."
+msgstr ""
+
+msgid "The changes needed changed since you reviewed them. Review the new list."
+msgstr ""
+
 msgid "The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns."
 msgstr ""
 
@@ -15118,6 +15188,9 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr ""
 
+msgid "The copy's time ranges don't fit the time range limits. Saving the copy makes these changes:"
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr ""
 
@@ -15135,6 +15208,10 @@ msgid "The dashboard has been saved"
 msgstr ""
 
 msgid "The dashboard this report targets was deleted. Restore the dashboard, or update the report to point at an active dashboard."
+msgstr ""
+
+#, python-format
+msgid "The dashboard time ranges don't fit the time range limits. To apply these changes, send the request again with adjust_time_ranges set to true: %(changes)s"
 msgstr ""
 
 msgid "The dashboard you are looking for may have been deleted or moved."
@@ -15446,6 +15523,9 @@ msgstr ""
 msgid "The object does not exist in the given database."
 msgstr ""
 
+msgid "The original dashboard is not changed. Adjust and copy to save the copy with these changes, or cancel to copy nothing."
+msgstr ""
+
 #, python-format
 msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
@@ -15744,6 +15824,9 @@ msgstr ""
 msgid "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code."
 msgstr ""
 
+msgid "The time range changes you agreed to are no longer needed. To continue without changes, send the request again with the new time_range_adjustments_fingerprint."
+msgstr ""
+
 msgid "The time range for the visualization. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time."
 msgstr ""
 
@@ -15751,6 +15834,9 @@ msgid "The time range is outside the allowed limits"
 msgstr ""
 
 msgid "The time range is outside the allowed limits, or the limits can't be verified."
+msgstr ""
+
+msgid "The time ranges in this file don't fit the time range limits. Importing it makes these changes:"
 msgstr ""
 
 msgid "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or equal to Time Grain"
@@ -16885,6 +16971,18 @@ msgstr ""
 
 #, python-format
 msgid "Time range filter \"%(filter)s\" has no default range."
+msgstr ""
+
+#, python-format
+msgid "Time range filter \"%s\": applied range \"%s\" → \"%s\""
+msgstr ""
+
+#, python-format
+msgid "Time range filter \"%s\": default \"%s\" → \"%s\""
+msgstr ""
+
+#, python-format
+msgid "Time range limit \"%s\": \"%s\" → \"%s\""
 msgstr ""
 
 #, python-format
@@ -19635,6 +19733,15 @@ msgid "markdown"
 msgstr ""
 
 msgid "max"
+msgstr ""
+
+msgid "maximum look-back"
+msgstr ""
+
+msgid "maximum look-forward"
+msgstr ""
+
+msgid "maximum span"
 msgstr ""
 
 msgid "mean"

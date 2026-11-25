@@ -31,6 +31,7 @@ from flask import current_app
 from flask_babel import gettext as _, ngettext
 from marshmallow import ValidationError
 
+from superset.constants import NO_TIME_RANGE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
@@ -1009,52 +1010,6 @@ def _fits(since: datetime, until: datetime, amount: int, unit: str) -> bool:
     return start is not None and start >= since
 
 
-def _recent_copy_window(
-    limits: ResolvedTimeRangeLimits, now: datetime
-) -> tuple[datetime, datetime] | None:
-    """Choose a copy's fallback window, including a permitted future interval."""
-    window = value_list_window(limits, now)
-    if window is None or window[0] >= window[1]:
-        until = now.replace(microsecond=0)
-        if limits.earliest_start is not None:
-            future = _shift(limits.earliest_start.value, 1, "second")
-            if future is None:
-                return None
-            until = max(until, future)
-        if limits.latest_end is not None:
-            until = min(until, limits.latest_end.value)
-        window = _fit_window(limits, until, None)
-        if window is None:
-            window = _shift(until, -1, "day") or datetime.min, until
-    return window
-
-
-def fit_copy_date_range(
-    since: datetime | None,
-    until: datetime | None,
-    limits: ResolvedTimeRangeLimits,
-    now: datetime,
-) -> tuple[datetime, datetime] | None:
-    """Clip a copied default to its limits, or choose a valid recent window."""
-    if since is not None and until is not None and since < until:
-        if limits.latest_end is not None:
-            until = min(until, limits.latest_end.value)
-        if (binding := _binding_span(until, limits.max_span)) is not None:
-            since = max(since, binding[1])
-        if limits.earliest_start is not None:
-            since = max(since, limits.earliest_start.value)
-        if since < until and date_range_failure(since, until, limits) is None:
-            return since, until
-    window = _recent_copy_window(limits, now)
-    if (
-        window is not None
-        and window[0] < window[1]
-        and date_range_failure(*window, limits) is None
-    ):
-        return window
-    return None
-
-
 def _copy_relative_expression(limit: Constraint, anchor: str, sign: int) -> str:
     """Encode a duration in the picker's Custom relative-date syntax."""
     count = limit.quantity * (1 if _is_quarter(limit.time_grain) else limit.length[0])
@@ -1185,6 +1140,79 @@ def _describe_limit(limit: Constraint) -> str:
         return _UNIT_NAMES["quarter"](limit.quantity)
     count, unit = limit.length
     return _UNIT_NAMES[unit](count * limit.quantity)
+
+
+def describe_rule(raw: dict[str, Any]) -> str:
+    """A stored rule in words, e.g. ``"12 weeks"``."""
+    return _describe_limit(Constraint("dashboard", raw["quantity"], raw["time_grain"]))
+
+
+_RELATIVE_LAST = re.compile(
+    r'DATEADD\(DATETIME\("(today|now)"\),\s*-(\d+),\s*(\w+)\)\s*:\s*\1', re.I
+)
+_RELATIVE_NEXT = re.compile(
+    r'(today|now)\s*:\s*DATEADD\(DATETIME\("\1"\),\s*(\d+),\s*(\w+)\)', re.I
+)
+_TO_END_OF_HOUR = re.compile(
+    r'now\s*:\s*DATETRUNC\(DATEADD\(DATETIME\("now"\),\s*1,\s*hour\),\s*hour\)', re.I
+)
+_DATEADD = re.compile(r"DATEADD\((.+),\s*(-?\d+),\s*(\w+)\)", re.I)
+_DATETIME = re.compile(r'DATETIME\("([^"]+)"\)', re.I)
+_ISO_DATE = re.compile(r"(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}(?::\d{2})?))?")
+
+
+def _unit_name(name: str) -> str | None:
+    name = name.lower()
+    if name not in _UNIT_NAMES and name.endswith("s"):
+        name = name[:-1]
+    return name if name in _UNIT_NAMES else None
+
+
+def _describe_endpoint(text: str) -> str | None:
+    """One end of a Custom or Advanced range in words, ``None`` if unknown."""
+    text = text.strip()
+    if text.lower() == "today":
+        return _("today")
+    if text.lower() == "now":
+        return _("now")
+    if match := _DATETIME.fullmatch(text):
+        return _describe_endpoint(match[1])
+    if match := _ISO_DATE.fullmatch(text):
+        time = match[2]
+        return match[1] if time in (None, "00:00", "00:00:00") else f"{match[1]} {time}"
+    if (match := _DATEADD.fullmatch(text)) and (unit := _unit_name(match[3])):
+        if (anchor := _describe_endpoint(match[1])) is None:
+            return None
+        count = int(match[2])
+        duration = _UNIT_NAMES[unit](abs(count))
+        if count < 0:
+            return _("%(duration)s before %(time)s", duration=duration, time=anchor)
+        return _("%(duration)s after %(time)s", duration=duration, time=anchor)
+    return None
+
+
+def describe_time_range(value: str | None) -> str:
+    """
+    A filter default in words: "No filter" when it has none, "Last 14 days" or
+    "Next 2 hours" for a rolling range a copy suggests, "2026-01-01 to
+    2026-01-15" or "7 days before today to today" for Custom and Advanced
+    ranges of dates, ``today``, ``now`` and ``DATEADD``. Other values, such as
+    the named ranges ("Last week"), which are already words, come back as is.
+    """
+    if not value or value == NO_TIME_RANGE:
+        return _("No filter")
+    if (match := _RELATIVE_LAST.fullmatch(value)) and (unit := _unit_name(match[3])):
+        return _("Last %(duration)s", duration=_UNIT_NAMES[unit](int(match[2])))
+    if (match := _RELATIVE_NEXT.fullmatch(value)) and (unit := _unit_name(match[3])):
+        return _("Next %(duration)s", duration=_UNIT_NAMES[unit](int(match[2])))
+    if _TO_END_OF_HOUR.fullmatch(value):
+        return _("From now to the end of the current hour")
+    parts = re.split(r"\s+:\s+", value)
+    if len(parts) == 2:
+        start, end = (_describe_endpoint(part) for part in parts)
+        if start is not None and end is not None:
+            return _("%(start)s to %(end)s", start=start, end=end)
+    return value
 
 
 def _describe_length(since: datetime, until: datetime, unit: str) -> str:

@@ -4019,6 +4019,113 @@ def test_copy_clamps_only_inherited_stale_rules(
     assert json.dumps(stored) == before
 
 
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (None, "No filter"),
+        ("No filter", "No filter"),
+        ('DATEADD(DATETIME("today"), -14, day) : today', "Last 14 days"),
+        ('DATEADD(DATETIME("now"), -1, quarter) : now', "Last 1 quarter"),
+        ('now : DATEADD(DATETIME("now"), 2, hour)', "Next 2 hours"),
+        ('now : DATEADD(DATETIME("now"), 1, second)', "Next 1 second"),
+        ('today : DATEADD(DATETIME("today"), 1, day)', "Next 1 day"),
+        ('DATEADD(DATETIME("today"), -28, days) : today', "Last 28 days"),
+        (
+            'now : DATETRUNC(DATEADD(DATETIME("now"), 1, hour), hour)',
+            "From now to the end of the current hour",
+        ),
+        ("Last week", "Last week"),
+        ("2026-01-01T00:00:00 : 2026-01-15T00:00:00", "2026-01-01 to 2026-01-15"),
+        ("2026-01-01T08:30:00 : now", "2026-01-01 08:30:00 to now"),
+        (
+            'DATEADD(DATETIME("2026-01-15T00:00:00"), -7, day) : 2026-01-15T00:00:00',
+            "7 days before 2026-01-15 to 2026-01-15",
+        ),
+        (
+            'DATEADD(DATETIME("today"), -1, month) : '
+            'DATEADD(DATETIME("today"), 1, week)',
+            "1 month before today to 1 week after today",
+        ),
+        (
+            'LASTDAY(DATETIME("today"), month) : today',
+            'LASTDAY(DATETIME("today"), month) : today',
+        ),
+    ],
+)
+def test_describe_time_range_names_a_suggested_default(
+    value: str | None, expected: str
+) -> None:
+    from superset.time_range_limits.policy import describe_time_range
+
+    assert describe_time_range(value) == expected
+
+
+def test_limit_adjustments_list_only_the_rewritten_rules() -> None:
+    from superset.time_range_limits.adjustments import limit_adjustments
+
+    stored = policy((30, "P1D"))
+    clamped = policy((14, "P1D"))
+    [adjustment] = limit_adjustments("Sales", stored, clamped, "uuid-1")
+    assert adjustment.as_dict() == {
+        "kind": "time_range_limit",
+        "dashboard": "Sales",
+        "dashboard_key": "uuid-1",
+        "file": None,
+        "name": "Sales",
+        "filter_id": None,
+        "field": "max_span",
+        "old": {"quantity": 30, "time_grain": "P1D"},
+        "new": {"quantity": 14, "time_grain": "P1D"},
+        "old_label": "30 days",
+        "new_label": "14 days",
+    }
+    assert adjustment.describe() == 'Dashboard "Sales": maximum span 30 days → 14 days'
+    assert limit_adjustments("Sales", stored, stored) == []
+    assert limit_adjustments("Sales", None, None) == []
+
+
+def test_consent_with_a_fingerprint_covers_only_the_changes_it_was_issued_for(
+    mocker: MockerFixture,
+) -> None:
+    from superset.time_range_limits.adjustments import (
+        adjustments_fingerprint,
+        check_consent,
+        limit_adjustments,
+        TimeRangeAdjustmentsRequiredError,
+    )
+
+    set_flag(mocker, True)
+    stored = policy((30, "P1D"))
+    fourteen = limit_adjustments("Sales", stored, policy((14, "P1D")), "uuid-1")
+    seven = limit_adjustments("Sales", stored, policy((7, "P1D")), "uuid-1")
+    other = limit_adjustments("Sales", stored, policy((14, "P1D")), "uuid-2")
+    fingerprint = adjustments_fingerprint(fourteen)
+
+    check_consent([], adjust_time_ranges=False)
+    check_consent([], adjust_time_ranges=True)
+    check_consent([], adjust_time_ranges=False, fingerprint=fingerprint)
+    check_consent([], adjust_time_ranges=True, fingerprint=adjustments_fingerprint([]))
+    check_consent(fourteen, adjust_time_ranges=True)
+    check_consent(fourteen, adjust_time_ranges=True, fingerprint=fingerprint)
+    for changes, adjust, sent in (
+        (fourteen, False, fingerprint),
+        (seven, True, fingerprint),
+        (other, True, fingerprint),
+        (fourteen, True, fingerprint[:-1]),
+        (fourteen, True, "garbage"),
+        (fourteen, True, "\ud800 łódź ✓"),
+        ([], True, fingerprint),
+        ([], True, "\ud800"),
+    ):
+        with pytest.raises(TimeRangeAdjustmentsRequiredError) as excinfo:
+            check_consent(changes, adjust_time_ranges=adjust, fingerprint=sent)
+        assert excinfo.value.fingerprint == adjustments_fingerprint(changes)
+
+    set_flag(mocker, False)
+    check_consent(fourteen, adjust_time_ranges=False)
+    check_consent([], adjust_time_ranges=True, fingerprint="from a preview")
+
+
 def test_copy_keeps_stricter_rules_and_flag_off_values(mocker: MockerFixture) -> None:
     """Copy normalization does not loosen stricter rules or run with the flag off."""
     from superset.time_range_limits.policy import clamp_inherited_copy_limits
@@ -4031,48 +4138,3 @@ def test_copy_keeps_stricter_rules_and_flag_off_values(mocker: MockerFixture) ->
     set_flag(mocker, False)
     stale = policy((30, "P1D"))
     assert clamp_inherited_copy_limits(stale, stale) == stale
-
-
-@pytest.mark.parametrize(
-    "since,until,span,expected",
-    [
-        (
-            datetime(2026, 1, 1),
-            datetime(2026, 2, 1),
-            (14, "P1D"),
-            (datetime(2026, 1, 18), datetime(2026, 2, 1)),
-        ),
-        (
-            datetime(2026, 1, 1),
-            datetime(2026, 1, 1, 7),
-            (6, "PT1H"),
-            (datetime(2026, 1, 1, 1), datetime(2026, 1, 1, 7)),
-        ),
-        (
-            datetime(2026, 1, 1),
-            datetime(2026, 3, 31),
-            (1, "P1M"),
-            (datetime(2026, 2, 28), datetime(2026, 3, 31)),
-        ),
-    ],
-)
-def test_copy_default_clips_back_from_its_end(
-    since: datetime, until: datetime, span: Rule, expected: tuple[datetime, datetime]
-) -> None:
-    """Fitted defaults use the same day, elapsed and calendar span arithmetic."""
-    from superset.time_range_limits.policy import fit_copy_date_range
-
-    limits = span_limits(span)
-    assert fit_copy_date_range(since, until, limits, NOW) == expected
-    assert_passes(*expected, limits)
-
-
-def test_copy_fixed_fallback_can_fit_after_a_zero_look_back() -> None:
-    """The fixed fallback can fit a positive window when relative fitting fails."""
-    from superset.time_range_limits.policy import fit_copy_date_range
-
-    limits = resolve(policy(max_look_back=(0, "PT1H")), now=NOW)
-    window = fit_copy_date_range(None, None, limits, NOW)
-    assert window is not None
-    assert window == (NOW, NOW + timedelta(seconds=1))
-    assert_passes(*window, limits)

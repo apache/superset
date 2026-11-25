@@ -172,7 +172,19 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
 
     assert response.exit_code == 0
     expected_contents = {"dashboards.json": '{"hello": "world"}'}
-    import_dashboards_command.assert_called_with(expected_contents, overwrite=True)
+    import_dashboards_command.assert_called_with(
+        expected_contents, overwrite=True, adjust_time_ranges=False
+    )
+
+    response = runner.invoke(
+        superset.cli.importexport.import_dashboards,
+        ("-p", "dashboards.json", "-u", "admin", "--adjust-time-ranges"),
+    )
+
+    assert response.exit_code == 0
+    import_dashboards_command.assert_called_with(
+        expected_contents, overwrite=True, adjust_time_ranges=True
+    )
 
     # write ZIP file
     with ZipFile("dashboards.zip", "w") as bundle:
@@ -187,7 +199,9 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
 
     assert response.exit_code == 0
     expected_contents = {"dashboard.yaml": "hello: world"}
-    import_dashboards_command.assert_called_with(expected_contents, overwrite=True)
+    import_dashboards_command.assert_called_with(
+        expected_contents, overwrite=True, adjust_time_ranges=False
+    )
 
 
 @mock.patch(

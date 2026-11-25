@@ -34,6 +34,11 @@ from superset.commands.importers.v1.utils import (
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.subjects.models import Subject
+from superset.time_range_limits.adjustments import (
+    limit_adjustments,
+    TimeRangeAdjustment,
+    TimeRangeDefaultsInvalidError,
+)
 from superset.time_range_limits.policy import (
     clamp_imported_dashboard_limits,
     limits_errors,
@@ -317,10 +322,10 @@ def import_dashboard(  # noqa: C901
     overwrite: bool = False,
     ignore_permissions: bool = False,
     default_viewers: list[Subject] | None = None,
-) -> tuple[Dashboard, bool]:
+) -> tuple[Dashboard, list[TimeRangeAdjustment]]:
     """Import a dashboard from a config dict, handling existing matches.
 
-    Return the dashboard and whether its inherited limits were clamped.
+    Return the dashboard and the inherited limits it clamped.
 
     Permission model for an existing UUID match:
 
@@ -470,7 +475,7 @@ def import_dashboard(  # noqa: C901
             # write permission, return it unchanged (the pre-soft-delete
             # overwrite-without-permission behaviour).
             if not overwrite or not can_write:
-                return existing, False
+                return existing, []
             if user and (
                 not security_manager.can_access_dashboard(existing)
                 or (
@@ -496,10 +501,11 @@ def import_dashboard(  # noqa: C901
     if "metadata" in config and "show_native_filters" in config["metadata"]:
         del config["metadata"]["show_native_filters"]
 
-    clamped = False
+    adjustments: list[TimeRangeAdjustment] = []
     if existing and (stored := stored_limits(existing.json_metadata)) is not None:
         metadata = config.get("metadata")
         metadata = existing.params_dict if metadata is None else metadata.copy()
+        raw = metadata.get(TIME_RANGE_LIMITS_KEY)
         try:
             clamped = clamp_imported_dashboard_limits(metadata, stored)
         except ValidationError as ex:
@@ -509,6 +515,12 @@ def import_dashboard(  # noqa: C901
             ) from ex
         if clamped:
             config["metadata"] = metadata
+            adjustments = limit_adjustments(
+                config.get("dashboard_title") or existing.dashboard_title or "",
+                raw,
+                metadata[TIME_RANGE_LIMITS_KEY],
+                str(config["uuid"]),
+            )
 
     # Note: theme_id handling moved to higher level import logic
 
@@ -547,10 +559,22 @@ def import_dashboard(  # noqa: C901
 
     apply_extra_import_fields(dashboard, "dashboard", extra)
 
-    return dashboard, clamped
+    return dashboard, adjustments
 
 
-def fit_imported_dashboard_defaults(dashboard: Dashboard) -> None:
-    """Fit a clamped dashboard's defaults after its chart membership is set."""
-    if errors := fit_copy_filter_defaults(dashboard, datetime.now()):
-        raise CommandInvalidError(exceptions=[ValidationError(errors)])
+def fit_imported_dashboard_defaults(
+    dashboard: Dashboard,
+    filter_keys: dict[str, str] | None = None,
+) -> list[TimeRangeAdjustment]:
+    """
+    Fit a clamped dashboard's defaults after its chart membership is set, and
+    return the defaults it changed. ``filter_keys`` maps the ids of filters
+    migrated from filter boxes to identities that stay the same across
+    attempts.
+    """
+    changes: list[TimeRangeAdjustment] = []
+    if errors := fit_copy_filter_defaults(
+        dashboard, datetime.now(), changes, filter_keys=filter_keys
+    ):
+        raise TimeRangeDefaultsInvalidError(exceptions=[ValidationError(errors)])
+    return changes

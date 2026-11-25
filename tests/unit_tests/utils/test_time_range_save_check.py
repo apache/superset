@@ -1092,10 +1092,84 @@ def test_copy_preserves_valid_relative_default_and_clears_stale_state(
         "extraFormData": {"time_range": "Last 30 days"},
     }
     dashboard = make_dash([], [native], P(span=14))
-    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
+    changes: list[Any] = []
+    assert fit_copy_filter_defaults(dashboard, datetime.now(), changes, "key") == {}
     mask = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"]
     assert mask["filterState"] == {"value": "Last 7 days"}
     assert mask["extraFormData"]["time_range"] == "Last 7 days"
+    assert [change.as_dict() for change in changes] == [
+        {
+            "kind": "filter_default",
+            "dashboard": "Contact center",
+            "dashboard_key": "key",
+            "file": None,
+            "name": "Time range",
+            "filter_id": native["id"],
+            "field": "applied_range",
+            "old": "Last 30 days",
+            "new": "Last 7 days",
+            "old_label": "Last 30 days",
+            "new_label": "Last 7 days",
+        }
+    ]
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+@pytest.mark.parametrize(
+    "extra,listed",
+    [
+        ({"time_range": "Last 7 days"}, []),
+        ({}, [None]),
+        (None, [None]),
+        ({"time_range": "No filter"}, [None]),
+    ],
+)
+def test_copy_lists_an_applied_range_the_fitted_mask_replaces(
+    world: Any, extra: Any, listed: list[Any]
+) -> None:
+    """A query-facing range the copy adds or replaces is listed with its old value."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    native = named_filter("Time range", "Last 7 days")
+    native["defaultDataMask"] = {"filterState": {"value": "Last 7 days"}}
+    if extra is not None:
+        native["defaultDataMask"]["extraFormData"] = extra
+    dashboard = make_dash([], [native], P(span=14))
+    changes: list[Any] = []
+
+    assert fit_copy_filter_defaults(dashboard, datetime.now(), changes) == {}
+
+    assert [(change.field, change.old) for change in changes] == [
+        ("applied_range", old) for old in listed
+    ]
+    mask = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"]
+    assert mask["extraFormData"]["time_range"] == "Last 7 days"
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_lists_both_a_changed_default_and_its_stale_applied_range(
+    world: Any,
+) -> None:
+    """A default that changes lists its applied range only when that differed."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    native = named_filter("Time range", "Last 30 days")
+    native["defaultDataMask"] = {
+        "filterState": {"value": "Last 30 days"},
+        "extraFormData": {"time_range": "Last year"},
+    }
+    dashboard = make_dash([], [native], P(span=14))
+    changes: list[Any] = []
+
+    assert fit_copy_filter_defaults(dashboard, datetime.now(), changes) == {}
+
+    fitted = 'DATEADD(DATETIME("today"), -14, day) : today'
+    assert [(change.field, change.old, change.new) for change in changes] == [
+        ("default", "Last 30 days", fitted),
+        ("applied_range", "Last year", fitted),
+    ]
 
 
 @freeze_time(NOW)
@@ -1258,8 +1332,9 @@ def test_copy_zero_look_back_default_rolls_forward(
 )
 @freeze_time(NOW)
 @with_feature_flags(**FLAG_ON)
-def test_copy_fixed_default_stays_fixed(world: Any, source: str) -> None:
-    """A source's explicit date intent is preserved when clipping its range."""
+def test_copy_fixed_default_becomes_a_rolling_range(world: Any, source: str) -> None:
+    """A fixed period that doesn't fit is replaced by a rolling range of the
+    allowed length rather than clipped into another fixed window."""
     from superset.time_range_limits.save_check import fit_copy_filter_defaults
 
     dashboard = make_dash([], [named_filter("Time range", source)], P(span=14))
@@ -1267,18 +1342,61 @@ def test_copy_fixed_default_stays_fixed(world: Any, source: str) -> None:
     value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
         "filterState"
     ]["value"]
-    assert value == "2026-10-14T00:00:00 : 2026-10-28T00:00:00"
+    assert value == 'DATEADD(DATETIME("today"), -14, day) : today'
 
 
-@pytest.mark.parametrize("candidate", ["Last 90 days", "invalid candidate"])
 @freeze_time(NOW)
 @with_feature_flags(**FLAG_ON)
-def test_copy_checks_relative_candidate_before_falling_back(
+def test_copy_tags_native_and_migrated_filter_identities(world: Any) -> None:
+    """A native filter id can't collide with a migrated filter-box key."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    migrated = named_filter("Time range", "No filter")
+    native = named_filter("Time range", "No filter")
+    native["id"] = "chart-uuid:__time_range"
+    dashboard = make_dash([], [migrated, native], P(span=14))
+    changes: list[Any] = []
+
+    fit_copy_filter_defaults(
+        dashboard,
+        datetime.now(),
+        changes,
+        filter_keys={migrated["id"]: "chart-uuid:__time_range"},
+    )
+
+    assert [change.filter_key for change in changes] == [
+        "migrated:chart-uuid:__time_range",
+        "native:chart-uuid:__time_range",
+    ]
+    assert changes[0].identity() != changes[1].identity()
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_fixed_default_that_fits_stays_fixed(world: Any) -> None:
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    fixed = "2026-10-20 : 2026-10-28"
+    dashboard = make_dash([], [named_filter("Time range", fixed)], P(span=14))
+    changes: list[Any] = []
+    assert fit_copy_filter_defaults(dashboard, datetime.now(), changes) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == fixed
+    assert changes == []
+
+
+@pytest.mark.parametrize("candidate", ["Last 90 days", "invalid candidate", None])
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_refuses_a_default_without_a_fitting_rolling_range(
     world: Any,
     mocker: MockerFixture,
-    candidate: str,
+    candidate: str | None,
 ) -> None:
-    """An invalid generated candidate is never stored instead of a checked window."""
+    """An invalid or missing generated candidate refuses the default with the
+    existing field error instead of storing anything."""
     from superset.time_range_limits.save_check import fit_copy_filter_defaults
 
     mocker.patch(
@@ -1286,11 +1404,12 @@ def test_copy_checks_relative_candidate_before_falling_back(
         return_value=candidate,
     )
     dashboard = make_dash([], [named_filter("Time range", "Last 60 days")], P(span=14))
-    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
-    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
-        "filterState"
-    ]["value"]
-    assert value == "2026-10-14T00:00:00 : 2026-10-28T00:00:00"
+    before = dashboard.json_metadata
+    errors = fit_copy_filter_defaults(dashboard, datetime.now())
+    assert list(errors) == [
+        "json_metadata.native_filter_configuration.NATIVE_FILTER-time.defaultDataMask"
+    ]
+    assert dashboard.json_metadata == before
 
 
 @with_feature_flags(**FLAG_ON)

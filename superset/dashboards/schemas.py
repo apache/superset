@@ -574,6 +574,101 @@ class DashboardCopySchema(TimeRangeLimitsMixin, Schema):
             "description": "Whether or not to also copy all charts on the dashboard"
         }
     )
+    adjust_time_ranges = fields.Boolean(
+        load_default=False,
+        metadata={
+            "description": "Apply the changes the copy's time ranges need to fit "
+            "the time range limits. Without it, a copy that needs them answers 422 "
+            "with the changes in time_range_adjustments, and nothing is copied."
+        },
+    )
+    time_range_adjustments_fingerprint = fields.String(
+        load_default=None,
+        allow_none=True,
+        metadata={
+            "description": "The time_range_adjustments_fingerprint of the 422 the "
+            "caller agreed to. With it, adjust_time_ranges applies only those "
+            "changes and answers a new 422 if they changed since; without it, "
+            "adjust_time_ranges applies whatever changes are needed."
+        },
+    )
+
+
+class TimeRangeAdjustmentSchema(Schema):
+    kind = fields.String(metadata={"description": "time_range_limit or filter_default"})
+    dashboard = fields.String(metadata={"description": "Dashboard title"})
+    dashboard_key = fields.String(
+        metadata={
+            "description": "The source dashboard's UUID on a copy, the imported "
+            "dashboard's UUID on an import"
+        }
+    )
+    file = fields.String(
+        allow_none=True, metadata={"description": "Import file of the dashboard"}
+    )
+    name = fields.String(
+        metadata={"description": "Dashboard title for a rule, filter name otherwise"}
+    )
+    filter_id = fields.String(
+        allow_none=True, metadata={"description": "Native filter id"}
+    )
+    field = fields.String(
+        metadata={
+            "description": "max_span, max_look_back or max_look_forward for a rule; "
+            "default or applied_range for a filter"
+        }
+    )
+    old = fields.Raw(allow_none=True, metadata={"description": "Stored value"})
+    new = fields.Raw(allow_none=True, metadata={"description": "Value saved"})
+    old_label = fields.String(metadata={"description": "Stored value in words"})
+    new_label = fields.String(metadata={"description": "Value saved in words"})
+
+
+FINGERPRINT_DESCRIPTION = (
+    "Send back with adjust_time_ranges to agree to exactly these changes"
+)
+
+
+class TimeRangeAdjustmentsResponseSchema(Schema):
+    message = fields.Raw(
+        metadata={
+            "description": "The changes, in words, and how to agree to them; for "
+            "invalid parameters, a map of fields to their errors instead",
+            "oneOf": [{"type": "string"}, {"type": "object"}],
+        }
+    )
+    time_range_adjustments = fields.List(fields.Nested(TimeRangeAdjustmentSchema))
+    time_range_adjustments_fingerprint = fields.String(
+        metadata={"description": FINGERPRINT_DESCRIPTION}
+    )
+
+
+class TimeRangeAdjustmentsFileSchema(Schema):
+    time_range_adjustments = fields.List(fields.Nested(TimeRangeAdjustmentSchema))
+
+
+class TimeRangeAdjustmentsImportErrorItemSchema(Schema):
+    message = fields.String()
+    error_type = fields.String()
+    level = fields.String()
+    extra = fields.Dict(
+        keys=fields.String(),
+        values=fields.Nested(TimeRangeAdjustmentsFileSchema),
+        metadata={
+            "description": "When time ranges need changes: each dashboard file "
+            "mapped to its changes, and the fingerprint",
+            "properties": {
+                "time_range_adjustments_fingerprint": {
+                    "type": "string",
+                    "description": FINGERPRINT_DESCRIPTION,
+                }
+            },
+        },
+    )
+
+
+class TimeRangeAdjustmentsImportErrorSchema(Schema):
+    errors = fields.List(fields.Nested(TimeRangeAdjustmentsImportErrorItemSchema))
 
 
 class DashboardPutSchema(

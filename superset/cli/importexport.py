@@ -160,7 +160,16 @@ def export_datasources(datasource_file: Optional[str] = None) -> None:
     required=True,
     help="Specify the user name to assign dashboards to",
 )
-def import_dashboards(path: str, username: Optional[str]) -> None:
+@click.option(
+    "--adjust-time-ranges",
+    is_flag=True,
+    default=False,
+    help="Apply the changes the dashboards' time ranges need to fit the time "
+    "range limits",
+)
+def import_dashboards(
+    path: str, username: Optional[str], adjust_time_ranges: bool = False
+) -> None:
     """Import dashboards from ZIP file"""
     # pylint: disable=import-outside-toplevel
     from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
@@ -175,7 +184,9 @@ def import_dashboards(path: str, username: Optional[str]) -> None:
         with open(path) as file:
             contents = {path: file.read()}
     try:
-        ImportDashboardsCommand(contents, overwrite=True).run()
+        ImportDashboardsCommand(
+            contents, overwrite=True, adjust_time_ranges=adjust_time_ranges
+        ).run()
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when importing the dashboards(s), please check "
@@ -325,7 +336,16 @@ def legacy_export_datasources(
     default=None,
     help="Specify the user name to assign dashboards to",
 )
-def legacy_import_dashboards(path: str, recursive: bool, username: str) -> None:
+@click.option(
+    "--adjust-time-ranges",
+    is_flag=True,
+    default=False,
+    help="Apply the changes the dashboards' time ranges need to fit the time "
+    "range limits",
+)
+def legacy_import_dashboards(
+    path: str, recursive: bool, username: str, adjust_time_ranges: bool = False
+) -> None:
     """Import dashboards from JSON file"""
     # pylint: disable=import-outside-toplevel
     from superset.commands.dashboard.importers.v0 import ImportDashboardsCommand
@@ -345,7 +365,7 @@ def legacy_import_dashboards(path: str, recursive: bool, username: str) -> None:
         with open(path_) as file:
             contents[path_.name] = file.read()
     try:
-        ImportDashboardsCommand(contents).run()
+        ImportDashboardsCommand(contents, adjust_time_ranges=adjust_time_ranges).run()
     except Exception:  # pylint: disable=broad-except
         logger.exception("Error when importing dashboard")
         sys.exit(1)

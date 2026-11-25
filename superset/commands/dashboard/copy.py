@@ -30,6 +30,12 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
+from superset.time_range_limits.adjustments import (
+    check_consent,
+    FINGERPRINT_KEY,
+    limit_adjustments,
+    TimeRangeAdjustment,
+)
 from superset.time_range_limits.policy import (
     clamp_inherited_copy_limits,
     json_text_limits_errors,
@@ -48,6 +54,12 @@ class CopyDashboardCommand(BaseCommand):
     def __init__(self, original_dash: Dashboard, data: dict[str, Any]) -> None:
         self._original_dash = original_dash
         self._properties = data.copy()
+        self._adjust_time_ranges = bool(
+            self._properties.pop("adjust_time_ranges", False)
+        )
+        self._fingerprint: str | None = self._properties.pop(FINGERPRINT_KEY, None)
+        self._adjustments: list[TimeRangeAdjustment] = []
+        self._source_key = str(original_dash.uuid) if original_dash.uuid else ""
 
     @transaction(on_error=partial(on_error, reraise=DashboardCopyError))
     def run(self) -> Dashboard:
@@ -66,8 +78,11 @@ class CopyDashboardCommand(BaseCommand):
 
         db.session.info[ACTION_KIND_KEY] = ACTION_KIND_CLONE
         dashboard = DashboardDAO.copy_dashboard(self._original_dash, self._properties)
-        if errors := fit_copy_filter_defaults(dashboard, datetime.now()):
+        if errors := fit_copy_filter_defaults(
+            dashboard, datetime.now(), self._adjustments, self._source_key
+        ):
             raise DashboardInvalidError(exceptions=[ValidationError(errors)])
+        check_consent(self._adjustments, self._adjust_time_ranges, self._fingerprint)
         return dashboard
 
     def validate(self) -> None:
@@ -93,11 +108,12 @@ class CopyDashboardCommand(BaseCommand):
             "json_metadata.time_range_limits",
         ):
             raise DashboardInvalidError(exceptions=[ValidationError(errors)])
+        self._adjustments = []
         if TIME_RANGE_LIMITS_KEY in metadata:
+            raw = metadata[TIME_RANGE_LIMITS_KEY]
             try:
                 metadata[TIME_RANGE_LIMITS_KEY] = clamp_inherited_copy_limits(
-                    metadata[TIME_RANGE_LIMITS_KEY],
-                    stored_limits(self._original_dash.json_metadata),
+                    raw, stored_limits(self._original_dash.json_metadata)
                 )
             except ValidationError as ex:
                 errors = limits_errors(
@@ -106,4 +122,10 @@ class CopyDashboardCommand(BaseCommand):
                 raise DashboardInvalidError(
                     exceptions=[ValidationError(errors)]
                 ) from ex
+            self._adjustments = limit_adjustments(
+                self._properties["dashboard_title"],
+                raw,
+                metadata[TIME_RANGE_LIMITS_KEY],
+                self._source_key,
+            )
         self._properties["json_metadata"] = json.dumps(metadata)

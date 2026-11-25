@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from dataclasses import replace
 from typing import Any, Optional
 
 from marshmallow import Schema
@@ -67,6 +68,12 @@ from superset.semantic_layers.import_export import (
     SemanticReferenceError,
 )
 from superset.subjects.utils import get_default_viewers_for_current_user
+from superset.time_range_limits.adjustments import (
+    check_consent,
+    TimeRangeAdjustment,
+    TimeRangeAdjustmentsRequiredError,
+    TimeRangeDefaultsInvalidError,
+)
 from superset.utils.decorators import on_error, transaction
 
 
@@ -78,7 +85,16 @@ def _on_import_error(ex: Exception) -> None:
     An ``ImportFailedError`` names what the bundle must change, e.g. a secret it
     must provide; re-raising it bare would leave only "unknown reason".
     """
-    if isinstance(ex, (SemanticReferenceError, ImportFailedError, ForbiddenError)):
+    if isinstance(
+        ex,
+        (
+            SemanticReferenceError,
+            ImportFailedError,
+            ForbiddenError,
+            TimeRangeAdjustmentsRequiredError,
+            TimeRangeDefaultsInvalidError,
+        ),
+    ):
         raise ex
     on_error(ex, catches=(Exception,), reraise=ImportFailedError)
 
@@ -121,6 +137,10 @@ class ImportAssetsCommand(BaseCommand):
         # Defaults to ``True`` for backwards compatibility: historically this
         # command always overwrote existing assets.
         self.overwrite: bool = kwargs.get("overwrite", True)
+        self.adjust_time_ranges: bool = kwargs.get("adjust_time_ranges", False)
+        self.time_range_adjustments_fingerprint: Optional[str] = kwargs.get(
+            "time_range_adjustments_fingerprint"
+        )
 
     # pylint: disable=too-many-locals
     @staticmethod
@@ -129,6 +149,8 @@ class ImportAssetsCommand(BaseCommand):
         sparse: bool = False,
         contents: Optional[dict[str, Any]] = None,
         overwrite: bool = True,
+        adjust_time_ranges: bool = False,
+        fingerprint: Optional[str] = None,
     ) -> None:
         contents = {} if contents is None else contents
         semantic_info: dict[str, dict[str, Any]] = resolve_bundle_references(configs)
@@ -211,6 +233,7 @@ class ImportAssetsCommand(BaseCommand):
                     import_tag(config["tags"], contents, chart.id, "chart", db.session)
 
         # import dashboards
+        adjustments: list[TimeRangeAdjustment] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 restore_dashboard_references(
@@ -218,7 +241,7 @@ class ImportAssetsCommand(BaseCommand):
                 )
                 config = update_id_refs(config, chart_ids, dataset_info)
                 try:
-                    dashboard, clamped = import_dashboard(
+                    dashboard, changes = import_dashboard(
                         config, overwrite=overwrite, default_viewers=default_viewers
                     )
                 except CommandInvalidError as ex:
@@ -272,14 +295,22 @@ class ImportAssetsCommand(BaseCommand):
                         )
 
                 # Migrate any filter-box charts to native dashboard filters.
-                migrate_dashboard(dashboard)
-                if clamped:
+                migrated: dict[str, str] = {}
+                migrate_dashboard(dashboard, migrated)
+                if changes:
                     try:
-                        fit_imported_dashboard_defaults(dashboard)
-                    except CommandInvalidError as ex:
-                        raise ImportFailedError(
-                            f"{file_name}: {ex.normalized_messages()}"
+                        changes += fit_imported_dashboard_defaults(dashboard, migrated)
+                    except TimeRangeDefaultsInvalidError as ex:
+                        raise TimeRangeDefaultsInvalidError(
+                            f"Error importing dashboard: {file_name}: "
+                            f"{ex.normalized_messages()}",
+                            [ValidationError({file_name: ex.normalized_messages()})],
                         ) from ex
+                adjustments.extend(
+                    replace(item, file_name=file_name) for item in changes
+                )
+
+        check_consent(adjustments, adjust_time_ranges, fingerprint)
 
         # Remove all obsolete filter-box charts.
         for chart in charts:
@@ -289,7 +320,14 @@ class ImportAssetsCommand(BaseCommand):
     @transaction(on_error=_on_import_error)
     def run(self) -> None:
         self.validate()
-        self._import(self._configs, self.sparse, self.contents, self.overwrite)
+        self._import(
+            self._configs,
+            self.sparse,
+            self.contents,
+            self.overwrite,
+            self.adjust_time_ranges,
+            self.time_range_adjustments_fingerprint,
+        )
 
     # Maps asset file prefixes to the model class used to look up UUIDs for
     # the "already exists" validation check when ``overwrite`` is ``False``.

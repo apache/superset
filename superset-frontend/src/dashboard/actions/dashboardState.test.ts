@@ -27,6 +27,7 @@ import {
   SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
+  SET_COPY_ADJUST_CONFIRM,
   fetchCharts,
   onRefresh,
   ON_FILTERS_REFRESH,
@@ -48,6 +49,7 @@ import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
   SAVE_TYPE_NEWDASHBOARD,
+  SAVE_TYPE_NEWDASHBOARD_ADJUSTED,
 } from 'src/dashboard/util/constants';
 import {
   filterId,
@@ -494,6 +496,130 @@ describe('dashboardState actions', () => {
       expect(mockNavigateTo).toHaveBeenCalledWith(
         `/dashboard/${newDashboardId}/`,
       );
+    });
+
+    test('asks before a Save As that would adjust time ranges', async () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+      const adjustments = [
+        {
+          kind: 'filter_default',
+          dashboard: 'Copy',
+          name: 'Date',
+          field: 'default',
+          old: null,
+          new: 'DATEADD(DATETIME("today"), -14, day) : today',
+          old_label: 'No filter',
+          new_label: 'Last 14 days',
+        },
+      ];
+      mockNavigateTo.mockClear();
+      postStub.mockRestore();
+      postStub = jest.spyOn(SupersetClient, 'post').mockRejectedValue(
+        new Response(
+          JSON.stringify({
+            message: "The dashboard time ranges don't fit",
+            time_range_adjustments: adjustments,
+            time_range_adjustments_fingerprint: 'fingerprint-1',
+          }),
+          { status: 422 },
+        ),
+      );
+
+      await saveDashboardRequest(
+        newDashboardData,
+        7,
+        SAVE_TYPE_NEWDASHBOARD,
+      )(dispatch, getState);
+
+      await waitFor(() =>
+        expect(dispatch).toHaveBeenCalledWith({
+          type: SET_COPY_ADJUST_CONFIRM,
+          copyAdjustConfirmMetadata: {
+            dashboardId: 7,
+            data: newDashboardData,
+            adjustments,
+            fingerprint: 'fingerprint-1',
+            changed: false,
+          },
+        }),
+      );
+      expect(postStub.mock.calls[0][0].jsonPayload).not.toHaveProperty(
+        'adjust_time_ranges',
+      );
+      expect(mockNavigateTo).not.toHaveBeenCalled();
+      expect(
+        dispatch.mock.calls.some(
+          ([action]) => action?.payload?.toastType === ToastType.Danger,
+        ),
+      ).toBe(false);
+    });
+
+    test('sends the time range consent on a confirmed Save As', async () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+      postStub.mockRestore();
+      postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+        json: { result: { id: 8 } },
+      } as any);
+
+      await saveDashboardRequest(
+        newDashboardData,
+        7,
+        SAVE_TYPE_NEWDASHBOARD_ADJUSTED,
+        'fingerprint-1',
+      )(dispatch, getState);
+
+      expect(postStub.mock.calls[0][0].endpoint).toBe(
+        '/api/v1/dashboard/7/copy/',
+      );
+      expect(postStub.mock.calls[0][0].jsonPayload).toMatchObject({
+        adjust_time_ranges: true,
+        time_range_adjustments_fingerprint: 'fingerprint-1',
+      });
+      await waitFor(() =>
+        expect(mockNavigateTo).toHaveBeenCalledWith('/dashboard/8/'),
+      );
+    });
+
+    test('asks again when a confirmed Save As needs different changes', async () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+      mockNavigateTo.mockClear();
+      postStub.mockRestore();
+      postStub = jest.spyOn(SupersetClient, 'post').mockRejectedValue(
+        new Response(
+          JSON.stringify({
+            message: "The dashboard time ranges don't fit",
+            time_range_adjustments: [],
+            time_range_adjustments_fingerprint: 'fingerprint-2',
+          }),
+          { status: 422 },
+        ),
+      );
+
+      await saveDashboardRequest(
+        newDashboardData,
+        7,
+        SAVE_TYPE_NEWDASHBOARD_ADJUSTED,
+        'fingerprint-1',
+      )(dispatch, getState);
+
+      await waitFor(() =>
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: SET_COPY_ADJUST_CONFIRM,
+            copyAdjustConfirmMetadata: expect.objectContaining({
+              fingerprint: 'fingerprint-2',
+              changed: true,
+            }),
+          }),
+        ),
+      );
+      expect(mockNavigateTo).not.toHaveBeenCalled();
     });
 
     // `navigateWithState` regression for the
