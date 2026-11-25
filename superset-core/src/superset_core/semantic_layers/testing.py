@@ -475,7 +475,9 @@ def _assert_normalized_or_witness(
     groups: list[OrFilter] = [
         item for item in query.filters or set() if isinstance(item, OrFilter)
     ]
-    assert len(groups) == 1, "or fixture requires one normalized IN/NULL group"
+    assert len(groups) == 1, (
+        f"or fixture requires one normalized {operator.value}/NULL group"
+    )
     group: OrFilter = groups[0]
     membership: list[Filter] = [
         leaf for leaf in group.filters if leaf.operator == operator

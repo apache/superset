@@ -305,8 +305,14 @@ def test_exclusion_group_retains_nulls_and_outer_filter(
 
 def test_invalid_or_leaf_is_validated_before_matching(
     stub_view: SemanticViewABC,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A matching OR sibling must not hide an unsupported operator."""
+    monkeypatch.setattr(
+        sys.modules[type(stub_view).__module__],
+        "_matches",
+        lambda row, leaf: pytest.fail("a row was matched before validation"),
+    )
     region: Dimension = next(d for d in stub_view.get_dimensions() if d.id == "region")
     group: OrFilter = OrFilter(
         frozenset(
