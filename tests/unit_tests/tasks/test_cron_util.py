@@ -15,8 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
+from cron_descriptor import (
+    FormatException,
+    MissingFieldException,
+    WrongArgumentException,
+)
 from croniter import croniter
 from freezegun.api import FakeDatetime
 
@@ -288,6 +294,15 @@ def test_cron_schedule_window_invalid_cron_date(
             "month, only in March",
         ),
         ("0 9 L * 5", "At 09:00 AM, on the last day of the month, or on Friday"),
+        # croniter's shortcuts, which cron_descriptor can't read on its own
+        ("@midnight", "At 12:00 AM"),
+        ("@hourly", "Every hour"),
+        ("@daily", "At 12:00 AM"),
+        ("@DAILY", "At 12:00 AM"),
+        ("@weekly", "At 12:00 AM, only on Sunday"),
+        ("@monthly", "At 12:00 AM, on day 1 of the month"),
+        ("@yearly", "At 12:00 AM, on day 1 of the month, only in January"),
+        ("@annually", "At 12:00 AM, on day 1 of the month, only in January"),
     ],
 )
 def test_get_cron_description(cron: str, expected: str) -> None:
@@ -310,3 +325,23 @@ def test_get_cron_description_matches_fire_times() -> None:
 
     assert first_fire_time == datetime(2026, 9, 1, 9, 0)
     assert "or on Tuesday" in get_cron_description(cron)
+
+
+@pytest.mark.parametrize(
+    "error", [FormatException, MissingFieldException, WrongArgumentException]
+)
+def test_get_cron_description_falls_back_to_the_expression(error: type) -> None:
+    """
+    A schedule cron_descriptor can't describe is shown as written instead of
+    failing the report list
+    """
+
+    with (
+        patch(
+            "superset.tasks.cron_util.get_description",
+            side_effect=error("unreadable"),
+        ),
+        patch("superset.tasks.cron_util.logger") as logger,
+    ):
+        assert get_cron_description("0 9 * * *") == "0 9 * * *"
+    logger.warning.assert_called_once()

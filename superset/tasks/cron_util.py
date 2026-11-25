@@ -19,7 +19,13 @@ import logging
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 
-from cron_descriptor import ExpressionDescriptor, get_description
+from cron_descriptor import (
+    ExpressionDescriptor,
+    FormatException,
+    get_description,
+    MissingFieldException,
+    WrongArgumentException,
+)
 from croniter import croniter, CroniterBadDateError
 from flask import current_app
 from pytz import timezone as pytz_timezone, UnknownTimeZoneError
@@ -29,6 +35,18 @@ logger = logging.getLogger(__name__)
 # Field values that place no restriction on a cron field. ``?`` is the Quartz
 # spelling of "no specific value" and is accepted by ``cron_descriptor``.
 UNRESTRICTED_CRON_FIELDS = {"*", "?"}
+
+# The shortcuts croniter accepts, as the five fields it expands them to.
+# ``cron_descriptor`` only reads the five-field form.
+CRON_SHORTCUTS = {
+    "@midnight": "0 0 * * *",
+    "@hourly": "0 * * * *",
+    "@daily": "0 0 * * *",
+    "@weekly": "0 0 * * 0",
+    "@monthly": "0 0 1 * *",
+    "@yearly": "0 0 1 1 *",
+    "@annually": "0 0 1 1 *",
+}
 
 
 def get_cron_description(cron: str) -> str:
@@ -45,7 +63,14 @@ def get_cron_description(cron: str) -> str:
     Join the two clauses with "or" so the description matches when the job
     really runs.
     """
-    description = get_description(cron)
+    cron = CRON_SHORTCUTS.get(cron.lower(), cron)
+    try:
+        description = get_description(cron)
+    except (FormatException, MissingFieldException, WrongArgumentException):
+        # The schedule passed croniter's validation, so a description that
+        # cron_descriptor can't build must not fail the report list.
+        logger.warning("Could not describe cron expression %s", cron)
+        return cron
 
     fields = cron.split()
     if len(fields) != 5:
