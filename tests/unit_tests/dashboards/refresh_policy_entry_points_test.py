@@ -414,6 +414,21 @@ def test_mcp_title_update_preserves_removed_default(mocker: MockerFixture) -> No
     assert dashboard.params_dict == metadata
 
 
+def test_mcp_title_update_keeps_a_deeply_nested_stored_policy() -> None:
+    """An MCP title edit works over a stored policy with deeply nested JSON."""
+    from superset.mcp_service.dashboard.schemas import UpdateDashboardRequest
+    from superset.mcp_service.dashboard.tool.update_dashboard import (
+        _validate_update_request,
+    )
+
+    metadata = (
+        '{"auto_refresh_policy": {"legacy": ' + "[" * 550 + "0" + "]" * 550 + "}}"
+    )
+    dashboard = Dashboard(id=1, json_metadata=metadata)
+    request = UpdateDashboardRequest(identifier=1, dashboard_title="Renamed")
+    assert _validate_update_request(dashboard, request) is None
+
+
 def test_restore_layout_preserves_removed_default(mocker: MockerFixture) -> None:
     """Restoring only layout preserves refresh settings outside the admin list."""
     from contextlib import nullcontext

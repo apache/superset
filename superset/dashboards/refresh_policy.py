@@ -134,24 +134,39 @@ def same_json_value(incoming: Any, stored: Any) -> bool:
     return type(incoming) is type(stored) and incoming == stored
 
 
+def _json_children(left: Any, right: Any) -> list[tuple[Any, Any]] | None:
+    """
+    Compare two JSON values one level deep: ``None`` when they differ, else the
+    paired object values or array elements still to compare.
+    """
+    if isinstance(left, bool) or isinstance(right, bool):
+        return [] if type(left) is type(right) and left == right else None
+    if _is_number(left) and _is_number(right):
+        return [] if left == right else None
+    if isinstance(left, dict) and isinstance(right, dict):
+        if left.keys() != right.keys():
+            return None
+        return [(value, right[key]) for key, value in left.items()]
+    if isinstance(left, list) and isinstance(right, list):
+        if len(left) != len(right):
+            return None
+        return list(zip(left, right, strict=True))
+    return [] if type(left) is type(right) and left == right else None
+
+
 def same_json_type_and_value(left: Any, right: Any) -> bool:
     """
     Compare two JSON values: booleans never equal numbers and numbers are equal
-    when Python compares them equal, so ``1`` equals ``1.0``.
+    when Python compares them equal, so ``1`` equals ``1.0``. Nested values are
+    walked with a stack, so deep nesting can't exhaust the recursion limit.
     """
-    if isinstance(left, bool) or isinstance(right, bool):
-        return type(left) is type(right) and left == right
-    if _is_number(left) and _is_number(right):
-        return left == right
-    if isinstance(left, dict) and isinstance(right, dict):
-        return left.keys() == right.keys() and all(
-            same_json_type_and_value(value, right[key]) for key, value in left.items()
-        )
-    if isinstance(left, list) and isinstance(right, list):
-        return len(left) == len(right) and all(
-            same_json_type_and_value(a, b) for a, b in zip(left, right, strict=True)
-        )
-    return type(left) is type(right) and left == right
+    pending = [(left, right)]
+    while pending:
+        children = _json_children(*pending.pop())
+        if children is None:
+            return False
+        pending.extend(children)
+    return True
 
 
 def same_stored_policy(policy: Any, stored_policy: Any) -> bool:

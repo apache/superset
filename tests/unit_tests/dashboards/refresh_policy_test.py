@@ -611,6 +611,25 @@ def test_flag_on_a_boolean_number_frequency_swap_is_a_change(
     )
 
 
+DEEP_LEGACY_METADATA = (
+    '{"auto_refresh_policy": {"legacy": ' + "[" * 550 + "0" + "]" * 550 + "}}"
+)
+
+
+def test_flag_on_a_deeply_nested_unchanged_policy_is_unchanged() -> None:
+    """A stored policy with deeply nested JSON compares without recursion."""
+    from superset.dashboards.refresh_policy import (
+        refresh_settings_changed,
+        same_json_type_and_value,
+    )
+    from superset.utils import json
+
+    stored, submitted = (json.loads(DEEP_LEGACY_METADATA) for _ in range(2))
+    assert not refresh_settings_changed(submitted, stored)
+    assert not same_json_type_and_value({"a": [[[True]]]}, {"a": [[[1]]]})
+    assert same_json_type_and_value({"a": [[[1]]]}, {"a": [[[1.0]]]})
+
+
 def test_a_numeric_bound_over_a_boolean_one_is_checked_against_the_list(
     mocker: MockerFixture,
 ) -> None:
