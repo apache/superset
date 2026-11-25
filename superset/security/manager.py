@@ -2278,6 +2278,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # the view-menu name from the class name; without this entry
         # _is_gamma_pvm grants its permissions to stock Gamma and Alpha.
         "UserRegistrationsRestAPI",
+        # Same reason: the admin-only password recovery endpoint's permission
+        # must not reach stock Gamma and Alpha on role sync.
+        "PasswordRecoveryRestApi",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
         "RoleRestAPI",

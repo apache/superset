@@ -8695,6 +8695,18 @@
         ],
         "type": "object"
       },
+      "PasswordRecoveryAdminRequestSchema": {
+        "properties": {
+          "user_id": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
       "PasswordRecoveryRequestSchema": {
         "properties": {
           "email": {
@@ -32228,6 +32240,77 @@
         },
         "security": [],
         "summary": "Request a password reset link",
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/admin/": {
+      "post": {
+        "description": "Emails a single-use password reset link to the given user. Only available when password recovery is enabled (``AUTH_DB`` accounts), and only to callers with the ``admin_request_password_recovery`` permission on this API, which the Admin role holds. Unlike the self-service endpoints this one is not subject to the per-address rate limit, since the caller is a signed-in admin; the resend cooldown still stops repeat sends to one address. The request is recorded in the security audit log with the requesting user.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryAdminRequestSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Reset link sent"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The user cannot receive a reset link (no email address, no local password, or an inactive account)"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "description": "Password recovery is disabled, or no such user"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Send a password reset link to a user",
         "tags": [
           "Security"
         ]

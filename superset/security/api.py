@@ -565,6 +565,17 @@ def _defer_until_response_closed(task: Callable[[], None]) -> None:
         return response
 
 
+def _is_admin_recovery_request() -> bool:
+    """Whether the current request targets the admin recovery endpoint.
+
+    FAB applies a view's ``@limit`` decorators to the whole blueprint, so the
+    self-service limit would otherwise cover the admin endpoint too. The
+    admin endpoint is exempt: its caller is a signed-in admin, and the
+    resend cooldown still stops repeat sends to one address.
+    """
+    return request.endpoint == "PasswordRecoveryRestApi.admin_request_recovery"
+
+
 class PasswordRecoveryRestApi(BaseSupersetApi):
     """Self-service password recovery for ``AUTH_DB`` accounts.
 
@@ -593,7 +604,11 @@ class PasswordRecoveryRestApi(BaseSupersetApi):
     admin_request_schema = PasswordRecoveryAdminRequestSchema()
 
     @expose("/", methods=("POST",))
-    @limit(password_recovery.rate_limit, methods=["POST"])
+    @limit(
+        password_recovery.rate_limit,
+        methods=["POST"],
+        exempt_when=_is_admin_recovery_request,
+    )
     @safe
     @statsd_metrics
     @requires_json
@@ -649,7 +664,11 @@ class PasswordRecoveryRestApi(BaseSupersetApi):
         )
 
     @expose("/reset/", methods=("POST",))
-    @limit(password_recovery.rate_limit, methods=["POST"])
+    @limit(
+        password_recovery.rate_limit,
+        methods=["POST"],
+        exempt_when=_is_admin_recovery_request,
+    )
     @safe
     @statsd_metrics
     @requires_json
@@ -711,7 +730,6 @@ class PasswordRecoveryRestApi(BaseSupersetApi):
         return self.response(200, message=_("Your password has been reset."))
 
     @expose("/admin/", methods=("POST",))
-    @limit(password_recovery.rate_limit, methods=["POST"])
     @protect()
     @permission_name("admin_request_password_recovery")
     @safe
@@ -727,8 +745,11 @@ class PasswordRecoveryRestApi(BaseSupersetApi):
             available when password recovery is enabled (``AUTH_DB``
             accounts), and only to callers with the
             ``admin_request_password_recovery`` permission on this API, which
-            the Admin role holds. The request is recorded in the security
-            audit log with the requesting user.
+            the Admin role holds. Unlike the self-service endpoints this one
+            is not subject to the per-address rate limit, since the caller is
+            a signed-in admin; the resend cooldown still stops repeat sends
+            to one address. The request is recorded in the security audit log
+            with the requesting user.
           requestBody:
             required: true
             content:
