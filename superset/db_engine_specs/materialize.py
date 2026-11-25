@@ -99,7 +99,7 @@ class MaterializeEngineSpec(PostgresEngineSpec):
 
     metadata = {
         "description": (
-            "Materialize is a streaming SQL database that maintains"
+            "Materialize is a streaming SQL database that maintains "
             "up-to-date query results as underlying data changes."
         ),
         "categories": [
