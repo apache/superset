@@ -23,9 +23,9 @@
 // grid. That leaves the actual "View as table" render path -- the thing
 // apache/superset#41268 reports as silently broken for an embedded/guest-ish
 // role -- with no coverage. This file renders the real ResultsPaneOnDashboard
-// (no DataTablesPane mock) so the permission check, the drill_info fetch,
-// the verbose_map, and the grid render are exercised end to end, the same
-// way a user clicking "View as table" would hit them.
+// (no DataTablesPane mock) so the permission check, the chart-data fetch,
+// and the grid render are exercised end to end, the same way a user
+// clicking "View as table" would hit them.
 import {
   render,
   screen,
@@ -238,11 +238,10 @@ test('"View as table" renders the actual rows and headers for a view-as-table-on
   // ag-grid's row virtualization, so it is the most reliable signal that
   // `useResultsPane` actually resolved with 5 rows rather than getting
   // stuck in its loading state (#41268's reported symptom) or landing on
-  // the error/empty-results branches. Both the chart-data fetch and the
-  // drill_info fetch resolve independently and each triggers a re-render
-  // (verbose_map arriving can swap ag-grid's columnDefs), so this re-queries
-  // fresh on every attempt via `waitFor` rather than reusing a node handle
-  // from an earlier `findByText` that a later re-render could detach.
+  // the error/empty-results branches. Re-renders can swap ag-grid's
+  // columnDefs, so this re-queries fresh on every attempt via `waitFor`
+  // rather than reusing a node handle from an earlier `findByText` that a
+  // later re-render could detach.
   await waitFor(() => {
     expect(screen.getByText('5 rows')).toBeVisible();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -267,8 +266,8 @@ test('"View as table" renders the actual rows and headers for a view-as-table-on
     expect(screen.getByText('Tech')).toBeInTheDocument();
   });
 
-  // Headers come from the column names via the drill_info verbose_map
-  // (null verbose_name falls back to the raw name).
+  // With no `collabels` in the response, headers fall back to the raw
+  // column names.
   await waitFor(() => {
     expect(screen.getAllByText('speciality').length).toBeGreaterThan(0);
     expect(screen.getAllByText('COUNT(id)').length).toBeGreaterThan(0);

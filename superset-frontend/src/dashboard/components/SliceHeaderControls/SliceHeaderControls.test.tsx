@@ -832,7 +832,7 @@ test('Dataset drill info API call is not made when user lacks drill permissions'
   expect(mockCachedSupersetGet).not.toHaveBeenCalled();
 });
 
-test('Dataset drill info API call is made when user can only view chart as table', async () => {
+test('Dataset drill info API call is not made when user can only view chart as table', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: false,
   };
@@ -840,8 +840,8 @@ test('Dataset drill info API call is made when user can only view chart as table
     ...createProps(),
     supersetCanExplore: false,
   };
-  // "View as table" has its own permission, so label resolution must not be
-  // gated behind Drill to detail.
+  // The results grid gets its labels from the chart data response's
+  // `collabels`, so "View as table" alone doesn't need the drill_info fetch.
   renderWrapper(props, {
     Gamma: [
       ['can_view_chart_as_table', 'Dashboard'],
@@ -849,33 +849,23 @@ test('Dataset drill info API call is made when user can only view chart as table
     ],
   });
 
-  await waitFor(() =>
-    expect(mockCachedSupersetGet).toHaveBeenCalledWith({
-      endpoint: expect.stringContaining(
-        '/api/v1/dataset/58/drill_info/?q=(dashboard_id:26)',
-      ),
-    }),
-  );
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).not.toHaveBeenCalled();
 });
 
-test('Dataset drill info API call is made for an explore-only user', async () => {
+test('Dataset drill info API call is not made for an explore-only user', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: false,
   };
-  // "View as table" is offered to `canExplore || canViewTable`, so the fetch that
-  // feeds its column headers has to cover the same set -- an explore user with
-  // neither `can_samples` nor `can_view_chart_as_table` opens the same modal.
+  // Without drill-to-detail, nothing on the dashboard reads the verbose map.
   renderWrapper(createProps(), {
     Gamma: [['can_get_drill_info', 'Dataset']],
   });
 
-  await waitFor(() =>
-    expect(mockCachedSupersetGet).toHaveBeenCalledWith({
-      endpoint: expect.stringContaining(
-        '/api/v1/dataset/58/drill_info/?q=(dashboard_id:26)',
-      ),
-    }),
-  );
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).not.toHaveBeenCalled();
 });
 
 test('Dataset drill info API call is not made without `can_get_drill_info`', async () => {

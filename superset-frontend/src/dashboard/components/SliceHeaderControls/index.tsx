@@ -201,19 +201,16 @@ const SliceHeaderControls = (
   const { canDrillToDetail, canGetDrillInfo, canViewQuery, canViewTable } =
     usePermissions();
 
-  // Single predicate for the "View as table" entry, so the fetch that feeds its
-  // column headers cannot drift from the set of users who can open it.
   const canViewResultsTable = canExplore || canViewTable;
 
-  // The dataset's verbose map resolves friendly Labels for both the drill-to-detail
-  // pane and the results grid, and those are separate permissions — so fetch it for
-  // either one, as long as the drill_info endpoint itself is readable (it is gated
-  // by `can_get_drill_info` on Dataset).
+  // The dataset's verbose map feeds the drill-to-detail pane only (the results
+  // grid reads `collabels` from the chart data response), and the drill_info
+  // endpoint is gated by `can_get_drill_info` on Dataset.
   const datasetResource = useDatasetDrillInfo(
     props.slice.datasource,
     props.dashboardId,
     props.formData,
-    !canGetDrillInfo || !(canDrillToDetail || canViewResultsTable),
+    !canGetDrillInfo || !canDrillToDetail,
   );
 
   const datasetWithVerboseMap =

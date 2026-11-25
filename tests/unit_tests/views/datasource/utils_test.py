@@ -276,3 +276,32 @@ def test_get_limit_clause_caps_per_page_at_sql_max_row(
             "row_offset": 2000,
             "row_limit": 2000,
         }
+
+
+@patch("superset.views.datasource.utils.extract_dataframe_dtypes")
+def test_fetch_samples_via_cursor_returns_column_labels(
+    mock_dtypes: MagicMock,
+) -> None:
+    """Cursor-paged samples carry the same display labels as page 1."""
+    from superset.views.datasource.utils import _fetch_samples_via_cursor
+
+    mock_dtypes.return_value = []
+    datasource = MagicMock()
+    datasource.columns = [
+        {"column_name": "rev", "verbose_name": "Revenue"},
+        {"column_name": "region", "verbose_name": None},
+    ]
+    datasource.metrics = []
+    datasource.database.db_engine_spec.fetch_data_with_cursor.return_value = (
+        [(1, "east")],
+        ["rev", "region"],
+    )
+    samples_instance = MagicMock()
+    samples_instance.datasource.get_query_str.return_value = "SELECT rev, region"
+
+    result = _fetch_samples_via_cursor(
+        datasource, samples_instance, {}, page_index=1, page_size=10
+    )
+
+    assert result["colnames"] == ["rev", "region"]
+    assert result["collabels"] == ["Revenue", "region"]
