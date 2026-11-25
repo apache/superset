@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for canonical single-query serialization."""
 
+import pytest
 from pytest_mock import MockerFixture
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -124,8 +125,10 @@ def test_load_serialized_query_rebuilds_via_factory(mocker: MockerFixture) -> No
     )
 
 
+@pytest.mark.parametrize("fetch_memory_cap", [None, 100])
 def test_contribution_totals_round_trip_preserves_cache_key(
     mocker: MockerFixture,
+    fetch_memory_cap: int | None,
 ) -> None:
     from superset.common.query_context_factory import QueryContextFactory
 
@@ -140,6 +143,12 @@ def test_contribution_totals_round_trip_preserves_cache_key(
     datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     datasource.database.impersonate_user = False
     datasource.database.db_engine_spec.get_impersonation_key.return_value = None
+    datasource.database.db_engine_spec.has_fetch_memory_cap.return_value = (
+        fetch_memory_cap is not None
+    )
+    datasource.database.db_engine_spec.get_fetch_memory_cap.return_value = (
+        fetch_memory_cap
+    )
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
         return_value=datasource,
