@@ -2743,6 +2743,9 @@ msgstr ""
 msgid "Big Number with Trendline"
 msgstr ""
 
+msgid "BigQuery quota exceeded while listing projects. Please retry later or request a quota increase from Google Cloud."
+msgstr ""
+
 msgid "Bins"
 msgstr ""
 
