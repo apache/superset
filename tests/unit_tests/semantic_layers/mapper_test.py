@@ -1904,14 +1904,28 @@ def test_validate_query_object_names_members_removed_from_any_role(
     assert "removed or renamed in the semantic layer" in str(captured.value)
 
 
+@pytest.mark.parametrize(
+    "column",
+    [
+        pytest.param({"sqlExpression": "upper(category)", "label": "upper"}, id="sql"),
+        pytest.param(
+            {"isColumnReference": True, "sqlExpression": "", "label": "empty"},
+            id="empty-reference",
+        ),
+        pytest.param(
+            {"isColumnReference": True, "sqlExpression": None, "label": "none"},
+            id="missing-reference",
+        ),
+    ],
+)
 def test_validate_query_object_still_refuses_true_adhoc_dimensions(
-    mock_datasource: MagicMock,
+    mock_datasource: MagicMock, column: dict[str, Any]
 ) -> None:
-    """Only column references name a missing member; SQL expressions stay refused."""
+    """Only named column references name a missing member; the rest stay refused."""
     query_object: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
-        columns=[{"sqlExpression": "upper(category)", "label": "upper"}],
+        columns=[column],
     )
     with pytest.raises(
         QueryObjectValidationError, match="Adhoc dimensions are not supported"
