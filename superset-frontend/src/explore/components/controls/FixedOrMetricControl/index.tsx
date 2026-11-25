@@ -50,7 +50,7 @@ interface DatasourceType {
   [key: string]: unknown;
 }
 
-interface FixedOrMetricControlProps {
+export interface FixedOrMetricControlProps {
   onChange?: (value: ControlValue) => void;
   value?: ControlValue;
   isFloat?: boolean;

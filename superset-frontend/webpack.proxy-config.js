@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const zlib = require('zlib');
-const { Writable } = require('stream');
-const { pipeline } = require('stream/promises');
-const { ZSTDDecompress } = require('simple-zstd');
+import zlib from 'node:zlib';
+import { Writable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { ZSTDDecompress } from 'simple-zstd';
 
-const yargs = require('yargs');
-const { hideBin } = require('yargs/helpers');
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 
 const parsedArgs = yargs(hideBin(process.argv)).parse();
 
@@ -185,10 +185,10 @@ async function processHTML(proxyResponse, response) {
   response.end(toDevHTML(Buffer.concat(chunks).toString()));
 }
 
-module.exports = newManifest => {
+export default function getProxyConfig(newManifest) {
   manifest = newManifest;
   return {
-    context: path => {
+    pathFilter: path => {
       // Don't proxy hot update files - webpack-dev-server needs to serve these directly for HMR
       if (path.includes('.hot-update.')) {
         return false;
@@ -204,69 +204,71 @@ module.exports = newManifest => {
     changeOrigin: true,
     cookieDomainRewrite: '', // remove cookie domain
     selfHandleResponse: true, // so that the onProxyRes takes care of sending the response
-    onProxyRes(proxyResponse, request, response) {
-      try {
-        copyHeaders(proxyResponse, response);
-        if (isHTML(response)) {
-          // For HTML responses, flush headers before processing starts.
-          // processHTML awaits pipeline() and calls response.end() once it
-          // resolves; the .catch() below handles a stream failure that
-          // surfaces after those headers are already sent.
-          response.flushHeaders();
-          processHTML(proxyResponse, response).catch(e => {
-            // eslint-disable-next-line no-console
-            console.error(`Error requesting ${request.path} from proxy:`, e);
-            if (!response.writableEnded) {
-              response.end(
-                `Error requesting ${request.path} from proxy: ${e.message}`,
-              );
-            }
-          });
-        } else {
-          const isCSV = (proxyResponse.headers['content-type'] || '').includes(
-            'text/csv',
-          );
-
-          if (isCSV) {
+    on: {
+      proxyRes: (proxyResponse, request, response) => {
+        try {
+          copyHeaders(proxyResponse, response);
+          if (isHTML(response)) {
+            // For HTML responses, flush headers before processing starts.
+            // processHTML awaits pipeline() and calls response.end() once it
+            // resolves; the .catch() below handles a stream failure that
+            // surfaces after those headers are already sent.
             response.flushHeaders();
-            proxyResponse.on('data', chunk => {
-              response.write(chunk);
-              if (response.flush) {
-                response.flush();
+            processHTML(proxyResponse, response).catch(e => {
+              // eslint-disable-next-line no-console
+              console.error(`Error requesting ${request.url} from proxy:`, e);
+              if (!response.writableEnded) {
+                response.end(
+                  `Error requesting ${request.url} from proxy: ${e.message}`,
+                );
               }
-            });
-            proxyResponse.on('end', () => {
-              response.end();
-            });
-            proxyResponse.on('error', () => {
-              response.end();
             });
           } else {
-            response.flushHeaders();
-            // Same pipe()-doesn't-propagate-errors gotcha fixed in
-            // processHTML above: a plain .pipe() here leaves `response`
-            // hanging forever if the backend connection drops mid-body
-            // (e.g. the Flask dev server's reloader restarting on a file
-            // save) while streaming non-HTML, non-CSV payloads such as
-            // chart/dashboard JSON. `pipeline()` ends/destroys `response`
-            // as soon as `proxyResponse` errors or closes prematurely.
-            pipeline(proxyResponse, response).catch(e => {
-              // eslint-disable-next-line no-console
-              console.error(`Error requesting ${request.path} from proxy:`, e);
-              if (!response.writableEnded) {
+            const isCSV = (
+              proxyResponse.headers['content-type'] || ''
+            ).includes('text/csv');
+
+            if (isCSV) {
+              response.flushHeaders();
+              proxyResponse.on('data', chunk => {
+                response.write(chunk);
+                if (response.flush) {
+                  response.flush();
+                }
+              });
+              proxyResponse.on('end', () => {
                 response.end();
-              }
-            });
+              });
+              proxyResponse.on('error', () => {
+                response.end();
+              });
+            } else {
+              response.flushHeaders();
+              // Same pipe()-doesn't-propagate-errors gotcha fixed in
+              // processHTML above: a plain .pipe() here leaves `response`
+              // hanging forever if the backend connection drops mid-body
+              // (e.g. the Flask dev server's reloader restarting on a file
+              // save) while streaming non-HTML, non-CSV payloads such as
+              // chart/dashboard JSON. `pipeline()` ends/destroys `response`
+              // as soon as `proxyResponse` errors or closes prematurely.
+              pipeline(proxyResponse, response).catch(e => {
+                // eslint-disable-next-line no-console
+                console.error(`Error requesting ${request.url} from proxy:`, e);
+                if (!response.writableEnded) {
+                  response.end();
+                }
+              });
+            }
           }
+        } catch (e) {
+          // Only try to set headers if they haven't been sent yet
+          if (!response.headersSent) {
+            response.setHeader('content-type', 'text/plain');
+          }
+          response.write(`Error requesting ${request.url} from proxy:\n\n`);
+          response.end(e.stack);
         }
-      } catch (e) {
-        // Only try to set headers if they haven't been sent yet
-        if (!response.headersSent) {
-          response.setHeader('content-type', 'text/plain');
-        }
-        response.write(`Error requesting ${request.path} from proxy:\n\n`);
-        response.end(e.stack);
-      }
+      },
     },
   };
-};
+}

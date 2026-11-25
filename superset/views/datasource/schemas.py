@@ -71,6 +71,7 @@ class ExternalMetadataSchema(Schema):
 
 
 class SamplesPayloadSchema(Schema):
+    viz_type = fields.String(required=False)
     filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
     granularity = fields.String(
         allow_none=True,

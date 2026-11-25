@@ -21,17 +21,17 @@ import { isEqual } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { FormItem, Select } from '@superset-ui/core/components';
 import { Spin } from '@superset-ui/core/components/Spin';
-import { withJsonFormsControlProps } from '@jsonforms/react';
+import { useJsonForms, withJsonFormsControlProps } from '@jsonforms/react';
 import type {
   JsonSchema,
   UISchemaElement,
   ControlProps,
 } from '@jsonforms/core';
 import {
+  Actions,
   rankWith,
   and,
   isStringControl,
-  formatIs,
   schemaMatches,
 } from '@jsonforms/core';
 import {
@@ -41,32 +41,104 @@ import {
 
 export const SCHEMA_REFRESH_DEBOUNCE_MS = 500;
 
-/**
- * Custom renderer that renders `Input.Password` for fields with
- * `format: "password"` in the JSON Schema (e.g. Pydantic `SecretStr`).
- */
-function PasswordControl(props: ControlProps) {
+/** Mark schema-driven defaults separately from user edits of dependencies. */
+export const SCHEMA_BACKFILL = Object.freeze({ schemaBackfill: true });
+
+/** Check the envelope only; cryptographic validation belongs to the provider. */
+export function hasPemBoundaries(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^\s*-----BEGIN ((?:ENCRYPTED |RSA |EC )?PRIVATE KEY)-----[\s\S]+-----END \1-----\s*$/.test(
+      value,
+    )
+  );
+}
+
+/** Only collapse a nullable password, not a genuine choice of auth methods. */
+function nullablePasswordSchema(schema: JsonSchema): JsonSchema | undefined {
+  return schema.anyOf?.length === 2 &&
+    schema.anyOf.some(branch => branch.type === 'null')
+    ? schema.anyOf.find(
+        branch => branch.type === 'string' && branch.format === 'password',
+      )
+    : undefined;
+}
+
+/** Render schema help, nullable passwords and explicitly marked PEM text areas. */
+function SchemaTextControl(props: ControlProps) {
+  const nullablePassword = nullablePasswordSchema(props.schema);
+  const schema = {
+    ...props.schema,
+    ...nullablePassword,
+  } as JsonSchema & {
+    'x-input-type'?: string;
+    examples?: string[];
+  };
+  const pem = schema['x-input-type'] === 'pem';
+  // A saved-secret sentinel is not a newly entered, incomplete PEM value.
+  const missingBoundaries =
+    pem &&
+    typeof props.data === 'string' &&
+    props.data !== '' &&
+    props.data !== 'XXXXXXXXXX' &&
+    !hasPemBoundaries(props.data);
   const uischema = {
     ...props.uischema,
+    formItemProps: {
+      extra: schema.description,
+      ...(
+        props.uischema as UISchemaElement & {
+          formItemProps?: Record<string, unknown>;
+        }
+      ).formItemProps,
+      ...(missingBoundaries
+        ? {
+            help: t('Include matching BEGIN and END private key lines.'),
+            validateStatus: 'error',
+          }
+        : {}),
+    },
     options: {
+      placeholderText: schema.examples?.[0],
       ...props.uischema.options,
-      type: 'password',
+      // The description is visible below the field, not repeated in a tooltip.
+      tooltip: undefined,
+      type: pem
+        ? 'multiline'
+        : schema.format === 'password'
+          ? 'password'
+          : props.uischema.options?.type,
       inputProps: {
         ...((props.uischema.options?.inputProps as Record<string, unknown>) ??
           {}),
         // Prevent browsers from autofilling stored login passwords into
         // service-token fields. 'new-password' is respected even when
         // 'off' is ignored (Chrome ≥ 34).
-        autoComplete: 'new-password',
+        autoComplete: schema.format === 'password' ? 'new-password' : 'off',
+        ...(pem ? { rows: 4, spellCheck: false } : {}),
       },
     },
   };
-  return TextControl({ ...props, uischema });
+  return (
+    <TextControl
+      {...props}
+      data={nullablePassword ? (props.data ?? '') : props.data}
+      schema={schema}
+      uischema={uischema}
+    />
+  );
 }
-const PasswordRenderer = withJsonFormsControlProps(PasswordControl);
-const passwordEntry = {
-  tester: rankWith(3, and(isStringControl, formatIs('password'))),
-  renderer: PasswordRenderer,
+const SchemaTextRenderer = withJsonFormsControlProps(SchemaTextControl);
+const textEntry = {
+  tester: rankWith(3, isStringControl),
+  renderer: SchemaTextRenderer,
+};
+const nullablePasswordEntry = {
+  tester: rankWith(
+    6,
+    schemaMatches(schema => !!nullablePasswordSchema(schema)),
+  ),
+  renderer: SchemaTextRenderer,
 };
 
 /**
@@ -86,13 +158,14 @@ function valuesEqual(a: unknown, b: unknown): boolean {
  * Renders nothing visually but ensures the const value is set in form data,
  * so discriminated unions resolve correctly on the backend.
  */
-function ConstControl({ data, handleChange, path, schema }: ControlProps) {
+function ConstControl({ data, path, schema }: ControlProps) {
+  const { dispatch } = useJsonForms();
   const constValue = (schema as Record<string, unknown>).const;
   useEffect(() => {
     if (constValue !== undefined && !valuesEqual(data, constValue)) {
-      handleChange(path, constValue);
+      dispatch?.(Actions.update(path, () => constValue, SCHEMA_BACKFILL));
     }
-  }, [constValue, data, handleChange, path]);
+  }, [constValue, data, dispatch, path]);
   return null;
 }
 const ConstRenderer = withJsonFormsControlProps(ConstControl);
@@ -121,14 +194,15 @@ function ReadOnlyControl({
   schema,
   ...rest
 }: ControlProps) {
+  const { dispatch } = useJsonForms();
   const defaultValue =
     (schema as Record<string, unknown>).const ??
     (schema as Record<string, unknown>).default;
   useEffect(() => {
     if (defaultValue !== undefined && !valuesEqual(data, defaultValue)) {
-      handleChange(path, defaultValue);
+      dispatch?.(Actions.update(path, () => defaultValue, SCHEMA_BACKFILL));
     }
-  }, [defaultValue, data, handleChange, path]);
+  }, [defaultValue, data, dispatch, path]);
 
   return TextControl({
     ...rest,
@@ -190,7 +264,11 @@ export function areDependenciesSatisfied(
  * TextControl with ``inputProps.suffix`` doesn't reach the underlying Select.
  */
 export function DynamicFieldControl(props: ControlProps) {
-  const { refreshingSchema, formData: cfgData } = props.config ?? {};
+  const {
+    refreshingSchema,
+    staleSchemaOptions,
+    formData: cfgData,
+  } = props.config ?? {};
   const schema = props.schema as Record<string, unknown>;
   const deps = schema?.['x-dependsOn'];
   const refreshing =
@@ -201,6 +279,13 @@ export function DynamicFieldControl(props: ControlProps) {
       (cfgData as Record<string, unknown>) ?? {},
       props.rootSchema,
     );
+  // A field is never stale because of its own value: a self-dependent field
+  // (e.g. MetricFlow's mode picker) must stay selectable to satisfy itself.
+  const fieldName: string = props.path.split('.').pop() ?? props.path;
+  const stale =
+    !!staleSchemaOptions &&
+    Array.isArray(deps) &&
+    (deps as string[]).some(dep => dep !== fieldName);
 
   const enumValues = Array.isArray(schema.enum)
     ? (schema.enum as unknown[])
@@ -227,18 +312,21 @@ export function DynamicFieldControl(props: ControlProps) {
   );
 
   if (enumValues && enumValues.length > 0) {
-    const tooltip = (props.uischema?.options as Record<string, unknown>)
-      ?.tooltip as string | undefined;
     const placeholder = (props.uischema?.options as Record<string, unknown>)
       ?.placeholderText as string | undefined;
     return (
-      <FormItem label={props.label} tooltip={tooltip}>
+      <FormItem
+        label={props.label}
+        extra={props.schema.description}
+        required={props.required}
+      >
         <Select
           ariaLabel={props.label || undefined}
           value={(props.data as string | number | undefined) ?? undefined}
           onChange={value => props.handleChange(props.path, value)}
           options={options}
-          disabled={!props.enabled || refreshing}
+          // Disabling closes the menu without discarding a still-valid value.
+          disabled={!props.enabled || stale}
           loading={refreshing}
           allowClear
           placeholder={refreshing ? t('Loading...') : placeholder}
@@ -248,7 +336,14 @@ export function DynamicFieldControl(props: ControlProps) {
   }
 
   if (!refreshing) {
-    return TextControl(props);
+    // Keep a suffix mounted: toggling it remounts the input and drops focus.
+    const options = {
+      ...props.uischema.options,
+      inputProps: { suffix: <span /> },
+    };
+    return (
+      <SchemaTextControl {...props} uischema={{ ...props.uischema, options }} />
+    );
   }
 
   const uischema = {
@@ -259,7 +354,7 @@ export function DynamicFieldControl(props: ControlProps) {
       inputProps: { suffix: <Spin size="small" /> },
     },
   };
-  return TextControl({ ...props, uischema, enabled: false });
+  return <SchemaTextControl {...props} uischema={uischema} />;
 }
 const DynamicFieldRenderer = withJsonFormsControlProps(DynamicFieldControl);
 const dynamicFieldEntry = {
@@ -438,7 +533,8 @@ export const multiEnumEntry = {
 
 export const renderers = [
   ...rendererRegistryEntries,
-  passwordEntry,
+  textEntry,
+  nullablePasswordEntry,
   constEntry,
   readOnlyEntry,
   enumNamesEntry,

@@ -25,8 +25,10 @@ import pytest
 
 from superset import db
 from superset.daos.dashboard import EmbeddedDashboardDAO
+from superset.extensions import cache_manager
 from superset.models.dashboard import Dashboard
 from superset.utils import json
+from superset.views.base import cached_common_bootstrap_data
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -61,12 +63,25 @@ def test_get_embedded_dashboard(
     embedded = EmbeddedDashboardDAO.upsert(dash, [])
     db.session.flush()
     uri = f"embedded/{embedded.uuid}"
-    with mock.patch.dict(
-        client.application.config,
-        GUEST_TOKEN_HEADER_NAME="X-Custom-Guest",  # noqa: S106
-        GUEST_TOKEN_HEADER_MAX_BYTES=budget,
-    ):
-        response = client.get(uri)
+    # The shell renders for an anonymous user who lacks the realtime permission;
+    # the configured WEBSOCKET_ENABLE is still carried for the guest.
+    cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
+    try:
+        with (
+            mock.patch.dict(
+                client.application.config,
+                GUEST_TOKEN_HEADER_NAME="X-Custom-Guest",  # noqa: S106
+                GUEST_TOKEN_HEADER_MAX_BYTES=budget,
+                WEBSOCKET_ENABLE=True,
+            ),
+            mock.patch(
+                "superset.views.base.can_access_realtime_notifications",
+                return_value=False,
+            ),
+        ):
+            response = client.get(uri)
+    finally:
+        cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
     assert response.status_code == 200
     # The bootstrap payload exposes the (empty) allowed-domains list so the
     # frontend can validate postMessage origins.
@@ -76,6 +91,7 @@ def test_get_embedded_dashboard(
         "GUEST_TOKEN_HEADER_NAME": "X-Custom-Guest",
         "GUEST_TOKEN_HEADER_MAX_BYTES": budget,
     }
+    assert bootstrap["common"]["conf"]["WEBSOCKET_ENABLE"] is True
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -151,3 +167,26 @@ def test_get_embedded_dashboard_allows_iframe_sec_fetch_dest(
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri, headers={"Sec-Fetch-Dest": "iframe"})
     assert response.status_code == 200
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    EMBEDDED_SUPERSET=True,
+)
+def test_get_embedded_dashboard_is_neutral_shell(client: FlaskClient[Any]):  # noqa: F811
+    """The pre-token page must not disclose dashboard metadata.
+
+    The Referer / Sec-Fetch-Dest checks are browser cooperation only -- a
+    non-browser client can forge them -- so anything rendered here is
+    effectively public. Title and description belong behind the
+    guest-token-authenticated API.
+    """
+    dash = db.session.query(Dashboard).filter_by(slug="births").first()
+    dash.description = "internal-only dashboard description"
+    embedded = EmbeddedDashboardDAO.upsert(dash, [])
+    db.session.flush()
+    response = client.get(f"embedded/{embedded.uuid}")
+    assert response.status_code == 200
+    assert dash.dashboard_title.encode() not in response.data
+    assert b"internal-only dashboard description" not in response.data

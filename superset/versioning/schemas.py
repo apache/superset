@@ -26,6 +26,8 @@ from __future__ import annotations
 from marshmallow import fields, Schema, validate
 
 from superset.versioning.changes import ACTION_KINDS
+from superset.versioning.creation_kinds import CREATION_KINDS, CREATION_RECORD_KIND
+from superset.versioning.lifecycle import CHART_ARCHIVE_KIND
 
 
 class VersionChangedBySchema(Schema):
@@ -204,6 +206,8 @@ ACTIVITY_CHANGE_KINDS: tuple[str, ...] = (
     # whose record's ``to_value`` carries the restored-to
     # ``version_uuid`` / ``version_number``.
     "__meta__",
+    CREATION_RECORD_KIND,
+    CHART_ARCHIVE_KIND,
 )
 
 #: Allowed values for ``ActivityRecordSchema.operation`` — the per-record
@@ -250,13 +254,38 @@ class ActivityChangedBySchema(Schema):
     last_name = fields.String()
 
 
-class ActivityImpactSchema(Schema):
-    """Dependent-count summary attached to ``source='related'`` records.
+# Each activity record's ``impact.affected_charts`` list is capped. The cap
+# bounds ONE record's payload (a per-tooltip number), not the page: it is
+# applied per record in ``impact_for_record``, so a page of 200 records can
+# still carry up to 200 × this many refs, and it only binds when a single
+# dataset feeds more than this many charts on one dashboard. ``impact.charts``
+# always carries the full count, so a consumer can render an "and N more"
+# overflow line. Defined with the contract so the field description below
+# quotes the same number the computation enforces.
+IMPACT_AFFECTED_CHARTS_CAP: int = 50
 
-    Synthesized server-side at the time of the activity query — it counts
-    siblings affected by the same upstream change at the same transaction
-    (e.g., how many charts on the requested dashboard pointed at the
-    dataset whose edit this record represents).
+
+class ActivityImpactChartSchema(Schema):
+    """One affected sibling chart inside an ``impact`` payload."""
+
+    id = fields.Integer(metadata={"description": "Chart id."})
+    name = fields.String(
+        metadata={
+            "description": (
+                "Chart name at the change's transaction — it may differ "
+                "from the live name if the chart was renamed since."
+            )
+        },
+    )
+
+
+class ActivityImpactSchema(Schema):
+    """Dependent summary attached to ``source='related'`` records.
+
+    Synthesized server-side at the time of the activity query — it
+    identifies siblings affected by the same upstream change at the same
+    transaction (e.g., which charts on the requested dashboard pointed at
+    the dataset whose edit this record represents).
     """
 
     charts = fields.Integer(
@@ -264,6 +293,18 @@ class ActivityImpactSchema(Schema):
             "description": (
                 "Number of sibling charts on the path entity affected by "
                 "the same related-record change at this transaction."
+            )
+        },
+    )
+    affected_charts = fields.List(
+        fields.Nested(ActivityImpactChartSchema),
+        metadata={
+            "description": (
+                "The affected sibling charts (id + name), sorted by name — "
+                "the detail behind the ``charts`` count, rendered as the "
+                "rollup entry's hover tooltip. Capped at "
+                f"{IMPACT_AFFECTED_CHARTS_CAP} entries per record; "
+                "``charts`` always carries the full count."
             )
         },
     )
@@ -310,8 +351,9 @@ class ActivityRecordSchema(Schema):
         metadata={
             "description": (
                 "Name of the source entity *at the time of the change* — "
-                "denormalized from the validity-strategy shadow row. "
-                "Survives entity rename / delete."
+                "denormalized from the validity-strategy shadow row, or from "
+                "the capture-time payload for ``__archive__`` records. "
+                "Preserved across renames; redacted for deleted related entities."
             )
         },
     )
@@ -366,7 +408,8 @@ class ActivityRecordSchema(Schema):
             "description": (
                 "Content category — what kind of thing changed. "
                 "``field`` is the fallback for scalar changes without a "
-                "more specific category. Per-record."
+                "more specific category. Per-record. ``__archive__`` announces a "
+                "chart archive in related dashboard activity only."
             )
         },
     )
@@ -415,13 +458,20 @@ class ActivityRecordSchema(Schema):
     )
     to_value = fields.Raw(
         allow_none=True,
-        metadata={"description": "New value; ``null`` = removed."},
+        metadata={
+            "description": (
+                "New value; ``null`` = removed. For ``__archive__``, an object "
+                "with the archived chart's ``entity_uuid`` and capture-time "
+                "``entity_name``; null when related detail is redacted."
+            )
+        },
     )
     summary = fields.String(
         metadata={
             "description": (
                 'Synthesized headline for ``source: "related"`` records — '
-                'e.g., ``"Dataset updated: Sales Transactions"``. '
+                'e.g., ``"Dataset updated: Sales Transactions"`` or '
+                '``"Chart archived: Sales"``. '
                 'Empty string for ``source: "self"`` records, except '
                 "``__meta__`` self records (e.g. restore announcements), "
                 "which carry their own headline."
@@ -438,6 +488,23 @@ class ActivityRecordSchema(Schema):
                 "that affected 4 charts on the path dashboard at the "
                 'change\'s transaction. Absent for ``source: "self"`` '
                 "records and for related records without dependents."
+            )
+        },
+    )
+    creation_kind: fields.String = fields.String(
+        allow_none=True,
+        validate=validate.OneOf(CREATION_KINDS),
+        metadata={
+            "description": (
+                "Set only on the synthetic starting-version record "
+                '(``kind == "__creation__"``): how the entity came to '
+                'exist. ``"pre_tracking"`` — a retroactive baseline for '
+                'an entity that predates versioning; ``"created"`` — '
+                'a creation with tracking on; ``"imported"`` — an '
+                "import, attributed to the importing user; "
+                '``"unknown"`` — an unstamped starting version whose '
+                "creation provenance cannot be established. Machine "
+                "values: display copy is owned by the client."
             )
         },
     )

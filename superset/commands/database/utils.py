@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 from contextlib import closing
+from functools import partial
 from typing import Any
 
 from flask import current_app as app
@@ -27,15 +28,17 @@ from flask_appbuilder.security.sqla.models import (
     PermissionView,
     ViewMenu,
 )
+from jsonpath_ng import parse
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import GenericDBException
+from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.security.manager import SupersetSecurityManager
 from superset.utils import json
@@ -44,11 +47,33 @@ from superset.utils.core import timeout
 logger = logging.getLogger(__name__)
 
 
-def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) -> bool:
+def _connect_args(serialized_extra: str | None) -> dict[str, Any]:
+    try:
+        connect_args = (
+            json.loads(serialized_extra or "{}")
+            .get("engine_params", {})
+            .get("connect_args", {})
+        )
+    except (TypeError, ValueError, AttributeError):
+        return {}
+    return connect_args if isinstance(connect_args, dict) else {}
+
+
+def uri_identity_changed(
+    existing_uri: str | None,
+    submitted_uri: str | None,
+    existing_extra: str | None = None,
+    submitted_extra: str | None = None,
+) -> bool:
     """
     Whether two SQLAlchemy URIs differ once their password is stripped --
     i.e. whether the effective connection destination (driver, host, port,
     database, username, query params) changed.
+
+    The stored engine spec compares URIs that spell the same destination
+    differently (e.g. a setting in ``connect_args`` versus the URI query) by
+    their effective destination. ``engine_params`` changes are checked
+    separately by ``engine_params_changed``.
     """
     try:
         stored = make_url_safe(existing_uri or "")._replace(password=None)
@@ -57,7 +82,36 @@ def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) ->
         # An unparseable URI cannot be compared: treat it as a change so a
         # stored secret never survives onto it.
         return True
-    return stored != incoming
+    if stored == incoming:
+        return False
+    engine_spec = Database.get_db_engine_spec(stored)
+    return engine_spec.get_connection_identity(
+        stored, _connect_args(existing_extra)
+    ) != engine_spec.get_connection_identity(incoming, _connect_args(submitted_extra))
+
+
+def reuse_stored_password(
+    model: Database, submitted_uri: str, submitted_extra: str | None = None
+) -> str | None:
+    """
+    Return ``submitted_uri`` with the stored password restored, if the
+    submission keeps the masked password and reaches the same destination as
+    the stored URI (per ``uri_identity_changed``); ``None`` otherwise.
+    """
+    safe_uri = model.safe_sqlalchemy_uri()
+    if submitted_uri == safe_uri:
+        return model.sqlalchemy_uri_decrypted
+    try:
+        submitted = make_url_safe(submitted_uri)
+        stored = make_url_safe(safe_uri)
+    except DatabaseInvalidError:
+        return None
+    if submitted.password != stored.password or uri_identity_changed(
+        safe_uri, submitted_uri, model.extra, submitted_extra
+    ):
+        return None
+    password = make_url_safe(model.sqlalchemy_uri_decrypted).password
+    return submitted.set(password=password).render_as_string(hide_password=False)
 
 
 def engine_params_changed(
@@ -86,6 +140,25 @@ def engine_params_changed(
             return {"__unparseable__": True}
 
     return _engine_params(submitted_extra) != _engine_params(existing_extra)
+
+
+def import_connection_identity_changed(
+    existing: Database, config: dict[str, Any]
+) -> bool:
+    """Whether an import config points ``existing`` at a different endpoint."""
+    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
+        return True
+
+    # The URI's host/port aren't the whole story: `extra.engine_params`
+    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
+    # connect kwargs and can override them. An import that opens a live
+    # connection (`add_permissions` -> `get_all_catalog_names`) with a
+    # rehydrated stored password must not do so against a destination this
+    # field silently redirected.
+    submitted_extra = config.get("extra")
+    if isinstance(submitted_extra, dict):
+        submitted_extra = json.dumps(submitted_extra)
+    return engine_params_changed(existing.extra, submitted_extra)
 
 
 def ssh_tunnel_endpoint_changed(
@@ -134,6 +207,104 @@ def ssh_tunnel_rebind_unsafe(
     return not has_fresh_credential or stale_private_key_password
 
 
+OAUTH2_ENDPOINT_FIELDS = (
+    "authorization_request_uri",
+    "token_request_uri",
+    "redirect_uri",
+)
+
+
+def oauth2_endpoint_rebind_unsafe(
+    existing_encrypted_extra: str | None, submitted_masked_encrypted_extra: str | None
+) -> bool:
+    """
+    Whether a submitted ``masked_encrypted_extra`` repoints the OAuth2 client
+    at different endpoint URIs while reusing the stored client secret (the
+    ``$.oauth2_client_info.secret`` mask is restored verbatim by
+    ``unmask_encrypted_extra`` before the update persists).
+
+    The URI/engine-params destination check does not see these fields, yet
+    the next token exchange posts the real client secret to whatever
+    ``token_request_uri`` now says -- so an endpoint change must come with a
+    freshly supplied secret, exactly like a host change must come with a
+    fresh password.
+    """
+    try:
+        existing = json.loads(existing_encrypted_extra or "{}")
+        submitted = json.loads(submitted_masked_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False  # malformed payloads are rejected by schema validation elsewhere
+    existing_info = (
+        existing.get("oauth2_client_info") if isinstance(existing, dict) else None
+    )
+    submitted_info = (
+        submitted.get("oauth2_client_info") if isinstance(submitted, dict) else None
+    )
+    if not isinstance(existing_info, dict) or not isinstance(submitted_info, dict):
+        return False
+    if not existing_info.get("secret"):
+        return False  # nothing stored to carry over
+    # Only the mask sentinel restores the stored secret; an absent key drops it,
+    # and a different value is a fresh secret the caller is entitled to attach.
+    secret_reused = submitted_info.get("secret") == PASSWORD_MASK
+    endpoint_changed = any(
+        existing_info.get(field) != submitted_info.get(field)
+        for field in OAUTH2_ENDPOINT_FIELDS
+    )
+    return secret_reused and endpoint_changed
+
+
+def encrypted_extra_secrets_reused(
+    sensitive_fields: set[str],
+    existing_encrypted_extra: str | None,
+    submitted_masked_encrypted_extra: str | None,
+    *,
+    submitted: bool,
+) -> bool:
+    """
+    Whether an update would carry a stored ``encrypted_extra`` secret over.
+
+    A stored secret (a non-empty value at one of ``sensitive_fields``) is reused
+    when the update leaves ``masked_encrypted_extra`` out -- the stored blob stays
+    attached as is -- or sends the mask at that secret's path, which
+    ``unmask_encrypted_extra`` restores verbatim. Judged per secret, not by
+    comparing whole blobs: any other field changing in the same save must not hide
+    a still-masked secret, and a secret re-entered with its stored value is a fresh
+    one the caller is entitled to attach. A dropped path drops the secret.
+    """
+    try:
+        existing = json.loads(existing_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(existing, dict):
+        return False
+
+    def is_stored(field: str) -> bool:
+        return any(
+            match.value not in (None, "") for match in parse(field).find(existing)
+        )
+
+    if not any(is_stored(field) for field in sensitive_fields):
+        return False  # nothing stored to carry over
+    if not submitted:
+        return True
+
+    try:
+        submitted_config = json.loads(submitted_masked_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False  # malformed payloads are rejected by schema validation elsewhere
+    if not isinstance(submitted_config, dict):
+        return False
+    # Follow each match's own path, as `reveal_sensitive` does: rendering it to a
+    # string and parsing that again reads a dotted key as a nested one.
+    return any(
+        match.value == PASSWORD_MASK
+        and any(old.value not in (None, "") for old in match.full_path.find(existing))
+        for field in sensitive_fields
+        for match in parse(field).find(submitted_config)
+    )
+
+
 def ping(engine: Engine) -> bool:
     try:
         time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
@@ -147,11 +318,39 @@ def ping(engine: Engine) -> bool:
             return engine.dialect.do_ping(conn)
 
 
-def add_permissions(database: Database) -> None:
+def _get_all_schema_names_with_retry(
+    database: Database, catalog: str | None
+) -> set[str]:
+    """
+    Retry the live schema-listing call once before giving up on a catalog.
+
+    Some catalogs are visible but not listable (eg the ``rdsadmin`` catalog on
+    AWS RDS), but the exception caught by the caller doesn't distinguish that
+    from a one-off transient hiccup (eg schema metadata not yet visible right
+    after it was created). A single retry lets a schema that needs a
+    first-time grant survive a fluke without tolerating a persistently
+    unlistable catalog for any longer than before.
+    """
+    try:
+        return database.get_all_schema_names(catalog=catalog, cache=False)
+    except OAuth2RedirectError:
+        # Not transient: retrying would just kick off a second, redundant
+        # OAuth2 authorization redirect for the same request.
+        raise
+    except GenericDBException:  # pylint: disable=broad-except
+        return database.get_all_schema_names(catalog=catalog, cache=False)
+
+
+def add_permissions(database: Database, *, commit: bool = True) -> None:
     """
     Add DAR for catalogs and schemas.
     """
-    # TODO: Migrate this to use the non-commiting add_pvm helper instead
+    # Imports must keep permissions and assets in the same transaction.
+    add_permission = (
+        security_manager.add_permission_view_menu
+        if commit
+        else partial(add_pvm, db.session, security_manager)
+    )
     if database.db_engine_spec.supports_catalog:
         # Adding permissions to all catalogs (and all their schemas) can take a long
         # time (minutes, while importing a chart, eg). If the database does not
@@ -167,7 +366,7 @@ def add_permissions(database: Database) -> None:
             catalogs = {database.get_default_catalog()}
 
         for catalog in catalogs:
-            security_manager.add_permission_view_menu(
+            add_permission(
                 "catalog_access",
                 security_manager.get_catalog_perm(
                     database.database_name,
@@ -179,8 +378,9 @@ def add_permissions(database: Database) -> None:
 
     for catalog in catalogs:
         try:
-            for schema in database.get_all_schema_names(catalog=catalog, cache=False):
-                security_manager.add_permission_view_menu(
+            schemas = _get_all_schema_names_with_retry(database, catalog)
+            for schema in schemas:
+                add_permission(
                     "schema_access",
                     security_manager.get_schema_perm(
                         database.database_name,
@@ -191,6 +391,130 @@ def add_permissions(database: Database) -> None:
         except GenericDBException:  # pylint: disable=broad-except
             logger.warning("Error processing catalog '%s'", catalog)
             continue
+
+
+def rename_permission_view_menu(pvm: PermissionView, new_name: str | None) -> None:
+    """Rename a PVM atomically, merging role grants if the destination exists."""
+    old_view_menu = pvm.view_menu
+    if not new_name or old_view_menu.name == new_name:
+        return
+
+    existing_view_menu = security_manager.find_view_menu(new_name)
+    if existing_view_menu and existing_view_menu.id == old_view_menu.id:
+        # A case-insensitive collation can resolve a case-only rename to the
+        # source row. Rename it in place instead of merging it into itself.
+        old_view_menu.name = new_name
+        db.session.flush()
+        return
+
+    destination = security_manager.find_permission_view_menu(
+        pvm.permission.name, new_name
+    )
+    if destination:
+        # Use the role relationship so loaded collections agree with the database.
+        roles = (
+            db.session.query(security_manager.role_model)
+            .filter(security_manager.role_model.permissions.contains(pvm))
+            .all()
+        )
+        for role in roles:
+            if destination not in role.permissions:
+                role.permissions.append(destination)
+            role.permissions.remove(pvm)
+        db.session.delete(pvm)
+    else:
+        # Do not rename other permissions sharing this view menu.
+        pvm.view_menu = add_vm(db.session, security_manager, new_name)
+
+    db.session.flush()
+    if not (
+        db.session.query(security_manager.permissionview_model)
+        .filter_by(view_menu_id=old_view_menu.id)
+        .first()
+    ):
+        db.session.delete(old_view_menu)
+
+
+def rename_database_in_permissions(database: Database, old_database_name: str) -> None:
+    """
+    Carry the schema and catalog permissions of a renamed database to its new name.
+
+    Schema and catalog permission names, and the ``schema_perm``/``catalog_perm``
+    of the datasets and charts, embed the database name. The rename hook of the
+    database model rewrites the database and dataset permissions only, since
+    listing the schemas needs a connection (see ``SyncPermissionsCommand`` for
+    the API rename). This works from what is stored instead, so a caller that
+    keeps permissions and assets in one transaction, like an import, needs no
+    live connection.
+
+    Run it before ``add_permissions()`` so a grant on the previous name is renamed
+    rather than left behind next to a new, ungranted permission.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.dataset import DatasetDAO
+    from superset.models.helpers import skip_visibility_filter
+    from superset.models.slice import Slice
+
+    new_database_name = database.database_name
+    if not old_database_name or old_database_name == new_database_name:
+        return
+
+    old_prefix = f"[{old_database_name}]."
+    new_prefix = f"[{new_database_name}]."
+    view_menu_model = security_manager.viewmenu_model
+    pv_model = security_manager.permissionview_model
+    permission_model = security_manager.permission_model
+    permissions = (
+        db.session.query(pv_model)
+        .join(view_menu_model, pv_model.view_menu_id == view_menu_model.id)
+        .join(permission_model, pv_model.permission_id == permission_model.id)
+        .filter(
+            permission_model.name.in_(("catalog_access", "schema_access")),
+            view_menu_model.name.startswith(old_prefix, autoescape=True),
+        )
+        .all()
+    )
+    # Other database names can extend the same bracket-delimited prefix.
+    foreign_prefixes = [
+        f"[{name}]."
+        for (name,) in db.session.query(Database.database_name).filter(
+            Database.id != database.id,
+            Database.database_name.startswith(
+                f"{old_database_name}].", autoescape=True
+            ),
+        )
+    ]
+    for pvm in permissions:
+        if any(pvm.view_menu.name.startswith(prefix) for prefix in foreign_prefixes):
+            continue
+        new_name = new_prefix + pvm.view_menu.name[len(old_prefix) :]
+        rename_permission_view_menu(pvm, new_name)
+
+    # A soft-deleted dataset must not keep the previous name either, or restoring
+    # it would bring the stale permission strings back.
+    with skip_visibility_filter(db.session, SqlaTable, Slice):
+        datasets = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.database_id == database.id)
+            .all()
+        )
+        for dataset in datasets:
+            if dataset.catalog:
+                dataset.catalog_perm = security_manager.get_catalog_perm(
+                    new_database_name, dataset.catalog
+                )
+            if dataset.schema:
+                dataset.schema_perm = security_manager.get_schema_perm(
+                    new_database_name, dataset.catalog, dataset.schema
+                )
+        # Updating only dataset permission columns does not propagate through the
+        # dataset hook, and charts absent from the bundle have no save hook to run.
+        datasets_by_id = {dataset.id: dataset for dataset in datasets}
+        for chart in DatasetDAO.get_charts_for_datasets(list(datasets_by_id)):
+            dataset = datasets_by_id[chart.datasource_id]
+            chart.catalog_perm = dataset.catalog_perm
+            chart.schema_perm = dataset.schema_perm
 
 
 def add_vm(

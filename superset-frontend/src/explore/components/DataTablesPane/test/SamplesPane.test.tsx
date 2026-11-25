@@ -60,6 +60,17 @@ describe('SamplesPane', () => {
     400,
   );
 
+  fetchMock.post(
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=40&per_page=100&page=1',
+    {
+      status: 400,
+      body: {
+        message:
+          'Hive requires a partition filter for this table. Add a filter and try again.',
+      },
+    },
+  );
+
   // A 200 response that carries no `result` payload, as reported in #36840.
   fetchMock.post(
     'end:/datasource/samples?force=false&datasource_type=table&datasource_id=37&per_page=100&page=1',
@@ -77,6 +88,25 @@ describe('SamplesPane', () => {
         ],
         colnames: ['__timestamp', 'genre'],
         coltypes: [2, 1],
+      },
+    },
+  );
+
+  // A partitioned dataset: the backend skipped COUNT(*) and reports that rows
+  // exist past this page instead of an exact total.
+  fetchMock.post(
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=39&per_page=100&page=1',
+    {
+      result: {
+        data: [
+          { __timestamp: 1230768000000, genre: 'Action' },
+          { __timestamp: 1230768000010, genre: 'Horror' },
+        ],
+        colnames: ['__timestamp', 'genre'],
+        coltypes: [2, 1],
+        rowcount: 2,
+        total_count: 2,
+        total_count_is_lower_bound: true,
       },
     },
   );
@@ -115,6 +145,17 @@ describe('SamplesPane', () => {
     expect(await findByText('Failed to load samples')).toBeVisible();
     const errorDescription = await findByText('Error: Bad request');
     expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
+  });
+
+  test('Samples renders a readable Hive strict-mode error', async () => {
+    const { findByRole, queryByText } = render(
+      <SamplesPane {...createSamplesPaneProps({ datasourceId: 40 })} />,
+      { useRedux: true },
+    );
+    expect(await findByRole('alert')).toHaveTextContent(
+      'Hive requires a partition filter',
+    );
+    expect(queryByText(/TExecuteStatementResp/)).not.toBeInTheDocument();
   });
 
   test('force query, render', async () => {
@@ -160,5 +201,16 @@ describe('SamplesPane', () => {
     // Falling back to 0 here would label a populated table as "0 rows".
     expect(queryByText('0 rows')).not.toBeInTheDocument();
     expect(queryByText('2 rows')).toBeVisible();
+  });
+
+  test('labels the row count as a lower bound when the total is not exact', async () => {
+    const props = createSamplesPaneProps({ datasourceId: 39 });
+    const { findByText, queryByText } = render(<SamplesPane {...props} />, {
+      useRedux: true,
+    });
+
+    expect(await findByText('Action')).toBeVisible();
+    expect(queryByText('2+ rows')).toBeVisible();
+    expect(queryByText('2 rows')).not.toBeInTheDocument();
   });
 });

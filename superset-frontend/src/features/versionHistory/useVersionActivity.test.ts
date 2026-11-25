@@ -193,8 +193,8 @@ test('changing the search term refetches from page 0 with q', async () => {
 
 test('newestGroup comes from a self probe, not the visible page', async () => {
   // Page 0 filled entirely by newer related records — the newest self save is
-  // beyond it. Deriving "Current" from the page would drop the tag (or, with
-  // a search active, freeze it on a stale save after a restore).
+  // beyond it. Deriving the live version from the page would lose it (or,
+  // with a search active, freeze it on a stale save after a restore).
   mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => {
     if (options?.pageSize === 1) {
       // The dedicated include='self' probe.
@@ -421,4 +421,33 @@ test('clearing the uuid ignores an in-flight response', async () => {
 
   expect(result.current.records).toEqual([]);
   expect(result.current.count).toBe(0);
+});
+
+test('repeated refreshes preserve the newest content-only self response', async () => {
+  mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => ({
+    count: options?.pageSize === 1 ? 1 : 2,
+    result:
+      options?.pageSize === 1
+        ? [record(20, 0)]
+        : [record(20, 0), record(10, 0)],
+  }));
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+  await waitFor(() =>
+    expect(result.current.currentVersionStatus).toBe('known'),
+  );
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    await act(async () => result.current.refresh());
+    await waitFor(() =>
+      expect(result.current.currentVersionStatus).toBe('known'),
+    );
+    expect(result.current.newestGroup?.transactionId).toBe(20);
+    expect(result.current.timeline).toHaveLength(2);
+  }
+  expect(mockedFetchActivity).toHaveBeenCalledWith('chart', 'uuid-1', {
+    include: 'self',
+    page: 0,
+    pageSize: 1,
+  });
 });

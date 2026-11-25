@@ -17,14 +17,20 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import {
+  act,
   fireEvent,
   screen,
   waitFor,
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
+import {
+  DatasourceType,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 import {
   createProps,
@@ -71,10 +77,114 @@ test('renders Tabs', async () => {
   expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
 });
 
+test.each([false, true])(
+  'Usage preserves datasource filters and opts into archives only with soft delete enabled (%s)',
+  async softDelete => {
+    jest
+      .mocked(isFeatureEnabled)
+      .mockImplementation(
+        flag => flag === FeatureFlag.SoftDelete && softDelete,
+      );
+    const testProps = createProps();
+    const charts = [
+      {
+        id: 101,
+        slice_name: 'Dataset chart',
+        datasource_id: testProps.datasource.id,
+        datasource_type: DatasourceType.Table,
+      },
+      {
+        id: 102,
+        slice_name: 'Semantic view chart',
+        datasource_id: testProps.datasource.id,
+        datasource_type: DatasourceType.SemanticView,
+      },
+      {
+        id: 104,
+        slice_name: 'Archived dataset chart',
+        datasource_id: testProps.datasource.id,
+        datasource_type: DatasourceType.Table,
+        deleted_at: '2024-08-13T10:00:00Z',
+        deleted_at_delta_humanized: 'an hour ago',
+      },
+      {
+        id: 103,
+        slice_name: 'Other dataset chart',
+        datasource_id: testProps.datasource.id + 1,
+        datasource_type: DatasourceType.Table,
+      },
+    ];
+    fetchMock.removeRoutes();
+    fetchMock.get(DATASOURCE_ENDPOINT, []);
+    fetchMock.get('glob:*/api/v1/chart/*', ({ url }) => {
+      const { filters, include_archived_dashboards, columns } = rison.decode<{
+        include_archived_dashboards?: boolean;
+        columns: string[];
+        filters: {
+          col: 'datasource_id' | 'datasource_type' | 'id';
+          opr: string;
+          value: string | number;
+        }[];
+      }>(new URL(url, 'http://localhost').searchParams.get('q') ?? '');
+      expect(include_archived_dashboards).toBe(softDelete ? true : undefined);
+      expect(columns).not.toContain('dashboards.url');
+      expect(
+        filters.filter(filter => filter.opr === 'chart_deleted_state'),
+      ).toEqual(
+        softDelete
+          ? [{ col: 'id', opr: 'chart_deleted_state', value: 'include' }]
+          : [],
+      );
+      const matches = charts.filter(
+        chart =>
+          (!chart.deleted_at || softDelete) &&
+          filters.every(
+            filter =>
+              filter.opr === 'chart_deleted_state' ||
+              chart[filter.col] === filter.value,
+          ),
+      );
+      return {
+        count: matches.length,
+        ids: matches.map(chart => chart.id),
+        result: matches.map(chart => ({
+          ...chart,
+          url: `/explore/?slice_id=${chart.id}`,
+          changed_on_delta_humanized: 'a day ago',
+          changed_by: null,
+          dashboards: [],
+        })),
+      };
+    });
+    setupDatasourceEditorMocks();
+
+    await asyncRender(testProps);
+    await userEvent.click(screen.getByRole('tab', { name: /usage/i }));
+
+    expect(
+      await screen.findByRole('link', { name: 'Dataset chart' }),
+    ).toBeVisible();
+    expect(screen.queryByText('Semantic view chart')).not.toBeInTheDocument();
+    expect(screen.queryByText('Other dataset chart')).not.toBeInTheDocument();
+    expect(screen.queryAllByText('Archived dataset chart')).toHaveLength(
+      softDelete ? 1 : 0,
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Archived dataset chart' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryAllByText('an hour ago')).toHaveLength(
+      softDelete ? 1 : 0,
+    );
+    expect(screen.getByRole('tab', { name: /usage/i })).toHaveTextContent(
+      softDelete ? '2' : '1',
+    );
+  },
+);
+
 test('recommends a registered client route for the default URL', async () => {
   await asyncRender(createProps());
 
-  userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+  await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
 
   expect(await screen.findByText('/dashboard/{id}/')).toBeInTheDocument();
   expect(
@@ -90,7 +200,7 @@ test('can sync columns from source', async () => {
   });
 
   const columnsTab = screen.getByTestId('collection-tab-Columns');
-  userEvent.click(columnsTab);
+  await userEvent.click(columnsTab);
 
   const syncButton = screen.getByText(/sync columns from source/i);
   expect(syncButton).toBeInTheDocument();
@@ -108,7 +218,7 @@ test('can sync columns from source', async () => {
     );
   });
 
-  userEvent.click(syncButton);
+  await userEvent.click(syncButton);
 
   // Wait for the fetch to be called
   const url = await fetchPromise;
@@ -274,6 +384,37 @@ test('renders isSqla fields', async () => {
   expect(extraField.length).toBeGreaterThan(0);
   expect(screen.getByText(/autocomplete query predicate/i)).toBeInTheDocument();
   expect(screen.getByText(/template parameters/i)).toBeInTheDocument();
+});
+
+test('hides Normalize column names for virtual datasets', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      table_name: 'Vehicle Sales +',
+      type: DatasourceType.Query,
+      sql: 'SELECT * FROM users',
+    },
+  });
+
+  const settingsTab = screen.getByRole('tab', { name: /settings/i });
+  await userEvent.click(settingsTab);
+
+  expect(screen.queryByText(/normalize column names/i)).not.toBeInTheDocument();
+});
+
+test('shows Normalize column names for physical datasets', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
+  });
+
+  const settingsTab = screen.getByRole('tab', { name: /settings/i });
+  await userEvent.click(settingsTab);
+
+  expect(screen.getByText(/normalize column names/i)).toBeInTheDocument();
 });
 
 test('Source Tab: edit mode', async () => {
@@ -542,7 +683,7 @@ test('fetchUsageData rethrows AbortError without updating state', async () => {
 
   // Navigate to Usage tab to trigger fetchUsageData
   const usageTab = screen.getByRole('tab', { name: /usage/i });
-  userEvent.click(usageTab);
+  await userEvent.click(usageTab);
 
   // Unmount immediately
   unmount();
@@ -887,4 +1028,204 @@ test('DatasourceEditor source pins getSQLLabUrl/openOnSqlLab to the makeUrl + op
   expect(src).toMatch(
     /import \{ makeUrl, openInNewTab \} from 'src\/utils\/navigationUtils';/,
   );
+});
+
+const renderWithOneColumn = async () => {
+  const baseProps = createProps();
+  const limitedProps = {
+    ...baseProps,
+    onChange: jest.fn(),
+    datasource: {
+      ...baseProps.datasource,
+      table_name: 'Vehicle Sales +',
+      columns: baseProps.datasource.columns
+        .slice(0, 1)
+        .map(column => ({ ...column })),
+    },
+  };
+  fastRender(limitedProps);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  return limitedProps;
+};
+
+const syncColumnsFromSource = async (
+  testProps: Awaited<ReturnType<typeof renderWithOneColumn>>,
+) => {
+  const [{ column_name, type, is_dttm }] = testProps.datasource.columns;
+  fetchMock.removeRoute(DATASOURCE_ENDPOINT);
+  fetchMock.get(DATASOURCE_ENDPOINT, [{ column_name, type, is_dttm }], {
+    name: DATASOURCE_ENDPOINT,
+  });
+  testProps.onChange.mockClear();
+  await userEvent.click(screen.getByText(/sync columns from source/i));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(DATASOURCE_ENDPOINT)).toBe(true),
+  );
+  await waitFor(() => expect(testProps.onChange).toHaveBeenCalled());
+  return testProps.onChange.mock.lastCall![0].columns;
+};
+
+test('syncing columns keeps column edits made in the session', async () => {
+  const testProps = await renderWithOneColumn();
+  const [toggle] = await screen.findAllByRole('button', {
+    name: /expand row/i,
+  });
+  await userEvent.click(toggle);
+  fireEvent.change(screen.getByPlaceholderText('Label'), {
+    target: { value: 'edited_label' },
+  });
+  await waitFor(() =>
+    expect(testProps.onChange.mock.lastCall?.[0].columns[0].verbose_name).toBe(
+      'edited_label',
+    ),
+  );
+
+  const columns = await syncColumnsFromSource(testProps);
+
+  expect(columns).toHaveLength(1);
+  expect(columns[0]).toMatchObject({ id: 1, verbose_name: 'edited_label' });
+});
+
+test('syncing restores a column deleted in the session as its saved row', async () => {
+  const testProps = await renderWithOneColumn();
+  const columnsPanel = within(
+    await screen.findByRole('tabpanel', { name: /columns/i }),
+  );
+  await userEvent.click(
+    (await columnsPanel.findAllByRole('button', { name: /expand row/i }))[0],
+  );
+  await userEvent.click(
+    (await columnsPanel.findAllByRole('button', { name: /delete item/i }))[0],
+  );
+  await waitFor(() =>
+    expect(testProps.onChange.mock.lastCall?.[0].columns).toHaveLength(0),
+  );
+
+  const columns = await syncColumnsFromSource(testProps);
+
+  expect(columns).toHaveLength(1);
+  expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });
+});
+
+test('partition mapping UI is offered when the engine supports it', async () => {
+  // The feature flag alone is not enough: mirroring a filter onto a partition
+  // column only prunes work on partition-directory engines, so the engine has
+  // to advertise the capability before the editor surfaces it.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      partition_column: 'ds',
+      supports_partition_filter_mapping: true,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  expect(await screen.findByTestId('partition-tag')).toBeInTheDocument();
+});
+
+test('partition mapping UI is withheld on an engine that does not support it', async () => {
+  // Same flag, same partition column, but an engine whose tables are not
+  // partition-directory laid out: the dropdown would map to nothing, so it is
+  // never offered even though the flag is on.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      partition_column: 'ds',
+      supports_partition_filter_mapping: false,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  // Wait for the columns tab to render before asserting the tag is absent.
+  expect(
+    await screen.findByPlaceholderText('Search columns by name'),
+  ).toBeInTheDocument();
+  expect(screen.queryByTestId('partition-tag')).not.toBeInTheDocument();
+});
+
+test('the partition column section is shown when the engine supports it', async () => {
+  // The "Partition column" / "Maps to partition" block in Default Column
+  // Settings is a second render site that must honour the same engine gate as
+  // the per-column tag above.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: true,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  expect(
+    await screen.findByTestId('partition-column-fields'),
+  ).toBeInTheDocument();
+});
+
+test('the partition column section is hidden on an engine that does not support it', async () => {
+  // Regression: this block was previously gated on the feature flag alone, so
+  // it showed on non-partition-directory engines (e.g. Postgres) even though
+  // the per-column tag was correctly hidden.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: false,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  // Wait for the columns tab to render before asserting the section is absent.
+  expect(
+    await screen.findByPlaceholderText('Search columns by name'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('partition-column-fields'),
+  ).not.toBeInTheDocument();
+});
+
+test('the Is temporal column header explains the Datetime format requirement', async () => {
+  await asyncRender(createProps());
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  const header = (await screen.findByRole('columnheader', {
+    name: /is temporal/i,
+  })) as HTMLElement;
+  const infoButton = within(header).getByRole('button', {
+    name: 'Show info tooltip',
+  });
+  act(() => infoButton.focus());
+
+  expect(
+    await screen.findByText(/does not convert a string column/i, undefined, {
+      timeout: 5000,
+    }),
+  ).toBeInTheDocument();
 });

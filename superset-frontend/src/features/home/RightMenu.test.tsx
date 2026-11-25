@@ -470,7 +470,7 @@ test('shows logout button when not embedded', async () => {
     useTheme: true,
   });
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
   expect(await screen.findByText('Logout')).toBeInTheDocument();
 });
 
@@ -485,7 +485,7 @@ test('shows logout button when embedded but flag is disabled', async () => {
     useTheme: true,
   });
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
   expect(await screen.findByText('Logout')).toBeInTheDocument();
 });
 
@@ -502,7 +502,7 @@ test('shows logout button when not embedded even if flag is enabled', async () =
     useTheme: true,
   });
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
   expect(await screen.findByText('Logout')).toBeInTheDocument();
 });
 
@@ -519,7 +519,7 @@ test('hides logout button when embedded and flag is enabled', async () => {
     useTheme: true,
   });
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
   expect(screen.queryByText('Logout')).not.toBeInTheDocument();
 });
 
@@ -542,7 +542,7 @@ test('Info link href is single-prefixed under subdirectory deployment', async ()
       useTheme: true,
     });
 
-    userEvent.hover(await screen.findByText(/Settings/i));
+    await userEvent.hover(await screen.findByText(/Settings/i));
     const infoLink = await screen.findByText('Info');
     expect(infoLink.closest('a')).toHaveAttribute(
       'href',
@@ -575,7 +575,7 @@ test('Logout link href is single-prefixed under subdirectory deployment', async 
       useTheme: true,
     });
 
-    userEvent.hover(await screen.findByText(/Settings/i));
+    await userEvent.hover(await screen.findByText(/Settings/i));
     const logoutLink = await screen.findByText('Logout');
     expect(logoutLink.closest('a')).toHaveAttribute(
       'href',
@@ -619,4 +619,186 @@ describe('mobile consumption mode', () => {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
+});
+
+test.each([
+  ['no Manage', [], true, 1],
+  ['no admission', [], false, 0],
+  ['missing bootstrap flag', [], undefined, 0],
+  [
+    'Manage without archive',
+    [{ name: 'Manage', label: 'Manage', childs: [] }],
+    true,
+    1,
+  ],
+  [
+    'existing translated archive',
+    [
+      {
+        name: 'Manage',
+        label: 'Gestion',
+        childs: [
+          {
+            name: 'Recently Archived',
+            label: 'Archives récentes',
+            url: '/archived/',
+          },
+        ],
+      },
+    ],
+    true,
+    1,
+  ],
+])('archive fallback: %s', async (_name, settings, admitted, count) => {
+  resetUseSelectorMock();
+  const props = createProps();
+  props.settings = settings;
+  props.navbarRight = {
+    ...props.navbarRight,
+    can_access_recently_archived: admitted,
+  };
+  render(<RightMenu {...props} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  await userEvent.hover(await screen.findByText('Settings'));
+  await screen.findByText('Info');
+  const archiveLinks = screen
+    .queryAllByRole('link')
+    .filter(link => link.getAttribute('href') === '/archived/');
+  expect(archiveLinks).toHaveLength(count);
+});
+
+test('archive fallback respects the application root', async () => {
+  const rootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/analytics');
+  try {
+    resetUseSelectorMock();
+    const props = createProps();
+    props.navbarRight = {
+      ...props.navbarRight,
+      can_access_recently_archived: true,
+    };
+    render(<RightMenu {...props} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    await userEvent.hover(await screen.findByText('Settings'));
+    expect(
+      await screen.findByRole('link', { name: 'Recently Archived' }),
+    ).toHaveAttribute('href', '/analytics/archived/');
+  } finally {
+    rootSpy.mockRestore();
+  }
+});
+
+test('a contributed Settings item that runs a command runs it when clicked', async () => {
+  // A render-level test on purpose. The data transform in `Menu.tsx` sets
+  // `onClick` on this child, and for a while this menu built only
+  // `{key, label}` from it -- so the item rendered as `href=""`, which
+  // reloads the page and never runs the command. A transform-level test
+  // cannot see that, because the transform was right.
+  const ran = jest.fn();
+  const mockedProps = createProps();
+  resetUseSelectorMock();
+
+  render(
+    <RightMenu
+      {...mockedProps}
+      settings={[
+        {
+          label: 'Manage',
+          name: 'Manage',
+          childs: [
+            {
+              label: 'Run the thing',
+              name: 'extension:acme.tools.run',
+              onClick: ran,
+            },
+          ],
+        },
+      ]}
+    />,
+    { useRedux: true, useRouter: true, useQueryParams: true, useTheme: true },
+  );
+
+  await userEvent.hover(await screen.findByText(/Settings/i));
+  const item = await screen.findByText('Run the thing');
+  // No address: an anchor here would be the bug this test exists for.
+  expect(item.closest('a')).toBeNull();
+
+  await userEvent.click(item);
+  await waitFor(() => expect(ran).toHaveBeenCalledTimes(1));
+});
+
+test('a contributed Settings item that opens a page still renders as a link', async () => {
+  // The other half: a page must keep a real `href` so middle-click and
+  // open-in-new-tab work.
+  const mockedProps = createProps();
+  resetUseSelectorMock();
+
+  render(
+    <RightMenu
+      {...mockedProps}
+      settings={[
+        {
+          label: 'Manage',
+          name: 'Manage',
+          childs: [
+            {
+              label: 'Review queue',
+              name: 'extension:acme.tools.queue',
+              url: '/extensions/pages/acme.tools.queue',
+            },
+          ],
+        },
+      ]}
+    />,
+    { useRedux: true, useRouter: true, useQueryParams: true, useTheme: true },
+  );
+
+  await userEvent.hover(await screen.findByText(/Settings/i));
+  const item = await screen.findByText('Review queue');
+  expect(item.closest('a')).not.toBeNull();
+});
+
+test("a host Settings entry's Font Awesome class name never renders as text", async () => {
+  // The same defect as the navbar's, one file over. Superset's own Settings
+  // entries carry FA class names from FAB -- `fa-puzzle-piece`, `fa-css3`,
+  // `fa-palette`, `fa-clock-o` in `initialization` -- and this dropdown is
+  // built by `buildSettingsMenuItems` here, not by `Menu.tsx`'s
+  // `buildMenuItem`. Guarding only one of the two is how it shipped twice.
+  const mockedProps = createProps();
+  resetUseSelectorMock();
+
+  render(
+    <RightMenu
+      {...mockedProps}
+      settings={[
+        {
+          label: 'Manage',
+          name: 'Manage',
+          childs: [
+            {
+              label: 'CSS Templates',
+              name: 'CSS Templates',
+              icon: 'fa-css3',
+              url: '/csstemplatemodelview/list/',
+            },
+          ],
+        },
+      ]}
+    />,
+    { useRedux: true, useRouter: true, useQueryParams: true, useTheme: true },
+  );
+
+  await userEvent.hover(await screen.findByText(/Settings/i));
+  const item = await screen.findByText('CSS Templates');
+  const group = item.closest('.ant-menu-item-group') ?? item.parentElement;
+  expect(group?.textContent ?? '').not.toMatch(/fa-/);
 });

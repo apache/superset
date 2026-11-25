@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import PublishedStatus from '.';
 
 const defaultProps = {
@@ -32,7 +37,7 @@ test('renders with unpublished status and readonly permissions', async () => {
     /This dashboard is not published which means it will not show up in the list of dashboards/;
   render(<PublishedStatus {...defaultProps} />);
   expect(screen.getByText('Draft')).toBeInTheDocument();
-  userEvent.hover(screen.getByText('Draft'));
+  await userEvent.hover(screen.getByText('Draft'));
   expect(await screen.findByText(tooltip)).toBeInTheDocument();
 });
 
@@ -49,10 +54,10 @@ test('renders with unpublished status and write permissions', async () => {
     />,
   );
   expect(screen.getByText('Draft')).toBeInTheDocument();
-  userEvent.hover(screen.getByText('Draft'));
+  await userEvent.hover(screen.getByText('Draft'));
   expect(await screen.findByText(tooltip)).toBeInTheDocument();
   expect(savePublished).not.toHaveBeenCalled();
-  userEvent.click(screen.getByText('Draft'));
+  await userEvent.click(screen.getByText('Draft'));
   expect(savePublished).toHaveBeenCalledTimes(1);
 });
 
@@ -74,9 +79,32 @@ test('renders with published status and write permissions', async () => {
     />,
   );
   expect(screen.getByText('Published')).toBeInTheDocument();
-  userEvent.hover(screen.getByText('Published'));
+  await userEvent.hover(screen.getByText('Published'));
   expect(await screen.findByText(tooltip)).toBeInTheDocument();
   expect(savePublished).not.toHaveBeenCalled();
-  userEvent.click(screen.getByText('Published'));
-  expect(savePublished).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByText('Published'));
+  expect(savePublished).not.toHaveBeenCalled();
+  await waitFor(() =>
+    expect(
+      screen.getByText(/Active alerts and reports may stop delivering/),
+    ).toBeVisible(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Make draft' }));
+  expect(savePublished).toHaveBeenCalledWith(1, false);
+});
+
+test('cancelling unpublish preserves the published dashboard', async () => {
+  const savePublished = jest.fn();
+  render(
+    <PublishedStatus
+      {...defaultProps}
+      isPublished
+      userCanEdit
+      userCanSave
+      savePublished={savePublished}
+    />,
+  );
+  await userEvent.click(screen.getByText('Published'));
+  await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+  expect(savePublished).not.toHaveBeenCalled();
 });

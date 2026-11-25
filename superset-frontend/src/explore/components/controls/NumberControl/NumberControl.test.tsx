@@ -38,8 +38,8 @@ test('type number and blur triggers onChange', async () => {
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
-  userEvent.type(input, '9');
-  userEvent.tab(); // Trigger blur to dispatch
+  await userEvent.type(input, '9');
+  await userEvent.tab(); // Trigger blur to dispatch
   expect(props.onChange).toHaveBeenLastCalledWith(9);
 });
 
@@ -50,8 +50,8 @@ test('type value exceeding max and blur', async () => {
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
-  userEvent.type(input, '20');
-  userEvent.tab(); // Trigger blur to dispatch
+  await userEvent.type(input, '20');
+  await userEvent.tab(); // Trigger blur to dispatch
   expect(props.onChange).toHaveBeenCalled();
 });
 
@@ -63,8 +63,8 @@ test('type NaN keeps original value', async () => {
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
-  userEvent.type(input, 'not a number');
-  userEvent.tab(); // Trigger blur
+  await userEvent.type(input, 'not a number');
+  await userEvent.tab(); // Trigger blur
 
   expect(props.onChange).toHaveBeenLastCalledWith(5);
 });
@@ -77,8 +77,8 @@ test('can clear field completely', async () => {
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
-  userEvent.clear(input);
-  userEvent.tab(); // Trigger blur
+  await userEvent.clear(input);
+  await userEvent.tab(); // Trigger blur
   expect(props.onChange).toHaveBeenLastCalledWith(undefined);
 });
 

@@ -29,19 +29,21 @@ class MachineAuthProviderTests(SupersetTestCase):
         assert auth_cookies["session"] is not None
 
     def test_authenticate_browser_context_sets_cookies(self):
-        """authenticate_browser_context navigates to login and sets auth cookies."""
+        """authenticate_browser_context sets auth cookies without navigating.
+
+        Opening a page here would leave it live on the shared cookie jar, where a
+        late anonymous Set-Cookie from it can clobber the injected session cookie.
+        """
         user = self.get_user("admin")
         provider = machine_auth_provider_factory.instance
 
         mock_context = MagicMock()
-        mock_page = MagicMock()
-        mock_context.new_page.return_value = mock_page
 
         with patch.object(provider, "get_cookies", return_value={"session": "abc123"}):
             result = provider.authenticate_browser_context(mock_context, user)
 
         assert result is mock_context
-        mock_page.goto.assert_called_once()
+        mock_context.new_page.assert_not_called()
         mock_context.clear_cookies.assert_called_once()
         mock_context.add_cookies.assert_called_once()
         cookies_added = mock_context.add_cookies.call_args[0][0]

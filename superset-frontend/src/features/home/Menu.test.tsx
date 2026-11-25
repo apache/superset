@@ -334,6 +334,25 @@ test('should render the navigation', async () => {
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
+test('hides the navigation when the standalone url param is set', async () => {
+  const originalLocationHref = window.location.href;
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  window.history.replaceState(null, '', '/superset/dashboard/1/?standalone=1');
+
+  try {
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  } finally {
+    window.history.replaceState(null, '', originalLocationHref);
+  }
+});
+
 test.each(['', '/myapp'])(
   'should render the brand, including app_root "%s"',
   async app_root => {
@@ -413,7 +432,7 @@ test('should render the top navbar child menu items', async () => {
     useTheme: true,
   });
   const sources = await screen.findByText('Sources');
-  userEvent.hover(sources);
+  await userEvent.hover(sources);
 
   const datasets = await screen.findByText('Datasets');
   const databases = await screen.findByText('Databases');
@@ -433,7 +452,7 @@ test('should render the dropdown items', async () => {
     useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
-  userEvent.hover(dropdown);
+  await userEvent.hover(dropdown);
   // todo (philip): test data submenu
   expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute(
     'href',
@@ -475,7 +494,7 @@ test('should render the Settings menu item', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const label = await screen.findByText('Security');
   expect(label).toBeInTheDocument();
 });
@@ -491,7 +510,7 @@ test('should render the Settings dropdown child menu items', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const listUsers = await screen.findByText('List Users');
   expect(listUsers).toHaveAttribute('href', settings[0].childs[0].url);
 });
@@ -533,7 +552,7 @@ test('should render the user actions when user is not anonymous', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const user = await screen.findByText('User');
   expect(user).toBeInTheDocument();
 
@@ -570,7 +589,7 @@ test('should render the About section and version_string, sha or build_number wh
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
 
   // The version information is rendered as combined text in a single element
@@ -607,7 +626,7 @@ test('should render the Documentation link when available', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const doc = await screen.findByTitle('Documentation');
   expect(doc).toHaveAttribute('href', documentation_url);
 });
@@ -630,7 +649,7 @@ test('should render the Bug Report link when available', async () => {
   expect(bugReport).toHaveAttribute('href', bug_report_url);
 });
 
-test('should render the Login link when user is anonymous', async () => {
+test('should render the Sign in link when user is anonymous', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
@@ -644,7 +663,7 @@ test('should render the Login link when user is anonymous', async () => {
     useRouter: true,
     useTheme: true,
   });
-  const login = await screen.findByText('Login');
+  const login = await screen.findByText('Sign in');
   expect(login).toHaveAttribute('href', user_login_url);
 });
 
@@ -1091,7 +1110,7 @@ describe('active tab highlighting (regression #36403)', () => {
       // the item is in the DOM (same pattern as the existing "render the top
       // navbar child menu items" test).
       const sources = await screen.findByText('Sources');
-      userEvent.hover(sources);
+      await userEvent.hover(sources);
 
       const datasets = await screen.findByText('Datasets');
       expect(datasets.closest('li')).toHaveClass('ant-menu-item-selected');
@@ -1113,7 +1132,7 @@ describe('active tab highlighting (regression #36403)', () => {
     });
 
     const sources = await screen.findByText('Sources');
-    userEvent.hover(sources);
+    await userEvent.hover(sources);
 
     const datasets = await screen.findByText('Datasets');
     expect(datasets.closest('li')).not.toHaveClass('ant-menu-item-selected');
@@ -1224,4 +1243,26 @@ test('navbar renders inline on mobile viewport (md: false)', async () => {
   });
   const navbar = await screen.findByTestId('navbar-top');
   expect(navbar).toHaveClass('ant-menu-inline');
+});
+
+test("a host entry's Font Awesome class name never renders as navbar text", async () => {
+  // Regression. `MenuObjectChildProps.icon` is typed `ReactNode` and a
+  // string satisfies it, but FAB forwards a Font Awesome *class name*
+  // (`icon="fa-dashboard"`). antd's `replaceElement` returns a non-element
+  // unchanged, so forwarding it put "fa-table Sources" in the bar on a
+  // default install with no extensions at all -- and nothing in the types
+  // or the existing tests saw it.
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  const { container } = render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  await screen.findByText(/sources/i);
+  const nav = container.querySelector('.main-nav');
+  expect(nav).not.toBeNull();
+  // The fixtures above carry `fa-table`, `fa-database` and `fa-fw ...`.
+  expect(nav?.textContent ?? '').not.toMatch(/fa-/);
 });

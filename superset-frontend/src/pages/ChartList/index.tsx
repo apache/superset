@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme, css, styled } from '@apache-superset/core/theme';
+import { styled } from '@apache-superset/core/theme';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
@@ -46,7 +46,11 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  ToastContent,
+  archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import {
@@ -68,19 +72,21 @@ import {
   TagsList,
   TagType,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
   type ListViewProps,
   type ListViewFetchDataConfig,
   type ListViewFilters,
   type ListViewFilter,
+  ListViewTitleCell,
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Link, useHistory } from 'react-router-dom';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import Chart from 'src/types/Chart';
+import { Chart } from 'src/types/Chart';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
@@ -88,30 +94,16 @@ import { loadTags } from 'src/components/Tag/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { QueryObjectColumns } from 'src/views/CRUD/types';
+import {
+  QueryObjectColumns,
+  FileEncryptedExtraFields,
+} from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
+import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { CellProps } from 'react-table';
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  a {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.2;
-    min-width: 0;
-  }
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
 
 const PAGE_SIZE = 25;
 // How many blocking alerts/reports the archive modal previews before the
@@ -140,7 +132,7 @@ function ChartArchiveDescription({
   return (
     <>
       {softDelete ? (
-        <p>{archiveConfirmDescription(t('chart'))}</p>
+        <p>{archiveConfirmContent('chart', t('chart'))}</p>
       ) : (
         <p>
           {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>?
@@ -188,9 +180,9 @@ function ChartArchiveDescription({
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
     'import them together with the charts. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+    '"Certificate" section of the database configuration is not ' +
+    'present in export files, and should be added manually after the ' +
+    'import if it is needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more charts that already exist. ' +
@@ -206,6 +198,24 @@ const createFetchDatasets = async (
   page: number,
   pageSize: number,
 ) => {
+  if (isFeatureEnabled(FeatureFlag.SemanticLayers)) {
+    const { result, count } = await fetchDatasourceList(
+      filterValue,
+      page,
+      pageSize,
+    );
+    return {
+      data: result.map(({ id, kind, table_name: tableName }) => {
+        const semanticView = kind === 'semantic_view';
+        return {
+          label: `${tableName} (${semanticView ? t('Semantic View') : t('Dataset')})`,
+          value: `${id}__${semanticView ? 'semantic_view' : 'table'}`,
+        };
+      }),
+      totalCount: count,
+    };
+  }
+
   // add filters if filterValue
   const filters = filterValue
     ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
@@ -239,9 +249,36 @@ const createFetchDatasets = async (
 
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
+
+// The chart type name ellipsizes first; the Matrixified pill is never cut
+// mid-pill.
+const VizTypeCell = styled.span`
+  display: flex;
+  align-items: center;
+
+  .viz-type-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .viz-type-tag {
+    flex-shrink: 0;
+    max-width: 100%;
+    margin-left: ${({ theme }) => theme.marginXS}px;
+  }
+
+  .viz-type-tag .ant-tag {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
@@ -327,6 +364,9 @@ function ChartList(props: ChartListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
 
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = useMemo(
@@ -431,11 +471,14 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(
-          softDelete
-            ? t('Archived %s item(s)', chartsToDelete.length)
-            : json.message,
-        );
+        rememberArchivedType('chart');
+        const toast: ToastContent = softDelete
+          ? archiveToastContent(
+              t('Archived %s item(s)', chartsToDelete.length),
+              'chart',
+            )
+          : { text: json.message };
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -494,7 +537,7 @@ function ChartList(props: ChartListProps) {
     [addDangerToast],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Chart>[]>(
     () => [
       {
         Cell: ({
@@ -512,7 +555,7 @@ function ChartList(props: ChartListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        layout: 'icon',
         hidden: !userId,
       },
       {
@@ -521,14 +564,21 @@ function ChartList(props: ChartListProps) {
             original: {
               url,
               slice_name: sliceName,
+              localized_name: localizedName,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
               description,
             },
           },
         }: any) => (
-          <FlexRowContainer>
-            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
+          <ListViewTitleCell
+            trailing={description && <InfoTooltip tooltip={description} />}
+          >
+            <Link
+              to={url}
+              title={sliceName}
+              data-test={`${sliceName}-list-chart-title`}
+            >
               {certifiedBy && (
                 <>
                   <CertifiedBadge
@@ -537,13 +587,13 @@ function ChartList(props: ChartListProps) {
                   />{' '}
                 </>
               )}
-              {sliceName}
+              {localizedName ?? sliceName}
             </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
+          </ListViewTitleCell>
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        layout: 'title',
         id: 'slice_name',
       },
       {
@@ -551,22 +601,21 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { viz_type: vizType, form_data: formData },
           },
-        }: any) => (
-          <>
-            {registry.get(vizType)?.name || vizType}
-            {formData && isMatrixifyEnabled(formData) && (
-              <span
-                css={(theme: SupersetTheme) => css`
-                  margin-left: ${theme.marginXS}px;
-                `}
-              >
+        }: any) => {
+          const vizName = registry.get(vizType)?.name || vizType;
+          if (!formData || !isMatrixifyEnabled(formData)) return vizName;
+          return (
+            <VizTypeCell>
+              <span className="viz-type-name">{vizName}</span>
+              <span className="viz-type-tag">
                 <Tag name="Matrixified" color="purple" />
               </span>
-            )}
-          </>
-        ),
+            </VizTypeCell>
+          );
+        },
         Header: t('Type'),
         accessor: 'viz_type',
+        layout: 'text',
         id: 'viz_type',
       },
       {
@@ -595,7 +644,7 @@ function ChartList(props: ChartListProps) {
         Header: datasetLabel(),
         accessor: 'datasource_id',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'identifier',
         id: 'datasource_id',
       },
       {
@@ -607,7 +656,7 @@ function ChartList(props: ChartListProps) {
         Header: t('On dashboards'),
         accessor: 'dashboards',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'text',
         id: 'dashboards',
       },
       {
@@ -631,6 +680,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        layout: 'tags',
         id: 'tags',
       },
       {
@@ -642,7 +692,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'people',
         id: 'editors',
       },
       ...(isFeatureEnabled(FeatureFlag.EnableViewers)
@@ -656,6 +706,7 @@ function ChartList(props: ChartListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
+              layout: 'people' as const,
               id: 'viewers',
             },
           ]
@@ -671,7 +722,7 @@ function ChartList(props: ChartListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -724,9 +775,13 @@ function ChartList(props: ChartListProps) {
                   tooltip={
                     allowEdit
                       ? deleteActionLabel()
-                      : t(
-                          'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
-                        )
+                      : softDelete
+                        ? t(
+                            'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
+                          )
+                        : t(
+                            'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                          )
                   }
                   placement="bottom"
                   icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -740,7 +795,7 @@ function ChartList(props: ChartListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
-        size: 'lg',
+        layout: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
       },
@@ -821,7 +876,9 @@ function ChartList(props: ChartListProps) {
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',
-        operator: FilterOperator.Equals,
+        operator: isFeatureEnabled(FeatureFlag.SemanticLayers)
+          ? FilterOperator.ChartDatasource
+          : FilterOperator.Equals,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
@@ -1060,9 +1117,7 @@ function ChartList(props: ChartListProps) {
           recoverable={softDelete}
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: chartCurrentlyDeleting.chart.slice_name,
-                })
+              ? archiveTitle(chartCurrentlyDeleting.chart.slice_name)
               : t('Please confirm')
           }
           name={chartCurrentlyDeleting.chart.slice_name}
@@ -1090,7 +1145,7 @@ function ChartList(props: ChartListProps) {
         title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
         description={
           softDelete
-            ? archiveConfirmDescription(t('charts'), true)
+            ? archiveConfirmContent('chart', t('charts'), true)
             : t('Are you sure you want to delete the selected charts?')
         }
         onConfirm={handleBulkChartDelete}
@@ -1170,6 +1225,8 @@ function ChartList(props: ChartListProps) {
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
       {preparingExport && <Loading />}
     </>

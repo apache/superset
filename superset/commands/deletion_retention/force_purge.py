@@ -19,9 +19,10 @@
 Immediate, irreversible removal of one entity regardless of the retention
 window or whether it is currently soft-deleted or live. Runs the same cascade
 as the time-based task with ``enforce_window=False`` — identical dependent
-handling with legacy hard-delete semantics: M:N join rows hard-deleted,
-a referencing live chart's loose ``datasource_id`` left dangling (the chart is
-never modified). Idempotent: a UUID that resolves to nothing is a no-op.
+handling with hard-delete semantics: M:N join rows hard-deleted, and a
+chart on a purged dataset kept but detached (its ``datasource_id`` and
+permission fields cleared). Idempotent: a UUID that resolves to nothing is a
+no-op.
 """
 
 from __future__ import annotations

@@ -25,6 +25,8 @@ import type {
   PurgeImpactCollection,
   PurgeImpactItem,
 } from './types';
+import ArchivedLabel from 'src/components/ArchivedLabel';
+import { toSafeHref } from 'src/utils/urlUtils';
 
 const ImpactSection = styled.section`
   ${({ theme }) => `
@@ -41,13 +43,6 @@ const ImpactList = styled.ul`
   padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
 `;
 
-const ArchivedMarker = styled.span`
-  ${({ theme }) => `
-    color: ${theme.colorTextSecondary};
-    margin-left: ${theme.sizeUnit}px;
-  `}
-`;
-
 const Message = styled.p`
   margin-top: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
@@ -62,7 +57,7 @@ function ImpactItem({ item }: { item: PurgeImpactItem }) {
   );
   const label =
     item.url && isSafeAppPath && !item.archived ? (
-      <a href={item.url}>{item.name}</a>
+      <a href={toSafeHref(item.url)}>{item.name}</a>
     ) : (
       item.name
     );
@@ -70,11 +65,7 @@ function ImpactItem({ item }: { item: PurgeImpactItem }) {
   return (
     <li>
       {label}
-      {item.archived && (
-        <ArchivedMarker aria-label={t('Archived')}>
-          {t('(archived)')}
-        </ArchivedMarker>
-      )}
+      {item.archived && <ArchivedLabel />}
     </li>
   );
 }

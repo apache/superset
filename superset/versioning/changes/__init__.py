@@ -44,7 +44,9 @@ this package needs to change.
 from __future__ import annotations
 
 from superset.versioning.changes.listener import (
+    ACTION_KIND_BASELINE,
     ACTION_KIND_CLONE,
+    ACTION_KIND_CREATE,
     ACTION_KIND_IMPORT,
     ACTION_KIND_KEY,
     ACTION_KIND_RESTORE,
@@ -61,7 +63,9 @@ from superset.versioning.changes.table import (
 )
 
 __all__ = [
+    "ACTION_KIND_BASELINE",
     "ACTION_KIND_CLONE",
+    "ACTION_KIND_CREATE",
     "ACTION_KIND_IMPORT",
     "ACTION_KIND_KEY",
     "ACTION_KIND_RESTORE",

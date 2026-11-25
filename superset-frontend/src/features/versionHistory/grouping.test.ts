@@ -438,3 +438,84 @@ test('recordKey separates same-path records that differ only by value', () => {
   expect(recordKey(first)).not.toBe(recordKey(second));
   expect(mergeActivityPages([first], [second])).toHaveLength(2);
 });
+
+test('a __creation__ record forms its own group carrying creationKind, with no change rows', () => {
+  const entries = buildTimeline([
+    record({ transaction_id: 30, kind: 'metric', operation: 'add' }),
+    record({
+      transaction_id: 5,
+      kind: '__creation__',
+      operation: 'announce',
+      creation_kind: 'created',
+      path: ['__creation__'],
+      version_uuid: 'v-created',
+    }),
+  ]);
+
+  expect(entries).toHaveLength(2);
+  const creation = entries[1] as SaveGroup;
+  expect(creation.type).toBe('group');
+  expect(creation.creationKind).toBe('created');
+  expect(creation.versionUuid).toBe('v-created');
+  // Like __meta__, the announce record stays out of the change list.
+  expect(creation.records).toHaveLength(0);
+});
+
+test('creationKind survives for pre_tracking and imported variants', () => {
+  (['pre_tracking', 'imported'] as const).forEach(kind => {
+    const entries = buildTimeline([
+      record({
+        transaction_id: 5,
+        kind: '__creation__',
+        operation: 'announce',
+        creation_kind: kind,
+      }),
+    ]);
+    expect((entries[0] as SaveGroup).creationKind).toBe(kind);
+  });
+});
+
+test.each([true, false])(
+  'archive and adjacent update stay separate (archive first: %s)',
+  archiveFirst => {
+    const archive = record({
+      source: 'related',
+      kind: '__archive__',
+      operation: 'announce',
+      version_uuid: null,
+      path: null,
+      to_value: null,
+      transaction_id: archiveFirst ? 12 : 11,
+    });
+    const update = record({
+      source: 'related',
+      transaction_id: archiveFirst ? 11 : 12,
+    });
+    const entries = buildTimeline([archive, update]);
+    expect(entries).toHaveLength(2);
+    expect(
+      entries.map(entry => entry.type === 'related' && entry.records.length),
+    ).toEqual([1, 1]);
+  },
+);
+
+test('bulk archives retain one row per chart and deduplicate overlapping pages', () => {
+  const archives = ['a', 'b', 'c'].map(entity_uuid =>
+    record({
+      source: 'related',
+      kind: '__archive__',
+      operation: 'announce',
+      entity_uuid,
+      version_uuid: null,
+      path: null,
+      to_value: null,
+    }),
+  );
+  const entries = buildTimeline(mergeActivityPages(archives, archives));
+  expect(entries).toHaveLength(3);
+  expect(
+    entries.every(
+      entry => entry.type === 'related' && !entry.rollupEntityNames,
+    ),
+  ).toBe(true);
+});

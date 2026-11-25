@@ -31,9 +31,13 @@ x-superset-volumes:
 
 x-common-build: &common-build
   context: .
-  target: dev
+  # Build the batteries-included production image (the default `apache/superset`
+  # tags), not the `dev` image: this compose runs a prod-like stack from source,
+  # and `superset` bundles the metadata/analytics drivers it needs.
+  target: superset
   cache_from:
     - apache/superset-cache:3.11-slim-trixie
+    - apache/superset-cache:3.11-slim-trixie-arm64
 
 services:
   redis:
@@ -156,7 +160,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8080
-      JWT_COOKIE_NAME: superset-ws-token
       # Dev-only default; must match the app's WEBSOCKET_JWT_SECRET and be
       # replaced with a strong secret (>= 32 bytes) outside local development.
       JWT_SECRET: ${WEBSOCKET_JWT_SECRET:-dev-only-websocket-secret-change-me!}

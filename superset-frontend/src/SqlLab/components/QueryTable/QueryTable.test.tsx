@@ -18,7 +18,7 @@
  */
 import { isValidElement } from 'react';
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import userEvent from '@testing-library/user-event';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { runningQuery, successfulQuery, user } from 'src/SqlLab/fixtures';
@@ -46,7 +46,7 @@ describe('QueryTable', () => {
   });
 
   test('renders a proper table', () => {
-    const mockStore = configureStore([thunk]);
+    const mockStore = createMockStore([thunk]);
     const { container } = render(<QueryTable {...mockedProps} />, {
       store: mockStore({ user }),
     });
@@ -63,7 +63,7 @@ describe('QueryTable', () => {
   });
 
   test('renders empty table when no queries provided', () => {
-    const mockStore = configureStore([thunk]);
+    const mockStore = createMockStore([thunk]);
     const { container } = render(
       <QueryTable {...{ ...mockedProps, queries: [] }} />,
       { store: mockStore({ user }) },
@@ -81,7 +81,7 @@ describe('QueryTable', () => {
   });
 
   test('renders with custom displayLimit', () => {
-    const mockStore = configureStore([thunk]);
+    const mockStore = createMockStore([thunk]);
     const customProps = {
       ...mockedProps,
       displayLimit: 1,
@@ -100,7 +100,7 @@ describe('QueryTable', () => {
   });
 
   test('renders View button when query has resultsKey', () => {
-    const mockStore = configureStore([thunk]);
+    const mockStore = createMockStore([thunk]);
     const propsWithResults = {
       ...mockedProps,
       columns: ['started', 'duration', 'rows', 'results'],
@@ -114,7 +114,7 @@ describe('QueryTable', () => {
   });
 
   test('does not render View button when query has no resultsKey', () => {
-    const mockStore = configureStore([thunk]);
+    const mockStore = createMockStore([thunk]);
     const queryWithoutResults = {
       ...successfulQuery,
       resultsKey: null,
@@ -134,7 +134,7 @@ describe('QueryTable', () => {
   });
 
   test('clicking View button opens data preview modal', async () => {
-    const mockStore = configureStore([thunk]);
+    const mockStore = createMockStore([thunk]);
     const propsWithResults = {
       ...mockedProps,
       columns: ['started', 'duration', 'rows', 'results'],
@@ -158,7 +158,7 @@ describe('QueryTable', () => {
   });
 
   test('modal closes when exiting', async () => {
-    const mockStore = configureStore([thunk]);
+    const mockStore = createMockStore([thunk]);
     const propsWithResults = {
       ...mockedProps,
       columns: ['started', 'duration', 'rows', 'results'],

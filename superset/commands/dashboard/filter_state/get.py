@@ -14,15 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
+from typing import Any, Optional
 
 from flask import current_app as app
 
 from superset.commands.dashboard.filter_state.utils import check_access
 from superset.commands.temporary_cache.get import GetTemporaryCacheCommand
 from superset.commands.temporary_cache.parameters import CommandParameters
+from superset.daos.dashboard import DashboardDAO
 from superset.extensions import cache_manager
 from superset.temporary_cache.utils import cache_key
+from superset.utils import json
 
 
 class GetFilterStateCommand(GetTemporaryCacheCommand):
@@ -31,12 +33,66 @@ class GetFilterStateCommand(GetTemporaryCacheCommand):
         self._refresh_timeout = app.config["FILTER_STATE_CACHE_CONFIG"].get(
             "REFRESH_TIMEOUT_ON_RETRIEVAL"
         )
+        self._json_metadata: Optional[str] = None
 
     def get(self, cmd_params: CommandParameters) -> Optional[str]:
         resource_id = cmd_params.resource_id
         key = cache_key(resource_id, cmd_params.key)
-        check_access(resource_id)
+        # Keep the metadata for ``get_filter_names``. Read it here: refreshing
+        # the entry below commits, which expires the loaded dashboard.
+        self._json_metadata = check_access(resource_id).json_metadata or "{}"
         entry = cache_manager.filter_state_cache.get(key) or {}
         if entry and self._refresh_timeout:
             cache_manager.filter_state_cache.set(key, entry)
         return entry.get("value")
+
+    def get_filter_names(
+        self, resource_id: int, value: Optional[str]
+    ) -> dict[str, str]:
+        """
+        Cross-reference the filter ids present in a cached filter_state
+        ``value`` (a ``DataMaskStateWithId``, i.e. a map keyed by filter id)
+        against the dashboard's ``native_filter_configuration`` to build a
+        map of filter id -> human-readable filter label.
+
+        The cached blob itself has no notion of a filter's label: that only
+        lives in the dashboard's filter configuration metadata (#36053).
+        """
+        if not value:
+            return {}
+        try:
+            parsed_value = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+        if not isinstance(parsed_value, dict):
+            return {}
+
+        # ``get`` has already loaded and access-checked the dashboard; look it
+        # up only when this is called without it.
+        json_metadata = self._json_metadata
+        if json_metadata is None:
+            dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
+            json_metadata = dashboard.json_metadata or "{}"
+        try:
+            metadata = json.loads(json_metadata)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+        if not isinstance(metadata, dict):
+            return {}
+
+        native_filters: list[dict[str, Any]] = (
+            metadata.get("native_filter_configuration") or []
+        )
+        id_to_name = {
+            native_filter["id"]: native_filter["name"]
+            for native_filter in native_filters
+            if isinstance(native_filter, dict)
+            and native_filter.get("id") is not None
+            and native_filter.get("name") is not None
+        }
+
+        return {
+            filter_id: id_to_name[filter_id]
+            for filter_id in parsed_value
+            if filter_id in id_to_name
+        }

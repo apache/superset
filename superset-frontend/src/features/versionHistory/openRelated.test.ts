@@ -128,3 +128,30 @@ test('closes the claimed tab when the id lookup fails', async () => {
   expect(mockedNavigateOpenedTab).not.toHaveBeenCalled();
   expect(mockedCloseOpenedTab).toHaveBeenCalledWith(claimedTab);
 });
+
+test.each([
+  { entity_deleted: true },
+  { entity_deletion_state: 'soft_deleted' },
+])('does not resolve or open an unavailable target: %s', async unavailable => {
+  const onError = jest.fn();
+  await openRelatedEntity(record(unavailable), onError);
+  expect(mockedResolveEntityId).not.toHaveBeenCalled();
+  expect(mockedOpenBlankTab).not.toHaveBeenCalled();
+  expect(onError).toHaveBeenCalledWith('Could not find My chart');
+});
+
+test('an archive event can open its recovered chart', async () => {
+  mockedResolveEntityId.mockResolvedValue(42);
+  await openRelatedEntity(
+    record({
+      kind: '__archive__',
+      entity_deleted: false,
+      entity_deletion_state: null,
+    }),
+    jest.fn(),
+  );
+  expect(mockedNavigateOpenedTab).toHaveBeenCalledWith(
+    claimedTab,
+    '/explore/?slice_id=42',
+  );
+});

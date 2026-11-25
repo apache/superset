@@ -21,9 +21,20 @@ metadata database."""
 
 from typing import Any
 
-from sqlalchemy.exc import OperationalError, ProgrammingError
+import pytest
+from sqlalchemy.exc import (
+    DataError,
+    IntegrityError,
+    OperationalError,
+    ProgrammingError,
+    StatementError,
+)
 
-from superset.versioning.db_errors import is_missing_table_error
+from superset.versioning.db_errors import (
+    is_foreign_key_violation,
+    is_lock_contention_error,
+    is_missing_table_error,
+)
 
 
 class _FakeDriverError(Exception):
@@ -81,6 +92,14 @@ def test_mysql_no_such_table_is_missing_table() -> None:
     assert is_missing_table_error(error) is True
 
 
+def test_mysql_missing_table_with_sqlstate_uses_errno() -> None:
+    """MySQL drivers exposing both diagnostics retain their errno semantics."""
+    error = OperationalError(
+        "SELECT 1", {}, _FakeDriverError(1146, "missing table", sqlstate="42S02")
+    )
+    assert is_missing_table_error(error)
+
+
 def test_mysql_lock_wait_timeout_is_not_missing_table() -> None:
     error = _wrap(
         OperationalError,
@@ -107,3 +126,328 @@ def test_connection_drop_with_no_code_is_not_missing_table() -> None:
         _FakeDriverError("server closed the connection unexpectedly"),
     )
     assert is_missing_table_error(error) is False
+
+
+# ---------------------------------------------------------------------------
+# is_lock_contention_error (sc-120050)
+# ---------------------------------------------------------------------------
+
+
+def _op_error(orig: BaseException | None) -> OperationalError:
+    err: OperationalError = OperationalError("stmt", None, Exception("boom"))
+    err.orig = orig
+    return err
+
+
+class _FakeLockDriverError(Exception):  # noqa: N818 — a driver error, not ours
+    """A stand-in for a DBAPI driver error.
+
+    A real driver error IS an exception carrying its own diagnostic, so
+    the fake is one too: the classifier reads ``args`` / ``pgcode`` /
+    ``sqlstate`` and, for code-less drivers, ``str()`` of THIS object —
+    never of the SQLAlchemy wrapper around it.
+    """
+
+    def __init__(
+        self,
+        args: tuple[object, ...] = (),
+        pgcode: str | None = None,
+        sqlstate: str | None = None,
+        message: str = "",
+    ) -> None:
+        super().__init__(*args)
+        self.args: tuple[object, ...] = args
+        self._message: str = message
+        if pgcode is not None:
+            self.pgcode: str = pgcode
+        if sqlstate is not None:
+            self.sqlstate: str = sqlstate
+
+    def __str__(self) -> str:
+        return self._message or super().__str__()
+
+
+#: Statement prefix for the contamination fixtures; the lock phrase is
+#: appended as a trailing SQL comment.
+_CONTAMINATED_SQL: str = (
+    "INSERT INTO slices (slice_name, description) "
+    "VALUES (%(slice_name)s, %(description)s) -- "
+)
+
+
+def _contaminated_statement(phrase: str) -> tuple[str, dict[str, str]]:
+    """SQL + bound parameters that merely CONTAIN a contention phrase.
+
+    The realistic shape: a user naming a chart "deadlock analysis", or a
+    column literally called ``lock_wait_timeout``. ``str()`` of a
+    SQLAlchemy wrapper renders both, which is why the classifier must
+    read the driver diagnostic instead.
+    """
+    # The phrase rides BOTH halves a wrapper renders: a trailing SQL
+    # comment (stands in for a table or column whose name contains it)
+    # and a bound parameter (a user-supplied chart name). Inert fixture
+    # text — nothing here is ever executed.
+    statement: str = _CONTAMINATED_SQL + phrase
+    return statement, {"slice_name": f"{phrase} analysis", "description": phrase}
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [
+        _FakeLockDriverError(args=(1213, "Deadlock found when trying to get lock")),
+        _FakeLockDriverError(args=(1205, "Lock wait timeout exceeded")),
+        _FakeLockDriverError(
+            args=(1213, "Deadlock found when trying to get lock"), sqlstate="40001"
+        ),
+        _FakeLockDriverError(
+            args=(1205, "Lock wait timeout exceeded"), sqlstate="HY000"
+        ),
+        _FakeLockDriverError(pgcode="40001"),
+        _FakeLockDriverError(pgcode="40P01"),
+        _FakeLockDriverError(pgcode="55P03"),
+        _FakeLockDriverError(sqlstate="40P01"),
+    ],
+)
+def test_lock_contention_positive(orig: _FakeLockDriverError) -> None:
+    assert is_lock_contention_error(_op_error(orig)) is True
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "deadlock detected somewhere",
+        "Lock wait timeout exceeded; try restarting transaction",
+        # SQLite write contention carries no error code at all -- only
+        # these message texts. The integration suite runs on SQLite, so
+        # misclassifying them would route a genuine contention test to
+        # the 500/422 paths instead of the 409.
+        "database is locked",
+        "database table is locked: table_versions",
+    ],
+)
+def test_lock_contention_driver_message_fallback(message: str) -> None:
+    """Code-less drivers are classified on THEIR OWN message.
+
+    The message rides the driver error, not the wrapper's statement
+    argument: that is the only place the classifier is allowed to look.
+    """
+    assert (
+        is_lock_contention_error(_op_error(_FakeLockDriverError(message=message)))
+        is True
+    )
+
+
+@pytest.mark.parametrize(
+    "phrase", ["deadlock", "lock wait timeout", "database is locked"]
+)
+@pytest.mark.parametrize("wrapper_cls", [DataError, OperationalError])
+def test_lock_phrase_in_sql_or_parameters_is_not_contention(
+    phrase: str, wrapper_cls: type[StatementError]
+) -> None:
+    """A contention phrase in the SQL or bound parameters is not evidence.
+
+    sc-120050 review (Richard Fogaça): ``str(DBAPIError)`` appends the
+    statement and its parameters, so classifying on the wrapper turned an
+    unrelated failure — a chart named "deadlock analysis" — into a 409
+    telling the client to retry a request that can never succeed.
+    """
+    statement: str
+    params: dict[str, str]
+    statement, params = _contaminated_statement(phrase)
+    err: StatementError = wrapper_cls(
+        statement,
+        params,
+        _FakeLockDriverError(args=(1064, "You have an error in your SQL syntax")),
+    )
+    assert phrase in str(err).lower(), "fixture must contaminate the rendered text"
+    assert is_lock_contention_error(err) is False
+
+
+def test_structured_code_beats_a_contaminated_driver_message() -> None:
+    """A non-contention structured code ENDS classification.
+
+    Even when the driver's own message mentions a deadlock (e.g. a
+    syntax error in a statement that references a table named
+    ``deadlock_audit``), a decisive errno that is not a contention code
+    means this is not a lock race.
+    """
+    orig: _FakeLockDriverError = _FakeLockDriverError(
+        args=(1064, "syntax error near 'deadlock_audit'"),
+        message="syntax error near 'deadlock_audit'",
+    )
+    assert is_lock_contention_error(_op_error(orig)) is False
+
+
+def test_non_contention_sqlstate_beats_a_contaminated_driver_message() -> None:
+    orig: _FakeLockDriverError = _FakeLockDriverError(
+        pgcode="42P01", message='relation "deadlock_audit" does not exist'
+    )
+    assert is_lock_contention_error(_op_error(orig)) is False
+
+
+def test_wrapper_without_a_driver_error_is_not_contention() -> None:
+    """No driver diagnostic means nothing classifiable — and the
+    wrapper's own text is exactly what must not be read."""
+    err: OperationalError = OperationalError(
+        "SELECT * FROM deadlock_audit", None, Exception()
+    )
+    err.orig = None
+    assert is_lock_contention_error(err) is False
+
+
+def test_raw_driver_error_is_classified_on_itself() -> None:
+    """A bare driver exception (no SQLAlchemy wrapper) is its own
+    diagnostic — the classifier accepts it unchanged."""
+    assert (
+        is_lock_contention_error(_FakeLockDriverError(args=(1213, "Deadlock found")))
+        is True
+    )
+    assert (
+        is_lock_contention_error(_FakeLockDriverError(message="database is locked"))
+        is True
+    )
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [
+        _FakeLockDriverError(args=(1146, "Table does not exist")),
+        _FakeLockDriverError(args=()),
+        _FakeLockDriverError(pgcode="42P01"),
+        None,
+    ],
+)
+def test_lock_contention_negative(orig: BaseException | None) -> None:
+    assert is_lock_contention_error(_op_error(orig)) is False
+
+
+def test_lock_contention_none_input() -> None:
+    assert is_lock_contention_error(None) is False
+
+
+def _integrity_error(orig: BaseException | None) -> IntegrityError:
+    err: IntegrityError = IntegrityError("stmt", None, Exception("boom"))
+    err.orig = orig
+    return err
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [
+        _FakeLockDriverError(
+            args=(1452, "Cannot add or update a child row: a foreign key fails")
+        ),
+        _FakeLockDriverError(args=(1216, "Cannot add or update a child row")),
+        _FakeLockDriverError(pgcode="23503"),
+        _FakeLockDriverError(sqlstate="23503"),
+        _FakeLockDriverError(message="FOREIGN KEY constraint failed"),
+    ],
+)
+def test_foreign_key_violation_positive(orig: _FakeLockDriverError) -> None:
+    assert is_foreign_key_violation(_integrity_error(orig)) is True
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [
+        # Unique and primary key violations are integrity errors too, but
+        # not a missing parent row.
+        _FakeLockDriverError(args=(1062, "Duplicate entry")),
+        _FakeLockDriverError(pgcode="23505"),
+        _FakeLockDriverError(message="UNIQUE constraint failed: dashboard_slices.id"),
+        # A structured code is decisive even when the message says otherwise.
+        _FakeLockDriverError(
+            args=(1062, "foreign key constraint failed"), sqlstate="23000"
+        ),
+        _FakeLockDriverError(pgcode="23505", message="foreign key constraint failed"),
+        None,
+    ],
+)
+def test_foreign_key_violation_negative(orig: BaseException | None) -> None:
+    assert is_foreign_key_violation(_integrity_error(orig)) is False
+
+
+def test_foreign_key_phrase_in_sql_is_not_a_violation() -> None:
+    """The wrapper's rendered statement is never read, so a statement that
+    merely mentions the phrase is not classified as a violation."""
+    err: IntegrityError = IntegrityError(
+        "SELECT 'foreign key constraint failed'", None, Exception()
+    )
+    err.orig = None
+    assert is_foreign_key_violation(err) is False
+
+
+def test_foreign_key_violation_none_input() -> None:
+    assert is_foreign_key_violation(None) is False
+
+
+@pytest.mark.parametrize(
+    "args,attrs,expected",
+    [
+        ((1213, "transaction rolled back"), {"sqlstate": "40001"}, True),
+        ((1305, "savepoint missing"), {"sqlstate": "42000"}, True),
+        ((1205, "statement timeout"), {"sqlstate": "3B001"}, False),
+        ((1146, "missing table"), {}, False),
+        (("savepoint missing",), {"pgcode": "3B001"}, True),
+        (("savepoint missing",), {"sqlstate": "3B001"}, True),
+        (("deadlock",), {"pgcode": "40P01"}, False),
+        (("serialization failure",), {"pgcode": "40001"}, False),
+        (("1305 savepoint missing",), {}, False),
+    ],
+)
+def test_lost_transaction_uses_structured_driver_diagnostics(
+    args: tuple[object, ...], attrs: dict[str, str], expected: bool
+) -> None:
+    """Only transaction-loss evidence makes optional statement recovery fatal."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    error = _wrap(OperationalError, _FakeDriverError(*args, **attrs))
+    assert is_lost_transaction_error(error) is expected
+
+
+def test_lost_transaction_follows_exception_chains_without_looping() -> None:
+    """Context-manager cleanup can obscure the original transaction loss."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    original = _wrap(OperationalError, _FakeDriverError(1213, "deadlock"))
+    cleanup = RuntimeError("cleanup failed")
+    cleanup.__cause__ = original
+    original.__context__ = cleanup
+    assert is_lost_transaction_error(cleanup)
+    cleanup.__cause__ = ValueError("ordinary computation failure")
+    cleanup.__context__ = cleanup
+    assert not is_lost_transaction_error(cleanup)
+    assert not is_lost_transaction_error(None)
+
+
+def test_lost_transaction_invalidation_is_fatal_without_driver_code() -> None:
+    """A discarded connection cannot preserve the caller's transaction."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    error = OperationalError(
+        "SELECT 1", {}, Exception("disconnect"), connection_invalidated=True
+    )
+    assert is_lost_transaction_error(error)
+    outer = ValueError("recovery failed")
+    outer.__cause__ = error
+    assert is_lost_transaction_error(outer)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        KeyError(1213),
+        ValueError(1305),
+        _FakeDriverError(1213, sqlstate="40001"),
+        _FakeDriverError("missing savepoint", sqlstate="3B001"),
+        _FakeDriverError("not a DBAPI wrapper", orig=_FakeDriverError(1305)),
+        _FakeDriverError("not a DBAPI wrapper", connection_invalidated=True),
+    ],
+)
+def test_python_exception_arguments_are_not_transaction_loss(
+    error: BaseException,
+) -> None:
+    """Only a DBAPI wrapper can establish that numbers are driver error codes."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    assert not is_lost_transaction_error(error)

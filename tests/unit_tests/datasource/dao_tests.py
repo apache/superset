@@ -63,8 +63,14 @@ def session_with_data(session: Session) -> Iterator[Session]:
     )
 
     saved_query = SavedQuery(database=database, sql="select * from foo")
+    # `db_id` is nullable, so a saved query can be persisted without an
+    # associated database; DatasourceDAO.get_datasource must reject it
+    # rather than hand callers a datasource whose perm/schema_perm/data
+    # properties all dereference `self.database`.
+    saved_query_no_database = SavedQuery(sql="select * from foo")
 
     session.add(saved_query)
+    session.add(saved_query_no_database)
     session.add(query_obj)
     session.add(database)
     session.add(sqla_table)
@@ -111,6 +117,19 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
     assert isinstance(result, SavedQuery)
 
 
+def test_get_datasource_saved_query_without_database(
+    session_with_data: Session,
+) -> None:
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceNotFound
+
+    with pytest.raises(DatasourceNotFound):
+        DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType.SAVEDQUERY,
+            database_id_or_uuid=2,
+        )
+
+
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.datasource import DatasourceDAO
@@ -139,6 +158,22 @@ def test_not_found_datasource(session_with_data: Session) -> None:
         DatasourceDAO.get_datasource(
             datasource_type="table",
             database_id_or_uuid=500000,
+        )
+
+
+def test_get_datasource_non_decimal_digit_raises_value_incorrect(
+    session_with_data: Session,
+) -> None:
+    """ "²" (superscript 2) is str.isdigit() but not str.isdecimal(), so
+    it must be routed to the uuid branch (and fail as an invalid uuid) rather
+    than crash on int(database_id_or_uuid)."""
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceValueIsIncorrect
+
+    with pytest.raises(DatasourceValueIsIncorrect):
+        DatasourceDAO.get_datasource(
+            datasource_type="table",
+            database_id_or_uuid="²",
         )
 
 

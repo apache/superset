@@ -33,13 +33,17 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
+import DraftDashboardNotice from 'src/features/reports/DraftDashboardNotice';
+import reportErrorMessage from 'src/features/reports/reportErrorMessage';
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import {
   editReport,
+  fetchUISpecificReport,
   subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
+  Button,
   Checkbox,
   Input,
   LabeledErrorBoundInput,
@@ -59,7 +63,9 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import { useAppDispatch } from 'src/views/store';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
@@ -84,6 +90,7 @@ import {
 interface ReportProps {
   onHide: () => {};
   addDangerToast: (msg: string) => void;
+  addInfoToast: (msg: string) => void;
   show: boolean;
   userEmail: string;
   ccEmail: string;
@@ -119,6 +126,7 @@ const EMPTY_OBJECT = {};
 
 function ReportModal({
   onHide,
+  addInfoToast,
   show = false,
   dashboardId,
   chart,
@@ -137,6 +145,11 @@ function ReportModal({
     ? NotificationFormats.Text
     : NotificationFormats.PNG;
   const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
+  const bootstrapUser = getBootstrapData().user;
+  const currentUserId =
+    bootstrapUser && 'userId' in bootstrapUser
+      ? bootstrapUser.userId
+      : undefined;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -166,8 +179,10 @@ function ReportModal({
     initialState,
   );
   const [cronError, setCronError] = useState<CronError>();
+  const [executeAsSelf, setExecuteAsSelf] = useState(false);
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const store = useStore();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
     const isChartReport = creationMethod === CreationMethod.Charts;
@@ -182,6 +197,7 @@ function ReportModal({
   const isEditMode = report && Object.keys(report).length;
 
   useEffect(() => {
+    setExecuteAsSelf(false);
     if (isEditMode) {
       setCurrentReport(report);
     } else {
@@ -189,12 +205,28 @@ function ReportModal({
     }
   }, [isEditMode, report]);
 
+  const formatChanged =
+    isChart &&
+    Boolean(isEditMode) &&
+    (currentReport.report_format || defaultNotificationFormat) !==
+      report.report_format;
+  const formatRequiresTakeover =
+    isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
+    formatChanged &&
+    !isUserAdmin(bootstrapUser) &&
+    (report.run_as_type !== 'fixed_user' ||
+      report.run_as?.id !== currentUserId);
+
   const onSave = async () => {
     const commonFields: Partial<ReportObject> = {
       type: 'Report',
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
+      // A report belongs to either a chart or a dashboard, never both. Explore can
+      // carry dashboard context even for a chart-scoped report, so send only the
+      // entity that matches the creation method; a payload with both `chart` and
+      // `dashboard` is rejected by the backend with a 422 error.
       ...(creationMethod === CreationMethod.Charts
         ? { chart: chart?.id }
         : { dashboard: dashboardId }),
@@ -212,6 +244,11 @@ function ReportModal({
       }),
     };
 
+    const resourceId =
+      creationMethod === CreationMethod.Charts ? chart?.id : dashboardId;
+    const filterField =
+      creationMethod === CreationMethod.Charts ? 'chart_id' : 'dashboard_id';
+
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
       if (isEditMode && currentReport.id) {
@@ -223,6 +260,9 @@ function ReportModal({
             ...(currentUserSubjectId === undefined
               ? {}
               : { editors: [currentUserSubjectId] }),
+            ...(formatRequiresTakeover && executeAsSelf
+              ? { run_as: currentUserId, run_as_type: 'fixed_user' as const }
+              : {}),
             recipients: [
               {
                 recipient_config_json: {
@@ -239,8 +279,52 @@ function ReportModal({
         // Subscribe path: creation_method, editors, and recipients are set server-side.
         await dispatch(subscribeReport(commonFields as ReportObject));
       }
+      if (
+        isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
+        resourceId != null
+      ) {
+        await dispatch(
+          fetchUISpecificReport({
+            userId: currentUserId,
+            filterField,
+            creationMethod,
+            resourceId,
+          }),
+        );
+      }
       onHide();
     } catch (e) {
+      if (
+        !isEditMode &&
+        (e as Response)?.status === 409 &&
+        resourceId != null &&
+        currentUserId !== undefined
+      ) {
+        // The user already subscribed to this chart or dashboard, e.g. from
+        // another tab. Load that subscription so the modal switches to editing
+        // it instead of reporting a failure.
+        await dispatch(
+          fetchUISpecificReport({
+            userId: currentUserId,
+            filterField,
+            creationMethod,
+            resourceId,
+          }),
+        );
+        if (reportSelector(store.getState(), creationMethod, resourceId)) {
+          addInfoToast(
+            creationMethod === CreationMethod.Charts
+              ? t(
+                  'You are already subscribed to this chart. Your existing report has been opened for editing.',
+                )
+              : t(
+                  'You are already subscribed to this dashboard. Your existing report has been opened for editing.',
+                ),
+          );
+          setCurrentReport({ isSubmitting: false, custom_width: undefined });
+          return;
+        }
+      }
       const { error } = await getClientErrorObject(e);
       setCurrentReport({ error });
     }
@@ -265,7 +349,10 @@ function ReportModal({
         key="submit"
         buttonStyle="primary"
         onClick={onSave}
-        disabled={!currentReport.name}
+        disabled={
+          !currentReport.name ||
+          (formatRequiresTakeover && (!executeAsSelf || currentUserId == null))
+        }
         loading={currentReport.isSubmitting}
       >
         {isEditMode ? t('Save') : t('Add')}
@@ -310,6 +397,51 @@ function ReportModal({
           ]}
         />
       </div>
+      {show && creationMethod === CreationMethod.Dashboards && (
+        <DraftDashboardNotice
+          dashboardId={dashboardId}
+          usesDefaultExecutor={
+            !isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) ||
+            (!executeAsSelf && Boolean(isEditMode) && !report.run_as_type)
+          }
+          runsAsCurrentUser={
+            isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
+            (executeAsSelf ||
+              !isEditMode ||
+              report.run_as?.id === currentUserId)
+          }
+        />
+      )}
+      {formatRequiresTakeover && (
+        <Alert
+          type={executeAsSelf ? 'info' : 'warning'}
+          showIcon
+          message={
+            executeAsSelf
+              ? t('Content and permissions')
+              : t('Content and recipient edits are restricted')
+          }
+          description={
+            executeAsSelf
+              ? t(
+                  'This schedule will use your permissions. You need access to its content and, for alerts, its condition query. Changes take effect when you save.',
+                )
+              : t(
+                  'You can edit the name and schedule, but changing the delivered content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                )
+          }
+          action={
+            !executeAsSelf && (
+              <Button
+                onClick={() => setExecuteAsSelf(true)}
+                disabled={currentUserId == null}
+              >
+                {t('Execute using my permissions')}
+              </Button>
+            )
+          }
+        />
+      )}
     </>
   );
   const renderCustomWidthSection = (
@@ -499,7 +631,7 @@ function ReportModal({
               ? t('Failed to update report')
               : t('Failed to create report')
           }
-          description={currentReport.error}
+          description={reportErrorMessage(currentReport.error)}
         />
       )}
     </StyledModal>

@@ -81,7 +81,7 @@ import {
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
-import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
+import { asIcon, NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -488,23 +488,37 @@ const RightMenu = ({
             );
 
             sectionItems.push({
-              key: child.label,
-              label: isFrontendRoute(child.url) ? (
-                <Link to={stripAppRoot(child.url || '')}>
-                  {menuItemDisplay}
-                </Link>
-              ) : (
-                <Typography.Link
-                  href={child.url || ''}
-                  css={css`
-                    display: flex;
-                    align-items: center;
-                    line-height: ${theme.sizeUnit * 10}px;
-                  `}
-                >
-                  {menuItemDisplay}
-                </Typography.Link>
-              ),
+              // `name` where there is one, because an extension-contributed
+              // entry carries a unique one and its label is the author's to
+              // choose: a page labelled like a host entry would otherwise
+              // give two children the same key.
+              key: child.name ?? child.label,
+              icon: asIcon(child.icon),
+              // An item that runs a command has a handler and no address.
+              // Without this branch it rendered as `href=""`, which reloads
+              // the dropdown's own page and never runs the command. This
+              // menu is built here and not by `Menu.tsx`'s `buildMenuItem`,
+              // so the branch has to exist in both places.
+              ...(child.onClick && !child.url
+                ? { label: menuItemDisplay, onClick: child.onClick }
+                : {
+                    label: isFrontendRoute(child.url) ? (
+                      <Link to={stripAppRoot(child.url || '')}>
+                        {menuItemDisplay}
+                      </Link>
+                    ) : (
+                      <Typography.Link
+                        href={child.url || ''}
+                        css={css`
+                          display: flex;
+                          align-items: center;
+                          line-height: ${theme.sizeUnit * 10}px;
+                        `}
+                      >
+                        {menuItemDisplay}
+                      </Typography.Link>
+                    ),
+                  }),
             });
           }
         });
@@ -512,7 +526,10 @@ const RightMenu = ({
         items.push({
           type: 'group',
           label: section.label,
-          key: section.label,
+          // `name` where there is one, for the same reason as the children
+          // above: the trailing group that holds contributed items naming no
+          // section carries no label, so it needs a key of its own.
+          key: section.name ?? section.label,
           children: sectionItems,
         });
 
@@ -525,6 +542,22 @@ const RightMenu = ({
         items.push({ type: 'divider', key: 'user-divider' });
 
         const userItems: MenuItem[] = [];
+        const hasArchiveEntry = settings?.some(section =>
+          section.childs?.some(
+            child =>
+              typeof child !== 'string' && child.name === 'Recently Archived',
+          ),
+        );
+        if (navbarRight.can_access_recently_archived && !hasArchiveEntry) {
+          userItems.push({
+            key: 'recently-archived',
+            label: (
+              <Typography.Link href={ensureAppRoot('/archived/')}>
+                {t('Recently Archived')}
+              </Typography.Link>
+            ),
+          });
+        }
         if (navbarRight.user_info_url) {
           userItems.push({
             key: 'info',
@@ -913,7 +946,7 @@ const RightMenu = ({
       )}
       {navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>
-          <Icons.LoginOutlined /> {t('Login')}
+          <Icons.LoginOutlined /> {t('Sign in')}
         </StyledAnchor>
       )}
       <TelemetryPixel

@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from superset.common import query_actions
@@ -35,6 +36,34 @@ from superset.common.query_actions import (
 from superset.common.query_object import QueryObject
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import QueryObjectFilterClause
+
+
+@pytest.mark.parametrize("cache_status", ["HIT", "MISS", "MIXED"])
+def test_results_payload_preserves_semantic_cache_provenance(cache_status: str) -> None:
+    """RESULTS filtering retains the status consumed by the response header."""
+    context: MagicMock = MagicMock()
+    query: MagicMock = MagicMock(result_type=ChartDataResultType.RESULTS)
+    context.get_data.return_value = [{"revenue": 5}]
+    payload: dict[str, Any] = {
+        "df": pd.DataFrame({"revenue": [5]}),
+        "status": QueryStatus.SUCCESS,
+        "rowcount": 1,
+        "semantic_cache_status": cache_status,
+        "applied_filter_columns": [],
+        "rejected_filter_columns": [],
+    }
+    with (
+        patch.object(query_actions, "_get_datasource", return_value=MagicMock()),
+        patch.object(query_actions, "_detect_currency", return_value=None),
+        patch.object(query_actions, "_filter_status", return_value={}),
+        patch.object(query_actions, "extract_dataframe_dtypes", return_value=[0]),
+    ):
+        result: dict[str, Any] = query_actions._materialize_full_payload(
+            context, query, payload
+        )
+    assert result["semantic_cache_status"] == cache_status
+    assert result["data"] == [{"revenue": 5}]
+    assert "df" not in result
 
 
 def test_prepare_drill_detail_query_does_not_strip_filters() -> None:

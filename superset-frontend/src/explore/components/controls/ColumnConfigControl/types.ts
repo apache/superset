@@ -41,6 +41,7 @@ export type ColumnConfig = {
 export interface ColumnConfigInfo {
   isChildColumn: boolean;
   isTimeComparisonColumn: boolean;
+  key: string;
   name: string;
   type?: GenericDataType;
   config: JsonObject;
@@ -70,5 +71,3 @@ export function isTabLayoutItem(
 ): layoutItem is TabLayoutItem {
   return !!(layoutItem as TabLayoutItem)?.tab;
 }
-
-export default {};

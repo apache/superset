@@ -81,7 +81,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange?: () => void;
-  renderGroupingHeaders?: () => JSX.Element;
+  resetColumnOrder?: boolean;
+  renderGroupingHeaders?: () => ReactNode;
   renderTimeComparisonDropdown?: () => JSX.Element;
   handleSortByChange: (sortBy: SortByItem[]) => void;
   sortByFromParent: SortByItem[];
@@ -93,6 +94,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   searchOptions: SearchOption[];
   onFilteredDataChange?: (rows: Row<D>[], filterValue?: string) => void;
   onFilteredRowsChange?: (rows: D[]) => void;
+  /** Query criteria whose changes invalidate the client page, excluding result rows. */
+  pageResetKey?: unknown;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -103,21 +106,19 @@ const sortTypes = {
   alphanumeric: sortAlphanumericCaseInsensitive,
 };
 
-// Prefer a stable identifier from original row data; otherwise use a deterministic
-// concatenation of visible values (keys sorted so the result does not depend on
-// column order).
+// Build a deterministic key from the row's visible values (keys sorted so the
+// result does not depend on column order), prefixed with a stable identifier
+// from the original row data when one exists.
 function stableRowKey<D extends object>(r: Row<D>): string {
-  const orig = r.original as Record<string, unknown> | undefined;
-  if (orig) {
-    const idLike = orig.id ?? orig.ID ?? orig.key ?? orig.uuid;
-    if (idLike != null) return String(idLike);
-  }
-
-  // Fallback: derive from row.values, sorting the keys so that reordering the
-  // columns does not change the key.
   const v = r.values as Record<string, unknown>;
   const keys = Object.keys(v).sort();
-  return keys.map(k => String(v[k] ?? '')).join('|');
+  const valuesKey = keys.map(k => String(v[k] ?? '')).join('|');
+
+  // Prefix the identifier so a value change on a row with a stable id still
+  // changes the key.
+  const orig = r.original as Record<string, unknown> | undefined;
+  const idLike = orig ? (orig.id ?? orig.ID ?? orig.key ?? orig.uuid) : null;
+  return idLike != null ? `${String(idLike)}|${valuesKey}` : valuesKey;
 }
 
 // Very small, fast hash for strings (no crypto dependency).
@@ -161,6 +162,7 @@ export default typedMemo(function DataTable<D extends object>({
   serverPagination,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
+  resetColumnOrder = false,
   renderGroupingHeaders,
   renderTimeComparisonDropdown,
   handleSortByChange,
@@ -173,6 +175,7 @@ export default typedMemo(function DataTable<D extends object>({
   searchOptions,
   onFilteredDataChange,
   onFilteredRowsChange,
+  pageResetKey,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -205,7 +208,7 @@ export default typedMemo(function DataTable<D extends object>({
   });
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
-  const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
+  const sortByRef = useRef([]); // Keep the initial client-side sort stable across renders.
   const pageSizeRef = useRef([initialPageSize, resultsSize]);
   const hasPagination = initialPageSize > 0 && resultsSize > 0; // pageSize == 0 means no pagination
   const hasGlobalControl =
@@ -301,6 +304,39 @@ export default typedMemo(function DataTable<D extends object>({
     ...tableHooks,
   );
 
+  const previousPageInputs = useRef({ pageResetKey, sortBy, filterValue });
+  useEffect(() => {
+    const previous = previousPageInputs.current;
+    previousPageInputs.current = { pageResetKey, sortBy, filterValue };
+    // A new question starts at page one; refreshed values and selection
+    // highlighting for the same question preserve the user's page.
+    // Server pages are owned by the caller, not by this client-side state.
+    if (
+      !serverPagination &&
+      (!isEqual(pageResetKey, previous.pageResetKey) ||
+        !isEqual(sortBy, previous.sortBy) ||
+        filterValue !== previous.filterValue)
+    ) {
+      gotoPage(0);
+    }
+  }, [pageResetKey, sortBy, filterValue, serverPagination, gotoPage]);
+
+  // Clamp pageIndex when filtered data shrinks below current view (#31403).
+  // pageCount is derived from the filtered rows, so zero rows always means
+  // pageCount === 0 and is handled by the second branch.
+  if (pageCount > 0 && pageIndex >= pageCount) {
+    gotoPage(pageCount - 1);
+  } else if (pageCount === 0 && pageIndex !== 0) {
+    gotoPage(0);
+  }
+
+  const columnOrderKey = columnNames.join('\0');
+  useEffect(() => {
+    if (resetColumnOrder) {
+      setColumnOrder(columnOrderKey ? columnOrderKey.split('\0') : []);
+    }
+  }, [columnOrderKey, resetColumnOrder, setColumnOrder]);
+
   const rowSignature = useMemo(
     // sort the rows by id to ensure the total is not recalculated when the rows are only reordered
     () =>
@@ -338,7 +374,12 @@ export default typedMemo(function DataTable<D extends object>({
   const lastSigRef = useRef<string>('');
 
   useEffect(() => {
-    if (serverPagination || typeof onFilteredRowsChange !== 'function') {
+    if (
+      serverPagination ||
+      typeof onFilteredRowsChange !== 'function' ||
+      !columns ||
+      columns.length === 0
+    ) {
       return;
     }
 
@@ -363,7 +404,7 @@ export default typedMemo(function DataTable<D extends object>({
         rafRef.current = null;
       }
     };
-  }, [rows, serverPagination, onFilteredRowsChange]);
+  }, [rows, serverPagination, onFilteredRowsChange, columns]);
 
   const handleSearchChange = useCallback(
     (query: string) => {
@@ -532,20 +573,32 @@ export default typedMemo(function DataTable<D extends object>({
   let resultOnPageChange: (page: number) => void = gotoPage;
   if (serverPagination) {
     const serverPageSize = serverPaginationData?.pageSize ?? initialPageSize;
-    resultPageCount = Math.ceil(rowCount / serverPageSize);
+    resultCurrentPageSize = serverPageSize;
+    const exactMatch = pageSizeOptions.some(
+      ([option]) => option === resultCurrentPageSize,
+    );
+    if (!exactMatch) {
+      const nearestOption = pageSizeOptions.find(
+        ([option]) => option >= resultCurrentPageSize,
+      );
+      if (nearestOption) {
+        resultCurrentPageSize = nearestOption[0];
+      } else if (pageSizeOptions.length > 0) {
+        resultCurrentPageSize = pageSizeOptions[pageSizeOptions.length - 1][0];
+      } else {
+        resultCurrentPageSize = 0;
+      }
+    }
+    // Use the fallback-adjusted page size (not the raw, possibly invalid
+    // serverPageSize) so the page count and the server callback stay in
+    // sync with what the selector actually displays.
+    resultPageCount = Math.ceil(rowCount / resultCurrentPageSize);
     if (!Number.isFinite(resultPageCount)) {
       resultPageCount = 0;
     }
-    resultCurrentPageSize = serverPageSize;
-    const foundPageSizeIndex = pageSizeOptions.findIndex(
-      ([option]) => option >= resultCurrentPageSize,
-    );
-    if (foundPageSizeIndex === -1) {
-      resultCurrentPageSize = 0;
-    }
     resultCurrentPage = serverPaginationData?.currentPage ?? 0;
     resultOnPageChange = (pageNumber: number) =>
-      onServerPaginationChange(pageNumber, serverPageSize);
+      onServerPaginationChange(pageNumber, resultCurrentPageSize);
   }
 
   return (

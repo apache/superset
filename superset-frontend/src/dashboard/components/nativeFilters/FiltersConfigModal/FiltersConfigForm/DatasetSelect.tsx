@@ -21,8 +21,8 @@ import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  ClientErrorObject,
   getClientErrorObject,
+  selectClientErrorMessage,
 } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
@@ -45,15 +45,8 @@ interface DatasetSelectProps {
   }) => void;
   value?: { label: string | ReactNode; value: number; kind?: string };
   excludeDatasetIds?: number[];
+  excludeSemanticViews?: boolean;
 }
-
-const getErrorMessage = ({ error, message }: ClientErrorObject) => {
-  let errorText = message || error || t('An error has occurred');
-  if (message === 'Forbidden') {
-    errorText = t('You do not have permission to edit this dashboard');
-  }
-  return errorText;
-};
 
 /**
  * Builds a unique select-option value for the combined datasource endpoint.
@@ -92,12 +85,18 @@ export const loadDatasetOptions = async (
   page: number,
   pageSize: number,
   excludeDatasetIds: number[] = [],
+  excludeSemanticViews = false,
 ) => {
   const useSemanticLayers = isFeatureEnabled(FeatureFlag.SemanticLayers);
-  return fetchDatasourceList(search, page, pageSize, { get: cachedSupersetGet })
+  return fetchDatasourceList(search, page, pageSize, {
+    get: cachedSupersetGet,
+    includeSemanticViews: !excludeSemanticViews,
+  })
     .then(({ result, count }) => {
       const filteredResult = result.filter(
-        item => !isExcludedDatasource(item, excludeDatasetIds),
+        item =>
+          !isExcludedDatasource(item, excludeDatasetIds) &&
+          (!excludeSemanticViews || item.kind !== 'semantic_view'),
       );
 
       const list: {
@@ -120,7 +119,11 @@ export const loadDatasetOptions = async (
       };
     })
     .catch(async error => {
-      const errorMessage = getErrorMessage(await getClientErrorObject(error));
+      const errorMessage = selectClientErrorMessage(
+        await getClientErrorObject(error),
+        t('An error has occurred'),
+        { 403: t('You do not have permission to edit this dashboard') },
+      );
       throw new Error(errorMessage);
     });
 };
@@ -129,13 +132,20 @@ const DatasetSelect = ({
   onChange,
   value,
   excludeDatasetIds = [],
+  excludeSemanticViews = false,
 }: DatasetSelectProps) => {
   const useSemanticLayers = isFeatureEnabled(FeatureFlag.SemanticLayers);
 
   const loadDatasetOptionsCallback = useCallback(
     (search: string, page: number, pageSize: number) =>
-      loadDatasetOptions(search, page, pageSize, excludeDatasetIds),
-    [excludeDatasetIds],
+      loadDatasetOptions(
+        search,
+        page,
+        pageSize,
+        excludeDatasetIds,
+        excludeSemanticViews,
+      ),
+    [excludeDatasetIds, excludeSemanticViews],
   );
 
   // Convert the external numeric value to the composite string format that

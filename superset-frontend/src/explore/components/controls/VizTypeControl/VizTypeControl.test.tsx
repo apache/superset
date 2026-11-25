@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import {
   ChartLabel,
   ChartMetadata,
@@ -23,6 +24,7 @@ import {
   Preset,
   VizType,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   render,
   cleanup,
@@ -254,11 +256,11 @@ describe('VizTypeControl', () => {
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
-    userEvent.click(
+    await userEvent.click(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     );
     expect(props.onChange).not.toHaveBeenCalled();
-    userEvent.click(
+    await userEvent.click(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Table'),
     );
     expect(props.onChange).toHaveBeenCalledWith('table');
@@ -269,7 +271,7 @@ describe('VizTypeControl', () => {
     expect(
       screen.queryByText('Select a visualization type'),
     ).not.toBeInTheDocument();
-    userEvent.click(screen.getByText('View all charts'));
+    await userEvent.click(screen.getByText('View all charts'));
     expect(
       await screen.findByText('Select a visualization type'),
     ).toBeInTheDocument();
@@ -280,14 +282,14 @@ describe('VizTypeControl', () => {
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
-    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
     expect(
       await within(visualizations).findByText('Line Chart'),
     ).toBeInTheDocument();
 
     // search
-    userEvent.type(
+    await userEvent.type(
       screen.getByTestId(getTestId('search-input')),
       'time series',
     );
@@ -308,7 +310,7 @@ describe('VizTypeControl', () => {
     // whole tile), so it must hang off the image's bottom-right corner
     // rather than its top edge.
     await waitForRenderWrapper();
-    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
     const image = await within(visualizations).findByAltText(
@@ -327,7 +329,7 @@ describe('VizTypeControl', () => {
     // height; the full (possibly truncated) name must stay discoverable through
     // the title attribute.
     await waitForRenderWrapper();
-    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
     const labels = await within(visualizations).findAllByTestId(
@@ -342,12 +344,12 @@ describe('VizTypeControl', () => {
 
   test('Submit on viz type double-click', async () => {
     await waitForRenderWrapper();
-    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
     const visualizations = screen.getByTestId(getTestId('viz-row'));
-    userEvent.click(within(visualizations).getByText('Bar Chart'));
+    await userEvent.click(within(visualizations).getByText('Bar Chart'));
 
     expect(defaultProps.onChange).not.toHaveBeenCalled();
-    userEvent.dblClick(within(visualizations).getByText('Line Chart'));
+    await userEvent.dblClick(within(visualizations).getByText('Line Chart'));
 
     expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.Line);
   });
@@ -378,7 +380,7 @@ describe('VizTypeControl', () => {
     // Click on the "KPI" category button as per the original Cypress test
     const kpiTab = screen.getByRole('tab', { name: 'KPI' });
     expect(kpiTab).toBeInTheDocument();
-    userEvent.click(kpiTab);
+    await userEvent.click(kpiTab);
 
     // Verify KPI category charts are shown
     await waitFor(() => {
@@ -389,12 +391,12 @@ describe('VizTypeControl', () => {
 
     // Select Big Number chart type as per original Cypress test
     const bigNumberChart = within(visualizations).getByText('Big Number');
-    userEvent.click(bigNumberChart);
+    await userEvent.click(bigNumberChart);
 
     // Click the Select button to confirm selection
     const selectButton = screen.getByText('Select');
     expect(selectButton).toBeInTheDocument();
-    userEvent.click(selectButton);
+    await userEvent.click(selectButton);
 
     // Verify onChange was called with Big Number viz type
     expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.BigNumberTotal);
@@ -406,7 +408,7 @@ describe('VizTypeControl', () => {
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
     // Start with All charts
-    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
     await waitFor(() => {
       expect(
         within(visualizations).getByText('Line Chart'),
@@ -414,7 +416,7 @@ describe('VizTypeControl', () => {
     });
 
     // Switch to KPI category
-    userEvent.click(screen.getByRole('tab', { name: 'KPI' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'KPI' }));
     await waitFor(() => {
       expect(
         within(visualizations).getByText('Big Number'),
@@ -426,7 +428,7 @@ describe('VizTypeControl', () => {
     });
 
     // Switch back to All charts
-    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
     await waitFor(() => {
       expect(
         within(visualizations).getByText('Line Chart'),
@@ -436,5 +438,14 @@ describe('VizTypeControl', () => {
         within(visualizations).getByText('Big Number'),
       ).toBeInTheDocument();
     });
+  });
+
+  test('Category tabs show a visible keyboard focus ring', async () => {
+    await waitForRenderWrapper();
+    expect(screen.getByRole('tab', { name: 'All charts' })).toHaveStyleRule(
+      'outline',
+      `2px solid ${supersetTheme.colorPrimary}`,
+      { target: ':focus-visible' },
+    );
   });
 });

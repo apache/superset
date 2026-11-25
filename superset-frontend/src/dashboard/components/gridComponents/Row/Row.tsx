@@ -22,7 +22,6 @@ import {
   useCallback,
   useRef,
   useEffect,
-  useLayoutEffect,
   useMemo,
   memo,
   RefObject,
@@ -102,6 +101,7 @@ const GridRow = styled.div<{ editMode: boolean }>`
       align-self: center;
       &.empty-droptarget--vertical {
         min-width: ${theme.sizeUnit * 4}px;
+        align-self: stretch;
         &:not(:last-child) {
           width: ${theme.sizeUnit * 4}px;
         }
@@ -183,7 +183,6 @@ const Row = memo((props: RowProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
-  const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isComponentVisibleRef = useRef(isComponentVisible);
 
@@ -283,14 +282,6 @@ const Row = memo((props: RowProps) => {
       observerDisabler?.disconnect();
     };
   }, []);
-
-  useLayoutEffect(() => {
-    if (!editMode) return;
-    const updatedHeight = containerRef.current?.clientHeight;
-    if (updatedHeight !== undefined && updatedHeight !== containerHeight) {
-      setContainerHeight(updatedHeight);
-    }
-  });
 
   const handleChangeFocus = useCallback((nextFocus: boolean) => {
     setIsFocused(Boolean(nextFocus));
@@ -403,7 +394,7 @@ const Row = memo((props: RowProps) => {
               )}
               editMode
               style={{
-                height: rowItems.length > 0 ? containerHeight : '100%',
+                height: '100%',
                 ...(rowItems.length > 0 && { width: 16 }),
               }}
             >
@@ -416,54 +407,68 @@ const Row = memo((props: RowProps) => {
             <div css={emptyRowContentStyles as any}>{t('Empty row')}</div>
           )}
           {rowItems.length > 0 &&
-            rowItems.map((componentId, itemIndex) => (
-              <Fragment key={componentId}>
-                <DashboardComponent
-                  key={componentId}
-                  id={componentId}
-                  parentId={rowComponent.id as string}
-                  depth={depth + 1}
-                  index={itemIndex}
-                  availableColumnCount={remainColumnCount}
-                  columnWidth={columnWidth}
-                  onResizeStart={onResizeStart}
-                  onResize={onResize}
-                  onResizeStop={onResizeStop}
-                  isComponentVisible={isComponentVisible}
-                  onChangeTab={onChangeTab}
-                  isInView={isInView}
-                />
-                {editMode && (
-                  <Droppable
-                    component={rowItems}
-                    parentComponent={rowComponent}
-                    depth={depth}
-                    index={itemIndex + 1}
-                    orientation="row"
-                    onDrop={handleComponentDrop}
-                    className={cx(
-                      'empty-droptarget',
-                      'empty-droptarget--vertical',
-                      remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1 &&
-                        'droptarget-side',
-                    )}
-                    editMode
-                    style={{
-                      height: containerHeight,
-                      ...(remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1 && { width: 16 }),
-                    }}
-                  >
-                    {({
-                      dropIndicatorProps,
-                    }: {
-                      dropIndicatorProps: JsonObject;
-                    }) => dropIndicatorProps && <div {...dropIndicatorProps} />}
-                  </Droppable>
-                )}
-              </Fragment>
-            ))}
+            rowItems.map((componentId, itemIndex) => {
+              const isTrailingSideTarget =
+                remainColumnCount === 0 && itemIndex === rowItems.length - 1;
+              return (
+                <Fragment key={componentId}>
+                  <DashboardComponent
+                    key={componentId}
+                    id={componentId}
+                    parentId={rowComponent.id as string}
+                    depth={depth + 1}
+                    index={itemIndex}
+                    availableColumnCount={remainColumnCount}
+                    columnWidth={columnWidth}
+                    onResizeStart={onResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                    isComponentVisible={isComponentVisible}
+                    onChangeTab={onChangeTab}
+                    isInView={isInView}
+                  />
+                  {editMode && (
+                    <Droppable
+                      component={rowItems}
+                      parentComponent={rowComponent}
+                      depth={depth}
+                      index={itemIndex + 1}
+                      orientation="row"
+                      onDrop={handleComponentDrop}
+                      className={cx(
+                        'empty-droptarget',
+                        'empty-droptarget--vertical',
+                        isTrailingSideTarget && 'droptarget-side',
+                      )}
+                      editMode
+                      style={{
+                        // Only the last target in a full row (the absolutely
+                        // positioned "side" target) actually resolves a
+                        // percentage height -- for every other, in-flow
+                        // target, GridRow's height is `fit-content`
+                        // (indefinite), and a percentage height on a flex
+                        // item under an indefinite-height parent resolves to
+                        // `auto`/is ignored per the CSS flexbox spec, which
+                        // defeats the `align-self: stretch` the CSS above
+                        // already declares for it. `height: 'auto'` lets that
+                        // stretch actually apply instead of collapsing the
+                        // target to its content size.
+                        height: isTrailingSideTarget ? '100%' : 'auto',
+                        ...(isTrailingSideTarget && { width: 16 }),
+                      }}
+                    >
+                      {({
+                        dropIndicatorProps,
+                      }: {
+                        dropIndicatorProps: JsonObject;
+                      }) =>
+                        dropIndicatorProps && <div {...dropIndicatorProps} />
+                      }
+                    </Droppable>
+                  )}
+                </Fragment>
+              );
+            })}
         </GridRow>
       </WithPopoverMenu>
     ),
@@ -471,7 +476,6 @@ const Row = memo((props: RowProps) => {
       backgroundStyle.className,
       backgroundStyle.value,
       columnWidth,
-      containerHeight,
       depth,
       editMode,
       handleChangeBackground,

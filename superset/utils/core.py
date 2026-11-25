@@ -39,7 +39,7 @@ import zlib
 from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -60,7 +60,7 @@ from typing import (
     TypeVar,
 )
 from urllib.parse import unquote_plus, urlparse
-from zipfile import ZipFile
+from zipfile import ZipFile, ZipInfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import markdown as md
@@ -69,7 +69,16 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app as app, g, request, Response, send_file
+from flask import (
+    current_app as app,
+    g,
+    has_app_context,
+    has_request_context,
+    request,
+    Response,
+    send_file,
+    session,
+)
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_sqlalchemy import SQLAlchemy
@@ -86,6 +95,7 @@ from typing_extensions import TypeGuard
 
 from superset.constants import (
     DEFAULT_USER_AGENT,
+    EPOCH_FORMATS,
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -116,6 +126,7 @@ from superset.utils.pandas import detect_datetime_format
 if TYPE_CHECKING:
     from superset.explorables.base import ColumnMetadata, Explorable
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -211,6 +222,42 @@ class AnnotationType(StrEnum):
     TIME_SERIES = "TIME_SERIES"
 
 
+# Annotation source types whose ``value`` field references another Chart
+# (resolved to a local Slice.id on import / serialised back to UUID on export).
+# Add new chart-referencing source types here; all consumers pick them up
+# automatically via this single definition.
+ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE: frozenset[str] = frozenset(
+    {
+        "table",
+        "line",
+    }
+)
+
+
+def get_annotation_layer_lists(
+    params: Any, query_context: Any
+) -> list[list[dict[str, Any]]]:
+    """
+    Return every ``annotation_layers`` list of a chart: the one in ``params``
+    plus those in ``query_context["queries"]`` and ``query_context["form_data"]``.
+
+    The lists are returned by reference so callers can rewrite them in place.
+    Containers that are missing or malformed are skipped.
+    """
+    containers: list[Any] = [params]
+    if isinstance(query_context, dict):
+        queries = query_context.get("queries")
+        if isinstance(queries, list):
+            containers.extend(queries)
+        containers.append(query_context.get("form_data"))
+    return [
+        container["annotation_layers"]
+        for container in containers
+        if isinstance(container, dict)
+        and isinstance(container.get("annotation_layers"), list)
+    ]
+
+
 class GenericDataType(IntEnum):
     """
     Generic database column type that fits both frontend and backend.
@@ -258,6 +305,7 @@ class DatasourceDict(TypedDict):
 
 
 class AdhocFilterClause(TypedDict, total=False):
+    timeGrain: str | None
     clause: str
     expressionType: str
     filterOptionName: str | None
@@ -274,6 +322,7 @@ class QueryObjectFilterClause(TypedDict, total=False):
     val: FilterValues | None
     grain: str | None
     isExtra: bool | None
+    is_literal: bool
 
 
 class ExtraFiltersTimeColumnType(StrEnum):
@@ -498,7 +547,7 @@ def cast_to_num(value: float | int | str | None) -> float | int | None:
         return None
     if isinstance(value, (int, float)):
         return value
-    if value.isdigit():
+    if value.isdecimal():
         return int(value)
     try:
         return float(value)
@@ -1088,6 +1137,8 @@ def simple_filter_to_adhoc(
         "operator": filter_clause["op"],
         "subject": cast(str, filter_clause["col"]),
     }
+    if filter_clause.get("grain"):
+        result["timeGrain"] = filter_clause["grain"]
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
     result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
@@ -1511,6 +1562,15 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
                             "val": adhoc_filter.get("comparator"),
+                            **(
+                                {"grain": adhoc_filter["timeGrain"]}
+                                if adhoc_filter.get("timeGrain")
+                                else {}
+                            ),
+                            # keep dashboard provenance for semantic-view reporting
+                            **(
+                                {"isExtra": True} if adhoc_filter.get("isExtra") else {}
+                            ),
                         }
                     )
             elif expression_type == "SQL":
@@ -1597,14 +1657,18 @@ def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
         if force or g.user is None:
             current = g.user
             g.user = user
-            yield
-            g.user = current
+            try:
+                yield
+            finally:
+                g.user = current
         else:
             yield
     else:
         g.user = user
-        yield
-        delattr(g, "user")
+        try:
+            yield
+        finally:
+            delattr(g, "user")
 
 
 def parse_ssl_cert(certificate: str) -> Certificate:
@@ -1619,7 +1683,9 @@ def parse_ssl_cert(certificate: str) -> Certificate:
     try:
         return load_pem_x509_certificate(certificate.encode("utf-8"), default_backend())
     except ValueError as ex:
-        raise CertificateException("Invalid certificate") from ex
+        # No explicit message: the exception's own default is translated at
+        # construction, whereas a literal here would bypass translation.
+        raise CertificateException() from ex
 
 
 def create_ssl_cert_file(certificate: str) -> str:
@@ -2015,6 +2081,7 @@ class DateColumn:
     offset: int | None = None
     time_shift: str | None = None
     timezone: str | None = None  # IANA timezone name
+    date_only: bool = False  # e.g. a DATE column, which the timezone cannot move
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -2029,12 +2096,14 @@ class DateColumn:
         offset: int | None,
         time_shift: str | None,
         timezone: str | None = None,
+        date_only: bool = False,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
             timezone=timezone,
+            date_only=date_only,
             col_label=DTTM_ALIAS,
         )
 
@@ -2044,7 +2113,7 @@ def _process_datetime_column(
     col: DateColumn,
 ) -> None:
     """Process a single datetime column with format detection."""
-    if col.timestamp_format in ("epoch_s", "epoch_ms"):
+    if col.timestamp_format in EPOCH_FORMATS:
         dttm_series = df[col.col_label]
         if is_numeric_dtype(dttm_series):
             # Column is formatted as a numeric value
@@ -2135,13 +2204,17 @@ def normalize_dttm_col(
         if _col.timezone and isinstance(_col.timezone, str):
             try:
                 tz = ZoneInfo(_col.timezone)
-                # Data is stored in UTC, convert to the dataset's configured timezone
-                # First make the datetime UTC-aware, then convert to target timezone
+                # Naive values are assumed to be UTC; values that already carry
+                # a timezone are converted from it directly
+                # A date has no time of day, so it is left as it is
                 series = df[_col.col_label]
-                if not series.empty and series.notna().any():
-                    # Convert UTC to target timezone
+                if not _col.date_only and not series.empty and series.notna().any():
                     df[_col.col_label] = (
-                        series.dt.tz_localize("UTC")
+                        (
+                            series.dt.tz_localize("UTC")
+                            if series.dt.tz is None
+                            else series
+                        )
                         .dt.tz_convert(tz)
                         .dt.tz_localize(None)  # Remove timezone info for display
                     )
@@ -2220,12 +2293,31 @@ def apply_max_row_limit(
     return max_limit
 
 
+def write_zip_entry(bundle: ZipFile, filename: str, contents: bytes) -> None:
+    """Add a file to an open ZIP bundle, stamped with the current local time.
+
+    ``ZipFile.open(name, "w")`` falls back to the 1980-01-01 DOS epoch, which
+    extractors surface as a bogus (Windows Explorer) or empty (7-Zip)
+    modification date on every extracted file. Passing an explicit ``ZipInfo``
+    gives the entry the time the export was generated instead.
+    """
+    info = ZipInfo(filename=filename, date_time=datetime.now().timetuple()[:6])
+    # A pre-built ZipInfo bypasses the bundle's own compression settings, which
+    # zipfile only copies onto entries it creates from a plain filename, so pass
+    # both through explicitly.
+    bundle.writestr(
+        info,
+        contents,
+        compress_type=bundle.compression,
+        compresslevel=bundle.compresslevel,
+    )
+
+
 def create_zip(files: dict[str, Any]) -> BytesIO:
     buf = BytesIO()
     with ZipFile(buf, "w") as bundle:
         for filename, contents in files.items():
-            with bundle.open(filename, "w") as fp:
-                fp.write(contents)
+            write_zip_entry(bundle, filename, contents)
     buf.seek(0)
     return buf
 
@@ -2313,7 +2405,7 @@ def remove_extra_adhoc_filters(form_data: dict[str, Any]) -> None:
 def to_int(v: Any, value_if_invalid: int = 0) -> int:
     try:
         return int(v)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return value_if_invalid
 
 
@@ -2347,3 +2439,62 @@ def get_user_agent(database: Database, source: QuerySource | None) -> str:
         return user_agent_func(database, source)
 
     return DEFAULT_USER_AGENT
+
+
+def _as_dict(value: Any) -> dict[str, Any]:
+    from superset.views.utils import loads_request_json
+
+    return value if isinstance(value, dict) else loads_request_json(value)
+
+
+def get_query_log_context(query: Query | None = None) -> dict[str, Any]:
+    from superset.views.utils import get_request_json_body
+
+    payload: Any = g.get("form_data")
+    args: dict[str, Any] = {}
+    chart_id: Any = None
+    carried: dict[str, Any] = {}
+    if has_request_context():
+        payload = get_request_json_body() or request.form.get("form_data") or payload
+        args = request.args.to_dict()
+        if request.endpoint == "ChartDataRestApi.get_data":
+            chart_id = (request.view_args or {}).get("pk")
+        carried.update(session.get("query_log_context") or {})
+    carried.update(g.get("query_log_context") or {})
+    payload = _as_dict(payload)
+    form_data = {
+        **_as_dict(payload.get("form_data")),
+        **_as_dict(args.get("form_data")),
+    }
+    context = {
+        "user": get_username(),
+        "dashboard_id": to_int(
+            args.get("dashboard_id")
+            or payload.get("dashboard_id")
+            or form_data.get("dashboardId")
+        )
+        or None,
+        "chart_id": to_int(
+            chart_id or payload.get("chart_id") or form_data.get("slice_id")
+        )
+        or None,
+        "sqllab_query_id": getattr(query, "id", None),
+        **carried,
+    }
+    return {key: value for key, value in context.items() if value is not None}
+
+
+@contextmanager
+def override_query_log_context(context: dict[str, Any] | None) -> Iterator[None]:
+    previous = g.get("query_log_context")
+    g.query_log_context = {**(previous or {}), **(context or {})}
+    try:
+        yield
+    finally:
+        g.query_log_context = previous
+
+
+def get_query_log_comment(database: Database, query: Query | None = None) -> str | None:
+    if has_app_context() and (log_comment_func := app.config["QUERY_LOG_COMMENT_FUNC"]):
+        return log_comment_func(database, get_query_log_context(query))
+    return None

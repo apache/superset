@@ -27,10 +27,15 @@ interface CalHeatMapInstance {
     dateFormatter: DateFormatter | null;
     timeFormatter: (t: number) => string;
     valueFormatter: (v: number) => string;
+    domain: string;
+    subDomain: string;
+    weekStartOnMonday: boolean;
   };
   formatDate(date: Date, format: string | FunctionalDateFormat): string;
   tip: { html(): (d: { t: number; v: number }) => string };
   legendTip: { html(): (d: number) => string };
+  positionSubDomainX(d: { t: number; i: number }): number;
+  getSubDomain(date: Date): Date[];
 }
 
 const CalHeatMap = CalHeatMapImport as unknown as new () => CalHeatMapInstance;
@@ -88,4 +93,39 @@ test('legend tooltip HTML escapes creator-controlled formatter output', () => {
 
   expect(html).not.toContain('<img');
   expect(html).toContain('&lt;img');
+});
+
+function positionsForMonthBlock(
+  calendar: CalHeatMapInstance,
+  monthStart: Date,
+): number[] {
+  // Mirrors how _init()/loadNewDomains() build a block's subdomain
+  // list: each cell's render position is derived from its index within
+  // that specific block's own cell list, not from the cell's own date.
+  return calendar
+    .getSubDomain(monthStart)
+    .map((date, i) => calendar.positionSubDomainX({ t: date.getTime(), i }));
+}
+
+test('Month/Week domain gives every cell in a block a distinct, non-negative position', () => {
+  // Regression test: a month block also renders the tail (or head) of
+  // an adjacent month's week. Positioning must be relative to the
+  // block being drawn, not to the cell date's own calendar month, or a
+  // borrowed cell collides with one of the block's own cells and hides
+  // its value.
+  const calendar = new CalHeatMap();
+  calendar.options.domain = 'month';
+  calendar.options.subDomain = 'week';
+  calendar.options.weekStartOnMonday = true;
+
+  // May 2026 borrows 2026-04-27 as its first cell; May's own last week
+  // (2026-05-25) must not resolve to the same on-screen column.
+  const mayPositions = positionsForMonthBlock(calendar, new Date(2026, 4, 1));
+  expect(new Set(mayPositions).size).toBe(mayPositions.length);
+
+  // June 2026's 1st falls on a Monday (the week-start day), so the
+  // block has no borrowed cell. Its own first week must stay within
+  // the block instead of resolving to a negative position.
+  const junePositions = positionsForMonthBlock(calendar, new Date(2026, 5, 1));
+  expect(Math.min(...junePositions)).toBeGreaterThanOrEqual(0);
 });

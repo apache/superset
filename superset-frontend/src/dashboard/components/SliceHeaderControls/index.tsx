@@ -53,6 +53,7 @@ import {
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import isImageOnlyExportViz from 'src/utils/isImageOnlyExportViz';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
@@ -109,6 +110,11 @@ export interface SliceHeaderControlsProps {
     description: string;
     viz_type: string;
     slice_name: string;
+    // The name as rendered in the header: the localized value, or the panel's
+    // own title override. Used for strings the viewer reads; slice_name stays
+    // the canonical value for edits, filenames and extension payloads.
+    // Kept in step with the copy of this interface in ./types.ts.
+    display_name?: string;
     slice_id: number;
     slice_description: string;
     datasource: string;
@@ -142,6 +148,7 @@ export interface SliceHeaderControlsProps {
 
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
+  addWarningToast?: (message: string) => void;
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
@@ -333,6 +340,8 @@ const SliceHeaderControls = (
             props.slice.slice_name,
             true,
             theme,
+            undefined,
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -364,6 +373,7 @@ const SliceHeaderControls = (
             true,
             theme,
             { format: 'png', backgroundType },
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -391,6 +401,7 @@ const SliceHeaderControls = (
             getScreenshotNodeSelector(props.slice.slice_id),
             props.slice.slice_name,
             true,
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -451,8 +462,10 @@ const SliceHeaderControls = (
     supersetCanShare = false,
     isCached = [],
   } = props;
-  const isTable = slice.viz_type === VizType.Table;
+  const isTable =
+    slice.viz_type === VizType.Table || slice.viz_type === VizType.TableAgGrid;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
+  const isImageOnlyExport = isImageOnlyExportViz(slice.viz_type);
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
   );
@@ -560,7 +573,11 @@ const SliceHeaderControls = (
     newMenuItems.push({
       key: MenuKeys.ExploreChart,
       label: (
-        <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
+        <Tooltip
+          title={getSliceHeaderTooltip(
+            props.slice.display_name ?? props.slice.slice_name,
+          )}
+        >
           {t('Edit chart')}
         </Tooltip>
       ),
@@ -590,6 +607,7 @@ const SliceHeaderControls = (
           modalTitle={t('View query')}
           modalBody={
             <ViewQueryModal
+              chartId={props.slice.slice_id}
               latestQueryFormData={props.formData}
               ownState={props.ownState}
             />
@@ -614,7 +632,10 @@ const SliceHeaderControls = (
             <div data-test="view-query-menu-item">{t('View as table')}</div>
           }
           modalRef={resultsMenuRef}
-          modalTitle={t('Chart Data: %s', slice.slice_name)}
+          modalTitle={t(
+            'Chart Data: %s',
+            slice.display_name ?? slice.slice_name,
+          )}
           modalBody={
             <ResultsPaneOnDashboard
               queryFormData={props.formData}
@@ -671,11 +692,15 @@ const SliceHeaderControls = (
       key: MenuKeys.Download,
       label: t('Download'),
       children: [
-        {
-          key: MenuKeys.ExportCsv,
-          label: t('Export to .CSV'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.ExportCsv,
+                label: t('Export to .CSV'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
         ...(isPivotTable
           ? [
               {
@@ -690,11 +715,15 @@ const SliceHeaderControls = (
               },
             ]
           : []),
-        {
-          key: MenuKeys.ExportXlsx,
-          label: t('Export to Excel'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.ExportXlsx,
+                label: t('Export to Excel'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
         props.supersetCanDownload &&
         isTable
@@ -732,11 +761,15 @@ const SliceHeaderControls = (
             },
           ],
         },
-        {
-          key: MenuKeys.DownloadAsPdf,
-          label: t('Export as PDF'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.DownloadAsPdf,
+                label: t('Export as PDF'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
       ],
     });
   }
@@ -758,6 +791,16 @@ const SliceHeaderControls = (
     };
   }, [isFullSize, props.chartHolderRef, props.handleToggleFullSize]);
 
+  const sliceMenu = (
+    <Menu
+      onClick={handleMenuClick}
+      data-test={`slice_${slice.slice_id}-menu`}
+      id={`slice_${slice.slice_id}-menu`}
+      selectable={false}
+      items={newMenuItems}
+    />
+  );
+
   return (
     <>
       {isFullSize && (
@@ -774,15 +817,7 @@ const SliceHeaderControls = (
         />
       )}
       <NoAnimationDropdown
-        popupRender={() => (
-          <Menu
-            onClick={handleMenuClick}
-            data-test={`slice_${slice.slice_id}-menu`}
-            id={`slice_${slice.slice_id}-menu`}
-            selectable={false}
-            items={newMenuItems}
-          />
-        )}
+        popupRender={() => sliceMenu}
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"

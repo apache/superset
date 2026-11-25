@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled, css } from '@apache-superset/core/theme';
 import { Comparator } from '@superset-ui/chart-controls';
@@ -64,6 +64,11 @@ export const CloseButton = styled.button`
     outline: none;
     border-bottom-left-radius: 3px;
     border-top-left-radius: 3px;
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: -2px;
+    }
   `}
 `;
 
@@ -75,17 +80,24 @@ const ConditionalFormattingControl = ({
   removeIrrelevantConditions,
   extraColorChoices,
   allColumns,
+  metricOnly,
   serverPagination,
   ...props
 }: ConditionalFormattingControlProps) => {
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
     useState<ConditionalFormattingConfig[]>(value ?? []);
+  // Report formatters only once they differ from what the control mounted
+  // with. Echoing the mounted value back would make an untouched chart look
+  // edited (e.g. writing [] in version history), and a stale echo could
+  // overwrite a value the parent supplies later.
+  const initialConfigs = useRef(conditionalFormattingConfigs);
+  const isUntouched = conditionalFormattingConfigs === initialConfigs.current;
 
   useEffect(() => {
-    if (onChange) {
+    if (onChange && !isUntouched) {
       onChange(conditionalFormattingConfigs);
     }
-  }, [conditionalFormattingConfigs, onChange]);
+  }, [conditionalFormattingConfigs, isUntouched, onChange]);
 
   useEffect(() => {
     if (removeIrrelevantConditions) {
@@ -166,6 +178,7 @@ const ConditionalFormattingControl = ({
               destroyOnHidden
               extraColorChoices={extraColorChoices}
               allColumns={allColumns}
+              metricOnly={metricOnly}
               serverPagination={serverPagination}
             >
               <OptionControlContainer withCaret>
@@ -184,6 +197,7 @@ const ConditionalFormattingControl = ({
           destroyOnHidden
           extraColorChoices={extraColorChoices}
           allColumns={allColumns}
+          metricOnly={metricOnly}
           serverPagination={serverPagination}
         >
           <AddControlLabel>

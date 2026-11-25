@@ -17,6 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, unused-import, invalid-name
 
 import copy
+import logging
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any
@@ -31,12 +32,13 @@ from sqlalchemy.orm.session import Session
 
 from superset import security_manager
 from superset.commands.chart.importers.v1.utils import import_chart
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError
 from superset.commands.importers.v1.utils import import_tag
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.extensions import feature_flag_manager
 from superset.models.slice import Slice
 from superset.tags.models import TaggedObject
+from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
 
@@ -141,7 +143,7 @@ def test_import_chart_without_permission(
     config["datasource_id"] = 1
     config["datasource_type"] = "table"
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_chart(config)
     assert (
         str(excinfo.value)
@@ -165,8 +167,82 @@ def test_filter_chart_annotations(session: Session) -> None:
     params = config["params"]
     annotation_layers = params["annotation_layers"]
 
+    # Integer IDs come from bundles exported before UUIDs were written and
+    # point at rows of the source instance, so only the formula survives.
     assert len(annotation_layers) == 1
-    assert all([al["annotationType"] == "FORMULA" for al in annotation_layers])  # noqa: C419
+    assert all(al["annotationType"] == "FORMULA" for al in annotation_layers)
+
+
+def test_filter_chart_annotations_warns_on_dropped_reference(
+    session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    Every annotation dropped on import is logged with the chart it belonged to.
+    """
+    from superset.commands.chart.importers.v1.utils import filter_chart_annotations
+    from tests.integration_tests.fixtures.importexport import (
+        chart_config_with_mixed_annotations,
+    )
+
+    config = copy.deepcopy(chart_config_with_mixed_annotations)
+    with caplog.at_level(
+        logging.WARNING, logger="superset.commands.chart.importers.v1.utils"
+    ):
+        filter_chart_annotations(config)
+
+    dropped = [
+        record.getMessage()
+        for record in caplog.records
+        if "drops annotation" in record.getMessage()
+    ]
+    assert len(dropped) == 1
+    assert str(config["uuid"]) in dropped[0]
+    assert "integer reference" in dropped[0]
+
+
+def test_import_pivot_table_keeps_aggregate_function_with_dormant_percent_display(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """A same-version export/import round-trip must not drop a live
+    ``aggregateFunction`` just because a percent ``showValuesAs`` is also
+    present in ``params``/``query_context``. Selecting a result aggregation
+    (e.g. "Average") only hides the "Show values as" control in Explore --
+    it doesn't clear its stored value -- so that pairing is the normal shape
+    of any chart saved after the restoring control shipped, not evidence of
+    a pre-restoration orphan. ``effective_show_values_as`` in
+    ``client_processing.py`` already treats the percent mode as inert
+    whenever ``aggregateFunction`` is active, consistently across render,
+    export and report paths, so import must preserve both values rather
+    than guess and delete one of them.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "pivot_table_v2"
+    config["params"]["viz_type"] = "pivot_table_v2"
+    config["params"]["aggregateFunction"] = "Average"
+    config["params"]["showValuesAs"] = "percent_col"
+    config["query_context"] = json.dumps(
+        {
+            "form_data": {
+                "viz_type": "pivot_table_v2",
+                "aggregateFunction": "Average",
+                "showValuesAs": "percent_col",
+            }
+        }
+    )
+
+    chart = import_chart(config)
+
+    params = json.loads(chart.params)
+    assert params["aggregateFunction"] == "Average"
+    assert params["showValuesAs"] == "percent_col"
+
+    form_data = json.loads(chart.query_context)["form_data"]
+    assert form_data["aggregateFunction"] == "Average"
+    assert form_data["showValuesAs"] == "percent_col"
 
 
 def test_import_existing_chart_without_permission(
@@ -198,7 +274,7 @@ def test_import_existing_chart_without_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_chart(chart_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -239,7 +315,7 @@ def test_import_existing_chart_without_owner_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_chart(chart_config, overwrite=True)
         assert (
             str(excinfo.value)
@@ -418,7 +494,7 @@ def test_import_soft_deleted_chart_non_overwrite_raises_for_non_editor(
     )
 
     with override_user(non_editor):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_chart(chart_config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)
 
@@ -441,7 +517,7 @@ def test_import_soft_deleted_chart_raises_when_caller_lacks_can_write(
 
     _soft_delete_existing_chart(session_with_data)
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_chart(chart_config, overwrite=False)
     assert "can_write" in str(excinfo.value)
 

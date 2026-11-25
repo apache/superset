@@ -65,27 +65,46 @@ test('should render the default title', () => {
   expect(screen.getByText('Parameter error')).toBeInTheDocument();
 });
 
-test('should render the error message', () => {
+test('should render the error message', async () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText('Error message')).toBeInTheDocument();
 });
 
-test('should render the issue codes', () => {
+test('should render the issue codes', async () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText(/This may be triggered by:/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message A/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message B/)).toBeInTheDocument();
 });
 
-test('should render the suggestions', () => {
+test('should render the suggestions', async () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText(/Did you mean:/)).toBeInTheDocument();
-  expect(screen.getByText('"state" instead of "stat?"')).toBeInTheDocument();
-  expect(screen.getByText('"country" instead of "count?"')).toBeInTheDocument();
+  expect(screen.getByText('"state" instead of "stat"?')).toBeInTheDocument();
+  expect(screen.getByText('"country" instead of "count"?')).toBeInTheDocument();
+});
+
+test('should list multiple suggestions for the same parameter', async () => {
+  const props = {
+    ...mockedProps,
+    error: {
+      ...mockedProps.error,
+      extra: {
+        ...mockedProps.error.extra,
+        template_parameters: { stat1: 'a', stat2: 'b', stat3: 'c' },
+        undefined_parameters: ['stat'],
+      },
+    },
+  };
+  render(<ParameterErrorMessage {...props} />, { useRedux: true });
+  await userEvent.click(screen.getByText('See more'));
+  expect(
+    screen.getByText('"stat1", "stat2" or "stat3" instead of "stat"?'),
+  ).toBeInTheDocument();
 });

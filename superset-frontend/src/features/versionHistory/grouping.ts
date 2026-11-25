@@ -22,6 +22,7 @@ import type {
   SaveGroup,
   TimelineEntry,
 } from './types';
+import { isChartArchiveRecord } from './lifecycle';
 
 /**
  * Stable identity for one activity record, used to deduplicate rows
@@ -103,6 +104,8 @@ function mergeAdjacentRelatedEntries(
     if (
       entry.type === 'related' &&
       previous?.type === 'related' &&
+      !isChartArchiveRecord(entry.record) &&
+      !isChartArchiveRecord(previous.record) &&
       relatedEntityKey(previous.record) === relatedEntityKey(entry.record) &&
       Math.abs(
         Date.parse(previous.record.issued_at) -
@@ -133,7 +136,7 @@ function rollupSameTransactionRelated(
 ): TimelineEntry[] {
   const buckets = new Map<string, RelatedEntry[]>();
   entries.forEach(entry => {
-    if (entry.type !== 'related') {
+    if (entry.type !== 'related' || isChartArchiveRecord(entry.record)) {
       return;
     }
     const key = `${entry.record.transaction_id}|${entry.record.entity_kind}`;
@@ -225,6 +228,13 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
       }
       if (record.first_tracked_save) {
         group.firstTrackedSave = true;
+      }
+      if (record.creation_kind) {
+        // The synthetic starting-version record (sc-120488): its whole
+        // payload is the headline, so like __meta__ it stays out of the
+        // change list; the kind drives the Original version / Created /
+        // Imported label.
+        group.creationKind = record.creation_kind;
       }
       if (record.issued_at > group.issuedAt) {
         group.issuedAt = record.issued_at;

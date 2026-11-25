@@ -17,11 +17,15 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { Component, type ReactNode } from 'react';
-import { render, screen } from '@superset-ui/core/spec';
+import { Component, type DragEventHandler, type ReactNode } from 'react';
+import { act, fireEvent, render, screen } from '@superset-ui/core/spec';
 import { CellProps, Column, HeaderProps } from 'react-table';
-import DataTable from '../../src/DataTable/DataTable';
+import DataTable, { type DataTableProps } from '../../src/DataTable/DataTable';
 import { ProviderWrapper } from '../testHelpers';
+
+// Lets the RAF-debounced emit effect in DataTable settle before asserting.
+const flushRaf = () =>
+  act(() => new Promise<void>(resolve => setTimeout(resolve, 50)));
 
 type DataRow = {
   city: string;
@@ -36,18 +40,35 @@ interface RenderErrorBoundaryState {
   hasError: boolean;
 }
 
+type HeaderCellProps = HeaderProps<DataRow> & {
+  onDragStart?: DragEventHandler<HTMLTableCellElement>;
+  onDrop?: DragEventHandler<HTMLTableCellElement>;
+};
+
 const columns: Column<DataRow>[] = [
   {
-    Header: ({ column }: HeaderProps<DataRow>) => (
-      <th data-column-name={column.id}>First name</th>
+    Header: ({ column, onDragStart, onDrop }: HeaderCellProps) => (
+      <th
+        data-column-name={column.id}
+        onDragStart={onDragStart}
+        onDrop={onDrop}
+      >
+        First name
+      </th>
     ),
     Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
     id: 'firstName',
     accessor: 'firstName' as never,
   },
   {
-    Header: ({ column }: HeaderProps<DataRow>) => (
-      <th data-column-name={column.id}>City</th>
+    Header: ({ column, onDragStart, onDrop }: HeaderCellProps) => (
+      <th
+        data-column-name={column.id}
+        onDragStart={onDragStart}
+        onDrop={onDrop}
+      >
+        City
+      </th>
     ),
     Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
     id: 'city',
@@ -85,7 +106,10 @@ class RenderErrorBoundary extends Component<
   }
 }
 
-const renderDataTable = (tableColumns: Column<DataRow>[]) => (
+const renderDataTable = (
+  tableColumns: Column<DataRow>[],
+  extraProps: Partial<DataTableProps<DataRow>> = {},
+) => (
   <ProviderWrapper>
     <RenderErrorBoundary>
       <DataTable<DataRow>
@@ -101,10 +125,17 @@ const renderDataTable = (tableColumns: Column<DataRow>[]) => (
         searchOptions={[]}
         onFilteredRowsChange={jest.fn()}
         sticky={false}
+        {...extraProps}
       />
     </RenderErrorBoundary>
   </ProviderWrapper>
 );
+
+function getHeaderOrder(): (string | null)[] {
+  return Array.from(
+    document.querySelectorAll('thead th[data-column-name]'),
+  ).map(header => header.getAttribute('data-column-name'));
+}
 
 test('keeps the hook order stable when the columns disappear', () => {
   const { rerender } = render(renderDataTable(columns));
@@ -126,4 +157,140 @@ test('keeps the hook order stable when the columns appear', () => {
 
   expect(screen.queryByTestId('render-error')).not.toBeInTheDocument();
   expect(screen.getByText('Michael')).toBeInTheDocument();
+});
+
+test('resets a dragged column order when resetColumnOrder becomes true', () => {
+  const { rerender } = render(renderDataTable(columns));
+
+  expect(getHeaderOrder()).toEqual(['firstName', 'city']);
+
+  const firstNameHeader = screen
+    .getByText('First name')
+    .closest('th') as HTMLElement;
+  const cityHeader = screen.getByText('City').closest('th') as HTMLElement;
+  fireEvent.dragStart(firstNameHeader, {
+    dataTransfer: { setData: jest.fn() },
+  });
+  fireEvent.drop(cityHeader);
+
+  expect(getHeaderOrder()).toEqual(['city', 'firstName']);
+
+  rerender(renderDataTable(columns, { resetColumnOrder: true }));
+
+  expect(getHeaderOrder()).toEqual(['firstName', 'city']);
+});
+
+test('clamps pageIndex to the last page when it exceeds pageCount', () => {
+  render(
+    renderDataTable(columns, {
+      pageSize: 1,
+      initialState: { pageIndex: 5 },
+      // Disable the post-commit reset to exercise the render-time clamp.
+      autoResetPage: false,
+    }),
+  );
+
+  expect(screen.getByText('Jordan')).toBeInTheDocument();
+  expect(screen.queryByText('No data found')).not.toBeInTheDocument();
+});
+
+test('resets pageIndex to 0 when data becomes empty (pageCount === 0)', () => {
+  const { rerender } = render(
+    renderDataTable(columns, {
+      data: [],
+      rowCount: 0,
+      pageSize: 1,
+      initialState: { pageIndex: 5 },
+      autoResetPage: false,
+    }),
+  );
+
+  expect(screen.getByText('No data found')).toBeInTheDocument();
+
+  rerender(renderDataTable(columns, { pageSize: 1, autoResetPage: false }));
+  expect(screen.getByText('Michael')).toBeInTheDocument();
+});
+
+test('leaves server page navigation and incoming pages under caller control', () => {
+  const onServerPaginationChange = jest.fn();
+  const clientPageChanges: number[] = [];
+  const props: Partial<DataTableProps<DataRow>> = {
+    pageSize: 10,
+    rowCount: 30,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 1, pageSize: 10 },
+    onServerPaginationChange,
+    pageResetKey: 'original query',
+    stateReducer: (state, action) => {
+      if (action.type === 'gotoPage') clientPageChanges.push(state.pageIndex);
+      return state;
+    },
+  };
+  const { container, rerender } = render(renderDataTable(columns, props));
+  fireEvent.click(container.querySelector('button[aria-label="3"]')!);
+  expect(onServerPaginationChange).toHaveBeenCalledTimes(1);
+  expect(onServerPaginationChange).toHaveBeenLastCalledWith(2, 10);
+
+  rerender(
+    renderDataTable(columns, {
+      ...props,
+      pageResetKey: 'changed query',
+      serverPaginationData: { currentPage: 2, pageSize: 10 },
+      data: [{ firstName: 'Page three', city: 'Paris' }],
+    }),
+  );
+  expect(container.querySelector('li.active button')).toHaveTextContent('3');
+  expect(screen.getByText('Page three')).toBeInTheDocument();
+  expect(onServerPaginationChange).toHaveBeenCalledTimes(1);
+  expect(clientPageChanges).toEqual([]);
+});
+
+// The client-side emit effect used to run its signature check unconditionally,
+// so a zero-column render still queued an onFilteredRowsChange call once rows
+// changed. Columns being hidden doesn't change the underlying data, so nothing
+// should be emitted for it.
+test('does not emit filtered rows while the column count is zero', async () => {
+  const onFilteredRowsChange = jest.fn();
+  render(renderDataTable([], { onFilteredRowsChange }));
+
+  await flushRaf();
+
+  expect(onFilteredRowsChange).not.toHaveBeenCalled();
+});
+
+// A row that carries a stable id must still change the signature when another
+// of its values changes; otherwise the edit is never reported to the caller.
+test('emits filtered rows again when a value changes on a row with a stable id', async () => {
+  type IdRow = { id: number; v: string };
+  const idColumns: Column<IdRow>[] = [
+    { Header: 'id', id: 'id', accessor: 'id' },
+    { Header: 'v', id: 'v', accessor: 'v' },
+  ];
+  const onFilteredRowsChange = jest.fn();
+  const renderIdRows = (rows: IdRow[]) => (
+    <ProviderWrapper>
+      <DataTable<IdRow>
+        columns={idColumns}
+        data={rows}
+        rowCount={rows.length}
+        serverPagination={false}
+        serverPaginationData={{}}
+        onServerPaginationChange={jest.fn()}
+        handleSortByChange={jest.fn()}
+        sortByFromParent={[]}
+        onSearchColChange={jest.fn()}
+        searchOptions={[]}
+        onFilteredRowsChange={onFilteredRowsChange}
+        sticky={false}
+      />
+    </ProviderWrapper>
+  );
+
+  const { rerender } = render(renderIdRows([{ id: 1, v: 'a' }]));
+  await flushRaf();
+  expect(onFilteredRowsChange).toHaveBeenCalledTimes(1);
+
+  rerender(renderIdRows([{ id: 1, v: 'b' }]));
+  await flushRaf();
+  expect(onFilteredRowsChange).toHaveBeenCalledTimes(2);
 });

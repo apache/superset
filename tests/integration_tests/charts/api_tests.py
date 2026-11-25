@@ -16,6 +16,7 @@
 # under the License.
 
 import uuid
+from datetime import datetime, timedelta
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch
@@ -23,6 +24,7 @@ from zipfile import is_zipfile
 
 import pytest
 import rison
+from cachelib import SimpleCache
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_
@@ -38,18 +40,26 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.reports.models import ReportSchedule, ReportScheduleType
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import get_example_default_schema, override_user
 from superset.utils.database import get_example_database
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    ScreenshotCachePayload,
+    StatusValues,
+)
+from tests.conftest import with_config
 from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
 from tests.integration_tests.base_tests import (
     subjects_from_users,
     SupersetTestCase,
     user_is_editor,
 )
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -335,6 +345,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(Slice).get(chart_id)
         assert model is None
+        log = self.get_latest_log("ChartRestApi.delete")
+        assert log.slice_id == chart_id
 
     def test_delete_bulk_charts(self):
         """
@@ -358,6 +370,11 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         for chart_id in chart_ids:
             model = db.session.query(Slice).get(chart_id)
             assert model is None
+        # a single integer column cannot hold every id, so the full list is
+        # recorded in the JSON payload instead
+        log = self.get_latest_log("ChartRestApi.bulk_delete")
+        assert log.slice_id is None
+        assert json.loads(log.json)["slice_ids"] == chart_ids
 
     def test_delete_bulk_chart_bad_request(self):
         """
@@ -578,6 +595,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         # uuid should be returned in the response
         assert "uuid" in data
         assert str(model.uuid) == str(data["uuid"])
+        log = self.get_latest_log("ChartRestApi.post")
+        assert log.slice_id == model.id
         db.session.delete(model)
         db.session.commit()
 
@@ -663,15 +682,12 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"message": {"datasource_id": ["Datasource does not exist"]}}
 
-    def test_create_chart_from_saved_query_rejected_cleanly(self):
+    def test_create_chart_from_saved_query(self):
         """
         Chart API: creating a chart with datasource_type="saved_query" must
-        fail with a clean validation error, not the unhandled 500 "Fatal
-        error" reported in apache/superset#29697. Slice.datasource only
-        ever resolves the "table" relationship, so even a chart that
-        "created" successfully with this datasource_type could never
-        actually render -- "saved_query" is a real, existing row here
-        (not a bad ID), reproducing the original report exactly rather
+        succeed instead of raising the unhandled 500 "Fatal error" reported
+        in apache/superset#29697. "saved_query" is a real, existing row
+        here (not a bad ID), reproducing the original report exactly rather
         than a not-found case.
         """
         self.login(ADMIN_USERNAME)
@@ -692,16 +708,129 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "datasource_type": "saved_query",
             "viz_type": "table",
         }
+        chart_id = None
         try:
             rv = self.post_assert_metric("/api/v1/chart/", chart_data, "post")
 
-            assert rv.status_code == 422
+            assert rv.status_code == 201
             response = json.loads(rv.data.decode("utf-8"))
-            assert response == {
-                "message": {"datasource_type": ["Datasource type is invalid"]}
-            }
+            chart_id = response["id"]
+            chart = db.session.query(Slice).get(chart_id)
+            assert chart.datasource_type == "saved_query"
+            assert chart.datasource_id == saved_query_id
         finally:
+            if chart_id is not None:
+                db.session.delete(db.session.query(Slice).get(chart_id))
             db.session.delete(db.session.query(SavedQuery).get(saved_query_id))
+            db.session.commit()
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_create_chart_from_semantic_view(self):
+        """
+        Chart API: creating a chart with datasource_type="semantic_view" must
+        succeed (apache/superset#44167). Semantic views are first-class
+        resolvable datasources (Slice resolves them through the type-guarded
+        ``semantic_view`` relationship), so the non-table datasource_type
+        guard must explicitly allow them rather than rejecting them the way
+        it rejects saved_query. This reproduces the exact API call shape from
+        the bug report: a real semantic view row, then POST /api/v1/chart/
+        with datasource_type="semantic_view".
+        """
+        self.login(ADMIN_USERNAME)
+        suffix = uuid.uuid4().hex
+        layer = SemanticLayer(
+            uuid=uuid.uuid4(),
+            name=f"issue-44167-layer-{suffix}",
+            type="test",
+            configuration="{}",
+        )
+        view = SemanticView(
+            uuid=uuid.uuid4(),
+            name=f"issue-44167-view-{suffix}",
+            semantic_layer_uuid=layer.uuid,
+            configuration="{}",
+        )
+        db.session.add_all([layer, view])
+        db.session.commit()
+        view_id = view.id
+
+        chart_data = {
+            "slice_name": "issue-44167-repro-chart",
+            "datasource_id": view_id,
+            "datasource_type": "semantic_view",
+            "viz_type": "table",
+        }
+        chart_id = None
+        try:
+            rv = self.post_assert_metric("/api/v1/chart/", chart_data, "post")
+
+            assert rv.status_code == 201
+            data = json.loads(rv.data.decode("utf-8"))
+            chart_id = data.get("id")
+            model = db.session.query(Slice).get(chart_id)
+            assert model.datasource_type == "semantic_view"
+            assert model.datasource_id == view_id
+
+            # The saved chart is now resolvable: its owner (admin) can
+            # retrieve it, and the chart's perm carries the view perm.
+            rv = self.get_assert_metric(f"/api/v1/chart/{chart_id}", "get")
+            assert rv.status_code == 200
+            assert model.perm == view.perm
+
+            gamma = self.get_user("gamma")
+            uri = "api/v1/chart/?q=" + rison.dumps(
+                {
+                    "filters": [
+                        {
+                            "col": "slice_name",
+                            "opr": "ct",
+                            "value": "issue-44167-repro-chart",
+                        }
+                    ]
+                }
+            )
+
+            # Drop the admin session before impersonating gamma: logging in as
+            # the temporary user does not replace an already-authenticated
+            # session, so the admin would otherwise leak into these checks.
+            self.logout()
+
+            # Without the view's datasource_access perm, a non-owner cannot
+            # list/open the chart.
+            with self.temporary_user(gamma, login=True):
+                rv = self.client.get(uri, "get_list")
+                assert rv.status_code == 200
+                assert json.loads(rv.data.decode("utf-8"))["count"] == 0
+
+            # all_database_access short-circuits the chart filter just like
+            # all_datasource_access: a user who can access every database sees
+            # every chart, including semantic-view charts that have no database
+            # of their own.
+            perm = ("all_database_access", "all_database_access")
+            with self.temporary_user(gamma, extra_pvms=[perm], login=True):
+                rv = self.client.get(uri, "get_list")
+                assert rv.status_code == 200
+                assert json.loads(rv.data.decode("utf-8"))["count"] == 1
+
+            # With the view's datasource_access perm, a non-owner can
+            # list and retrieve the chart.
+            perm = ("datasource_access", view.perm)
+            with self.temporary_user(gamma, extra_pvms=[perm], login=True):
+                rv = self.client.get(uri, "get_list")
+                assert rv.status_code == 200
+                data = json.loads(rv.data.decode("utf-8"))
+                assert data["count"] == 1
+                rv = self.get_assert_metric(f"/api/v1/chart/{chart_id}", "get")
+                assert rv.status_code == 200
+        finally:
+            if chart_id:
+                model = db.session.query(Slice).get(chart_id)
+                if model:
+                    db.session.delete(model)
+            view = db.session.query(SemanticView).get(view_id)
+            if view:
+                db.session.delete(view)
+            db.session.delete(layer)
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -758,6 +887,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart_id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         assert rv.status_code == 200
+        log = self.get_latest_log("ChartRestApi.put")
+        assert log.slice_id == chart_id
         model = db.session.query(Slice).get(chart_id)
         related_dashboard = db.session.query(Dashboard).filter_by(slug="births").first()
         assert model.created_by == admin
@@ -969,6 +1100,34 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(user_alpha2)
         db.session.commit()
 
+    def test_update_chart_refuses_externally_managed(self) -> None:
+        """sc-120011: PUT on an externally managed chart is refused with 403.
+
+        Refused server-side even for an admin who could otherwise edit it:
+        the update would be overwritten on the next external sync, and the
+        browser-only gate can be bypassed by calling the endpoint
+        directly. Chart is the representative real-endpoint case; the
+        guard is the shared raise_if_managed_externally helper called by
+        all three update commands, pinned across chart/dashboard/dataset
+        by tests/unit_tests/commands/test_update_managed_externally.py.
+        """
+        admin = self.get_user("admin")
+        chart = self.insert_chart("external source of truth", [admin.id], 1)
+        chart.is_managed_externally = True
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        try:
+            uri = f"api/v1/chart/{chart.id}"
+            rv = self.put_assert_metric(uri, {"slice_name": "changed"}, "put")
+            assert rv.status_code == 403
+
+            db.session.refresh(chart)
+            assert chart.slice_name == "external source of truth"
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
     def test_update_chart_linked_with_not_owned_dashboard(self):
         """
         Chart API: Test update chart which is linked to not owned dashboard
@@ -1103,6 +1262,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "viewers": [],
             "params": None,
             "slice_name": "title",
+            "localized_name": "title",
             "viz_type": None,
             "query_context": None,
             "is_managed_externally": False,
@@ -1112,13 +1272,9 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert "id" in data["result"]
         assert "thumbnail_url" in data["result"]
         assert "url" in data["result"]
-        # implicit tags created by the tagging system's SQLA event listeners
+        # implicit type:/editor: tags are no longer auto-generated
         tags = data["result"].pop("tags")
-        assert len(tags) == 2
-        assert {(tag["name"], tag["type"]) for tag in tags} == {
-            ("type:chart", TagType.type.value),
-            (f"editor:{admin.id}", TagType.editor.value),
-        }
+        assert tags == []
         for key, value in data["result"].items():
             # We can't assert timestamp values or id/urls
             if key not in (
@@ -1198,6 +1354,388 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart_no_access.id}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
+    @patch("superset.charts.api.ChartScreenshot.supports_updated_staleness", True)
+    def test_thumbnail_does_not_recompute_stale_updated(
+        self, mock_get_from_cache_key, mock_cache_task
+    ):
+        """The card-list thumbnail path must never opt into updated-staleness
+        recompute. A force-less request whose cached UPDATED entry is older than
+        THUMBNAIL_UPDATED_CACHE_TTL -- but still valid and correctly scoped --
+        must be served straight from cache (200), not rescheduled. This guards
+        against accidentally propagating ``check_updated_staleness`` to this
+        high-traffic card path (the way the on-demand ``cache_screenshot``
+        endpoint passes it): adding it here would enqueue stale thumbnails and
+        return 202 instead of the cached image, failing this test.
+
+        ``ChartScreenshot.supports_updated_staleness`` is forced True here so the
+        test actually proves the kwarg is absent: were the card path to copy
+        ``check_updated_staleness=screenshot_obj.supports_updated_staleness`` the
+        flag would evaluate True and the stale entry would be rescheduled,
+        failing the assertions below. Because the card path calls
+        ``should_trigger_task()`` with no kwarg, they still hold."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
+        # Naive to match the cache's naive `datetime.now()` timestamps: a tz-aware
+        # value here would either be read as future on a UTC-ahead host or raise
+        # when subtracted from naive now().
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data",
+            scope=f"chart:{chart.id}",
+            timestamp=stale_timestamp,
+        )
+
+        # Resolve the digest under the requesting user so the endpoint serves the
+        # entry instead of redirecting to the canonical digest: THUMBNAIL_EXECUTORS
+        # defaults to CURRENT_USER, so the digest is only resolvable with a user in
+        # context.
+        with override_user(self.get_user(ADMIN_USERNAME)):
+            digest = chart.digest
+
+        rv = self.client.get(f"api/v1/chart/{chart.id}/thumbnail/{digest}/")
+
+        assert rv.status_code == 200
+        mock_cache_task.delay.assert_not_called()
+        assert rv.data == b"fake image data"
+
+    @with_feature_flags(THUMBNAILS=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
+    def test_screenshot_serves_retained_image_on_error(self, mock_get_from_cache_key):
+        """A failed retry leaves the on-demand screenshot entry in an
+        ERROR backoff while still carrying the retained last-good image. The
+        screenshot read path must serve those retained bytes (200) rather than
+        404 for the length of the backoff -- gating serve on status == UPDATED
+        would reject the still-valid image for up to a day."""
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        # A valid, correctly-scoped image whose entry is in ERROR backoff.
+        payload = ScreenshotCachePayload(
+            b"fake image data",
+            scope=f"chart:{chart.id}",
+        )
+        payload.status = StatusValues.ERROR
+        mock_get_from_cache_key.return_value = payload
+
+        # Resolve the digest under the requesting user, mirroring the thumbnail
+        # test: THUMBNAIL_EXECUTORS defaults to CURRENT_USER.
+        with override_user(self.get_user(ADMIN_USERNAME)):
+            digest = chart.digest
+
+        rv = self.client.get(f"api/v1/chart/{chart.id}/screenshot/{digest}/")
+
+        assert rv.status_code == 200
+        assert rv.data == b"fake image data"
+
+    @with_feature_flags(THUMBNAILS=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.charts.api.ChartScreenshot.cache")
+    @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
+    def test_cache_screenshot_forceless_leaves_worker_able_to_render(
+        self, mock_get_from_cache_key, mock_cache, mock_cache_task
+    ):
+        """Regression: a force-less ``cache_screenshot`` that triggers a render
+        must not leave the cache in a state that makes the worker skip. The worker
+        (``cache_chart_thumbnail`` -> ``compute_and_cache``) re-reads the same
+        cache key and re-runs ``should_trigger_task(force=False,
+        check_updated_staleness=False)``. If the endpoint pre-wrote a fresh
+        COMPUTING entry, that re-check would see a non-stale COMPUTING entry, skip
+        the render, and the screenshot would never be computed -- churning
+        COMPUTING every ``THUMBNAIL_COMPUTING_CACHE_TTL`` forever. ``force`` is
+        None when omitted (no schema default), so this is the ordinary caller."""
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        # First render: cache miss -> a fresh PENDING payload triggers the task.
+        mock_get_from_cache_key.return_value = None
+
+        rv = self.client.get(
+            f"api/v1/chart/{chart.id}/cache_screenshot/?q={rison.dumps({})}"
+        )
+
+        assert rv.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+        # Force is falsy (omitted), so the worker relies on its own re-check.
+        assert mock_cache_task.delay.call_args.kwargs["force"] in (None, False)
+
+        # Whatever (if anything) the endpoint persisted, the worker will re-read
+        # it; otherwise it re-reads the still-empty cache (a fresh PENDING). Its
+        # own force-less gate MUST still fire, or the screenshot never renders.
+        if mock_cache.set.called:
+            worker_view = ScreenshotCachePayload.from_dict(
+                mock_cache.set.call_args[0][1]
+            )
+        else:
+            worker_view = ScreenshotCachePayload()
+        assert worker_view.should_trigger_task(
+            force=False,
+            expected_scope=f"chart:{chart.id}",
+            check_updated_staleness=False,
+        ), "endpoint left the cache in a state that makes the worker skip render"
+
+    @with_feature_flags(THUMBNAILS=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.charts.api.ChartScreenshot.cache")
+    @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
+    def test_cache_screenshot_retry_preserves_retained_image(
+        self, mock_get_from_cache_key, mock_cache, mock_cache_task
+    ):
+        """A force-less on-demand ``cache_screenshot`` that re-triggers a render
+        after a prior failure (an ERROR entry past its TTL, still carrying the
+        last-good image) must (a) not wipe that image and (b) leave the entry
+        triggerable so the worker actually re-renders. The endpoint leaves the
+        entry untouched (mirroring the dashboard endpoint): the read path keeps
+        serving the retained image while the worker -- which itself flips the
+        entry to COMPUTING without discarding the image -- runs the retry."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        # A retained, valid, correctly-scoped image whose entry is in ERROR
+        # backoff and 2 days old, past the 1-day THUMBNAIL_ERROR_CACHE_TTL, so a
+        # force-less request re-triggers via the expired-ERROR branch. The bytes
+        # start with the PNG signature so get_invalid_image_reason (which now
+        # validates any retained image, not just UPDATED) accepts them, matching
+        # a genuine retained image -- which always came from a validated update().
+        stale_timestamp = (datetime.now() - timedelta(days=2)).isoformat()
+        retained_image = b"\x89PNG\r\n\x1a\nfake image data"
+        payload = ScreenshotCachePayload(
+            retained_image,
+            scope=f"chart:{chart.id}",
+            timestamp=stale_timestamp,
+        )
+        payload.status = StatusValues.ERROR
+        mock_get_from_cache_key.return_value = payload
+
+        rv = self.client.get(
+            f"api/v1/chart/{chart.id}/cache_screenshot/?q={rison.dumps({})}"
+        )
+
+        # Trigger fires: the task is enqueued and the endpoint returns 202.
+        assert rv.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+
+        # The endpoint must not overwrite the entry with an imageless payload.
+        # It leaves it untouched, so the worker re-reads the retained image and
+        # its force-less gate still fires (expired ERROR).
+        if mock_cache.set.called:
+            worker_view = ScreenshotCachePayload.from_dict(
+                mock_cache.set.call_args[0][1]
+            )
+        else:
+            worker_view = payload
+        assert worker_view.get_invalid_image_reason() is None
+        assert worker_view.get_image().read() == retained_image
+        assert worker_view.should_trigger_task(
+            force=False,
+            expected_scope=f"chart:{chart.id}",
+            check_updated_staleness=False,
+        ), "endpoint left the cache in a state that makes the worker skip render"
+
+    @with_feature_flags(THUMBNAILS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.utils.screenshots.ChartScreenshot.cache", new_callable=SimpleCache)
+    def test_cache_screenshot_does_not_recompute_stale_updated(
+        self, cache: SimpleCache, cache_task: mock.MagicMock
+    ) -> None:
+        """Charts do not opt into updated-staleness recompute, so a force-less
+        ``cache_screenshot`` for a valid, correctly-scoped UPDATED entry older
+        than THUMBNAIL_UPDATED_CACHE_TTL is served from cache (200) and leaves
+        the entry untouched. Opting in on this endpoint would return 202 and
+        enqueue a task whose worker, which does not opt in either, skips the
+        render."""
+        self.login(ADMIN_USERNAME)
+        chart = db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").one()
+        with override_user(self.get_user(ADMIN_USERNAME)):
+            screenshot = ChartScreenshot("http://example.com", chart.digest)
+        scope = f"chart:{chart.id}"
+        window_size = (800, 600)
+        cache_key = screenshot.get_cache_key(window_size, window_size)
+        image = b"\x89PNG\r\n\x1a\nstale capture"
+        # 400s old against the 300s TTL. Naive, like the cache's own
+        # `datetime.now()` timestamps.
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        cache.set(
+            cache_key,
+            ScreenshotCachePayload(
+                image=image, scope=scope, timestamp=stale_timestamp
+            ).to_dict(),
+        )
+        seeded = cache.get(cache_key)
+        # The entry is stale for a caller that opts in, so the 200 below comes
+        # from the chart opt-out rather than from a fresh entry.
+        assert ScreenshotCachePayload.from_dict(seeded).should_trigger_task(
+            expected_scope=scope, check_updated_staleness=True
+        )
+        query = rison.dumps({"window_size": list(window_size)})
+
+        response = self.client.get(
+            f"api/v1/chart/{chart.id}/cache_screenshot/?q={query}"
+        )
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == cache_key
+        assert response.json["task_status"] == "Updated"
+        assert response.json["task_updated_at"] == stale_timestamp
+        cache_task.delay.assert_not_called()
+        cached = ScreenshotCachePayload.from_dict(cache.get(cache_key))
+        assert cached.get_image().read() == image
+        assert cached.to_dict() == seeded
+
+    @with_feature_flags(THUMBNAILS=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.utils.screenshots.ChartScreenshot.cache", new_callable=SimpleCache)
+    def test_forced_screenshot_waits_for_replacement_image(
+        self, cache: SimpleCache, cache_task: mock.MagicMock
+    ) -> None:
+        """A forced capture exposes no prior bytes while queued or after failure."""
+        self.login(ADMIN_USERNAME)
+        chart = db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").one()
+        user = self.get_user(ADMIN_USERNAME)
+        with override_user(user):
+            screenshot = ChartScreenshot("http://example.com", chart.digest)
+        screenshot.cache_scope = f"chart:{chart.id}"
+        window_size = (800, 600)
+        cache_key = screenshot.get_cache_key(window_size, window_size)
+        old_image = b"\x89PNG\r\n\x1a\nold capture"
+        cache.set(
+            cache_key,
+            ScreenshotCachePayload(
+                image=old_image, scope=screenshot.cache_scope
+            ).to_dict(),
+        )
+        query = rison.dumps({"force": True, "window_size": list(window_size)})
+
+        response = self.client.get(
+            f"api/v1/chart/{chart.id}/cache_screenshot/?q={query}"
+        )
+
+        assert response.status_code == 202
+        assert response.json["cache_key"] == cache_key
+        assert response.json["task_status"] == "Pending"
+        cache_task.delay.assert_called_once()
+        assert cache_task.delay.call_args.kwargs["force"] is True
+        queued = cache.get(cache_key)
+        assert queued["image"] is None
+        assert queued["scope"] == screenshot.cache_scope
+        image_url = response.json["image_url"]
+        assert self.client.get(image_url).status_code == 404
+
+        with (
+            patch("superset.utils.screenshots.DistributedLock"),
+            patch.object(
+                screenshot, "get_screenshot", side_effect=RuntimeError("render failed")
+            ) as capture,
+        ):
+            screenshot.compute_and_cache(
+                force=True,
+                user=user,
+                window_size=window_size,
+                thumb_size=window_size,
+                cache_key=cache_key,
+            )
+            assert cache.get(cache_key)["status"] == "Error"
+            assert self.client.get(image_url).status_code == 404
+
+            replacement = b"\x89PNG\r\n\x1a\nreplacement capture"
+            capture.side_effect = None
+            capture.return_value = replacement
+            screenshot.compute_and_cache(
+                force=True,
+                user=user,
+                window_size=window_size,
+                thumb_size=window_size,
+                cache_key=cache_key,
+            )
+
+        image_response = self.client.get(image_url)
+        assert image_response.status_code == 200
+        assert image_response.data == replacement
+
+    @with_feature_flags(THUMBNAILS=True)
+    @with_config({"THUMBNAIL_ERROR_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.utils.screenshots.ChartScreenshot.cache", new_callable=SimpleCache)
+    def test_thumbnail_retry_retains_image_after_another_render_failure(
+        self, cache: SimpleCache, cache_task: mock.MagicMock
+    ) -> None:
+        """An expired error keeps its valid capture through a failed card retry."""
+        self.login(ADMIN_USERNAME)
+        chart = db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").one()
+        user = self.get_user(ADMIN_USERNAME)
+        with override_user(user):
+            digest = chart.digest
+        screenshot = ChartScreenshot("http://example.com", digest)
+        screenshot.cache_scope = f"chart:{chart.id}"
+        cache_key = screenshot.get_cache_key()
+        retained_image = b"\x89PNG\r\n\x1a\nretained capture"
+        payload = ScreenshotCachePayload(
+            image=retained_image,
+            scope=screenshot.cache_scope,
+            timestamp=(datetime.now() - timedelta(seconds=400)).isoformat(),
+        )
+        payload.status = StatusValues.ERROR
+        cache.set(cache_key, payload.to_dict())
+        thumbnail_url = f"api/v1/chart/{chart.id}/thumbnail/{digest}/"
+
+        response = self.client.get(thumbnail_url)
+
+        assert response.status_code == 202
+        cache_task.delay.assert_called_once()
+        assert cache_task.delay.call_args.kwargs["force"] is False
+        queued = ScreenshotCachePayload.from_dict(cache.get(cache_key))
+        assert queued.get_image().read() == retained_image
+        assert queued.should_trigger_task(expected_scope=screenshot.cache_scope)
+        with (
+            patch("superset.utils.screenshots.DistributedLock"),
+            patch.object(
+                screenshot, "get_screenshot", side_effect=RuntimeError("render failed")
+            ) as capture,
+        ):
+            screenshot.compute_and_cache(force=False, user=user)
+
+        capture.assert_called_once()
+        failed = ScreenshotCachePayload.from_dict(cache.get(cache_key))
+        assert failed.status == StatusValues.ERROR
+        assert failed.get_image().read() == retained_image
+        image_response = self.client.get(thumbnail_url)
+        assert image_response.status_code == 200
+        assert image_response.data == retained_image
+        cache_task.delay.assert_called_once()
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_deck_layers(self):

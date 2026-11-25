@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
 
@@ -34,7 +34,7 @@ import QueryLimitSelect, {
 } from 'src/SqlLab/components/QueryLimitSelect';
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
@@ -115,7 +115,7 @@ describe('QueryLimitSelect', () => {
       'ant-dropdown-trigger',
     )[0];
 
-    userEvent.click(dropdown);
+    await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const expectedLabels = [10, 100, 1000, 10000, 50000].map(i =>
@@ -137,7 +137,7 @@ describe('QueryLimitSelect', () => {
       'ant-dropdown-trigger',
     )[0];
 
-    userEvent.click(dropdown);
+    await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const expectedLabels = [5].map(i => convertToNumWithSpaces(i));
@@ -157,7 +157,7 @@ describe('QueryLimitSelect', () => {
       'ant-dropdown-trigger',
     )[0];
 
-    userEvent.click(dropdown);
+    await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const expectedLabels = [10, 100, 1000, 10000].map(i =>
@@ -178,7 +178,7 @@ describe('QueryLimitSelect', () => {
       'ant-dropdown-trigger',
     )[0];
 
-    userEvent.click(dropdown);
+    await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const menu = getAllByRole('menuitem')[expectedIndex];

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useRef } from 'react';
-import { useDispatch, useSelector, useStore } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { useHistory } from 'react-router-dom';
 import type { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -122,18 +123,27 @@ export async function resolveSnapshotCharts(
   });
 
   const unreachable = new Set<number>();
+  const unavailable = new Set<number>();
   await forEachWithConcurrency(
     missingIds,
     EXPLORE_REHYDRATION_CONCURRENCY,
     async id => {
       try {
         const { slice, form_data } = await fetchExploreRehydrationData(id);
+        if (!slice) {
+          unavailable.add(id);
+          return;
+        }
         charts.push({
           slice_id: id,
           slice_url: `/explore/?slice_id=${id}`,
-          slice_name: slice?.slice_name ?? t('Untitled chart'),
+          slice_name: slice.slice_name ?? t('Untitled chart'),
+          // Charts absent from the live dashboard are rebuilt here, so the
+          // localized name has to come along or the preview shows canonical
+          // names for exactly those charts.
+          localized_name: slice.localized_name,
           form_data: { ...form_data, slice_id: id },
-          description: slice?.description ?? '',
+          description: slice.description ?? '',
           description_markeddown: '',
           editors: [],
           modified: '',
@@ -147,7 +157,11 @@ export async function resolveSnapshotCharts(
 
   return {
     charts,
-    positionData: swapUnreachableChartSlots(positionData, unreachable),
+    positionData: swapUnreachableChartSlots(
+      positionData,
+      unreachable,
+      unavailable,
+    ),
   };
 }
 
@@ -181,7 +195,7 @@ async function resolveSnapshotTheme(
  * and re-hydrates the live dashboard when the preview is closed.
  */
 export function useDashboardVersionPreview(uuid: string | undefined) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const store = useStore<RootState>();
   const history = useHistory();
   const { addDangerToast } = useToasts();
@@ -387,6 +401,12 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           {
             ...dashboard,
             dashboard_title: snapshot.dashboard_title,
+            // No translation was resolved for the historical title, and the
+            // live one belongs to a different title entirely -- keeping it
+            // would render the live name over historical content, which
+            // happens with the feature off too since localized_title then
+            // mirrors the live canonical title.
+            localized_title: undefined,
             css: snapshot.css ?? '',
             metadata: snapshot.json_metadata
               ? JSON.parse(snapshot.json_metadata)

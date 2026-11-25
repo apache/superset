@@ -52,16 +52,19 @@ import XAxisSortControl from './XAxisSortControl';
 import CurrencyControl from './CurrencyControl';
 import ColumnConfigControl from './ColumnConfigControl';
 import { ComparisonRangeLabel } from './ComparisonRangeLabel';
-import LayerConfigsControl from './LayerConfigsControl/LayerConfigsControl';
-import MapViewControl from './MapViewControl/MapViewControl';
-import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
+import { LayerConfigsControl } from './LayerConfigsControl/LayerConfigsControl';
+import { MapViewControl } from './MapViewControl/MapViewControl';
+import { ZoomConfigControl } from './ZoomConfigControl/ZoomConfigControl';
 import NumberControl from './NumberControl';
 import TimeRangeControl from './TimeRangeControl';
 import ColorBreakpointsControl from './ColorBreakpointsControl';
+import IntervalColorsControl from './IntervalColorsControl';
+import BulletRangeColorsControl from './BulletRangeColorsControl';
 import MatrixifyDimensionControl from './MatrixifyDimensionControl';
 import JSEditorControl from './JSEditorControl';
 import SwitchControl from './SwitchControl';
 import VerticalRadioControl from './VerticalRadioControl';
+import HeaderGroupsControl from './HeaderGroupsControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -87,6 +90,8 @@ const controlMap = {
   DndColumnMetricSelect,
   FixedOrMetricControl,
   ColorBreakpointsControl,
+  IntervalColorsControl,
+  BulletRangeColorsControl,
   HiddenControl,
   JSEditorControl,
   LayerConfigsControl,
@@ -113,6 +118,7 @@ const controlMap = {
   MatrixifyDimensionControl,
   SwitchControl,
   VerticalRadioControl,
+  HeaderGroupsControl,
   ...sharedControlComponents,
 };
 export default controlMap;

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { Slice } from 'src/types/Chart';
 import {
@@ -36,7 +37,11 @@ import type { ExplorePageState } from 'src/explore/types';
 import { selectVersionPreview, versionPreviewApplied } from './reducer';
 import { fetchDatasourceMetadata, fetchVersionSnapshot } from './api';
 import PreviewBanner from './PreviewBanner';
+import { VERSION_HISTORY_PANEL_WIDTH } from './constants';
 
+// CLOSE_VERSION_HISTORY_PANEL clears preview in the reducer, so preview exists
+// only while history is open. Reserve overlay space here to leave no padding
+// behind on the live chart when preview ends.
 const Container = styled.div`
   ${({ theme }) => `
     display: flex;
@@ -44,6 +49,7 @@ const Container = styled.div`
     gap: ${theme.sizeUnit * 2}px;
     height: 100%;
     padding: ${theme.sizeUnit * 2}px;
+    padding-right: ${VERSION_HISTORY_PANEL_WIDTH + theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -70,7 +76,7 @@ function buildPreviewFormData(
 }
 
 export default function ChartVersionPreview() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const preview = useSelector(selectVersionPreview);
   const slice = useSelector<ExplorePageState, Slice | undefined>(
     state => state.explore?.slice ?? undefined,

@@ -17,14 +17,38 @@
  * under the License.
  */
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { NativeFilterType } from '@superset-ui/core';
+import { DatasourceType, NativeFilterType } from '@superset-ui/core';
 import {
   extractLabel,
   getAppliedColumnsWithFallback,
   getCrossFilterIndicator,
   IndicatorStatus,
   selectNativeIndicatorsForChart,
+  selectChartCrossFilters,
 } from './selectors';
+
+test('a SQL chart cross-filter rejected by a semantic chart remains Incompatible', () => {
+  const result = selectChartCrossFilters(
+    {
+      17: {
+        id: '17',
+        extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+        filterState: { value: ['US'], label: 'US' },
+      },
+    },
+    73,
+    [],
+    { 17: { id: 17, crossFilters: { scope: 'global', chartsInScope: [73] } } },
+    new Set(),
+    new Set(['country']),
+  );
+  expect(result).toEqual([
+    expect.objectContaining({
+      column: 'country',
+      status: IndicatorStatus.Incompatible,
+    }),
+  ]);
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getCrossFilterIndicator', () => {
@@ -626,3 +650,241 @@ test('selectNativeIndicatorsForChart marks rejected filters from later query res
     },
   ]);
 });
+
+test('selectNativeIndicatorsForChart leaves an unset filter Unset when its column is rejected', () => {
+  type Args = Parameters<typeof selectNativeIndicatorsForChart>;
+  const chartId = 654;
+  const nativeFilters = {
+    withValue: {
+      id: 'withValue',
+      name: 'Country',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [chartId],
+      targets: [{ column: { name: 'country' } }],
+    },
+    withoutValue: {
+      id: 'withoutValue',
+      name: 'Country (unset)',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [chartId],
+      targets: [{ column: { name: 'country' } }],
+    },
+  } as unknown as Args[0];
+  const dataMask = {
+    withValue: {
+      id: 'withValue',
+      filterState: { value: 'US' },
+      extraFormData: {},
+    },
+    withoutValue: { id: 'withoutValue', filterState: {}, extraFormData: {} },
+  } as unknown as Args[1];
+  const chart = {
+    queriesResponse: [{ rejected_filters: [{ column: 'country' }] }],
+  } as unknown as Args[3];
+
+  const statuses = Object.fromEntries(
+    selectNativeIndicatorsForChart(
+      nativeFilters,
+      dataMask,
+      chartId,
+      chart,
+      [],
+    ).map(indicator => [indicator.path?.[0], indicator.status]),
+  );
+
+  expect(statuses).toEqual({
+    withValue: IndicatorStatus.Incompatible,
+    withoutValue: IndicatorStatus.Unset,
+  });
+});
+
+test('skipped SQL filters are incompatible by source id, not by column name', () => {
+  type Args = Parameters<typeof selectNativeIndicatorsForChart>;
+  const native: Args[0] = {
+    sql: {
+      id: 'sql',
+      name: 'SQL country',
+      type: NativeFilterType.NativeFilter,
+      cascadeParentIds: [],
+      defaultDataMask: {},
+      scope: { rootPath: [], excluded: [] },
+      controlValues: {},
+      description: '',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 12, column: { name: 'country' } }],
+      chartsInScope: [9001],
+    },
+    semantic: {
+      id: 'semantic',
+      name: 'Semantic country',
+      type: NativeFilterType.NativeFilter,
+      cascadeParentIds: [],
+      defaultDataMask: {},
+      scope: { rootPath: [], excluded: [] },
+      controlValues: {},
+      description: '',
+      filterType: 'filter_select',
+      targets: [
+        {
+          datasetId: 3,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'country' },
+        },
+      ],
+      chartsInScope: [9001],
+    },
+  };
+  const mask: Args[1] = Object.fromEntries(
+    ['sql', 'semantic', '42'].map(id => [
+      id,
+      {
+        id,
+        filterState: { value: ['US'] },
+        extraFormData: {
+          filters: [{ col: 'country', op: 'IN' as const, val: ['US'] }],
+        },
+      },
+    ]),
+  );
+  const chart = {
+    form_data: {
+      datasource: '3__semantic_view',
+      semantic_selection_version: 'cube-member-id-v1',
+    },
+    queriesResponse: [
+      { applied_filters: [{ column: 'country' }], rejected_filters: [] },
+    ],
+  };
+  const config: Args[5] = {
+    42: { id: 42, crossFilters: { scope: 'global', chartsInScope: [9001] } },
+  };
+  const sources: Args[6] = { 42: '12__table' };
+  const selected = selectNativeIndicatorsForChart(
+    native,
+    mask,
+    9001,
+    chart,
+    [],
+    config,
+    sources,
+  );
+  expect(selected.map(({ name, status }) => [name, status])).toEqual([
+    ['', IndicatorStatus.Incompatible],
+    ['SQL country', IndicatorStatus.Incompatible],
+    ['Semantic country', IndicatorStatus.Applied],
+  ]);
+  const defaultScope = selectNativeIndicatorsForChart(
+    native,
+    mask,
+    9001,
+    chart,
+    [],
+    {},
+    sources,
+  );
+  expect(defaultScope[0].status).toBe(IndicatorStatus.Incompatible);
+  const cleared = selectNativeIndicatorsForChart(
+    native,
+    {},
+    9001,
+    chart,
+    [],
+    config,
+    sources,
+  );
+  expect(cleared.every(({ status }) => status === IndicatorStatus.Unset)).toBe(
+    true,
+  );
+  const unknown = selectNativeIndicatorsForChart(
+    native,
+    mask,
+    9001,
+    chart,
+    [],
+    config,
+    {},
+  );
+  expect(unknown[0].status).toBe(IndicatorStatus.CrossFilterApplied);
+});
+
+test.each(['filter_select', 'filter_range', 'cross-filter'])(
+  'foreign %s badge becomes unset on clear and stays unset before selection',
+  origin => {
+    type Args = Parameters<typeof selectNativeIndicatorsForChart>;
+    const native: Args[0] =
+      origin === 'cross-filter'
+        ? {}
+        : {
+            42: {
+              id: '42',
+              name: 'Foreign filter',
+              type: NativeFilterType.NativeFilter,
+              cascadeParentIds: [],
+              defaultDataMask: {},
+              scope: { rootPath: [], excluded: [] },
+              controlValues: {},
+              description: '',
+              filterType: origin,
+              targets: [
+                {
+                  datasetId: 9,
+                  datasourceType: DatasourceType.SemanticView,
+                  column: { name: 'country' },
+                },
+              ],
+              chartsInScope: [9002],
+            },
+          };
+    const chart = {
+      form_data: {
+        datasource: '3__semantic_view',
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    };
+    const config: Args[5] =
+      origin === 'cross-filter'
+        ? {
+            42: {
+              id: 42,
+              crossFilters: { scope: 'global', chartsInScope: [9002] },
+            },
+          }
+        : {};
+    for (const state of ['selected', 'cleared', 'never-set', 'reselected']) {
+      const selected = state === 'selected' || state === 'reselected';
+      const mask: Args[1] = {
+        42: {
+          id: '42',
+          filterState:
+            state === 'never-set' ? {} : { value: selected ? ['US'] : null },
+          extraFormData: {
+            ...(selected
+              ? {
+                  filters: [{ col: 'country', op: 'IN' as const, val: ['US'] }],
+                }
+              : {}),
+            semantic_selection_sources: [
+              { datasource: '9__semantic_view', version: 'cube-member-id-v1' },
+            ],
+          },
+        },
+      };
+      const indicators = selectNativeIndicatorsForChart(
+        native,
+        mask,
+        9002,
+        chart,
+        [],
+        config,
+        { 42: '9__semantic_view' },
+      );
+      expect(indicators.map(({ status }) => status)).toEqual(
+        selected
+          ? [IndicatorStatus.Incompatible]
+          : origin === 'cross-filter'
+            ? []
+            : [IndicatorStatus.Unset],
+      );
+    }
+  },
+);

@@ -23,9 +23,10 @@ from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
+    DatabaseConnectionFailedError,
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
@@ -35,18 +36,21 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.utils import (
+    encrypted_extra_secrets_reused,
     engine_params_changed,
+    oauth2_endpoint_rebind_unsafe,
     ssh_tunnel_rebind_unsafe,
     uri_identity_changed,
 )
 from superset.constants import PASSWORD_MASK
 from superset.daos.database import DatabaseDAO
 from superset.databases.utils import make_url_safe
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import get_username
 from superset.utils.decorators import on_error, transaction
+from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +84,9 @@ class UpdateDatabaseCommand(BaseCommand):
             # Depending on the changes to the OAuth2 configuration we may need to purge
             # existing personal tokens.
             self._handle_oauth2()
+
+        # The DAO updates the model in place, so compare settings before applying them.
+        can_skip_failed_sync = self._can_skip_failed_sync()
 
         # Some DBs require running a query to get the default catalog.
         # In these cases, if the current connection is broken then
@@ -122,8 +129,63 @@ class UpdateDatabaseCommand(BaseCommand):
             ).run()
         except (OAuth2RedirectError, MissingOAuth2TokenError):
             pass
+        except DatabaseConnectionFailedError:
+            if not can_skip_failed_sync:
+                raise
+            logger.warning(
+                "Skipping permission sync for database %s: connection unavailable "
+                "and connection settings unchanged",
+                self._model_id,
+            )
 
         return database
+
+    def _can_skip_failed_sync(self) -> bool:
+        """Check that the connection and permission identity remain unchanged."""
+        assert self._model
+
+        connection_fields = {
+            "database_name",  # Schema and catalog permissions include this name.
+            "sqlalchemy_uri",
+            "encrypted_extra",
+            "extra",
+            "server_cert",
+            "impersonate_user",
+            "ssh_tunnel",
+        }
+        for key in connection_fields & self._properties.keys():
+            incoming = self._properties[key]
+            original = getattr(self._model, key)
+            if key == "sqlalchemy_uri":
+                try:
+                    original = make_url_safe(self._model.sqlalchemy_uri_decrypted)
+                except Exception:
+                    # An unavailable old password store must not block repairs.
+                    return False
+                incoming = make_url_safe(incoming.strip())
+                if incoming.password == PASSWORD_MASK:
+                    incoming = incoming.set(password=original.password)
+            elif key in {"extra", "encrypted_extra"}:
+                try:
+                    original = json.loads(original or "{}")
+                    incoming = json.loads(incoming or "{}")
+                except json.JSONDecodeError:
+                    return False
+            elif key == "server_cert":
+                original = original or None
+                incoming = incoming or None
+            elif key == "ssh_tunnel" and original is not None and incoming is not None:
+                incoming = unmask_password_info(incoming.copy(), original)
+                incoming = {
+                    field: incoming.get(field) for field in original.export_fields
+                }
+                original = {
+                    field: getattr(original, field) for field in original.export_fields
+                }
+            if incoming != original:
+                return False
+
+        return True
 
     def _handle_oauth2(self) -> None:
         """
@@ -141,7 +203,9 @@ class UpdateDatabaseCommand(BaseCommand):
             return
 
         encrypted_extra = json.loads(self._properties["encrypted_extra"])
-        new_config = encrypted_extra.get("oauth2_client_info", {})
+        new_config = self._resolve_oauth2_client_info(
+            encrypted_extra.get("oauth2_client_info", {})
+        )
 
         # Keys that require purging personal tokens because they probably are no longer
         # valid. For example, if the scope has changed the existing tokens are still
@@ -157,6 +221,34 @@ class UpdateDatabaseCommand(BaseCommand):
             if current_config.get(key) != new_config.get(key):
                 self._model.purge_oauth2_tokens()
                 break
+
+    def _resolve_oauth2_client_info(self, client_info: Any) -> dict[str, Any]:
+        """
+        Fill in the values the engine spec derives, as ``get_oauth2_config`` does.
+
+        The current config has the derived values (e.g. Databricks endpoints from
+        the workspace host), so the new one needs them too, otherwise an omitted
+        value would count as a change and purge the tokens on every update. The
+        new connection URI is used, since a new host means new endpoints.
+
+        A malformed (non-dict) value resolves to an empty config, so the caller
+        treats it as a change and purges the tokens instead of crashing.
+        """
+        if not isinstance(client_info, dict):
+            return {}
+        if not self._model or not client_info:
+            return client_info
+
+        database = self._model
+        if sqlalchemy_uri := self._properties.get("sqlalchemy_uri"):
+            database = Database(sqlalchemy_uri=sqlalchemy_uri)
+        try:
+            return database.db_engine_spec.resolve_oauth2_client_info(
+                database,
+                client_info,
+            )
+        except OAuth2Error:
+            return client_info
 
     def _update_catalog_attribute(
         self,
@@ -181,6 +273,13 @@ class UpdateDatabaseCommand(BaseCommand):
             update = {"catalog": new_catalog}
             db.session.query(model).filter_by(**predicate).update(update)
 
+        # The bulk update above bypasses ``saved_query_before_update``, so
+        # re-copy the saved queries' perm strings onto their dependent charts.
+        if database := db.session.query(Database).get(database_id):
+            security_manager.sync_database_saved_query_chart_perms(
+                db.session.connection(), database
+            )
+
     def validate(self) -> None:
         if database_name := self._properties.get("database_name"):
             if not DatabaseDAO.validate_update_uniqueness(
@@ -195,8 +294,9 @@ class UpdateDatabaseCommand(BaseCommand):
     def _check_no_unsafe_secret_rebind(self) -> None:
         """
         Refuse an update that changes the connection's effective destination
-        (URI host/port, `extra.engine_params`, or the SSH tunnel endpoint)
-        while leaving the corresponding stored secret masked.
+        (URI host/port, `extra.engine_params`, the SSH tunnel endpoint, or the
+        OAuth2 endpoint URIs in `encrypted_extra`) while leaving the
+        corresponding stored secret masked.
 
         Without this, an editor could silently redirect the real stored
         password/encrypted_extra/SSH tunnel credential to a different
@@ -213,7 +313,10 @@ class UpdateDatabaseCommand(BaseCommand):
         if "sqlalchemy_uri" in self._properties:
             submitted_uri = self._properties["sqlalchemy_uri"] or ""
             connection_identity_changed = uri_identity_changed(
-                model.sqlalchemy_uri, submitted_uri
+                model.sqlalchemy_uri,
+                submitted_uri,
+                model.extra,
+                self._properties.get("extra", model.extra),
             )
             try:
                 submitted_password = make_url_safe(submitted_uri).password
@@ -240,21 +343,18 @@ class UpdateDatabaseCommand(BaseCommand):
                 None,
                 PASSWORD_MASK,
             )
-            # encrypted_extra is a blob with per-field masks, so "reused"
-            # means unmasking the submission against the stored value
-            # changes nothing -- including not submitting it at all, which
-            # leaves the old (real) value attached unchanged.
-            encrypted_extra_reused = model.encrypted_extra not in (
-                None,
-                "",
-                "{}",
-            ) and (
-                "masked_encrypted_extra" not in self._properties
-                or model.db_engine_spec.unmask_encrypted_extra(
-                    model.encrypted_extra,
-                    self._properties["masked_encrypted_extra"],
-                )
-                == model.encrypted_extra
+            # encrypted_extra is a blob with per-field masks, so "reused" is
+            # judged per stored secret: one the submission leaves masked (or
+            # leaves out entirely) rides along. Comparing whole blobs missed a
+            # masked secret whenever any other field changed in the same save,
+            # and refused a move where every secret was re-entered unchanged.
+            encrypted_extra_reused = bool(
+                model.encrypted_extra
+            ) and encrypted_extra_secrets_reused(
+                model.db_engine_spec.encrypted_extra_sensitive_field_paths(),
+                model.encrypted_extra,
+                self._properties.get("masked_encrypted_extra"),
+                submitted="masked_encrypted_extra" in self._properties,
             )
             if uri_password_reused or encrypted_extra_reused:
                 raise DatabaseInvalidError(
@@ -266,4 +366,18 @@ class UpdateDatabaseCommand(BaseCommand):
         ):
             raise DatabaseInvalidError(
                 exceptions=[DatabaseUpdateUnsafeRebindError(field_name="ssh_tunnel")]
+            )
+
+        # The OAuth2 endpoints live inside encrypted_extra, so a change there is
+        # invisible to the URI/engine-params check above -- yet the stored client
+        # secret is what the next token exchange posts to the new endpoint.
+        if "masked_encrypted_extra" in self._properties and (
+            oauth2_endpoint_rebind_unsafe(
+                model.encrypted_extra, self._properties["masked_encrypted_extra"]
+            )
+        ):
+            raise DatabaseInvalidError(
+                exceptions=[
+                    DatabaseUpdateUnsafeRebindError(field_name="masked_encrypted_extra")
+                ]
             )

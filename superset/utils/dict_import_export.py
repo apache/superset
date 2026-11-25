@@ -21,6 +21,13 @@ from superset import db
 from superset.models.core import Database
 
 EXPORT_VERSION = "1.0.0"
+
+# Lists the charts picked for a chart export, so the importer can tell them
+# apart from charts bundled only as annotation sources. It is a separate file
+# rather than a ``metadata.yaml`` key so older importers, whose metadata schema
+# rejects unknown keys, still load the bundle.
+SELECTED_CHARTS_FILE_NAME = "selected_charts.yaml"
+SELECTED_CHARTS_KEY = "chart_uuids"
 DATABASES_KEY = "databases"
 logger = logging.getLogger(__name__)
 

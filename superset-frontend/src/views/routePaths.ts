@@ -19,6 +19,8 @@
 
 export const RoutePaths = {
   REDIRECT: '/redirect/',
+  FORGOT_PASSWORD: '/login/forgot_password/',
+  RESET_PASSWORD: '/login/reset_password/',
   LOGIN: '/login/',
   REGISTER_ACTIVATION: '/register/activation/:activationHash',
   REGISTER: '/register/',
@@ -57,4 +59,5 @@ export const RoutePaths = {
   USERS: '/users/',
   GROUPS: '/list_groups/',
   EXTENSIONS: '/extensions/list/',
+  EXTENSION_PAGE: '/extensions/pages/:pageId',
 } as const;

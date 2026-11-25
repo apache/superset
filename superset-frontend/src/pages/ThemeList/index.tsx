@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
@@ -42,12 +43,14 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewActionsBar,
   ListViewFilterOperator as FilterOperator,
   ImportModal as ImportModelsModal,
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
+  ListViewTitleCell,
 } from 'src/components';
 
 import ThemeModal from 'src/features/themes/ThemeModal';
@@ -56,6 +59,12 @@ import { hasConflictingAlgorithm } from 'src/features/themes/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import {
+  isUserAdmin,
+  isUserEditorOrAdmin,
+} from 'src/dashboard/util/permissionUtils';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   setSystemDefaultTheme,
   setSystemDarkTheme,
@@ -64,16 +73,6 @@ import {
 } from 'src/features/themes/api';
 
 const PAGE_SIZE = 25;
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  .ant-tag {
-    margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
-  }
-`;
 
 const IconTag = styled(Tag)`
   display: inline-flex;
@@ -113,6 +112,9 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
+  const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
   const {
     setTemporaryTheme,
     hasDevOverride,
@@ -433,7 +435,7 @@ function ThemesList({
   ]);
 
   const initialSort = [{ id: 'theme_name', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<ThemeObject>[]>(
     () => [
       {
         Cell: ({ row: { original } }: any) => {
@@ -443,40 +445,46 @@ function ThemesList({
             original.id === appliedThemeId;
 
           return (
-            <FlexRowContainer>
+            <ListViewTitleCell
+              trailing={
+                <>
+                  {isCurrentTheme && (
+                    <Tooltip
+                      title={t('This theme is set locally for your session')}
+                    >
+                      <Tag color="success">{t('Local')}</Tag>
+                    </Tooltip>
+                  )}
+                  {original.is_system && (
+                    <Tooltip title={t('Defined through system configuration.')}>
+                      <Tag color="processing">{t('System')}</Tag>
+                    </Tooltip>
+                  )}
+                  {original.is_system_default && (
+                    <Tooltip title={t('This is the default light theme')}>
+                      <IconTag color="warning" icon={<Icons.SunOutlined />}>
+                        {t('Default')}
+                      </IconTag>
+                    </Tooltip>
+                  )}
+                  {original.is_system_dark && (
+                    <Tooltip title={t('This is the default dark theme')}>
+                      <IconTag color="default" icon={<Icons.MoonOutlined />}>
+                        {t('Dark')}
+                      </IconTag>
+                    </Tooltip>
+                  )}
+                </>
+              }
+            >
               {original.theme_name}
-              {isCurrentTheme && (
-                <Tooltip
-                  title={t('This theme is set locally for your session')}
-                >
-                  <Tag color="success">{t('Local')}</Tag>
-                </Tooltip>
-              )}
-              {original.is_system && (
-                <Tooltip title={t('Defined through system configuration.')}>
-                  <Tag color="processing">{t('System')}</Tag>
-                </Tooltip>
-              )}
-              {original.is_system_default && (
-                <Tooltip title={t('This is the default light theme')}>
-                  <IconTag color="warning" icon={<Icons.SunOutlined />}>
-                    {t('Default')}
-                  </IconTag>
-                </Tooltip>
-              )}
-              {original.is_system_dark && (
-                <Tooltip title={t('This is the default dark theme')}>
-                  <IconTag color="default" icon={<Icons.MoonOutlined />}>
-                    {t('Dark')}
-                  </IconTag>
-                </Tooltip>
-              )}
-            </FlexRowContainer>
+            </ListViewTitleCell>
           );
         },
         Header: t('Name'),
         accessor: 'theme_name',
         id: 'theme_name',
+        layout: 'title',
       },
       {
         Cell: ({
@@ -489,9 +497,21 @@ function ThemesList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         disableSortBy: true,
         id: 'changed_on_delta_humanized',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { editors = [] },
+          },
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        accessor: 'editors',
+        disableSortBy: true,
+        id: 'editors',
+        layout: 'people',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -510,13 +530,33 @@ function ThemesList({
           const handleApply = () => handleThemeApply(original);
           const handleExport = () => handleBulkThemeExport([original]);
 
+          // A user may edit or delete a non-system theme only if they are an
+          // editor (or an admin), including editorship granted indirectly
+          // via EXTRA_EDITORS_RESOLVER. The active system default/dark theme
+          // slot may only be edited or deleted by an admin, even by a user
+          // who is otherwise an editor of that theme, matching the server's
+          // UpdateThemeCommand/DeleteThemeCommand checks. Everyone else gets
+          // a read-only view.
+          const isProtectedSystemTheme = Boolean(
+            original.is_system_default || original.is_system_dark,
+          );
+          const canManageTheme =
+            !original.is_system &&
+            (isProtectedSystemTheme
+              ? isUserAdmin(currentUser)
+              : isUserEditorOrAdmin(
+                  currentUser,
+                  original.editors,
+                  original.extra_editors,
+                ));
+
           const actions = [
             canEdit
               ? {
                   label: 'edit-action',
-                  tooltip: original.is_system ? t('View') : t('Edit'),
+                  tooltip: canManageTheme ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: original.is_system ? 'EyeOutlined' : 'EditOutlined',
+                  icon: canManageTheme ? 'EditOutlined' : 'EyeOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -574,7 +614,7 @@ function ThemesList({
                   onClick: () => handleUnsetSystemDark(),
                 }
               : null,
-            canDelete && !original.is_system
+            canDelete && canManageTheme
               ? {
                   label: 'delete-action',
                   tooltip: t('Delete theme'),
@@ -593,7 +633,7 @@ function ThemesList({
         id: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete && !canApply && !canExport,
-        size: 'xl',
+        layout: 'actionsWide',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
@@ -606,6 +646,7 @@ function ThemesList({
       canDelete,
       canApply,
       canExport,
+      currentUser,
       hasDevOverride,
       appliedThemeId,
       canSetSystemThemes,

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
@@ -29,7 +29,7 @@ import ExploreCtasResultsButton, {
 } from 'src/SqlLab/components/ExploreCtasResultsButton';
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 const getOrCreateTableEndpoint = `glob:*/api/v1/dataset/get_or_create/`;
 
@@ -69,10 +69,13 @@ describe('ExploreCtasResultsButton', () => {
 
     await waitFor(() => {
       expect(postFormSpy).toHaveBeenCalledTimes(1);
-      expect(postFormSpy).toHaveBeenCalledWith('http://localhost/explore/', {
-        form_data:
-          '{"datasource":"1234__table","metrics":["count"],"groupby":[],"viz_type":"table","since":"100 years ago","all_columns":[],"row_limit":1000}',
-      });
+      expect(postFormSpy).toHaveBeenCalledWith(
+        { url: 'http://localhost/explore/' },
+        {
+          form_data:
+            '{"datasource":"1234__table","metrics":["count"],"groupby":[],"viz_type":"table","since":"100 years ago","all_columns":[],"row_limit":1000}',
+        },
+      );
     });
   });
 

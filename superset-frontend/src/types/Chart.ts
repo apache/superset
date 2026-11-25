@@ -28,6 +28,7 @@ import Subject from './Subject';
 export type ChartLinkedDashboard = {
   id: number;
   dashboard_title: string;
+  archived?: boolean;
 };
 
 export interface Chart {
@@ -35,6 +36,9 @@ export interface Chart {
   url: string;
   viz_type: string;
   slice_name: string;
+  // Name resolved for the viewer's locale (read-only). Mirrors slice_name
+  // when translation is off or no translation exists.
+  localized_name?: string | null;
   creator: string;
   changed_on: string;
   changed_on_delta_humanized?: string;
@@ -55,7 +59,15 @@ export interface Chart {
     first_name: string;
     last_name: string;
   };
+  // Dataset identity from `ChartGetResponseSchema`. Returned to any chart
+  // viewer, so these describe a dataset the viewer may not be entitled to
+  // see — `params`/`query_context` embed its columns, metric SQL and the
+  // literal values its filters compare against.
   datasource_name_text?: string;
+  datasource_url?: string;
+  datasource_uuid?: string;
+  params?: string;
+  query_context?: string;
   form_data: {
     viz_type: string;
   };
@@ -70,6 +82,7 @@ export type Slice = {
   slice_id: number;
   uuid?: string;
   slice_name: string;
+  localized_name?: string | null;
   changed_on?: string;
   description: string | null;
   cache_timeout: number | null;
@@ -79,6 +92,7 @@ export type Slice = {
   query_context?: object;
   is_managed_externally: boolean;
   editors?: number[];
+  extra_editors?: number[];
   viewers?: number[];
   datasource?: string;
   datasource_id?: number;

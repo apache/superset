@@ -23,6 +23,7 @@ import { supersetTheme, SupersetTheme } from '@apache-superset/core/theme';
 import {
   AppSection,
   Behavior,
+  CategoricalColorScale,
   convertKeysToCamelCase,
   Datasource,
   FilterState,
@@ -102,6 +103,8 @@ export type Hooks = {
  */
 export interface ChartPropsConfig {
   annotationData?: AnnotationData;
+  /** Categorical scale shared by charts composed within one visualization. */
+  colorScale?: CategoricalColorScale;
   /** Datasource metadata */
   datasource?: SnakeCaseDatasource;
   initialValues?: DataRecordFilters;
@@ -146,6 +149,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
   static createSelector: () => ChartPropsSelector;
 
   annotationData: AnnotationData;
+
+  colorScale?: CategoricalColorScale;
 
   datasource: Datasource;
 
@@ -196,6 +201,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
   ) {
     const {
       annotationData = {},
+      colorScale,
       datasource = {},
       formData = {} as FormData,
       hooks = {},
@@ -219,6 +225,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.width = width;
     this.height = height;
     this.annotationData = annotationData;
+    this.colorScale = colorScale;
     this.datasource = convertKeysToCamelCase(datasource) as Datasource;
     this.rawDatasource = datasource;
     this.formData = convertKeysToCamelCase(formData);
@@ -264,6 +271,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.inContextMenu,
     input => input.emitCrossFilters,
     input => input.theme,
+    input => input.colorScale,
     (
       annotationData,
       datasource,
@@ -285,6 +293,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       inContextMenu,
       emitCrossFilters,
       theme,
+      colorScale,
     ) =>
       new ChartProps({
         annotationData,
@@ -307,6 +316,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         inContextMenu,
         emitCrossFilters,
         theme,
+        colorScale,
       }),
     // Below config is to retain usage of 1-sized `lruMemoize` object in Reselect v4
     // Reselect v5 introduces `weakMapMemoize` which is more performant but potentially memory-leaky

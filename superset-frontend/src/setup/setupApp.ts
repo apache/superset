@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint global-require: 0 */
-import $ from 'jquery';
+import jquery from 'jquery';
 import {
   SupersetClient,
   getClientErrorObject,
@@ -25,6 +25,8 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 import setupErrorMessages from 'src/setup/setupErrorMessages';
+
+const $ = jquery;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare global {
@@ -62,14 +64,14 @@ function toggleCheckbox(apiUrlPrefix: string, selector: string) {
 
 export default function setupApp() {
   $(document).ready(function () {
-    $(':checkbox[data-checkbox-api-prefix]').change(
-      function (this: HTMLElement) {
-        const $this = $(this);
-        const prefix = $this.data('checkbox-api-prefix');
-        const id = $this.attr('id');
-        toggleCheckbox(prefix, `#${id}`);
-      },
-    );
+    $(':checkbox[data-checkbox-api-prefix]').change(function (
+      this: HTMLElement,
+    ) {
+      const $this = $(this);
+      const prefix = $this.data('checkbox-api-prefix');
+      const id = $this.attr('id');
+      toggleCheckbox(prefix, `#${id}`);
+    });
 
     // for language picker dropdown
     $<HTMLAnchorElement>('#language-picker a').click(function (

@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
-from typing import Any, cast, ClassVar, Optional
+from typing import Any, cast, ClassVar, Optional, TYPE_CHECKING
 
-from flask import current_app as app, g
+from flask import current_app as app, g, Response
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
 from sqlalchemy import and_, false as sa_false, or_
@@ -32,6 +34,11 @@ from superset.models.helpers import (
     SoftDeleteMixin,
 )
 from superset.utils.core import get_user_id
+
+if TYPE_CHECKING:
+    from superset.commands.purge import SoftDeleteBinding
+    from superset.commands.restore import BaseRestoreCommand
+    from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +165,67 @@ AUGMENT_RESPONSE_WITH_DELETED_AT = "_augment_response_with_deleted_at"
 DELETED_STATE_ADDED_CLASSES = "_deleted_state_added_classes"
 
 
+def scope_query_to_restore_audience(
+    query: Query, model: type[SoftDeleteMixin], normalized: str
+) -> Query:
+    """Cross-entity contract: non-admins may only enumerate soft-deleted
+    rows they can edit — the same audience that can restore them (mirrors
+    ``BaseRestoreCommand``'s ``raise_for_editorship``). Live rows are
+    unaffected: they keep the entity's normal access filtering.
+
+    Shared by ``BaseDeletedStateFilter`` and callers that enumerate archived
+    rows outside FAB's list flow, so the audience has one definition. It
+    adds predicates only: no visibility bypass, no response flag. ``any()``
+    emits an EXISTS subquery so it composes with the entity's base access
+    filter without duplicate rows from a join.
+
+    ``normalized`` is ``"include"`` (live rows plus the audience's archived
+    rows) or ``"only"`` (the audience's archived rows; this mode adds
+    ``deleted_at IS NOT NULL`` itself, so it is self-contained for admins
+    too). Any other value is the caller's responsibility to reject.
+
+    Editorship granted through ``EXTRA_EDITORS_RESOLVER`` has no SQL form
+    because the resolver is arbitrary deployment-provided Python. Such
+    editors may restore an object directly while its archive list entry
+    remains hidden. Callers must enforce any explicit guest exclusions
+    before invoking this helper.
+
+    A model *without* an ``editors`` relationship fails closed for
+    non-admins: there is no audience to scope to, so nothing is
+    enumerable. Returning the query unfiltered here would hand every
+    soft-deleted row of a future ``SoftDeleteMixin`` adopter to anyone
+    with list access -- a fail-open default on a security-scoped filter.
+    """
+    if normalized == "only":
+        query = query.filter(model.deleted_at.is_not(None))
+    if security_manager.is_admin():
+        return query
+    editors = getattr(model, "editors", None)
+    if editors is None:
+        if normalized == "only":
+            # Nothing is enumerable; emit an always-false predicate rather
+            # than an empty result-set hack so pagination stays coherent.
+            return query.filter(sa_false())
+        return query.filter(model.deleted_at.is_(None))
+    user_id = get_user_id()
+    from superset.subjects.models import Subject  # noqa: PLC0415
+    from superset.subjects.utils import (  # noqa: PLC0415
+        get_user_subject_ids_subquery,
+    )
+
+    editable = editors.any(
+        Subject.id.in_(get_user_subject_ids_subquery(user_id))
+        if user_id
+        else Subject.id.in_([])
+    )
+    if normalized == "only":
+        # ``deleted_at IS NOT NULL`` was added above.
+        return query.filter(editable)
+    # ``include``: keep all live rows (normal access) and add only the
+    # soft-deleted rows this user can edit.
+    return query.filter(or_(model.deleted_at.is_(None), editable))
+
+
 class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """Base class for ``*_deleted_state`` rison filters.
 
@@ -217,60 +285,11 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         if normalized not in {"include", "only"}:
             return query
         self._opt_into_deleted_state(query)
-        if normalized == "only":
-            query = query.filter(self.model.deleted_at.is_not(None))
         return self._scope_to_restore_audience(query, normalized)
 
     def _scope_to_restore_audience(self, query: Query, normalized: str) -> Query:
-        """Cross-entity contract: non-admins may only enumerate soft-deleted
-        rows they can edit — the same audience that can restore them (mirrors
-        ``BaseRestoreCommand``'s ``raise_for_editorship``). Live rows are
-        unaffected: they keep the entity's normal access filtering.
-
-        Lives on the base so the per-entity filters stay pure declarations
-        (``arg_name`` + ``model``) instead of carrying verbatim copies of
-        this body. ``any()`` emits an EXISTS subquery so it composes with
-        the entity's base access filter without duplicate rows from a join.
-
-        "Mirrors" is deliberately approximate in two known, fail-safe ways:
-        editorship granted through ``EXTRA_EDITORS_RESOLVER`` and guest users
-        whose editorship derives from roles have no SQL form (the resolver is
-        arbitrary per-deployment Python), so both can restore via a direct
-        ``POST /restore`` yet see an under-enumerated archive. Narrower than
-        the true audience, never wider.
-
-        A model *without* an ``editors`` relationship fails closed for
-        non-admins: there is no audience to scope to, so nothing is
-        enumerable. Returning the query unfiltered here would hand every
-        soft-deleted row of a future ``SoftDeleteMixin`` adopter to anyone
-        with list access -- a fail-open default on a security-scoped filter.
-        """
-        if security_manager.is_admin():
-            return query
-        editors = getattr(self.model, "editors", None)
-        if editors is None:
-            if normalized == "only":
-                # Nothing is enumerable; emit an always-false predicate rather
-                # than an empty result-set hack so pagination stays coherent.
-                return query.filter(sa_false())
-            return query.filter(self.model.deleted_at.is_(None))
-        user_id = get_user_id()
-        from superset.subjects.models import Subject  # noqa: PLC0415
-        from superset.subjects.utils import (  # noqa: PLC0415
-            get_user_subject_ids_subquery,
-        )
-
-        editable = editors.any(
-            Subject.id.in_(get_user_subject_ids_subquery(user_id))
-            if user_id
-            else Subject.id.in_([])
-        )
-        if normalized == "only":
-            # ``apply`` already restricted to ``deleted_at IS NOT NULL``.
-            return query.filter(editable)
-        # ``include``: keep all live rows (normal access) and add only the
-        # soft-deleted rows this user can edit.
-        return query.filter(or_(self.model.deleted_at.is_(None), editable))
+        """Apply the shared archive audience predicate for this filter's model."""
+        return scope_query_to_restore_audience(query, self.model, normalized)
 
     def _opt_into_deleted_state(self, query: Query) -> None:
         """The two-step opt-in shared by ``include`` and ``only``: install
@@ -367,10 +386,74 @@ class SoftDeleteApiMixin:
     ``pre_get_list`` behaviour in the inheritance chain still runs.
     When the request has not opted into soft-deleted visibility, the
     augmentation is a no-op.
+
+    Concrete restore routes may delegate to ``_restore_soft_deleted`` after
+    binding ``restore_command_cls``, the not-found/forbidden/restore-failed
+    exception tuples, and ``soft_delete_logger``. ``restore_conflict_errors``
+    optionally identifies expected conflicts that return 422 without logging.
+
+    Chart/dashboard purge routes may bind ``purge_binding`` and
+    ``purge_failed_errors`` to use ``_purge_soft_deleted`` with the shared
+    not-found/forbidden tuples and logger. Dataset purge remains concrete:
+    it validates a request body and a confirmed impact token. List augmentation
+    alone does not require restore or purge bindings.
     """
 
     # Concrete subclasses bind these via FAB's ModelRestApi machinery.
     datamodel: Any  # SQLAInterface providing get_pk_name() and .obj
+
+    restore_command_cls: ClassVar[type[BaseRestoreCommand[Any]]]
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]]
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]]
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]]
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = ()
+    soft_delete_logger: ClassVar[logging.Logger]
+    purge_binding: ClassVar[SoftDeleteBinding]
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]]
+
+    def _restore_soft_deleted(self, uuid: str) -> Response:
+        """Run the bound restore command with the concrete API's error mapping."""
+        api: BaseSupersetModelRestApi = cast("BaseSupersetModelRestApi", self)
+        try:
+            command: BaseRestoreCommand[Any] = self.restore_command_cls(uuid)
+            command.run()
+            return api.response(200, message=" ".join(["OK", *command.warnings]))
+        except self.soft_delete_not_found_errors:
+            return api.response_404()
+        except self.soft_delete_forbidden_errors:
+            return api.response_403()
+        except self.restore_conflict_errors as ex:
+            return api.response_422(message=str(ex))
+        except self.restore_failed_errors as ex:
+            self.soft_delete_logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return api.response_422(message=str(ex))
+
+    def _purge_soft_deleted(self, uuid: str) -> Response:
+        """Run the body-free chart/dashboard purge with its bound error mapping."""
+        # Avoid an import cycle: purge loads models whose APIs import this mixin.
+        from superset.commands.purge import PurgeArchivedCommand
+
+        api: BaseSupersetModelRestApi = cast("BaseSupersetModelRestApi", self)
+        try:
+            PurgeArchivedCommand(uuid, self.purge_binding).run()
+            return api.response(200, message="OK")
+        except self.soft_delete_not_found_errors:
+            return api.response_404()
+        except self.soft_delete_forbidden_errors:
+            return api.response_403()
+        except self.purge_failed_errors as ex:
+            self.soft_delete_logger.error(
+                "Error purging model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return api.response_422(message=str(ex))
 
     def pre_get_list(self, data: dict[str, Any]) -> None:
         super().pre_get_list(data)  # type: ignore[misc]

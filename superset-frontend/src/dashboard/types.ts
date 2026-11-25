@@ -165,6 +165,13 @@ export type DashboardState = {
   expandAllSlices?: boolean;
   refreshFrequency: number;
   shouldPersistRefreshFrequency?: boolean;
+  // Display-only localized dashboard title (read-only; canonical title is in
+  // the header layout meta). Mirrors the canonical title when translation is
+  // off or no translation exists, so it is never a signal that one was found.
+  localizedTitle?: string | null;
+  // The canonical title `localizedTitle` was resolved for; the translation is
+  // only displayed while the live title still matches it.
+  localizedTitleFor?: string | null;
   colorNamespace?: string;
   isStarred?: boolean;
   lastRefreshTime?: number;
@@ -210,6 +217,19 @@ export type DashboardInfo = {
   chartCustomizationData?: { [itemId: string]: ColumnOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomization>;
+  semanticDatasets?: {
+    dashboardId: number;
+    datasets: Pick<Datasource, 'uid' | 'type' | 'columns'>[];
+  } | null;
+  semanticDatasetsRequestId?: string;
+  semanticDatasetRequests?: Record<string, string>;
+  semanticDatasetOverrides?: Record<
+    string,
+    Pick<Datasource, 'uid' | 'type' | 'columns'> | null
+  >;
+  semanticDatasetsGeneration?: number;
+  semanticDatasetsSaveGeneration?: number;
+  semanticDatasetMutationGenerations?: Record<string, number>;
   theme?: {
     id: number;
     theme_name: string;
@@ -217,7 +237,7 @@ export type DashboardInfo = {
   } | null;
   css?: string;
   slug?: string;
-  description?: string;
+  description?: string | null;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;
@@ -232,6 +252,7 @@ export type ChartsState = { [key: string]: Chart };
 
 export type Datasource = Dataset & {
   uid: string;
+  chart_display_labels?: Record<string, Record<string, string>>;
   column_types: GenericDataType[];
   table_name: string;
   database?: Database;
@@ -351,6 +372,7 @@ export type EmbeddedDashboard = {
 export type Slice = {
   slice_id: number;
   slice_name: string;
+  localized_name?: string | null;
   description: string;
   description_markdown: string;
   form_data: any;

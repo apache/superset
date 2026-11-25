@@ -36,6 +36,7 @@ import {
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewActionProps,
@@ -61,6 +62,7 @@ import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelect
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
+import ReportConfigurationModal from 'src/features/alerts/ReportConfigurationModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { useExecuteReportSchedule } from 'src/features/alerts/hooks/useExecuteReportSchedule';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
@@ -168,6 +170,8 @@ function AlertList({
   );
 
   const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
+  const [configurationModalOpen, setConfigurationModalOpen] =
+    useState<boolean>(false);
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
@@ -191,23 +195,31 @@ function AlertList({
       }
       executingIdsRef.current.add(alertId);
 
+      const isReport = alert.type === 'Report';
       executeReport(
         alertId,
         () => {
           addSuccessToast(
-            t('%(alertType)s "%(alertName)s" triggered successfully', {
-              alertType: alert.type,
-              alertName: alert.name,
-            }),
+            isReport
+              ? t('Report "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                })
+              : t('Alert "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                }),
           );
         },
         error => {
           addDangerToast(
-            t('Failed to trigger %(alertType)s "%(alertName)s": %(error)s', {
-              alertType: alert.type,
-              alertName: alert.name,
-              error,
-            }),
+            isReport
+              ? t('Failed to trigger report "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                })
+              : t('Failed to trigger alert "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                }),
           );
         },
       )
@@ -232,6 +244,7 @@ function AlertList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
+  const canConfigure = canEdit && isUserAdmin(user);
 
   useEffect(() => {
     if (bulkSelectEnabled && canDelete) {
@@ -307,7 +320,7 @@ function AlertList({
     [alerts, setResourceCollection, updateResource],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<AlertObject>[]>(
     () => [
       {
         Cell: ({
@@ -321,7 +334,7 @@ function AlertList({
           />
         ),
         accessor: 'last_state',
-        size: 'xs',
+        layout: 'statusIcon',
         disableSortBy: true,
         id: 'last_state',
       },
@@ -339,19 +352,19 @@ function AlertList({
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
-        size: 'lg',
+        layout: 'timestamp',
         id: 'last_eval_dttm',
       },
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
         Header: t('Schedule'),
         accessor: 'crontab_humanized',
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { crontab_humanized = '', timezone },
@@ -378,7 +391,7 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification method'),
         disableSortBy: true,
-        size: 'lg',
+        layout: 'iconList',
         id: 'recipients',
       },
       {
@@ -390,7 +403,7 @@ function AlertList({
         Header: t('Editors'),
         id: 'editors',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'people',
       },
       {
         Cell: ({
@@ -403,7 +416,7 @@ function AlertList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -426,7 +439,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
-        size: 'sm',
+        layout: 'flag',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -488,7 +501,7 @@ function AlertList({
         id: 'actions',
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
-        size: 'lg',
+        layout: 'actions',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
@@ -507,6 +520,16 @@ function AlertList({
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
+
+  if (canConfigure) {
+    subMenuButtons.push({
+      icon: <Icons.SettingOutlined iconSize="m" />,
+      name: t('Configuration'),
+      buttonStyle: 'secondary',
+      'data-test': 'report-configuration-button',
+      onClick: () => setConfigurationModalOpen(true),
+    });
+  }
 
   if (canDelete) {
     subMenuButtons.push({
@@ -670,6 +693,14 @@ function AlertList({
         isReport={isReportEnabled}
         key={currentAlert?.id || generateKey()}
       />
+      {canConfigure && (
+        <ReportConfigurationModal
+          show={configurationModalOpen}
+          onHide={() => setConfigurationModalOpen(false)}
+          addSuccessToast={addSuccessToast}
+          addDangerToast={addDangerToast}
+        />
+      )}
       {currentAlertDeleting && (
         <DeleteModal
           description={t(

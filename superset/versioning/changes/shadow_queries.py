@@ -32,10 +32,13 @@ mapper-resolution side effects.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from superset.versioning.activity.kinds import Window
 
 from superset.versioning.baseline import (
     CONTINUUM_BOOKKEEPING_COLUMNS,
@@ -50,8 +53,30 @@ from superset.versioning.diff import (
 )
 
 
+def shadow_valid_at(shadow_table: sa.Table, tx: int) -> sa.ColumnElement[bool]:
+    """Continuum validity-strategy predicate: *shadow_table*'s row is the live
+    state as of transaction *tx* — ``transaction_id <= tx`` AND
+    (``end_transaction_id`` IS NULL OR ``end_transaction_id`` > tx) AND it
+    isn't a DELETE shadow.
+
+    Shared by the content-shadow readers in this module, so a change to
+    Continuum's validity semantics is edited once. Attachment identity is
+    resolved separately. Only for shadows whose ``end_transaction_id``
+    Continuum actually closes — never the M2M association shadow (see
+    ``_dashboard_slice_uuids_at_txs``).
+    """
+    return sa.and_(
+        shadow_table.c.transaction_id <= tx,
+        sa.or_(
+            shadow_table.c.end_transaction_id.is_(None),
+            shadow_table.c.end_transaction_id > tx,
+        ),
+        shadow_table.c.operation_type != OPERATION_DELETE,
+    )
+
+
 def shadow_rows_valid_at(
-    session: Session,
+    session: Session | sa.engine.Connection,
     shadow_table: sa.Table,
     fk_col_name: str,
     fk_value: int,
@@ -69,17 +94,17 @@ def shadow_rows_valid_at(
     natural-key diff helpers (``diff_dataset_columns`` etc.).
     """
     fk_col = getattr(shadow_table.c, fk_col_name)
+    # Accept a raw Connection so callers needing snapshot isolation across
+    # SEVERAL reads (get_version's parent + child pair, sc-120012) can run
+    # this on their own transaction instead of the request session's.
+    conn: sa.engine.Connection = (
+        session if isinstance(session, sa.engine.Connection) else session.connection()
+    )
     rows = (
-        session.connection()
-        .execute(
+        conn.execute(
             sa.select(shadow_table).where(
                 fk_col == fk_value,
-                shadow_table.c.transaction_id <= tx,
-                sa.or_(
-                    shadow_table.c.end_transaction_id.is_(None),
-                    shadow_table.c.end_transaction_id > tx,
-                ),
-                shadow_table.c.operation_type != OPERATION_DELETE,
+                shadow_valid_at(shadow_table, tx),
             )
         )
         .mappings()
@@ -183,17 +208,22 @@ def _dataset_child_records_for_tx_from_shadows(
         if prior_tx is None:
             continue
 
+        # Read pre-state just before this transaction, not at ``prior_tx``:
+        # columns and metrics are versioned separately, so the latest column
+        # shadow can predate a later metric-only edit, which would then be
+        # emitted again here.
+        pre_tx = transaction_id - 1
         post_cols = shadow_rows_valid_at(
             session, cols_tbl, "table_id", dataset_id, transaction_id
         )
         pre_cols = shadow_rows_valid_at(
-            session, cols_tbl, "table_id", dataset_id, prior_tx
+            session, cols_tbl, "table_id", dataset_id, pre_tx
         )
         post_metrics = shadow_rows_valid_at(
             session, metrics_tbl, "table_id", dataset_id, transaction_id
         )
         pre_metrics = shadow_rows_valid_at(
-            session, metrics_tbl, "table_id", dataset_id, prior_tx
+            session, metrics_tbl, "table_id", dataset_id, pre_tx
         )
 
         records: list[ChangeRecord] = []
@@ -232,55 +262,39 @@ def _affected_dashboard_ids_at_tx(session: Session, tx: int) -> set[int]:
     return dashboard_ids
 
 
-def _dashboard_slice_uuids_at_tx(
-    session: Session, dashboard_id: int, tx: int
-) -> list[str]:
-    """Slice UUIDs attached to *dashboard_id* as of *tx*, read by joining
-    ``dashboard_slices_version`` (M2M membership) against
-    ``slices_version`` (slice content).
+def _dashboard_slice_uuids_at_txs(
+    session: Session, attached: list[tuple[int, Window]], txs: tuple[int, ...]
+) -> dict[int, list[str]]:
+    """Resolve attachment identity independently of content validity for each tx.
 
-    Joining through both is necessary — and matches the same query
-    Continuum's M2M ``Reverter`` uses — because a slice that's
-    referenced by the M2M but has no slice-version row at this tx is
-    treated as "not yet versioned" and excluded.
-
-    Returns UUIDs (strings) so the result can be diffed by the existing
-    :func:`diff_dashboard_slices` helper, which keys on uuid.
+    Pin each window to the incarnation present when it opened. A chart first
+    versioned after attachment can be anchored only when its live creation
+    timestamp proves that the same UUID already existed at attachment time.
+    Missing/pruned evidence is never replaced with an arbitrary UUID for an id.
+    All reads use the committing session, including its uncommitted shadows.
     """
+    active = {
+        tx: [(sid, window.start_tx) for sid, window in attached if window.contains(tx)]
+        for tx in txs
+    }
+    if not any(active.values()):
+        return {tx: [] for tx in txs}
+
     # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import version_class
+    from sqlalchemy_continuum import version_class, versioning_manager
 
     from superset.models.slice import Slice
+    from superset.versioning.activity.kinds import ENTITY_ID_CHUNK_SIZE
+    from superset.versioning.changes.identity import attachment_uuids
 
-    metadata = version_class(Slice).__table__.metadata
-    m2m_tbl = metadata.tables.get("dashboard_slices_version")
-    slices_tbl = version_class(Slice).__table__
-    if m2m_tbl is None:
-        return []
-
-    rows = (
-        session.connection()
-        .execute(
-            sa.select(slices_tbl.c.uuid).where(
-                slices_tbl.c.id == m2m_tbl.c.slice_id,
-                m2m_tbl.c.dashboard_id == dashboard_id,
-                m2m_tbl.c.transaction_id <= tx,
-                sa.or_(
-                    m2m_tbl.c.end_transaction_id.is_(None),
-                    m2m_tbl.c.end_transaction_id > tx,
-                ),
-                m2m_tbl.c.operation_type != OPERATION_DELETE,
-                slices_tbl.c.transaction_id <= tx,
-                sa.or_(
-                    slices_tbl.c.end_transaction_id.is_(None),
-                    slices_tbl.c.end_transaction_id > tx,
-                ),
-                slices_tbl.c.operation_type != OPERATION_DELETE,
-            )
-        )
-        .all()
+    return attachment_uuids(
+        session.connection(),
+        active,
+        versions_table=version_class(Slice).__table__,
+        live_table=Slice.__table__,
+        transactions_table=versioning_manager.transaction_cls.__table__,
+        chunk_size=ENTITY_ID_CHUNK_SIZE,
     )
-    return [str(r[0]) for r in rows if r[0] is not None]
 
 
 def _dashboard_child_records_for_tx_from_shadows(
@@ -296,6 +310,7 @@ def _dashboard_child_records_for_tx_from_shadows(
     from sqlalchemy_continuum import version_class
 
     from superset.models.dashboard import Dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
     metadata = version_class(Dashboard).__table__.metadata
     m2m_tbl = metadata.tables.get("dashboard_slices_version")
@@ -317,10 +332,19 @@ def _dashboard_child_records_for_tx_from_shadows(
         if prior_tx is None:
             continue
 
-        post_uuids = _dashboard_slice_uuids_at_tx(session, dashboard_id, transaction_id)
-        pre_uuids = _dashboard_slice_uuids_at_tx(session, dashboard_id, prior_tx)
+        # Resolve the attachment windows once (threading the committing
+        # *session* so the flushed-but-uncommitted current-tx association rows
+        # are visible), then take the pre/post membership by which windows
+        # contain each tx — the windows are tx-independent, so no need to
+        # re-scan the association history for both reads.
+        attached = chart_attachment_windows_for_dashboard(dashboard_id, session=session)
+        uuids_by_tx = _dashboard_slice_uuids_at_txs(
+            session, attached, (prior_tx, transaction_id)
+        )
 
-        records = diff_dashboard_slices(pre_uuids, post_uuids)
+        records = diff_dashboard_slices(
+            uuids_by_tx[prior_tx], uuids_by_tx[transaction_id]
+        )
         if records:
             result[dashboard_id] = records
     return result

@@ -124,15 +124,19 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 db.session.delete(tag)
                 db.session.commit()
 
-    def test_get_tag(self):
+    def test_get_tag(self) -> None:
         """
         Query API: Test get query
         """
-        with freeze_time(datetime.now()):
-            tag = self.insert_tag(
+        with freeze_time("2024-01-01 12:00:00"):
+            tag: Tag = Tag(
                 name="test get tag",
-                tag_type="custom",
+                type=TagType.custom,
             )
+            # Defaults capture real datetime.now at import, beyond freezegun's patch.
+            tag.created_on = tag.changed_on = datetime.now()
+            db.session.add(tag)
+            db.session.commit()
             self.login(ADMIN_USERNAME)
             uri = f"api/v1/tag/{tag.id}"
             rv = self.client.get(uri)
