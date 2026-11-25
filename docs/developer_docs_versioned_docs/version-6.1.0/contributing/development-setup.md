@@ -652,7 +652,7 @@ If you want to use the same flag in the client code, also add it to the FeatureF
 
 ```typescript
 export enum FeatureFlag {
-  SCOPED_FILTER = "SCOPED_FILTER",
+  SCOPED_FILTER = 'SCOPED_FILTER',
 }
 ```
 
@@ -968,7 +968,7 @@ To debug Flask running in POD inside a kubernetes cluster, you'll need to make s
 ```yaml
 securityContext:
   capabilities:
-    add: ["SYS_PTRACE"]
+    add: ['SYS_PTRACE']
 ```
 
 See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.

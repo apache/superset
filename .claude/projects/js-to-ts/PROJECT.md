@@ -10,7 +10,7 @@ Migration of JS/JSX application files to TypeScript in Apache Superset frontend.
 ## 📊 Migration Status
 
 - **Application Code (`superset-frontend/src`, `plugins/`)**: 100% TypeScript (`.js`/`.jsx` migration complete).
-- **Remaining JavaScript Files**: Limited to generator/mock/template files under `packages/` and project configuration scripts.
+- **Remaining JavaScript Files**: Generator/mock/template files under `packages/`, test fixtures, mocks and helpers under `spec/` (e.g. `spec/fixtures/mockState.js`), custom lint rules under `custom-lint-rules/`, and project configuration/build scripts.
 
 ---
 
