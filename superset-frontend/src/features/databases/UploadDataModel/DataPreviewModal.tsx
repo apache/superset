@@ -18,8 +18,12 @@
  */
 import { FunctionComponent, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { Modal, Table, TableSize } from '@superset-ui/core/components';
-import type { ColumnsType } from 'antd/es/table';
+import {
+  Modal,
+  Table,
+  TableSize,
+  type ColumnsType,
+} from '@superset-ui/core/components';
 import type { UploadType } from './uploadDataModalTour';
 
 const PREVIEW_ROW_LIMIT = 100;

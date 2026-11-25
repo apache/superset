@@ -23,7 +23,6 @@ import {
   useRef,
   useState,
   ReactNode,
-  FC,
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
@@ -665,26 +664,23 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     columnar: t('Columnar upload'),
   };
 
-  const UploadTitle: FC = () => {
-    const title = uploadTitles[type] || t('Upload');
-    return (
-      <Flex align="center" gap="sm">
-        <ModalTitleWithIcon title={title} />
-        <Tooltip title={t('Take a tour')}>
-          <Button
-            buttonStyle="link"
-            buttonSize="small"
-            onClick={e => {
-              e.stopPropagation();
-              startUploadDataModalTour(type);
-            }}
-            icon={<Icons.QuestionCircleOutlined iconSize="m" />}
-            aria-label={t('Take a tour')}
-          />
-        </Tooltip>
-      </Flex>
-    );
-  };
+  const uploadTitle = (
+    <Flex align="center" gap="sm">
+      <ModalTitleWithIcon title={uploadTitles[type] || t('Upload')} />
+      <Tooltip title={t('Take a tour')}>
+        <Button
+          buttonStyle="link"
+          buttonSize="small"
+          onClick={e => {
+            e.stopPropagation();
+            startUploadDataModalTour(type);
+          }}
+          icon={<Icons.QuestionCircleOutlined iconSize="m" />}
+          aria-label={t('Take a tour')}
+        />
+      </Tooltip>
+    </Flex>
+  );
 
   const formValues = form.getFieldsValue();
 
@@ -705,7 +701,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         primaryButtonName={t('Upload')}
         centered
         show={show}
-        title={<UploadTitle />}
+        title={uploadTitle}
         wrapProps={{ 'data-tour': `upload-modal-${type}` }}
         footer={modalFooter}
       >
@@ -771,31 +767,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                               </p>
                               <p className="ant-upload-hint">
                                 {t('or')}{' '}
-                                <label
-                                  htmlFor="modelFile"
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  <span
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        document
-                                          .getElementById('modelFile')
-                                          ?.click();
-                                      }
-                                    }}
-                                    style={{
-                                      color: 'inherit',
-                                      textDecoration: 'underline',
-                                      cursor: 'pointer',
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    {t('Select')}
-                                  </span>
-                                </label>{' '}
+                                <Button buttonStyle="link" buttonSize="small">
+                                  {t('Select')}
+                                </Button>{' '}
                                 — {allowedExtensionsToAccept[type]}
                               </p>
                             </Upload.Dragger>
