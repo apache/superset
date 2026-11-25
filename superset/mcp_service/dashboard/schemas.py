@@ -2703,14 +2703,21 @@ _TYPE_SPECIFIC_FILTER_FIELDS: dict[str, frozenset[str]] = {
     "filter_timegrain": frozenset({"dataset_id", "enable_empty_filter"}),
     "filter_timecolumn": frozenset({"dataset_id", "enable_empty_filter"}),
 }
-# Filter types that can sit on either side of a dependency, mirroring the filter
-# bar's ``supportsCascadeDependencies`` (time grain / time column filters and
-# dividers cannot).
-CASCADE_DEPENDENCY_FILTER_TYPES: frozenset[str] = frozenset(
-    filter_type
-    for filter_type, fields in _TYPE_SPECIFIC_FILTER_FIELDS.items()
-    if "cascade_parent_ids" in fields
-)
+
+
+def native_filter_supports_cascade(filter_type: str | None) -> bool:
+    """Allow stored native plugins, excluding core types without dependencies.
+
+    Plugin registration and capability metadata live in the frontend registry,
+    not the backend. Preserve its NativeFilter default for stored plugin types.
+    """
+    return bool(filter_type) and filter_type not in {
+        "filter_timegrain",
+        "filter_timecolumn",
+        "divider",
+    }
+
+
 _ALL_TYPE_SPECIFIC_FILTER_FIELDS: frozenset[str] = frozenset().union(
     *_TYPE_SPECIFIC_FILTER_FIELDS.values()
 )
@@ -2725,6 +2732,8 @@ def validate_native_filter_type_fields(
             "Divider does not support scope_chart_ids; dividers are always in scope."
         )
     allowed = _TYPE_SPECIFIC_FILTER_FIELDS.get(filter_type or "", frozenset())
+    if not is_divider and native_filter_supports_cascade(filter_type):
+        allowed = allowed | {"cascade_parent_ids"}
     invalid_fields = sorted(
         field
         for field in _ALL_TYPE_SPECIFIC_FILTER_FIELDS

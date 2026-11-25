@@ -37,7 +37,6 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
-    CASCADE_DEPENDENCY_FILTER_TYPES,
     DividerSpec,
     FilterRangeSpec,
     FilterSelectSpec,
@@ -48,6 +47,7 @@ from superset.mcp_service.dashboard.schemas import (
     ManageNativeFiltersRequest,
     ManageNativeFiltersResponse,
     native_filter_cascade_parent_ids,
+    native_filter_supports_cascade,
     NativeFilterSummary,
     NativeFilterUpdateSpec,
     validate_native_filter_type_fields,
@@ -682,13 +682,14 @@ def _validate_cascade_parents(
     unsupported = [
         parent
         for parent in parents
-        if final_by_id[parent].get("filterType") not in CASCADE_DEPENDENCY_FILTER_TYPES
+        if _is_divider(final_by_id[parent])
+        or not native_filter_supports_cascade(final_by_id[parent].get("filterType"))
     ]
     if unsupported:
         raise _FilterValidationError(
             f"Filter '{filter_id}': cascade_parent_ids {unsupported} cannot be "
-            "parents; only filter_select, filter_range and filter_time filters "
-            "support dependencies."
+            "parents; time-grain filters, time-column filters and dividers "
+            "do not support dependencies."
         )
     for parent in parents:
         if cycle := _cascade_cycle(filter_id, parent, final_by_id):
@@ -936,18 +937,13 @@ def manage_native_filters(
     alongside filter IDs. Non-null type-specific fields are rejected on both
     add and update when they do not apply to the filter type.
 
-    ``cascade_parent_ids`` makes a filter depend on existing filter_select,
-    filter_range or filter_time filters (direct parents only; unknown parents
-    and cycles are rejected). Removing a filter also removes it from the parents
-    of the filters that depended on it.
+    ``cascade_parent_ids`` makes a filter depend on existing native filters
+    (except time-grain filters, time-column filters and dividers). Only direct
+    parents are set; unknown parents and cycles are rejected. Removing a filter
+    also removes it from the parents of the filters that depended on it.
 
-    Concurrency note: the filter-list snapshot used for validation is read
-    outside the DAO write transaction.  A ``reorder`` that is valid against
-    the snapshot can silently drop a filter added by a concurrent writer
-    between the snapshot read and the write commit.  This mirrors existing
-    REST write behaviour; callers that expect concurrent edits should
-    re-read the filter list and retry if the returned filter set differs
-    from what was requested.
+    A concurrent metadata edit rejects the write instead of applying a payload
+    validated against a stale snapshot. Re-read the dashboard and retry.
     """
     from superset.commands.dashboard.exceptions import (
         DashboardForbiddenError,
@@ -971,6 +967,7 @@ def manage_native_filters(
                 return pre_filter_refusal
             assert dashboard is not None
 
+            expected_metadata = dashboard.json_metadata or ""
             current_config = current_native_filter_config(dashboard)
             dashboard_chart_ids = [slc.id for slc in dashboard.slices]
 
@@ -986,7 +983,7 @@ def manage_native_filters(
 
         with event_logger.log_context(action="mcp.manage_native_filters.db_write"):
             configuration = UpdateDashboardNativeFiltersCommand(
-                request.dashboard_id, payload
+                request.dashboard_id, payload, expected_metadata=expected_metadata
             ).run()
 
         dashboard_url = f"{get_superset_base_url()}/dashboard/{request.dashboard_id}/"

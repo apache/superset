@@ -201,9 +201,15 @@ def _mock_command(captured: dict[str, Any]) -> Callable[[int, dict[str, Any]], M
     new filters appended, deletions removed).
     """
 
-    def command_factory(dashboard_id: int, payload: dict[str, Any]) -> Mock:
+    def command_factory(
+        dashboard_id: int,
+        payload: dict[str, Any],
+        *,
+        expected_metadata: str | None = None,
+    ) -> Mock:
         captured["dashboard_id"] = dashboard_id
         captured["payload"] = payload
+        captured["expected_metadata"] = expected_metadata
 
         command = Mock()
 
@@ -3527,3 +3533,63 @@ async def test_remove_reports_all_trimmed_children_once(mcp_server: object) -> N
     assert data["error"] is None
     assert data["updated_filter_ids"] == ["region", "city"]
     assert [f["id"] for f in captured["payload"]["modified"]] == ["region", "city"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("custom_side", ["parent", "child"])
+async def test_existing_plugin_filter_supports_cascade_dependencies(
+    mcp_server: object, custom_side: str
+) -> None:
+    """Stored native plugins can participate on either side of a cascade."""
+    parent = _child_filter("parent", [])
+    child = _child_filter("child", [])
+    (parent if custom_side == "parent" else child)["filterType"] = (
+        "custom_native_filter"
+    )
+    data, captured = await _manage(
+        mcp_server,
+        [parent, child],
+        {"update": [{"id": "child", "cascade_parent_ids": ["parent"]}]},
+    )
+    assert "error" not in data or data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == ["parent"]
+
+
+@pytest.mark.asyncio
+async def test_native_filter_write_uses_validated_metadata_snapshot(
+    mcp_server: object,
+) -> None:
+    """The command's compare-and-write guard must cover the validated snapshot."""
+    filters = [EXISTING_SELECT_FILTER]
+    _, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "NATIVE_FILTER-existing1", "name": "Renamed"}]},
+    )
+    assert (
+        captured["expected_metadata"] == _mock_dashboard(filters=filters).json_metadata
+    )
+
+
+@pytest.mark.asyncio
+async def test_add_filter_with_existing_plugin_cascade_parent(
+    mcp_server: object,
+) -> None:
+    """Adding a built-in child must accept a stored plugin parent too."""
+    parent = _child_filter("parent", [])
+    parent["filterType"] = "custom_native_filter"
+    data, captured = await _manage(
+        mcp_server,
+        [parent],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_time",
+                    "name": "Time",
+                    "cascade_parent_ids": ["parent"],
+                }
+            ]
+        },
+    )
+    assert not data.get("error")
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == ["parent"]
