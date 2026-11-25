@@ -58,7 +58,7 @@ test('keeps tie order stable when pagination reapplies a descending sort', () =>
   const first = pageRows();
   expect(first).toHaveLength(25);
 
-  fireEvent.click(container.querySelector('.ant-pagination-item-2')!);
+  fireEvent.click(container.querySelector('.ant-pagination-item-2 a')!);
   const second = pageRows();
   expect(second).toHaveLength(5);
 

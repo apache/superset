@@ -266,12 +266,12 @@ describe('ListView', () => {
     const paginationList = screen.getByRole('list');
     expect(paginationList).toBeInTheDocument();
 
-    const pageOneItem = screen.getByRole('listitem', { name: '1' });
+    const pageOneItem = screen.getByRole('button', { name: 'Page 1' });
     expect(pageOneItem).toBeInTheDocument();
   });
 
   test('calls fetchData on page change', async () => {
-    const pageTwoItem = screen.getByRole('listitem', { name: '2' });
+    const pageTwoItem = screen.getByRole('button', { name: 'Page 2' });
     await userEvent.click(pageTwoItem);
 
     await waitFor(() => {
