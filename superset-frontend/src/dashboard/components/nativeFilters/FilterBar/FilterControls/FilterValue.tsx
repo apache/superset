@@ -47,7 +47,7 @@ import {
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
-import { isEqual, isEqualWith } from 'lodash-es';
+import { isEmpty, isEqual, isEqualWith } from 'lodash-es';
 import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex, Button } from '@superset-ui/core/components';
@@ -100,6 +100,19 @@ const ReselectActionButton = styled(Button)`
 `;
 
 const queriesDataPlaceholder = [{ data: [{}] }];
+
+// A filter holding a value whose extraFormData its control has not derived yet,
+// e.g. a restored value whose stale extraFormData was dropped on hydrate.
+// Charts and dependent filters cannot use the value until the control loads.
+const hasValueWithoutExtraFormData = (dataMask?: DataMask) => {
+  const value = dataMask?.filterState?.value;
+  const hasValue =
+    value !== undefined &&
+    value !== null &&
+    // Empty and all-null arrays (a cleared range filter) are not values.
+    !(Array.isArray(value) && value.every(item => item === null));
+  return hasValue && isEmpty(dataMask?.extraFormData);
+};
 
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
@@ -179,8 +192,13 @@ const FilterValue: FC<FilterValueProps> = ({
     'requiredFirst' in filter &&
     filter.requiredFirst === true &&
     filter.filterType !== 'filter_time';
+  // Load even when not in view: charts and dependent filters wait on the
+  // extraFormData this filter's control derives from its value.
+  const needsExtraFormData = hasValueWithoutExtraFormData(
+    dataMaskSelected?.[id],
+  );
   const [inViewFirstTime, setInViewFirstTime] = useState(
-    inView || isRequiredFirst,
+    inView || isRequiredFirst || needsExtraFormData,
   );
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets || [];
@@ -216,10 +234,16 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [hasDeps]);
 
   useEffect(() => {
-    if (!inViewFirstTime && (inView || isRequiredFirst)) {
+    if (!inViewFirstTime && (inView || isRequiredFirst || needsExtraFormData)) {
       setInViewFirstTime(true);
     }
-  }, [inView, inViewFirstTime, setInViewFirstTime, isRequiredFirst]);
+  }, [
+    inView,
+    inViewFirstTime,
+    setInViewFirstTime,
+    isRequiredFirst,
+    needsExtraFormData,
+  ]);
 
   useEffect(() => {
     if (!inViewFirstTime) {
@@ -256,6 +280,18 @@ const FilterValue: FC<FilterValueProps> = ({
         );
       });
       if (hasDefaultFirstParentPending) {
+        return;
+      }
+
+      // Block if any ancestor holds a value whose extraFormData its control
+      // has not derived yet. Fetching now would load options for a different
+      // parent value than the filter bar displays, and a dependent
+      // defaultToFirstItem filter would apply its first value for it.
+      if (
+        transitiveParentIds.some(pId =>
+          hasValueWithoutExtraFormData(dataMaskSelected?.[pId]),
+        )
+      ) {
         return;
       }
 
