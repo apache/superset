@@ -1005,24 +1005,31 @@ const renderWithOneColumn = async () => {
   return limitedProps;
 };
 
-const syncColumnsFromSource = async (
+const fetchSourceColumns = async (
   testProps: Awaited<ReturnType<typeof renderWithOneColumn>>,
-  { apply = false } = {},
+  extraColumns: { column_name: string; type: string; is_dttm: boolean }[] = [],
 ) => {
   const [{ column_name, type, is_dttm }] = testProps.datasource.columns;
   fetchMock.removeRoute(DATASOURCE_ENDPOINT);
-  fetchMock.get(DATASOURCE_ENDPOINT, [{ column_name, type, is_dttm }], {
-    name: DATASOURCE_ENDPOINT,
-  });
+  fetchMock.get(
+    DATASOURCE_ENDPOINT,
+    [{ column_name, type, is_dttm }, ...extraColumns],
+    { name: DATASOURCE_ENDPOINT },
+  );
   testProps.onChange.mockClear();
   await userEvent.click(screen.getByText(/sync columns from source/i));
   await waitFor(() =>
     expect(fetchMock.callHistory.called(DATASOURCE_ENDPOINT)).toBe(true),
   );
-  if (apply) {
-    // A sync that changes the columns is previewed before it is applied.
-    await userEvent.click(await screen.findByRole('button', { name: 'Apply' }));
-  }
+};
+
+const syncColumnsFromSource = async (
+  testProps: Awaited<ReturnType<typeof renderWithOneColumn>>,
+  extraColumns?: Parameters<typeof fetchSourceColumns>[1],
+) => {
+  await fetchSourceColumns(testProps, extraColumns);
+  // A sync that changes the columns is previewed before it is applied.
+  await userEvent.click(await screen.findByRole('button', { name: 'Apply' }));
   await waitFor(() => expect(testProps.onChange).toHaveBeenCalled());
   return testProps.onChange.mock.lastCall![0].columns;
 };
@@ -1042,10 +1049,27 @@ test('syncing columns keeps column edits made in the session', async () => {
     ),
   );
 
-  const columns = await syncColumnsFromSource(testProps);
+  const columns = await syncColumnsFromSource(testProps, [
+    { column_name: 'fresh', type: 'BIGINT', is_dttm: false },
+  ]);
 
-  expect(columns).toHaveLength(1);
+  expect(columns).toHaveLength(2);
   expect(columns[0]).toMatchObject({ id: 1, verbose_name: 'edited_label' });
+});
+
+test('syncing an unchanged source applies nothing', async () => {
+  const testProps = await renderWithOneColumn();
+
+  await fetchSourceColumns(testProps);
+
+  // The button is disabled for as long as the sync is running.
+  await waitFor(() =>
+    expect(
+      screen.getByText(/sync columns from source/i).closest('button'),
+    ).toBeEnabled(),
+  );
+  expect(testProps.onChange).not.toHaveBeenCalled();
+  expect(screen.queryByTestId('sync-preview')).not.toBeInTheDocument();
 });
 
 test('syncing restores a column deleted in the session as its saved row', async () => {
@@ -1063,7 +1087,7 @@ test('syncing restores a column deleted in the session as its saved row', async 
     expect(testProps.onChange.mock.lastCall?.[0].columns).toHaveLength(0),
   );
 
-  const columns = await syncColumnsFromSource(testProps, { apply: true });
+  const columns = await syncColumnsFromSource(testProps);
 
   expect(columns).toHaveLength(1);
   expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });

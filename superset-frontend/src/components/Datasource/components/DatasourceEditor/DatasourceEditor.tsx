@@ -1883,15 +1883,25 @@ function DatasourceEditor({
         // A preview reports its changes in the editor; toasts come on Apply.
         preview ? () => {} : addSuccessToast,
       );
-      if (
-        preview &&
-        (columnChanges.added.length ||
+      if (preview) {
+        if (
+          columnChanges.added.length ||
           columnChanges.removed.length ||
-          columnChanges.modified.length)
-      ) {
-        setPendingSync(newCols);
-        setMetadataLoading(false);
-        return;
+          columnChanges.modified.length
+        ) {
+          setPendingSync(newCols);
+          setMetadataLoading(false);
+          return;
+        }
+        // Nothing to review, so nothing is applied: the merge below would
+        // still reorder the columns to the source's order. A dangling
+        // partition mapping is the exception, because the merge is what
+        // clears it.
+        if (!clearDanglingPartitionMapping(liveDatasource, liveColumns)) {
+          addSuccessToast(t('Metadata has been synced'));
+          setMetadataLoading(false);
+          return;
+        }
       }
       // Merging against the live rows means a column deleted this session but
       // still in the source comes back as "added", with a fresh id -- and the
