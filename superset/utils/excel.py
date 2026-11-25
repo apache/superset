@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from superset.utils.core import GenericDataType
-from superset.utils.csv import _is_negative_number
+from superset.utils.csv import is_formatted_negative_number
 
 # Fixed, neutral timestamp applied to workbook document properties so that
 # exported files do not carry an environment-specific generation time.
@@ -98,7 +98,7 @@ def _quote_formula(value: Any, exempt_negative: bool = False) -> Any:
     """
     if not isinstance(value, str):
         return value
-    if exempt_negative and _is_negative_number(value.lstrip()):
+    if exempt_negative and is_formatted_negative_number(value.lstrip()):
         return value
     return f"'{value}" if looks_like_formula(value) else value
 

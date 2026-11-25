@@ -84,6 +84,8 @@ EXCEL_PERCENT_FORMAT = "0.0%"
 # ``VizType.TableAgGrid``. The AG Grid table plugin reuses the Table plugin's
 # column meta and formatter selection, so it shares this post-processor.
 AG_GRID_TABLE = "ag-grid-table"
+# The viz types whose metrics take the Table plugin's formatter selection.
+TABLE_VIZ_TYPES = frozenset({"table", AG_GRID_TABLE})
 
 # ``strftime`` copies a directive it does not recognize into its output
 # verbatim, so a d3-only one would reach the report as literal text: ``%L`` and
@@ -1350,14 +1352,23 @@ def merge_currency_formats(
     return currency_formats
 
 
-def _fallback_export_value(value: Any) -> Any:
+def _fallback_export_value(
+    value: Any, decimal: str = ".", single_precision: bool = False
+) -> Any:
     """Render a finite numeric cell as exact fixed-point text.
 
     An unconfigured numeric column must never serialize as a raw float
-    (``1e-07``/``19.7999992``) or lose precision to float64 re-inference, so
-    finite ``float`` and ``int`` cells become exact text here while every other
-    value -- ``Decimal`` (handled by ``csv.format_decimal``), ``None``, ``NaN``,
+    (``1e-07``) or lose precision to float64 re-inference, so finite ``float``
+    and ``int`` cells become exact text here while every other value --
+    ``Decimal`` (handled by ``csv.format_decimal``), ``None``, ``NaN``,
     infinity and non-numeric cells -- passes through unchanged.
+
+    ``decimal`` is the CSV writer's decimal separator (``CSV_EXPORT``), which
+    ``to_csv`` would have applied to the number this text replaces.
+    ``single_precision`` marks a ``float32`` column: ``.map`` hands its cells
+    over widened to float64, so the shortest float32 repr is taken instead,
+    which is what ``to_csv`` writes for it (``19.8``, not
+    ``19.799999237060547``).
     """
     if isinstance(value, bool):
         return value
@@ -1365,12 +1376,16 @@ def _fallback_export_value(value: Any) -> Any:
         # Route through ``Decimal(str())`` so the exact value the user sees is
         # emitted as fixed-point text rather than a float repr or scientific
         # notation, matching the Decimal branch below.
-        return format(Decimal(str(value)), "f")
+        text = str(np.float32(value)) if single_precision else str(value)
+        return format(Decimal(text), "f").replace(".", decimal)
     if isinstance(value, int):
         # Keep large integers exact: ``.map`` would otherwise re-infer an object
         # column of ints with nulls as float64 and round them.
         return str(value)
-    return csv.format_decimal(value)
+    formatted = csv.format_decimal(value)
+    if isinstance(value, Decimal) and isinstance(formatted, str):
+        return formatted.replace(".", decimal)
+    return formatted
 
 
 def _index_by_label(
@@ -1426,6 +1441,7 @@ def apply_export_number_formats(
     source_columns: Optional[list[str]] = None,
     keep_unformatted_numeric: bool = False,
     formatted_positions: Optional[set[int]] = None,
+    decimal: str = ".",
 ) -> pd.DataFrame:
     """Format numeric columns as display text for a chart-data export.
 
@@ -1450,7 +1466,11 @@ def apply_export_number_formats(
     column with nothing configured keeps its numbers (the XLSX writer then
     stores real numeric cells Excel can sum and chart). The position of every
     column rendered to text is added to ``formatted_positions`` when a set is
-    passed.
+    passed. ``decimal`` is the CSV decimal separator the fallback text uses.
+
+    A metric of a Table or AG Grid table with nothing configured defaults to
+    ``SMART_NUMBER``, as ``table()`` formats it for a report and as the chart
+    shows it, so a download and a report of one chart agree.
     """
     saved_formats, verbose_map = get_datasource_column_formats(datasource)
     saved_currency_formats, _ = get_datasource_currency_formats(datasource)
@@ -1481,6 +1501,16 @@ def apply_export_number_formats(
     # builds the small-number formatter, so an export leaves that format alone
     # for it -- mirroring ``table()``'s own ``applies_small_number_format``.
     applies_small_number_format = form_data.get("viz_type") != AG_GRID_TABLE
+
+    # The Table plugins give every metric a formatter that defaults to
+    # SMART_NUMBER (``transformProps``), which ``table()`` mirrors for reports.
+    # Other viz types have no such default and keep the fixed-point fallback.
+    metric_names = (
+        set(get_metric_names(form_data.get("metrics")))
+        if form_data.get("viz_type") in TABLE_VIZ_TYPES
+        else set()
+    )
+    metric_labels = {label_of(name) for name in metric_names}
 
     # Resolve an AUTO currency the way ``table()`` does: a per-row currency
     # context drawn from the datasource's currency-code column drives each
@@ -1548,6 +1578,8 @@ def apply_export_number_formats(
             else None
         )
 
+        is_metric = source_names[col_pos] in metric_names or column in metric_labels
+
         if column in percent_metric_labels:
             # A percent metric defaults to PERCENT_3_POINT and its own formatter
             # never carries a currency, matching the Table plugin.
@@ -1560,7 +1592,13 @@ def apply_export_number_formats(
                 small_d3_format=small_number_format,
                 small_currency=small_currency,
             )
-        elif number_format or currency.get("symbol") or small_number_format:
+        elif (
+            number_format or currency.get("symbol") or small_number_format or is_metric
+        ):
+            if is_metric and not number_format and not currency.get("symbol"):
+                # Only a Table metric falls back to SMART_NUMBER, as
+                # ``table()`` does.
+                number_format = SMART_NUMBER
             format_column(
                 df,
                 col_pos,
@@ -1577,7 +1615,17 @@ def apply_export_number_formats(
         else:
             # Nothing configured: keep exact fixed-point text rather than a raw
             # float. Non-finite and non-numeric cells pass through untouched.
-            df.isetitem(col_pos, df.iloc[:, col_pos].map(_fallback_export_value))
+            series = df.iloc[:, col_pos]
+            df.isetitem(
+                col_pos,
+                series.map(
+                    partial(
+                        _fallback_export_value,
+                        decimal=decimal,
+                        single_precision=series.dtype == np.float32,
+                    )
+                ),
+            )
 
         positions.add(col_pos)
 
@@ -1623,9 +1671,14 @@ def pivot_table_v2(
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
     apply_number_format: bool = True,
     detected_currency: Optional[str] = None,
+    formatted_positions: Optional[set[int]] = None,
 ) -> pd.DataFrame:
     """
     Pivot table v2.
+
+    Every cell of the pivoted body is a metric value, so with number formatting
+    on, every column position is added to ``formatted_positions`` when a set is
+    passed.
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
     metrics = get_metric_names(form_data["metrics"], verbose_map)
@@ -1663,6 +1716,8 @@ def pivot_table_v2(
 
     pivoted = pivot_df(df, **pivot_options)
     if apply_number_format:
+        if formatted_positions is not None:
+            formatted_positions.update(range(len(pivoted.columns)))
         if percent_mode:
             # A ratio has no currency and ignores per-metric value formats, the
             # same way the client skips `formattedAggregators` while a fraction
@@ -2041,9 +2096,14 @@ def table(
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
     apply_number_format: bool = True,
     detected_currency: Optional[str] = None,
+    formatted_positions: Optional[set[int]] = None,
 ) -> pd.DataFrame:
     """
     Table.
+
+    The position of every column rendered from numbers to text is added to
+    ``formatted_positions`` when a set is passed, so the export writers can tell
+    a formatted negative from a formula.
     """
     if not apply_number_format:
         return df
@@ -2139,9 +2199,11 @@ def table(
     # SMART_NUMBER, and other numeric columns are only formatted when an explicit
     # format or currency is configured. Dimension and non-numeric columns are
     # left untouched, matching the browser.
+    positions = formatted_positions if formatted_positions is not None else set()
     for col_pos, column in enumerate(df.columns):
         if column in derived_columns:
             label, name, parent = derived_columns[column]
+            positions.add(col_pos)
             format_column(
                 df,
                 col_pos,
@@ -2216,6 +2278,7 @@ def table(
             # A percent metric's own formatter never carries a currency, but
             # ``getSmallNumberFormatter`` still builds one from the column
             # config, so the small-number cells need the row's context too.
+            positions.add(col_pos)
             format_column(
                 df,
                 col_pos,
@@ -2239,6 +2302,7 @@ def table(
                 and not currency.get("symbol")
             ):
                 number_format = SMART_NUMBER
+            positions.add(col_pos)
             format_column(
                 df,
                 col_pos,
@@ -2457,12 +2521,23 @@ def apply_client_processing(  # noqa: C901
             is_feature_enabled("EXPORT_FORMATTED_NUMBERS")
             and query["result_format"] in ChartDataResultFormat.table_like()
         )
+        # Positions of the columns the post-processor rendered from numbers to
+        # text, so the CSV and XLSX writers below leave their formatted
+        # negatives (``-1,234.50``) unquoted, as ``get_data`` does.
+        formatted_positions: set[int] = set()
         processed_df = post_processor(
             df,
             form_data,
             datasource,
             apply_number_format,
             query.get("detected_currency"),
+            formatted_positions=formatted_positions,
+        )
+        formatted_kwargs: dict[str, Any] = (
+            {"formatted_numeric_positions": formatted_positions}
+            if formatted_positions
+            and query["result_format"] != ChartDataResultFormat.JSON
+            else {}
         )
 
         query["colnames"] = list(processed_df.columns)
@@ -2531,6 +2606,7 @@ def apply_client_processing(  # noqa: C901
             query["data"] = csv.df_to_escaped_csv(
                 processed_df,
                 index=show_default_index,
+                **formatted_kwargs,
                 **current_app.config["CSV_EXPORT"],
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
@@ -2548,6 +2624,7 @@ def apply_client_processing(  # noqa: C901
                 ),
                 **{
                     **current_app.config["EXCEL_EXPORT"],
+                    **formatted_kwargs,
                     "index": show_default_index,
                 },
             )

@@ -22,6 +22,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pandas as pd
+import pytest
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
@@ -647,3 +648,188 @@ def test_csv_export_metrics_sharing_a_verbose_name_keep_their_formats(
     lines = _csv_text(result).splitlines()
     assert lines[0] == "Total,Total"
     assert lines[1] == '"1,234.50",25.0%'
+
+
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_post_processed_ag_grid_export_is_formatted_in_get_data(
+    app_context: None,
+) -> None:
+    # The AG Grid table has a post-processor, but apply_client_processing hands
+    # its CSV back as it came in, so get_data must not skip formatting for it:
+    # otherwise a ``,.1f`` report writes the raw 1234.56 instead of 1,234.6.
+    from superset.charts.client_processing import apply_client_processing
+
+    form_data = {
+        "viz_type": "ag-grid-table",
+        "column_config": {"amount": {"d3NumberFormat": ",.1f"}},
+    }
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        form_data,
+        result_type=ChartDataResultType.POST_PROCESSED,
+    )
+    df = pd.DataFrame({"amount": [1234.56]})
+
+    raw = processor.get_data(df, [GenericDataType.NUMERIC])
+    result = {
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": raw}],
+    }
+    processed = apply_client_processing(result, form_data, None)
+
+    data = processed["queries"][0]["data"]
+    cells = pd.read_csv(io.StringIO(_csv_text(data)), dtype=str)
+    assert cells["amount"].tolist() == ["1,234.6"]
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
+@pytest.mark.parametrize(
+    ("d3_format", "value", "expected"),
+    [
+        (",.2f", -1234.5, "-1,234.50"),
+        (".1%", -0.125, "-12.5%"),
+        ("$,.2f", -0.125, "-$0.13"),
+        (",.3s", -1234567, "-1.23M"),
+    ],
+)
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_formatted_negative_is_not_formula_quoted(
+    app_context: None,
+    result_format: ChartDataResultFormat,
+    d3_format: str,
+    value: float,
+    expected: str,
+) -> None:
+    # A formatted negative carries grouping, a percent sign, a currency symbol
+    # or an SI suffix; its leading ``-`` is still a sign, not a formula.
+    processor = _make_processor(
+        result_format, {"column_config": {"amount": {"d3NumberFormat": d3_format}}}
+    )
+    df = pd.DataFrame({"amount": [value]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    if result_format == ChartDataResultFormat.CSV:
+        cells = pd.read_csv(io.StringIO(_csv_text(result)), dtype=str)
+        assert cells["amount"].tolist() == [expected]
+    else:
+        assert _read_xlsx_raw_cell(result, row=2, col=1) == (expected, "s")
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_post_processed_table_negative_is_not_formula_quoted(
+    app_context: None, result_format: ChartDataResultFormat
+) -> None:
+    # A table report is formatted by apply_client_processing, whose writers must
+    # also see the formatted columns: -1,234.50 is written as is in CSV and XLSX.
+    from superset.charts.client_processing import apply_client_processing
+
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {"amount": {"d3NumberFormat": ",.2f"}},
+    }
+    processor = _make_processor(
+        result_format, form_data, result_type=ChartDataResultType.POST_PROCESSED
+    )
+    df = pd.DataFrame({"amount": [-1234.5]})
+
+    raw = processor.get_data(df, [GenericDataType.NUMERIC])
+    result = {"queries": [{"result_format": result_format, "data": raw}]}
+    data = apply_client_processing(result, form_data, None)["queries"][0]["data"]
+
+    if result_format == ChartDataResultFormat.CSV:
+        cells = pd.read_csv(io.StringIO(data), dtype=str)
+        assert cells["amount"].tolist() == ["-1,234.50"]
+    else:
+        assert _read_xlsx_raw_cell(data, row=2, col=1) == ("-1,234.50", "s")
+
+
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_formatted_column_still_quotes_formula_shaped_negative(
+    app_context: None,
+) -> None:
+    # Only the number shape is exempt: a warehouse string in a formatted column
+    # that reads as a formula after its ``-`` is still escaped.
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}},
+    )
+    injected = "-2+3+cmd|" + chr(39) + " /C calc" + chr(39) + "!A0"
+    df = pd.DataFrame({"amount": ["-1+1", injected]}, dtype=object)
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    cells = pd.read_csv(io.StringIO(_csv_text(result)), dtype=str)["amount"].tolist()
+    assert all(cell.startswith(chr(39)) for cell in cells)
+
+
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_csv_fallback_uses_configured_decimal_separator(
+    app_context: None, mocker
+) -> None:
+    # The fallback replaces numbers ``to_csv`` would have written with
+    # ``CSV_EXPORT["decimal"]``, so it writes that separator too.
+    from flask import current_app
+
+    mocker.patch.dict(current_app.config["CSV_EXPORT"], {"decimal": ",", "sep": ";"})
+    processor = _make_processor(ChartDataResultFormat.CSV, {})
+    df = pd.DataFrame({"amount": [19.75, 1e-07]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    cells = pd.read_csv(io.StringIO(_csv_text(result)), sep=";", dtype=str)
+    assert cells["amount"].tolist() == ["19,75", "0,0000001"]
+
+
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_csv_fallback_keeps_float32_precision(app_context: None) -> None:
+    # A float32 cell reaches the fallback widened to float64; it is written with
+    # its own shortest repr, as ``to_csv`` writes it with the flag off.
+    processor = _make_processor(ChartDataResultFormat.CSV, {})
+    df = pd.DataFrame({"amount": pd.Series([19.8, None], dtype="float32")})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    cells = pd.read_csv(io.StringIO(_csv_text(result)), dtype=str)
+    assert cells["amount"].tolist()[0] == "19.8"
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_unconfigured_table_metric_matches_report(
+    app_context: None, viz_type: str
+) -> None:
+    # A download and a scheduled report of one Table chart write the same text:
+    # an unconfigured metric defaults to SMART_NUMBER on both routes, as the
+    # chart shows it. A plain numeric column keeps the fixed-point fallback.
+    from superset.charts.client_processing import apply_client_processing
+
+    form_data = {"viz_type": viz_type, "metrics": ["amount"]}
+    df = pd.DataFrame({"amount": [1234567.5], "id": [1234567.5]})
+    coltypes = [GenericDataType.NUMERIC, GenericDataType.NUMERIC]
+
+    download = _make_processor(ChartDataResultFormat.CSV, form_data).get_data(
+        df.copy(), coltypes
+    )
+    report_raw = _make_processor(
+        ChartDataResultFormat.CSV,
+        form_data,
+        result_type=ChartDataResultType.POST_PROCESSED,
+    ).get_data(df.copy(), coltypes)
+    report = apply_client_processing(
+        {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": report_raw}]},
+        form_data,
+        None,
+    )["queries"][0]["data"]
+    report_text = report if isinstance(report, str) else _csv_text(report)
+
+    download_cells = pd.read_csv(io.StringIO(_csv_text(download)), dtype=str)
+    report_cells = pd.read_csv(io.StringIO(report_text), dtype=str)
+    assert download_cells["amount"].tolist() == ["1.23M"]
+    assert report_cells["amount"].tolist() == ["1.23M"]
+    assert download_cells["id"].tolist() == ["1234567.5"]

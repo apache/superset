@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 import urllib.request
 from contextlib import closing
 from decimal import Decimal
@@ -61,16 +62,50 @@ def _is_negative_number(value: str) -> bool:
     )
 
 
-def escape_value(value: str) -> str:
+# The shape of a negative number as the export number formatter renders it: a
+# sign, an optional ``$``, digits with ``,``/``.`` separators, an optional
+# exponent, an optional SI or percent suffix and an optional trailing currency
+# symbol (``-1,234.50``, ``-12.5%``, ``-$0.13``, ``-1.23M``, ``-1,234.50 €``).
+# Nothing that shape holds an operator, a reference or a function call, so a
+# spreadsheet reads it as a number or as text, never as a formula.
+_FORMATTED_NEGATIVE_NUMBER = re.compile(
+    r"-\$?\d[\d,.]*(?:e[+-]?\d+)?[%yzafpnµmkMGBTPEZY]?"
+    r"(?: [^\s\d=+\-@|(){}\[\]<>!&*/^,;:\"'\\%.]{1,5})?"
+)
+
+
+def is_formatted_negative_number(value: str) -> bool:
+    """Whether ``value`` is a negative number as the export formatter writes it.
+
+    It is asked only about the cells of a column rendered from numbers under
+    ``EXPORT_FORMATTED_NUMBERS``, where a leading ``-`` is the sign the
+    formatter put there. Any other column keeps the narrower
+    ``_is_negative_number`` exemption.
+    """
+    return _is_negative_number(value) or bool(
+        _FORMATTED_NEGATIVE_NUMBER.fullmatch(value)
+    )
+
+
+def escape_value(value: str, formatted_number: bool = False) -> str:
     """
     Escapes a set of special characters.
 
     http://georgemauer.net/2017/10/07/csv-injection.html
+
+    ``formatted_number`` marks a cell rendered from a number by the export
+    formatter, whose formatted negatives (``-1,234.50``, ``-12.5%``) are left
+    unquoted like a plain ``-3.5``. A formula prefix there is still escaped.
     """
     if not value:
         return value
 
-    if _starts_like_spreadsheet_formula(value) and not _is_negative_number(value):
+    is_negative = (
+        is_formatted_negative_number(value)
+        if formatted_number
+        else _is_negative_number(value)
+    )
+    if _starts_like_spreadsheet_formula(value) and not is_negative:
         # Escape pipe to be extra safe as this
         # can lead to remote code execution
         value = value.replace("|", "\\|")
@@ -95,9 +130,24 @@ def format_decimal(value: Any) -> Any:
     )
 
 
-def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
+def df_to_escaped_csv(
+    df: pd.DataFrame,
+    formatted_numeric_positions: Optional[set[int]] = None,
+    **kwargs: Any,
+) -> Any:
+    """Write ``df`` as CSV with formula-like cells, labels and names escaped.
+
+    ``formatted_numeric_positions`` names the column positions whose cells were
+    rendered from numbers by the export formatter; their formatted negatives
+    are not mistaken for formulas (see ``escape_value``).
+    """
+    safe_positions = formatted_numeric_positions or set()
+
     def escape_values(v: Any) -> Union[str, Any]:
         return escape_value(v) if isinstance(v, str) else v
+
+    def escape_formatted(v: Any) -> Union[str, Any]:
+        return escape_value(v, formatted_number=True) if isinstance(v, str) else v
 
     def needs_escaping(level: pd.Index) -> bool:
         return any(
@@ -130,7 +180,9 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
         column = df.iloc[:, col_pos]
         if not pd.api.types.is_string_dtype(column.dtype):
             continue
-        escaped = column.map(escape_values)
+        escaped = column.map(
+            escape_formatted if col_pos in safe_positions else escape_values
+        )
         changed = [
             isinstance(value, str) and value != original
             for value, original in zip(escaped, column, strict=True)

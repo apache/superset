@@ -32,6 +32,7 @@ from pandas.api.types import infer_dtype
 
 from superset import is_feature_enabled
 from superset.charts.client_processing import (
+    AG_GRID_TABLE,
     apply_export_number_formats,
     post_processors,
 )
@@ -908,11 +909,15 @@ class QueryContextProcessor:
             # for those viz types only. Every other viz type has no
             # post-processor, so apply_client_processing returns it unchanged
             # and it must still be formatted here (scheduled reports and alerts
-            # request POST_PROCESSED for e.g. an ag-grid-table too).
+            # request POST_PROCESSED for e.g. an ag-grid-table too). The AG Grid
+            # table has a post-processor, but apply_client_processing passes its
+            # CSV and XLSX through as they are, so it is formatted here as well.
             form_data = self._query_context.form_data or {}
+            viz_type = form_data.get("viz_type")
             skip_for_post_processing = (
                 self._query_context.result_type == ChartDataResultType.POST_PROCESSED
-                and form_data.get("viz_type") in post_processors
+                and viz_type in post_processors
+                and viz_type != AG_GRID_TABLE
             )
             format_numeric_export = (
                 is_feature_enabled("EXPORT_FORMATTED_NUMBERS")
@@ -933,12 +938,23 @@ class QueryContextProcessor:
                     source_columns=[str(column) for column in columns],
                     keep_unformatted_numeric=is_xlsx,
                     formatted_positions=formatted_positions,
+                    decimal=current_app.config["CSV_EXPORT"].get("decimal", "."),
                 )
 
             result = None
             if self._query_context.result_format == ChartDataResultFormat.CSV:
+                # Formatted negatives in the number-formatted columns are signs,
+                # not formulas, so they are not quoted (see ``escape_value``).
+                csv_kwargs: dict[str, Any] = (
+                    {"formatted_numeric_positions": formatted_positions}
+                    if formatted_positions
+                    else {}
+                )
                 result = csv.df_to_escaped_csv(
-                    df, index=include_index, **current_app.config["CSV_EXPORT"]
+                    df,
+                    index=include_index,
+                    **csv_kwargs,
+                    **current_app.config["CSV_EXPORT"],
                 )
                 # Encode using the configured CSV_EXPORT encoding (default utf-8)
                 # so dashboard chart exports honor the same encoding as SQL Lab.
