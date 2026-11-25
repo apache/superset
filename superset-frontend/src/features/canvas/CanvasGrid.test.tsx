@@ -1004,6 +1004,12 @@ test('publishing a scope kind on the generic bus does nothing', () => {
 
 const marked = (...changes: DraftChange[]) => ({ ...result, changes });
 
+/** The box a node's content renders in. */
+const contentOf = (container: HTMLElement, nodeId: string) =>
+  container.querySelector(
+    `[data-node-id="${nodeId}"] > .canvas-interactive > .canvas-content`,
+  ) as HTMLElement;
+
 /** A node's own change mark, drawn by the surface over its box. */
 const markOf = (container: HTMLElement, nodeId: string) =>
   Array.from(
@@ -1023,7 +1029,7 @@ test('a widget carries the mark of what just happened to it', () => {
   expect(mark).toHaveTextContent('Moved');
   // Over the widget, beside its handles, not in its title row: the widget
   // reserves no room for it.
-  expect(mark.closest('.canvas-content')).toBeNull();
+  expect(contentOf(container, 'c1')).not.toContainElement(mark);
   expect(
     screen.getByTestId('canvas-widget-title').parentElement,
   ).not.toContainElement(mark);
@@ -1327,12 +1333,6 @@ const renderContainers = (...args: Parameters<typeof containers>) =>
     jest.fn(),
     true,
   );
-
-/** The box a node's content renders in. */
-const contentOf = (container: HTMLElement, nodeId: string) =>
-  container.querySelector(
-    `[data-node-id="${nodeId}"] > .canvas-interactive > .canvas-content`,
-  ) as HTMLElement;
 
 test('a titled group wears its mark over its box, not in its title strip', () => {
   // The mark is the surface's: the group's own chrome knows nothing of it,

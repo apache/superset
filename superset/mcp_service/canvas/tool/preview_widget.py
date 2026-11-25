@@ -222,9 +222,9 @@ def _definition(
         except (CanvasDraftNotFoundError, CanvasNotFoundError, CanvasForbiddenError):
             return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
         # The draft's canvas and the one named have to agree, as the REST
-        # route insists: a token must not read another canvas.
-        canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
-        if canvas is None or canvas.id != draft.canvas_id:
+        # route insists: a token must not read another canvas. Compared on
+        # the draft's own canvas, so the lookup stays a single one.
+        if str(canvas_id) not in {str(draft.canvas.id), str(draft.canvas.uuid)}:
             return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
         return _PreviewSource(draft.definition, draft.canvas, draft.resolver(), draft)
     canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))

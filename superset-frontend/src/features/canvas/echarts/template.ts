@@ -88,6 +88,9 @@ function contextOf(args: unknown[]): Record<string, unknown> {
  * the tooltip rather than breaking the hover.
  */
 export function compileTemplate(source: string): Formatter {
+  // `compile` parses lazily, on the first call; parse now so a syntax error
+  // surfaces here.
+  env.parse(source);
   const template = env.compile(source, { noEscape: true, strict: false });
   return (...args) => {
     try {

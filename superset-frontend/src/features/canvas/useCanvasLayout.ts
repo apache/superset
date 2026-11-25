@@ -683,14 +683,16 @@ export function useCanvasLayout(
             // or the server was already where the draft said -- would leave
             // the gesture waiting forever. Once it ends, the retry goes out
             // regardless; a repeat conflict then says the change was undone.
-            if (retry.current && refetch instanceof Promise) {
-              refetch
-                .catch(() => undefined)
-                .then(() => {
-                  if (era !== generation.current || !retry.current) return;
-                  retry.current.settled = true;
-                  setRefetched(count => count + 1);
-                });
+            if (retry.current) {
+              const ended =
+                refetch instanceof Promise
+                  ? refetch.catch(() => undefined)
+                  : Promise.resolve();
+              ended.then(() => {
+                if (era !== generation.current || !retry.current) return;
+                retry.current.settled = true;
+                setRefetched(count => count + 1);
+              });
             }
             return;
           }

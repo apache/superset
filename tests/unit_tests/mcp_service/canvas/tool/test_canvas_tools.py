@@ -626,14 +626,17 @@ def test_preview_resolves_the_drafts_authorized_canvas_once() -> None:
         patch(f"{PREVIEW}.load_draft", return_value=draft) as load,
         patch(f"{PREVIEW}.CanvasDAO") as dao,
     ):
-        result, image = _preview_widget_impl(999, "chart", False, "tok")
+        result, image = _preview_widget_impl(7, "chart", False, "tok")
+        elsewhere, _ = _preview_widget_impl(999, "chart", False, "tok")
 
-    load.assert_called_once_with("tok")
+    load.assert_called_with("tok")
     dao.find_by_id.assert_not_called()
     dao.find_by_id_or_uuid.assert_not_called()
     assert result["canvas_id"] == 7
     assert result["url"] == f"{BASE_URL}/canvas/authorized/#draft=tok"
     assert image is None
+    # A token reads only the canvas it belongs to; naming another refuses.
+    assert elsewhere["error_type"] == "DraftUnavailable"
 
 
 @pytest.mark.parametrize(

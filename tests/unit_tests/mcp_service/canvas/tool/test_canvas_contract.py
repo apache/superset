@@ -1118,12 +1118,19 @@ async def test_absolute_links_cover_the_canvas_and_draft_lifecycle(
         assert changed["url"] == draft_url
         preview = await invoke(
             "preview_widget",
-            canvas_id=999,
+            canvas_id=canvas_id,
             draft_token=draft["token"],
             placement_id="note",
         )
         assert preview["canvas_id"] == canvas_id
         assert preview["url"] == draft_url
+        elsewhere = await invoke(
+            "preview_widget",
+            canvas_id=999,
+            draft_token=draft["token"],
+            placement_id="note",
+        )
+        assert elsewhere["error_type"] == "DraftUnavailable"
         committed = await invoke(
             "commit_canvas_draft", token=draft["token"], revision=1
         )

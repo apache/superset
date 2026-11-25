@@ -81,12 +81,11 @@ def _load(
             return NOT_FOUND
         # The draft's canvas and the one named have to agree, as the REST
         # route insists: a token must not read another canvas.
-        canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
-        if canvas is None or canvas.id != draft.canvas_id:
+        if str(canvas_id) not in {str(draft.canvas.id), str(draft.canvas.uuid)}:
             return NOT_FOUND
         about = {
-            "canvas_id": canvas.id,
-            "title": canvas.title,
+            "canvas_id": draft.canvas.id,
+            "title": draft.canvas.title,
             "url": draft_url(draft),
         }
         return draft.definition, draft.resolver(), about

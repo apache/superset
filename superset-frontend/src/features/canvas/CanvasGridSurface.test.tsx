@@ -1846,14 +1846,15 @@ test('the preview resolves auto-placed siblings from their stored layouts', () =
 });
 
 test("a nested widget's chrome stays level with its handles", () => {
-  // A nested grip clears its container's by moving right, not down, so the
-  // grip, the remove button and the widget's own menu stay one row at the top.
+  // Nested handles clear their container's by moving left, not down, so the
+  // grip and the remove button stay centred on the title row and the
+  // widget's own menu keeps the top of that same row.
   const nested = renderSurface(underContainerHandles);
   const grip = nested.container.querySelector(
     '[data-test="canvas-drag-handle"]',
   ) as HTMLElement;
 
-  expect(getComputedStyle(grip).top).toBe('0px');
+  expect(getComputedStyle(grip).top).toBe('4px');
   const rules = Array.from(document.styleSheets)
     .flatMap(sheet => {
       try {
