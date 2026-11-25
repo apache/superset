@@ -647,7 +647,7 @@ const PropertiesModal = ({
   // Regex check for custom time presets
   const invalidCustomPresets = useMemo(
     () => customTimePresets.filter(
-      p => !/^last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?$/i.test(p)), 
+      p => !/^Last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?$/.test(p)), 
     [customTimePresets],
   );
 

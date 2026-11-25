@@ -113,10 +113,8 @@ openapi_spec_methods_override = {
 }
 
 CUSTOM_TIME_PRESET_REGEX = re.compile(
-    r"last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?",
-    re.IGNORECASE,
+    r"Last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?",
 )
-
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
