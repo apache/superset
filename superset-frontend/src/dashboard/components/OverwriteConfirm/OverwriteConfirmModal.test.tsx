@@ -17,7 +17,7 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 
@@ -26,7 +26,7 @@ import { overwriteConfirmMetadata } from 'spec/fixtures/mockDashboardState';
 import OverwriteConfirmModal from './OverwriteConfirmModal';
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 jest.mock('react-diff-viewer-continued', () => () => (
   <div data-test="mock-diff-viewer" />

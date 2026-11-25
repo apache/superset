@@ -1052,6 +1052,19 @@ _ARRAY_LITERAL_OPERATORS = {
     utils.FilterOperator.NOT_IN,
 }
 
+#: Operators that compare a grained temporal column against displayed bucket
+#: labels, which pandas shifts for display (Hours offset or dataset timezone).
+_DISPLAYED_BUCKET_OPERATORS = {
+    utils.FilterOperator.EQUALS,
+    utils.FilterOperator.NOT_EQUALS,
+    utils.FilterOperator.IN,
+    utils.FilterOperator.NOT_IN,
+    utils.FilterOperator.GREATER_THAN,
+    utils.FilterOperator.LESS_THAN,
+    utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+    utils.FilterOperator.LESS_THAN_OR_EQUALS,
+}
+
 
 def parse_array_literal(value: Any) -> list[Any]:
     """
@@ -2673,7 +2686,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         db_engine_spec = self.db_engine_spec
         # add quotes to tables
         if db_engine_spec.get_allows_alias_in_select(self.database):
-            label = db_engine_spec.make_label_compatible(label_expected)
+            label = db_engine_spec.make_label_compatible(label_expected, self.database)
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
@@ -5294,7 +5307,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sqla_column = sa.column(
                 self.db_engine_spec.prepare_identifier(
                     column_name,
-                    normalize_columns=bool(self.normalize_columns),
+                    # SQL Lab ``Query`` datasources carry exact cursor column names.
+                    exact_case=getattr(self, "is_virtual", True),
                 )
             )
 
@@ -5355,6 +5369,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
         db_extra: Optional[dict[str, Any]] = None,
         temporal_offset_hours: int = 0,
+        temporal_timezone: Optional[str] = None,
     ) -> Optional[FilterValues]:
         if values is None:
             return None
@@ -5400,26 +5415,67 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return literal_column(temporal_sql) if temporal_sql is not None else value
 
+        def timezone_to_utc(wall_time: datetime) -> datetime:
+            """Convert a naive label in the dataset timezone back to naive UTC."""
+            assert temporal_timezone
+            return (
+                wall_time.replace(tzinfo=ZoneInfo(temporal_timezone))
+                .astimezone(timezone.utc)
+                .replace(tzinfo=None)
+            )
+
         def shift_temporal_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
-            """Undo the display-only offset before comparing an unshifted bucket."""
+            """
+            Undo the display-only shift before comparing an unshifted bucket.
+
+            A bucket label is either moved into the dataset timezone or, without
+            one, moved by the Hours offset (see ``normalize_dttm_col``).
+            """
             if (
-                not temporal_offset_hours
+                not (temporal_offset_hours or temporal_timezone)
                 or target_generic_type != GenericDataType.TEMPORAL
             ):
                 return value
             if isinstance(value, bool) or value is None:
                 return value
-            if isinstance(value, (int, float)):
-                return value - temporal_offset_hours * 60 * 60 * 1000
             delta = timedelta(hours=temporal_offset_hours)
+
+            def undo(wall_time: datetime) -> datetime:
+                return (
+                    timezone_to_utc(wall_time)
+                    if temporal_timezone
+                    else wall_time - delta
+                )
+
+            if isinstance(value, (int, float)) or (
+                isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value)
+            ):
+                try:
+                    wall_time = datetime.fromtimestamp(
+                        float(value) / 1000, tz=timezone.utc
+                    ).replace(tzinfo=None)
+                    shift_ms = (undo(wall_time) - wall_time) // timedelta(
+                        milliseconds=1
+                    )
+                except (OverflowError, OSError, ValueError):
+                    return value
+                if isinstance(value, str):
+                    return str(int(value) + shift_ms)
+                return value + shift_ms
             if isinstance(value, datetime):
-                return value - delta
-            if re.fullmatch(r"[+-]?\d+", value):
-                return str(int(value) - temporal_offset_hours * 60 * 60 * 1000)
-            try:
-                return (datetime.fromisoformat(value) - delta).isoformat(sep=" ")
-            except ValueError:
+                parsed = value
+            else:
+                try:
+                    parsed = datetime.fromisoformat(value)
+                except (TypeError, ValueError):
+                    return value
+            if temporal_timezone and parsed.tzinfo is not None:
+                # An aware value already names an instant.
                 return value
+            shifted = undo(parsed)
+            return (
+                shifted if isinstance(value, datetime) else shifted.isoformat(sep=" ")
+            )
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
@@ -6900,11 +6956,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # SELECT/GROUP BY/ORDER BY, series-limit prequery, or JOIN ON.
             col = Grouping(literal_column(expression, type_=type_))
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, tbl_column.column_name),
-                normalize_columns=bool(self.normalize_columns),
+            col = sa.column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, tbl_column.column_name),
+                    # SQL Lab ``Query`` datasources carry exact cursor column names.
+                    exact_case=getattr(self, "is_virtual", True),
+                ),
+                type_=type_,
             )
-            col = sa.column(identifier, type_=type_)
         col = self.make_sqla_column_compatible(col, label)
         return col
 
@@ -6977,7 +7036,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         db_engine_spec = self.db_engine_spec
         series_column_labels = [
-            db_engine_spec.make_label_compatible(column)
+            db_engine_spec.make_label_compatible(column, self.database)
             for column in utils.get_column_names(
                 columns=series_columns or [],
             )
@@ -7664,6 +7723,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if adhoc_filter_column
                     else col_obj
                 )
+                # Grained comparisons select a bucket whose label pandas shifted
+                # for display, so the compared value must undo that shift.
+                displayed_bucket_shifted = bool(
+                    filter_grain
+                    and offset_column is not None
+                    and offset_column.is_dttm
+                    and op in _DISPLAYED_BUCKET_OPERATORS
+                )
                 eq = (
                     val
                     if literal_filter
@@ -7680,20 +7747,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         # each selected bucket, not on the underlying column.
                         temporal_offset_hours=(
                             (self.offset or 0)
-                            if filter_grain
-                            and offset_column is not None
-                            and offset_column.is_dttm
-                            and op
-                            in {
-                                utils.FilterOperator.EQUALS,
-                                utils.FilterOperator.NOT_EQUALS,
-                                utils.FilterOperator.IN,
-                                utils.FilterOperator.NOT_IN,
-                                utils.FilterOperator.GREATER_THAN,
-                                utils.FilterOperator.LESS_THAN,
-                                utils.FilterOperator.GREATER_THAN_OR_EQUALS,
-                                utils.FilterOperator.LESS_THAN_OR_EQUALS,
-                            }
+                            if displayed_bucket_shifted
                             # A SQL-shifted grouping already matches the label.
                             and not (
                                 db_engine_spec.supports_temporal_column_shift
@@ -7702,6 +7756,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             # pandas skips the offset only for a valid timezone.
                             and not self._has_valid_dataset_timezone()
                             else 0
+                        ),
+                        # A valid timezone moves grouped UTC labels to local wall
+                        # time in pandas, whatever the engine's SQL-shift support.
+                        # A DATE column has no time of day for the zone to move.
+                        temporal_timezone=(
+                            self.get_dataset_timezone()
+                            if displayed_bucket_shifted
+                            and self._has_valid_dataset_timezone()
+                            and not is_date_column_type(
+                                db_engine_spec,
+                                offset_column.type if offset_column else None,
+                                db_extra=self.db_extra,
+                            )
+                            else None
                         ),
                     )
                 )
@@ -8350,7 +8418,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
-                    col_name = db_engine_spec.make_label_compatible(gby_name + "__")
+                    col_name = db_engine_spec.make_label_compatible(
+                        gby_name + "__", self.database
+                    )
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 # Use LEFT JOIN when grouping others, INNER JOIN otherwise
@@ -8365,12 +8435,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                     # Apply Others grouping using the refactored method
                     def _create_join_condition(col_name: str, expr: Any) -> Any:
-                        # Get the corresponding column from the subquery
-                        subq_col_name = db_engine_spec.make_label_compatible(
-                            col_name + "__"
-                        )
-                        # Reference the column from the already-created aliased subquery
-                        subq_col = subq_alias.c[subq_col_name]
+                        # The subquery keys its columns by the expected label, which
+                        # differs from the SQL alias when the engine shortened it
+                        subq_col = subq_alias.c[col_name + "__"]
                         return subq_col.is_not(None)
 
                     select_exprs, groupby_all_columns = (

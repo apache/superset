@@ -608,3 +608,17 @@ def test_rebuilt_paginated_table_budget_uses_full_export_limit(
     assert query.get("row_offset", 0) == 0
     assert not query.get("is_rowcount")
     assert json.loads(chart.params) == form_data
+
+
+def test_plan_skips_an_unsupported_semantic_chart(charts: mock.MagicMock) -> None:
+    """A refused semantic chart is left out before its query is resolved."""
+    refused = _chart(20, {"row_limit": 500})
+    refused.datasource_type = "semantic_view"
+    refused.viz_type = "histogram_v2"
+    charts.return_value = [_chart(10, {"row_limit": 100}), refused]
+
+    plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.skipped == {20: email.ERROR_UNSUPPORTED_CHART_TYPE}
+    assert 20 not in plan.query_contexts
+    assert plan.requested_rows == 100

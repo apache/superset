@@ -171,6 +171,35 @@ def test_writer_quotes_formula_cells(tmp_path: Path) -> None:
     assert sheets["data"][1][0] == "'=cmd()"
 
 
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("{=1+1}", "'{=1+1}"),
+        (" {=1+1}", "' {=1+1}"),
+        ('{"a": 1}', '{"a": 1}'),
+        ("{1+1}", "{1+1}"),
+        ("{=1+1", "{=1+1"),
+        ("{=1+1} ", "{=1+1} "),
+    ],
+)
+def test_sanitize_cell_quotes_array_formula(value: str, expected: str) -> None:
+    # XlsxWriter stores a string wrapped in ``{=`` and ``}`` as an array
+    # formula, so that exact form is quoted and other braced text is not.
+    assert _sanitize_cell(value) == expected
+
+
+def test_writer_quotes_array_formula_cells(tmp_path: Path) -> None:
+    openpyxl = pytest.importorskip("openpyxl")
+    path = str(tmp_path / "out.xlsx")
+    writer = StreamingXlsxWriter(path)
+    writer.add_sheet("data", ["{=1+1}"], [["{=SUM(A1:A2)}"]])
+    writer.close()
+
+    sheet = openpyxl.load_workbook(path).active
+    assert [sheet["A1"].value, sheet["A2"].value] == ["'{=1+1}", "'{=SUM(A1:A2)}"]
+    assert [sheet["A1"].data_type, sheet["A2"].data_type] == ["s", "s"]
+
+
 def test_writer_caps_rows_per_sheet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

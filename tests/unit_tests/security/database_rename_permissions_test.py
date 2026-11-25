@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from flask_appbuilder.security.sqla.models import PermissionView
 from sqlalchemy import inspect
 from sqlalchemy.orm.session import Session
 
@@ -146,3 +147,92 @@ def test_database_permission_update_skips_hook_when_view_menu_missing(
         connection, f"[examples_renamed].(id:{database.id})"
     )
     update_hook.assert_not_called()
+
+
+def test_database_rename_merges_existing_destination_grants(session: Session) -> None:
+    """A pre-existing destination must retain both old and new role grants."""
+    from superset.commands.database.utils import add_pvm
+
+    database, _ = _create_database_with_dataset()
+    old_permission = security_manager.find_permission_view_menu(
+        "database_access", database.get_perm()
+    )
+    new_permission = add_pvm(
+        session, security_manager, "database_access", f"[renamed].(id:{database.id})"
+    )
+    assert old_permission is not None
+    assert new_permission is not None
+    roles = [
+        security_manager.role_model(name="source_only", permissions=[old_permission]),
+        security_manager.role_model(
+            name="destination_only", permissions=[new_permission]
+        ),
+        security_manager.role_model(
+            name="both_permissions", permissions=[old_permission, new_permission]
+        ),
+    ]
+    session.add_all(roles)
+    session.commit()
+    destination_id = new_permission.id
+
+    assert database.database_name == "examples"
+    database.database_name = "renamed"
+    session.commit()
+    session.expire_all()
+
+    for role in roles:
+        assert [permission.id for permission in role.permissions] == [destination_id]
+    assert (
+        security_manager.find_permission_view_menu(
+            "database_access", f"[examples].(id:{database.id})"
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("old_name", ["old", "old_%"])
+def test_database_delete_preserves_extended_prefix_grants(
+    session: Session, old_name: str
+) -> None:
+    """Deleting a database must not delete another database's prefixed grants."""
+    from superset.commands.database.utils import add_pvm
+    from superset.models.core import Database
+
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name=old_name, sqlalchemy_uri="sqlite://")
+    foreign = Database(database_name=f"{old_name}].[x", sqlalchemy_uri="sqlite://")
+    wildcard_neighbor = Database(database_name="old_other", sqlalchemy_uri="sqlite://")
+    session.add_all([database, foreign, wildcard_neighbor])
+    session.flush()
+    own_permissions: list[PermissionView] = []
+    foreign_permissions: list[PermissionView] = []
+    for owner, permissions in (
+        (database, own_permissions),
+        (foreign, foreign_permissions),
+        (wildcard_neighbor, foreign_permissions),
+    ):
+        for permission, suffix in (
+            ("schema_access", "[main]"),
+            ("schema_access", "[cat].[main]"),
+            ("catalog_access", "[cat]"),
+        ):
+            pvm = add_pvm(
+                session,
+                security_manager,
+                permission,
+                f"[{owner.database_name}].{suffix}",
+            )
+            assert pvm is not None
+            permissions.append(pvm)
+    role = security_manager.role_model(
+        name="prefix_viewer", permissions=own_permissions + foreign_permissions
+    )
+    session.add(role)
+    session.commit()
+    expected = {permission.id for permission in foreign_permissions}
+
+    session.delete(database)
+    session.commit()
+    session.expire_all()
+
+    assert {permission.id for permission in role.permissions} == expected
