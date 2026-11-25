@@ -9671,3 +9671,15 @@ def test_has_mutation_in_bigquery_script_blocks(sql: str) -> None:
         "FROM t; -- DELETE FROM t\nEND;",
         "bigquery",
     ).has_mutation()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SHOW CREATE TABLE t;",
+        "SHOW TABLES;",
+    ],
+)
+def test_bigquery_non_scripting_command_body_is_not_scanned(sql: str) -> None:
+    """Only control-flow bodies are scanned; ``SHOW CREATE TABLE`` stays read-only."""
+    assert not SQLScript(sql, "bigquery").has_mutation()
