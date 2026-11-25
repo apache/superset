@@ -28,8 +28,15 @@ import {
   type ColumnsType,
 } from '@superset-ui/core/components';
 import type { UploadType } from './uploadDataModalTour';
-
-const PREVIEW_ROW_LIMIT = 100;
+import {
+  buildPreview,
+  decodeText,
+  parseDelimitedText,
+  recordsNeeded,
+  type PreviewCell,
+  type PreviewData,
+  type PreviewOptions,
+} from './filePreviewParsing';
 
 interface DataPreviewModalProps {
   show: boolean;
@@ -38,67 +45,42 @@ interface DataPreviewModalProps {
   type: UploadType;
   delimiter?: string;
   sheetName?: string;
+  headerRow?: number;
+  skipRows?: number;
 }
 
 async function parseCSV(
   file: File,
   delimiter: string,
-): Promise<{ columns: string[]; data: Record<string, string>[] }> {
-  const text = await file.text();
-  const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
-  if (lines.length === 0) {
-    return { columns: [], data: [] };
-  }
-  const headerLine = lines[0];
-  const columns = headerLine
-    .split(delimiter)
-    .map((c, i) => c.trim() || `col_${i}`);
-  const dataRows = lines.slice(1, PREVIEW_ROW_LIMIT + 1);
-  const data = dataRows.map(row => {
-    const values = row.split(delimiter);
-    const obj: Record<string, string> = {};
-    columns.forEach((col, i) => {
-      obj[col] = values[i]?.trim() ?? '';
-    });
-    return obj;
-  });
-  return { columns, data };
+  options: PreviewOptions,
+): Promise<PreviewData> {
+  const text = decodeText(await file.arrayBuffer());
+  const rows = parseDelimitedText(text, delimiter, recordsNeeded(options));
+  return buildPreview(rows, options);
 }
 
 async function parseExcel(
   file: File,
-  sheetName?: string,
-): Promise<{ columns: string[]; data: Record<string, string>[] }> {
+  sheetName: string | undefined,
+  options: PreviewOptions,
+): Promise<PreviewData> {
   const XLSX = (await import(/* webpackChunkName: "xlsx" */ 'xlsx')).default;
-  const arrayBuffer = await file.arrayBuffer();
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const workbook = XLSX.read(await file.arrayBuffer(), {
+    type: 'array',
+    sheetRows: recordsNeeded(options),
+  });
   const sheet = sheetName
     ? workbook.Sheets[sheetName]
     : workbook.Sheets[workbook.SheetNames[0]];
   if (!sheet) {
     return { columns: [], data: [] };
   }
-  const jsonData = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+  const rows = XLSX.utils.sheet_to_json<PreviewCell[]>(sheet, {
     header: 1,
     defval: '',
-  }) as unknown[][];
-  if (jsonData.length === 0) {
-    return { columns: [], data: [] };
-  }
-  const headerRow = jsonData[0] as (string | number)[];
-  const columns = headerRow.map((c, i) => String(c ?? '').trim() || `col_${i}`);
-  const dataRows = jsonData.slice(1, PREVIEW_ROW_LIMIT + 1) as (
-    | string
-    | number
-  )[][];
-  const data = dataRows.map(row => {
-    const obj: Record<string, string> = {};
-    columns.forEach((col, i) => {
-      obj[col] = String(row[i] ?? '');
-    });
-    return obj;
+    blankrows: true,
   });
-  return { columns, data };
+  return buildPreview(rows, options);
 }
 
 export const DataPreviewModal: FunctionComponent<DataPreviewModalProps> = ({
@@ -108,6 +90,8 @@ export const DataPreviewModal: FunctionComponent<DataPreviewModalProps> = ({
   type,
   delimiter = ',',
   sheetName,
+  headerRow = 0,
+  skipRows = 0,
 }) => {
   const [loading, setLoading] = useState(false);
   const [columns, setColumns] = useState<string[]>([]);
@@ -115,39 +99,52 @@ export const DataPreviewModal: FunctionComponent<DataPreviewModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setColumns([]);
+    setData([]);
+    setError(null);
+    setLoading(false);
     if (!show || !file) {
-      setColumns([]);
-      setData([]);
-      setError(null);
-      return;
+      return undefined;
     }
     if (type === 'columnar') {
       setError(t('Data preview is not available for Parquet files.'));
-      setColumns([]);
-      setData([]);
-      return;
+      return undefined;
     }
+    // Ignore results from a parse that was superseded by a newer file,
+    // option change or the modal closing.
+    let cancelled = false;
     setLoading(true);
-    setError(null);
+    const options = { headerRow, skipRows };
     const parse =
-      type === 'csv' ? parseCSV(file, delimiter) : parseExcel(file, sheetName);
+      type === 'csv'
+        ? parseCSV(file, delimiter, options)
+        : parseExcel(file, sheetName, options);
     parse
       .then(({ columns: cols, data: parsedData }) => {
-        setColumns(cols);
-        setData(parsedData);
+        if (!cancelled) {
+          setColumns(cols);
+          setData(parsedData);
+        }
       })
       .catch(err => {
-        setError(err?.message || t('Failed to parse file'));
-        setColumns([]);
-        setData([]);
+        if (!cancelled) {
+          setError(err?.message || t('Failed to parse file'));
+        }
       })
-      .finally(() => setLoading(false));
-  }, [show, file, type, delimiter, sheetName]);
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [show, file, type, delimiter, sheetName, headerRow, skipRows]);
 
   const tableColumns: ColumnsType<Record<string, string>> = columns.map(
     (col, idx) => ({
       title: col,
-      dataIndex: col,
+      dataIndex: String(idx),
       key: `col_${idx}_${col}`,
       ellipsis: true,
       width: 150,

@@ -724,3 +724,96 @@ describe('UploadDataModal Collapse Tabs', () => {
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 });
+
+const mockUploadMetadata = (
+  respond: (fileName: string) => unknown | Promise<unknown>,
+) => {
+  fetchMock.removeRoutes();
+  fetchMock.post('glob:*api/v1/database/upload_metadata/', callLog => {
+    const body = callLog.options?.body as FormData;
+    return respond((body.get('file') as File).name);
+  });
+  setupMocks();
+};
+
+const selectFile = (file: File) => {
+  fireEvent.change(screen.getByTestId('model-file-input'), {
+    target: { files: [file] },
+  });
+};
+
+const metadataResult = (sheets: Record<string, string[]>) => ({
+  result: {
+    items: Object.entries(sheets).map(([sheetName, columnNames]) => ({
+      sheet_name: sheetName,
+      column_names: columnNames,
+    })),
+  },
+});
+
+test('ignores a slow metadata response for a file that was replaced', async () => {
+  let resolveOld: (value: unknown) => void = () => {};
+  mockUploadMetadata(fileName =>
+    fileName === 'old.csv'
+      ? new Promise(resolve => {
+          resolveOld = resolve;
+        })
+      : metadataResult({ '': ['new_col'] }),
+  );
+  render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+  selectFile(new File(['old_col\nx'], 'old.csv', { type: 'text/csv' }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*api/v1/database/upload_metadata/'),
+    ).toHaveLength(1),
+  );
+  selectFile(new File(['new_col\ny'], 'new.csv', { type: 'text/csv' }));
+  await waitFor(() => expect(screen.getByText('new_col')).toBeInTheDocument());
+
+  resolveOld(metadataResult({ '': ['old_col'] }));
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  expect(screen.getByText('new_col')).toBeInTheDocument();
+  expect(screen.queryByText('old_col')).not.toBeInTheDocument();
+});
+
+test('replacing a workbook with a file too large to preview clears the sheet', async () => {
+  mockUploadMetadata(() => metadataResult({ Sheet1: ['a', 'b'] }));
+  render(<UploadDataModal {...excelProps} />, { useRedux: true });
+
+  selectFile(new File(['small'], 'small.xlsx'));
+  await waitFor(() => expect(screen.getByText('a')).toBeInTheDocument());
+
+  const largeFile = new File(['large'], 'large.xlsx');
+  Object.defineProperty(largeFile, 'size', { value: 6 * 1024 * 1024 });
+  selectFile(largeFile);
+
+  await waitFor(() =>
+    expect(
+      screen.getByText('Preview is not available for files larger than 5MB'),
+    ).toBeInTheDocument(),
+  );
+
+  await userEvent.click(
+    screen.getByRole('combobox', { name: /select a database/i }),
+  );
+  await waitFor(() => screen.getByText('database1'));
+  await userEvent.click(screen.getByText('database1'));
+  await userEvent.type(
+    screen.getByRole('textbox', { name: /table name/i }),
+    'table1',
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.called('glob:*api/v1/database/1/upload/'),
+    ).toBe(true),
+  );
+  const formData = fetchMock.callHistory.calls(
+    'glob:*api/v1/database/1/upload/',
+  )[0].options?.body as FormData;
+  expect((formData.get('file') as File).name).toBe('large.xlsx');
+  expect(formData.has('sheet_name')).toBe(false);
+});

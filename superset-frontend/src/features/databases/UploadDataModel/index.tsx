@@ -248,6 +248,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [activeKey, setActiveKey] = useState<string | string[]>('general');
   const [dataPreviewModalOpen, setDataPreviewModalOpen] =
     useState<boolean>(false);
+  // Identifies the latest file metadata request so responses for a file
+  // that has since been replaced or removed are ignored.
+  const metadataRequestIdRef = useRef(0);
 
   const createTypeToEndpointMap = (databaseId: number) =>
     `/api/v1/database/${databaseId}/upload/`;
@@ -327,7 +330,17 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setDelimiter(value);
   };
 
+  const resetFileMetadata = () => {
+    metadataRequestIdRef.current += 1;
+    setFileLoading(false);
+    setColumns([]);
+    setSheetNames([]);
+    setSheetsColumnNames({});
+    form.setFieldsValue({ sheet_name: undefined });
+  };
+
   const clearModal = () => {
+    metadataRequestIdRef.current += 1;
     setFileList([]);
     fileListRef.current = [];
     setColumns([]);
@@ -400,6 +413,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       formData.append('delimiter', mergedValues.delimiter);
     }
     formData.append('type', type);
+    metadataRequestIdRef.current += 1;
+    const requestId = metadataRequestIdRef.current;
+    const isStale = () => requestId !== metadataRequestIdRef.current;
     setFileLoading(true);
     return SupersetClient.post({
       endpoint: '/api/v1/database/upload_metadata/',
@@ -407,6 +423,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       headers: { Accept: 'application/json' },
     })
       .then(response => {
+        if (isStale()) {
+          return;
+        }
         const { items } = response.json.result;
         if (items && type !== 'excel') {
           setColumns(items[0].column_names);
@@ -433,6 +452,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       })
       .catch(response =>
         getClientErrorObject(response).then(error => {
+          if (isStale()) {
+            return;
+          }
           addDangerToast(error.error || 'Error');
           setColumns([]);
           form.setFieldsValue({ sheet_name: undefined });
@@ -440,7 +462,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         }),
       )
       .finally(() => {
-        setFileLoading(false);
+        if (!isStale()) {
+          setFileLoading(false);
+        }
       });
   };
 
@@ -507,9 +531,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     const newFileList = fileList.filter(file => file.uid !== removedFile.uid);
     setFileList(newFileList);
     fileListRef.current = newFileList;
-    setColumns([]);
-    setSheetNames([]);
-    form.setFieldsValue({ sheet_name: undefined });
+    resetFileMetadata();
     return false;
   };
 
@@ -541,11 +563,13 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     if (info.file.originFileObj) {
       form.validateFields(['file']).catch(() => {});
     }
-    if (!previewUploadedFile) {
-      return;
-    }
-    if (isFileTooLargeForPreview(info.file.originFileObj)) {
-      setColumns([]);
+    // Drop columns and sheets from the previous file before (maybe) loading
+    // the new file's metadata.
+    resetFileMetadata();
+    if (
+      !previewUploadedFile ||
+      isFileTooLargeForPreview(info.file.originFileObj)
+    ) {
       return;
     }
     await loadFileMetadata(info.file.originFileObj);
@@ -567,7 +591,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       ) {
         loadFileMetadata(fileListOverride[0]).then(r => r);
       } else if (isFileTooLargeForPreview(fileListOverride[0])) {
-        setColumns([]);
+        resetFileMetadata();
       }
     }
   }, [fileListOverride, previewUploadedFile]);
@@ -1244,6 +1268,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         type={type}
         delimiter={formValues.delimiter ?? ','}
         sheetName={formValues.sheet_name}
+        headerRow={Number(formValues.header_row ?? 0)}
+        skipRows={Number(formValues.skip_rows ?? 0)}
       />
     </>
   );
