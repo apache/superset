@@ -92,6 +92,51 @@ def mock_template_processor(
     return template_processor
 
 
+@pytest.mark.usefixtures("mock_validator", "mock_config")
+def test_validate_sql_follows_the_sqllab_dataset_match_flag(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_template_processor: MagicMock,
+) -> None:
+    """Live validation uses the same access check as Run.
+
+    With the flag off, a schema grant is not flagged in the editor.
+    Editorship and unscoped SQL stay denied either way.
+    """
+    from flask import current_app
+
+    raise_for_access = mocker.patch(
+        "superset.commands.database.validate_sql.security_manager.raise_for_access"
+    )
+    sql = "SELECT * FROM birth_names"
+    mock_template_processor.process_template.return_value = sql
+    data = {
+        "sql": sql,
+        "schema": "public",
+        "catalog": "cat",
+        "template_params": {"a": 1},
+    }
+
+    ValidateSQLCommand(model_id=1, data=data).run()
+    raise_for_access.assert_called_once_with(
+        database=mock_database,
+        sql=sql,
+        catalog="cat",
+        schema="public",
+        template_params={"a": 1},
+        force_dataset_match=True,
+        allow_editorship=False,
+        reject_unscoped_sql=True,
+    )
+
+    raise_for_access.reset_mock()
+    mocker.patch.dict(current_app.config, {"SQLLAB_REQUIRE_DATASET_MATCH": False})
+    ValidateSQLCommand(model_id=1, data=data).run()
+    assert raise_for_access.call_args.kwargs["force_dataset_match"] is False
+    assert raise_for_access.call_args.kwargs["allow_editorship"] is False
+    assert raise_for_access.call_args.kwargs["reject_unscoped_sql"] is True
+
+
 def test_validate_sql_with_jinja_templates(
     mock_database: MagicMock,
     mock_validator: MagicMock,

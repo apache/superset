@@ -3138,6 +3138,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "tables": ",".join(quoted_tables),
         }
 
+    def get_dataset_match_access_error_msg(self, tables: set["Table"]) -> str:
+        """
+        Return the error message when a strict dataset match denied the tables.
+
+        ``catalog_access`` and ``schema_access`` were not consulted, so the
+        message must not read as if those grants are missing.
+
+        :param tables: The set of denied SQL tables
+        :returns: The error message
+        """
+
+        quoted_tables = [f'"{table}"' for table in tables]
+        return _(
+            "You need datasource_access on a registered dataset for "
+            "each of the following tables: %(tables)s. schema_access "
+            "and catalog_access do not authorize this query. "
+            "Alternatively, grant 'all_database_access' or "
+            "'all_datasource_access'."
+        ) % {"tables": ",".join(quoted_tables)}
+
     def get_table_access_error_object(self, tables: set["Table"]) -> SupersetError:
         """
         Return the error object for the denied SQL tables.
@@ -5704,6 +5724,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
         allow_editorship: bool = True,
+        reject_unscoped_sql: bool = False,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -5724,8 +5745,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             has ``datasource_access`` on; editorship/ownership of the
             dataset is not sufficient here (it is accepted only on the
             non-strict path). Call sites that execute or return raw row
-            data (SQL Lab, MetaDB, MCP ``execute_sql``, alert/report
-            queries) set this to True.
+            data set this to True. SQL Lab execution, result fetch,
+            export, formatting, cost estimates, and the MCP ``execute_sql``
+            tool, and the editor's live SQL validation pass
+            ``SQLLAB_REQUIRE_DATASET_MATCH`` (default True), so an operator
+            can restore catalog and schema grants for those paths alone.
+            Those SQL Lab paths also pass ``allow_editorship=False``, so
+            editorship of a dataset does not authorize them when the flag is
+            off, and ``reject_unscoped_sql=True``, so unparsed SQL, schema
+            rebinding, and an unresolved schema stay denied on SQL Lab when
+            this flag is off. Reports, alerts, MetaDB, and dashboard scope
+            SQL keep passing True.
             The default (False) preserves the historical semantics for
             chart-data, ``/table_metadata/``, and ``/select_star/`` (dataset
             create/update/import additionally opt out of the editorship accept
@@ -5759,6 +5789,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             catalog/schema fallthroughs, so ``schema_access`` still authorizes
             defining a dataset. Ignored when ``force_dataset_match`` is True
             (editorship is already excluded there).
+        :param reject_unscoped_sql: When True, statements the parser cannot
+            fully model, scripts that rebind schema resolution (``USE``,
+            ``SET SCHEMA``, or a ``search_path`` change), and tables whose
+            schema cannot be determined are denied even when
+            ``force_dataset_match`` is False. SQL Lab passes True so those
+            denials stay on when ``SQLLAB_REQUIRE_DATASET_MATCH`` is off. A
+            catalog grant still covers every schema in that catalog. Callers
+            that leave this False, including chart-data and Explore, keep
+            the historical behavior: the same denials apply only when
+            ``force_dataset_match`` is True.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5953,17 +5993,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 parse_result = process_jinja_sql(
                     sql_for_parse, database, parse_template_params
                 )
-                # Under strict scoping, refuse any statement the parser
-                # could not fully model: sqlglot ``exp.Command`` nodes
-                # (e.g. dynamic SQL inside a stored-procedure call) and
-                # non-sqlglot engines such as Kusto KQL whose statement
-                # classes do not produce a sqlglot AST. The per-table
-                # dataset-match check below would be blind to those
-                # references, so fail closed.
+                # Under strict dataset matching, and on SQL Lab
+                # (``reject_unscoped_sql``), refuse any statement the parser
+                # could not fully model: sqlglot ``exp.Command`` nodes (e.g.
+                # dynamic SQL inside a stored-procedure call) and non-sqlglot
+                # engines such as Kusto KQL whose statement classes do not
+                # produce a sqlglot AST. The per-table check below would see
+                # no tables and allow the script. Chart and Explore leave the
+                # flag off, so a schema grant there still authorizes that SQL.
                 if (
-                    force_dataset_match
-                    and parse_result.script.has_unparseable_statement
-                ):
+                    force_dataset_match or reject_unscoped_sql
+                ) and parse_result.script.has_unparseable_statement:
                     raise SupersetSecurityException(
                         SupersetError(
                             error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -5979,8 +6019,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # Statements that rebind how unqualified table names resolve
                 # (``USE``, ``SET SCHEMA``, or a ``search_path`` change) make
                 # the qualification below diverge from what the engine uses at
-                # execution time, so reject them regardless of engine.
-                if force_dataset_match and parse_result.script.changes_default_schema():
+                # execution time. SQL Lab rejects them even when dataset
+                # matching is off. Other callers reject them only under
+                # ``force_dataset_match``, matching the historical check.
+                if (
+                    force_dataset_match or reject_unscoped_sql
+                ) and parse_result.script.changes_default_schema():
                     raise SupersetSecurityException(
                         SupersetError(
                             error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -6117,6 +6161,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     ):
                         continue
 
+                # Under strict dataset matching, and on SQL Lab, refuse a
+                # table whose schema could not be pinned down.
+                # ``query_datasources_by_name`` drops the schema filter when
+                # schema is None and would otherwise return datasets in any
+                # schema, which the engine may resolve elsewhere via
+                # ``search_path``. A schema grant cannot cover that table.
+                # A catalog grant already continued above: it covers every
+                # schema in the catalog. Chart and Explore leave this off, so
+                # an unresolved schema there still reaches the dataset lookup.
+                if (force_dataset_match or reject_unscoped_sql) and not table_.schema:
+                    denied.add(table_)
+                    continue
+
+                if not force_dataset_match:
                     schema_perm = self.get_schema_perm(
                         database.database_name,
                         effective_catalog,
@@ -6128,16 +6186,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         schema_perm,
                     ):
                         continue
-
-                # Under strict scoping, refuse tables whose schema we could
-                # not pin down. query_datasources_by_name drops the schema
-                # filter when schema is None and would otherwise return
-                # SqlaTables in any schema, which the database engine may
-                # then resolve to a different schema via search_path. The
-                # dataset-match check would be against the wrong row.
-                if force_dataset_match and not table_.schema:
-                    denied.add(table_)
-                    continue
 
                 datasources = SqlaTable.query_datasources_by_name(
                     database,
@@ -6153,16 +6201,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     # "explore your own dataset" grant from #20382.
                     #
                     # It is excluded on two kinds of call:
-                    #   * strict scoping (``force_dataset_match``) -- SQL Lab
-                    #     raw queries, MetaDB, MCP ``execute_sql`` and
+                    #   * strict scoping (``force_dataset_match``) -- MetaDB and
                     #     alert/report queries -- which return raw rows and
                     #     also drop the catalog/schema fallthroughs;
                     #   * ``allow_editorship=False`` -- the paths that define
                     #     or repoint a dataset over a table (create, update, v1
-                    #     import, and the legacy ``/datasource/save/`` repoint)
-                    #     and the SQL Lab query paths (query-backed
-                    #     chart-data, Explore) -- which keep the catalog/schema
-                    #     fallthroughs but refuse editorship.
+                    #     import, and the legacy ``/datasource/save/`` repoint),
+                    #     query-backed chart-data and Explore, and every SQL
+                    #     Lab path (execution, results, export, formatting,
+                    #     cost estimates, MCP ``execute_sql``). SQL Lab passes
+                    #     this even when ``SQLLAB_REQUIRE_DATASET_MATCH`` is
+                    #     off, so a schema grant does not also accept
+                    #     editorship of a same-named dataset.
                     # Both must follow the user's live data-access grants, not
                     # editorship of a same-named dataset: any principal able to
                     # create a dataset can make themselves an editor of one
@@ -6183,9 +6233,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     denied.add(table_)
 
             if denied:
-                raise SupersetSecurityException(
-                    self.get_table_access_error_object(denied)
-                )
+                # Replace the message on the existing error object so a
+                # custom ``get_table_access_error_object`` (link, extra)
+                # still applies. Schema and catalog grants were not
+                # checked, and the generic message reads as if they were
+                # the missing permission.
+                error = self.get_table_access_error_object(denied)
+                if force_dataset_match:
+                    error.message = self.get_dataset_match_access_error_msg(denied)
+                raise SupersetSecurityException(error)
 
             return
 

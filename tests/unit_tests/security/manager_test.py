@@ -4130,8 +4130,242 @@ def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_m
         side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
-    with pytest.raises(SupersetSecurityException):
+    with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query=query, force_dataset_match=True)
+    message = str(excinfo.value)
+    assert "datasource_access" in message
+    assert "schema_access" in message
+    assert "catalog_access" in message
+
+
+def test_raise_for_access_rejects_schema_rebind_when_dataset_match_off(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    SQL Lab rejects ``USE`` even when dataset matching is off.
+
+    A grant on ``tenant_a`` must not authorize ``USE tenant_b; SELECT * FROM
+    orders``: the access check would qualify ``orders`` as ``tenant_a.orders``
+    while execution reads ``tenant_b.orders``. Chart and Explore leave
+    ``reject_unscoped_sql`` off and keep the historical allowance.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "mysql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "tenant_a"
+    query = mocker.MagicMock(
+        database=database,
+        schema="tenant_a",
+        catalog=None,
+        sql="SELECT * FROM orders",
+    )
+
+    sm.raise_for_access(
+        query=query, force_dataset_match=False, reject_unscoped_sql=True
+    )
+
+    query.sql = "USE tenant_b; SELECT * FROM orders"
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(
+            query=query, force_dataset_match=False, reject_unscoped_sql=True
+        )
+    assert "changes the schema" in str(excinfo.value)
+
+
+def test_raise_for_access_rejects_unparseable_sql_when_dataset_match_off(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    SQL Lab denies a statement sqlglot cannot model when dataset matching is off.
+
+    ``CALL`` extracts no tables, so a schema grant would otherwise authorize
+    SQL the per-table check never saw. Chart and Explore leave
+    ``reject_unscoped_sql`` off.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "postgresql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "public"
+    query = mocker.MagicMock(
+        database=database,
+        schema="public",
+        catalog=None,
+        sql="CALL get_secret_data();",
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(
+            query=query, force_dataset_match=False, reject_unscoped_sql=True
+        )
+    assert "could not be fully parsed" in str(excinfo.value)
+
+
+def test_raise_for_access_rejects_unresolved_schema_when_dataset_match_off(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    SQL Lab does not let a schema grant cover a table with no schema.
+
+    The dataset lookup drops its schema filter when the schema is missing and
+    could match a same-named table in another schema. Chart and Explore leave
+    ``reject_unscoped_sql`` off and still reach that lookup.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "mysql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = None
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM orders",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(
+            query=query, force_dataset_match=False, reject_unscoped_sql=True
+        )
+    SqlaTable.query_datasources_by_name.assert_not_called()
+
+
+def test_raise_for_access_non_strict_keeps_schema_rebind(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Chart and Explore still authorize a schema-rebinding script from a grant.
+
+    ``reject_unscoped_sql`` is the SQL Lab opt-in. Leaving it off preserves the
+    historical ``force_dataset_match=False`` behavior.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "mysql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "tenant_a"
+    query = mocker.MagicMock(
+        database=database,
+        schema="tenant_a",
+        catalog=None,
+        sql="USE tenant_b; SELECT * FROM orders",
+    )
+
+    sm.raise_for_access(query=query, force_dataset_match=False)
+
+
+def test_raise_for_access_non_strict_keeps_unparseable_sql(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A schema grant still authorizes unparsed SQL outside SQL Lab.
+
+    Kusto KQL and ``CALL`` extract no tables. Chart and Explore of that SQL
+    stay authorized when ``force_dataset_match`` is left off.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "kustokql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = None
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="StormEvents | take 1",
+    )
+
+    sm.raise_for_access(query=query, force_dataset_match=False)
+
+    database.db_engine_spec.engine = "postgresql"
+    database.get_default_schema_for_query.return_value = "public"
+    query.schema = "public"
+    query.sql = "CALL get_secret_data();"
+    sm.raise_for_access(query=query, force_dataset_match=False)
+
+
+def test_raise_for_access_non_strict_keeps_unresolved_schema(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Outside SQL Lab, an unresolved schema still reaches the dataset lookup.
+
+    Editorship of the matched dataset authorizes chart and Explore access,
+    which the SQL Lab schema-less denial would skip.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=True)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = [
+        mocker.MagicMock(perm="[warehouse].[orders](id:1)")
+    ]
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "mysql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = None
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM orders",
+    )
+
+    sm.raise_for_access(query=query, force_dataset_match=False)
+    SqlaTable.query_datasources_by_name.assert_called()
 
 
 def test_raise_for_access_editorship_denied_in_strict_mode(

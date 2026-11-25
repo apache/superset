@@ -23998,6 +23998,14 @@ msgstr ""
 "'all_database_access' அல்லது 'all_datasource_access' அனுமதி உங்களுக்குத் "
 "தேவை"
 
+#, python-format
+msgid ""
+"You need datasource_access on a registered dataset for each of the "
+"following tables: %(tables)s. schema_access and catalog_access do not "
+"authorize this query. Alternatively, grant 'all_database_access' or "
+"'all_datasource_access'."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: cs, de, es,
 # fi, fr, it, ja, lv, pl, pt, ru, sk, sl, sr, sr_Latn, th, uk]
 #, fuzzy
