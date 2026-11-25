@@ -868,6 +868,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             raise
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
+        except Exception as ex:
+            # Driver-specific connection failures (e.g. a MongoDB auth or TLS
+            # error) aren't SQLAlchemy OperationalErrors and would otherwise
+            # escape as an unhandled 500. They're a customer-config problem,
+            # not a Superset bug, so report them as a 4xx with a warning.
+            logger.warning("Unexpected error fetching catalogs", exc_info=True)
+            return self.response(
+                422,
+                message=f"Unable to fetch catalogs: {ex}",
+            )
 
     @expose("/<int:pk>/schemas/")
     @protect()
