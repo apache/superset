@@ -40,7 +40,7 @@ from typing import Any, Optional
 
 from flask import current_app, flash, has_request_context, request, session
 from flask_babel import gettext as __
-from flask_jwt_extended.exceptions import JWTExtendedException
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import current_user, logout_user
 from flask_login.config import COOKIE_NAME as DEFAULT_REMEMBER_COOKIE_NAME
 from sqlalchemy import event, inspect, or_
@@ -180,11 +180,13 @@ def enforce_session_validity() -> Optional[Response]:
         session.clear()
         flash(__("Your session has ended. Please sign in again."), "warning")
         return None
-    except JWTExtendedException:
+    except NoAuthorizationError:
         # Resolving ``current_user`` went through a JWT-based Flask-Login loader
-        # that found no usable token. That is an ordinary unauthenticated
+        # that found no token at all. That is an ordinary unauthenticated
         # request, not a malfunction of this check, so it is logged at debug:
         # warning-level noise here would be emitted on every anonymous request.
+        # Other JWT errors (revoked, malformed, wrong type) fall through to the
+        # warning below, since those are worth seeing.
         logger.debug("No authenticated JWT; skipping session-invalidation check")
         return None
     except Exception:  # noqa: BLE001  # pylint: disable=broad-except
