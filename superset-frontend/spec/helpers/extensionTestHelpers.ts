@@ -46,7 +46,11 @@ export const registerTestView = <Props = Record<string, never>>(
   name: string,
   provider: ComponentType<Props>,
 ) => {
-  const disposable = views.registerView<Props>({ id, name }, location, provider);
+  const disposable = views.registerView<Props>(
+    { id, name },
+    location,
+    provider,
+  );
   disposables.push(disposable);
   return disposable;
 };
