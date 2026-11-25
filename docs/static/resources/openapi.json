@@ -4254,6 +4254,11 @@
       },
       "DashboardCopySchema": {
         "properties": {
+          "adjust_time_ranges": {
+            "default": false,
+            "description": "Apply the changes the copy's time ranges need to fit the time range limits. Without it, a copy that needs them answers 422 with the changes in time_range_adjustments, and nothing is copied.",
+            "type": "boolean"
+          },
           "css": {
             "description": "Override CSS for the dashboard.",
             "type": "string"
@@ -4277,6 +4282,12 @@
             "default": false,
             "description": "Use json_metadata as the complete copy settings instead of merging with the source dashboard's settings. Defaults to false. Chart-specific settings are pruned and remapped in both modes.",
             "type": "boolean"
+          },
+          "time_range_adjustments_fingerprint": {
+            "default": null,
+            "description": "The time_range_adjustments_fingerprint of the 422 the caller agreed to. With it, adjust_time_ranges applies only those changes and answers a new 422 if they changed since; without it, adjust_time_ranges applies whatever changes are needed.",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -14715,6 +14726,132 @@
         ],
         "type": "object"
       },
+      "TimeRangeAdjustment": {
+        "properties": {
+          "dashboard": {
+            "description": "Dashboard title",
+            "type": "string"
+          },
+          "dashboard_key": {
+            "description": "The source dashboard's UUID on a copy, the imported dashboard's UUID on an import",
+            "type": "string"
+          },
+          "field": {
+            "description": "max_span, max_look_back or max_look_forward for a rule; default or applied_range for a filter",
+            "type": "string"
+          },
+          "file": {
+            "description": "Import file of the dashboard",
+            "nullable": true,
+            "type": "string"
+          },
+          "filter_id": {
+            "description": "Native filter id",
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "description": "time_range_limit or filter_default",
+            "type": "string"
+          },
+          "name": {
+            "description": "Dashboard title for a rule, filter name otherwise",
+            "type": "string"
+          },
+          "new": {
+            "description": "Value saved",
+            "nullable": true
+          },
+          "new_label": {
+            "description": "Value saved in words",
+            "type": "string"
+          },
+          "old": {
+            "description": "Stored value",
+            "nullable": true
+          },
+          "old_label": {
+            "description": "Stored value in words",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeAdjustmentsFile": {
+        "properties": {
+          "time_range_adjustments": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeAdjustment"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeAdjustmentsImportErrorItem": {
+        "properties": {
+          "error_type": {
+            "type": "string"
+          },
+          "extra": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TimeRangeAdjustmentsFile"
+            },
+            "description": "When time ranges need changes: each dashboard file mapped to its changes, and the fingerprint",
+            "properties": {
+              "time_range_adjustments_fingerprint": {
+                "description": "Send back with adjust_time_ranges to agree to exactly these changes",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "level": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeAdjustmentsImportErrorSchema": {
+        "properties": {
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeAdjustmentsImportErrorItem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeAdjustmentsResponseSchema": {
+        "properties": {
+          "message": {
+            "description": "The changes, in words, and how to agree to them; for invalid parameters, a map of fields to their errors instead",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
+          },
+          "time_range_adjustments": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeAdjustment"
+            },
+            "type": "array"
+          },
+          "time_range_adjustments_fingerprint": {
+            "description": "Send back with adjust_time_ranges to agree to exactly these changes",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "TimeRangeLimitsChartLink": {
         "properties": {
           "id": {
@@ -17415,6 +17552,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "adjust_time_ranges": {
+                    "description": "apply the changes a dashboard's time ranges need to fit the time range limits? Without it, an import that needs them answers 422 listing the changes, and nothing is imported.",
+                    "type": "boolean"
+                  },
                   "bundle": {
                     "description": "upload file (ZIP or JSON)",
                     "format": "binary",
@@ -17447,6 +17588,10 @@
                   "ssh_tunnel_private_keys": {
                     "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
                     "type": "string"
+                  },
+                  "time_range_adjustments_fingerprint": {
+                    "description": "the time_range_adjustments_fingerprint of the 422 the caller agreed to. With it, adjust_time_ranges applies only those changes and answers a new 422 if they changed since; without it, whatever changes are needed.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -17478,7 +17623,14 @@
             "$ref": "#/components/responses/401"
           },
           "422": {
-            "$ref": "#/components/responses/422"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeRangeAdjustmentsImportErrorSchema"
+                }
+              }
+            },
+            "description": "The bundle is invalid, or the time ranges of its dashboards need changes the request has not agreed to. Nothing is imported. For time range changes, errors[0].extra maps each dashboard file to {\"time_range_adjustments\": [...]} and holds time_range_adjustments_fingerprint."
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -20507,6 +20659,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "adjust_time_ranges": {
+                    "description": "apply the changes a dashboard's time ranges need to fit the time range limits? Without it, an import that needs them answers 422 listing the changes, and nothing is imported.",
+                    "type": "boolean"
+                  },
                   "encrypted_extra_secrets": {
                     "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
                     "type": "string"
@@ -20539,6 +20695,10 @@
                   "ssh_tunnel_private_keys": {
                     "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
                     "type": "string"
+                  },
+                  "time_range_adjustments_fingerprint": {
+                    "description": "the time_range_adjustments_fingerprint of the 422 the caller agreed to. With it, adjust_time_ranges applies only those changes and answers a new 422 if they changed since; without it, whatever changes are needed.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -20570,7 +20730,14 @@
             "$ref": "#/components/responses/401"
           },
           "422": {
-            "$ref": "#/components/responses/422"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeRangeAdjustmentsImportErrorSchema"
+                }
+              }
+            },
+            "description": "The file is invalid or needs confirmation from the caller (an overwrite, a password, or time range changes). Nothing is imported. For time range changes, errors[0].extra maps each dashboard file to {\"time_range_adjustments\": [...]} and holds time_range_adjustments_fingerprint."
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -20895,7 +21062,14 @@
             "$ref": "#/components/responses/404"
           },
           "422": {
-            "$ref": "#/components/responses/422"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeRangeAdjustmentsResponseSchema"
+                }
+              }
+            },
+            "description": "Invalid parameters, with message mapping fields to errors, or time ranges that need changes to fit the time range limits and that the request has not agreed to: message describes them, time_range_adjustments lists them, and nothing is copied."
           },
           "500": {
             "$ref": "#/components/responses/500"
