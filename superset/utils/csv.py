@@ -96,6 +96,22 @@ def format_decimal(value: Any) -> Any:
     )
 
 
+def _escape_csv_cell(value: Any, decimal_separator: str) -> Any:
+    if isinstance(value, str):
+        return escape_value(value)
+    if isinstance(value, Decimal) and value.is_finite():
+        # Preserve precision without applying formula escaping to numeric text.
+        return format_decimal(value).replace(".", decimal_separator)
+    if (
+        decimal_separator != "."
+        and isinstance(value, Real)
+        and not isinstance(value, (bool, int))
+        and pd.notna(value)
+    ):
+        return str(value).replace(".", decimal_separator)
+    return value
+
+
 def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     def escape_values(v: Any) -> Union[str, Any]:
         return escape_value(v) if isinstance(v, str) else v
@@ -127,25 +143,10 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     decimal_separator = kwargs.get("decimal", ".")
     for column_position, (_, column) in enumerate(df.items()):
         if pd.api.types.is_string_dtype(column.dtype):
-            values: list[Any] = []
-            for value in column:
-                if isinstance(value, str):
-                    value = escape_value(value)
-                elif isinstance(value, Decimal) and value.is_finite():
-                    # Preserve precision and scale without passing numeric text
-                    # through the string formula-prefix escaping path.
-                    value = format_decimal(value).replace(".", decimal_separator)
-                elif (
-                    decimal_separator != "."
-                    and isinstance(value, Real)
-                    and not isinstance(value, (bool, int))
-                    and pd.notna(value)
-                ):
-                    value = str(value).replace(".", decimal_separator)
-                values.append(value)
+            escaped = [_escape_csv_cell(value, decimal_separator) for value in column]
             df.isetitem(
                 column_position,
-                pd.Series(values, index=column.index, dtype=column.dtype),
+                pd.Series(escaped, index=column.index, dtype=column.dtype),
             )
 
     # Row labels and axis names are written out whenever the caller asks for the
@@ -183,8 +184,8 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
             # and the levels of a ``MultiIndex`` have to be unique. Reading the
             # row values and factorizing folds a collision onto one code.
             rebuilt = [
-                pd.factorize(values.map(escape_values))
-                if needs_escaping(values := index.get_level_values(position))
+                pd.factorize(row_values.map(escape_values))
+                if needs_escaping(row_values := index.get_level_values(position))
                 else (index.codes[position], level)
                 for position, level in enumerate(index.levels)
             ]
