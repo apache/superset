@@ -41,12 +41,16 @@ from superset.mcp_service.dashboard.schemas import (
     FilterRangeSpec,
     FilterSelectSpec,
     FilterSelectValue,
+    FilterTimeColumnSpec,
     FilterTimeGrainSpec,
     FilterTimeSpec,
     ManageNativeFiltersRequest,
     ManageNativeFiltersResponse,
+    native_filter_cascade_parent_ids,
+    native_filter_supports_cascade,
     NativeFilterSummary,
     NativeFilterUpdateSpec,
+    validate_native_filter_type_fields,
 )
 from superset.mcp_service.dashboard.tool.governance_utils import (
     managed_dashboard_refusal,
@@ -69,30 +73,10 @@ _CONTROL_VALUE_FIELDS: dict[str, str] = {
     "search_all_options": "searchAllOptions",
 }
 
-# Update fields valid only for specific filter types. Fields not listed in
-# any of these sets (name, description, scope_chart_ids) apply to every type.
-_TYPE_SPECIFIC_UPDATE_FIELDS: dict[str, frozenset[str]] = {
-    "filter_select": frozenset(
-        {
-            "dataset_id",
-            "column",
-            "multi_select",
-            "default_to_first_item",
-            "default_value",
-            "enable_empty_filter",
-            "sort_ascending",
-            "search_all_options",
-        }
-    ),
-    "filter_range": frozenset({"dataset_id", "column", "enable_empty_filter"}),
-    "filter_time": frozenset({"default_time_range"}),
-    "filter_timegrain": frozenset({"dataset_id", "enable_empty_filter"}),
-}
-_ALL_TYPE_SPECIFIC_UPDATE_FIELDS: frozenset[str] = frozenset().union(
-    *_TYPE_SPECIFIC_UPDATE_FIELDS.values()
+# Filter types whose target is a dataset with no column.
+_DATASET_ONLY_FILTER_TYPES: frozenset[str] = frozenset(
+    {"filter_timegrain", "filter_timecolumn"}
 )
-
-
 # Display strings the frontend uses when labelling a selected value; mirrored
 # here so a stored default's label reads the same as an applied one.
 _TRUE_LABEL = "TRUE"
@@ -245,14 +229,16 @@ def _validate_dataset_column(
     dataset_id: int, column: str, *, require_numeric: bool = False
 ) -> None:
     """Validate column existence and, for range filters, its numeric type."""
+    from superset.mcp_service.privacy import user_can_view_data_model_metadata
+
     dataset = _find_dataset_or_raise(dataset_id)
     column_names = [c.column_name for c in dataset.columns]
     target_column = next((c for c in dataset.columns if c.column_name == column), None)
     if target_column is None:
-        raise _FilterValidationError(
-            f"Column '{column}' not found in dataset {dataset_id}. "
-            f"Available columns: {', '.join(sorted(column_names))}."
-        )
+        message = f"Column '{column}' not found in dataset {dataset_id}."
+        if user_can_view_data_model_metadata():
+            message += f" Available columns: {', '.join(sorted(column_names))}."
+        raise _FilterValidationError(message)
 
     if require_numeric and not target_column.is_numeric:
         raise _FilterValidationError(
@@ -289,6 +275,7 @@ def _build_new_filter_config(
         | FilterTimeSpec
         | FilterRangeSpec
         | FilterTimeGrainSpec
+        | FilterTimeColumnSpec
         | DividerSpec
     ),
     dashboard_chart_ids: list[int],
@@ -313,7 +300,7 @@ def _build_new_filter_config(
         "name": spec.name,
         "description": spec.description,
         "scope": _build_scope(spec.scope_chart_ids, dashboard_chart_ids),
-        "cascadeParentIds": [],
+        "cascadeParentIds": list(dict.fromkeys(spec.cascade_parent_ids or [])),
     }
 
     if isinstance(spec, FilterSelectSpec):
@@ -358,11 +345,15 @@ def _build_new_filter_config(
             "defaultDataMask": _empty_data_mask(),
         }
 
-    if isinstance(spec, FilterTimeGrainSpec):
+    if isinstance(spec, (FilterTimeGrainSpec, FilterTimeColumnSpec)):
         _find_dataset_or_raise(spec.dataset_id)
         return {
             **base,
-            "filterType": "filter_timegrain",
+            "filterType": (
+                "filter_timegrain"
+                if isinstance(spec, FilterTimeGrainSpec)
+                else "filter_timecolumn"
+            ),
             "targets": [{"datasetId": spec.dataset_id}],
             "controlValues": {"enableEmptyFilter": spec.enable_empty_filter},
             "defaultDataMask": _empty_data_mask(),
@@ -387,48 +378,34 @@ def _validate_update_type_compat(
     (dataset_id, column, multi_select, ...) is rejected for them, same as
     for any other filter type that does not declare it as allowed.
     """
-    if is_divider and spec.scope_chart_ids is not None:
-        raise _FilterValidationError(
-            f"Divider '{spec.id}' does not support scope_chart_ids; "
-            "dividers are always in scope."
+    try:
+        validate_native_filter_type_fields(
+            spec.model_dump(), filter_type, is_divider=is_divider
         )
-    allowed = (
-        _TYPE_SPECIFIC_UPDATE_FIELDS.get(filter_type, frozenset())
-        if filter_type is not None
-        else frozenset()
-    )
-    invalid_fields = sorted(
-        field
-        for field in _ALL_TYPE_SPECIFIC_UPDATE_FIELDS
-        if getattr(spec, field) is not None and field not in allowed
-    )
-    if invalid_fields:
-        valid_types = sorted(
-            {
-                type_name
-                for type_name, fields in _TYPE_SPECIFIC_UPDATE_FIELDS.items()
-                if fields & set(invalid_fields)
-            }
-        )
-        type_label = "divider" if is_divider else filter_type
-        raise _FilterValidationError(
-            f"Filter '{spec.id}' has type '{type_label}'; fields "
-            f"{invalid_fields} only apply to {', '.join(valid_types)} filters."
-        )
+    except ValueError as ex:
+        raise _FilterValidationError(f"Filter '{spec.id}': {ex}") from ex
 
 
 def _merge_target(spec: NativeFilterUpdateSpec, merged: dict[str, Any]) -> None:
     """Merge dataset_id / column changes into the filter's first target.
 
-    A time grain filter has a dataset (to resolve supported grains) but no
-    column, unlike select and range filters.
+    Time grain and time column filters have a dataset (to resolve the grains
+    or temporal columns they offer) but no column, unlike select and range
+    filters.
     """
     targets = merged.get("targets") or [{}]
     target = dict(targets[0]) if targets else {}
     dataset_id = (
         spec.dataset_id if spec.dataset_id is not None else target.get("datasetId")
     )
-    if merged.get("filterType") == "filter_timegrain":
+    if (
+        spec.dataset_id is not None
+        and (target.get("datasourceType") or "table") != "table"
+    ):
+        # dataset_id is validated as a SQL dataset, not a semantic view.
+        target.pop("datasourceType", None)
+        target.pop("semantic_selection_version", None)
+    if merged.get("filterType") in _DATASET_ONLY_FILTER_TYPES:
         if dataset_id is None:
             raise _FilterValidationError(
                 f"Filter '{spec.id}' is missing a dataset target; provide "
@@ -453,11 +430,13 @@ def _merge_target(spec: NativeFilterUpdateSpec, merged: dict[str, Any]) -> None:
     merged["targets"] = [target]
 
 
-def _target_key(target: dict[str, Any]) -> tuple[Any, Any]:
-    """Identify a filter target by its dataset and column name."""
+def _target_key(target: dict[str, Any]) -> tuple[Any, Any, str]:
+    """Identify a filter target by its dataset, column name and datasource type."""
     column = target.get("column")
-    return target.get("datasetId"), (
-        column.get("name") if isinstance(column, dict) else column
+    return (
+        target.get("datasetId"),
+        column.get("name") if isinstance(column, dict) else column,
+        target.get("datasourceType") or "table",
     )
 
 
@@ -470,8 +449,32 @@ def _stored_default_is_stale(
     column or dataset, when it becomes single-select while the default holds
     several values, or when ``default_to_first_item`` is switched on (the
     explicit default would otherwise win and the first item never applies).
+    Semantic-view defaults cannot survive a switch to a SQL dataset.
+    Dataset-only temporal filters retain defaults supported by the new dataset.
     """
-    if existing.get("filterType") != "filter_select":
+    previous = (existing.get("targets") or [{}])[0] or {}
+    if target_changed and (previous.get("datasourceType") or "table") != "table":
+        # Discard the entire semantic mask, including sources with no stored value.
+        return True
+    filter_type = existing.get("filterType")
+    if filter_type in _DATASET_ONLY_FILTER_TYPES:
+        if not target_changed:
+            return False
+        stored = ((existing.get("defaultDataMask") or {}).get("filterState") or {}).get(
+            "value"
+        )
+        if not stored:
+            return False
+        assert spec.dataset_id is not None
+        dataset = _find_dataset_or_raise(spec.dataset_id)
+        available = (
+            [column.column_name for column in dataset.columns if column.is_temporal]
+            if filter_type == "filter_timecolumn"
+            else [duration for duration, _ in dataset.time_grain_sqla]
+        )
+        values = stored if isinstance(stored, list) else [stored]
+        return any(value not in available for value in values)
+    if filter_type != "filter_select":
         return False
     if spec.default_to_first_item is True:
         return True
@@ -484,13 +487,13 @@ def _stored_default_is_stale(
     return target_changed or (spec.multi_select is False and stored_count > 1)
 
 
-def _merge_select_default(
+def _merge_default_data_mask(
     spec: NativeFilterUpdateSpec,
     existing: dict[str, Any],
     merged: dict[str, Any],
     target_changed: bool,
 ) -> None:
-    """Apply an explicit default_value, or drop a stored default gone stale."""
+    """Apply an explicit select default, or drop a stored default gone stale."""
     if spec.default_value is not None:
         if (merged.get("controlValues") or {}).get("defaultToFirstItem"):
             raise _FilterValidationError(
@@ -518,12 +521,15 @@ def _merge_select_default(
         # older masks that stored value=None alongside an impossible predicate.
         merged["defaultDataMask"] = _default_data_mask(merged, [])
     elif _stored_default_is_stale(spec, existing, target_changed):
-        # Reset rather than re-apply the old value against a different column,
-        # a single-select control, or a "first item" default.
-        merged["defaultDataMask"] = _default_data_mask(merged, [])
+        # Only select filters use a select predicate when required.
+        merged["defaultDataMask"] = (
+            _default_data_mask(merged, [])
+            if existing.get("filterType") == "filter_select"
+            else _empty_data_mask()
+        )
 
 
-def _merge_filter_update(
+def _merge_filter_update(  # noqa: C901
     spec: NativeFilterUpdateSpec,
     existing: dict[str, Any],
     dashboard_chart_ids: list[int],
@@ -549,6 +555,8 @@ def _merge_filter_update(
         merged["description"] = spec.description
     if spec.scope_chart_ids is not None:
         merged["scope"] = _build_scope(spec.scope_chart_ids, dashboard_chart_ids)
+    if spec.cascade_parent_ids is not None:
+        merged["cascadeParentIds"] = list(dict.fromkeys(spec.cascade_parent_ids))
     target_changed = False
     if spec.dataset_id is not None or spec.column is not None:
         previous_target = dict((existing.get("targets") or [{}])[0] or {})
@@ -569,7 +577,7 @@ def _merge_filter_update(
                 control_values[control_key] = value
         merged["controlValues"] = control_values
 
-        _merge_select_default(spec, existing, merged, target_changed)
+        _merge_default_data_mask(spec, existing, merged, target_changed)
 
         if spec.default_time_range is not None:
             merged["defaultDataMask"] = _time_data_mask(spec.default_time_range)
@@ -577,13 +585,16 @@ def _merge_filter_update(
     return merged
 
 
-def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
+def _filter_summary(
+    conf: dict[str, Any], existing_ids: set[str] | None = None
+) -> NativeFilterSummary:
     """Summarize a filter (or divider) config for the response.
 
-    Returns the id, name, filterType, and non-empty targets; empty target
-    entries (e.g. for time filters) are dropped so the summary only lists
+    Returns the id, name, filterType, parent filter IDs, and non-empty targets;
+    empty target entries (e.g. for time filters) are dropped so the summary only lists
     real dataset/column targets. All user-controlled and operational fields
     preserve their application values so clients can pass them back verbatim.
+    Parent IDs absent from the dashboard are omitted when ``existing_ids`` is given.
 
     Dividers store their display text under "title" and have no
     "filterType"; both are normalized here so a divider shows up with a
@@ -598,6 +609,7 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
         name=name,
         filter_type=filter_type,
         targets=targets,
+        cascade_parent_ids=native_filter_cascade_parent_ids(conf, existing_ids),
     )
 
 
@@ -620,6 +632,125 @@ def current_native_filter_config(dashboard: Any) -> list[dict[str, Any]]:
     # Drop malformed (non-dict) entries so downstream conf["id"] / conf.get(...)
     # cannot raise on corrupt metadata.
     return [item for item in config if isinstance(item, dict)]
+
+
+def _cascade_cycle(
+    filter_id: str, parent_id: str, by_id: dict[str, dict[str, Any]]
+) -> list[str] | None:
+    """Return the path ``parent_id -> ... -> filter_id`` if one exists.
+
+    A path from the proposed parent up to the filter itself means the new
+    dependency would close a loop. Missing and malformed parent entries are
+    ignored; they cannot form a cycle.
+    """
+    stack: list[tuple[str, list[str]]] = [(parent_id, [parent_id])]
+    visited: set[str] = set()
+    while stack:
+        current, path = stack.pop()
+        if current == filter_id:
+            return path
+        if current in visited or current not in by_id:
+            continue
+        visited.add(current)
+        for ancestor in native_filter_cascade_parent_ids(by_id[current]):
+            stack.append((ancestor, [*path, ancestor]))
+    return None
+
+
+def _validate_cascade_parents(
+    filter_id: str, final_by_id: dict[str, dict[str, Any]]
+) -> None:
+    """Check a filter's requested parents against the post-request dashboard.
+
+    Each parent must be a different, existing filter that supports
+    dependencies, and the dependency graph must stay acyclic.
+    """
+    conf = final_by_id[filter_id]
+    parents = native_filter_cascade_parent_ids(conf)
+    if filter_id in parents:
+        raise _FilterValidationError(
+            f"Filter '{filter_id}' cannot depend on itself; remove it from "
+            "cascade_parent_ids."
+        )
+    unknown = [parent for parent in parents if parent not in final_by_id]
+    if unknown:
+        raise _FilterValidationError(
+            f"Filter '{filter_id}': cascade_parent_ids contains filter IDs not "
+            f"on the dashboard (or removed in this request): {unknown}. "
+            f"Existing filter IDs: {sorted(final_by_id)}."
+        )
+    unsupported = [
+        parent
+        for parent in parents
+        if _is_divider(final_by_id[parent])
+        or not native_filter_supports_cascade(final_by_id[parent].get("filterType"))
+    ]
+    if unsupported:
+        raise _FilterValidationError(
+            f"Filter '{filter_id}': cascade_parent_ids {unsupported} cannot be "
+            "parents; time-grain filters, time-column filters and dividers "
+            "do not support dependencies."
+        )
+    for parent in parents:
+        if cycle := _cascade_cycle(filter_id, parent, final_by_id):
+            raise _FilterValidationError(
+                f"Filter '{filter_id}' cannot depend on '{parent}': that would "
+                f"create a dependency cycle ({' -> '.join([filter_id, *cycle])})."
+            )
+
+
+def _apply_cascade_changes(
+    current_by_id: dict[str, dict[str, Any]],
+    removed_ids: set[str],
+    modified: list[dict[str, Any]],
+    requested_ids: set[str],
+) -> None:
+    """Validate requested dependencies and drop ones that point at removed filters.
+
+    ``requested_ids`` are the filters whose parents the request set explicitly;
+    they are validated against the dashboard as it will be after the request.
+    Already-stored parents absent from the original dashboard are dropped from
+    explicit updates, but new unknown IDs are rejected. Every other surviving
+    filter silently loses parents that this request removes. This cleanup is
+    performed here rather than relying on the frontend to persist it.
+    Such filters are appended to ``modified`` when they were not already.
+    """
+    final_by_id = {
+        fid: conf for fid, conf in current_by_id.items() if fid not in removed_ids
+    }
+    modified_by_id = {conf["id"]: conf for conf in modified}
+    final_by_id.update(modified_by_id)
+
+    if removed_ids:
+        for fid, conf in list(final_by_id.items()):
+            if fid in requested_ids:
+                continue
+            parents = conf.get("cascadeParentIds")
+            if not isinstance(parents, list) or not any(
+                isinstance(parent, str) and parent in removed_ids for parent in parents
+            ):
+                continue
+            if fid not in modified_by_id:
+                conf = copy.deepcopy(conf)
+                modified.append(conf)
+                final_by_id[fid] = conf
+            conf["cascadeParentIds"] = [
+                p for p in parents if not isinstance(p, str) or p not in removed_ids
+            ]
+
+    for fid in sorted(requested_ids):
+        stale_parents = {
+            parent
+            for parent in native_filter_cascade_parent_ids(current_by_id.get(fid, {}))
+            if parent not in current_by_id
+        }
+        if stale_parents:
+            final_by_id[fid]["cascadeParentIds"] = [
+                parent
+                for parent in native_filter_cascade_parent_ids(final_by_id[fid])
+                if parent not in stale_parents
+            ]
+        _validate_cascade_parents(fid, final_by_id)
 
 
 def _build_native_filters_payload(  # noqa: C901
@@ -646,6 +777,7 @@ def _build_native_filters_payload(  # noqa: C901
     removed_ids = set(request.remove)
     modified: list[dict[str, Any]] = []
     updated_filter_ids: list[str] = []
+    cascade_requested_ids: set[str] = set()
 
     update_ids = [update_spec.id for update_spec in request.update]
     duplicate_updates = sorted({fid for fid in update_ids if update_ids.count(fid) > 1})
@@ -670,12 +802,23 @@ def _build_native_filters_payload(  # noqa: C901
             _merge_filter_update(update_spec, existing, dashboard_chart_ids)
         )
         updated_filter_ids.append(update_spec.id)
+        if update_spec.cascade_parent_ids is not None:
+            cascade_requested_ids.add(update_spec.id)
 
     added_filter_ids: list[str] = []
     for new_spec in request.add:
         config = _build_new_filter_config(new_spec, dashboard_chart_ids)
         modified.append(config)
         added_filter_ids.append(config["id"])
+        if config.get("cascadeParentIds"):
+            cascade_requested_ids.add(config["id"])
+
+    _apply_cascade_changes(current_by_id, removed_ids, modified, cascade_requested_ids)
+    updated_filter_ids.extend(
+        conf["id"]
+        for conf in modified
+        if conf["id"] in current_by_id and conf["id"] not in updated_filter_ids
+    )
 
     payload: dict[str, Any] = {}
     if request.remove:
@@ -784,20 +927,23 @@ def manage_native_filters(
     by a dataset column), filter_time (time range), filter_range (numerical
     range backed by a dataset column), filter_timegrain (time grain
     backed by a dataset, which determines the grains it offers and
-    validates selections against), and divider (a title/description-only
-    visual separator with no dataset or column, used to group related
-    filters in the filter bar). filter_timecolumn (time column) is not
-    yet supported. Filter and divider IDs are generated by the server and
-    returned in the response. Dividers share the same ordering as filters,
-    so include their IDs in ``reorder`` alongside filter IDs.
+    validates selections against), filter_timecolumn (lets viewers choose
+    which temporal column of a dataset the dashboard's time range applies
+    to; backed by a dataset, with no column of its own), and divider (a
+    title/description-only visual separator with no dataset or column, used
+    to group related filters in the filter bar). Filter and divider IDs
+    are generated by the server and returned in the response. Dividers
+    share the same ordering as filters, so include their IDs in ``reorder``
+    alongside filter IDs. Non-null type-specific fields are rejected on both
+    add and update when they do not apply to the filter type.
 
-    Concurrency note: the filter-list snapshot used for validation is read
-    outside the DAO write transaction.  A ``reorder`` that is valid against
-    the snapshot can silently drop a filter added by a concurrent writer
-    between the snapshot read and the write commit.  This mirrors existing
-    REST write behaviour; callers that expect concurrent edits should
-    re-read the filter list and retry if the returned filter set differs
-    from what was requested.
+    ``cascade_parent_ids`` makes a filter depend on existing native filters
+    (except time-grain filters, time-column filters and dividers). Only direct
+    parents are set; unknown parents and cycles are rejected. Removing a filter
+    also removes it from the parents of the filters that depended on it.
+
+    A concurrent metadata edit rejects the write instead of applying a payload
+    validated against a stale snapshot. Re-read the dashboard and retry.
     """
     from superset.commands.dashboard.exceptions import (
         DashboardForbiddenError,
@@ -821,6 +967,7 @@ def manage_native_filters(
                 return pre_filter_refusal
             assert dashboard is not None
 
+            expected_metadata = dashboard.json_metadata or ""
             current_config = current_native_filter_config(dashboard)
             dashboard_chart_ids = [slc.id for slc in dashboard.slices]
 
@@ -836,7 +983,7 @@ def manage_native_filters(
 
         with event_logger.log_context(action="mcp.manage_native_filters.db_write"):
             configuration = UpdateDashboardNativeFiltersCommand(
-                request.dashboard_id, payload
+                request.dashboard_id, payload, expected_metadata=expected_metadata
             ).run()
 
         dashboard_url = f"{get_superset_base_url()}/dashboard/{request.dashboard_id}/"
@@ -847,13 +994,14 @@ def manage_native_filters(
             len(updated_ids),
             len(request.remove),
         )
+        existing_ids = {f["id"] for f in configuration if isinstance(f.get("id"), str)}
         return ManageNativeFiltersResponse(
             dashboard_id=request.dashboard_id,
             dashboard_url=dashboard_url,
             added_filter_ids=added_ids,
             updated_filter_ids=updated_ids,
             removed_filter_ids=list(request.remove),
-            filters=[_filter_summary(conf) for conf in configuration],
+            filters=[_filter_summary(conf, existing_ids) for conf in configuration],
         )
 
     except DashboardNotFoundError:

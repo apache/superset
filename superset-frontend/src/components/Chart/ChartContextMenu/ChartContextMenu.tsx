@@ -35,6 +35,7 @@ import {
   BinaryQueryObjectFilterClause,
   Column,
   ContextMenuFilters,
+  DataMask,
   ensureIsArray,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -48,6 +49,7 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { Dropdown } from '@superset-ui/core/components';
 import { updateDataMask } from 'src/dataMask/actions';
 import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
+import { selectHasCrossFilterTargets } from 'src/dashboard/util/crossFilters';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -67,6 +69,7 @@ export enum ContextMenuItem {
 export interface ChartContextMenuProps {
   id: number;
   formData: QueryFormData;
+  setDataMask?: (dataMask: DataMask) => void;
   onSelection: (args?: any) => void;
   onClose: () => void;
   additionalConfig?: {
@@ -89,6 +92,7 @@ const ChartContextMenu = (
   {
     id,
     formData,
+    setDataMask,
     onSelection,
     onClose,
     displayedItems = ContextMenuItem.All,
@@ -102,6 +106,9 @@ const ChartContextMenu = (
 
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
+  );
+  const hasCrossFilterTargets = useSelector<RootState, boolean>(state =>
+    selectHasCrossFilterTargets(state, id),
   );
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
@@ -298,10 +305,12 @@ const ChartContextMenu = (
   });
 
   if (showCrossFilters) {
+    // Removing an applied cross-filter stays possible when the scope is empty
     const isCrossFilterDisabled =
       !isCrossFilteringSupportedByChart ||
       !crossFiltersEnabled ||
-      !filters?.crossFilter;
+      !filters?.crossFilter ||
+      (!hasCrossFilterTargets && !filters.crossFilter.isCurrentValueSelected);
 
     let crossFilteringTooltipTitle: ReactNode = null;
     if (!isCrossFilterDisabled) {
@@ -309,7 +318,7 @@ const ChartContextMenu = (
         <>
           <div>
             {t(
-              'Cross-filter will be applied to all of the charts that use this dataset.',
+              "Cross-filter will be applied to the charts in this chart's cross-filtering scope.",
             )}
           </div>
           <div>
@@ -337,6 +346,16 @@ const ChartContextMenu = (
           <div>{t(`You can't apply cross-filter on this data point.`)}</div>
         </>
       );
+    } else if (!hasCrossFilterTargets) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>
+            {t(
+              "This chart's cross-filtering scope doesn't include any other charts.",
+            )}
+          </div>
+        </>
+      );
     }
 
     menuItems.push(
@@ -356,8 +375,12 @@ const ChartContextMenu = (
         disabled: isCrossFilterDisabled,
         onClick: () => {
           if (filters?.crossFilter) {
-            releaseFilterKeyPublish();
-            dispatch(updateDataMask(id, filters.crossFilter.dataMask));
+            if (setDataMask) {
+              setDataMask(filters.crossFilter.dataMask);
+            } else {
+              releaseFilterKeyPublish();
+              dispatch(updateDataMask(id, filters.crossFilter.dataMask));
+            }
           }
         },
       },

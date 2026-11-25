@@ -92,6 +92,14 @@ def test_mysql_no_such_table_is_missing_table() -> None:
     assert is_missing_table_error(error) is True
 
 
+def test_mysql_missing_table_with_sqlstate_uses_errno() -> None:
+    """MySQL drivers exposing both diagnostics retain their errno semantics."""
+    error = OperationalError(
+        "SELECT 1", {}, _FakeDriverError(1146, "missing table", sqlstate="42S02")
+    )
+    assert is_missing_table_error(error)
+
+
 def test_mysql_lock_wait_timeout_is_not_missing_table() -> None:
     error = _wrap(
         OperationalError,
@@ -371,3 +379,75 @@ def test_foreign_key_phrase_in_sql_is_not_a_violation() -> None:
 
 def test_foreign_key_violation_none_input() -> None:
     assert is_foreign_key_violation(None) is False
+
+
+@pytest.mark.parametrize(
+    "args,attrs,expected",
+    [
+        ((1213, "transaction rolled back"), {"sqlstate": "40001"}, True),
+        ((1305, "savepoint missing"), {"sqlstate": "42000"}, True),
+        ((1205, "statement timeout"), {"sqlstate": "3B001"}, False),
+        ((1146, "missing table"), {}, False),
+        (("savepoint missing",), {"pgcode": "3B001"}, True),
+        (("savepoint missing",), {"sqlstate": "3B001"}, True),
+        (("deadlock",), {"pgcode": "40P01"}, False),
+        (("serialization failure",), {"pgcode": "40001"}, False),
+        (("1305 savepoint missing",), {}, False),
+    ],
+)
+def test_lost_transaction_uses_structured_driver_diagnostics(
+    args: tuple[object, ...], attrs: dict[str, str], expected: bool
+) -> None:
+    """Only transaction-loss evidence makes optional statement recovery fatal."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    error = _wrap(OperationalError, _FakeDriverError(*args, **attrs))
+    assert is_lost_transaction_error(error) is expected
+
+
+def test_lost_transaction_follows_exception_chains_without_looping() -> None:
+    """Context-manager cleanup can obscure the original transaction loss."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    original = _wrap(OperationalError, _FakeDriverError(1213, "deadlock"))
+    cleanup = RuntimeError("cleanup failed")
+    cleanup.__cause__ = original
+    original.__context__ = cleanup
+    assert is_lost_transaction_error(cleanup)
+    cleanup.__cause__ = ValueError("ordinary computation failure")
+    cleanup.__context__ = cleanup
+    assert not is_lost_transaction_error(cleanup)
+    assert not is_lost_transaction_error(None)
+
+
+def test_lost_transaction_invalidation_is_fatal_without_driver_code() -> None:
+    """A discarded connection cannot preserve the caller's transaction."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    error = OperationalError(
+        "SELECT 1", {}, Exception("disconnect"), connection_invalidated=True
+    )
+    assert is_lost_transaction_error(error)
+    outer = ValueError("recovery failed")
+    outer.__cause__ = error
+    assert is_lost_transaction_error(outer)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        KeyError(1213),
+        ValueError(1305),
+        _FakeDriverError(1213, sqlstate="40001"),
+        _FakeDriverError("missing savepoint", sqlstate="3B001"),
+        _FakeDriverError("not a DBAPI wrapper", orig=_FakeDriverError(1305)),
+        _FakeDriverError("not a DBAPI wrapper", connection_invalidated=True),
+    ],
+)
+def test_python_exception_arguments_are_not_transaction_loss(
+    error: BaseException,
+) -> None:
+    """Only a DBAPI wrapper can establish that numbers are driver error codes."""
+    from superset.versioning.db_errors import is_lost_transaction_error
+
+    assert not is_lost_transaction_error(error)

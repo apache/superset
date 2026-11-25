@@ -27,6 +27,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
 from io import BytesIO
 from typing import Any, Dict, List, Protocol
+from urllib.parse import urlencode
 
 from fastmcp import Context
 from flask import g
@@ -286,17 +287,37 @@ class PreviewFormatStrategy:
         )
 
 
+def _preview_form_data_key(chart: Any, request: GetChartPreviewRequest) -> str | None:
+    """Retain cached state, including the legacy key-as-identifier input."""
+    if request.form_data_key:
+        return request.form_data_key
+    if not chart.id and isinstance(request.identifier, str):
+        return request.identifier
+    return None
+
+
+def _preview_explore_url(chart: Any, request: GetChartPreviewRequest) -> str:
+    params: dict[str, Any] = {}
+    if key := _preview_form_data_key(chart, request):
+        params["form_data_key"] = key
+    if chart.id:
+        params["slice_id"] = chart.id
+    if not params:
+        return ""
+    return f"{get_superset_base_url()}/explore/?{urlencode(params)}"
+
+
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based preview with explore link."""
 
     def generate(self) -> URLPreview | ChartError:
         chart = self.chart
-        if not chart.id:
+        explore_url = _preview_explore_url(chart, self.request)
+        if not explore_url:
             return ChartError(
-                error="URL preview not available for transient charts without an ID",
+                error="URL preview requires a saved chart or cached form_data_key",
                 error_type="UnsupportedFormat",
             )
-        explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
         return URLPreview(
             preview_url=explore_url,
             width=self.request.width or 800,
@@ -1544,9 +1565,9 @@ async def _get_chart_preview_internal(  # noqa: C901
                 for warning in validation_result.warnings:
                     await ctx.warning("Dataset warning: %s" % (warning,))
 
-        # If form_data_key is provided, override chart.params with cached
-        # form_data so the preview reflects what the user actually sees
-        if request.form_data_key and getattr(chart, "id", None) is not None:
+        # Unsaved charts already loaded their cached state above. For saved
+        # charts, apply cached edits only when they load successfully.
+        if request.form_data_key and getattr(chart, "id", None):
             with event_logger.log_context(
                 action="mcp.get_chart_preview.unsaved_state_override"
             ):
@@ -1565,22 +1586,26 @@ async def _get_chart_preview_internal(  # noqa: C901
                     cmd_params = CommandParameters(key=request.form_data_key)
                     cached_form_data = GetFormDataCommand(cmd_params).run()
                     if cached_form_data:
-                        chart.params = cached_form_data
                         from superset.utils import json as utils_json
 
                         parsed = utils_json.loads(cached_form_data)
-                        if isinstance(parsed, dict) and "viz_type" in parsed:
+                        if not isinstance(parsed, dict):
+                            raise ValueError("Cached form data must be an object")
+                        chart.params = cached_form_data
+                        if "viz_type" in parsed:
                             chart.viz_type = parsed["viz_type"]
                         await ctx.info(
                             "Chart params overridden with unsaved state from cache"
                         )
                     else:
+                        request = request.model_copy(update={"form_data_key": None})
                         await ctx.warning(
                             "form_data_key provided but no cached data found. "
                             "The cache may have expired. Using saved chart "
                             "configuration."
                         )
                 except (CommandException, ValueError, KeyError) as e:
+                    request = request.model_copy(update={"form_data_key": None})
                     await ctx.warning(
                         "Failed to retrieve cached form_data: %s. "
                         "Using saved chart configuration." % (str(e),)
@@ -1656,7 +1681,8 @@ async def _get_chart_preview_internal(  # noqa: C901
             chart_id=chart.id,
             chart_name=chart.slice_name or f"Chart {chart.id}",
             chart_type=chart.viz_type or "unknown",
-            explore_url=f"{get_superset_base_url()}/explore/?slice_id={chart.id}",
+            explore_url=_preview_explore_url(chart, request),
+            form_data_key=_preview_form_data_key(chart, request),
             content=content,
             chart_description=_build_chart_description(chart),
             accessibility=accessibility,

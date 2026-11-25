@@ -18,7 +18,7 @@
  */
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import type { editors } from '@apache-superset/core';
-import EditorHost from './EditorHost';
+import { EditorHost } from './EditorHost';
 
 // Mock the AceEditorProvider to avoid loading the full Ace editor in tests
 jest.mock('./AceEditorProvider', () => ({
