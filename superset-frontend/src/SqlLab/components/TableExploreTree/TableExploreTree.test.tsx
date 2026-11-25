@@ -513,9 +513,7 @@ test('pin keys include catalog so same-named tables do not share pin state', asy
   await userEvent.click(await screen.findByText('users'));
   await screen.findByText('id');
 
-  expect(
-    screen.queryByTestId('pinned-public-users'),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByTestId('pinned-public-users')).not.toBeInTheDocument();
 
   await userEvent.click(screen.getByTestId('pin-public-users'));
   await waitFor(() =>
