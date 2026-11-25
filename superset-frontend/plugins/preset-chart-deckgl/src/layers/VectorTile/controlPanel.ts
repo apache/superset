@@ -80,7 +80,9 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               isInt: true,
               label: t('Min zoom'),
-              description: t('Lowest zoom level the tile server has tiles for.'),
+              description: t(
+                'Lowest zoom level the tile server has tiles for.',
+              ),
               default: DEFAULT_MIN_ZOOM,
               renderTrigger: true,
               validators: [validateInteger],

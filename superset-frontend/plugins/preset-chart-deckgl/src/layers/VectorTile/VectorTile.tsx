@@ -52,8 +52,9 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({ formData }) => {
     // CSP blocks, so decode on the main thread with the full MVTLoader.
     loaders: [MVTLoader],
     loadOptions: {
-        core: { worker: false },
-        mvt: sourceLayer ? { layers: [sourceLayer] } : undefined,},
+      core: { worker: false },
+      mvt: sourceLayer ? { layers: [sourceLayer] } : undefined,
+    },
     getFillColor: fillColor,
     getLineColor: fillColor,
     getPointRadius: POINT_RADIUS_PX,
