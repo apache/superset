@@ -117,8 +117,22 @@ class MaterializeEngineSpec(PostgresEngineSpec):
     }
 
     supports_file_upload = False
+    supports_grouping_sets = False
+
+    # Materialize has no ``percentile_cont ... WITHIN GROUP``; keep
+    # STDDEV_SAMP/VAR_SAMP and drop MEDIAN.
+    _extended_aggregations = {
+        name: func
+        for name, func in PostgresEngineSpec._extended_aggregations.items()
+        if name != "MEDIAN"
+    }
 
     parameters_schema = MaterializeParametersSchema()
+
+    @classmethod
+    def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
+        # Materialize's EXPLAIN output has no ``cost=`` estimate to parse.
+        return False
 
     @classmethod
     def build_sqlalchemy_uri(

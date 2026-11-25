@@ -5621,6 +5621,11 @@
         "QUARTER_YEAR": false,
         "YEAR": true
       },
+      "extended_aggregations": {
+        "MEDIAN": false,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      },
       "module": "superset.db_engine_specs.materialize",
       "limit_method": 1,
       "limit_clause": true,
@@ -5657,13 +5662,13 @@
       "score": 84,
       "max_score": 201,
       "documentation": {
-        "description": "Materialize uses SQL and incremental computation to keep query results up to date as source data changes.",
+        "description": "Materialize is a streaming SQL database that maintains up-to-date query results as underlying data changes.",
         "homepage_url": "https://materialize.com/",
         "categories": ["Cloud - AWS", "Traditional RDBMS", "Open Source"],
-        "pypi_packages": ["psycopg2", "sqlalchemy-materialize"],
+        "pypi_packages": ["sqlalchemy-materialize"],
         "connection_string": "materialize+psycopg2://{username}:{password}@{host}:{port}/{database}?options=--cluster%3D{cluster}",
         "default_port": 6875,
-        "category": "Cloud - AWS"
+        "category": "Other Databases"
       },
       "engine": "materialize",
       "engine_name": "Materialize",
