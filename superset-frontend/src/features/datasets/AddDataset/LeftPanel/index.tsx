@@ -129,9 +129,7 @@ export default function LeftPanel({
               }
             }}
           >
-            <Typography.Text>
-              {t('Select multiple tables')}
-            </Typography.Text>
+            <Typography.Text>{t('Select multiple tables')}</Typography.Text>
           </Checkbox>
           <TableBrowser
             key={`${dataset.db.id}:${dataset.catalog ?? ''}`}

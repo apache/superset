@@ -228,7 +228,7 @@ export default function AddDataset() {
       onBusyChange={setCreatingDatasets}
       busy={creatingDatasets}
       allSelectedExist={allSelectedExist}
-      onUpdateSelectedTables={tables =>
+      onUpdateSelectedTables={(tables: TableReference[]) =>
         setDataset({
           type: DatasetActionType.SelectTableReferences,
           payload: tables,

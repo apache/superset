@@ -69,6 +69,11 @@ const highlightText = (text: string, keyword: string): React.ReactNode => {
   const matchStr = text.substring(index, index + keyword.length);
   const afterStr = text.slice(index + keyword.length);
 
+  const showCheckbox =
+    data.type === 'table' &&
+    (multiSelect ?? Boolean(onSelectionChange)) &&
+    onSelectionChange;
+
   return (
     <>
       {beforeStr}
@@ -187,7 +192,12 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
 
   // Empty placeholder node - no actions allowed
   if (data.type === 'empty') {
-    return (
+    const showCheckbox =
+    data.type === 'table' &&
+    (multiSelect ?? Boolean(onSelectionChange)) &&
+    onSelectionChange;
+
+  return (
       <div
         className="tree-node"
         style={{
@@ -210,7 +220,12 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
     const columnOpacity = isTablePreviewMode
       ? getOpacity(!node.isSelected && !node.parent?.isSelected)
       : 1;
-    return (
+    const showCheckbox =
+    data.type === 'table' &&
+    (multiSelect ?? Boolean(onSelectionChange)) &&
+    onSelectionChange;
+
+  return (
       <StyledColumnNode
         className="tree-node"
         style={style}
@@ -246,6 +261,11 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
     );
   }
 
+  const showCheckbox =
+    data.type === 'table' &&
+    (multiSelect ?? Boolean(onSelectionChange)) &&
+    onSelectionChange;
+
   return (
     // react-arborist's row wrapper (an ancestor of this element) already
     // supplies role="treeitem" and roving tabIndex/keyboard nav; this div
@@ -280,9 +300,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         }
       })}
     >
-      {data.type === 'table' &&
-        (multiSelect ?? Boolean(onSelectionChange)) &&
-        onSelectionChange && (
+      {showCheckbox && (
         <Checkbox
           aria-label={t('Select table %s.%s', schema, tableName)}
           checked={isChecked}
@@ -393,7 +411,12 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           const tableKey = getTableKey(nodeDbId, catalog, schema, tableName);
           const isPinned = pinnedTableKeys.has(tableKey);
           const selectStar = selectStarMap[tableKey];
-          return (
+          const showCheckbox =
+    data.type === 'table' &&
+    (multiSelect ?? Boolean(onSelectionChange)) &&
+    onSelectionChange;
+
+  return (
             // Pure event-boundary wrapper: only stops the click/keydown from
             // reaching the row's select handler, not itself interactive.
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions

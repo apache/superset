@@ -402,9 +402,7 @@ test('select-all includes only loaded tables matching the search', async () => {
     count: 1,
   });
   render(<MultiSelectBrowser />, { useRedux: true });
-  expect(
-    screen.getByRole('button', { name: 'Select all' }),
-  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Select all' })).toBeDisabled();
   await userEvent.click(await screen.findByText('public'));
   await screen.findByRole('checkbox', { name: 'Select table public.orders' });
   await userEvent.type(
@@ -426,9 +424,7 @@ test('omits checkboxes by default when multi-select is not enabled', async () =>
     result: [{ label: 'orders', value: 'orders', type: 'table' }],
     count: 1,
   });
-  render(<TableBrowser dbId={1} />, {
-    useRedux: true,
-  });
+  render(<TableBrowser dbId={1} />, { useRedux: true });
   await userEvent.click(await screen.findByText('public'));
   await screen.findByText('orders');
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();

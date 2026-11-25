@@ -71,14 +71,14 @@ class BulkCreateDatasetsCommand(BaseCommand):
                         "table_name": table_name,
                     }
                 ).run()
-                result.update(status="created", uuid=str(dataset.uuid))
+                result["status"] = "created"
+                result["uuid"] = str(dataset.uuid)
             except DatasetInvalidError as ex:
                 # Only skip when existence is the sole validation failure;
                 # permission or missing-table failures must remain failures.
                 if ex.get_list_classnames() == ["DatasetExistsValidationError"]:
-                    result.update(
-                        status="skipped", message=_("Dataset already exists.")
-                    )
+                    result["status"] = "skipped"
+                    result["message"] = _("Dataset already exists.")
                 else:
                     result["message"] = " ".join(
                         str(message)
