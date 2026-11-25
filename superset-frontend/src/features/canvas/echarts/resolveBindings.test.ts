@@ -134,6 +134,9 @@ test('rejects function-only keys and unwrapped markers', () => {
     resolveOption({ tooltip: { valueFormatter: 'x' } }, ctx),
   ).toThrow(/must be a function/);
   expect(() =>
+    resolveOption({ series: [{ labelLayout: { hideOverlap: true } }] }, ctx),
+  ).toThrow(/must be a function/);
+  expect(() =>
     resolveOption({ data: { source: 'metric', alias: 'revenue' } }, ctx),
   ).toThrow(/without its "\$bind" wrapper/);
 });
@@ -185,4 +188,29 @@ test('tuples yield one array per row', () => {
     ['Cars', 10],
     ['Ships', 4],
   ]);
+});
+
+test('a $template compiles to a formatter function, valueFormatter included', () => {
+  const option = resolveOption(
+    {
+      tooltip: {
+        formatter: { $template: '{{name}}: {{value}}' },
+        valueFormatter: { $template: "{{formatNumber value ',.0f'}}" },
+      },
+      xAxis: { axisLabel: { formatter: { $template: '{{value}} kg' } } },
+    },
+    ctx,
+  );
+  const tooltip = option.tooltip as {
+    formatter: (params: unknown) => string;
+    valueFormatter: (value: unknown) => string;
+    renderMode: string;
+  };
+  expect(tooltip.formatter({ name: 'Cars', value: 10 })).toBe('Cars: 10');
+  expect(tooltip.valueFormatter(1234)).toBe('1,234');
+  expect(tooltip.renderMode).toBe('richText');
+  const xAxis = option.xAxis as {
+    axisLabel: { formatter: (value: unknown) => string };
+  };
+  expect(xAxis.axisLabel.formatter(5)).toBe('5 kg');
 });

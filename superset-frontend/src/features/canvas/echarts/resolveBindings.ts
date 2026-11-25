@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { compileTemplate, isTemplate } from './template';
+
 export type DataRow = Record<string, unknown>;
 
 export interface BindContext {
@@ -39,8 +41,11 @@ const BIND_SOURCES = new Set([
   'records',
   'tuples',
 ]);
-// ECharts only accepts functions here, which a JSON option can't carry.
-const FUNCTION_ONLY_KEYS = new Set(['valueFormatter', 'labelLayout']);
+// ECharts only accepts functions here. A `$template` stands in for the ones
+// that return text; nothing stands in for `labelLayout`, which returns a
+// layout object.
+const TEMPLATE_ONLY_KEYS = new Set(['valueFormatter']);
+const FUNCTION_ONLY_KEYS = new Set(['labelLayout']);
 // Opened as URLs by ECharts on click.
 const URL_KEYS = new Set(['link', 'sublink']);
 
@@ -124,6 +129,7 @@ function resolveValue(value: unknown, ctx: BindContext): unknown {
   if ('$bind' in value) {
     return stripUrlKeys(resolveBind(value.$bind as Bind, ctx));
   }
+  if (isTemplate(value)) return compileTemplate(value.$template);
   if (typeof value.source === 'string' && BIND_SOURCES.has(value.source)) {
     throw new Error(
       `Found a $bind object without its "$bind" wrapper: ${JSON.stringify(value)}`,
@@ -134,8 +140,11 @@ function resolveValue(value: unknown, ctx: BindContext): unknown {
       .filter(([key]) => !URL_KEYS.has(key))
       .map(([key, item]) => {
         if (FUNCTION_ONLY_KEYS.has(key)) {
+          throw new Error(`"${key}" must be a function in ECharts`);
+        }
+        if (TEMPLATE_ONLY_KEYS.has(key) && !isTemplate(item)) {
           throw new Error(
-            `"${key}" must be a function in ECharts; use a "formatter" string instead`,
+            `"${key}" must be a function in ECharts; use {"$template": "..."} instead`,
           );
         }
         return [key, resolveValue(item, ctx)];

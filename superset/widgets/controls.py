@@ -291,6 +291,24 @@ class EchartsChrome(BaseModel):
             "x-options": ["item", "axis"],
         },
     )
+    tooltip_template: str = Field(
+        default="",
+        alias="tooltipTemplate",
+        title="Tooltip template",
+        description=(
+            "A Handlebars template for the tooltip's text, the syntax deck.gl "
+            "tooltips use. It sees the hovered item's ECharts params "
+            "(`seriesName`, `name`, `value`, `data`, `percent`, `marker`, ...) "
+            "and `items`, every item under the pointer for an axis trigger: "
+            '`{{marker}} {{seriesName}}: {{formatNumber value ",.2f"}}` or '
+            "`{{name}}\\n{{#each items}}{{marker}} {{seriesName}}: {{value}}\\n"
+            "{{/each}}`. Helpers: `formatNumber value d3-format`, "
+            "`formatDate value d3-time-format`, `default value fallback`. Plain "
+            "text, not HTML. Empty leaves the tooltip's own `formatter` (or "
+            "none) untouched."
+        ),
+        json_schema_extra={"x-control": "code", "x-language": "handlebars"},
+    )
     x_axis_name: str = Field(
         default="",
         alias="xAxisName",
@@ -386,8 +404,10 @@ class EchartsControls(BaseModel):
             "candlestick, boxplot, heatmap); and "
             '{"$bind": {"source": "theme", "token": "<token>"}} yields a Superset '
             "theme value. The $bind wrapper is required. Function-valued "
-            "options (formatter functions, renderItem) are not allowed; use "
-            "template strings. Features new in ECharts 6 are available: a "
+            "options are not allowed; where ECharts takes a formatter function "
+            '(`formatter`, `valueFormatter`) use {"$template": "<Handlebars>"} '
+            "(see `chrome.tooltipTemplate` for the syntax) or an ECharts "
+            "template string. Features new in ECharts 6 are available: a "
             "beeswarm is a scatter on a category axis with `jitter` and "
             "`jitterOverlap: false`, and an axis takes `breaks` to skip a "
             "value range."

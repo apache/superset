@@ -30,6 +30,7 @@ test('every field at its default leaves the raw option untouched, same reference
     legendShow: true,
     legendPosition: null,
     tooltipTrigger: null,
+    tooltipTemplate: '',
     xAxisName: '',
     xAxisRotate: 0,
     xAxisFormat: '',
@@ -61,6 +62,18 @@ test('tooltipTrigger applies onto the raw tooltip config, unmanaged keys survive
   const raw = { tooltip: { formatter: '{b}: {c}' } };
   const merged = applyStructuredChrome(raw, { tooltipTrigger: 'axis' });
   expect(merged.tooltip).toEqual({ formatter: '{b}: {c}', trigger: 'axis' });
+});
+
+test('tooltipTemplate compiles to the tooltip formatter, replacing a raw one', () => {
+  const raw = { tooltip: { formatter: '{b}: {c}', trigger: 'item' } };
+  const merged = applyStructuredChrome(raw, {
+    tooltipTemplate: '{{name}} = {{value}}',
+  });
+  const { formatter, ...rest } = merged.tooltip as {
+    formatter: (params: unknown) => string;
+  };
+  expect(rest).toEqual({ trigger: 'item' });
+  expect(formatter({ name: 'Q1', value: 3 })).toBe('Q1 = 3');
 });
 
 test('axis name/rotate/format merge into name + axisLabel, raw axisLabel keys survive', () => {

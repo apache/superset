@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { compileTemplate } from './template';
 
 /**
  * The `echarts` widget's `chrome` layer (title, legend, tooltip, axis labels),
@@ -28,6 +29,7 @@ export interface EchartsChromeValue {
   legendShow?: boolean;
   legendPosition?: 'top' | 'bottom' | 'left' | 'right' | null;
   tooltipTrigger?: 'item' | 'axis' | null;
+  tooltipTemplate?: string;
   xAxisName?: string;
   xAxisRotate?: number;
   xAxisFormat?: string;
@@ -92,8 +94,13 @@ function applyTitle(existing: unknown, chrome: EchartsChromeValue): unknown {
 }
 
 function applyTooltip(existing: unknown, chrome: EchartsChromeValue): unknown {
-  if (!chrome.tooltipTrigger) return existing;
-  return mergeSection(existing, { trigger: chrome.tooltipTrigger });
+  const override: Record<string, unknown> = {};
+  if (chrome.tooltipTrigger) override.trigger = chrome.tooltipTrigger;
+  if (chrome.tooltipTemplate) {
+    override.formatter = compileTemplate(chrome.tooltipTemplate);
+  }
+  if (Object.keys(override).length === 0) return existing;
+  return mergeSection(existing, override);
 }
 
 function applyAxis(
