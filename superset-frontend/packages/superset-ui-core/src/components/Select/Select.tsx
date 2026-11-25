@@ -44,7 +44,6 @@ import {
 import { debounce, isEqual, uniq } from 'lodash-es';
 import {
   dropDownRenderHelper,
-  estimatePopupHeight,
   getPopupPlacement,
   getOption,
   getSuffixIcon,
@@ -642,8 +641,8 @@ const Select = forwardRef(
         // Inside a modal, open upward if the popup would cover the footer.
         setPopupPlacement(
           getPopupPlacement(
-            selectContainerRef.current?.querySelector('.ant-select'),
-            estimatePopupHeight(fullSelectOptions.length),
+            selectContainerRef.current,
+            fullSelectOptions.length,
             direction,
           ),
         );

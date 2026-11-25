@@ -148,8 +148,6 @@ export const StyledBulkActionsContainer = styled(Flex)`
     & .superset-button {
       font-family: inherit;
       margin-left: 0 !important;
-    }
-    & .superset-button {
       padding-left: 0 !important;
       padding-right: 0 !important;
     }

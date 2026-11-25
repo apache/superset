@@ -95,51 +95,90 @@ test.each([
   },
 );
 
-test('typing reopens the popup after "Done"', async () => {
-  render(<Select ariaLabel={ARIA_LABEL} options={options} mode="multiple" />);
-  await openPopup();
-  await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+const multiSelects = [
+  [
+    'Select',
+    (extra: Record<string, unknown> = {}) => (
+      <Select
+        ariaLabel={ARIA_LABEL}
+        options={options}
+        mode="multiple"
+        {...extra}
+      />
+    ),
+  ],
+  [
+    'AsyncSelect',
+    (extra: Record<string, unknown> = {}) => (
+      <AsyncSelect
+        ariaLabel={ARIA_LABEL}
+        options={loadOptions}
+        mode="multiple"
+        {...extra}
+      />
+    ),
+  ],
+] as const;
+
+const clickDone = async () => {
+  await userEvent.click(await screen.findByRole('button', { name: 'Done' }));
   await waitFor(() => expect(isPopupOpen()).toBe(false));
+};
 
-  await userEvent.type(screen.getByRole('combobox', { name: ARIA_LABEL }), 'T');
+test.each(multiSelects)(
+  '%s "Done" reports the close through onOpenChange',
+  async (_name, renderSelect) => {
+    const onOpenChange = jest.fn();
+    render(renderSelect({ onOpenChange }));
+    await openPopup();
+    await clickDone();
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  },
+);
 
-  await waitFor(() => expect(isPopupOpen()).toBe(true));
-});
+test.each(multiSelects)(
+  '%s reopens on click after "Done"',
+  async (_name, renderSelect) => {
+    render(renderSelect());
+    await openPopup();
+    await clickDone();
+    await userEvent.click(screen.getByRole('combobox', { name: ARIA_LABEL }));
+    await waitFor(() => expect(isPopupOpen()).toBe(true));
+  },
+);
 
-test('disabling an open select closes it and it stays closed when re-enabled', async () => {
-  const onOpenChange = jest.fn();
-  const { rerender } = render(
-    <Select
-      ariaLabel={ARIA_LABEL}
-      options={options}
-      mode="multiple"
-      onOpenChange={onOpenChange}
-    />,
-  );
-  await openPopup();
-  rerender(
-    <Select
-      ariaLabel={ARIA_LABEL}
-      options={options}
-      mode="multiple"
-      onOpenChange={onOpenChange}
-      disabled
-    />,
-  );
-  await waitFor(() => expect(onOpenChange).toHaveBeenLastCalledWith(false));
-  rerender(
-    <Select
-      ariaLabel={ARIA_LABEL}
-      options={options}
-      mode="multiple"
-      onOpenChange={onOpenChange}
-    />,
-  );
-  await waitFor(() => expect(isPopupOpen()).toBe(false));
-});
+test.each(multiSelects)(
+  '%s reopens on typing after "Done"',
+  async (_name, renderSelect) => {
+    render(renderSelect());
+    await openPopup();
+    await clickDone();
+    await userEvent.type(
+      screen.getByRole('combobox', { name: ARIA_LABEL }),
+      'T',
+    );
+    await waitFor(() => expect(isPopupOpen()).toBe(true));
+  },
+);
+
+test.each(multiSelects)(
+  '%s closes when disabled while open and stays closed when re-enabled',
+  async (_name, renderSelect) => {
+    const onOpenChange = jest.fn();
+    const { rerender } = render(renderSelect({ onOpenChange }));
+    await openPopup();
+    rerender(renderSelect({ onOpenChange, disabled: true }));
+    await waitFor(() => expect(onOpenChange).toHaveBeenLastCalledWith(false));
+    rerender(renderSelect({ onOpenChange }));
+    await waitFor(() => expect(isPopupOpen()).toBe(false));
+  },
+);
 
 const rect = (top: number, bottom: number) => ({ top, bottom }) as DOMRect;
 
+// jsdom has no layout, and antd re-aligns the popup against the (zero-size)
+// viewport, so placement is covered at the helper level below and was
+// checked in a real browser.
 const buildModal = (
   modalTop: number,
   triggerTop: number,
@@ -148,35 +187,36 @@ const buildModal = (
   const modal = document.createElement('div');
   modal.className = 'ant-modal-container';
   modal.innerHTML =
-    '<div class="trigger"></div><div class="ant-modal-footer"></div>';
-  const trigger = modal.querySelector('.trigger') as HTMLElement;
+    '<div class="wrap"><div class="ant-select"></div></div><div class="ant-modal-footer"></div>';
+  const container = modal.querySelector('.wrap') as HTMLElement;
+  const trigger = modal.querySelector('.ant-select') as HTMLElement;
   const footer = modal.querySelector('.ant-modal-footer') as HTMLElement;
   modal.getBoundingClientRect = () => rect(modalTop, footerTop + 60);
   trigger.getBoundingClientRect = () => rect(triggerTop, triggerTop + 32);
   footer.getBoundingClientRect = () => rect(footerTop, footerTop + 60);
-  return trigger;
+  return container;
 };
 
 test('getPopupPlacement opens upward when the popup would cover the modal footer', () => {
-  expect(getPopupPlacement(buildModal(0, 400, 480), 200)).toBe('topLeft');
+  expect(getPopupPlacement(buildModal(0, 400, 480), 3)).toBe('topLeft');
 });
 
 test('getPopupPlacement mirrors the upward placement for RTL', () => {
-  expect(getPopupPlacement(buildModal(0, 400, 480), 200, 'rtl')).toBe(
-    'topRight',
-  );
+  expect(getPopupPlacement(buildModal(0, 400, 480), 3, 'rtl')).toBe('topRight');
 });
 
-test('getPopupPlacement keeps the default when there is room above the footer', () => {
-  expect(getPopupPlacement(buildModal(0, 100, 480), 200)).toBeUndefined();
+test('getPopupPlacement keeps the default when the popup fits above the footer', () => {
+  // 3 options need ~144px; 400px of room below the trigger.
+  expect(getPopupPlacement(buildModal(0, 48, 480), 3)).toBeUndefined();
 });
 
 test('getPopupPlacement keeps the default when the modal has less room above', () => {
   // Plenty of viewport above, but the trigger sits near the modal's top.
-  expect(getPopupPlacement(buildModal(380, 400, 480), 200)).toBeUndefined();
+  expect(getPopupPlacement(buildModal(380, 400, 480), 3)).toBeUndefined();
 });
 
 test('getPopupPlacement keeps the default outside a modal', () => {
-  const trigger = document.createElement('div');
-  expect(getPopupPlacement(trigger, 200)).toBeUndefined();
+  const container = document.createElement('div');
+  container.innerHTML = '<div class="ant-select"></div>';
+  expect(getPopupPlacement(container, 3)).toBeUndefined();
 });

@@ -289,11 +289,11 @@ export const dropDownRenderHelper = (
   );
 };
 
-// Rough popup height used to decide placement before the popup renders.
-// Row and footer heights are fixed approximations of the default theme.
+// Rough popup height used to decide placement before the popup renders:
+// option rows (capped at antd's default listHeight) plus list padding and
+// the footer row. Approximations of the default theme.
 const ESTIMATED_OPTION_HEIGHT = 32;
 const ESTIMATED_POPUP_CHROME = 48;
-// antd's default Select listHeight.
 const MAX_LIST_HEIGHT = 256;
 
 export const estimatePopupHeight = (optionsLength: number) =>
@@ -308,22 +308,23 @@ export const estimatePopupHeight = (optionsLength: number) =>
  * (e.g. Save) without ever leaving the viewport, and antd never flips it.
  * Open upward when the space down to the footer is too small and the modal
  * has more room above the trigger; otherwise return undefined to keep
- * antd's default placement.
+ * antd's default placement. Evaluated once per open so the popup never
+ * jumps while the user is picking options.
  */
 export const getPopupPlacement = (
-  trigger: Element | null | undefined,
-  estimatedHeight: number,
+  container: Element | null | undefined,
+  optionsLength: number,
   direction?: string,
 ): 'topLeft' | 'topRight' | undefined => {
+  const trigger = container?.querySelector('.ant-select');
   const modal = trigger?.closest('.ant-modal-container');
   const footer = modal?.querySelector('.ant-modal-footer');
   if (!trigger || !modal || !footer) return undefined;
   const triggerRect = trigger.getBoundingClientRect();
   const spaceBelow = footer.getBoundingClientRect().top - triggerRect.bottom;
   const spaceAbove = triggerRect.top - modal.getBoundingClientRect().top;
-  if (spaceBelow >= estimatedHeight || spaceAbove <= spaceBelow) {
-    return undefined;
-  }
+  if (spaceBelow >= estimatePopupHeight(optionsLength)) return undefined;
+  if (spaceAbove <= spaceBelow) return undefined;
   return direction === 'rtl' ? 'topRight' : 'topLeft';
 };
 

@@ -58,7 +58,6 @@ import {
   sortComparatorForNoSearchHelper,
   getSuffixIcon,
   dropDownRenderHelper,
-  estimatePopupHeight,
   getPopupPlacement,
   handleFilterOptionHelper,
   makeQuoteAwareTokenizer,
@@ -702,12 +701,11 @@ const AsyncSelect = forwardRef(
       setIsDropdownVisible(isDropdownVisible);
       if (isDropdownVisible) {
         // Inside a modal, open upward if the popup would cover the footer.
-        // Options load only after opening, so size for a full page until
-        // they arrive.
+        // Options load only after opening; size for a full page until then.
         setPopupPlacement(
           getPopupPlacement(
-            selectContainerRef.current?.querySelector('.ant-select'),
-            estimatePopupHeight(Math.max(fullSelectOptions.length, pageSize)),
+            selectContainerRef.current,
+            fullSelectOptions.length || pageSize,
             direction,
           ),
         );
