@@ -220,6 +220,7 @@ export default function SemanticViewEditModal({
           <Tabs.TabPane tab={t('Details')} key="details">
             <ModalFormField label={t('Description')}>
               <Input.TextArea
+                aria-label={t('Description')}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 rows={4}

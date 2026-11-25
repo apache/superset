@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from flask_babel import gettext as _
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
@@ -43,8 +44,11 @@ from superset.commands.dashboard.importers.v1.utils import (
 )
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
-from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.commands.importers.v1.errors import (
+    import_error_context,
+    ImportBundleError,
+)
 from superset.commands.importers.v1.utils import import_tag
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
@@ -105,17 +109,13 @@ class ImportDashboardsCommand(ImportModelsCommand):
     def run(self) -> None:
         self.validate()
 
-        try:
+        with import_error_context("dashboard bundle"):
             self._import(
                 self._configs,
                 self.overwrite,
                 self.contents,
                 overwrite_all=self.overwrite_all,
             )
-        except CommandException:
-            raise
-        except Exception as ex:
-            raise self.import_error() from ex
 
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals, too-many-statements
@@ -175,6 +175,35 @@ class ImportDashboardsCommand(ImportModelsCommand):
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
 
+        # Layout and native-filter UUIDs can outlive their exported assets.
+        # Only require dependencies of files that will actually be imported.
+        required_datasets = {
+            config["dataset_uuid"]
+            for name, config in configs.items()
+            if name.startswith("charts/")
+            and config["uuid"] in chart_uuids
+            and "dataset_uuid" in config
+        }
+        for prefix, required, asset_type in (
+            ("datasets/", required_datasets, _("dataset")),
+            ("databases/", database_uuids, _("database")),
+        ):
+            supplied = {
+                str(config["uuid"])
+                for name, config in configs.items()
+                if name.startswith(prefix)
+            }
+            if required - supplied:
+                raise ImportBundleError(
+                    _(
+                        "The bundle is missing a %(asset_type)s required by an "
+                        "imported "
+                        "asset. Re-export the dashboard with its dependencies from a "
+                        "compatible Superset version, then retry.",
+                        asset_type=asset_type,
+                    )
+                )
+
         # assets inside dashboard databases, datasets and charts
         # should be overwritten only if both flags are set to True
         overwrite_assets = overwrite and kwargs.get("overwrite_all", False)
@@ -189,13 +218,20 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
         # import related databases
         database_ids: dict[str, int] = {}
+        database_configs: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
+                # Keep engine metadata after import_database consumes the config.
+                database_config = config.copy()
                 # Dashboard bundles carry only some Secure Extra blocks.
-                database = import_database(
-                    config, overwrite=overwrite_assets, partial_secure_extra=True
-                )
+                with import_error_context(
+                    file_name, database_config, use_existing=not overwrite_assets
+                ):
+                    database = import_database(
+                        config, overwrite=overwrite_assets, partial_secure_extra=True
+                    )
                 database_ids[str(database.uuid)] = database.id
+                database_configs[str(database.uuid)] = database_config
 
         # import datasets with the correct parent ref
         dataset_info: dict[str, dict[str, Any]] = {}
@@ -205,7 +241,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(config, overwrite=overwrite_assets)
+                with import_error_context(
+                    file_name, database_configs[config["database_uuid"]]
+                ):
+                    dataset = import_dataset(config, overwrite=overwrite_assets)
                 # Key on the bundle's own uuid, which is what the bundle's
                 # charts reference. An import that resolves onto an existing
                 # dataset by physical identity returns a row whose uuid
@@ -296,9 +335,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     # Theme not found, set to None for graceful fallback
                     config["theme_id"] = None
                     del config["theme_uuid"]
-                dashboard = import_dashboard(
-                    config, overwrite=overwrite, default_viewers=default_viewers
-                )
+                with import_error_context(file_name):
+                    dashboard = import_dashboard(
+                        config, overwrite=overwrite, default_viewers=default_viewers
+                    )
                 dashboards.append(dashboard)
 
                 # Resolve the dashboard's chart membership from the imported

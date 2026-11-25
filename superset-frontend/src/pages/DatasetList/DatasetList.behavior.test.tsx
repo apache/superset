@@ -26,10 +26,13 @@ import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   setupMocks,
+  setupApiPermissions,
+  mockReadOnlyUser,
   renderDatasetList,
   waitForDatasetsPageReady,
   mockAdminUser,
   mockEditorUser,
+  mockWriteUser,
   mockDatasets,
   setupDeleteMocks,
   mockRelatedCharts,
@@ -40,6 +43,164 @@ import {
 } from './DatasetList.testHelpers';
 
 jest.mock('src/utils/export');
+
+test('semantic writer without Dataset write cannot bulk delete ordinary rows', async () => {
+  setupApiPermissions(['can_read']);
+  const semanticView = {
+    ...mockDatasets[0],
+    id: 99,
+    table_name: 'semantic_orders',
+    kind: 'semantic_view',
+    can_modify: true,
+  };
+  mockDatasetListEndpoints({
+    result: [mockDatasets[0], semanticView],
+    count: 2,
+  });
+  const addDangerToast = jest.fn();
+  renderDatasetList(mockReadOnlyUser, { addDangerToast });
+  await screen.findByText('semantic_orders');
+  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+  for (const name of [mockDatasets[0].table_name, 'semantic_orders']) {
+    const row = screen.getByText(name).closest('tr');
+    await userEvent.click(within(row!).getByRole('checkbox'));
+  }
+  fetchMock.clearHistory();
+  await userEvent.click(
+    within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+      name: 'Delete',
+    }),
+  );
+  expect(addDangerToast).toHaveBeenCalledWith(
+    expect.stringContaining('You must be a dataset editor in order to delete.'),
+  );
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test.each(['semantic', 'mixed semantic'])(
+  'bulk delete refuses an ineligible %s selection without a request',
+  async kind => {
+    const blocked = {
+      ...mockDatasets[0],
+      id: 99,
+      table_name: 'blocked_row',
+      kind: 'semantic_view',
+      can_modify: false,
+      editors: [],
+    };
+    const allowed = { ...mockDatasets[0], table_name: 'allowed_row' };
+    const rows = kind.startsWith('mixed') ? [blocked, allowed] : [blocked];
+    mockDatasetListEndpoints({ result: rows, count: rows.length });
+    const addDangerToast = jest.fn();
+    renderDatasetList(
+      kind.startsWith('mixed') ? mockEditorUser : mockWriteUser,
+      {
+        addDangerToast,
+      },
+    );
+    await screen.findByText('blocked_row');
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    for (const row of rows) {
+      await userEvent.click(
+        within(screen.getByText(row.table_name).closest('tr')!).getByRole(
+          'checkbox',
+        ),
+      );
+    }
+    fetchMock.clearHistory();
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+    expect(addDangerToast).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'You do not have permission to modify this semantic view.',
+      ),
+    );
+    expect(addDangerToast).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Deselect the items you cannot modify and try again.',
+      ),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(fetchMock.callHistory.calls()).toHaveLength(0);
+    expect(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Export',
+      }),
+    ).toBeEnabled();
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Export',
+      }),
+    );
+    const exportIds = rows
+      .filter(row => row.kind !== 'semantic_view')
+      .map(row => row.id);
+    if (exportIds.length) {
+      expect(mockHandleResourceExport).toHaveBeenCalledWith(
+        'dataset',
+        exportIds,
+        expect.any(Function),
+      );
+    } else {
+      expect(mockHandleResourceExport).not.toHaveBeenCalled();
+      expect(addDangerToast).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Exporting semantic views is not supported yet.',
+        ),
+      );
+    }
+  },
+);
+
+test.each([
+  ['editor', mockEditorUser, false],
+  ['dataset writer checked by server', mockWriteUser, false],
+  ['admin', mockAdminUser, false],
+  ['admin mixed', mockAdminUser, true],
+  ['creator mixed', mockEditorUser, true],
+] as const)(
+  'bulk delete permits an eligible %s selection',
+  async (_label, user, semantic) => {
+    const rows = [
+      mockDatasets[0],
+      ...(semantic
+        ? [
+            {
+              ...mockDatasets[0],
+              id: 99,
+              table_name: 'semantic_orders',
+              kind: 'semantic_view',
+              can_modify: true,
+              editors: [],
+            },
+          ]
+        : []),
+    ];
+    mockDatasetListEndpoints({ result: rows, count: rows.length });
+    const addDangerToast = jest.fn();
+    renderDatasetList(user, { addDangerToast });
+    await screen.findByText(rows[0].table_name);
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    for (const row of rows) {
+      await userEvent.click(
+        within(screen.getByText(row.table_name).closest('tr')!).getByRole(
+          'checkbox',
+        ),
+      );
+    }
+    await userEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(addDangerToast).not.toHaveBeenCalled();
+  },
+);
 
 jest.mock('src/utils/getBootstrapData', () =>
   mockUserSubjectsBootstrapData([1]),
@@ -86,6 +247,8 @@ test('single semantic view delete displays the counted dependency conflict', asy
     id: 99,
     table_name: 'orders_semantic',
     kind: 'semantic_view',
+
+    can_modify: true,
   };
   const reason =
     'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
@@ -134,6 +297,8 @@ test('single semantic view delete names its blockers, including archived ones', 
     id: 99,
     table_name: 'orders_semantic',
     kind: 'semantic_view',
+
+    can_modify: true,
   };
   mockDatasetListEndpoints({ result: [view], count: 1 });
   fetchMock.delete('glob:*/api/v1/semantic_view/99', {
@@ -186,6 +351,8 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
     id: 99,
     table_name: 'orders_semantic',
     kind: 'semantic_view',
+
+    can_modify: true,
     editors: [],
   };
   const secondView = { ...semanticView, id: 100, table_name: 'other_semantic' };
@@ -240,7 +407,7 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
       ],
     },
   });
-  renderDatasetList(mockEditorUser, {
+  renderDatasetList(mockAdminUser, {
     addDangerToast,
     addSuccessToast: jest.fn(),
   });
@@ -319,12 +486,16 @@ test.each([200, 409, 403, 404, 422, 'network'] as const)(
         id: 98,
         table_name: 'blocked_view',
         kind: 'semantic_view',
+
+        can_modify: true,
       },
       {
         ...mockDatasets[1],
         id: 99,
         table_name: 'free_view',
         kind: 'semantic_view',
+
+        can_modify: true,
       },
     ];
     const addSuccessToast = jest.fn();
@@ -487,12 +658,16 @@ test.each([false, true])(
         id: 98,
         table_name: 'blocked_view',
         kind: 'semantic_view',
+
+        can_modify: true,
       },
       {
         ...mockDatasets[2],
         id: 99,
         table_name: 'free_view',
         kind: 'semantic_view',
+
+        can_modify: true,
       },
     ];
     const addSuccessToast = jest.fn();
@@ -558,6 +733,8 @@ test.each([403, 404, 422, 'network'] as const)(
       id,
       table_name: `view_${id}`,
       kind: 'semantic_view',
+
+      can_modify: true,
     }));
     const addDangerToast = jest.fn();
     const addSuccessToast = jest.fn();
@@ -825,6 +1002,8 @@ test('bulk export of only semantic-view rows shows danger toast and skips export
     id: 100,
     table_name: 'sl_only_view',
     kind: 'semantic_view',
+
+    can_modify: true,
   };
   const addDangerToast = jest.fn();
 
@@ -886,6 +1065,8 @@ test('bulk export of mixed datasets and semantic views warns and exports only da
     id: 100,
     table_name: 'sl_mixed_view',
     kind: 'semantic_view',
+
+    can_modify: true,
   };
   const addDangerToast = jest.fn();
 

@@ -175,3 +175,50 @@ test('a row whose records span several kinds of change gets a neutral headline',
   ).toBeInTheDocument();
   expect(screen.queryByText(/metric changed/)).not.toBeInTheDocument();
 });
+
+test.each([
+  {
+    entity_deleted: false,
+    entity_deletion_state: 'soft_deleted',
+    entity_uuid: 'abc',
+  },
+  { entity_deleted: true, entity_deletion_state: null, entity_uuid: 'abc' },
+  { entity_deleted: false, entity_deletion_state: null, entity_uuid: null },
+])('unavailable related charts have no navigation links: %s', unavailable => {
+  render(
+    <RelatedUpdateRow
+      record={{
+        ...baseRecord,
+        entity_kind: 'chart',
+        kind: '__archive__',
+        operation: 'announce',
+        impact: null,
+        path: null,
+        to_value: null,
+        ...unavailable,
+      }}
+      onOpen={jest.fn()}
+    />,
+  );
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
+
+test('a recovered chart links from its archive event and keeps shared author formatting', async () => {
+  const onOpen = jest.fn();
+  const archive: ActivityRecord = {
+    ...baseRecord,
+    entity_kind: 'chart',
+    kind: '__archive__',
+    operation: 'announce',
+    impact: null,
+    path: null,
+    to_value: null,
+  };
+  render(<RelatedUpdateRow record={archive} onOpen={onOpen} />);
+  expect(screen.getByText(/Chart archived:/)).toBeInTheDocument();
+  expect(screen.getByText(/System ·/)).toBeInTheDocument();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Sales Transactions' }),
+  );
+  expect(onOpen).toHaveBeenCalledWith(archive);
+});

@@ -647,12 +647,12 @@ export function useImportResource(
         failed: false,
       });
 
+      const RECOVERY_TEXT = t(
+        'Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import.',
+      );
+
       const formData = new FormData();
       formData.append('formData', bundle);
-
-      const RE_EXPORT_TEXT = t(
-        'Please re-export your file and try importing again',
-      );
 
       /* The import bundle never contains database passwords; if required
        * they should be provided by the user during import.
@@ -736,7 +736,7 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  error.message || error.error,
+                  [error.message || error.error, RECOVERY_TEXT].join('\n'),
                 ),
               );
               return false;
@@ -748,8 +748,8 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    RE_EXPORT_TEXT,
-                  ].join('.\n'),
+                    ...(resourceName !== 'dashboard' ? [RECOVERY_TEXT] : []),
+                  ].join('\n'),
                 ),
               );
             } else {
@@ -776,7 +776,20 @@ export function useImportResource(
     [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
 
-  return { state, importResource };
+  const resetImportState = useCallback(() => {
+    updateState({
+      loading: false,
+      failed: false,
+      passwordsNeeded: [],
+      alreadyExists: [],
+      sshPasswordNeeded: [],
+      sshPrivateKeyNeeded: [],
+      sshPrivateKeyPasswordNeeded: [],
+      encryptedExtraFieldsNeeded: [],
+    });
+  }, [updateState]);
+
+  return { state, importResource, resetImportState };
 }
 
 type FavoriteStatusResponse = {
@@ -893,6 +906,8 @@ export const useChartEditModal = (
 
   function handleChartUpdated(edits: Chart) {
     // update the chart in our state with the edited info
+    // ``edits`` is the chart re-fetched after the save, so it already carries
+    // localized_name resolved for the new canonical name; the spread keeps it.
     const newCharts = charts.map((chart: Chart) =>
       chart.id === edits.id ? { ...chart, ...edits } : chart,
     );
