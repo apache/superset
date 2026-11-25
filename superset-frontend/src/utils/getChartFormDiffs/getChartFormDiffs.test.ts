@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject } from "@superset-ui/core";
-import { alterForComparison, getChartFormDiffs, isEqualish } from ".";
+import { JsonObject } from '@superset-ui/core';
+import { alterForComparison, getChartFormDiffs, isEqualish } from '.';
 
-jest.mock("../sanitizeFormData", () => ({
+jest.mock('../sanitizeFormData', () => ({
   sanitizeFormData: (fd: JsonObject): JsonObject => ({
     ...fd,
     _sanitized: true,
@@ -28,7 +28,7 @@ jest.mock("../sanitizeFormData", () => ({
 
 test.each([
   [null, null],
-  ["", null],
+  ['', null],
   [[], null],
   [{}, null],
   [
@@ -36,74 +36,74 @@ test.each([
     [1, 2],
   ],
   [{ a: 1 }, { a: 1 }],
-  ["foo", "foo"],
-])("normalizes %p to %p", (input, expected) => {
+  ['foo', 'foo'],
+])('normalizes %p to %p', (input, expected) => {
   expect(alterForComparison(input)).toEqual(expected);
 });
 
-test("returns true for semantically equal values with different formats", () => {
-  expect(isEqualish("", null)).toBe(true);
+test('returns true for semantically equal values with different formats', () => {
+  expect(isEqualish('', null)).toBe(true);
   expect(isEqualish([], null)).toBe(true);
   expect(isEqualish({}, null)).toBe(true);
   expect(isEqualish([1], [1])).toBe(true);
 });
 
-test("returns false for clearly different values", () => {
+test('returns false for clearly different values', () => {
   expect(isEqualish([1], [2])).toBe(false);
   expect(isEqualish({ a: 1 }, { a: 2 })).toBe(false);
-  expect(isEqualish("foo", "bar")).toBe(false);
+  expect(isEqualish('foo', 'bar')).toBe(false);
 });
 
-test("returns diffs for changed values", () => {
-  const original = { metric: "count", adhoc_filters: [] };
-  const current = { metric: "sum__num", adhoc_filters: [] };
+test('returns diffs for changed values', () => {
+  const original = { metric: 'count', adhoc_filters: [] };
+  const current = { metric: 'sum__num', adhoc_filters: [] };
 
   const diffs = getChartFormDiffs(original, current);
 
-  expect(diffs).toHaveProperty("metric");
+  expect(diffs).toHaveProperty('metric');
   expect(diffs.metric).toEqual({
-    before: "count",
-    after: "sum__num",
+    before: 'count',
+    after: 'sum__num',
   });
 });
 
-test("ignores noisy keys", () => {
-  const original = { where: "a = 1", metric: "count" };
-  const current = { where: "a = 2", metric: "sum__num" };
+test('ignores noisy keys', () => {
+  const original = { where: 'a = 1', metric: 'count' };
+  const current = { where: 'a = 2', metric: 'sum__num' };
 
   const diffs = getChartFormDiffs(original, current);
 
-  expect(diffs).not.toHaveProperty("where");
-  expect(diffs).toHaveProperty("metric");
+  expect(diffs).not.toHaveProperty('where');
+  expect(diffs).toHaveProperty('metric');
 });
 
-test("does not include values that are equalish", () => {
-  const original = { filters: [], metric: "count" };
-  const current = { filters: null, metric: "count" };
+test('does not include values that are equalish', () => {
+  const original = { filters: [], metric: 'count' };
+  const current = { filters: null, metric: 'count' };
 
   const diffs = getChartFormDiffs(original, current);
 
   expect(diffs).toEqual({});
 });
 
-test("handles missing keys in original or current gracefully", () => {
-  const original = { metric: "count" };
-  const current = { metric: "count", new_field: "value" };
+test('handles missing keys in original or current gracefully', () => {
+  const original = { metric: 'count' };
+  const current = { metric: 'count', new_field: 'value' };
 
   const diffs = getChartFormDiffs(original, current);
 
-  expect(diffs).toHaveProperty("new_field");
+  expect(diffs).toHaveProperty('new_field');
   expect(diffs.new_field).toEqual({
     before: undefined,
-    after: "value",
+    after: 'value',
   });
 });
 
-test("ignores keys that are missing in current and not explicitly changed", () => {
-  const original = { metric: "count", removed_field: "gone" };
-  const current = { metric: "count" };
+test('ignores keys that are missing in current and not explicitly changed', () => {
+  const original = { metric: 'count', removed_field: 'gone' };
+  const current = { metric: 'count' };
 
   const diffs = getChartFormDiffs(original, current);
 
-  expect(diffs).not.toHaveProperty("removed_field");
+  expect(diffs).not.toHaveProperty('removed_field');
 });

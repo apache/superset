@@ -20,8 +20,8 @@ import {
   getChartMetadataRegistry,
   ChartMetadata,
   Behavior,
-} from "@superset-ui/core";
-import { nativeFilterGate } from "src/dashboard/components/nativeFilters/utils";
+} from '@superset-ui/core';
+import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 
 /**
  * Unit tests for chart registry filtering and option generation logic.
@@ -35,30 +35,30 @@ beforeEach(() => {
   registry.clear();
 });
 
-test("generates correct options from chart metadata registry", () => {
+test('generates correct options from chart metadata registry', () => {
   // Register test chart types
   registry
     .registerValue(
-      "table",
+      'table',
       new ChartMetadata({
-        name: "Table",
-        thumbnail: "",
+        name: 'Table',
+        thumbnail: '',
         behaviors: [],
       }),
     )
     .registerValue(
-      "line",
+      'line',
       new ChartMetadata({
-        name: "Line Chart",
-        thumbnail: "",
+        name: 'Line Chart',
+        thumbnail: '',
         behaviors: [],
       }),
     )
     .registerValue(
-      "native_filter",
+      'native_filter',
       new ChartMetadata({
-        name: "Native Filter Chart",
-        thumbnail: "",
+        name: 'Native Filter Chart',
+        thumbnail: '',
         behaviors: [Behavior.NativeFilter],
       }),
     );
@@ -66,8 +66,8 @@ test("generates correct options from chart metadata registry", () => {
   // Generate options like ChartList does
   const options = registry
     .keys()
-    .filter((k) => nativeFilterGate(registry.get(k)?.behaviors || []))
-    .map((k) => ({ label: registry.get(k)?.name || k, value: k }))
+    .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
+    .map(k => ({ label: registry.get(k)?.name || k, value: k }))
     .sort((a, b) => {
       if (!a.label || !b.label) return 0;
       if (a.label > b.label) return 1;
@@ -76,72 +76,72 @@ test("generates correct options from chart metadata registry", () => {
     });
 
   expect(options).toEqual([
-    { label: "Line Chart", value: "line" },
-    { label: "Table", value: "table" },
+    { label: 'Line Chart', value: 'line' },
+    { label: 'Table', value: 'table' },
   ]);
 
   // Native filter chart should be filtered out
-  expect(options.find((opt) => opt.value === "native_filter")).toBeUndefined();
+  expect(options.find(opt => opt.value === 'native_filter')).toBeUndefined();
 });
 
-test("handles empty registry gracefully", () => {
+test('handles empty registry gracefully', () => {
   const options = registry
     .keys()
-    .filter((k) => nativeFilterGate(registry.get(k)?.behaviors || []))
-    .map((k) => ({ label: registry.get(k)?.name || k, value: k }));
+    .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
+    .map(k => ({ label: registry.get(k)?.name || k, value: k }));
 
   expect(options).toEqual([]);
 });
 
-test("falls back to chart key when name is missing", () => {
+test('falls back to chart key when name is missing', () => {
   registry.registerValue(
-    "custom_chart",
+    'custom_chart',
     new ChartMetadata({
-      name: "", // Empty name
-      thumbnail: "",
+      name: '', // Empty name
+      thumbnail: '',
       behaviors: [],
     }),
   );
 
   const options = registry
     .keys()
-    .filter((k) => nativeFilterGate(registry.get(k)?.behaviors || []))
-    .map((k) => ({ label: registry.get(k)?.name || k, value: k }));
+    .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
+    .map(k => ({ label: registry.get(k)?.name || k, value: k }));
 
-  expect(options).toEqual([{ label: "custom_chart", value: "custom_chart" }]);
+  expect(options).toEqual([{ label: 'custom_chart', value: 'custom_chart' }]);
 });
 
-test("sorts options alphabetically by label", () => {
+test('sorts options alphabetically by label', () => {
   registry
     .registerValue(
-      "zebra",
+      'zebra',
       new ChartMetadata({
-        name: "Zebra Chart",
-        thumbnail: "",
+        name: 'Zebra Chart',
+        thumbnail: '',
         behaviors: [],
       }),
     )
     .registerValue(
-      "apple",
+      'apple',
       new ChartMetadata({
-        name: "Apple Chart",
-        thumbnail: "",
+        name: 'Apple Chart',
+        thumbnail: '',
         behaviors: [],
       }),
     )
     .registerValue(
-      "banana",
+      'banana',
       new ChartMetadata({
-        name: "Banana Chart",
-        thumbnail: "",
+        name: 'Banana Chart',
+        thumbnail: '',
         behaviors: [],
       }),
     );
 
   const options = registry
     .keys()
-    .filter((k) => nativeFilterGate(registry.get(k)?.behaviors || []))
-    .map((k) => ({ label: registry.get(k)?.name || k, value: k }))
+    .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
+    .map(k => ({ label: registry.get(k)?.name || k, value: k }))
     .sort((a, b) => {
       if (!a.label || !b.label) return 0;
       if (a.label > b.label) return 1;
@@ -150,51 +150,51 @@ test("sorts options alphabetically by label", () => {
     });
 
   expect(options).toEqual([
-    { label: "Apple Chart", value: "apple" },
-    { label: "Banana Chart", value: "banana" },
-    { label: "Zebra Chart", value: "zebra" },
+    { label: 'Apple Chart', value: 'apple' },
+    { label: 'Banana Chart', value: 'banana' },
+    { label: 'Zebra Chart', value: 'zebra' },
   ]);
 });
 
-test("handles mixed chart behaviors correctly", () => {
+test('handles mixed chart behaviors correctly', () => {
   registry
     .registerValue(
-      "regular",
+      'regular',
       new ChartMetadata({
-        name: "Regular Chart",
-        thumbnail: "",
+        name: 'Regular Chart',
+        thumbnail: '',
         behaviors: [],
       }),
     )
     .registerValue(
-      "interactive",
+      'interactive',
       new ChartMetadata({
-        name: "Interactive Chart",
-        thumbnail: "",
+        name: 'Interactive Chart',
+        thumbnail: '',
         behaviors: [Behavior.InteractiveChart],
       }),
     )
     .registerValue(
-      "native_with_interactive",
+      'native_with_interactive',
       new ChartMetadata({
-        name: "Native Filter with Interactive",
-        thumbnail: "",
+        name: 'Native Filter with Interactive',
+        thumbnail: '',
         behaviors: [Behavior.NativeFilter, Behavior.InteractiveChart],
       }),
     )
     .registerValue(
-      "pure_native",
+      'pure_native',
       new ChartMetadata({
-        name: "Pure Native Filter",
-        thumbnail: "",
+        name: 'Pure Native Filter',
+        thumbnail: '',
         behaviors: [Behavior.NativeFilter],
       }),
     );
 
   const options = registry
     .keys()
-    .filter((k) => nativeFilterGate(registry.get(k)?.behaviors || []))
-    .map((k) => ({ label: registry.get(k)?.name || k, value: k }))
+    .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
+    .map(k => ({ label: registry.get(k)?.name || k, value: k }))
     .sort((a, b) => {
       if (!a.label || !b.label) return 0;
       if (a.label > b.label) return 1;
@@ -205,13 +205,13 @@ test("handles mixed chart behaviors correctly", () => {
   // Should include regular, interactive, and native with interactive
   // Should exclude pure native filter
   expect(options).toEqual([
-    { label: "Interactive Chart", value: "interactive" },
+    { label: 'Interactive Chart', value: 'interactive' },
     {
-      label: "Native Filter with Interactive",
-      value: "native_with_interactive",
+      label: 'Native Filter with Interactive',
+      value: 'native_with_interactive',
     },
-    { label: "Regular Chart", value: "regular" },
+    { label: 'Regular Chart', value: 'regular' },
   ]);
 
-  expect(options.find((opt) => opt.value === "pure_native")).toBeUndefined();
+  expect(options.find(opt => opt.value === 'pure_native')).toBeUndefined();
 });

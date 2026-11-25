@@ -17,15 +17,15 @@
  * under the License.
  */
 
-import DebouncedMessageQueue from "./DebouncedMessageQueue";
+import DebouncedMessageQueue from './DebouncedMessageQueue';
 
-test("should create a queue with default options", () => {
+test('should create a queue with default options', () => {
   const queue = new DebouncedMessageQueue();
   expect(queue).toBeDefined();
   expect(queue.trigger).toBeInstanceOf(Function);
 });
 
-test("should accept custom configuration options", () => {
+test('should accept custom configuration options', () => {
   const mockCallback = jest.fn();
   const queue = new DebouncedMessageQueue({
     callback: mockCallback,
@@ -35,18 +35,18 @@ test("should accept custom configuration options", () => {
   expect(queue).toBeDefined();
 });
 
-test("should append items to the queue", () => {
+test('should append items to the queue', () => {
   const mockCallback = jest.fn();
   const queue = new DebouncedMessageQueue({ callback: mockCallback });
 
-  const testEvent = { id: 1, message: "test" };
+  const testEvent = { id: 1, message: 'test' };
   queue.append(testEvent);
 
   // Verify the append method doesn't throw
   expect(() => queue.append(testEvent)).not.toThrow();
 });
 
-test("should handle generic types properly", () => {
+test('should handle generic types properly', () => {
   interface TestEvent {
     id: number;
     data: string;
@@ -57,7 +57,7 @@ test("should handle generic types properly", () => {
     callback: mockCallback,
   });
 
-  const testEvent: TestEvent = { id: 1, data: "test" };
+  const testEvent: TestEvent = { id: 1, data: 'test' };
   queue.append(testEvent);
 
   expect(() => queue.append(testEvent)).not.toThrow();

@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import rison from "rison";
-import fetchMock from "fetch-mock";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import rison from 'rison';
+import fetchMock from 'fetch-mock';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
-} from "spec/helpers/testing-library";
-import { api } from "src/hooks/apiResources/queryApi";
-import { useCatalogs } from "./catalogs";
+} from 'spec/helpers/testing-library';
+import { api } from 'src/hooks/apiResources/queryApi';
+import { useCatalogs } from './catalogs';
 
 const fakeApiResult = {
-  result: ["test catalog 1", "test catalog b"],
+  result: ['test catalog 1', 'test catalog b'],
 };
 
 const expectedResult = fakeApiResult.result.map((value: string) => ({
@@ -41,8 +41,8 @@ beforeEach(() => {
   store.dispatch(api.util.resetApiState());
 });
 
-test("returns api response mapping json result", async () => {
-  const expectDbId = "db1";
+test('returns api response mapping json result', async () => {
+  const expectDbId = 'db1';
   const forceRefresh = false;
   const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
   fetchMock.get(catalogApiRoute, fakeApiResult);
@@ -89,12 +89,12 @@ test("returns api response mapping json result", async () => {
   expect(result.current.data).toEqual(expectedResult);
 });
 
-test("fires onSuccess when the subscribed query refetches after invalidateTags", async () => {
+test('fires onSuccess when the subscribed query refetches after invalidateTags', async () => {
   // Regression test for the OAuth2 retry-after-redirect path (PR #41101).
   // The redirect handler dispatches invalidateTags, which refetches the
   // SUBSCRIBED query (not the lazy trigger). onSuccess must still fire so
   // consumers holding local state (e.g. an auth error banner) get cleared.
-  const expectDbId = "db1";
+  const expectDbId = 'db1';
   const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
   fetchMock.get(catalogApiRoute, fakeApiResult);
   const onSuccess = jest.fn();
@@ -119,7 +119,7 @@ test("fires onSuccess when the subscribed query refetches after invalidateTags",
   expect(onSuccess).toHaveBeenCalledTimes(1);
 
   act(() => {
-    store.dispatch(api.util.invalidateTags([{ type: "Catalogs", id: "LIST" }]));
+    store.dispatch(api.util.invalidateTags([{ type: 'Catalogs', id: 'LIST' }]));
   });
 
   await waitFor(() =>
@@ -131,8 +131,8 @@ test("fires onSuccess when the subscribed query refetches after invalidateTags",
   expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);
 });
 
-test("recovers from an error when the subscribed query refetches (OAuth2 retry)", async () => {
-  const expectDbId = "db1";
+test('recovers from an error when the subscribed query refetches (OAuth2 retry)', async () => {
+  const expectDbId = 'db1';
   const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
   let shouldFail = true;
   fetchMock.get(catalogApiRoute, () =>
@@ -162,25 +162,25 @@ test("recovers from an error when the subscribed query refetches (OAuth2 retry)"
   // succeeds, and onSuccess must fire to clear the error banner.
   shouldFail = false;
   act(() => {
-    store.dispatch(api.util.invalidateTags([{ type: "Catalogs", id: "LIST" }]));
+    store.dispatch(api.util.invalidateTags([{ type: 'Catalogs', id: 'LIST' }]));
   });
 
   await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);
 });
 
-test("fires callbacks on invalidation refetch even after a failed force refresh (OAuth2 refresh button)", async () => {
+test('fires callbacks on invalidation refetch even after a failed force refresh (OAuth2 refresh button)', async () => {
   // Reviewer regression: serializeQueryArgs strips forceRefresh, so the
   // subscribed query and the lazy force-refresh trigger share one cache entry.
   // A failed refresh-button click (forceRefresh:true) leaves the entry's
   // originalArgs.forceRefresh sticky-true. The old `!originalArgs.forceRefresh`
   // guard then suppressed onSuccess/onError on the later invalidation refetch,
   // so the banner stayed stuck. The ref-based flag must fire the callbacks.
-  const expectDbId = "db1";
+  const expectDbId = 'db1';
   const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
-  let mode: "ok" | "fail" = "ok";
+  let mode: 'ok' | 'fail' = 'ok';
   fetchMock.get(catalogApiRoute, () =>
-    mode === "fail" ? { status: 500, body: {} } : fakeApiResult,
+    mode === 'fail' ? { status: 500, body: {} } : fakeApiResult,
   );
   const onSuccess = jest.fn();
   const onError = jest.fn();
@@ -205,7 +205,7 @@ test("fires callbacks on invalidation refetch even after a failed force refresh 
 
   // User clicks the refresh button (force refresh) and hits the OAuth2 wall.
   // This makes the shared entry's originalArgs.forceRefresh sticky-true.
-  mode = "fail";
+  mode = 'fail';
   act(() => {
     result.current.refetch();
   });
@@ -213,9 +213,9 @@ test("fires callbacks on invalidation refetch even after a failed force refresh 
 
   // User authorizes: invalidateTags refetches the subscribed query, which now
   // succeeds. onSuccess must fire (isRefetched=false: not a manual refresh).
-  mode = "ok";
+  mode = 'ok';
   act(() => {
-    store.dispatch(api.util.invalidateTags([{ type: "Catalogs", id: "LIST" }]));
+    store.dispatch(api.util.invalidateTags([{ type: 'Catalogs', id: 'LIST' }]));
   });
   await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(2));
   expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);

@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject } from "@superset-ui/core";
-import chartReducer, { chart } from "src/components/Chart/chartReducer";
-import * as actions from "src/components/Chart/chartAction";
-import { ChartState } from "src/explore/types";
+import { JsonObject } from '@superset-ui/core';
+import chartReducer, { chart } from 'src/components/Chart/chartReducer';
+import * as actions from 'src/components/Chart/chartAction';
+import { ChartState } from 'src/explore/types';
 
 const chartKey = 1;
 let testChart: ChartState;
@@ -32,20 +32,20 @@ beforeEach(() => {
   charts = { [chartKey]: testChart };
 });
 
-test("should update endtime on fail", () => {
+test('should update endtime on fail', () => {
   const newState = chartReducer(charts, actions.chartUpdateStopped(chartKey));
   expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
-  expect(newState[chartKey].chartStatus).toEqual("stopped");
+  expect(newState[chartKey].chartStatus).toEqual('stopped');
 });
 
-test("should handle chartUpdateStopped without queryController", () => {
+test('should handle chartUpdateStopped without queryController', () => {
   const newState = chartReducer(charts, actions.chartUpdateStopped(chartKey));
-  expect(newState[chartKey].chartStatus).toEqual("stopped");
-  expect(newState[chartKey].chartAlert).toContain("Updating chart was stopped");
+  expect(newState[chartKey].chartStatus).toEqual('stopped');
+  expect(newState[chartKey].chartAlert).toContain('Updating chart was stopped');
   expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
 });
 
-test("chartUpdateStopped sets state correctly", () => {
+test('chartUpdateStopped sets state correctly', () => {
   const chartsWithController = {
     [chartKey]: {
       ...testChart,
@@ -57,36 +57,36 @@ test("chartUpdateStopped sets state correctly", () => {
     actions.chartUpdateStopped(chartKey),
   );
   // Verify the chart status and alert are set
-  expect(newState[chartKey].chartStatus).toEqual("stopped");
-  expect(newState[chartKey].chartAlert).toContain("Updating chart was stopped");
+  expect(newState[chartKey].chartStatus).toEqual('stopped');
+  expect(newState[chartKey].chartAlert).toContain('Updating chart was stopped');
 });
 
-test("chartUpdateStarted stores latestQueryId in state", () => {
+test('chartUpdateStarted stores latestQueryId in state', () => {
   const queryController = new AbortController();
-  const latestQueryId = "abc123";
+  const latestQueryId = 'abc123';
   const newState = chartReducer(
     charts,
     actions.chartUpdateStarted(queryController, {}, chartKey, latestQueryId),
   );
   expect(newState[chartKey].latestQueryId).toEqual(latestQueryId);
   expect(newState[chartKey].queryController).toBe(queryController);
-  expect(newState[chartKey].chartStatus).toEqual("loading");
+  expect(newState[chartKey].chartStatus).toEqual('loading');
 });
 
-test("should update endtime on timeout", () => {
+test('should update endtime on timeout', () => {
   const newState = chartReducer(
     charts,
     actions.chartUpdateFailed(
       [
         {
-          statusText: "timeout",
-          error: "Request timed out",
+          statusText: 'timeout',
+          error: 'Request timed out',
           errors: [
             {
-              error_type: "FRONTEND_TIMEOUT_ERROR",
+              error_type: 'FRONTEND_TIMEOUT_ERROR',
               extra: { timeout: 1 },
-              level: "error",
-              message: "Request timed out",
+              level: 'error',
+              message: 'Request timed out',
             },
           ],
         } as JsonObject,
@@ -95,16 +95,16 @@ test("should update endtime on timeout", () => {
     ),
   );
   expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
-  expect(newState[chartKey].chartStatus).toEqual("failed");
+  expect(newState[chartKey].chartStatus).toEqual('failed');
 });
 
-test("ignores an action for a chart that is no longer in state", () => {
+test('ignores an action for a chart that is no longer in state', () => {
   const action = actions.chartUpdateStopped(999, new AbortController());
   expect(() => chartReducer(charts, action)).not.toThrow();
   expect(chartReducer(charts, action)).toEqual(charts);
 });
 
-test("still adds a chart that is not yet in state", () => {
+test('still adds a chart that is not yet in state', () => {
   const newChartKey = 2;
   const newState = chartReducer(
     charts,

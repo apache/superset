@@ -16,26 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cacheWrapper } from "src/utils/cacheWrapper";
+import { cacheWrapper } from 'src/utils/cacheWrapper';
 
-test("retries a key after its cached promise rejects", async () => {
+test('retries a key after its cached promise rejects', async () => {
   const request = jest
     .fn<Promise<string>, [string]>()
-    .mockRejectedValueOnce(new Error("transient"))
-    .mockResolvedValueOnce("recovered");
+    .mockRejectedValueOnce(new Error('transient'))
+    .mockResolvedValueOnce('recovered');
   const cache = new Map<string, Promise<string>>();
   const cachedRequest = cacheWrapper(request, cache);
 
-  await expect(cachedRequest("resource")).rejects.toThrow("transient");
-  await expect(cachedRequest("resource")).resolves.toBe("recovered");
+  await expect(cachedRequest('resource')).rejects.toThrow('transient');
+  await expect(cachedRequest('resource')).resolves.toBe('recovered');
   expect(request).toHaveBeenCalledTimes(2);
 });
 
-test("shares an in-flight promise and retains its fulfilled result", async () => {
+test('shares an in-flight promise and retains its fulfilled result', async () => {
   let resolveRequest: (value: string) => void = () => {};
   const request = jest.fn<Promise<string>, [string]>().mockImplementation(
     () =>
-      new Promise((resolve) => {
+      new Promise(resolve => {
         resolveRequest = resolve;
       }),
   );
@@ -44,15 +44,15 @@ test("shares an in-flight promise and retains its fulfilled result", async () =>
     new Map<string, Promise<string>>(),
   );
 
-  const first = cachedRequest("resource");
-  expect(cachedRequest("resource")).toBe(first);
-  resolveRequest("fulfilled");
-  await expect(first).resolves.toBe("fulfilled");
-  expect(cachedRequest("resource")).toBe(first);
+  const first = cachedRequest('resource');
+  expect(cachedRequest('resource')).toBe(first);
+  resolveRequest('fulfilled');
+  await expect(first).resolves.toBe('fulfilled');
+  expect(cachedRequest('resource')).toBe(first);
   expect(request).toHaveBeenCalledTimes(1);
 });
 
-test("does not evict a replacement after an older promise rejects", async () => {
+test('does not evict a replacement after an older promise rejects', async () => {
   let rejectRequest: (reason: Error) => void = () => {};
   const request = jest.fn<Promise<string>, [string]>().mockImplementation(
     () =>
@@ -62,17 +62,17 @@ test("does not evict a replacement after an older promise rejects", async () => 
   );
   const cache = new Map<string, Promise<string>>();
   const cachedRequest = cacheWrapper(request, cache);
-  const first = cachedRequest("resource");
-  const replacement = Promise.resolve("newer");
-  cache.set(JSON.stringify(["resource"]), replacement);
+  const first = cachedRequest('resource');
+  const replacement = Promise.resolve('newer');
+  cache.set(JSON.stringify(['resource']), replacement);
 
-  rejectRequest(new Error("older request failed"));
-  await expect(first).rejects.toThrow("older request failed");
-  expect(cache.get(JSON.stringify(["resource"]))).toBe(replacement);
-  expect(cachedRequest("resource")).toBe(replacement);
+  rejectRequest(new Error('older request failed'));
+  await expect(first).rejects.toThrow('older request failed');
+  expect(cache.get(JSON.stringify(['resource']))).toBe(replacement);
+  expect(cachedRequest('resource')).toBe(replacement);
 });
 
-const fnResult = "fnResult";
+const fnResult = 'fnResult';
 const fn = jest.fn<string, [number, number]>().mockReturnValue(fnResult);
 
 let wrappedFn: (a: number, b: number) => string;
@@ -86,7 +86,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test("calls fn with its arguments once when the key is not found", () => {
+test('calls fn with its arguments once when the key is not found', () => {
   const returnedValue = wrappedFn(1, 2);
 
   expect(returnedValue).toEqual(fnResult);
@@ -94,7 +94,7 @@ test("calls fn with its arguments once when the key is not found", () => {
   expect(fn).toHaveBeenCalledWith(1, 2);
 });
 
-test("returns the correct value without fn being called multiple times", () => {
+test('returns the correct value without fn being called multiple times', () => {
   const returnedValue1 = wrappedFn(1, 2);
   const returnedValue2 = wrappedFn(1, 2);
 
@@ -103,7 +103,7 @@ test("returns the correct value without fn being called multiple times", () => {
   expect(fn).toHaveBeenCalledTimes(1);
 });
 
-test("fn is called multiple times for different arguments", () => {
+test('fn is called multiple times for different arguments', () => {
   wrappedFn(1, 2);
   wrappedFn(1, 3);
 
@@ -117,13 +117,13 @@ function setupCustomKeyCache() {
   wrappedFn = cacheWrapper(fn, cache, (...args) => `key-${args[0]}`);
 }
 
-test("saves fn result in cache under generated key", () => {
+test('saves fn result in cache under generated key', () => {
   setupCustomKeyCache();
   wrappedFn(1, 2);
-  expect(cache.get("key-1")).toEqual(fnResult);
+  expect(cache.get('key-1')).toEqual(fnResult);
 });
 
-test("subsequent calls with same generated key calls fn once, even if other arguments have changed", () => {
+test('subsequent calls with same generated key calls fn once, even if other arguments have changed', () => {
   setupCustomKeyCache();
   wrappedFn(1, 1);
   wrappedFn(1, 2);

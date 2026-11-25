@@ -17,26 +17,26 @@
  * under the License.
  */
 
-import * as reduxHooks from "react-redux";
-import { Provider } from "react-redux";
-import { createStore, Store } from "redux";
-import { act, render, waitFor } from "spec/helpers/testing-library";
-import { ErrorLevel, ErrorSource, ErrorTypeEnum } from "@superset-ui/core";
-import { reRunQuery } from "src/SqlLab/actions/sqlLab";
-import { triggerQuery } from "src/components/Chart/chartAction";
-import { onRefresh } from "src/dashboard/actions/dashboardState";
-import { UNSAVED_CHART_ID } from "src/explore/constants";
-import { api } from "src/hooks/apiResources/queryApi";
-import { OAuth2RedirectMessage } from ".";
+import * as reduxHooks from 'react-redux';
+import { Provider } from 'react-redux';
+import { createStore, Store } from 'redux';
+import { act, render, waitFor } from 'spec/helpers/testing-library';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
+import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
+import { triggerQuery } from 'src/components/Chart/chartAction';
+import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import { UNSAVED_CHART_ID } from 'src/explore/constants';
+import { api } from 'src/hooks/apiResources/queryApi';
+import { OAuth2RedirectMessage } from '.';
 
-jest.mock("src/hooks/apiResources/queryApi", () => ({
+jest.mock('src/hooks/apiResources/queryApi', () => ({
   api: {
     util: {
       invalidateTags: jest
         .fn()
-        .mockReturnValue({ type: "mock/invalidateTags" }),
+        .mockReturnValue({ type: 'mock/invalidateTags' }),
     },
-    reducerPath: "queryApi",
+    reducerPath: 'queryApi',
     reducer: (state = {}) => state,
     middleware:
       () => (next: (action: unknown) => unknown) => (action: unknown) =>
@@ -47,15 +47,15 @@ jest.mock("src/hooks/apiResources/queryApi", () => ({
 // Mock the Redux store
 const mockStore = createStore(() => ({
   sqlLab: {
-    queries: { "query-id": { sql: "SELECT * FROM table" } },
-    queryEditors: [{ id: "editor-id", latestQueryId: "query-id" }],
-    tabHistory: ["editor-id"],
+    queries: { 'query-id': { sql: 'SELECT * FROM table' } },
+    queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+    tabHistory: ['editor-id'],
   },
   explore: {
     slice: { slice_id: 123 },
   },
-  charts: { "1": {}, "2": {} },
-  dashboardInfo: { id: "dashboard-id" },
+  charts: { '1': {}, '2': {} },
+  dashboardInfo: { id: 'dashboard-id' },
 }));
 
 const mockStoreUnsavedChart = createStore(() => ({
@@ -72,21 +72,21 @@ const mockStoreUnsavedChart = createStore(() => ({
 }));
 
 // Mock actions
-jest.mock("src/SqlLab/actions/sqlLab", () => ({
+jest.mock('src/SqlLab/actions/sqlLab', () => ({
   reRunQuery: jest.fn(),
 }));
 
-jest.mock("src/components/Chart/chartAction", () => ({
+jest.mock('src/components/Chart/chartAction', () => ({
   triggerQuery: jest.fn(),
 }));
 
-jest.mock("src/dashboard/actions/dashboardState", () => ({
+jest.mock('src/dashboard/actions/dashboardState', () => ({
   onRefresh: jest.fn(),
 }));
 
 // Mock useDispatch
 const mockDispatch = jest.fn();
-jest.spyOn(reduxHooks, "useDispatch").mockReturnValue(mockDispatch);
+jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch);
 
 type OAuthMessage = { tabId?: string };
 
@@ -116,8 +116,8 @@ function simulateBroadcastMessage(data: OAuthMessage) {
 
 function simulateStorageMessage(data: OAuthMessage) {
   window.dispatchEvent(
-    new StorageEvent("storage", {
-      key: "oauth2_auth_complete",
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
       newValue: JSON.stringify(data),
     }),
   );
@@ -128,13 +128,13 @@ const defaultProps = {
     error_type: ErrorTypeEnum.OAUTH2_REDIRECT,
     message: "You don't have permission to access the data.",
     extra: {
-      url: "https://example.com",
-      tab_id: "tabId",
-      redirect_uri: "https://redirect.example.com",
+      url: 'https://example.com',
+      tab_id: 'tabId',
+      redirect_uri: 'https://redirect.example.com',
     },
-    level: "warning" as ErrorLevel,
+    level: 'warning' as ErrorLevel,
   },
-  source: "sqllab" as ErrorSource,
+  source: 'sqllab' as ErrorSource,
 };
 
 const setup = (overrides = {}, store: Store = mockStore) => (
@@ -143,14 +143,14 @@ const setup = (overrides = {}, store: Store = mockStore) => (
   </Provider>
 );
 
-test("renders without crashing and displays the correct initial UI elements", () => {
+test('renders without crashing and displays the correct initial UI elements', () => {
   const { getByText } = render(setup());
 
   expect(getByText(/Authorization needed/i)).toBeInTheDocument();
   expect(getByText(/provide authorization/i)).toBeInTheDocument();
 });
 
-test("renders the prose body without preformatted/monospace styling so it wraps within the popover", () => {
+test('renders the prose body without preformatted/monospace styling so it wraps within the popover', () => {
   const { container } = render(setup());
 
   // The OAuth2 body is prose, not a stack trace, so it must not be styled as
@@ -158,55 +158,55 @@ test("renders the prose body without preformatted/monospace styling so it wraps 
   // unwrapped line that balloons the SQL Lab popover width.
   const description = container.querySelector('[data-testid="description"]');
   expect(description).not.toBeNull();
-  expect(description).not.toHaveStyle({ whiteSpace: "pre-wrap" });
+  expect(description).not.toHaveStyle({ whiteSpace: 'pre-wrap' });
 });
 
-test("renders the authorization link pointing at the OAuth2 URL", () => {
+test('renders the authorization link pointing at the OAuth2 URL', () => {
   const { getByText } = render(setup());
 
-  const linkElement = getByText(/provide authorization/i).closest("a");
-  expect(linkElement).toHaveAttribute("href", "https://example.com");
-  expect(linkElement).toHaveAttribute("target", "_blank");
+  const linkElement = getByText(/provide authorization/i).closest('a');
+  expect(linkElement).toHaveAttribute('href', 'https://example.com');
+  expect(linkElement).toHaveAttribute('target', '_blank');
 });
 
-test("closes the BroadcastChannel on unmount", () => {
+test('closes the BroadcastChannel on unmount', () => {
   const { unmount } = render(setup());
 
   expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledWith(
-    "oauth",
+    'oauth',
   );
   unmount();
   expect(channelCloseMock).toHaveBeenCalled();
 });
 
-test("dispatches reRunQuery action when a message with correct tab ID is received for SQL Lab", async () => {
+test('dispatches reRunQuery action when a message with correct tab ID is received for SQL Lab', async () => {
   render(setup());
 
-  simulateBroadcastMessage({ tabId: "tabId" });
-  simulateStorageMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  simulateStorageMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
-    expect(reRunQuery).toHaveBeenCalledWith({ sql: "SELECT * FROM table" });
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
   expect(reRunQuery).toHaveBeenCalledTimes(1);
 });
 
-test("dispatches reRunQuery action when storage event has matching tab ID", async () => {
+test('dispatches reRunQuery action when storage event has matching tab ID', async () => {
   render(setup());
 
-  simulateStorageMessage({ tabId: "tabId" });
+  simulateStorageMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
-    expect(reRunQuery).toHaveBeenCalledWith({ sql: "SELECT * FROM table" });
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
 });
 
-test("waits for the SQL Lab query before consuming the completion", async () => {
+test('waits for the SQL Lab query before consuming the completion', async () => {
   const initialState = {
     sqlLab: {
       queries: {},
-      queryEditors: [{ id: "editor-id", latestQueryId: "query-id" }],
-      tabHistory: ["editor-id"],
+      queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+      tabHistory: ['editor-id'],
     },
     explore: { slice: null },
     charts: {},
@@ -214,96 +214,96 @@ test("waits for the SQL Lab query before consuming the completion", async () => 
   };
   const delayedQueryStore = createStore(
     (state: typeof initialState = initialState, action) =>
-      action.type === "load-query"
+      action.type === 'load-query'
         ? {
             ...state,
             sqlLab: {
               ...state.sqlLab,
-              queries: { "query-id": { sql: "SELECT * FROM table" } },
+              queries: { 'query-id': { sql: 'SELECT * FROM table' } },
             },
           }
         : state,
   );
   render(setup({}, delayedQueryStore));
 
-  simulateBroadcastMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
   expect(reRunQuery).not.toHaveBeenCalled();
 
   act(() => {
-    delayedQueryStore.dispatch({ type: "load-query" });
+    delayedQueryStore.dispatch({ type: 'load-query' });
   });
-  simulateStorageMessage({ tabId: "tabId" });
+  simulateStorageMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
-    expect(reRunQuery).toHaveBeenCalledWith({ sql: "SELECT * FROM table" });
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
 });
 
-test("dispatches triggerQuery action for explore source upon receiving a correct message", async () => {
-  render(setup({ source: "explore" }));
+test('dispatches triggerQuery action for explore source upon receiving a correct message', async () => {
+  render(setup({ source: 'explore' }));
 
-  simulateBroadcastMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
     expect(triggerQuery).toHaveBeenCalledWith(true, 123);
   });
 });
 
-test("dispatches onRefresh action for dashboard source upon receiving a correct message", async () => {
-  render(setup({ source: "dashboard" }));
+test('dispatches onRefresh action for dashboard source upon receiving a correct message', async () => {
+  render(setup({ source: 'dashboard' }));
 
-  simulateBroadcastMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
     // Chart IDs are converted to numbers by the component via chartList.map(Number)
-    expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 0, "dashboard-id");
+    expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 0, 'dashboard-id');
   });
 });
 
-test("ignores messages with a mismatched tab ID", () => {
+test('ignores messages with a mismatched tab ID', () => {
   render(setup());
 
-  simulateBroadcastMessage({ tabId: "someOtherTab" });
+  simulateBroadcastMessage({ tabId: 'someOtherTab' });
 
   expect(reRunQuery).not.toHaveBeenCalled();
 });
 
-test("dispatches triggerQuery with UNSAVED_CHART_ID for explore source when no saved chart exists", async () => {
-  render(setup({ source: "explore" as ErrorSource }, mockStoreUnsavedChart));
+test('dispatches triggerQuery with UNSAVED_CHART_ID for explore source when no saved chart exists', async () => {
+  render(setup({ source: 'explore' as ErrorSource }, mockStoreUnsavedChart));
 
-  simulateBroadcastMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
     expect(triggerQuery).toHaveBeenCalledWith(true, UNSAVED_CHART_ID);
   });
 });
 
-test("dispatches invalidateTags for Schemas when source is crud", async () => {
-  render(setup({ source: "crud" as ErrorSource }));
+test('dispatches invalidateTags for Schemas when source is crud', async () => {
+  render(setup({ source: 'crud' as ErrorSource }));
 
-  simulateBroadcastMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
     expect(api.util.invalidateTags).toHaveBeenCalledWith([
-      { type: "Schemas", id: "LIST" },
-      { type: "Catalogs", id: "LIST" },
-      "Tables",
-      "TableMetadatas",
+      { type: 'Schemas', id: 'LIST' },
+      { type: 'Catalogs', id: 'LIST' },
+      'Tables',
+      'TableMetadatas',
     ]);
   });
 });
 
-test("runs scoped mitigation once instead of CRUD invalidation", async () => {
+test('runs scoped mitigation once instead of CRUD invalidation', async () => {
   const errorMitigationFunction = jest.fn();
   render(
     setup({
-      source: "crud" as ErrorSource,
+      source: 'crud' as ErrorSource,
       errorMitigationFunction,
     }),
   );
 
-  simulateBroadcastMessage({ tabId: "tabId" });
-  simulateStorageMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  simulateStorageMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
     expect(errorMitigationFunction).toHaveBeenCalledTimes(1);
@@ -311,55 +311,55 @@ test("runs scoped mitigation once instead of CRUD invalidation", async () => {
   expect(api.util.invalidateTags).not.toHaveBeenCalled();
 });
 
-test("dispatches only once when both BroadcastChannel and storage signals arrive", async () => {
+test('dispatches only once when both BroadcastChannel and storage signals arrive', async () => {
   render(setup());
 
-  simulateBroadcastMessage({ tabId: "tabId" });
-  simulateStorageMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  simulateStorageMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
     expect(reRunQuery).toHaveBeenCalledTimes(1);
   });
 });
 
-test("falls back to storage events when BroadcastChannel construction throws", async () => {
+test('falls back to storage events when BroadcastChannel construction throws', async () => {
   globalWithBroadcastChannel.BroadcastChannel = jest
     .fn()
     .mockImplementation(() => {
-      throw new Error("blocked");
+      throw new Error('blocked');
     });
 
   render(setup());
 
-  simulateStorageMessage({ tabId: "tabId" });
+  simulateStorageMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
-    expect(reRunQuery).toHaveBeenCalledWith({ sql: "SELECT * FROM table" });
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
 });
 
-test("re-processes a later signal when the first arrived before state was ready", async () => {
+test('re-processes a later signal when the first arrived before state was ready', async () => {
   const initialState = {
     sqlLab: {
       queries: {},
-      queryEditors: [{ id: "editor-id" }],
-      tabHistory: ["editor-id"],
+      queryEditors: [{ id: 'editor-id' }],
+      tabHistory: ['editor-id'],
     },
     explore: { slice: { slice_id: 123 } },
-    charts: { "1": {}, "2": {} },
-    dashboardInfo: { id: "dashboard-id" },
+    charts: { '1': {}, '2': {} },
+    dashboardInfo: { id: 'dashboard-id' },
   };
   type DynamicStoreState = typeof initialState;
   type DynamicStoreAction = { type: string };
   const dynamicStore = createStore(
     (state: DynamicStoreState = initialState, action: DynamicStoreAction) => {
-      if (action.type === "SET_READY") {
+      if (action.type === 'SET_READY') {
         return {
           ...state,
           sqlLab: {
             ...state.sqlLab,
-            queries: { "query-id": { sql: "SELECT * FROM table" } },
-            queryEditors: [{ id: "editor-id", latestQueryId: "query-id" }],
+            queries: { 'query-id': { sql: 'SELECT * FROM table' } },
+            queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
           },
         };
       }
@@ -367,7 +367,7 @@ test("re-processes a later signal when the first arrived before state was ready"
     },
   );
 
-  const addEventListenerSpy = jest.spyOn(window, "addEventListener");
+  const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
 
   render(
     <Provider store={dynamicStore}>
@@ -376,19 +376,19 @@ test("re-processes a later signal when the first arrived before state was ready"
   );
 
   const storageListenerCalls = () =>
-    addEventListenerSpy.mock.calls.filter(([type]) => type === "storage")
+    addEventListenerSpy.mock.calls.filter(([type]) => type === 'storage')
       .length;
 
   // First signal arrives before the SQL Lab query state is populated;
   // nothing dispatches and `handled` must NOT be flipped.
-  simulateBroadcastMessage({ tabId: "tabId" });
+  simulateBroadcastMessage({ tabId: 'tabId' });
   expect(reRunQuery).not.toHaveBeenCalled();
   expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(1);
   expect(storageListenerCalls()).toBe(1);
 
   // Query state becomes available, then the storage fallback signal fires.
   act(() => {
-    dynamicStore.dispatch({ type: "SET_READY" });
+    dynamicStore.dispatch({ type: 'SET_READY' });
   });
 
   // The effect's deps are [extra.tab_id, dispatch], so this unrelated
@@ -400,10 +400,10 @@ test("re-processes a later signal when the first arrived before state was ready"
   expect(channelCloseMock).not.toHaveBeenCalled();
   expect(storageListenerCalls()).toBe(1);
 
-  simulateStorageMessage({ tabId: "tabId" });
+  simulateStorageMessage({ tabId: 'tabId' });
 
   await waitFor(() => {
-    expect(reRunQuery).toHaveBeenCalledWith({ sql: "SELECT * FROM table" });
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
 
   addEventListenerSpy.mockRestore();

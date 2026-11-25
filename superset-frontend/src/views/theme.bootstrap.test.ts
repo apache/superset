@@ -26,13 +26,13 @@
 
 const enabledThemeBootstrap = {
   theme: {
-    default: { colors: { primary: "#1890ff" } },
-    dark: { colors: { primary: "#000000" } },
+    default: { colors: { primary: '#1890ff' } },
+    dark: { colors: { primary: '#000000' } },
     enableUiThemeAdministration: true,
   },
 };
 
-test("should load themes from database when available", () => {
+test('should load themes from database when available', () => {
   // This tests that when enableUiThemeAdministration is true,
   // the system attempts to load themes from the database
   expect(enabledThemeBootstrap.theme.enableUiThemeAdministration).toBe(true);
@@ -40,23 +40,23 @@ test("should load themes from database when available", () => {
   expect(enabledThemeBootstrap.theme.dark).toBeDefined();
 });
 
-test("should have proper theme structure", () => {
-  expect(enabledThemeBootstrap.theme).toHaveProperty("default");
-  expect(enabledThemeBootstrap.theme).toHaveProperty("dark");
+test('should have proper theme structure', () => {
+  expect(enabledThemeBootstrap.theme).toHaveProperty('default');
+  expect(enabledThemeBootstrap.theme).toHaveProperty('dark');
   expect(enabledThemeBootstrap.theme).toHaveProperty(
-    "enableUiThemeAdministration",
+    'enableUiThemeAdministration',
   );
 });
 
 const disabledThemeBootstrap = {
   theme: {
-    default: { colors: { primary: "#1890ff" } },
-    dark: { colors: { primary: "#000000" } },
+    default: { colors: { primary: '#1890ff' } },
+    dark: { colors: { primary: '#000000' } },
     enableUiThemeAdministration: false,
   },
 };
 
-test("should use config-based themes", () => {
+test('should use config-based themes', () => {
   // When enableUiThemeAdministration is false,
   // themes should come from configuration files
   expect(disabledThemeBootstrap.theme.enableUiThemeAdministration).toBe(false);
@@ -64,7 +64,7 @@ test("should use config-based themes", () => {
   expect(disabledThemeBootstrap.theme.dark).toBeDefined();
 });
 
-test("should handle missing theme gracefully", () => {
+test('should handle missing theme gracefully', () => {
   const mockBootstrapData = {
     theme: {
       default: {},
@@ -78,7 +78,7 @@ test("should handle missing theme gracefully", () => {
   expect(mockBootstrapData.theme.dark).toEqual({});
 });
 
-test("should handle invalid theme settings", () => {
+test('should handle invalid theme settings', () => {
   const mockBootstrapData = {
     theme: {
       default: {},
@@ -92,7 +92,7 @@ test("should handle invalid theme settings", () => {
   expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(false);
 });
 
-test("should respect admin-only access for system themes", () => {
+test('should respect admin-only access for system themes', () => {
   const mockBootstrapData = {
     theme: {
       default: {},
@@ -106,11 +106,11 @@ test("should respect admin-only access for system themes", () => {
   expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(true);
 });
 
-test("should allow all users to view themes", () => {
+test('should allow all users to view themes', () => {
   const mockBootstrapData = {
     theme: {
-      default: { colors: { primary: "#1890ff" } },
-      dark: { colors: { primary: "#000000" } },
+      default: { colors: { primary: '#1890ff' } },
+      dark: { colors: { primary: '#000000' } },
       enableUiThemeAdministration: true,
     },
   };

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act } from '@testing-library/react';
 import {
   LocalStorageKeys,
   setItem,
   getItem,
-} from "src/utils/localStorageHelpers";
-import useStoredSidebarWidth from "./useStoredSidebarWidth";
+} from 'src/utils/localStorageHelpers';
+import useStoredSidebarWidth from './useStoredSidebarWidth';
 
 const INITIAL_WIDTH = 300;
 
@@ -34,20 +34,20 @@ afterAll(() => {
   localStorage.clear();
 });
 
-test("returns a default filterBar width by initialWidth", () => {
-  const id = "123";
+test('returns a default filterBar width by initialWidth', () => {
+  const id = '123';
   const { result } = renderHook(() => useStoredSidebarWidth(id, INITIAL_WIDTH));
   const [actualWidth] = result.current;
 
   expect(actualWidth).toEqual(INITIAL_WIDTH);
 });
 
-test("returns a stored filterBar width from localStorage", () => {
-  const id = "123";
+test('returns a stored filterBar width from localStorage', () => {
+  const id = '123';
   const expectedWidth = 378;
   setItem(LocalStorageKeys.CommonResizableSidebarWidths, {
     [id]: expectedWidth,
-    "456": 250,
+    '456': 250,
   });
   const { result } = renderHook(() => useStoredSidebarWidth(id, INITIAL_WIDTH));
   const [actualWidth] = result.current;
@@ -56,10 +56,10 @@ test("returns a stored filterBar width from localStorage", () => {
   expect(actualWidth).not.toEqual(250);
 });
 
-test("returns a setter for filterBar width that stores the state in localStorage together", () => {
-  const id = "123";
+test('returns a setter for filterBar width that stores the state in localStorage together', () => {
+  const id = '123';
   const expectedWidth = 378;
-  const otherDashboardId = "456";
+  const otherDashboardId = '456';
   const otherDashboardWidth = 253;
   setItem(LocalStorageKeys.CommonResizableSidebarWidths, {
     [id]: 300,

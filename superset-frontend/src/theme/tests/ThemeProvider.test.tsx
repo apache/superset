@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from "react";
+import { ReactNode } from 'react';
 import {
   type ThemeContextType,
   Theme,
   ThemeMode,
-} from "@apache-superset/core/theme";
-import { act, render, screen } from "@superset-ui/core/spec";
-import { renderHook } from "@testing-library/react";
-import { SupersetThemeProvider, useThemeContext } from "../ThemeProvider";
-import { ThemeController } from "../ThemeController";
+} from '@apache-superset/core/theme';
+import { act, render, screen } from '@superset-ui/core/spec';
+import { renderHook } from '@testing-library/react';
+import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';
+import { ThemeController } from '../ThemeController';
 
-jest.mock("../ThemeController");
+jest.mock('../ThemeController');
 const MockThemeController = ThemeController as jest.MockedClass<
   typeof ThemeController
 >;
@@ -39,8 +39,8 @@ const mockTheme = {
   ),
   theme: {
     token: {
-      colorPrimary: "#1890ff",
-      colorBgBase: "#ffffff",
+      colorPrimary: '#1890ff',
+      colorBgBase: '#ffffff',
     },
   },
 } as unknown as Theme;
@@ -51,8 +51,8 @@ const mockDarkTheme = {
   ),
   theme: {
     token: {
-      colorPrimary: "#1890ff",
-      colorBgBase: "#000000",
+      colorPrimary: '#1890ff',
+      colorBgBase: '#000000',
     },
   },
 } as unknown as Theme;
@@ -73,7 +73,7 @@ beforeEach(() => {
   mockThemeController = {
     getTheme: jest.fn().mockReturnValue(mockTheme),
     getCurrentMode: jest.fn().mockReturnValue(ThemeMode.DEFAULT),
-    getCurrentModeResolved: jest.fn().mockReturnValue("dark"),
+    getCurrentModeResolved: jest.fn().mockReturnValue('dark'),
     setTheme: jest.fn(),
     setThemeMode: jest.fn(),
     resetTheme: jest.fn(),
@@ -94,7 +94,7 @@ beforeEach(() => {
     destroy: jest.fn(),
   } as unknown as jest.Mocked<ThemeController>;
 
-  mockThemeController.onChange.mockImplementation((callback) => {
+  mockThemeController.onChange.mockImplementation(callback => {
     mockOnChangeCallback.mockImplementation(callback);
     return jest.fn();
   });
@@ -106,18 +106,18 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test("should render children within theme provider wrapper", () => {
+test('should render children within theme provider wrapper', () => {
   render(
     <SupersetThemeProvider themeController={mockThemeController}>
       <div data-test="test-child">Hello Superset</div>
     </SupersetThemeProvider>,
   );
 
-  expect(screen.getByTestId("superset-theme-provider")).toBeInTheDocument();
-  expect(screen.getByTestId("test-child")).toBeInTheDocument();
+  expect(screen.getByTestId('superset-theme-provider')).toBeInTheDocument();
+  expect(screen.getByTestId('test-child')).toBeInTheDocument();
 });
 
-test("should initialize theme state from controller", () => {
+test('should initialize theme state from controller', () => {
   const wrapper = createWrapper(mockThemeController);
 
   const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -130,7 +130,7 @@ test("should initialize theme state from controller", () => {
   expect(result.current.themeMode).toBe(ThemeMode.DEFAULT);
 });
 
-test("exposes refreshSystemThemes and delegates to the controller", async () => {
+test('exposes refreshSystemThemes and delegates to the controller', async () => {
   const wrapper = createWrapper(mockThemeController);
 
   const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -144,7 +144,7 @@ test("exposes refreshSystemThemes and delegates to the controller", async () => 
   expect(mockThemeController.refreshSystemThemes).toHaveBeenCalledTimes(1);
 });
 
-test("should register onChange listener on mount", () => {
+test('should register onChange listener on mount', () => {
   const wrapper = createWrapper(mockThemeController);
 
   renderHook((): ThemeContextType => useThemeContext(), { wrapper });
@@ -154,7 +154,7 @@ test("should register onChange listener on mount", () => {
   );
 });
 
-test("should unregister onChange listener on unmount", () => {
+test('should unregister onChange listener on unmount', () => {
   const unsubscribeMock = jest.fn();
   mockThemeController.onChange.mockReturnValue(unsubscribeMock);
 
@@ -169,7 +169,7 @@ test("should unregister onChange listener on unmount", () => {
   expect(unsubscribeMock).toHaveBeenCalled();
 });
 
-test("should update theme state when controller notifies change", () => {
+test('should update theme state when controller notifies change', () => {
   const wrapper = createWrapper(mockThemeController);
 
   const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -191,7 +191,7 @@ test("should update theme state when controller notifies change", () => {
   expect(result.current.theme).toBe(mockDarkTheme);
 });
 
-test("should update both theme and mode when controller changes", () => {
+test('should update both theme and mode when controller changes', () => {
   const wrapper = createWrapper(mockThemeController);
 
   const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -207,7 +207,7 @@ test("should update both theme and mode when controller changes", () => {
   expect(result.current.theme).toBe(mockDarkTheme);
 });
 
-test("should call setTheme when invoked", () => {
+test('should call setTheme when invoked', () => {
   const wrapper = createWrapper(mockThemeController);
 
   const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -216,8 +216,8 @@ test("should call setTheme when invoked", () => {
 
   const customTheme = {
     token: {
-      colorPrimary: "#ff0000",
-      colorBgBase: "#000000",
+      colorPrimary: '#ff0000',
+      colorBgBase: '#000000',
     },
   };
 
@@ -228,7 +228,7 @@ test("should call setTheme when invoked", () => {
   expect(mockThemeController.setTheme).toHaveBeenCalledWith(customTheme);
 });
 
-test("should call setThemeMode when invoked", () => {
+test('should call setThemeMode when invoked', () => {
   const wrapper = createWrapper(mockThemeController);
 
   const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -242,7 +242,7 @@ test("should call setThemeMode when invoked", () => {
   expect(mockThemeController.setThemeMode).toHaveBeenCalledWith(ThemeMode.DARK);
 });
 
-test("should call resetTheme when invoked", () => {
+test('should call resetTheme when invoked', () => {
   const wrapper = createWrapper(mockThemeController);
 
   const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -256,7 +256,7 @@ test("should call resetTheme when invoked", () => {
   expect(mockThemeController.resetTheme).toHaveBeenCalled();
 });
 
-test("should call setTemporaryTheme with config and themeId when invoked", () => {
+test('should call setTemporaryTheme with config and themeId when invoked', () => {
   const wrapper = createWrapper(mockThemeController);
 
   const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -265,8 +265,8 @@ test("should call setTemporaryTheme with config and themeId when invoked", () =>
 
   const tempTheme = {
     token: {
-      colorPrimary: "#00ff00",
-      colorBgBase: "#ffffff",
+      colorPrimary: '#00ff00',
+      colorBgBase: '#ffffff',
     },
   };
 
@@ -281,11 +281,11 @@ test("should call setTemporaryTheme with config and themeId when invoked", () =>
 });
 
 afterEach(() => {
-  document.documentElement.removeAttribute("data-theme-mode");
+  document.documentElement.removeAttribute('data-theme-mode');
 });
 
 test('should set data-theme-mode="light" on mount when resolved mode is light', () => {
-  mockThemeController.getCurrentModeResolved.mockReturnValue("light");
+  mockThemeController.getCurrentModeResolved.mockReturnValue('light');
 
   render(
     <SupersetThemeProvider themeController={mockThemeController}>
@@ -293,13 +293,13 @@ test('should set data-theme-mode="light" on mount when resolved mode is light', 
     </SupersetThemeProvider>,
   );
 
-  expect(document.documentElement.getAttribute("data-theme-mode")).toBe(
-    "light",
+  expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+    'light',
   );
 });
 
 test('should set data-theme-mode="dark" on mount when resolved mode is dark', () => {
-  mockThemeController.getCurrentModeResolved.mockReturnValue("dark");
+  mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
 
   render(
     <SupersetThemeProvider themeController={mockThemeController}>
@@ -307,11 +307,11 @@ test('should set data-theme-mode="dark" on mount when resolved mode is dark', ()
     </SupersetThemeProvider>,
   );
 
-  expect(document.documentElement.getAttribute("data-theme-mode")).toBe("dark");
+  expect(document.documentElement.getAttribute('data-theme-mode')).toBe('dark');
 });
 
-test("should update data-theme-mode when theme changes", () => {
-  mockThemeController.getCurrentModeResolved.mockReturnValue("light");
+test('should update data-theme-mode when theme changes', () => {
+  mockThemeController.getCurrentModeResolved.mockReturnValue('light');
 
   render(
     <SupersetThemeProvider themeController={mockThemeController}>
@@ -319,14 +319,14 @@ test("should update data-theme-mode when theme changes", () => {
     </SupersetThemeProvider>,
   );
 
-  expect(document.documentElement.getAttribute("data-theme-mode")).toBe(
-    "light",
+  expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+    'light',
   );
 
   act(() => {
-    mockThemeController.getCurrentModeResolved.mockReturnValue("dark");
+    mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
     mockOnChangeCallback(mockDarkTheme);
   });
 
-  expect(document.documentElement.getAttribute("data-theme-mode")).toBe("dark");
+  expect(document.documentElement.getAttribute('data-theme-mode')).toBe('dark');
 });

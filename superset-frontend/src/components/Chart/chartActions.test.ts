@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import URI from "urijs";
-import fetchMock from "fetch-mock";
+import URI from 'urijs';
+import fetchMock from 'fetch-mock';
 
 import {
   FeatureFlag,
@@ -31,21 +31,21 @@ import {
   AnnotationType,
   AnnotationSourceType,
   AnnotationStyle,
-} from "@superset-ui/core";
-import * as toastActions from "src/components/MessageToasts/actions";
-import * as exploreUtils from "src/explore/exploreUtils";
-import * as actions from "src/components/Chart/chartAction";
-import * as asyncEvent from "src/middleware/asyncEvent";
-import { handleChartDataResponse } from "src/components/Chart/chartAction";
-import * as dataMaskActions from "src/dataMask/actions";
+} from '@superset-ui/core';
+import * as toastActions from 'src/components/MessageToasts/actions';
+import * as exploreUtils from 'src/explore/exploreUtils';
+import * as actions from 'src/components/Chart/chartAction';
+import * as asyncEvent from 'src/middleware/asyncEvent';
+import { handleChartDataResponse } from 'src/components/Chart/chartAction';
+import * as dataMaskActions from 'src/dataMask/actions';
 
-import configureMockStore from "redux-mock-store";
-import thunk from "redux-thunk";
-import { initialState } from "src/SqlLab/fixtures";
+import configureMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { initialState } from 'src/SqlLab/fixtures';
 
 /** A 200 response never re-issues, so the refetch must not be called. */
 const neverRefetch = () =>
-  Promise.reject(new Error("refetch should not be called"));
+  Promise.reject(new Error('refetch should not be called'));
 
 interface MockState {
   charts: {
@@ -71,8 +71,8 @@ const mockGetState = (): MockState => ({
   charts: {
     chartKey: {
       latestQueryFormData: {
-        time_grain_sqla: "P1D",
-        granularity_sqla: "Date",
+        time_grain_sqla: 'P1D',
+        granularity_sqla: 'Date',
       },
     },
   },
@@ -81,8 +81,8 @@ const mockGetState = (): MockState => ({
   },
 });
 
-jest.mock("@superset-ui/core", () => ({
-  ...jest.requireActual("@superset-ui/core"),
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
   getChartMetadataRegistry: jest.fn(),
   getChartBuildQueryRegistry: jest.fn(),
 }));
@@ -96,7 +96,7 @@ const mockedGetChartBuildQueryRegistry =
     typeof getChartBuildQueryRegistry
   >;
 
-const MOCK_URL = "/mockURL";
+const MOCK_URL = '/mockURL';
 let dispatch: jest.Mock;
 let getExploreUrlStub: jest.SpyInstance;
 let getChartDataUriStub: jest.SpyInstance;
@@ -105,7 +105,7 @@ let waitForAsyncDataStub: jest.SpyInstance;
 let fakeMetadata: { viz_type?: string };
 
 beforeAll(() => {
-  fetchMock.get("glob:*api/v1/security/csrf_token/*", { result: "1234" });
+  fetchMock.get('glob:*api/v1/security/csrf_token/*', { result: '1234' });
 });
 
 const setupDefaultFetchMock = (): void => {
@@ -119,19 +119,19 @@ const setupChartActionTest = (): void => {
   setupDefaultFetchMock();
   dispatch = jest.fn();
   getExploreUrlStub = jest
-    .spyOn(exploreUtils, "getExploreUrl")
+    .spyOn(exploreUtils, 'getExploreUrl')
     .mockImplementation(() => MOCK_URL);
   getChartDataUriStub = jest
-    .spyOn(exploreUtils, "getChartDataUri")
+    .spyOn(exploreUtils, 'getChartDataUri')
     .mockImplementation(({ qs }: { qs?: Record<string, unknown> }) =>
       URI(MOCK_URL).query(qs || {}),
     );
   buildV1ChartDataPayloadStub = jest
-    .spyOn(exploreUtils, "buildV1ChartDataPayload")
+    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
     .mockResolvedValue({
-      some_param: "fake query!",
-      result_type: "full",
-      result_format: "json",
+      some_param: 'fake query!',
+      result_type: 'full',
+      result_format: 'json',
     } as unknown as Awaited<
       ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
     >);
@@ -146,14 +146,14 @@ const setupChartActionTest = (): void => {
     () =>
       ({
         get: () => () => ({
-          some_param: "fake query!",
-          result_type: "full",
-          result_format: "json",
+          some_param: 'fake query!',
+          result_type: 'full',
+          result_format: 'json',
         }),
       }) as unknown as ReturnType<typeof getChartBuildQueryRegistry>,
   );
   waitForAsyncDataStub = jest
-    .spyOn(asyncEvent, "waitForAsyncData")
+    .spyOn(asyncEvent, 'waitForAsyncData')
     // New contract: resolve by invoking the caller-provided refetch thunk,
     // forwarding the job's task_ids as the per-query forced-refresh nonces.
     .mockImplementation(
@@ -177,7 +177,7 @@ const teardownChartActionTest = (): void => {
 };
 
 const useV1ChartMetadata = (): void => {
-  fakeMetadata = { viz_type: "my_viz" };
+  fakeMetadata = { viz_type: 'my_viz' };
 };
 
 const useAsyncChartDataRoute = (): void => {
@@ -191,7 +191,7 @@ const useAsyncChartDataRoute = (): void => {
   fetchMock.removeRoute(MOCK_URL);
   fetchMock.post(
     `glob:*${MOCK_URL}*`,
-    { status: 202, body: { task_ids: ["task-1"] } },
+    { status: 202, body: { task_ids: ['task-1'] } },
     { name: MOCK_URL },
   );
 };
@@ -225,550 +225,596 @@ const runChartActionTest = async (
   }
 };
 
-test("should drop stale success dispatches when a newer controller has replaced ours in state", async () => {
+test('should drop stale success dispatches when a newer controller has replaced ours in state', async () => {
   await runChartActionTest(async () => {
-  const chartKey = "stale_success_test";
-  const formData: Partial<QueryFormData> = {
-    slice_id: 456,
-    datasource: "table__1",
-    viz_type: "table",
-  };
-  // A controller belonging to a *newer* in-flight request, already stored
-  // in state by the time this thunk's response resolves.
-  const newerController = new AbortController();
-  const state: MockState = {
-    charts: {
-      [chartKey]: {
-        queryController: newerController,
+    const chartKey = 'stale_success_test';
+    const formData: Partial<QueryFormData> = {
+      slice_id: 456,
+      datasource: 'table__1',
+      viz_type: 'table',
+    };
+    // A controller belonging to a *newer* in-flight request, already stored
+    // in state by the time this thunk's response resolves.
+    const newerController = new AbortController();
+    const state: MockState = {
+      charts: {
+        [chartKey]: {
+          queryController: newerController,
+        },
       },
-    },
-    common: {
-      conf: {
-        SUPERSET_WEBSERVER_TIMEOUT: 60,
+      common: {
+        conf: {
+          SUPERSET_WEBSERVER_TIMEOUT: 60,
+        },
       },
-    },
-  };
-  const getState = jest.fn(() => state);
-  const dispatchMock = jest.fn();
-  const getChartDataRequestSpy = jest
-    .spyOn(actions, "getChartDataRequest")
-    .mockResolvedValue({
-      response: { status: 200 } as Response,
-      json: { result: [{ data: [{ stale: true }] }] },
-    });
-  const handleChartDataResponseSpy = jest
-    .spyOn(actions, "handleChartDataResponse")
-    .mockResolvedValue([{ data: [{ stale: true }] }]);
-  const updateDataMaskSpy = jest
-    .spyOn(dataMaskActions, "updateDataMask")
-    .mockReturnValue({ type: "UPDATE_DATA_MASK" } as ReturnType<
-      typeof dataMaskActions.updateDataMask
-    >);
-  const getQuerySettingsStub = jest
-    .spyOn(exploreUtils, "getQuerySettings")
-    .mockReturnValue([false, () => {}] as unknown as ReturnType<
-      typeof exploreUtils.getQuerySettings
-    >);
+    };
+    const getState = jest.fn(() => state);
+    const dispatchMock = jest.fn();
+    const getChartDataRequestSpy = jest
+      .spyOn(actions, 'getChartDataRequest')
+      .mockResolvedValue({
+        response: { status: 200 } as Response,
+        json: { result: [{ data: [{ stale: true }] }] },
+      });
+    const handleChartDataResponseSpy = jest
+      .spyOn(actions, 'handleChartDataResponse')
+      .mockResolvedValue([{ data: [{ stale: true }] }]);
+    const updateDataMaskSpy = jest
+      .spyOn(dataMaskActions, 'updateDataMask')
+      .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
+        typeof dataMaskActions.updateDataMask
+      >);
+    const getQuerySettingsStub = jest
+      .spyOn(exploreUtils, 'getQuerySettings')
+      .mockReturnValue([false, () => {}] as unknown as ReturnType<
+        typeof exploreUtils.getQuerySettings
+      >);
 
-  try {
-    const thunkAction = actions.exploreJSON(
-      formData as QueryFormData,
-      false,
-      undefined,
-      chartKey,
-    );
-    await thunkAction(
-      dispatchMock as unknown as actions.ChartThunkDispatch,
-      getState as unknown as () => actions.RootState,
-      undefined,
-    );
+    try {
+      const thunkAction = actions.exploreJSON(
+        formData as QueryFormData,
+        false,
+        undefined,
+        chartKey,
+      );
+      await thunkAction(
+        dispatchMock as unknown as actions.ChartThunkDispatch,
+        getState as unknown as () => actions.RootState,
+        undefined,
+      );
 
-    // CHART_UPDATE_STARTED is fine (it ran before the gate),
-    // but CHART_UPDATE_SUCCEEDED must NOT have fired with the stale data.
-    const dispatchedTypes = dispatchMock.mock.calls.map(
-      ([action]) => action?.type,
-    );
-    expect(dispatchedTypes).toContain(actions.CHART_UPDATE_STARTED);
-    expect(dispatchedTypes).not.toContain(actions.CHART_UPDATE_SUCCEEDED);
-  } finally {
-    getChartDataRequestSpy.mockRestore();
-    handleChartDataResponseSpy.mockRestore();
-    updateDataMaskSpy.mockRestore();
-    getQuerySettingsStub.mockRestore();
-  }
+      // CHART_UPDATE_STARTED is fine (it ran before the gate),
+      // but CHART_UPDATE_SUCCEEDED must NOT have fired with the stale data.
+      const dispatchedTypes = dispatchMock.mock.calls.map(
+        ([action]) => action?.type,
+      );
+      expect(dispatchedTypes).toContain(actions.CHART_UPDATE_STARTED);
+      expect(dispatchedTypes).not.toContain(actions.CHART_UPDATE_SUCCEEDED);
+    } finally {
+      getChartDataRequestSpy.mockRestore();
+      handleChartDataResponseSpy.mockRestore();
+      updateDataMaskSpy.mockRestore();
+      getQuerySettingsStub.mockRestore();
+    }
   });
 });
 
-test("should defer abort of previous controller to avoid Redux state mutation", async () => {
+test('should defer abort of previous controller to avoid Redux state mutation', async () => {
   await runChartActionTest(async () => {
-  jest.useFakeTimers();
-  const chartKey = "defer_abort_test";
-  const formData: Partial<QueryFormData> = {
-    slice_id: 123,
-    datasource: "table__1",
-    viz_type: "table",
-  };
-  const oldController = new AbortController();
-  const abortSpy = jest.spyOn(oldController, "abort");
-  const state: MockState = {
-    charts: {
-      [chartKey]: {
-        queryController: oldController,
+    jest.useFakeTimers();
+    const chartKey = 'defer_abort_test';
+    const formData: Partial<QueryFormData> = {
+      slice_id: 123,
+      datasource: 'table__1',
+      viz_type: 'table',
+    };
+    const oldController = new AbortController();
+    const abortSpy = jest.spyOn(oldController, 'abort');
+    const state: MockState = {
+      charts: {
+        [chartKey]: {
+          queryController: oldController,
+        },
       },
-    },
-    common: {
-      conf: {
-        SUPERSET_WEBSERVER_TIMEOUT: 60,
+      common: {
+        conf: {
+          SUPERSET_WEBSERVER_TIMEOUT: 60,
+        },
       },
-    },
-  };
-  const getState = jest.fn(() => state);
-  const dispatchMock = jest.fn();
-  const getChartDataRequestSpy = jest
-    .spyOn(actions, "getChartDataRequest")
-    .mockResolvedValue({
-      response: { status: 200 } as Response,
-      json: { result: [] },
-    });
-  const handleChartDataResponseSpy = jest
-    .spyOn(actions, "handleChartDataResponse")
-    .mockResolvedValue([]);
-  const updateDataMaskSpy = jest
-    .spyOn(dataMaskActions, "updateDataMask")
-    .mockReturnValue({ type: "UPDATE_DATA_MASK" } as ReturnType<
-      typeof dataMaskActions.updateDataMask
-    >);
-  const getQuerySettingsStub = jest
-    .spyOn(exploreUtils, "getQuerySettings")
-    .mockReturnValue([false, () => {}] as unknown as ReturnType<
-      typeof exploreUtils.getQuerySettings
-    >);
+    };
+    const getState = jest.fn(() => state);
+    const dispatchMock = jest.fn();
+    const getChartDataRequestSpy = jest
+      .spyOn(actions, 'getChartDataRequest')
+      .mockResolvedValue({
+        response: { status: 200 } as Response,
+        json: { result: [] },
+      });
+    const handleChartDataResponseSpy = jest
+      .spyOn(actions, 'handleChartDataResponse')
+      .mockResolvedValue([]);
+    const updateDataMaskSpy = jest
+      .spyOn(dataMaskActions, 'updateDataMask')
+      .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
+        typeof dataMaskActions.updateDataMask
+      >);
+    const getQuerySettingsStub = jest
+      .spyOn(exploreUtils, 'getQuerySettings')
+      .mockReturnValue([false, () => {}] as unknown as ReturnType<
+        typeof exploreUtils.getQuerySettings
+      >);
 
-  try {
-    const thunkAction = actions.exploreJSON(
-      formData as QueryFormData,
-      false,
-      undefined,
-      chartKey,
-    );
-    const promise = thunkAction(
-      dispatchMock as unknown as actions.ChartThunkDispatch,
-      getState as unknown as () => actions.RootState,
-      undefined,
-    );
+    try {
+      const thunkAction = actions.exploreJSON(
+        formData as QueryFormData,
+        false,
+        undefined,
+        chartKey,
+      );
+      const promise = thunkAction(
+        dispatchMock as unknown as actions.ChartThunkDispatch,
+        getState as unknown as () => actions.RootState,
+        undefined,
+      );
 
-    expect(abortSpy).not.toHaveBeenCalled();
-    expect(oldController.signal.aborted).toBe(false);
+      expect(abortSpy).not.toHaveBeenCalled();
+      expect(oldController.signal.aborted).toBe(false);
 
-    jest.runOnlyPendingTimers();
+      jest.runOnlyPendingTimers();
 
-    expect(abortSpy).toHaveBeenCalledTimes(1);
-    expect(oldController.signal.aborted).toBe(true);
+      expect(abortSpy).toHaveBeenCalledTimes(1);
+      expect(oldController.signal.aborted).toBe(true);
 
-    await promise;
-  } finally {
-    getChartDataRequestSpy.mockRestore();
-    handleChartDataResponseSpy.mockRestore();
-    updateDataMaskSpy.mockRestore();
-    getQuerySettingsStub.mockRestore();
-    abortSpy.mockRestore();
-    jest.useRealTimers();
-  }
+      await promise;
+    } finally {
+      getChartDataRequestSpy.mockRestore();
+      handleChartDataResponseSpy.mockRestore();
+      updateDataMaskSpy.mockRestore();
+      getQuerySettingsStub.mockRestore();
+      abortSpy.mockRestore();
+      jest.useRealTimers();
+    }
   });
 });
 
-test("should query with the built query", async () => {
-  await runChartActionTest(async () => {
-  const actionThunk = actions.postChartFormData(
-    {} as QueryFormData,
-    false,
-    undefined,
-    undefined,
-  );
-  await actionThunk(
-    dispatch as unknown as actions.ChartThunkDispatch,
-    mockGetState as unknown as () => actions.RootState,
-    undefined,
-  );
+test('should query with the built query', async () => {
+  await runChartActionTest(
+    async () => {
+      const actionThunk = actions.postChartFormData(
+        {} as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
 
-  expect(fetchMock.callHistory.calls(MOCK_URL)).toHaveLength(1);
-  expect(fetchMock.callHistory.calls(MOCK_URL)[0].options.body).toBe(
-    JSON.stringify({
-      some_param: "fake query!",
-      result_type: "full",
-      result_format: "json",
-    }),
-  );
-  expect(dispatch.mock.calls[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
-  }, { v1: true });
-});
-
-test("should handle the bigint without regression", async () => {
-  await runChartActionTest(async () => {
-  getChartDataUriStub.mockRestore();
-  const mockBigIntUrl = "/mock/chart/data/bigint";
-  const expectedBigNumber = "9223372036854775807";
-  fetchMock.post(mockBigIntUrl, `{ "value": ${expectedBigNumber} }`, {
-    name: mockBigIntUrl,
-  });
-  getChartDataUriStub = jest
-    .spyOn(exploreUtils, "getChartDataUri")
-    .mockImplementation(() => URI(mockBigIntUrl));
-
-  const { json } = await actions.getChartDataRequest({
-    formData: fakeMetadata as QueryFormData,
-  });
-
-  expect(fetchMock.callHistory.calls(mockBigIntUrl)).toHaveLength(1);
-  expect((json as JsonObject).value.toString()).toEqual(expectedBigNumber);
-  }, { v1: true });
-});
-
-test("handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled", async () => {
-  await runChartActionTest(async () => {
-  const result = await handleChartDataResponse(
-    { status: 200 } as Response,
-    {
-      result: [
-        1, 2, 3,
-      ] as unknown as actions.ChartDataRequestResponse["json"]["result"],
+      expect(fetchMock.callHistory.calls(MOCK_URL)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(MOCK_URL)[0].options.body).toBe(
+        JSON.stringify({
+          some_param: 'fake query!',
+          result_type: 'full',
+          result_format: 'json',
+        }),
+      );
+      expect(dispatch.mock.calls[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
     },
-    neverRefetch,
+    { v1: true },
   );
-  expect(result).toEqual([1, 2, 3]);
-  }, { v1: true });
 });
 
-test("handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously", async () => {
-  await runChartActionTest(async () => {
-  (
-    global as unknown as { featureFlags: Record<string, boolean> }
-  ).featureFlags = {
-    [FeatureFlag.GlobalAsyncQueries]: true,
-  };
-  const result = await handleChartDataResponse(
-    { status: 200 } as Response,
-    {
-      result: [
-        1, 2, 3,
-      ] as unknown as actions.ChartDataRequestResponse["json"]["result"],
+test('should handle the bigint without regression', async () => {
+  await runChartActionTest(
+    async () => {
+      getChartDataUriStub.mockRestore();
+      const mockBigIntUrl = '/mock/chart/data/bigint';
+      const expectedBigNumber = '9223372036854775807';
+      fetchMock.post(mockBigIntUrl, `{ "value": ${expectedBigNumber} }`, {
+        name: mockBigIntUrl,
+      });
+      getChartDataUriStub = jest
+        .spyOn(exploreUtils, 'getChartDataUri')
+        .mockImplementation(() => URI(mockBigIntUrl));
+
+      const { json } = await actions.getChartDataRequest({
+        formData: fakeMetadata as QueryFormData,
+      });
+
+      expect(fetchMock.callHistory.calls(mockBigIntUrl)).toHaveLength(1);
+      expect((json as JsonObject).value.toString()).toEqual(expectedBigNumber);
     },
-    neverRefetch,
+    { v1: true },
   );
-  expect(result).toEqual([1, 2, 3]);
-  }, { v1: true });
 });
 
-test("handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously", async () => {
-  await runChartActionTest(async () => {
-  (
-    global as unknown as { featureFlags: Record<string, boolean> }
-  ).featureFlags = {
-    [FeatureFlag.GlobalAsyncQueries]: true,
-  };
-  // On 202 the body is the async job ({task_ids}); once the tasks resolve
-  // (stubbed waitForAsyncData invokes the refetch), the re-request returns
-  // the cached data.
-  const refetch = jest
-    .fn()
-    .mockResolvedValue([1, 2, 3] as unknown as QueryData[]);
-  const result = await handleChartDataResponse(
-    { status: 202 } as Response,
-    {
-      task_ids: ["task-1"],
-    } as unknown as actions.ChartDataRequestResponse["json"],
-    refetch,
-  );
-  expect(refetch).toHaveBeenCalledTimes(1);
-  expect(result).toEqual([1, 2, 3]);
-  }, { v1: true });
-});
-
-test("dispatches addWarningToast when a query response includes a warning", async () => {
-  await runChartActionTest(async () => {
-  const warningMessage =
-    "Results truncated to 1,000 rows due to memory constraints.";
-  fetchMock.removeRoute(MOCK_URL);
-  fetchMock.post(
-    `glob:*${MOCK_URL}*`,
-    { result: [{ warning: warningMessage }] },
-    { name: MOCK_URL },
-  );
-  const addWarningToastSpy = jest.spyOn(toastActions, "addWarningToast");
-
-  const actionThunk = actions.postChartFormData(
-    { viz_type: "my_viz" } as QueryFormData,
-    false,
-    undefined,
-    undefined,
-  );
-  await actionThunk(
-    dispatch as unknown as actions.ChartThunkDispatch,
-    mockGetState as unknown as () => actions.RootState,
-    undefined,
-  );
-
-  expect(addWarningToastSpy).toHaveBeenCalledWith(warningMessage, {
-    noDuplicate: true,
-  });
-  addWarningToastSpy.mockRestore();
-  fetchMock.removeRoute(MOCK_URL);
-  setupDefaultFetchMock();
-  }, { v1: true });
-});
-
-test("does not dispatch addWarningToast when no query response has a warning", async () => {
-  await runChartActionTest(async () => {
-  const addWarningToastSpy = jest.spyOn(toastActions, "addWarningToast");
-
-  const actionThunk = actions.postChartFormData(
-    { viz_type: "my_viz" } as QueryFormData,
-    false,
-    undefined,
-    undefined,
-  );
-  await actionThunk(
-    dispatch as unknown as actions.ChartThunkDispatch,
-    mockGetState as unknown as () => actions.RootState,
-    undefined,
-  );
-
-  expect(addWarningToastSpy).not.toHaveBeenCalled();
-  addWarningToastSpy.mockRestore();
-  }, { v1: true });
-});
-
-test("dispatches CHART_UPDATE_FAILED with the array as-is when waitForAsyncData rejects with an array of client error objects", async () => {
-  await runChartActionTest(async () => {
-  const clientErrors = [{ error: "cached-data fetch failed" }];
-  waitForAsyncDataStub.mockImplementation(() => Promise.reject(clientErrors));
-
-  const actionThunk = actions.postChartFormData(
-    { viz_type: "my_viz" } as QueryFormData,
-    false,
-    undefined,
-    undefined,
-  );
-  await actionThunk(
-    dispatch as unknown as actions.ChartThunkDispatch,
-    mockGetState as unknown as () => actions.RootState,
-    undefined,
-  );
-
-  const updateFailedAction = dispatch.mock.calls.find(
-    ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
-  )?.[0];
-  expect(updateFailedAction).toBeDefined();
-  expect(updateFailedAction.queriesResponse).toEqual(clientErrors);
-  }, { v1: true, asyncQuery: true });
-});
-
-test("dispatches CHART_UPDATE_FAILED wrapping the error object when waitForAsyncData rejects with a normalized async-event error", async () => {
-  await runChartActionTest(async () => {
-  const asyncEventError = { error: "query failed", errors: [] };
-  waitForAsyncDataStub.mockImplementation(() =>
-    Promise.reject(asyncEventError),
-  );
-
-  const actionThunk = actions.postChartFormData(
-    { viz_type: "my_viz" } as QueryFormData,
-    false,
-    undefined,
-    undefined,
-  );
-  await actionThunk(
-    dispatch as unknown as actions.ChartThunkDispatch,
-    mockGetState as unknown as () => actions.RootState,
-    undefined,
-  );
-
-  const updateFailedAction = dispatch.mock.calls.find(
-    ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
-  )?.[0];
-  expect(updateFailedAction).toBeDefined();
-  expect(updateFailedAction.queriesResponse).toEqual([asyncEventError]);
-  }, { v1: true, asyncQuery: true });
-});
-
-test("dispatches CHART_UPDATE_FAILED with a parsed error when the pre-cache probe rejects with a raw Response", async () => {
-  await runChartActionTest(async () => {
-  const rawResponse = new Response(
-    JSON.stringify({ message: "validation failed" }),
-    { status: 400, statusText: "Bad Request" },
-  );
-  waitForAsyncDataStub.mockImplementation(() => Promise.reject(rawResponse));
-
-  const actionThunk = actions.postChartFormData(
-    { viz_type: "my_viz" } as QueryFormData,
-    false,
-    undefined,
-    undefined,
-  );
-  await actionThunk(
-    dispatch as unknown as actions.ChartThunkDispatch,
-    mockGetState as unknown as () => actions.RootState,
-    undefined,
-  );
-
-  const updateFailedAction = dispatch.mock.calls.find(
-    ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
-  )?.[0];
-  expect(updateFailedAction).toBeDefined();
-  expect(updateFailedAction.queriesResponse[0].error).toBe("validation failed");
-  }, { v1: true, asyncQuery: true });
-});
-
-test("rejects rather than treating a repeat 202 body as chart data", async () => {
-  await runChartActionTest(async () => {
-  // Regression: the post-completion re-issue is always synchronous, so a
-  // 202 body ({task_ids}) can never reach a consumer as if it were rows.
-  // The route mocked above answers 202 for every POST.
-  await expect(
-    actions.requestChartDataResolved({
-      formData: { viz_type: "my_viz" } as QueryFormData,
-    }),
-  ).rejects.toThrow("unexpected response status (202)");
-
-  // The initial async submit plus exactly one synchronous re-issue.
-  const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
-  expect(history).toHaveLength(2);
-  expect(String(history[1].options.body)).not.toContain("async_mode");
-
-  // The initial async submit carries this tab's id, so the backend can
-  // ref-count the tab as a consumer of the (shared) chart-data task.
-  const initialBody = JSON.parse(String(history[0].options.body));
-  expect(initialBody.async_mode).toBe(true);
-  expect(typeof initialBody.tab_id).toBe("string");
-  expect(initialBody.tab_id.length).toBeGreaterThan(0);
-  }, { v1: true, asyncQuery: true });
-});
-
-test("re-issues synchronously after async completion, reading the warm cache", async () => {
-  await runChartActionTest(async () => {
-  // 1: initial async request → 202; 2: the post-completion re-issue is
-  // synchronous and returns the payload inline (200). No third call and no
-  // second background task.
-  fetchMock.removeRoute(MOCK_URL);
-  let calls = 0;
-  fetchMock.post(
-    `glob:*${MOCK_URL}*`,
-    () => {
-      calls += 1;
-      return calls === 1
-        ? { status: 202, body: { task_ids: ["task-1"] } }
-        : { status: 200, body: { result: [{ data: [1, 2, 3] }] } };
+test('handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
+  await runChartActionTest(
+    async () => {
+      const result = await handleChartDataResponse(
+        { status: 200 } as Response,
+        {
+          result: [
+            1, 2, 3,
+          ] as unknown as actions.ChartDataRequestResponse['json']['result'],
+        },
+        neverRefetch,
+      );
+      expect(result).toEqual([1, 2, 3]);
     },
-    { name: MOCK_URL },
+    { v1: true },
   );
+});
 
-  const actionThunk = actions.postChartFormData(
-    { viz_type: "my_viz" } as QueryFormData,
-    true, // force: the async task computes fresh, the re-issue reads its result
-    undefined,
-    undefined,
+test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
+  await runChartActionTest(
+    async () => {
+      (
+        global as unknown as { featureFlags: Record<string, boolean> }
+      ).featureFlags = {
+        [FeatureFlag.GlobalAsyncQueries]: true,
+      };
+      const result = await handleChartDataResponse(
+        { status: 200 } as Response,
+        {
+          result: [
+            1, 2, 3,
+          ] as unknown as actions.ChartDataRequestResponse['json']['result'],
+        },
+        neverRefetch,
+      );
+      expect(result).toEqual([1, 2, 3]);
+    },
+    { v1: true },
   );
-  await actionThunk(
-    dispatch as unknown as actions.ChartThunkDispatch,
-    mockGetState as unknown as () => actions.RootState,
-    undefined,
-  );
+});
 
-  // Exactly two requests: the async submit, then one synchronous re-issue —
-  // no repeat-202 loop and no duplicate background task.
-  expect(calls).toBe(2);
-  const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
-  expect(history).toHaveLength(2);
-  // Both requests keep force=true — server-side dedup (the force nonce), not
-  // a client-flipped force, is what prevents the re-issue from recomputing.
-  expect(history[0].url).toContain("force=true");
-  expect(history[1].url).toContain("force=true");
-  // The submit opts into async; the re-issue is synchronous (no new GTF task).
-  expect(String(history[0].options.body)).toContain("async_mode");
-  expect(String(history[1].options.body)).not.toContain("async_mode");
-  // The forced-refresh nonce IS the async task's UUID: the submit carries
-  // none (the worker stamps each query with its own task id and records the
-  // marker), and the synchronous re-issue carries the 202's task_ids as the
-  // per-query force nonces, so the server reads back instead of recomputing.
-  const forceCalls = buildV1ChartDataPayloadStub.mock.calls.filter(
-    ([arg]) => (arg as { force?: boolean }).force === true,
+test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
+  await runChartActionTest(
+    async () => {
+      (
+        global as unknown as { featureFlags: Record<string, boolean> }
+      ).featureFlags = {
+        [FeatureFlag.GlobalAsyncQueries]: true,
+      };
+      // On 202 the body is the async job ({task_ids}); once the tasks resolve
+      // (stubbed waitForAsyncData invokes the refetch), the re-request returns
+      // the cached data.
+      const refetch = jest
+        .fn()
+        .mockResolvedValue([1, 2, 3] as unknown as QueryData[]);
+      const result = await handleChartDataResponse(
+        { status: 202 } as Response,
+        {
+          task_ids: ['task-1'],
+        } as unknown as actions.ChartDataRequestResponse['json'],
+        refetch,
+      );
+      expect(refetch).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([1, 2, 3]);
+    },
+    { v1: true },
   );
-  expect(forceCalls).toHaveLength(2);
-  const submitNonces = (forceCalls[0][0] as { queryForceNonces?: string[] })
-    .queryForceNonces;
-  const reissueNonces = (forceCalls[1][0] as { queryForceNonces?: string[] })
-    .queryForceNonces;
-  expect(submitNonces).toBeUndefined();
-  expect(reissueNonces).toEqual(["task-1"]);
+});
 
-  const succeeded = dispatch.mock.calls.find(
-    ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
-  )?.[0];
-  expect(succeeded).toBeDefined();
-  }, { v1: true, asyncQuery: true });
+test('dispatches addWarningToast when a query response includes a warning', async () => {
+  await runChartActionTest(
+    async () => {
+      const warningMessage =
+        'Results truncated to 1,000 rows due to memory constraints.';
+      fetchMock.removeRoute(MOCK_URL);
+      fetchMock.post(
+        `glob:*${MOCK_URL}*`,
+        { result: [{ warning: warningMessage }] },
+        { name: MOCK_URL },
+      );
+      const addWarningToastSpy = jest.spyOn(toastActions, 'addWarningToast');
+
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      expect(addWarningToastSpy).toHaveBeenCalledWith(warningMessage, {
+        noDuplicate: true,
+      });
+      addWarningToastSpy.mockRestore();
+      fetchMock.removeRoute(MOCK_URL);
+      setupDefaultFetchMock();
+    },
+    { v1: true },
+  );
+});
+
+test('does not dispatch addWarningToast when no query response has a warning', async () => {
+  await runChartActionTest(
+    async () => {
+      const addWarningToastSpy = jest.spyOn(toastActions, 'addWarningToast');
+
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      expect(addWarningToastSpy).not.toHaveBeenCalled();
+      addWarningToastSpy.mockRestore();
+    },
+    { v1: true },
+  );
+});
+
+test('dispatches CHART_UPDATE_FAILED with the array as-is when waitForAsyncData rejects with an array of client error objects', async () => {
+  await runChartActionTest(
+    async () => {
+      const clientErrors = [{ error: 'cached-data fetch failed' }];
+      waitForAsyncDataStub.mockImplementation(() =>
+        Promise.reject(clientErrors),
+      );
+
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      const updateFailedAction = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
+      )?.[0];
+      expect(updateFailedAction).toBeDefined();
+      expect(updateFailedAction.queriesResponse).toEqual(clientErrors);
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
+
+test('dispatches CHART_UPDATE_FAILED wrapping the error object when waitForAsyncData rejects with a normalized async-event error', async () => {
+  await runChartActionTest(
+    async () => {
+      const asyncEventError = { error: 'query failed', errors: [] };
+      waitForAsyncDataStub.mockImplementation(() =>
+        Promise.reject(asyncEventError),
+      );
+
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      const updateFailedAction = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
+      )?.[0];
+      expect(updateFailedAction).toBeDefined();
+      expect(updateFailedAction.queriesResponse).toEqual([asyncEventError]);
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
+
+test('dispatches CHART_UPDATE_FAILED with a parsed error when the pre-cache probe rejects with a raw Response', async () => {
+  await runChartActionTest(
+    async () => {
+      const rawResponse = new Response(
+        JSON.stringify({ message: 'validation failed' }),
+        { status: 400, statusText: 'Bad Request' },
+      );
+      waitForAsyncDataStub.mockImplementation(() =>
+        Promise.reject(rawResponse),
+      );
+
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      const updateFailedAction = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
+      )?.[0];
+      expect(updateFailedAction).toBeDefined();
+      expect(updateFailedAction.queriesResponse[0].error).toBe(
+        'validation failed',
+      );
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
+
+test('rejects rather than treating a repeat 202 body as chart data', async () => {
+  await runChartActionTest(
+    async () => {
+      // Regression: the post-completion re-issue is always synchronous, so a
+      // 202 body ({task_ids}) can never reach a consumer as if it were rows.
+      // The route mocked above answers 202 for every POST.
+      await expect(
+        actions.requestChartDataResolved({
+          formData: { viz_type: 'my_viz' } as QueryFormData,
+        }),
+      ).rejects.toThrow('unexpected response status (202)');
+
+      // The initial async submit plus exactly one synchronous re-issue.
+      const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+      expect(history).toHaveLength(2);
+      expect(String(history[1].options.body)).not.toContain('async_mode');
+
+      // The initial async submit carries this tab's id, so the backend can
+      // ref-count the tab as a consumer of the (shared) chart-data task.
+      const initialBody = JSON.parse(String(history[0].options.body));
+      expect(initialBody.async_mode).toBe(true);
+      expect(typeof initialBody.tab_id).toBe('string');
+      expect(initialBody.tab_id.length).toBeGreaterThan(0);
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
+
+test('re-issues synchronously after async completion, reading the warm cache', async () => {
+  await runChartActionTest(
+    async () => {
+      // 1: initial async request → 202; 2: the post-completion re-issue is
+      // synchronous and returns the payload inline (200). No third call and no
+      // second background task.
+      fetchMock.removeRoute(MOCK_URL);
+      let calls = 0;
+      fetchMock.post(
+        `glob:*${MOCK_URL}*`,
+        () => {
+          calls += 1;
+          return calls === 1
+            ? { status: 202, body: { task_ids: ['task-1'] } }
+            : { status: 200, body: { result: [{ data: [1, 2, 3] }] } };
+        },
+        { name: MOCK_URL },
+      );
+
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        true, // force: the async task computes fresh, the re-issue reads its result
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      // Exactly two requests: the async submit, then one synchronous re-issue —
+      // no repeat-202 loop and no duplicate background task.
+      expect(calls).toBe(2);
+      const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+      expect(history).toHaveLength(2);
+      // Both requests keep force=true — server-side dedup (the force nonce), not
+      // a client-flipped force, is what prevents the re-issue from recomputing.
+      expect(history[0].url).toContain('force=true');
+      expect(history[1].url).toContain('force=true');
+      // The submit opts into async; the re-issue is synchronous (no new GTF task).
+      expect(String(history[0].options.body)).toContain('async_mode');
+      expect(String(history[1].options.body)).not.toContain('async_mode');
+      // The forced-refresh nonce IS the async task's UUID: the submit carries
+      // none (the worker stamps each query with its own task id and records the
+      // marker), and the synchronous re-issue carries the 202's task_ids as the
+      // per-query force nonces, so the server reads back instead of recomputing.
+      const forceCalls = buildV1ChartDataPayloadStub.mock.calls.filter(
+        ([arg]) => (arg as { force?: boolean }).force === true,
+      );
+      expect(forceCalls).toHaveLength(2);
+      const submitNonces = (forceCalls[0][0] as { queryForceNonces?: string[] })
+        .queryForceNonces;
+      const reissueNonces = (
+        forceCalls[1][0] as { queryForceNonces?: string[] }
+      ).queryForceNonces;
+      expect(submitNonces).toBeUndefined();
+      expect(reissueNonces).toEqual(['task-1']);
+
+      const succeeded = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
+      )?.[0];
+      expect(succeeded).toBeDefined();
+    },
+    { v1: true, asyncQuery: true },
+  );
 });
 
 const mockDispatch = jest.fn();
 
-test("should dispatch annotationQueryStarted and annotationQuerySuccess on successful query", async () => {
-  await runChartActionTest(async () => {
-  const annotation = {
-    name: "Holidays",
-    annotationType: AnnotationType.Event,
-    sourceType: AnnotationSourceType.Native,
-    color: null,
-    opacity: undefined,
-    style: AnnotationStyle.Solid,
-    width: 1,
-    showMarkers: false,
-    hideLine: false,
-    value: 1,
-    overrides: {
-      time_range: null,
+test('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
+  await runChartActionTest(
+    async () => {
+      const annotation = {
+        name: 'Holidays',
+        annotationType: AnnotationType.Event,
+        sourceType: AnnotationSourceType.Native,
+        color: null,
+        opacity: undefined,
+        style: AnnotationStyle.Solid,
+        width: 1,
+        showMarkers: false,
+        hideLine: false,
+        value: 1,
+        overrides: {
+          time_range: null,
+        },
+        show: true,
+        showLabel: false,
+        titleColumn: '',
+        descriptionColumns: [],
+        timeColumn: '',
+        intervalEndColumn: '',
+      } as AnnotationLayer;
+      const key = undefined;
+
+      const postSpy = jest.spyOn(SupersetClient, 'post');
+      postSpy.mockImplementation(
+        () =>
+          Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
+            typeof SupersetClient.post
+          >,
+      );
+      const buildV1ChartDataPayloadSpy = jest.spyOn(
+        exploreUtils,
+        'buildV1ChartDataPayload',
+      );
+
+      const queryFunc = actions.runAnnotationQuery({ annotation, key });
+      await queryFunc(
+        mockDispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      expect(buildV1ChartDataPayloadSpy).toHaveBeenCalledWith({
+        formData: {
+          granularity: 'Date',
+          granularity_sqla: 'Date',
+          time_grain_sqla: 'P1D',
+        },
+        force: false,
+        resultFormat: 'json',
+        resultType: 'full',
+      });
     },
-    show: true,
-    showLabel: false,
-    titleColumn: "",
-    descriptionColumns: [],
-    timeColumn: "",
-    intervalEndColumn: "",
-  } as AnnotationLayer;
-  const key = undefined;
-
-  const postSpy = jest.spyOn(SupersetClient, "post");
-  postSpy.mockImplementation(
-    () =>
-      Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
-        typeof SupersetClient.post
-      >,
+    { clearMocks: true },
   );
-  const buildV1ChartDataPayloadSpy = jest.spyOn(
-    exploreUtils,
-    "buildV1ChartDataPayload",
-  );
-
-  const queryFunc = actions.runAnnotationQuery({ annotation, key });
-  await queryFunc(
-    mockDispatch as unknown as actions.ChartThunkDispatch,
-    mockGetState as unknown as () => actions.RootState,
-    undefined,
-  );
-
-  expect(buildV1ChartDataPayloadSpy).toHaveBeenCalledWith({
-    formData: {
-      granularity: "Date",
-      granularity_sqla: "Date",
-      time_grain_sqla: "P1D",
-    },
-    force: false,
-    resultFormat: "json",
-    resultType: "full",
-  });
-  }, { clearMocks: true });
 });
 
-test("should use the timeout from arguments when given", async () => {
+test('should use the timeout from arguments when given', async () => {
   jest.clearAllMocks();
-  const postSpy = jest.spyOn(SupersetClient, "post");
+  const postSpy = jest.spyOn(SupersetClient, 'post');
   postSpy.mockImplementation(
     () =>
       Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
@@ -776,14 +822,14 @@ test("should use the timeout from arguments when given", async () => {
       >,
   );
   const timeout = 10; // Set the timeout value here
-  const formData: Partial<QueryFormData> = { datasource: "table__1" }; // Set the formData here
-  const key = "chartKey"; // Set the chart key here
+  const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
+  const key = 'chartKey'; // Set the chart key here
 
   const store = mockStore(initialState);
   await store.dispatch(
     actions.runAnnotationQuery({
       annotation: {
-        value: "annotationValue",
+        value: 'annotationValue',
         sourceType: AnnotationSourceType.Native,
         overrides: {},
       } as unknown as AnnotationLayer,
@@ -798,30 +844,30 @@ test("should use the timeout from arguments when given", async () => {
     url: expect.any(String) as string,
     signal: expect.any(AbortSignal) as AbortSignal,
     timeout: timeout * 1000,
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
     jsonPayload: expect.any(Object) as JsonObject,
   };
 
   expect(postSpy).toHaveBeenCalledWith(expectedPayload);
 });
 
-test("should use the timeout from common.conf when not passed as an argument", async () => {
+test('should use the timeout from common.conf when not passed as an argument', async () => {
   jest.clearAllMocks();
-  const postSpy = jest.spyOn(SupersetClient, "post");
+  const postSpy = jest.spyOn(SupersetClient, 'post');
   postSpy.mockImplementation(
     () =>
       Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
         typeof SupersetClient.post
       >,
   );
-  const formData: Partial<QueryFormData> = { datasource: "table__1" }; // Set the formData here
-  const key = "chartKey"; // Set the chart key here
+  const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
+  const key = 'chartKey'; // Set the chart key here
 
   const store = mockStore(initialState);
   await store.dispatch(
     actions.runAnnotationQuery({
       annotation: {
-        value: "annotationValue",
+        value: 'annotationValue',
         sourceType: AnnotationSourceType.Native,
         overrides: {},
       } as unknown as AnnotationLayer,
@@ -841,7 +887,7 @@ test("should use the timeout from common.conf when not passed as an argument", a
           SUPERSET_WEBSERVER_TIMEOUT: number;
         }
       ).SUPERSET_WEBSERVER_TIMEOUT * 1000,
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
     jsonPayload: expect.any(Object) as JsonObject,
   };
 
@@ -851,13 +897,13 @@ test("should use the timeout from common.conf when not passed as an argument", a
 // A chart whose form_data the API withheld (the viewer cannot read it) has no
 // datasource. Querying it used to throw while building the query context, after
 // the chart was already marked as loading, so it spun forever.
-test("exploreJSON fails a chart without a datasource with an access error instead of hanging", async () => {
+test('exploreJSON fails a chart without a datasource with an access error instead of hanging', async () => {
   const dispatchMock = jest.fn();
   const getState = jest.fn(() => ({
     charts: {},
     common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
   }));
-  const getChartDataRequestSpy = jest.spyOn(actions, "getChartDataRequest");
+  const getChartDataRequestSpy = jest.spyOn(actions, 'getChartDataRequest');
 
   try {
     const result = await actions.exploreJSON(
@@ -878,14 +924,14 @@ test("exploreJSON fails a chart without a datasource with an access error instea
     expect(action.type).toBe(actions.CHART_UPDATE_FAILED);
     expect(action.key).toBe(9);
     expect(action.queriesResponse[0].errors[0].error_type).toBe(
-      "CHART_SECURITY_ACCESS_ERROR",
+      'CHART_SECURITY_ACCESS_ERROR',
     );
   } finally {
     getChartDataRequestSpy.mockRestore();
   }
 });
 
-test("exploreJSON aborts a query already running for a chart that turns out to have no datasource", async () => {
+test('exploreJSON aborts a query already running for a chart that turns out to have no datasource', async () => {
   const pending = new AbortController();
   const dispatchMock = jest.fn();
   const getState = jest.fn(() => ({

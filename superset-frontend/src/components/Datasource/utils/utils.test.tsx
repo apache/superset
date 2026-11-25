@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { tn } from "@apache-superset/core/translation";
-import { updateColumns } from ".";
+import { tn } from '@apache-superset/core/translation';
+import { updateColumns } from '.';
 
 let addSuccessToast: jest.Mock;
 
@@ -26,7 +26,7 @@ beforeEach(() => {
   addSuccessToast = jest.fn();
 });
 
-test("adds new columns when prevCols is empty", () => {
+test('adds new columns when prevCols is empty', () => {
   interface Column {
     column_name: string;
     type: string;
@@ -35,11 +35,11 @@ test("adds new columns when prevCols is empty", () => {
 
   const prevCols: Column[] = [];
   const newCols = [
-    { column_name: "col1", type: "string", is_dttm: false },
-    { column_name: "col2", type: "number", is_dttm: true },
+    { column_name: 'col1', type: 'string', is_dttm: false },
+    { column_name: 'col2', type: 'number', is_dttm: true },
   ];
   const result = updateColumns(prevCols, newCols, addSuccessToast);
-  expect(result.added.sort()).toEqual(["col1", "col2"].sort());
+  expect(result.added.sort()).toEqual(['col1', 'col2'].sort());
   expect(result.modified).toEqual([]);
   expect(result.removed).toEqual([]);
   expect(result.finalColumns).toHaveLength(2);
@@ -47,28 +47,28 @@ test("adds new columns when prevCols is empty", () => {
   expect(addSuccessToast).toHaveBeenCalledTimes(1);
   expect(addSuccessToast).toHaveBeenCalledWith(
     tn(
-      "Added 1 new column to the dataset",
-      "Added %s new columns to the dataset",
+      'Added 1 new column to the dataset',
+      'Added %s new columns to the dataset',
       2,
       2,
     ),
   );
 });
 
-test("modifies columns when type or is_dttm changes", () => {
+test('modifies columns when type or is_dttm changes', () => {
   const prevCols = [
-    { column_name: "col1", type: "string", is_dttm: false },
-    { column_name: "col2", type: "number", is_dttm: false },
+    { column_name: 'col1', type: 'string', is_dttm: false },
+    { column_name: 'col2', type: 'number', is_dttm: false },
   ];
   const newCols = [
     // col1 unchanged
-    { column_name: "col1", type: "string", is_dttm: false },
+    { column_name: 'col1', type: 'string', is_dttm: false },
     // col2 modified (type changed)
-    { column_name: "col2", type: "float", is_dttm: false },
+    { column_name: 'col2', type: 'float', is_dttm: false },
   ];
   const result = updateColumns(prevCols, newCols, addSuccessToast);
   expect(result.added).toEqual([]);
-  expect(result.modified).toEqual(["col2"]);
+  expect(result.modified).toEqual(['col2']);
   // No columns removed
   expect(result.removed).toEqual([]);
   // Final columns: first is unchanged, second is updated
@@ -79,32 +79,32 @@ test("modifies columns when type or is_dttm changes", () => {
       type: string;
       is_dttm: boolean;
     }[]
-  ).find((c) => c.column_name === "col2");
-  expect(updatedCol2?.type).toBe("float");
+  ).find(c => c.column_name === 'col2');
+  expect(updatedCol2?.type).toBe('float');
   // Modified toast should be fired
   expect(addSuccessToast).toHaveBeenCalledTimes(1);
   expect(addSuccessToast).toHaveBeenCalledWith(
     tn(
-      "Modified 1 column in the dataset",
-      "Modified %s columns in the dataset",
+      'Modified 1 column in the dataset',
+      'Modified %s columns in the dataset',
       1,
       1,
     ),
   );
 });
 
-test("removes columns not present in newCols", () => {
+test('removes columns not present in newCols', () => {
   const prevCols = [
-    { column_name: "col1", type: "string", is_dttm: false },
-    { column_name: "col2", type: "number", is_dttm: true },
+    { column_name: 'col1', type: 'string', is_dttm: false },
+    { column_name: 'col2', type: 'number', is_dttm: true },
   ];
   const newCols = [
     // Only col2 is present
-    { column_name: "col2", type: "number", is_dttm: true },
+    { column_name: 'col2', type: 'number', is_dttm: true },
   ];
   const result = updateColumns(prevCols, newCols, addSuccessToast);
   // col1 should be marked as removed
-  expect(result.removed).toEqual(["col1"]);
+  expect(result.removed).toEqual(['col1']);
   expect(result.added).toEqual([]);
   expect(result.modified).toEqual([]);
   expect(result.finalColumns).toHaveLength(1);
@@ -112,57 +112,57 @@ test("removes columns not present in newCols", () => {
   expect(addSuccessToast).toHaveBeenCalledTimes(1);
   expect(addSuccessToast).toHaveBeenCalledWith(
     tn(
-      "Removed 1 column from the dataset",
-      "Removed %s columns from the dataset",
+      'Removed 1 column from the dataset',
+      'Removed %s columns from the dataset',
       1,
       1,
     ),
   );
 });
 
-test("handles combined additions, modifications, and removals", () => {
+test('handles combined additions, modifications, and removals', () => {
   const prevCols = [
-    { column_name: "col1", type: "string", is_dttm: false },
-    { column_name: "col2", type: "number", is_dttm: false },
-    { column_name: "col3", type: "number", is_dttm: false },
+    { column_name: 'col1', type: 'string', is_dttm: false },
+    { column_name: 'col2', type: 'number', is_dttm: false },
+    { column_name: 'col3', type: 'number', is_dttm: false },
   ];
   const newCols = [
     // col1 modified
-    { column_name: "col1", type: "string", is_dttm: true },
+    { column_name: 'col1', type: 'string', is_dttm: true },
     // col2 unchanged
-    { column_name: "col2", type: "number", is_dttm: false },
+    { column_name: 'col2', type: 'number', is_dttm: false },
     // col4 is a new column
-    { column_name: "col4", type: "boolean", is_dttm: false },
+    { column_name: 'col4', type: 'boolean', is_dttm: false },
   ];
   const result = updateColumns(prevCols, newCols, addSuccessToast);
-  expect(result.added).toEqual(["col4"]);
-  expect(result.modified).toEqual(["col1"]);
+  expect(result.added).toEqual(['col4']);
+  expect(result.modified).toEqual(['col1']);
   // col3 is removed since it is missing in newCols and has no expression
-  expect(result.removed).toEqual(["col3"]);
+  expect(result.removed).toEqual(['col3']);
   expect(result.finalColumns).toHaveLength(3);
   // Three types of changes should fire three separate toasts
   expect(addSuccessToast).toHaveBeenCalledTimes(3);
   expect(addSuccessToast.mock.calls).toEqual([
     [
       tn(
-        "Modified 1 column in the dataset",
-        "Modified %s columns in the dataset",
+        'Modified 1 column in the dataset',
+        'Modified %s columns in the dataset',
         1,
         1,
       ),
     ],
     [
       tn(
-        "Removed 1 column from the dataset",
-        "Removed %s columns from the dataset",
+        'Removed 1 column from the dataset',
+        'Removed %s columns from the dataset',
         1,
         1,
       ),
     ],
     [
       tn(
-        "Added 1 new column to the dataset",
-        "Added %s new columns to the dataset",
+        'Added 1 new column to the dataset',
+        'Added %s new columns to the dataset',
         1,
         1,
       ),
@@ -170,26 +170,26 @@ test("handles combined additions, modifications, and removals", () => {
   ]);
 });
 
-test("should not remove columns with expressions", () => {
+test('should not remove columns with expressions', () => {
   const prevCols = [
-    { column_name: "col1", type: "string", is_dttm: false },
-    { column_name: "col2", type: "number", is_dttm: false },
+    { column_name: 'col1', type: 'string', is_dttm: false },
+    { column_name: 'col2', type: 'number', is_dttm: false },
     {
-      column_name: "col3",
-      type: "number",
+      column_name: 'col3',
+      type: 'number',
       is_dttm: false,
-      expression: "expr",
+      expression: 'expr',
     },
   ];
   const newCols = [
     // col1 modified
-    { column_name: "col1", type: "string", is_dttm: true },
+    { column_name: 'col1', type: 'string', is_dttm: true },
     // col2 unchanged
-    { column_name: "col2", type: "number", is_dttm: false },
+    { column_name: 'col2', type: 'number', is_dttm: false },
   ];
   const result = updateColumns(prevCols, newCols, addSuccessToast);
   expect(result.added).toEqual([]);
-  expect(result.modified).toEqual(["col1"]);
+  expect(result.modified).toEqual(['col1']);
   // col3 is not removed since it has an expression
   expect(result.removed).toEqual([]);
   expect(result.finalColumns).toHaveLength(3);
@@ -198,8 +198,8 @@ test("should not remove columns with expressions", () => {
   expect(addSuccessToast.mock.calls).toEqual([
     [
       tn(
-        "Modified 1 column in the dataset",
-        "Modified %s columns in the dataset",
+        'Modified 1 column in the dataset',
+        'Modified %s columns in the dataset',
         1,
         1,
       ),

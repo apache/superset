@@ -16,28 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import rison from "rison";
-import fetchMock from "fetch-mock";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import rison from 'rison';
+import fetchMock from 'fetch-mock';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
-} from "spec/helpers/testing-library";
-import { api } from "src/hooks/apiResources/queryApi";
-import { useTables } from "./tables";
+} from 'spec/helpers/testing-library';
+import { api } from 'src/hooks/apiResources/queryApi';
+import { useTables } from './tables';
 
 const fakeApiResult = {
   count: 2,
   result: [
     {
       id: 1,
-      name: "fake api result1",
-      label: "fake api label1",
+      name: 'fake api result1',
+      label: 'fake api label1',
     },
     {
       id: 2,
-      name: "fake api result2",
-      label: "fake api label2",
+      name: 'fake api result2',
+      label: 'fake api label2',
     },
   ],
 };
@@ -47,18 +47,18 @@ const fakeHasMoreApiResult = {
   result: [
     {
       id: 1,
-      name: "fake api result1",
-      label: "fake api label1",
+      name: 'fake api result1',
+      label: 'fake api label1',
     },
     {
       id: 2,
-      name: "fake api result2",
-      label: "fake api label2",
+      name: 'fake api result2',
+      label: 'fake api label2',
     },
   ],
 };
 
-const fakeSchemaApiResult = ["schema1", "schema2"];
+const fakeSchemaApiResult = ['schema1', 'schema2'];
 
 const expectedData = {
   options: fakeApiResult.result,
@@ -75,9 +75,9 @@ beforeEach(() => {
   store.dispatch(api.util.resetApiState());
 });
 
-test("returns api response mapping json options", async () => {
-  const expectDbId = "db1";
-  const expectedSchema = "schema1";
+test('returns api response mapping json options', async () => {
+  const expectDbId = 'db1';
+  const expectedSchema = 'schema1';
   const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
   const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
   const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
@@ -124,9 +124,9 @@ test("returns api response mapping json options", async () => {
   expect(result.current.data).toEqual(expectedData);
 });
 
-test("skips the deprecated schema option", async () => {
-  const expectDbId = "db1";
-  const unexpectedSchema = "invalid schema";
+test('skips the deprecated schema option', async () => {
+  const expectDbId = 'db1';
+  const unexpectedSchema = 'invalid schema';
   const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
   const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
   const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
@@ -161,9 +161,9 @@ test("skips the deprecated schema option", async () => {
   ).toBe(0);
 });
 
-test("returns hasMore when total is larger than result size", async () => {
-  const expectDbId = "db1";
-  const expectedSchema = "schema2";
+test('returns hasMore when total is larger than result size', async () => {
+  const expectDbId = 'db1';
+  const expectedSchema = 'schema2';
   const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
   fetchMock.get(tableApiRoute, fakeHasMoreApiResult, { name: tableApiRoute });
   fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
@@ -192,17 +192,17 @@ test("returns hasMore when total is larger than result size", async () => {
   expect(result.current.data).toEqual(expectedHasMoreData);
 });
 
-test("fetches tables separately for catalogs with the same schema", async () => {
-  const dbId = "db1";
-  const schema = "main";
+test('fetches tables separately for catalogs with the same schema', async () => {
+  const dbId = 'db1';
+  const schema = 'main';
   const tableApiRoute = `glob:*/api/v1/database/${dbId}/tables/?q=*`;
   const firstResult = {
     count: 1,
     result: [
       {
-        value: "demo.metrics.main.download_session",
-        label: "demo.metrics.main.download_session",
-        type: "table",
+        value: 'demo.metrics.main.download_session',
+        label: 'demo.metrics.main.download_session',
+        type: 'table',
       },
     ],
   };
@@ -210,14 +210,14 @@ test("fetches tables separately for catalogs with the same schema", async () => 
     count: 1,
     result: [
       {
-        value: "shared.main.thumb_report",
-        label: "shared.main.thumb_report",
-        type: "table",
+        value: 'shared.main.thumb_report',
+        label: 'shared.main.thumb_report',
+        type: 'table',
       },
     ],
   };
   fetchMock.get(tableApiRoute, ({ url }) =>
-    url.includes("shared") ? secondResult : firstResult,
+    url.includes('shared') ? secondResult : firstResult,
   );
   fetchMock.get(`glob:*/api/v1/database/${dbId}/schemas/*`, {
     result: [schema],
@@ -226,7 +226,7 @@ test("fetches tables separately for catalogs with the same schema", async () => 
   const { result, rerender } = renderHook(
     ({ catalog }) => useTables({ dbId, catalog, schema }),
     {
-      initialProps: { catalog: "demo%2Emetrics with space:tag" },
+      initialProps: { catalog: 'demo%2Emetrics with space:tag' },
       wrapper: createWrapper({ useRedux: true, store }),
     },
   );
@@ -237,24 +237,24 @@ test("fetches tables separately for catalogs with the same schema", async () => 
     rison.decode(
       new URL(
         fetchMock.callHistory.calls(tableApiRoute)[0].url,
-      ).searchParams.get("q") ?? "",
+      ).searchParams.get('q') ?? '',
     ),
   ).toEqual({
     force: false,
     schema_name: schema,
-    catalog_name: "demo%2Emetrics with space:tag",
+    catalog_name: 'demo%2Emetrics with space:tag',
   });
 
-  rerender({ catalog: "shared" });
+  rerender({ catalog: 'shared' });
   await waitFor(() =>
     expect(result.current.data?.options).toEqual(secondResult.result),
   );
   expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2);
 });
 
-test("returns cached data without api request", async () => {
-  const expectDbId = "db1";
-  const expectedSchema = "schema1";
+test('returns cached data without api request', async () => {
+  const expectDbId = 'db1';
+  const expectedSchema = 'schema1';
   const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
   fetchMock.get(tableApiRoute, fakeApiResult);
   fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
@@ -278,13 +278,13 @@ test("returns cached data without api request", async () => {
     },
   );
   console.log(
-    "Called URLs:",
-    fetchMock.callHistory.calls().map((call) => call.url),
+    'Called URLs:',
+    fetchMock.callHistory.calls().map(call => call.url),
   );
 
   // Add a catch-all mock to see if any unmocked requests are being made
-  fetchMock.route("*", (url) => {
-    console.log("Unmocked request to:", url);
+  fetchMock.route('*', url => {
+    console.log('Unmocked request to:', url);
     return 404;
   });
   await waitFor(() =>
@@ -295,8 +295,8 @@ test("returns cached data without api request", async () => {
   expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
 });
 
-test("fetches tables without schema when supportsSchemas is false", async () => {
-  const expectDbId = "db1";
+test('fetches tables without schema when supportsSchemas is false', async () => {
+  const expectDbId = 'db1';
   const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
   fetchMock.get(tableApiRoute, fakeApiResult);
   fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
@@ -324,9 +324,9 @@ test("fetches tables without schema when supportsSchemas is false", async () => 
   expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
 });
 
-test("returns refreshed data after expires", async () => {
-  const expectDbId = "db1";
-  const expectedSchema = "schema1";
+test('returns refreshed data after expires', async () => {
+  const expectDbId = 'db1';
+  const expectedSchema = 'schema1';
   const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
   fetchMock.get(
     tableApiRoute,
@@ -359,7 +359,7 @@ test("returns refreshed data after expires", async () => {
   await waitFor(() => expect(result.current.data).toEqual(expectedData));
   expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
 
-  rerender({ schema: "schema2" });
+  rerender({ schema: 'schema2' });
   await waitFor(() => expect(result.current.data).toEqual(expectedHasMoreData));
   expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2);
 
@@ -369,7 +369,7 @@ test("returns refreshed data after expires", async () => {
 
   // clean up cache
   act(() => {
-    store.dispatch(api.util.invalidateTags(["Tables"]));
+    store.dispatch(api.util.invalidateTags(['Tables']));
   });
 
   await waitFor(() =>
@@ -377,7 +377,7 @@ test("returns refreshed data after expires", async () => {
   );
   await waitFor(() => expect(result.current.data).toEqual(expectedData));
 
-  rerender({ schema: "schema2" });
+  rerender({ schema: 'schema2' });
   await waitFor(() => expect(result.current.data).toEqual(expectedHasMoreData));
   expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(4);
 
@@ -386,19 +386,19 @@ test("returns refreshed data after expires", async () => {
   expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(4);
 });
 
-test("fires callbacks on invalidation refetch even after a failed force refresh (OAuth2 refresh button)", async () => {
+test('fires callbacks on invalidation refetch even after a failed force refresh (OAuth2 refresh button)', async () => {
   // Reviewer regression: serializeQueryArgs strips forceRefresh, so the
   // subscribed query and the lazy force-refresh trigger share one cache entry.
   // A failed refresh-button click (forceRefresh:true) leaves the entry's
   // originalArgs.forceRefresh sticky-true. The old `!originalArgs.forceRefresh`
   // guard then suppressed onSuccess/onError on the later invalidation refetch,
   // so TableSelector's banner stayed stuck. The ref-based flag must fire them.
-  const expectDbId = "db1";
-  const expectedSchema = "schema1";
+  const expectDbId = 'db1';
+  const expectedSchema = 'schema1';
   const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
-  let mode: "ok" | "fail" = "ok";
+  let mode: 'ok' | 'fail' = 'ok';
   fetchMock.get(tableApiRoute, () =>
-    mode === "fail" ? { status: 500, body: {} } : fakeApiResult,
+    mode === 'fail' ? { status: 500, body: {} } : fakeApiResult,
   );
   fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
     count: 0,
@@ -431,7 +431,7 @@ test("fires callbacks on invalidation refetch even after a failed force refresh 
 
   // User clicks the refresh button (force refresh) and hits the OAuth2 wall.
   // This makes the shared entry's originalArgs.forceRefresh sticky-true.
-  mode = "fail";
+  mode = 'fail';
   act(() => {
     result.current.refetch();
   });
@@ -439,9 +439,9 @@ test("fires callbacks on invalidation refetch even after a failed force refresh 
 
   // User authorizes: invalidateTags refetches the subscribed query, which now
   // succeeds. onSuccess must fire (isRefetched=false: not a manual refresh).
-  mode = "ok";
+  mode = 'ok';
   act(() => {
-    store.dispatch(api.util.invalidateTags(["Tables"]));
+    store.dispatch(api.util.invalidateTags(['Tables']));
   });
   await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(2));
   expect(onSuccess).toHaveBeenLastCalledWith(expectedData, false);

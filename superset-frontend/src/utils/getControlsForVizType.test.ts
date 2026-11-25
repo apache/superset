@@ -17,32 +17,32 @@
  * under the License.
  */
 
-import { getChartControlPanelRegistry, JsonObject } from "@superset-ui/core";
-import getControlsForVizType from "src/utils/getControlsForVizType";
+import { getChartControlPanelRegistry, JsonObject } from '@superset-ui/core';
+import getControlsForVizType from 'src/utils/getControlsForVizType';
 
 const fakePluginControls: JsonObject = {
   controlPanelSections: [
     {
-      label: "Fake Control Panel Sections",
+      label: 'Fake Control Panel Sections',
       expanded: true,
       controlSetRows: [
         [
           {
-            name: "y_axis_bounds",
+            name: 'y_axis_bounds',
             config: {
-              type: "BoundsControl",
-              label: "Value bounds",
+              type: 'BoundsControl',
+              label: 'Value bounds',
               default: [null, null],
-              description: "Value bounds for the y axis",
+              description: 'Value bounds for the y axis',
             },
           },
         ],
         [
           {
-            name: "adhoc_filters",
+            name: 'adhoc_filters',
             config: {
-              type: "AdhocFilterControl",
-              label: "Fake Filters",
+              type: 'AdhocFilterControl',
+              label: 'Fake Filters',
               default: null,
             },
           },
@@ -50,15 +50,15 @@ const fakePluginControls: JsonObject = {
       ],
     },
     {
-      label: "Fake Control Panel Sections 2",
+      label: 'Fake Control Panel Sections 2',
       expanded: true,
       controlSetRows: [
         [
           {
-            name: "column_collection",
+            name: 'column_collection',
             config: {
-              type: "CollectionControl",
-              label: "Fake Collection Control",
+              type: 'CollectionControl',
+              label: 'Fake Collection Control',
             },
           },
         ],
@@ -69,30 +69,30 @@ const fakePluginControls: JsonObject = {
 
 beforeEach(() => {
   getChartControlPanelRegistry().registerValue(
-    "chart_controls_inventory_fake",
+    'chart_controls_inventory_fake',
     fakePluginControls,
   );
 });
 
-test("returns a map of the controls", () => {
+test('returns a map of the controls', () => {
   expect(
-    JSON.stringify(getControlsForVizType("chart_controls_inventory_fake")),
+    JSON.stringify(getControlsForVizType('chart_controls_inventory_fake')),
   ).toEqual(
     JSON.stringify({
       y_axis_bounds: {
-        type: "BoundsControl",
-        label: "Value bounds",
+        type: 'BoundsControl',
+        label: 'Value bounds',
         default: [null, null],
-        description: "Value bounds for the y axis",
+        description: 'Value bounds for the y axis',
       },
       adhoc_filters: {
-        type: "AdhocFilterControl",
-        label: "Fake Filters",
+        type: 'AdhocFilterControl',
+        label: 'Fake Filters',
         default: null,
       },
       column_collection: {
-        type: "CollectionControl",
-        label: "Fake Collection Control",
+        type: 'CollectionControl',
+        label: 'Fake Collection Control',
       },
     }),
   );

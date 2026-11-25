@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from "@superset-ui/core";
-import logger from "src/middleware/loggerMiddleware";
-import { LOG_EVENT } from "src/logger/actions";
+import { SupersetClient } from '@superset-ui/core';
+import logger from 'src/middleware/loggerMiddleware';
+import { LOG_EVENT } from 'src/logger/actions';
 import {
   LOG_ACTIONS_LOAD_CHART,
   LOG_ACTIONS_SPA_NAVIGATION,
-} from "src/logger/LogUtils";
-import { Dispatch } from "redux";
+} from 'src/logger/LogUtils';
+import { Dispatch } from 'redux';
 
 interface LogEventAction {
   type: typeof LOG_EVENT;
@@ -41,7 +41,7 @@ const mockStore = {
     dashboardInfo: {
       id: dashboardId,
     },
-    impressionId: "impression_id",
+    impressionId: 'impression_id',
   }),
   dispatch: ((action: unknown) => action) as Dispatch,
 };
@@ -50,7 +50,7 @@ const action: LogEventAction = {
   payload: {
     eventName: LOG_ACTIONS_LOAD_CHART,
     eventData: {
-      key: "value",
+      key: 'value',
       start_offset: 100,
     },
   },
@@ -66,7 +66,7 @@ afterAll(() => {
 let postStub: jest.SpyInstance;
 beforeEach(() => {
   postStub = jest
-    .spyOn(SupersetClient, "post")
+    .spyOn(SupersetClient, 'post')
     .mockImplementation(() => undefined as any);
 });
 afterEach(() => {
@@ -75,29 +75,29 @@ afterEach(() => {
   jest.setSystemTime(0);
 });
 
-test("should listen to LOG_EVENT action type", () => {
+test('should listen to LOG_EVENT action type', () => {
   const action1 = {
-    type: "ACTION_TYPE",
+    type: 'ACTION_TYPE',
     payload: {
-      some: "data",
+      some: 'data',
     },
   };
   (logger as Function)(mockStore)(next)(action1);
   expect(next.mock.calls.length).toBe(1);
 });
 
-test("should POST an event to /log/ when called", () => {
+test('should POST an event to /log/ when called', () => {
   (logger as Function)(mockStore)(next)(action);
   expect(next.mock.calls.length).toBe(0);
 
   jest.advanceTimersByTime(2000);
   expect(postStub.mock.calls.length).toBe(1);
-  expect(postStub.mock.calls[0][0].endpoint).toMatch("/log/");
+  expect(postStub.mock.calls[0][0].endpoint).toMatch('/log/');
 });
 
-test("should include ts, start_offset, event_name, impression_id, source, and source_id in every event", () => {
+test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
   // Set window.location to include /dashboard/ so the middleware adds dashboard context
-  const locationSpy = jest.spyOn(window, "location", "get").mockReturnValue({
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
     ...window.location,
     href: `http://localhost/dashboard/${dashboardId}/`,
   } as Location);
@@ -122,21 +122,21 @@ test("should include ts, start_offset, event_name, impression_id, source, and so
       key: mockEventdata.key,
       event_name: mockEventname,
       impression_id: mockStore.getState().impressionId,
-      source: "dashboard",
+      source: 'dashboard',
       source_id: mockStore.getState().dashboardInfo.id,
-      event_type: "timing",
+      event_type: 'timing',
       dashboard_id: mockStore.getState().dashboardInfo.id,
     });
 
-    expect(typeof events[0].ts).toBe("number");
-    expect(typeof events[0].start_offset).toBe("number");
+    expect(typeof events[0].ts).toBe('number');
+    expect(typeof events[0].start_offset).toBe('number');
   } finally {
     locationSpy.mockRestore();
   }
 });
 
 const getSourceForPath = (href: string): string | undefined => {
-  const locationSpy = jest.spyOn(window, "location", "get").mockReturnValue({
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
     ...window.location,
     href,
   } as Location);
@@ -151,21 +151,21 @@ const getSourceForPath = (href: string): string | undefined => {
 };
 
 test.each([
-  ["/dashboard/123/embedded/", "embedded_dashboard"],
-  ["/embedded/abc-def-uuid/", "embedded_dashboard"],
+  ['/dashboard/123/embedded/', 'embedded_dashboard'],
+  ['/embedded/abc-def-uuid/', 'embedded_dashboard'],
   // React Router also matches these routes without a trailing slash
-  ["/dashboard/123/embedded", "embedded_dashboard"],
-  ["/embedded/abc-def-uuid", "embedded_dashboard"],
-  ["/dashboard/123/", "dashboard"],
+  ['/dashboard/123/embedded', 'embedded_dashboard'],
+  ['/embedded/abc-def-uuid', 'embedded_dashboard'],
+  ['/dashboard/123/', 'dashboard'],
   // slug is literally "embedded" - must not be treated as embedded
-  ["/dashboard/embedded/", "dashboard"],
+  ['/dashboard/embedded/', 'dashboard'],
   // "embedded" must be a full path segment, not a prefix
-  ["/dashboard/123/embeddedXYZ/", "dashboard"],
+  ['/dashboard/123/embeddedXYZ/', 'dashboard'],
 ])('classifies %s as source "%s"', (path, expectedSource) => {
   expect(getSourceForPath(`http://localhost${path}`)).toBe(expectedSource);
 });
 
-test("should debounce a few log requests to one", () => {
+test('should debounce a few log requests to one', () => {
   (logger as Function)(mockStore)(next)(action);
   (logger as Function)(mockStore)(next)(action);
   (logger as Function)(mockStore)(next)(action);
@@ -175,9 +175,9 @@ test("should debounce a few log requests to one", () => {
   expect(postStub.mock.calls[0][0].postPayload.events).toHaveLength(3);
 });
 
-test("should use navigator.sendBeacon if it exists", () => {
+test('should use navigator.sendBeacon if it exists', () => {
   const beaconMock = jest.fn();
-  Object.defineProperty(navigator, "sendBeacon", {
+  Object.defineProperty(navigator, 'sendBeacon', {
     writable: true,
     value: beaconMock,
   });
@@ -188,16 +188,16 @@ test("should use navigator.sendBeacon if it exists", () => {
 
   expect(beaconMock.mock.calls.length).toBe(1);
   const endpoint = beaconMock.mock.calls[0][0];
-  expect(endpoint).toMatch("/log/");
+  expect(endpoint).toMatch('/log/');
 });
 
-test("should pass a guest token to sendBeacon if present", () => {
+test('should pass a guest token to sendBeacon if present', () => {
   const beaconMock = jest.fn();
-  Object.defineProperty(navigator, "sendBeacon", {
+  Object.defineProperty(navigator, 'sendBeacon', {
     writable: true,
     value: beaconMock,
   });
-  SupersetClient.configure({ guestToken: "token" });
+  SupersetClient.configure({ guestToken: 'token' });
 
   (logger as Function)(mockStore)(next)(action);
   expect(beaconMock.mock.calls.length).toBe(0);
@@ -205,5 +205,5 @@ test("should pass a guest token to sendBeacon if present", () => {
   expect(beaconMock.mock.calls.length).toBe(1);
 
   const formData = beaconMock.mock.calls[0][1];
-  expect(formData.getAll("guest_token")[0]).toMatch("token");
+  expect(formData.getAll('guest_token')[0]).toMatch('token');
 });

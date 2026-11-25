@@ -16,115 +16,115 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement } from "react";
+import { isValidElement } from 'react';
 import {
   render,
   screen,
   userEvent,
   within,
-} from "spec/helpers/testing-library";
-import { setupAGGridModules } from "@superset-ui/core/components/ThemedAgGridReact";
-import { FilterableTable } from ".";
+} from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { FilterableTable } from '.';
 
 beforeAll(() => {
   setupAGGridModules();
 });
 
-const longValue = `${"long value ".repeat(20)}end`;
+const longValue = `${'long value '.repeat(20)}end`;
 const longTextProps = {
-  orderedColumnKeys: ["a"],
+  orderedColumnKeys: ['a'],
   data: [{ a: longValue }],
   height: 500,
 };
 
 const mockedProps = {
-  orderedColumnKeys: ["a", "b", "c", "children"],
+  orderedColumnKeys: ['a', 'b', 'c', 'children'],
   data: [
-    { a: "a1", b: "b1", c: "c1", d: 0, children: 0 },
-    { a: "a2", b: "b2", c: "c2", d: 100, children: 2 },
-    { a: null, b: "b3", c: "c3", d: 50, children: 1 },
+    { a: 'a1', b: 'b1', c: 'c1', d: 0, children: 0 },
+    { a: 'a2', b: 'b2', c: 'c2', d: 100, children: 2 },
+    { a: null, b: 'b3', c: 'c3', d: 50, children: 1 },
   ],
   height: 500,
 };
 
-test("is valid element", () => {
+test('is valid element', () => {
   expect(isValidElement(<FilterableTable {...mockedProps} />)).toBe(true);
 });
 
-test("renders a grid with 3 Table rows", () => {
+test('renders a grid with 3 Table rows', () => {
   const { getByRole, getByText } = render(<FilterableTable {...mockedProps} />);
-  expect(getByRole("grid")).toBeInTheDocument();
+  expect(getByRole('grid')).toBeInTheDocument();
   mockedProps.data.forEach(({ b: columnBContent }) => {
     expect(getByText(columnBContent)).toBeInTheDocument();
   });
 });
 
-test("filters on a string", () => {
+test('filters on a string', () => {
   const props = {
     ...mockedProps,
-    filterText: "b1",
+    filterText: 'b1',
   };
   const { getByText, queryByText } = render(<FilterableTable {...props} />);
   expect(getByText(props.filterText)).toBeInTheDocument();
-  expect(queryByText("b2")).not.toBeInTheDocument();
-  expect(queryByText("b3")).not.toBeInTheDocument();
+  expect(queryByText('b2')).not.toBeInTheDocument();
+  expect(queryByText('b3')).not.toBeInTheDocument();
 });
 
-test("filters on a number", () => {
+test('filters on a number', () => {
   const props = {
     ...mockedProps,
-    filterText: "100",
+    filterText: '100',
   };
   const { getByText, queryByText } = render(<FilterableTable {...props} />);
-  expect(getByText("b2")).toBeInTheDocument();
-  expect(queryByText("b1")).not.toBeInTheDocument();
-  expect(queryByText("b3")).not.toBeInTheDocument();
+  expect(getByText('b2')).toBeInTheDocument();
+  expect(queryByText('b1')).not.toBeInTheDocument();
+  expect(queryByText('b3')).not.toBeInTheDocument();
 });
 
-test("shows all rows when filterText is empty", () => {
+test('shows all rows when filterText is empty', () => {
   const props = {
     ...mockedProps,
-    filterText: "",
+    filterText: '',
   };
   const { getByText } = render(<FilterableTable {...props} />);
-  expect(getByText("b1")).toBeInTheDocument();
-  expect(getByText("b2")).toBeInTheDocument();
-  expect(getByText("b3")).toBeInTheDocument();
+  expect(getByText('b1')).toBeInTheDocument();
+  expect(getByText('b2')).toBeInTheDocument();
+  expect(getByText('b3')).toBeInTheDocument();
 });
 
-test("updates filtered rows when filterText prop changes", () => {
+test('updates filtered rows when filterText prop changes', () => {
   const props = {
     ...mockedProps,
-    filterText: "b1",
+    filterText: 'b1',
   };
   const { getByText, queryByText, rerender } = render(
     <FilterableTable {...props} />,
   );
-  expect(getByText("b1")).toBeInTheDocument();
-  expect(queryByText("b2")).not.toBeInTheDocument();
-  expect(queryByText("b3")).not.toBeInTheDocument();
+  expect(getByText('b1')).toBeInTheDocument();
+  expect(queryByText('b2')).not.toBeInTheDocument();
+  expect(queryByText('b3')).not.toBeInTheDocument();
 
   rerender(<FilterableTable {...mockedProps} filterText="b2" />);
-  expect(queryByText("b1")).not.toBeInTheDocument();
-  expect(getByText("b2")).toBeInTheDocument();
-  expect(queryByText("b3")).not.toBeInTheDocument();
+  expect(queryByText('b1')).not.toBeInTheDocument();
+  expect(getByText('b2')).toBeInTheDocument();
+  expect(queryByText('b3')).not.toBeInTheDocument();
 });
 
-test("shows all rows when filterText is cleared", () => {
+test('shows all rows when filterText is cleared', () => {
   const props = {
     ...mockedProps,
-    filterText: "b1",
+    filterText: 'b1',
   };
   const { getByText, queryByText, rerender } = render(
     <FilterableTable {...props} />,
   );
-  expect(getByText("b1")).toBeInTheDocument();
-  expect(queryByText("b2")).not.toBeInTheDocument();
+  expect(getByText('b1')).toBeInTheDocument();
+  expect(queryByText('b2')).not.toBeInTheDocument();
 
   rerender(<FilterableTable {...mockedProps} filterText="" />);
-  expect(getByText("b1")).toBeInTheDocument();
-  expect(getByText("b2")).toBeInTheDocument();
-  expect(getByText("b3")).toBeInTheDocument();
+  expect(getByText('b1')).toBeInTheDocument();
+  expect(getByText('b2')).toBeInTheDocument();
+  expect(getByText('b3')).toBeInTheDocument();
 });
 
 // AG Grid's row-number column shares the same `[role=rowgroup]` ancestor as
@@ -132,24 +132,24 @@ test("shows all rows when filterText is cleared", () => {
 // targeting that column's `col-id` directly rather than a shared ancestor.
 const getColumnCellsText = (colId: string) =>
   Array.from(document.querySelectorAll(`[role="gridcell"][col-id="${colId}"]`))
-    .map((cell) => cell.textContent)
-    .join("");
+    .map(cell => cell.textContent)
+    .join('');
 
-test("sorts strings correctly", async () => {
+test('sorts strings correctly', async () => {
   const stringProps = {
-    orderedColumnKeys: ["columnA"],
-    data: [{ columnA: "Bravo" }, { columnA: "Alpha" }, { columnA: "Charlie" }],
+    orderedColumnKeys: ['columnA'],
+    data: [{ columnA: 'Bravo' }, { columnA: 'Alpha' }, { columnA: 'Charlie' }],
     height: 500,
   };
   render(<FilterableTable {...stringProps} />);
 
-  const stringColumn = within(screen.getByRole("grid"))
-    .getByText("columnA")
-    .closest("[role=button]");
+  const stringColumn = within(screen.getByRole('grid'))
+    .getByText('columnA')
+    .closest('[role=button]');
 
   // Original order
-  expect(getColumnCellsText("columnA")).toEqual(
-    ["Bravo", "Alpha", "Charlie"].join(""),
+  expect(getColumnCellsText('columnA')).toEqual(
+    ['Bravo', 'Alpha', 'Charlie'].join(''),
   );
 
   if (stringColumn) {
@@ -157,8 +157,8 @@ test("sorts strings correctly", async () => {
     await userEvent.click(stringColumn);
   }
 
-  expect(getColumnCellsText("columnA")).toEqual(
-    ["Alpha", "Bravo", "Charlie"].join(""),
+  expect(getColumnCellsText('columnA')).toEqual(
+    ['Alpha', 'Bravo', 'Charlie'].join(''),
   );
 
   if (stringColumn) {
@@ -166,294 +166,294 @@ test("sorts strings correctly", async () => {
     await userEvent.click(stringColumn);
   }
 
-  expect(getColumnCellsText("columnA")).toEqual(
-    ["Charlie", "Bravo", "Alpha"].join(""),
+  expect(getColumnCellsText('columnA')).toEqual(
+    ['Charlie', 'Bravo', 'Alpha'].join(''),
   );
 
   if (stringColumn) {
     // Third click to clear sorting
     await userEvent.click(stringColumn);
   }
-  expect(getColumnCellsText("columnA")).toEqual(
-    ["Bravo", "Alpha", "Charlie"].join(""),
+  expect(getColumnCellsText('columnA')).toEqual(
+    ['Bravo', 'Alpha', 'Charlie'].join(''),
   );
 });
 
-test("sorts integers correctly", async () => {
+test('sorts integers correctly', async () => {
   const integerProps = {
-    orderedColumnKeys: ["columnB"],
+    orderedColumnKeys: ['columnB'],
     data: [{ columnB: 21 }, { columnB: 0 }, { columnB: 623 }],
     height: 500,
   };
   render(<FilterableTable {...integerProps} />);
 
-  const integerColumn = within(screen.getByRole("grid"))
-    .getByText("columnB")
-    .closest("[role=button]");
+  const integerColumn = within(screen.getByRole('grid'))
+    .getByText('columnB')
+    .closest('[role=button]');
 
   // Original order
-  expect(getColumnCellsText("columnB")).toEqual(["21", "0", "623"].join(""));
+  expect(getColumnCellsText('columnB')).toEqual(['21', '0', '623'].join(''));
 
   // First click to sort ascending
   if (integerColumn) {
     await userEvent.click(integerColumn);
   }
-  expect(getColumnCellsText("columnB")).toEqual(["0", "21", "623"].join(""));
+  expect(getColumnCellsText('columnB')).toEqual(['0', '21', '623'].join(''));
 
   // Second click to sort descending
   if (integerColumn) {
     await userEvent.click(integerColumn);
   }
-  expect(getColumnCellsText("columnB")).toEqual(["623", "21", "0"].join(""));
+  expect(getColumnCellsText('columnB')).toEqual(['623', '21', '0'].join(''));
 
   // Third click to clear sorting
   if (integerColumn) {
     await userEvent.click(integerColumn);
   }
-  expect(getColumnCellsText("columnB")).toEqual(["21", "0", "623"].join(""));
+  expect(getColumnCellsText('columnB')).toEqual(['21', '0', '623'].join(''));
 });
 
-test("sorts floating numbers correctly", async () => {
+test('sorts floating numbers correctly', async () => {
   const floatProps = {
-    orderedColumnKeys: ["columnC"],
+    orderedColumnKeys: ['columnC'],
     data: [{ columnC: 45.67 }, { columnC: 1.23 }, { columnC: 89.0000001 }],
     height: 500,
   };
   render(<FilterableTable {...floatProps} />);
 
-  const floatColumn = within(screen.getByRole("grid"))
-    .getByText("columnC")
-    .closest("[role=button]");
+  const floatColumn = within(screen.getByRole('grid'))
+    .getByText('columnC')
+    .closest('[role=button]');
 
   // Original order
-  expect(getColumnCellsText("columnC")).toEqual(
-    ["45.67", "1.23", "89.0000001"].join(""),
+  expect(getColumnCellsText('columnC')).toEqual(
+    ['45.67', '1.23', '89.0000001'].join(''),
   );
 
   // First click to sort ascending
   if (floatColumn) {
     await userEvent.click(floatColumn);
   }
-  expect(getColumnCellsText("columnC")).toEqual(
-    ["1.23", "45.67", "89.0000001"].join(""),
+  expect(getColumnCellsText('columnC')).toEqual(
+    ['1.23', '45.67', '89.0000001'].join(''),
   );
 
   // Second click to sort descending
   if (floatColumn) {
     await userEvent.click(floatColumn);
   }
-  expect(getColumnCellsText("columnC")).toEqual(
-    ["89.0000001", "45.67", "1.23"].join(""),
+  expect(getColumnCellsText('columnC')).toEqual(
+    ['89.0000001', '45.67', '1.23'].join(''),
   );
 
   // Third click to clear sorting
   if (floatColumn) {
     await userEvent.click(floatColumn);
   }
-  expect(getColumnCellsText("columnC")).toEqual(
-    ["45.67", "1.23", "89.0000001"].join(""),
+  expect(getColumnCellsText('columnC')).toEqual(
+    ['45.67', '1.23', '89.0000001'].join(''),
   );
 });
 
-test("sorts rows properly when floating numbers have mixed types", async () => {
+test('sorts rows properly when floating numbers have mixed types', async () => {
   const mixedFloatProps = {
-    orderedColumnKeys: ["columnD"],
+    orderedColumnKeys: ['columnD'],
     data: [
       { columnD: 48710.92 },
       { columnD: 145776.56 },
       { columnD: 72212.86 },
-      { columnD: "144729.96000000002" },
-      { columnD: "26260.210000000003" },
-      { columnD: "152718.97999999998" },
+      { columnD: '144729.96000000002' },
+      { columnD: '26260.210000000003' },
+      { columnD: '152718.97999999998' },
       { columnD: 28550.59 },
-      { columnD: "24078.610000000004" },
-      { columnD: "98089.08000000002" },
-      { columnD: "3439718.0300000007" },
-      { columnD: "4528047.219999993" },
+      { columnD: '24078.610000000004' },
+      { columnD: '98089.08000000002' },
+      { columnD: '3439718.0300000007' },
+      { columnD: '4528047.219999993' },
     ],
     height: 500,
   };
   render(<FilterableTable {...mixedFloatProps} />);
 
-  const mixedFloatColumn = within(screen.getByRole("grid"))
-    .getByText("columnD")
-    .closest("[role=button]");
+  const mixedFloatColumn = within(screen.getByRole('grid'))
+    .getByText('columnD')
+    .closest('[role=button]');
 
   // Original order
-  expect(getColumnCellsText("columnD")).toEqual(
+  expect(getColumnCellsText('columnD')).toEqual(
     [
-      "48710.92",
-      "145776.56",
-      "72212.86",
-      "144729.96000000002",
-      "26260.210000000003",
-      "152718.97999999998",
-      "28550.59",
-      "24078.610000000004",
-      "98089.08000000002",
-      "3439718.0300000007",
-      "4528047.219999993",
-    ].join(""),
+      '48710.92',
+      '145776.56',
+      '72212.86',
+      '144729.96000000002',
+      '26260.210000000003',
+      '152718.97999999998',
+      '28550.59',
+      '24078.610000000004',
+      '98089.08000000002',
+      '3439718.0300000007',
+      '4528047.219999993',
+    ].join(''),
   );
   // First click to sort ascending
   if (mixedFloatColumn) {
     await userEvent.click(mixedFloatColumn);
   }
-  expect(getColumnCellsText("columnD")).toEqual(
+  expect(getColumnCellsText('columnD')).toEqual(
     [
-      "24078.610000000004",
-      "26260.210000000003",
-      "28550.59",
-      "48710.92",
-      "72212.86",
-      "98089.08000000002",
-      "144729.96000000002",
-      "145776.56",
-      "152718.97999999998",
-      "3439718.0300000007",
-      "4528047.219999993",
-    ].join(""),
+      '24078.610000000004',
+      '26260.210000000003',
+      '28550.59',
+      '48710.92',
+      '72212.86',
+      '98089.08000000002',
+      '144729.96000000002',
+      '145776.56',
+      '152718.97999999998',
+      '3439718.0300000007',
+      '4528047.219999993',
+    ].join(''),
   );
 
   // Second click to sort descending
   if (mixedFloatColumn) {
     await userEvent.click(mixedFloatColumn);
   }
-  expect(getColumnCellsText("columnD")).toEqual(
+  expect(getColumnCellsText('columnD')).toEqual(
     [
-      "4528047.219999993",
-      "3439718.0300000007",
-      "152718.97999999998",
-      "145776.56",
-      "144729.96000000002",
-      "98089.08000000002",
-      "72212.86",
-      "48710.92",
-      "28550.59",
-      "26260.210000000003",
-      "24078.610000000004",
-    ].join(""),
+      '4528047.219999993',
+      '3439718.0300000007',
+      '152718.97999999998',
+      '145776.56',
+      '144729.96000000002',
+      '98089.08000000002',
+      '72212.86',
+      '48710.92',
+      '28550.59',
+      '26260.210000000003',
+      '24078.610000000004',
+    ].join(''),
   );
 
   // Third click to clear sorting
   if (mixedFloatColumn) {
     await userEvent.click(mixedFloatColumn);
   }
-  expect(getColumnCellsText("columnD")).toEqual(
+  expect(getColumnCellsText('columnD')).toEqual(
     [
-      "48710.92",
-      "145776.56",
-      "72212.86",
-      "144729.96000000002",
-      "26260.210000000003",
-      "152718.97999999998",
-      "28550.59",
-      "24078.610000000004",
-      "98089.08000000002",
-      "3439718.0300000007",
-      "4528047.219999993",
-    ].join(""),
+      '48710.92',
+      '145776.56',
+      '72212.86',
+      '144729.96000000002',
+      '26260.210000000003',
+      '152718.97999999998',
+      '28550.59',
+      '24078.610000000004',
+      '98089.08000000002',
+      '3439718.0300000007',
+      '4528047.219999993',
+    ].join(''),
   );
 });
 
-test("sorts YYYY-MM-DD properly", async () => {
+test('sorts YYYY-MM-DD properly', async () => {
   const dsProps = {
-    orderedColumnKeys: ["columnDS"],
+    orderedColumnKeys: ['columnDS'],
     data: [
-      { columnDS: "2021-01-01" },
-      { columnDS: "2022-01-01" },
-      { columnDS: "2021-01-02" },
-      { columnDS: "2021-01-03" },
-      { columnDS: "2021-12-01" },
-      { columnDS: "2021-10-01" },
-      { columnDS: "2022-01-02" },
+      { columnDS: '2021-01-01' },
+      { columnDS: '2022-01-01' },
+      { columnDS: '2021-01-02' },
+      { columnDS: '2021-01-03' },
+      { columnDS: '2021-12-01' },
+      { columnDS: '2021-10-01' },
+      { columnDS: '2022-01-02' },
     ],
     height: 500,
   };
   render(<FilterableTable {...dsProps} />);
 
-  const dsColumn = within(screen.getByRole("grid"))
-    .getByText("columnDS")
-    .closest("[role=button]");
+  const dsColumn = within(screen.getByRole('grid'))
+    .getByText('columnDS')
+    .closest('[role=button]');
 
   // Original order
-  expect(getColumnCellsText("columnDS")).toEqual(
+  expect(getColumnCellsText('columnDS')).toEqual(
     [
-      "2021-01-01",
-      "2022-01-01",
-      "2021-01-02",
-      "2021-01-03",
-      "2021-12-01",
-      "2021-10-01",
-      "2022-01-02",
-    ].join(""),
+      '2021-01-01',
+      '2022-01-01',
+      '2021-01-02',
+      '2021-01-03',
+      '2021-12-01',
+      '2021-10-01',
+      '2022-01-02',
+    ].join(''),
   );
 
   // First click to sort ascending
   if (dsColumn) {
     await userEvent.click(dsColumn);
   }
-  expect(getColumnCellsText("columnDS")).toEqual(
+  expect(getColumnCellsText('columnDS')).toEqual(
     [
-      "2021-01-01",
-      "2021-01-02",
-      "2021-01-03",
-      "2021-10-01",
-      "2021-12-01",
-      "2022-01-01",
-      "2022-01-02",
-    ].join(""),
+      '2021-01-01',
+      '2021-01-02',
+      '2021-01-03',
+      '2021-10-01',
+      '2021-12-01',
+      '2022-01-01',
+      '2022-01-02',
+    ].join(''),
   );
 
   // Second click to sort descending
   if (dsColumn) {
     await userEvent.click(dsColumn);
   }
-  expect(getColumnCellsText("columnDS")).toEqual(
+  expect(getColumnCellsText('columnDS')).toEqual(
     [
-      "2022-01-02",
-      "2022-01-01",
-      "2021-12-01",
-      "2021-10-01",
-      "2021-01-03",
-      "2021-01-02",
-      "2021-01-01",
-    ].join(""),
+      '2022-01-02',
+      '2022-01-01',
+      '2021-12-01',
+      '2021-10-01',
+      '2021-01-03',
+      '2021-01-02',
+      '2021-01-01',
+    ].join(''),
   );
 
   // Third click to clear sorting
   if (dsColumn) {
     await userEvent.click(dsColumn);
   }
-  expect(getColumnCellsText("columnDS")).toEqual(
+  expect(getColumnCellsText('columnDS')).toEqual(
     [
-      "2021-01-01",
-      "2022-01-01",
-      "2021-01-02",
-      "2021-01-03",
-      "2021-12-01",
-      "2021-10-01",
-      "2022-01-02",
-    ].join(""),
+      '2021-01-01',
+      '2022-01-01',
+      '2021-01-02',
+      '2021-01-03',
+      '2021-12-01',
+      '2021-10-01',
+      '2022-01-02',
+    ].join(''),
   );
 });
 
-test("opens long text in a modal when expandLongText is set", async () => {
+test('opens long text in a modal when expandLongText is set', async () => {
   setupAGGridModules();
   render(<FilterableTable {...longTextProps} expandLongText />, {
     useRedux: true,
   });
-  const trigger = await screen.findByTestId("span-modal-trigger");
+  const trigger = await screen.findByTestId('span-modal-trigger');
   expect(trigger).toHaveTextContent(longValue.trim());
   await userEvent.click(trigger);
-  expect(await screen.findByTestId("text-modal-body")).toHaveTextContent(
+  expect(await screen.findByTestId('text-modal-body')).toHaveTextContent(
     longValue.trim(),
   );
 });
 
-test("renders long text inline when expandLongText is not set", async () => {
+test('renders long text inline when expandLongText is not set', async () => {
   setupAGGridModules();
   render(<FilterableTable {...longTextProps} />, { useRedux: true });
-  expect(await screen.findByRole("grid")).toBeInTheDocument();
-  expect(screen.queryByTestId("span-modal-trigger")).not.toBeInTheDocument();
+  expect(await screen.findByRole('grid')).toBeInTheDocument();
+  expect(screen.queryByTestId('span-modal-trigger')).not.toBeInTheDocument();
 });

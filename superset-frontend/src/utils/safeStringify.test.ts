@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { safeStringify } from "src/utils/safeStringify";
+import { safeStringify } from 'src/utils/safeStringify';
 
 class Noise {
   public next?: Noise;
@@ -24,25 +24,25 @@ class Noise {
 
 beforeEach(() => {
   // Spies on and silences console.warn to keep the test runner output completely clean
-  jest.spyOn(console, "warn").mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test("correctly parses a simple object just like JSON", () => {
+test('correctly parses a simple object just like JSON', () => {
   const noncircular = {
-    b: "foo",
-    c: "bar",
+    b: 'foo',
+    c: 'bar',
     d: [
       {
-        e: "hello",
-        f: ["world"],
+        e: 'hello',
+        f: ['world'],
       },
       {
-        e: "hello",
-        f: ["darkness", "my", "old", "friend"],
+        e: 'hello',
+        f: ['darkness', 'my', 'old', 'friend'],
       },
     ],
   };
@@ -53,7 +53,7 @@ test("correctly parses a simple object just like JSON", () => {
   );
 });
 
-test("handles simple circular json as expected", () => {
+test('handles simple circular json as expected', () => {
   const ping = new Noise();
   const pong = new Noise();
   ping.next = pong;
@@ -65,7 +65,7 @@ test("handles simple circular json as expected", () => {
   expect(safeString).toEqual('{"next":{"next":"[Circular]"}}');
 });
 
-test("creates a parseable object even when the input is circular", () => {
+test('creates a parseable object even when the input is circular', () => {
   const ping = new Noise();
   const pong = new Noise();
   ping.next = pong;
@@ -76,12 +76,12 @@ test("creates a parseable object even when the input is circular", () => {
   const newNoise = parsedNoise as { next: { next: string } };
 
   expect(newNoise).toBeTruthy();
-  expect(newNoise.next).toEqual({ next: "[Circular]" });
+  expect(newNoise.next).toEqual({ next: '[Circular]' });
 });
 
-test("does not remove noncircular duplicates", () => {
+test('does not remove noncircular duplicates', () => {
   const a = {
-    foo: "bar",
+    foo: 'bar',
   };
 
   const repeating = {
@@ -93,12 +93,12 @@ test("does not remove noncircular duplicates", () => {
   expect(safeStringify(repeating)).toEqual(JSON.stringify(repeating));
 });
 
-test("does not remove nodes with empty objects", () => {
+test('does not remove nodes with empty objects', () => {
   const emptyObjectValues = {
     a: {},
-    b: "foo",
+    b: 'foo',
     c: {
-      d: "good data here",
+      d: 'good data here',
       e: {},
     },
   };
@@ -107,12 +107,12 @@ test("does not remove nodes with empty objects", () => {
   );
 });
 
-test("does not remove nested same keys", () => {
+test('does not remove nested same keys', () => {
   const nestedKeys = {
-    a: "b",
+    a: 'b',
     c: {
-      a: "d",
-      x: "y",
+      a: 'd',
+      x: 'y',
     },
   };
 
