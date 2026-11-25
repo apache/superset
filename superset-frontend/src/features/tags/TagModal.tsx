@@ -158,6 +158,7 @@ const TagModal: FC<TagModalProps> = ({
         },
       ],
       page,
+      page_size: pageSize,
       order_column: orderColumn,
     });
 

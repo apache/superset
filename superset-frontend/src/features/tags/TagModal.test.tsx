@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import TagModal from 'src/features/tags/TagModal';
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import { Tag } from 'src/views/CRUD/types';
 
 const mockedProps = {
@@ -48,6 +55,56 @@ test('renders correctly in create mode', () => {
 test('description input has an accessible name', async () => {
   render(<TagModal {...mockedProps} />);
   expect(await screen.findByLabelText('Tag description')).toBeInTheDocument();
+});
+
+test('loads all chart options across API pages when scrolling', async () => {
+  const charts = Array.from({ length: 104 }, (_, index) => ({
+    id: index + 1,
+    slice_name: `Chart ${String(index + 1).padStart(3, '0')}`,
+  }));
+  const chartRoute = 'glob:*/api/v1/chart/?q=*';
+  fetchMock.get(chartRoute, ({ queryParams }) => {
+    const query = queryParams?.get('q');
+    const { page, page_size: pageSize = 20 } = rison.decode(query ?? '()') as {
+      page: number;
+      page_size?: number;
+    };
+    const start = page * pageSize;
+    return {
+      count: charts.length,
+      result: charts.slice(start, start + pageSize),
+    };
+  });
+
+  render(<TagModal {...mockedProps} />);
+  await userEvent.click(
+    screen.getByRole('combobox', { name: 'Select charts' }),
+  );
+  expect(await screen.findByText('Chart 001')).toBeInTheDocument();
+
+  // Trigger pagination by dispatching a scroll event on the virtual-list container
+  const scrollContainer = document.querySelector(
+    '.ant-select-dropdown-list-holder',
+  );
+  if (!scrollContainer)
+    throw new Error('Chart dropdown scroll container missing');
+  Object.defineProperties(scrollContainer, {
+    scrollHeight: { value: 10000 },
+    offsetHeight: { value: 256 },
+    scrollTop: { get: () => 10000, set: () => {} },
+  });
+  fireEvent.scroll(scrollContainer);
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(chartRoute)).toHaveLength(2),
+  );
+  await waitFor(() =>
+    expect(document.querySelector('.ant-select-suffix .ant-spin')).toBeNull(),
+  );
+  // Scroll through the newly loaded options so the final chart is rendered.
+  fireEvent.scroll(scrollContainer);
+
+  expect(await screen.findByText('Chart 104')).toBeInTheDocument();
 });
 
 test('renders correctly in edit mode', () => {
