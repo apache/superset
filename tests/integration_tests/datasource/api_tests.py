@@ -512,6 +512,26 @@ class TestDatasourceApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_connection_error(self, values_for_column_mock):
+        """
+        An ``OperationalError`` raised while fetching distinct column values
+        (e.g. the customer's warehouse connection times out) must surface as
+        a typed 422, not an unhandled 500.
+        """
+        from sqlalchemy.exc import OperationalError
+
+        values_for_column_mock.side_effect = OperationalError(
+            "connection timed out", None, None
+        )
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col1/values/")
+        assert rv.status_code == 422
+        response = json.loads(rv.data.decode("utf-8"))
+        assert "Unable to connect to the database" in response["message"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
     def test_get_column_values_normalize_columns_enabled(self, values_for_column_mock):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()

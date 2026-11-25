@@ -21,6 +21,7 @@ from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from marshmallow import ValidationError
+from sqlalchemy.exc import DBAPIError
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.datasource.list import GetCombinedDatasourceListCommand
@@ -330,6 +331,8 @@ class DatasourceRestApi(BaseSupersetApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -434,6 +437,23 @@ class DatasourceRestApi(BaseSupersetApi):
                 message=(
                     "Unable to get column values for "
                     f"datasource type: {datasource_type}"
+                ),
+            )
+        except DBAPIError as ex:
+            # A failure to connect to (or query) the customer's own warehouse
+            # here is a client-side configuration/availability problem, not a
+            # Superset bug, so it must not log at error/exception level or
+            # propagate as an unhandled 500.
+            logger.warning(
+                "Unable to fetch column values due to a database connection "
+                "error: %s",
+                ex,
+            )
+            return self.response(
+                422,
+                message=(
+                    "Unable to connect to the database. "
+                    "Please check your database connection."
                 ),
             )
 
