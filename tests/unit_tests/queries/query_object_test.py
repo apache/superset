@@ -33,6 +33,69 @@ from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import Metric
 from superset.utils import pandas_postprocessing
 from superset.utils.core import override_user
+from superset.utils.pandas_postprocessing.density import estimate_density
+
+
+@pytest.mark.parametrize("points", [None, 100, 500])
+def test_boxplot_density_survives_query_object_dispatch(points: int | None) -> None:
+    """Request options survive filtering and reach the real boxplot operation."""
+    options: dict[str, object] = {
+        "groupby": ["region"],
+        "metrics": ["AVG(income)"],
+        "whisker_type": "tukey",
+    }
+    if points is not None:
+        options.update(density_points=points, density_bandwidth=1.3)
+    query = QueryObject(
+        row_limit=100,
+        post_processing=[{"operation": "boxplot", "options": options.copy()}],
+    )
+    assert query.post_processing[0]["options"] == options
+    result = query.exec_post_processing(
+        pd.DataFrame(
+            {
+                "region": ["west", "east", "west", "east", "west"],
+                "AVG(income)": [1.0, 10.0, 3.0, 10.0, 100.0],
+            }
+        )
+    ).set_index("region")
+    if points is None:
+        assert "AVG(income)__density" not in result.columns
+    else:
+        assert (
+            result.loc["west", "AVG(income)__density"]
+            == estimate_density(
+                [1.0, 3.0, 100.0],
+                points,
+                1.3,
+            )["points"]
+        )
+        assert result.loc["east", "AVG(income)__density"] == [[10.0, 1.0]]
+        assert not any(
+            column.endswith(("__density_count", "__density_status"))
+            for column in result.columns
+        )
+
+
+def test_query_object_validates_density_at_runtime() -> None:
+    """The actual dispatch path rejects bad options without relying on a schema."""
+    query = QueryObject(
+        row_limit=100,
+        post_processing=[
+            {
+                "operation": "boxplot",
+                "options": {
+                    "groupby": [],
+                    "metrics": ["v"],
+                    "whisker_type": "tukey",
+                    "density_points": 100,
+                    "density_bandwidth": 10,
+                },
+            }
+        ],
+    )
+    with pytest.raises(InvalidPostProcessingError, match="density_bandwidth"):
+        query.exec_post_processing(pd.DataFrame({"v": [1.0, 2.0, 3.0]}))
 
 
 @contextmanager

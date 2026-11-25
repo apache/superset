@@ -113,3 +113,102 @@ test('should throw an error', () => {
     ),
   ).toThrow('Unsupported whisker type: foobar');
 });
+
+test('violin mode requests density with the agreed defaults', () => {
+  expect(
+    boxplotOperator(
+      {
+        ...formData,
+        whiskerOptions: 'Tukey',
+        distribution_style: 'violin',
+        groupby: ['region'],
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'boxplot',
+    options: {
+      whisker_type: 'tukey',
+      percentiles: undefined,
+      groupby: ['region'],
+      metrics: ['count(*)', 'sum(val)'],
+      density_points: 100,
+      density_bandwidth: 1,
+    },
+  });
+});
+
+test.each([0.1, 1, 1.5, 5, '1.3', '2'])(
+  'violin mode sends smoothness %s as a number',
+  densityBandwidth => {
+    const rule = boxplotOperator(
+      {
+        ...formData,
+        whiskerOptions: 'Tukey',
+        distribution_style: 'violin',
+        density_bandwidth: densityBandwidth,
+      },
+      queryObject,
+    );
+
+    expect(rule?.options.density_bandwidth).toBe(Number(densityBandwidth));
+  },
+);
+
+test.each(['box', undefined])(
+  'style %s omits density options even when smoothness is present',
+  distributionStyle => {
+    const baseline = boxplotOperator(
+      { ...formData, whiskerOptions: 'Tukey' },
+      queryObject,
+    );
+    const rule = boxplotOperator(
+      {
+        ...formData,
+        whiskerOptions: 'Tukey',
+        distribution_style: distributionStyle,
+        density_bandwidth: '2',
+        density_points: 500,
+      },
+      queryObject,
+    );
+
+    expect(rule).toEqual(baseline);
+    expect(rule?.options).not.toHaveProperty('density_points');
+    expect(rule?.options).not.toHaveProperty('density_bandwidth');
+  },
+);
+
+test('violin mode uses 100 points regardless of a saved points setting', () => {
+  const rule = boxplotOperator(
+    {
+      ...formData,
+      whiskerOptions: 'Tukey',
+      distribution_style: 'violin',
+      density_points: 500,
+    },
+    queryObject,
+  );
+
+  expect(rule?.options.density_points).toBe(100);
+});
+
+test.each(['Tukey', 'Min/max (no outliers)', '2/98 percentiles'])(
+  'violin mode preserves the %s whisker settings',
+  whiskerOptions => {
+    const baseline = boxplotOperator(
+      { ...formData, whiskerOptions },
+      queryObject,
+    );
+    const rule = boxplotOperator(
+      { ...formData, whiskerOptions, distribution_style: 'violin' },
+      queryObject,
+    );
+
+    expect(rule?.options).toEqual({
+      ...baseline?.options,
+      density_points: 100,
+      density_bandwidth: 1,
+    });
+  },
+);

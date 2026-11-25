@@ -51,6 +51,13 @@ from superset.utils.core import (
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
+from superset.utils.pandas_postprocessing.density import (
+    DENSITY_BANDWIDTH_DEFAULT,
+    DENSITY_BANDWIDTH_MAX,
+    DENSITY_BANDWIDTH_MIN,
+    DENSITY_POINTS_MAX,
+    DENSITY_POINTS_MIN,
+)
 from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 if TYPE_CHECKING:
@@ -914,6 +921,26 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     """
     Boxplot operation config.
     """
+
+    density_points = fields.Integer(
+        strict=True,
+        allow_none=True,
+        validate=Range(min=DENSITY_POINTS_MIN, max=DENSITY_POINTS_MAX),
+        metadata={
+            "description": "Number of density curve points per group and metric. "
+            "Omit or use null to keep ordinary boxplot output. "
+            "Violin chart requests use 100 points.",
+            "example": 100,
+        },
+    )
+    density_bandwidth = fields.Float(
+        validate=Range(min=DENSITY_BANDWIDTH_MIN, max=DENSITY_BANDWIDTH_MAX),
+        metadata={
+            "description": "Multiplier on the automatically chosen density bandwidth. "
+            "Defaults to 1.0 and is used only when density_points is supplied.",
+            "example": DENSITY_BANDWIDTH_DEFAULT,
+        },
+    )
 
     groupby = fields.List(
         fields.String(

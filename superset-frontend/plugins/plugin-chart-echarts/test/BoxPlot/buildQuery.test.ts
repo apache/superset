@@ -80,3 +80,32 @@ describe('BoxPlot buildQuery', () => {
     expect(sqlQuery.series_limit).toBe(2);
   });
 });
+
+test('Box Plot query forwards raw violin settings as numeric density options', () => {
+  const queryContext = buildQuery({
+    ...DEFAULT_TITLE_FORM_DATA,
+    datasource: '5__table',
+    viz_type: 'my_chart',
+    columns: ['year'],
+    groupby: ['region'],
+    metrics: ['population'],
+    whiskerOptions: 'Tukey',
+    distribution_style: 'violin',
+    density_bandwidth: '1.3',
+    show_inner_box: false,
+  });
+
+  expect(queryContext.queries[0].post_processing).toEqual([
+    {
+      operation: 'boxplot',
+      options: {
+        groupby: ['region'],
+        metrics: ['population'],
+        whisker_type: 'tukey',
+        percentiles: undefined,
+        density_points: 100,
+        density_bandwidth: 1.3,
+      },
+    },
+  ]);
+});

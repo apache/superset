@@ -1120,6 +1120,21 @@
       },
       "ChartDataBoxplotOptionsSchema": {
         "properties": {
+          "density_bandwidth": {
+            "description": "Multiplier on the automatically chosen density bandwidth. Defaults to 1.0 and is used only when density_points is supplied.",
+            "example": 1.0,
+            "maximum": 5.0,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "density_points": {
+            "description": "Number of density curve points per group and metric. Omit or use null to keep ordinary boxplot output. Violin chart requests use 100 points.",
+            "example": 100,
+            "maximum": 500,
+            "minimum": 20,
+            "nullable": true,
+            "type": "integer"
+          },
           "groupby": {
             "items": {
               "description": "Columns by which to group the query.",

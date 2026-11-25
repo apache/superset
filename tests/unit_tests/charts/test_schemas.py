@@ -31,6 +31,7 @@ from superset.charts.schemas import (
     chart_get_list_schema,
     ChartDataAdhocMetricSchema,
     ChartDataAggregateOptionsSchema,
+    ChartDataBoxplotOptionsSchema,
     ChartDataExtrasSchema,
     ChartDataPivotOptionsSchema,
     ChartDataPostProcessingOperationSchema,
@@ -49,6 +50,54 @@ from superset.charts.schemas import (
     MAX_VIZ_TYPE_ORDER_LENGTH,
 )
 from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
+
+
+@pytest.mark.parametrize("points", [20, 100, 500])
+@pytest.mark.parametrize("bandwidth", [0.1, 1.0, 5.0])
+def test_boxplot_schema_accepts_density_settings(points: int, bandwidth: float) -> None:
+    """The documented density ranges match runtime validation."""
+    options = {
+        "whisker_type": "tukey",
+        "density_points": points,
+        "density_bandwidth": bandwidth,
+    }
+    assert ChartDataBoxplotOptionsSchema().load(options) == options
+
+
+@pytest.mark.parametrize(
+    "options",
+    [{"whisker_type": "tukey"}, {"whisker_type": "tukey", "density_points": None}],
+)
+def test_boxplot_schema_does_not_enable_density_by_default(
+    options: dict[str, object],
+) -> None:
+    """Loading a legacy request never injects a density point default."""
+    assert ChartDataBoxplotOptionsSchema().load(options) == options
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("density_points", 19),
+        ("density_points", 501),
+        ("density_points", 100.5),
+        ("density_points", True),
+        ("density_points", "100"),
+        ("density_bandwidth", 0.05),
+        ("density_bandwidth", 5.1),
+        ("density_bandwidth", True),
+        ("density_bandwidth", None),
+        ("density_bandwidth", float("nan")),
+        ("density_bandwidth", float("inf")),
+    ],
+)
+def test_boxplot_schema_rejects_invalid_density_settings(
+    field: str, value: object
+) -> None:
+    """Invalid limits and types cannot load through the boxplot schema."""
+    with pytest.raises(ValidationError) as exc_info:
+        ChartDataBoxplotOptionsSchema().load({"whisker_type": "tukey", field: value})
+    assert field in exc_info.value.messages
 
 
 def test_chart_get_list_schema_accepts_viz_type_display_order() -> None:

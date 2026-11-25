@@ -85,6 +85,8 @@ interface _PostProcessingBoxplot {
     metrics: string[];
     whisker_type: BoxPlotQueryObjectWhiskerType;
     percentiles?: [number, number];
+    density_points?: number;
+    density_bandwidth?: number;
   };
 }
 export type PostProcessingBoxplot =

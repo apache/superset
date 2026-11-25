@@ -102,6 +102,39 @@ GET responses continue to identify editors/viewers by Subject ID; they are not
 write-ready principal references. Other Subject-based APIs retain their existing
 input contracts.
 
+### Box plot density options
+
+The `boxplot` post-processing operation can include density curves alongside the
+existing box plot statistics. Add these options to a chart-data query's
+`post_processing` entry:
+
+```json
+{
+  "operation": "boxplot",
+  "options": {
+    "groupby": ["region"],
+    "metrics": ["income"],
+    "whisker_type": "tukey",
+    "density_points": 100,
+    "density_bandwidth": 1.0
+  }
+}
+```
+
+`density_points` enables density estimation and must be an integer from 20 to 500.
+Omitting it or setting it to `null` preserves the existing box plot output.
+`density_bandwidth` is a finite multiplier from 0.1 to 5 on the automatically
+chosen bandwidth; it defaults to 1.0. Box Plot's Violin style sends 100 points and
+the selected **Curve smoothness** value. Box style omits both density options.
+
+Each group and metric gains one `${metric}__density` column containing
+`[[value, density], ...]`. The curve spans the finite observed minimum and maximum,
+including outliers, and its trapezoidal area is 1. Nulls and nonfinite observations
+are excluded from the curve. Empty observations produce `[]`; constant observations
+produce `[[value, 1.0]]`. No density count or status columns are added, and the
+existing summary statistics retain their original values. Density metrics must
+be numeric; datetime and timedelta metrics are rejected.
+
 ### API Endpoints
 
 #### Core Resources
