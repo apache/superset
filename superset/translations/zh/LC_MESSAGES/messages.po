@@ -18829,6 +18829,13 @@ msgstr[0] "查询中的以下参数未定义：%(parameters)s 。"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr "分区列不能映射到自身。%(name)s 既是分区列又是被映射的列。"
@@ -23383,6 +23390,9 @@ msgstr "您已更改数据集。任何与新数据集匹配的数据控件（列
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Your account is activated. You can log in with your credentials."
+msgstr "您的账户已激活。您可以使用您的凭据登录。"
+
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "您的账户已激活。您可以使用您的凭据登录。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,

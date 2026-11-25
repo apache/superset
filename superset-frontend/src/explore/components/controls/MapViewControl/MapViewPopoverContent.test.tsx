@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import MapViewPopoverContent from './MapViewPopoverContent';
+import { MapViewPopoverContent } from './MapViewPopoverContent';
 import { MapViewConfigs } from './types';
 
 const conf: MapViewConfigs = {

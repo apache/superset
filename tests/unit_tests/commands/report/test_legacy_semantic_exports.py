@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 import pandas as pd
@@ -150,3 +152,36 @@ def test_supported_report_retains_saved_processing_settings(
         "result_type": "post_processed",
         "force": False,
     }
+
+
+@pytest.mark.parametrize(
+    ("result_format", "error_name"),
+    [
+        (ChartDataResultFormat.CSV, "ReportScheduleCsvFailedError"),
+        (ChartDataResultFormat.XLSX, "ReportScheduleXlsxFailedError"),
+        (ChartDataResultFormat.JSON, "ReportScheduleDataFrameFailedError"),
+    ],
+)
+def test_refused_report_chart_fails_with_its_reason_before_requesting(
+    mocker: MockerFixture, result_format: ChartDataResultFormat, error_name: str
+) -> None:
+    """The chart data API redacts 400 bodies, so the refusal is raised locally."""
+    from superset.commands.report import exceptions
+
+    state: BaseReportState = BaseReportState(
+        create_report_schedule(mocker), "January 1, 2021", "test-execution"
+    )
+    state._report_schedule.chart.datasource_type = "semantic_view"
+    state._report_schedule.chart.viz_type = "rose"
+    state._report_schedule.chart.query_context = json.dumps({"queries": [{}]})
+    request = mocker.patch("superset.commands.report.execute.request_chart_data")
+    post = mocker.patch.object(state, "_post_chart_data")
+    fetch: Callable[[], object] = (
+        state._get_embedded_data
+        if result_format == ChartDataResultFormat.JSON
+        else partial(state._get_data, result_format)
+    )
+    with pytest.raises(getattr(exceptions, error_name), match="Nightingale Rose"):
+        fetch()
+    request.assert_not_called()
+    post.assert_not_called()

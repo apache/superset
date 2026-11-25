@@ -45,7 +45,7 @@
     "@types/d3-array": "^3.2.2",
     "@types/geojson": "^7946.0.16",
     "bootstrap-slider": "^11.0.2",
-    "d3-array": "^3.2.4",
+    "d3-array": "^3.2.5",
     "d3-scale": "^4.0.2",
     "handlebars": "^4.7.10",
     "lodash": "^4.18.1",
