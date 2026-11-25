@@ -18,12 +18,9 @@
  */
 import {
   formatBound,
-  getBoundSeconds,
   getRefreshPolicyErrors,
   getStandardSeconds,
-  RefreshBound,
   RefreshPolicyError,
-  toBound,
 } from '.';
 
 type ParityCase = {
@@ -159,10 +156,7 @@ const SERVER_CASES: ParityCase[] = [
       refresh_frequency: 0,
       auto_refresh_policy: {
         extra: 1,
-        minimum_refresh_interval: {
-          value: 0,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 0,
       },
     },
     expected: {
@@ -180,10 +174,7 @@ const SERVER_CASES: ParityCase[] = [
     name: 'invalid boundary value 0',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 0,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 0,
       },
     },
     expected: {
@@ -197,10 +188,7 @@ const SERVER_CASES: ParityCase[] = [
     name: 'invalid boundary value -1',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: -1,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: -1,
       },
     },
     expected: {
@@ -214,10 +202,7 @@ const SERVER_CASES: ParityCase[] = [
     name: 'invalid boundary value 1.5',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 1.5,
-          unit: 'minutes',
-        },
+        minimum_refresh_interval: 1.5,
       },
     },
     expected: {
@@ -231,10 +216,7 @@ const SERVER_CASES: ParityCase[] = [
     name: "invalid boundary value '30'",
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: '30',
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: '30',
       },
     },
     expected: {
@@ -248,10 +230,7 @@ const SERVER_CASES: ParityCase[] = [
     name: 'invalid boundary value true',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: true,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: true,
       },
     },
     expected: {
@@ -279,12 +258,12 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'invalid boundary unit second',
+    name: 'invalid boundary old value and unit object',
     metadata: {
       auto_refresh_policy: {
         maximum_refresh_interval: {
           value: 1,
-          unit: 'second',
+          unit: 'seconds',
         },
       },
     },
@@ -346,10 +325,7 @@ const SERVER_CASES: ParityCase[] = [
     name: 'standard boundary 45 s changed',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 45,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 45,
       },
     },
     expected: {
@@ -365,28 +341,19 @@ const SERVER_CASES: ParityCase[] = [
     name: 'standard boundary 45 s unchanged',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 45,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 45,
       },
     },
     expected: {},
     readPolicy: {
-      minimum_refresh_interval: {
-        value: 45,
-        unit: 'seconds',
-      },
+      minimum_refresh_interval: 45,
     },
   },
   {
     name: 'standard boundary 2 h changed',
     metadata: {
       auto_refresh_policy: {
-        maximum_refresh_interval: {
-          value: 2,
-          unit: 'hours',
-        },
+        maximum_refresh_interval: 7200,
       },
     },
     expected: {
@@ -401,18 +368,12 @@ const SERVER_CASES: ParityCase[] = [
     name: 'standard boundary 2 h unchanged',
     metadata: {
       auto_refresh_policy: {
-        maximum_refresh_interval: {
-          value: 2,
-          unit: 'hours',
-        },
+        maximum_refresh_interval: 7200,
       },
     },
     expected: {},
     readPolicy: {
-      maximum_refresh_interval: {
-        value: 2,
-        unit: 'hours',
-      },
+      maximum_refresh_interval: 7200,
     },
   },
   {
@@ -420,10 +381,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       auto_refresh_policy: {
         auto_refresh_allowed: false,
-        minimum_refresh_interval: {
-          value: 45,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 45,
       },
     },
     expected: {},
@@ -434,10 +392,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       auto_refresh_policy: {
         auto_refresh_allowed: 'yes',
-        minimum_refresh_interval: {
-          value: 45,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 45,
       },
     },
     expected: {
@@ -454,27 +409,21 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'changed? {60,seconds} vs stored {1,minutes} (list w/o 60)',
+    name: 'replacing an old-shape bound rechecks the standard list',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 60,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 60,
       },
     },
     expected: {
       'auto_refresh_policy.minimum_refresh_interval': {
         code: 'invalid_boundary',
         message:
-          "60 seconds isn't a standard interval. Select one from the list.",
+          "1 minute isn't a standard interval. Select one from the list.",
       },
     },
     readPolicy: {
-      minimum_refresh_interval: {
-        value: 1,
-        unit: 'minutes',
-      },
+      minimum_refresh_interval: { value: 1, unit: 'minutes' },
     },
     adminList: [
       [0, "Don't refresh"],
@@ -489,18 +438,12 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       auto_refresh_policy: {
         auto_refresh_allowed: true,
-        minimum_refresh_interval: {
-          value: 1,
-          unit: 'minutes',
-        },
+        minimum_refresh_interval: 60,
       },
     },
     expected: {},
     readPolicy: {
-      minimum_refresh_interval: {
-        value: 1,
-        unit: 'minutes',
-      },
+      minimum_refresh_interval: 60,
       auto_refresh_allowed: true,
     },
     adminList: [
@@ -512,18 +455,12 @@ const SERVER_CASES: ParityCase[] = [
     ],
   },
   {
-    name: '60 s and 1 min are equal lengths',
+    name: 'equal bounds are valid',
     metadata: {
       refresh_frequency: 60,
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 60,
-          unit: 'seconds',
-        },
-        maximum_refresh_interval: {
-          value: 1,
-          unit: 'minutes',
-        },
+        minimum_refresh_interval: 60,
+        maximum_refresh_interval: 60,
       },
     },
     expected: {},
@@ -533,14 +470,8 @@ const SERVER_CASES: ParityCase[] = [
     name: 'bound ordering: both fields',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 1,
-          unit: 'hours',
-        },
-        maximum_refresh_interval: {
-          value: 5,
-          unit: 'minutes',
-        },
+        minimum_refresh_interval: 3600,
+        maximum_refresh_interval: 300,
       },
     },
     expected: {
@@ -562,14 +493,8 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       auto_refresh_policy: {
         auto_refresh_allowed: false,
-        minimum_refresh_interval: {
-          value: 1,
-          unit: 'hours',
-        },
-        maximum_refresh_interval: {
-          value: 5,
-          unit: 'minutes',
-        },
+        minimum_refresh_interval: 3600,
+        maximum_refresh_interval: 300,
       },
     },
     expected: {
@@ -591,10 +516,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       refresh_frequency: 0,
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 24,
-          unit: 'hours',
-        },
+        minimum_refresh_interval: 86400,
       },
     },
     expected: {
@@ -605,10 +527,7 @@ const SERVER_CASES: ParityCase[] = [
       },
     },
     readPolicy: {
-      minimum_refresh_interval: {
-        value: 24,
-        unit: 'hours',
-      },
+      minimum_refresh_interval: 86400,
     },
     adminList: [
       [0, "Don't refresh"],
@@ -628,19 +547,13 @@ const SERVER_CASES: ParityCase[] = [
       refresh_frequency: 0,
       auto_refresh_policy: {
         auto_refresh_allowed: false,
-        minimum_refresh_interval: {
-          value: 24,
-          unit: 'hours',
-        },
+        minimum_refresh_interval: 86400,
       },
     },
     expected: {},
     readPolicy: {
       auto_refresh_allowed: false,
-      minimum_refresh_interval: {
-        value: 24,
-        unit: 'hours',
-      },
+      minimum_refresh_interval: 86400,
     },
     adminList: [
       [0, "Don't refresh"],
@@ -658,14 +571,8 @@ const SERVER_CASES: ParityCase[] = [
     name: 'available standard intervals: min=max=60 s, list w/o 60, unchanged',
     metadata: {
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 60,
-          unit: 'seconds',
-        },
-        maximum_refresh_interval: {
-          value: 60,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 60,
+        maximum_refresh_interval: 60,
       },
     },
     expected: {
@@ -681,14 +588,8 @@ const SERVER_CASES: ParityCase[] = [
       },
     },
     readPolicy: {
-      minimum_refresh_interval: {
-        value: 60,
-        unit: 'seconds',
-      },
-      maximum_refresh_interval: {
-        value: 60,
-        unit: 'seconds',
-      },
+      minimum_refresh_interval: 60,
+      maximum_refresh_interval: 60,
     },
     adminList: [
       [0, "Don't refresh"],
@@ -832,10 +733,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       refresh_frequency: 30,
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 1,
-          unit: 'minutes',
-        },
+        minimum_refresh_interval: 60,
       },
     },
     expected: {
@@ -851,10 +749,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       refresh_frequency: 86400,
       auto_refresh_policy: {
-        maximum_refresh_interval: {
-          value: 1,
-          unit: 'hours',
-        },
+        maximum_refresh_interval: 3600,
       },
     },
     expected: {
@@ -870,10 +765,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       refresh_frequency: 10,
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 30,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 30,
       },
     },
     expected: {
@@ -889,10 +781,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       refresh_frequency: 30,
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 45,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 45,
       },
     },
     expected: {
@@ -902,10 +791,7 @@ const SERVER_CASES: ParityCase[] = [
       },
     },
     readPolicy: {
-      minimum_refresh_interval: {
-        value: 45,
-        unit: 'seconds',
-      },
+      minimum_refresh_interval: 45,
     },
   },
   {
@@ -913,10 +799,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       refresh_frequency: 1800,
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 1,
-          unit: 'hours',
-        },
+        minimum_refresh_interval: 3600,
       },
     },
     expected: {
@@ -932,10 +815,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       refresh_frequency: 10,
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 0,
-          unit: 'hours',
-        },
+        minimum_refresh_interval: 0,
       },
     },
     expected: {
@@ -951,10 +831,7 @@ const SERVER_CASES: ParityCase[] = [
     metadata: {
       refresh_frequency: 30,
       auto_refresh_policy: {
-        minimum_refresh_interval: {
-          value: 45,
-          unit: 'seconds',
-        },
+        minimum_refresh_interval: 45,
       },
     },
     expected: {
@@ -1010,12 +887,12 @@ test('getRefreshPolicyErrors: true vs 1 counts as changed on the client (stricte
       {
         auto_refresh_policy: {
           auto_refresh_allowed: 1,
-          minimum_refresh_interval: { value: 1, unit: 'minutes' },
+          minimum_refresh_interval: 60,
         },
       },
       {
         auto_refresh_allowed: true,
-        minimum_refresh_interval: { value: 1, unit: 'minutes' },
+        minimum_refresh_interval: 60,
       },
       listWithout60,
     ),
@@ -1033,8 +910,8 @@ test('getRefreshPolicyErrors: true vs 1 counts as changed on the client (stricte
 
 test('getRefreshPolicyErrors: a non-whole admin value is not a standard interval on the client (stricter than the server)', () => {
   const bounds = {
-    minimum_refresh_interval: { value: 1, unit: 'seconds' },
-    maximum_refresh_interval: { value: 2, unit: 'seconds' },
+    minimum_refresh_interval: 1,
+    maximum_refresh_interval: 2,
   };
   const message =
     'No standard interval fits between the shortest and longest interval. Widen the range.';
@@ -1072,28 +949,15 @@ test('getRefreshPolicyErrors: no policy or a null policy checks nothing', () => 
   ).toEqual({});
 });
 
-test('toBound uses the largest unit that divides exactly', () => {
-  expect(toBound(3600)).toEqual({ value: 1, unit: 'hours' });
-  expect(toBound(300)).toEqual({ value: 5, unit: 'minutes' });
-  expect(toBound(45)).toEqual({ value: 45, unit: 'seconds' });
-  expect(toBound(86400)).toEqual({ value: 24, unit: 'hours' });
-});
-
-test('toBound round-trips with getBoundSeconds for every default interval', () => {
-  getStandardSeconds(DEFAULT_LIST).forEach(seconds => {
-    expect(getBoundSeconds(toBound(seconds))).toBe(seconds);
-  });
-});
-
 test('formatBound uses the server words, singular and plural', () => {
-  const cases: [RefreshBound, string][] = [
-    [{ value: 1, unit: 'seconds' }, '1 second'],
-    [{ value: 45, unit: 'seconds' }, '45 seconds'],
-    [{ value: 1, unit: 'minutes' }, '1 minute'],
-    [{ value: 5, unit: 'minutes' }, '5 minutes'],
-    [{ value: 120, unit: 'minutes' }, '120 minutes'],
-    [{ value: 1, unit: 'hours' }, '1 hour'],
-    [{ value: 24, unit: 'hours' }, '24 hours'],
+  const cases: [number, string][] = [
+    [1, '1 second'],
+    [90, '90 seconds'],
+    [60, '1 minute'],
+    [300, '5 minutes'],
+    [7200, '2 hours'],
+    [3600, '1 hour'],
+    [86400, '24 hours'],
   ];
   cases.forEach(([bound, label]) => expect(formatBound(bound)).toBe(label));
 });

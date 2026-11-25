@@ -32,7 +32,6 @@ import {
   MINIMUM_KEY,
   POLICY_KEY,
   RefreshBoundKey,
-  toBound,
 } from '../../RefreshFrequency';
 
 export const FREQUENCY_FIELD = 'refresh_frequency';
@@ -95,7 +94,7 @@ const readParsedKeys = (
 
 const getFrequencyLabel = (value: number, adminList: unknown) =>
   getRefreshFrequencyOptions(adminList).find(option => option.value === value)
-    ?.label ?? formatBound(toBound(value));
+    ?.label ?? formatBound(value);
 
 const getDefaultFrequencyMessage = (
   code: string,
@@ -234,7 +233,7 @@ export function useRefreshPolicy({
     if (seconds === null) {
       delete next[key];
     } else {
-      next[key] = toBound(seconds);
+      next[key] = seconds;
     }
     return apply({ policy: next, refreshFrequency });
   };

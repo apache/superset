@@ -23,8 +23,6 @@ import {
   getRefreshFrequencyOptions,
 } from './RefreshFrequencySelect';
 
-export type RefreshBoundUnit = 'seconds' | 'minutes' | 'hours';
-export type RefreshBound = { value: number; unit: RefreshBoundUnit };
 export type RefreshPolicyError = { code: string; message: string };
 
 export const POLICY_KEY = 'auto_refresh_policy';
@@ -42,26 +40,17 @@ export const isPlainObject = (
 ): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
-/** Represent whole seconds in the largest exact supported unit. */
-export const toBound = (seconds: number): RefreshBound => {
+/** Format seconds in the largest exact unit for policy messages. */
+export const formatBound = (seconds: number): string => {
   if (seconds % 3600 === 0) {
-    return { value: seconds / 3600, unit: 'hours' };
+    const hours = seconds / 3600;
+    return tn('%s hour', '%s hours', hours, hours);
   }
   if (seconds % 60 === 0) {
-    return { value: seconds / 60, unit: 'minutes' };
+    const minutes = seconds / 60;
+    return tn('%s minute', '%s minutes', minutes, minutes);
   }
-  return { value: seconds, unit: 'seconds' };
-};
-
-/** Format a duration for policy messages. */
-export const formatBound = ({ value, unit }: RefreshBound): string => {
-  if (unit === 'seconds') {
-    return tn('%s second', '%s seconds', value, value);
-  }
-  if (unit === 'minutes') {
-    return tn('%s minute', '%s minutes', value, value);
-  }
-  return tn('%s hour', '%s hours', value, value);
+  return tn('%s second', '%s seconds', seconds, seconds);
 };
 
 /**
@@ -148,7 +137,7 @@ export const getRefreshPolicyErrors = (
         field,
         'invalid_boundary',
         t("%(interval)s isn't a standard interval. Select one from the list.", {
-          interval: formatBound(policy[key] as RefreshBound),
+          interval: formatBound(seconds),
         }),
       );
     } else {
@@ -231,7 +220,7 @@ export const getRefreshPolicyErrors = (
         field,
         'below_minimum',
         t('Refresh frequency must be %(minimum)s or greater.', {
-          minimum: formatBound(policy[MINIMUM_KEY] as RefreshBound),
+          minimum: formatBound(minimum),
         }),
       );
     } else if (maximum !== undefined && frequency > maximum) {
@@ -239,7 +228,7 @@ export const getRefreshPolicyErrors = (
         field,
         'above_maximum',
         t('Refresh frequency must be %(maximum)s or less.', {
-          maximum: formatBound(policy[MAXIMUM_KEY] as RefreshBound),
+          maximum: formatBound(maximum),
         }),
       );
     }

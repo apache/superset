@@ -29,7 +29,7 @@ from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 
-POLICY = {"minimum_refresh_interval": {"value": 30, "unit": "seconds"}}
+POLICY = {"minimum_refresh_interval": 30}
 FILE = "dashboard_export.json"
 
 
@@ -94,7 +94,7 @@ def history() -> list[dict[str, Any]]:
 
 def test_v0_rejects_an_invalid_policy_before_writing(schema: Session) -> None:
     """Check v0 rejects an invalid policy before writing."""
-    bad = {"minimum_refresh_interval": {"value": 45, "unit": "seconds"}}
+    bad = {"minimum_refresh_interval": 45}
     with pytest.raises(CommandInvalidError) as excinfo:
         ImportDashboardsCommand({FILE: export(bad, 10, with_dataset=True)}).run()
 
@@ -206,7 +206,7 @@ def test_flag_off_import_stores_a_well_formed_policy_unchecked(
     schema: Session, disable_policy: None
 ) -> None:
     """With the flag off a well-formed policy is imported without rules or history."""
-    bad = {"minimum_refresh_interval": {"value": 45, "unit": "seconds"}}
+    bad = {"minimum_refresh_interval": 45}
     ImportDashboardsCommand({FILE: export(bad, 10)}).run()
     assert db.session.query(Dashboard).one().params_dict["auto_refresh_policy"] == bad
     assert history() == []

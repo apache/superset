@@ -427,8 +427,8 @@ test.each([
     '30 seconds to 1 hour',
     {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: { value: 30, unit: 'seconds' },
-      maximum_refresh_interval: { value: 1, unit: 'hours' },
+      minimum_refresh_interval: 30,
+      maximum_refresh_interval: 3600,
     },
     ADMIN_LIST,
     [0, 30, 60, 300, 1800, 3600],
@@ -438,7 +438,7 @@ test.each([
     'only a minimum of 1 minute',
     {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: { value: 1, unit: 'minutes' },
+      minimum_refresh_interval: 60,
     },
     ADMIN_LIST,
     [0, 60, 300, 1800, 3600, 21600, 43200, 86400],
@@ -447,7 +447,7 @@ test.each([
     'only a maximum of 5 minutes',
     {
       auto_refresh_allowed: true,
-      maximum_refresh_interval: { value: 5, unit: 'minutes' },
+      maximum_refresh_interval: 300,
     },
     ADMIN_LIST,
     [0, 10, 30, 60, 300],
@@ -456,8 +456,8 @@ test.each([
     'admin list without 60, bounds 60 seconds to 1 hour',
     {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: { value: 60, unit: 'seconds' },
-      maximum_refresh_interval: { value: 1, unit: 'hours' },
+      minimum_refresh_interval: 60,
+      maximum_refresh_interval: 3600,
     },
     ADMIN_LIST.filter(([value]) => value !== 60),
     [0, 300, 1800, 3600],
@@ -466,7 +466,7 @@ test.each([
     'minimum of 2 hours left the list, rounds up to 6 hours',
     {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: { value: 2, unit: 'hours' },
+      minimum_refresh_interval: 7200,
     },
     [
       [3600, '1 hour'],
@@ -478,7 +478,7 @@ test.each([
     'maximum of 2 hours left the list, rounds down to 1 hour',
     {
       auto_refresh_allowed: true,
-      maximum_refresh_interval: { value: 2, unit: 'hours' },
+      maximum_refresh_interval: 7200,
     },
     [
       [3600, '1 hour'],
@@ -490,7 +490,7 @@ test.each([
     'minimum of 24 hours on a list without it',
     {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: { value: 24, unit: 'hours' },
+      minimum_refresh_interval: 86400,
     },
     ADMIN_LIST.filter(([value]) => value !== 86400),
     [0],
@@ -499,7 +499,7 @@ test.each([
     'admin list without 0 still offers "Don\'t refresh"',
     {
       auto_refresh_allowed: true,
-      maximum_refresh_interval: { value: 1, unit: 'minutes' },
+      maximum_refresh_interval: 60,
     },
     [
       [30, '30 seconds'],
@@ -519,10 +519,10 @@ test.each([
     [0, 60],
   ],
   [
-    'malformed bound is ignored',
+    'old-shape bound is ignored',
     {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: { value: '30', unit: 'seconds' },
+      minimum_refresh_interval: { value: 5, unit: 'minutes' },
     },
     ADMIN_LIST,
     [0, 10, 30, 60, 300, 1800, 3600, 21600, 43200, 86400],
@@ -531,8 +531,8 @@ test.each([
     'minimum greater than maximum leaves only "Don\'t refresh"',
     {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: { value: 1, unit: 'hours' },
-      maximum_refresh_interval: { value: 5, unit: 'minutes' },
+      minimum_refresh_interval: 3600,
+      maximum_refresh_interval: 300,
     },
     ADMIN_LIST,
     [0],
@@ -569,17 +569,15 @@ test('getAllowedRefreshOptions adds a "Don\'t refresh" label when the admin list
 });
 
 test.each([
-  ['30 seconds', { value: 30, unit: 'seconds' }, 30],
-  ['1 minute', { value: 1, unit: 'minutes' }, 60],
-  ['2 hours', { value: 2, unit: 'hours' }, 7200],
-  ['an extra key', { value: 30, unit: 'seconds', label: 'x' }, null],
-  ['a missing unit', { value: 30 }, null],
-  ['value true', { value: true, unit: 'seconds' }, null],
-  ['value "30"', { value: '30', unit: 'seconds' }, null],
-  ['value 0', { value: 0, unit: 'seconds' }, null],
-  ['value 1.5', { value: 1.5, unit: 'minutes' }, null],
-  ['unit days', { value: 1, unit: 'days' }, null],
-  ['unit toString', { value: 1, unit: 'toString' }, null],
+  ['positive seconds', 30, 30],
+  ['whole seconds with a decimal', 60.0, 60],
+  ['an old-shape bound', { value: 1, unit: 'minutes' }, null],
+  ['a boolean', true, null],
+  ['a numeric string', '30', null],
+  ['zero', 0, null],
+  ['a negative number', -30, null],
+  ['a fractional number', 1.5, null],
+  ['infinity', Infinity, null],
   ['null', null, null],
   ['an array', [30, 'seconds'], null],
 ])('getBoundSeconds reads %s like the server', (_, bound, expected) => {
@@ -596,8 +594,8 @@ test('getEffectiveRefreshFrequency keeps any value without a policy', () => {
 test('getEffectiveRefreshFrequency falls back to 0 outside the policy', () => {
   const policyOptions = getAllowedRefreshOptions(
     {
-      minimum_refresh_interval: { value: 30, unit: 'seconds' },
-      maximum_refresh_interval: { value: 1, unit: 'hours' },
+      minimum_refresh_interval: 30,
+      maximum_refresh_interval: 3600,
     },
     ADMIN_LIST,
   );

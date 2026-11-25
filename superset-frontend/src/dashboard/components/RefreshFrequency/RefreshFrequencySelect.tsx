@@ -141,32 +141,11 @@ export const getRefreshFrequencyOptions = (
     : REFRESH_FREQUENCY_OPTIONS;
 };
 
-const BOUND_UNIT_SECONDS: Record<string, number> = {
-  seconds: 1,
-  minutes: 60,
-  hours: 3600,
-};
-
-// Must match `_bound_seconds` in superset/dashboards/refresh_policy.py, which
-// `check_refresh_policy` uses on the server.
-/** Parse a positive whole duration using the server policy contract. */
-export const getBoundSeconds = (bound: unknown): number | null => {
-  if (!bound || typeof bound !== 'object' || Array.isArray(bound)) {
-    return null;
-  }
-  const keys = Object.keys(bound);
-  if (keys.length !== 2 || !keys.includes('value') || !keys.includes('unit')) {
-    return null;
-  }
-  const { value, unit } = bound as { value: unknown; unit: unknown };
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
-    return null;
-  }
-  if (typeof unit !== 'string' || !Object.hasOwn(BOUND_UNIT_SECONDS, unit)) {
-    return null;
-  }
-  return value * BOUND_UNIT_SECONDS[unit];
-};
+/** Parse a policy bound as positive whole seconds. */
+export const getBoundSeconds = (bound: unknown): number | null =>
+  typeof bound === 'number' && Number.isInteger(bound) && bound > 0
+    ? bound
+    : null;
 
 /** Filter standard runtime choices by the saved dashboard policy. */
 export const getAllowedRefreshOptions = (

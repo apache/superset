@@ -40,9 +40,6 @@ const DEFAULT_LIST = [
   [86400, '24 hours'],
 ];
 
-const minutes = (value: number) => ({ value, unit: 'minutes' });
-const hours = (value: number) => ({ value, unit: 'hours' });
-
 const Harness = ({
   metadata,
   serverErrors,
@@ -200,8 +197,8 @@ test('Allow off with no default disables the bounds, explains retained settings 
     refresh_frequency: 0,
     auto_refresh_policy: {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: minutes(1),
-      maximum_refresh_interval: hours(1),
+      minimum_refresh_interval: 60,
+      maximum_refresh_interval: 3600,
     },
   });
   await userEvent.click(
@@ -236,8 +233,8 @@ test('Shortest and Longest limit each other and keep the admin list order', asyn
   setup({
     refresh_frequency: 0,
     auto_refresh_policy: {
-      minimum_refresh_interval: minutes(5),
-      maximum_refresh_interval: hours(6),
+      minimum_refresh_interval: 300,
+      maximum_refresh_interval: 21600,
     },
   });
   await screen.findByRole('switch', { name: 'Allow auto-refresh' });
@@ -266,8 +263,8 @@ test('a hand-edited min > max shows both labels and the error on both', async ()
   setupEdited({
     refresh_frequency: 0,
     auto_refresh_policy: {
-      minimum_refresh_interval: hours(1),
-      maximum_refresh_interval: minutes(5),
+      minimum_refresh_interval: 3600,
+      maximum_refresh_interval: 300,
     },
   });
   await screen.findByRole('switch', { name: 'Allow auto-refresh' });
@@ -285,7 +282,7 @@ test('a stale bound is offered with its label and the explanatory note, also whi
     refresh_frequency: 0,
     auto_refresh_policy: {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: { value: 45, unit: 'seconds' },
+      minimum_refresh_interval: 45,
     },
   });
   await screen.findByRole('switch', { name: 'Allow auto-refresh' });
@@ -308,7 +305,7 @@ test('the standard boundary error replaces the stale note once the policy change
   setup({
     refresh_frequency: 0,
     auto_refresh_policy: {
-      minimum_refresh_interval: { value: 45, unit: 'seconds' },
+      minimum_refresh_interval: 45,
     },
   });
   await screen.findByRole('switch', { name: 'Allow auto-refresh' });
@@ -426,11 +423,11 @@ test("picking Don't refresh while prohibited clears the error and keeps Default 
   ).not.toHaveAttribute('aria-describedby');
 });
 
-test('a malformed bound selects nothing and shows the invalid boundary error', async () => {
+test('an old-shape bound selects nothing and shows the invalid boundary error', async () => {
   setupEdited({
     refresh_frequency: 0,
     auto_refresh_policy: {
-      maximum_refresh_interval: { value: 2, unit: 'days' },
+      maximum_refresh_interval: { value: 1, unit: 'hours' },
     },
   });
   await screen.findByRole('switch', { name: 'Allow auto-refresh' });
@@ -460,7 +457,7 @@ test('Default follows the bounds live and never offers Custom', async () => {
 test('a default below the shortest shows an error when auto-refresh is re-enabled', async () => {
   setupEdited({
     refresh_frequency: 60,
-    auto_refresh_policy: { minimum_refresh_interval: minutes(5) },
+    auto_refresh_policy: { minimum_refresh_interval: 300 },
   });
   const error = await screen.findByText(
     'The saved default (1 minute) is shorter than the shortest interval. Pick another.',
@@ -476,7 +473,7 @@ test('a default below the shortest shows an error when auto-refresh is re-enable
 test('a default above the longest shows its error', async () => {
   setupEdited({
     refresh_frequency: 3600,
-    auto_refresh_policy: { maximum_refresh_interval: minutes(5) },
+    auto_refresh_policy: { maximum_refresh_interval: 300 },
   });
   expect(
     await screen.findByText(
@@ -499,8 +496,8 @@ test('the Selects and switches carry aria-invalid and aria-describedby only with
     refresh_frequency: 0,
     auto_refresh_policy: {
       auto_refresh_allowed: 'yes',
-      minimum_refresh_interval: hours(1),
-      maximum_refresh_interval: minutes(5),
+      minimum_refresh_interval: 3600,
+      maximum_refresh_interval: 300,
     },
   });
   const allow = await screen.findByRole('switch', {
@@ -522,7 +519,7 @@ test('the Selects and switches carry aria-invalid and aria-describedby only with
 test('valid controls have no aria-invalid, and the alert regions exist before any error', async () => {
   const { container } = setup({
     refresh_frequency: 300,
-    auto_refresh_policy: { minimum_refresh_interval: minutes(1) },
+    auto_refresh_policy: { minimum_refresh_interval: 60 },
   });
   const allow = await screen.findByRole('switch', {
     name: 'Allow auto-refresh',

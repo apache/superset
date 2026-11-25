@@ -587,7 +587,7 @@ test('a saved frequency the policy does not allow falls back to 0', () => {
       refresh_frequency: 60,
       auto_refresh_policy: {
         auto_refresh_allowed: true,
-        minimum_refresh_interval: { value: 5, unit: 'minutes' },
+        minimum_refresh_interval: 300,
       },
     }),
   ).toBe(0);
@@ -599,10 +599,21 @@ test('a saved frequency the policy allows is kept', () => {
       refresh_frequency: 300,
       auto_refresh_policy: {
         auto_refresh_allowed: true,
-        minimum_refresh_interval: { value: 5, unit: 'minutes' },
+        minimum_refresh_interval: 300,
       },
     }),
   ).toBe(300);
+});
+
+test('an old-shape bound is ignored when hydrating a standard frequency', () => {
+  expect(
+    hydratedRefreshFrequency({
+      refresh_frequency: 60,
+      auto_refresh_policy: {
+        minimum_refresh_interval: { value: 5, unit: 'minutes' },
+      },
+    }),
+  ).toBe(60);
 });
 
 test('without a policy the saved frequency is kept, Custom values included', () => {

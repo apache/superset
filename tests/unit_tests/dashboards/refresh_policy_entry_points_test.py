@@ -132,9 +132,7 @@ def test_mcp_update_flag_off_checks_only_a_changed_policy_shape(
         UpdateDashboardRequest(
             identifier=1,
             json_metadata_overrides={
-                "auto_refresh_policy": {
-                    "minimum_refresh_interval": {"value": 45, "unit": "seconds"}
-                }
+                "auto_refresh_policy": {"minimum_refresh_interval": 45}
             },
         ),
     ):
@@ -146,8 +144,8 @@ SWAPS = [
     ({"auto_refresh_allowed": True}, {"auto_refresh_allowed": 1}),
     ({"auto_refresh_allowed": False}, {"auto_refresh_allowed": 0}),
     (
-        {"minimum_refresh_interval": {"value": 1, "unit": "minutes"}},
-        {"minimum_refresh_interval": {"value": True, "unit": "minutes"}},
+        {"minimum_refresh_interval": 1},
+        {"minimum_refresh_interval": True},
     ),
 ]
 

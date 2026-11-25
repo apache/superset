@@ -242,7 +242,8 @@ assists people when migrating to a new version.
   the existing `identity` and `or` fixtures.
 
 - `AUTO_REFRESH_POLICY` (default `False`) enables per-dashboard auto-refresh
-  policies in Dashboard properties, JSON, API writes and imports. Policy dashboards
+  policies in Dashboard properties, JSON, API writes and imports. Policy bounds
+  are positive whole seconds or null. Policy dashboards
   use configured standard intervals only; invalid defaults must be corrected when
   changing refresh settings. Unrelated saves preserve outdated settings. A PUT that
   omits `auto_refresh_policy` keeps the stored policy; send

@@ -28,16 +28,11 @@ from superset.utils import json
 
 VALID_POLICY = {
     "auto_refresh_allowed": True,
-    "minimum_refresh_interval": {"value": 30, "unit": "seconds"},
-    "maximum_refresh_interval": {"value": 1, "unit": "hours"},
+    "minimum_refresh_interval": 30,
+    "maximum_refresh_interval": 3600,
 }
 PROHIBITED = {"auto_refresh_allowed": False}
 USER_ID = 7
-
-
-def bound(value: Any, unit: Any = "seconds") -> dict[str, Any]:
-    """Bound."""
-    return {"value": value, "unit": unit}
 
 
 def without(value: int) -> list[list[Any]]:
@@ -207,36 +202,36 @@ POLICY = "json_metadata.auto_refresh_policy"
                 )
             ],
         ),
-        ({"minimum_refresh_interval": bound(0)}, 0, [(MIN, "invalid_boundary")]),
-        ({"minimum_refresh_interval": bound(-1)}, 0, [(MIN, "invalid_boundary")]),
-        ({"minimum_refresh_interval": bound(1.5)}, 0, [(MIN, "invalid_boundary")]),
-        ({"minimum_refresh_interval": bound("30")}, 0, [(MIN, "invalid_boundary")]),
-        ({"minimum_refresh_interval": bound(True)}, 0, [(MIN, "invalid_boundary")]),
+        ({"minimum_refresh_interval": 0}, 0, [(MIN, "invalid_boundary")]),
+        ({"minimum_refresh_interval": -1}, 0, [(MIN, "invalid_boundary")]),
+        ({"minimum_refresh_interval": 1.5}, 0, [(MIN, "invalid_boundary")]),
+        ({"minimum_refresh_interval": "30"}, 0, [(MIN, "invalid_boundary")]),
+        ({"minimum_refresh_interval": True}, 0, [(MIN, "invalid_boundary")]),
         (
-            {"maximum_refresh_interval": bound(30, "second")},
+            {"maximum_refresh_interval": {"value": 30, "unit": "seconds"}},
             0,
             [(MAX, "invalid_boundary")],
         ),
         (
-            {"maximum_refresh_interval": bound(1, "days")},
+            {"maximum_refresh_interval": {"value": 1, "unit": "days"}},
             0,
             [(MAX, "invalid_boundary")],
         ),
         (
-            {"maximum_refresh_interval": {**bound(30), "x": 1}},
+            {"maximum_refresh_interval": {"value": 30, "unit": "seconds", "x": 1}},
             0,
             [(MAX, "invalid_boundary")],
         ),
-        ({"minimum_refresh_interval": bound(45)}, 0, [(MIN, "invalid_boundary")]),
+        ({"minimum_refresh_interval": 45}, 0, [(MIN, "invalid_boundary")]),
         (
-            {"maximum_refresh_interval": bound(2, "hours")},
+            {"maximum_refresh_interval": 7200},
             0,
             [(MAX, "invalid_boundary")],
         ),
         (
             {
-                "minimum_refresh_interval": bound(1, "hours"),
-                "maximum_refresh_interval": bound(30),
+                "minimum_refresh_interval": 3600,
+                "maximum_refresh_interval": 30,
             },
             0,
             [
@@ -247,8 +242,8 @@ POLICY = "json_metadata.auto_refresh_policy"
         (
             {
                 "auto_refresh_allowed": False,
-                "minimum_refresh_interval": bound(1, "hours"),
-                "maximum_refresh_interval": bound(30),
+                "minimum_refresh_interval": 3600,
+                "maximum_refresh_interval": 30,
             },
             0,
             [
@@ -262,14 +257,13 @@ POLICY = "json_metadata.auto_refresh_policy"
         ({}, 60.5, [(FREQ, "invalid_refresh_frequency")]),
         ({}, -5, [(FREQ, "invalid_refresh_frequency")]),
         ({}, 45, [(FREQ, "custom_not_allowed")]),
-        ({"minimum_refresh_interval": bound(30)}, 10, [(FREQ, "below_minimum")]),
+        ({"minimum_refresh_interval": 30}, 10, [(FREQ, "below_minimum")]),
         (
-            {"maximum_refresh_interval": bound(1, "hours")},
+            {"maximum_refresh_interval": 3600},
             21600,
             [(FREQ, "above_maximum")],
         ),
-        ({"minimum_refresh_interval": bound(60)}, 60, []),
-        ({"minimum_refresh_interval": bound(1, "minutes")}, 60, []),
+        ({"minimum_refresh_interval": 60}, 60, []),
     ],
 )
 def test_put_rules(
@@ -303,8 +297,8 @@ def test_equal_bounds_in_different_units(
     """Check equal bounds in different units."""
     dashboard = make_dashboard({})
     policy = {
-        "minimum_refresh_interval": bound(60),
-        "maximum_refresh_interval": bound(1, "minutes"),
+        "minimum_refresh_interval": 60,
+        "maximum_refresh_interval": 60,
     }
     response = put(
         client, dashboard, {"auto_refresh_policy": policy, "refresh_frequency": 60}
@@ -335,7 +329,7 @@ def test_prohibited_keeps_bounds_and_rechecks_them(
 ) -> None:
     """Check prohibited keeps bounds and rechecks them."""
     dashboard = make_dashboard({})
-    off = {"auto_refresh_allowed": False, "minimum_refresh_interval": bound(45)}
+    off = {"auto_refresh_allowed": False, "minimum_refresh_interval": 45}
 
     assert (
         put(client, dashboard, {"auto_refresh_policy": PROHIBITED}).status_code == 200
@@ -359,7 +353,7 @@ def test_put_merges_the_stored_policy(
     make_dashboard: Callable[..., Any], client: Any, full_api_access: None
 ) -> None:
     """Check put merges the stored policy."""
-    policy = {"minimum_refresh_interval": bound(30)}
+    policy = {"minimum_refresh_interval": 30}
     dashboard = make_dashboard({"auto_refresh_policy": policy, "stagger_time": 5})
 
     assert put(client, dashboard, {"color_scheme": "blue"}).status_code == 200
@@ -411,8 +405,8 @@ def test_colors_sync_skips_a_stored_policy_that_no_longer_passes(
 ) -> None:
     """Background colors sync saves on a dashboard whose stored policy fails."""
     policy = {
-        "minimum_refresh_interval": bound(2, "minutes"),
-        "maximum_refresh_interval": bound(4, "minutes"),
+        "minimum_refresh_interval": 120,
+        "maximum_refresh_interval": 240,
     }
     dashboard = make_dashboard({"auto_refresh_policy": policy})
 
@@ -452,8 +446,8 @@ def test_filter_saves_skip_a_stored_policy_that_no_longer_passes(
 ) -> None:
     """Filter and chart customization saves work on a stored policy that fails."""
     policy = {
-        "minimum_refresh_interval": bound(2, "minutes"),
-        "maximum_refresh_interval": bound(4, "minutes"),
+        "minimum_refresh_interval": 120,
+        "maximum_refresh_interval": 240,
     }
     dashboard = make_dashboard({"auto_refresh_policy": policy})
 
@@ -473,7 +467,7 @@ def test_unchanged_policy_skips_the_list_check(
     mocker: MockerFixture,
 ) -> None:
     """An unchanged policy preserves bounds removed from the interval list."""
-    policy = {"minimum_refresh_interval": bound(60)}
+    policy = {"minimum_refresh_interval": 60}
     dashboard = make_dashboard({"auto_refresh_policy": policy})
     mocker.patch.dict(
         current_app.config, {"DASHBOARD_AUTO_REFRESH_INTERVALS": without(60)}
@@ -492,7 +486,7 @@ def test_unchanged_policy_skips_the_list_check(
         {
             "auto_refresh_policy": {
                 **policy,
-                "maximum_refresh_interval": bound(1, "hours"),
+                "maximum_refresh_interval": 3600,
             }
         },
     )
@@ -502,7 +496,7 @@ def test_unchanged_policy_skips_the_list_check(
         client,
         dashboard,
         {
-            "auto_refresh_policy": {"maximum_refresh_interval": bound(1, "hours")},
+            "auto_refresh_policy": {"maximum_refresh_interval": 3600},
             "refresh_frequency": 60,
         },
     )
@@ -519,7 +513,7 @@ def test_outdated_bounds_allow_unrelated_saves(
     mocker: MockerFixture,
 ) -> None:
     """Outdated bounds allow unrelated saves."""
-    policy = {"minimum_refresh_interval": bound(24, "hours")}
+    policy = {"minimum_refresh_interval": 86400}
     dashboard = make_dashboard({"auto_refresh_policy": policy})
     mocker.patch.dict(
         current_app.config, {"DASHBOARD_AUTO_REFRESH_INTERVALS": without(86400)}
@@ -544,8 +538,8 @@ def test_equal_bounds_left_the_list_on_put_and_copy(
 ) -> None:
     """Unrelated updates preserve outdated equal bounds; copy validates them."""
     policy = {
-        "minimum_refresh_interval": bound(60),
-        "maximum_refresh_interval": bound(60),
+        "minimum_refresh_interval": 60,
+        "maximum_refresh_interval": 60,
     }
     dashboard = make_dashboard({"auto_refresh_policy": policy})
     mocker.patch.dict(
@@ -575,7 +569,7 @@ def test_copy_checks_the_original_policy(
     response = copy(
         client,
         dashboard,
-        {"auto_refresh_policy": {"minimum_refresh_interval": bound(45)}},
+        {"auto_refresh_policy": {"minimum_refresh_interval": 45}},
     )
     assert response.status_code == 422
     assert error_codes(response) == [(MIN, "invalid_boundary")]
@@ -640,9 +634,7 @@ def test_post_checks_the_policy(
     assert error_codes(response) == [(FREQ, "below_minimum")]
     assert db.session.query(Dashboard).count() == before
 
-    response = post(
-        client, {"auto_refresh_policy": {"minimum_refresh_interval": bound(45)}}
-    )
+    response = post(client, {"auto_refresh_policy": {"minimum_refresh_interval": 45}})
     assert response.status_code == 422
     assert error_codes(response) == [(MIN, "invalid_boundary")]
     assert db.session.query(Dashboard).count() == before
@@ -800,7 +792,7 @@ def test_openapi_documents_the_policy(client: Any, full_api_access: None) -> Non
     for schema in (DashboardPostSchema(), DashboardPutSchema(), DashboardCopySchema()):
         description = schema.fields["json_metadata"].metadata["description"]
         assert "auto_refresh_policy" in description
-        assert '"unit": "seconds" | "minutes" | "hours"' in description
+        assert "each null or a positive whole number of seconds" in description
 
 
 @pytest.fixture(autouse=True)
@@ -831,7 +823,11 @@ def disable_policy(mocker: MockerFixture) -> None:
             {"auto_refresh_allowed": "no"},
             [(f"{POLICY}.auto_refresh_allowed", "invalid_policy")],
         ),
-        ({"minimum_refresh_interval": bound(1.5)}, [(MIN, "invalid_boundary")]),
+        ({"minimum_refresh_interval": 1.5}, [(MIN, "invalid_boundary")]),
+        (
+            {"minimum_refresh_interval": {"value": 1, "unit": "minutes"}},
+            [(MIN, "invalid_boundary")],
+        ),
     ],
 )
 def test_flag_off_rejects_a_malformed_policy_on_writes(
@@ -865,11 +861,11 @@ def test_flag_off_rejects_a_malformed_policy_on_writes(
 @pytest.mark.parametrize(
     "policy",
     [
-        {"minimum_refresh_interval": bound(45)},
+        {"minimum_refresh_interval": 45},
         {"auto_refresh_allowed": False},
         {
-            "minimum_refresh_interval": bound(2, "hours"),
-            "maximum_refresh_interval": bound(1, "hours"),
+            "minimum_refresh_interval": 7200,
+            "maximum_refresh_interval": 3600,
         },
         None,
     ],
@@ -905,16 +901,23 @@ def test_flag_off_stores_a_well_formed_policy_without_rules_or_history(
     assert history() == []
 
 
+@pytest.mark.parametrize(
+    "malformed",
+    [
+        {"custom_refresh_allowed": False},
+        {"minimum_refresh_interval": {"value": 1, "unit": "minutes"}},
+    ],
+)
 def test_flag_off_keeps_a_stored_malformed_policy(
     make_dashboard: Callable[..., Any],
     client: Any,
     full_api_access: None,
     disable_policy: None,
+    malformed: dict[str, Any],
 ) -> None:
     """A malformed policy stored earlier loads, exports and allows unrelated saves."""
     from superset.models.dashboard import Dashboard
 
-    malformed = {"custom_refresh_allowed": False}
     dashboard = make_dashboard(
         {"auto_refresh_policy": malformed, "refresh_frequency": 45}
     )
@@ -959,15 +962,23 @@ def test_flag_off_keeps_a_stored_malformed_policy(
     assert history() == []
 
 
+@pytest.mark.parametrize(
+    "malformed",
+    [
+        {"custom_refresh_allowed": False},
+        {"minimum_refresh_interval": {"value": 1, "unit": "minutes"}},
+    ],
+)
 def test_flag_off_exports_a_stored_malformed_policy(
-    make_dashboard: Callable[..., Any], disable_policy: None
+    make_dashboard: Callable[..., Any],
+    disable_policy: None,
+    malformed: dict[str, Any],
 ) -> None:
     """A malformed policy stored earlier is exported as stored."""
     import yaml
 
     from superset.commands.dashboard.export import ExportDashboardsCommand
 
-    malformed = {"custom_refresh_allowed": False}
     dashboard = make_dashboard({"auto_refresh_policy": malformed})
     content = yaml.safe_load(ExportDashboardsCommand._file_content(dashboard))
     assert content["metadata"]["auto_refresh_policy"] == malformed
@@ -989,8 +1000,8 @@ def test_flag_off_exports_a_stored_malformed_policy(
             "invalid_policy",
         ),
         (
-            {"minimum_refresh_interval": bound(1, "minutes")},
-            {"minimum_refresh_interval": bound(True, "minutes")},
+            {"minimum_refresh_interval": 60},
+            {"minimum_refresh_interval": True},
             MIN,
             "invalid_boundary",
         ),
@@ -1192,7 +1203,7 @@ def test_stored_removed_key_is_rejected_on_refresh_change(
     "metadata",
     [
         {"refresh_frequency": 45},
-        {"auto_refresh_policy": {"minimum_refresh_interval": bound(45)}},
+        {"auto_refresh_policy": {"minimum_refresh_interval": 45}},
     ],
 )
 def test_refresh_setting_changes_still_validate(
@@ -1212,8 +1223,8 @@ def refresh_settings(policy: Any, frequency: Any = 0) -> dict[str, Any]:
 
 
 def minimum(value: Any) -> dict[str, Any]:
-    """Policy with a shortest interval in minutes."""
-    return {"minimum_refresh_interval": bound(value, "minutes")}
+    """Policy with a shortest interval."""
+    return {"minimum_refresh_interval": value}
 
 
 WITHOUT_ONE_MINUTE = [[0, "Off"], [30, "30 seconds"], [300, "5 minutes"]]
@@ -1262,15 +1273,15 @@ BOOLEAN_NUMBER_SWAPS = [
     ),
     pytest.param(
         refresh_settings(minimum(True), 30),
-        refresh_settings(minimum(1), 30),
+        refresh_settings(minimum(60), 30),
         None,
         "below_minimum",
-        id="bound-true-to-1-too-short",
+        id="bound-true-to-60-too-short",
     ),
     pytest.param(
         refresh_settings(minimum(True), 60),
         refresh_settings(minimum(1), 60),
-        None,
+        [[1, "1 second"], [60, "1 minute"]],
         "log",
         id="bound-true-to-1",
     ),
@@ -1289,18 +1300,18 @@ BOOLEAN_NUMBER_SWAPS = [
         id="frequency-0-to-false",
     ),
     pytest.param(
-        refresh_settings(minimum(1), 60),
-        refresh_settings(minimum(1.0), 60),
+        refresh_settings(minimum(60), 60),
+        refresh_settings(minimum(60.0), 60),
         None,
         "same",
-        id="bound-1-to-1.0",
+        id="bound-60-to-60.0",
     ),
     pytest.param(
-        refresh_settings(minimum(1.0), 60),
-        refresh_settings(minimum(1), 60.0),
+        refresh_settings(minimum(60.0), 60),
+        refresh_settings(minimum(60), 60.0),
         None,
         "same",
-        id="bound-1.0-to-1",
+        id="bound-60.0-to-60",
     ),
 ]
 

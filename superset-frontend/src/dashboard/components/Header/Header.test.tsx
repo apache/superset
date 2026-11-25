@@ -1422,7 +1422,7 @@ const PROHIBITED_POLICY = { auto_refresh_allowed: false };
 const OPEN_POLICY = { auto_refresh_allowed: true };
 const NARROW_POLICY = {
   auto_refresh_allowed: true,
-  minimum_refresh_interval: { value: 30, unit: 'seconds' },
+  minimum_refresh_interval: 30,
 };
 
 const realTimeDashboard = () =>
@@ -1967,7 +1967,7 @@ test('flag off keeps the timer active for a stored prohibited policy', async () 
 
 test('header timer ignores a session frequency outside the policy range', async () => {
   const state = viewStateWithPolicy({
-    minimum_refresh_interval: { value: 30, unit: 'seconds' },
+    minimum_refresh_interval: 30,
   });
   const calls = await autoRefreshCallsAfter30Seconds(state);
   expect(calls.refreshes).toBe(0);

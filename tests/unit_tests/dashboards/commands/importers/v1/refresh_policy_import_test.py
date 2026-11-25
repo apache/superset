@@ -36,9 +36,9 @@ from tests.integration_tests.fixtures.importexport import dashboard_config
 
 POLICY = {
     "auto_refresh_allowed": True,
-    "minimum_refresh_interval": {"value": 30, "unit": "seconds"},
+    "minimum_refresh_interval": 30,
 }
-BAD_POLICY = {"minimum_refresh_interval": {"value": 45, "unit": "seconds"}}
+BAD_POLICY = {"minimum_refresh_interval": 45}
 MIN = "auto_refresh_policy.minimum_refresh_interval"
 BAD_MESSAGE = "45 seconds isn't a standard interval. Select one from the list."
 FILE = "dashboards/test.yaml"
@@ -122,8 +122,8 @@ def test_schema_checks_against_no_stored_policy(mocker: MockerFixture) -> None:
         {"DASHBOARD_AUTO_REFRESH_INTERVALS": [[30, "30 s"], [120, "2 min"]]},
     )
     policy = {
-        "minimum_refresh_interval": {"value": 60, "unit": "seconds"},
-        "maximum_refresh_interval": {"value": 60, "unit": "seconds"},
+        "minimum_refresh_interval": 60,
+        "maximum_refresh_interval": 60,
     }
     with pytest.raises(ValidationError) as excinfo:
         ImportV1DashboardSchema().load(config(policy))

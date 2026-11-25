@@ -34,7 +34,6 @@ MIN_KEY = "minimum_refresh_interval"
 MAX_KEY = "maximum_refresh_interval"
 SWITCH_KEYS = ("auto_refresh_allowed",)
 BOUND_KEYS = (MIN_KEY, MAX_KEY)
-UNIT_SECONDS = {"seconds": 1, "minutes": 60, "hours": 3600}
 
 DEFAULT_REFRESH_INTERVALS: list[float] = [
     0,
@@ -231,31 +230,24 @@ def log_refresh_policy_change(
     )
 
 
-def _format_bound(bound: dict[str, Any]) -> str:
-    """Format a bound as a translated duration."""
-    value = bound["value"]
-    if bound["unit"] == "seconds":
-        return ngettext("%(num)d second", "%(num)d seconds", value)
-    if bound["unit"] == "minutes":
-        return ngettext("%(num)d minute", "%(num)d minutes", value)
-    return ngettext("%(num)d hour", "%(num)d hours", value)
+def _format_bound(seconds: int) -> str:
+    """Format seconds in the largest exact translated unit."""
+    if seconds % 3600 == 0:
+        return ngettext("%(num)d hour", "%(num)d hours", seconds // 3600)
+    if seconds % 60 == 0:
+        return ngettext("%(num)d minute", "%(num)d minutes", seconds // 60)
+    return ngettext("%(num)d second", "%(num)d seconds", seconds)
 
 
 def _bound_seconds(bound: Any) -> int | None:
-    """Read a positive integral duration from a policy bound."""
-    if not isinstance(bound, dict) or set(bound) != {"value", "unit"}:
-        return None
-    value, unit = bound["value"], bound["unit"]
+    """Read positive whole seconds from a policy bound."""
     if (
-        isinstance(value, bool)
-        or not isinstance(value, (int, float))
-        or value < 1
-        or (isinstance(value, float) and not value.is_integer())
+        not _is_number(bound)
+        or bound < 1
+        or (isinstance(bound, float) and not bound.is_integer())
     ):
         return None
-    if not isinstance(unit, str) or unit not in UNIT_SECONDS:
-        return None
-    return int(value) * UNIT_SECONDS[unit]
+    return int(bound)
 
 
 def check_refresh_policy(  # noqa: C901
@@ -324,7 +316,7 @@ def check_refresh_policy(  # noqa: C901
                 "invalid_boundary",
                 __(
                     "%(interval)s isn't a standard interval. Select one from the list.",
-                    interval=_format_bound(policy[key]),
+                    interval=_format_bound(seconds),
                 ),
             )
         else:
@@ -401,7 +393,7 @@ def check_refresh_policy(  # noqa: C901
                 "below_minimum",
                 __(
                     "Refresh frequency must be %(minimum)s or greater.",
-                    minimum=_format_bound(policy[MIN_KEY]),
+                    minimum=_format_bound(minimum),
                 ),
             )
         elif maximum is not None and frequency > maximum:
@@ -410,7 +402,7 @@ def check_refresh_policy(  # noqa: C901
                 "above_maximum",
                 __(
                     "Refresh frequency must be %(maximum)s or less.",
-                    maximum=_format_bound(policy[MAX_KEY]),
+                    maximum=_format_bound(maximum),
                 ),
             )
     return list(errors.values())

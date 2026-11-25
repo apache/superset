@@ -87,8 +87,8 @@ json_metadata_description = (
     "holds the dashboard's auto-refresh "
     "policy: `auto_refresh_allowed` (boolean, default true), "
     "`minimum_refresh_interval` and `maximum_refresh_interval` (each null or "
-    '`{"value": <whole number >= 1>, "unit": "seconds" | "minutes" | "hours"}`; '
-    "the length must be one of the standard refresh intervals, no other upper "
+    "a positive whole number of seconds; "
+    "the value must be one of the standard refresh intervals, no other upper "
     "limit). With a policy, `refresh_frequency` must be 0 or a whole number of "
     "seconds that is a standard interval within the bounds, and 0 when "
     "auto-refresh isn't allowed. On create, a missing or null "

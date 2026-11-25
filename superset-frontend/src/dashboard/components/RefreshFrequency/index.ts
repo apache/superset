@@ -35,14 +35,8 @@ export {
   MAXIMUM_KEY,
   ALLOWED_KEY,
   isPlainObject,
-  toBound,
   formatBound,
   getStandardSeconds,
   getRefreshPolicyErrors,
 } from './refreshPolicy';
-export type {
-  RefreshBound,
-  RefreshBoundKey,
-  RefreshBoundUnit,
-  RefreshPolicyError,
-} from './refreshPolicy';
+export type { RefreshBoundKey, RefreshPolicyError } from './refreshPolicy';

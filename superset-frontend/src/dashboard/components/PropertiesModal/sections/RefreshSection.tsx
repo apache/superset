@@ -41,9 +41,7 @@ import {
   MAXIMUM_KEY,
   MINIMUM_KEY,
   POLICY_KEY,
-  RefreshBound,
   RefreshBoundKey,
-  toBound,
 } from '../../RefreshFrequency';
 import {
   ALLOWED_FIELD,
@@ -146,7 +144,7 @@ const RefreshSection = ({
       value,
       label:
         labels.find(option => option.value === value)?.label ??
-        formatBound(toBound(value)),
+        formatBound(value),
     }));
   }, [adminList]);
 
@@ -259,7 +257,7 @@ const RefreshSection = ({
       isStale && !error
         ? t(
             "%s is no longer in the admin's list. Viewers get the intervals inside it.",
-            formatBound(bound as RefreshBound),
+            formatBound(seconds),
           )
         : undefined;
 
@@ -278,7 +276,7 @@ const RefreshSection = ({
                 value: seconds,
                 label:
                   standardOptions.find(option => option.value === seconds)
-                    ?.label ?? formatBound(bound as RefreshBound),
+                    ?.label ?? formatBound(seconds),
               },
             ]
           : []),

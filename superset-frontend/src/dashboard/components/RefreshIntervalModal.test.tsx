@@ -216,8 +216,8 @@ const setupWithPolicy = (
 
 test('with a policy only the allowed intervals are offered, without Custom', () => {
   setupWithPolicy(POLICY_OPTIONS, {
-    minimum_refresh_interval: { value: 30, unit: 'seconds' },
-    maximum_refresh_interval: { value: 1, unit: 'hours' },
+    minimum_refresh_interval: 30,
+    maximum_refresh_interval: 3600,
   });
 
   expect(
@@ -235,8 +235,8 @@ test.each([
     '1: no interval left',
     [{ value: 0, label: "Don't refresh" }],
     {
-      minimum_refresh_interval: { value: 1, unit: 'hours' },
-      maximum_refresh_interval: { value: 5, unit: 'minutes' },
+      minimum_refresh_interval: 3600,
+      maximum_refresh_interval: 300,
     },
     SESSION_HELP,
   ],
@@ -244,8 +244,8 @@ test.each([
     '2: exactly one interval',
     POLICY_OPTIONS.filter(({ value }) => value === 0 || value === 60),
     {
-      minimum_refresh_interval: { value: 1, unit: 'minutes' },
-      maximum_refresh_interval: { value: 1, unit: 'minutes' },
+      minimum_refresh_interval: 60,
+      maximum_refresh_interval: 60,
     },
     `${SESSION_HELP} This dashboard allows 1 minute.`,
   ],
@@ -253,21 +253,21 @@ test.each([
     '3: minimum and maximum',
     POLICY_OPTIONS,
     {
-      minimum_refresh_interval: { value: 30, unit: 'seconds' },
-      maximum_refresh_interval: { value: 1, unit: 'hours' },
+      minimum_refresh_interval: 30,
+      maximum_refresh_interval: 3600,
     },
     `${SESSION_HELP} This dashboard allows 30 seconds to 1 hour.`,
   ],
   [
     '4: only a minimum',
     POLICY_OPTIONS.filter(({ value }) => value === 0 || value >= 300),
-    { minimum_refresh_interval: { value: 5, unit: 'minutes' } },
+    { minimum_refresh_interval: 300 },
     `${SESSION_HELP} This dashboard allows 5 minutes or longer.`,
   ],
   [
     '5: only a maximum',
     POLICY_OPTIONS.filter(({ value }) => value <= 300),
-    { maximum_refresh_interval: { value: 5, unit: 'minutes' } },
+    { maximum_refresh_interval: 300 },
     `${SESSION_HELP} This dashboard allows up to 5 minutes.`,
   ],
   [
@@ -279,7 +279,7 @@ test.each([
   [
     '6: a malformed bound counts as not set',
     POLICY_OPTIONS,
-    { minimum_refresh_interval: { value: '30', unit: 'seconds' } },
+    { minimum_refresh_interval: '30' },
     SESSION_HELP,
   ],
 ])('help text rule %s', (_, options, policy, help) => {
@@ -298,8 +298,8 @@ test('without a policy the existing list with Custom is shown', () => {
 
 test('with a policy the intervals are a named group described by the help text', () => {
   setupWithPolicy(POLICY_OPTIONS, {
-    minimum_refresh_interval: { value: 30, unit: 'seconds' },
-    maximum_refresh_interval: { value: 1, unit: 'hours' },
+    minimum_refresh_interval: 30,
+    maximum_refresh_interval: 3600,
   });
 
   const group = screen.getByRole('radiogroup', { name: 'Refresh frequency' });

@@ -1021,8 +1021,6 @@ const dangerToasts = (store: ReturnType<typeof createStore>) =>
   ).messageToasts.filter(toast => toast.toastType === 'DANGER_TOAST');
 
 const ALLOWED = { auto_refresh_allowed: true };
-const minutes = (value: number) => ({ value, unit: 'minutes' });
-const hours = (value: number) => ({ value, unit: 'hours' });
 const PROHIBITED_DEFAULT_ERROR =
   'A default of 5 minutes is set, but auto-refresh is off. Pick "Don\'t refresh".';
 
@@ -1140,7 +1138,7 @@ test('the policy is sent even when its key is deleted in Advanced JSON', async (
   const put = mockPut().mockResolvedValue(new Response('{}'));
   const policy = {
     auto_refresh_allowed: true,
-    minimum_refresh_interval: minutes(1),
+    minimum_refresh_interval: 60,
   };
   await renderRefreshModal({
     refresh_frequency: 0,
@@ -1168,7 +1166,7 @@ test('a control change rewrites both refresh keys in the JSON text', async () =>
     refresh_frequency: 300,
     auto_refresh_policy: {
       auto_refresh_allowed: true,
-      minimum_refresh_interval: minutes(1),
+      minimum_refresh_interval: 60,
     },
   });
 });
@@ -1190,7 +1188,7 @@ test('with a policy, refresh_frequency and policy edits typed in the JSON update
   await typeJson({
     color_scheme: 'supersetColors',
     refresh_frequency: 10,
-    auto_refresh_policy: { ...ALLOWED, maximum_refresh_interval: minutes(5) },
+    auto_refresh_policy: { ...ALLOWED, maximum_refresh_interval: 300 },
   });
   await openRefresh();
   expect(selectValue('Longest interval')).toBe('5 minutes');
@@ -1254,7 +1252,7 @@ test('control edits made while the JSON is broken are kept when it is fixed, and
   const put = mockPut().mockResolvedValue(new Response('{}'));
   const policy = {
     auto_refresh_allowed: true,
-    minimum_refresh_interval: minutes(1),
+    minimum_refresh_interval: 60,
   };
   await renderRefreshModal({
     refresh_frequency: 0,
@@ -1269,11 +1267,9 @@ test('control edits made while the JSON is broken are kept when it is fixed, and
   await openRefresh();
 
   expect(selectValue('Shortest interval')).toBe('5 minutes');
-  expect(jsonText().auto_refresh_policy.minimum_refresh_interval).toEqual(
-    minutes(1),
-  );
+  expect(jsonText().auto_refresh_policy.minimum_refresh_interval).toEqual(60);
   const body = await save(put);
-  expect(body.auto_refresh_policy.minimum_refresh_interval).toEqual(minutes(5));
+  expect(body.auto_refresh_policy.minimum_refresh_interval).toEqual(300);
 });
 
 test('a parsed policy equal to the last parsed one is not copied back', async () => {
@@ -1398,16 +1394,16 @@ test('with a policy, the JSON text and the sent body agree after every control c
   expect(body.refresh_frequency).toBe(1800);
   expect(body.auto_refresh_policy).toEqual({
     auto_refresh_allowed: true,
-    minimum_refresh_interval: minutes(5),
-    maximum_refresh_interval: hours(1),
+    minimum_refresh_interval: 300,
+    maximum_refresh_interval: 3600,
   });
 });
 
 test("Allow off with a positive default focuses the default on Save until Don't refresh is picked, then sends 0 and keeps the bounds", async () => {
   const put = mockPut().mockResolvedValue(new Response('{}'));
   const bounds = {
-    minimum_refresh_interval: minutes(1),
-    maximum_refresh_interval: hours(1),
+    minimum_refresh_interval: 60,
+    maximum_refresh_interval: 3600,
   };
   await renderRefreshModal({
     refresh_frequency: 300,
@@ -1440,7 +1436,7 @@ test('Allow off and on again keeps the frequency and checks it against each stat
   const put = mockPut().mockResolvedValue(new Response('{}'));
   await renderRefreshModal({
     refresh_frequency: 300,
-    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
+    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: 60 },
   });
   await openRefresh();
   const allow = screen.getByRole('switch', { name: 'Allow auto-refresh' });
@@ -1493,7 +1489,7 @@ test('a 422 with the refresh panel closed shows the error inline, keeps the toas
   );
   const { store } = await renderRefreshModal({
     refresh_frequency: 0,
-    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
+    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: 60 },
   });
   expect(
     screen.queryByRole('switch', { name: 'Use a refresh policy' }),
@@ -1544,7 +1540,7 @@ test('a 422 after the refresh panel was opened and collapsed focuses the shortes
     );
     await renderRefreshModal({
       refresh_frequency: 0,
-      auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
+      auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: 60 },
     });
     await openRefresh();
     await collapseRefresh();
@@ -1597,7 +1593,7 @@ test('a late 422 after a refresh change shows only the toast', async () => {
   );
   const { store } = await renderRefreshModal({
     refresh_frequency: 0,
-    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
+    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: 60 },
   });
   await openRefresh();
 
@@ -1714,8 +1710,8 @@ test('a 422 on both bounds is cleared by changing Shortest, and Save is enabled 
     refresh_frequency: 0,
     auto_refresh_policy: {
       ...ALLOWED,
-      minimum_refresh_interval: minutes(5),
-      maximum_refresh_interval: hours(1),
+      minimum_refresh_interval: 300,
+      maximum_refresh_interval: 3600,
     },
   });
 
@@ -1732,7 +1728,7 @@ test('a 422 on both bounds is cleared by changing Shortest, and Save is enabled 
 });
 
 test('onlyApply: the submitted jsonMetadata carries the stored policy', async () => {
-  const policy = { ...ALLOWED, minimum_refresh_interval: minutes(1) };
+  const policy = { ...ALLOWED, minimum_refresh_interval: 60 };
   const { props } = await renderRefreshModal(
     { refresh_frequency: 0, auto_refresh_policy: policy },
     { onlyApply: true },
@@ -1791,7 +1787,7 @@ test('a 422 focuses its field when the Refresh section mounts late', async () =>
   );
   await renderRefreshModal({
     refresh_frequency: 0,
-    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
+    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: 60 },
   });
   mockRefreshSectionSkip = 2;
 
@@ -1813,7 +1809,7 @@ test('a 422 whose field never mounts stops retrying focus', async () => {
   );
   await renderRefreshModal({
     refresh_frequency: 0,
-    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
+    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: 60 },
   });
   mockRefreshSectionSkip = Infinity;
   jest.useFakeTimers({ advanceTimers: true });
@@ -1831,8 +1827,8 @@ test('a 422 whose field never mounts stops retrying focus', async () => {
 test('turning the policy off and on restores the read policy', async () => {
   const readPolicy = {
     ...ALLOWED,
-    minimum_refresh_interval: minutes(1),
-    maximum_refresh_interval: hours(1),
+    minimum_refresh_interval: 60,
+    maximum_refresh_interval: 3600,
   };
   await renderRefreshModal({
     refresh_frequency: 0,
@@ -1854,7 +1850,7 @@ test('turning the policy off and on restores the read policy', async () => {
 test('typing back the loaded JSON after a control change and a broken JSON restores the controls', async () => {
   await renderRefreshModal({
     refresh_frequency: 0,
-    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
+    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: 60 },
   });
   const loadedJson = (await jsonEditor()).value;
   await openRefresh();
@@ -1891,7 +1887,7 @@ test('"No limit" removes the bound key from the saved policy', async () => {
   const put = mockPut().mockResolvedValue(new Response('{}'));
   await renderRefreshModal({
     refresh_frequency: 0,
-    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
+    auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: 60 },
   });
   await openRefresh();
 
@@ -2188,8 +2184,8 @@ test('stored inverted bounds link each select to its warning and permit Save', a
     refresh_frequency: 0,
     auto_refresh_policy: {
       ...ALLOWED,
-      minimum_refresh_interval: hours(1),
-      maximum_refresh_interval: minutes(5),
+      minimum_refresh_interval: 3600,
+      maximum_refresh_interval: 300,
     },
   });
   await openRefresh();

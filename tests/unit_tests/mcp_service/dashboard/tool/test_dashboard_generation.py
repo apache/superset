@@ -2627,7 +2627,11 @@ async def test_generate_dashboard_rejects_invalid_refresh_policy(
     [
         ("invalid", "auto_refresh_policy: Auto-refresh policy must be an object"),
         ({"auto_refresh_allowed": False}, None),
-        ({"minimum_refresh_interval": {"value": 45, "unit": "seconds"}}, None),
+        ({"minimum_refresh_interval": 45}, None),
+        (
+            {"minimum_refresh_interval": {"value": 30, "unit": "seconds"}},
+            "auto_refresh_policy.minimum_refresh_interval:",
+        ),
     ],
 )
 async def test_generate_dashboard_flag_off_checks_only_the_policy_shape(

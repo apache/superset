@@ -29,15 +29,9 @@ from superset.dashboards.refresh_policy import (
 )
 
 STANDARD_INTERVALS = [10, 30, 60, 300, 1800, 3600, 21600, 43200, 86400]
-UNITS = {"seconds": 1, "minutes": 60, "hours": 3600}
 POLICY = "auto_refresh_policy"
 MIN = f"{POLICY}.minimum_refresh_interval"
 MAX = f"{POLICY}.maximum_refresh_interval"
-
-
-def bound(value: Any, unit: Any = "seconds") -> dict[str, Any]:
-    """Bound."""
-    return {"value": value, "unit": unit}
 
 
 def codes(errors: list[RefreshPolicyError]) -> list[tuple[str, str]]:
@@ -155,8 +149,8 @@ def test_policy_examples() -> None:
     """Check policy examples."""
     policy = {
         "auto_refresh_allowed": True,
-        "minimum_refresh_interval": bound(30),
-        "maximum_refresh_interval": bound(1, "hours"),
+        "minimum_refresh_interval": 30,
+        "maximum_refresh_interval": 3600,
     }
     assert (
         check_refresh_policy({"refresh_frequency": 60, "auto_refresh_policy": policy})
@@ -189,7 +183,7 @@ def test_bad_keys_still_run_bound_rules_but_not_frequency() -> None:
             "auto_refresh_policy": {
                 "zz": 1,
                 "auto_refresh_allowed": "true",
-                "minimum_refresh_interval": bound(45),
+                "minimum_refresh_interval": 45,
             },
         }
     )
@@ -209,7 +203,7 @@ def test_bound_left_the_list_still_bounds_the_frequency(
 ) -> None:
     """Check bound left the list still bounds the frequency."""
     set_intervals(mocker, without(60))
-    policy = {"minimum_refresh_interval": bound(60)}
+    policy = {"minimum_refresh_interval": 60}
     assert codes(
         check_refresh_policy(
             {"auto_refresh_policy": policy, "refresh_frequency": 30}, policy
@@ -223,7 +217,7 @@ def test_empty_positive_list(mocker: MockerFixture) -> None:
     assert codes(
         check_refresh_policy(
             {
-                "auto_refresh_policy": {"minimum_refresh_interval": bound(30)},
+                "auto_refresh_policy": {"minimum_refresh_interval": 30},
                 "refresh_frequency": 30,
             }
         )
@@ -237,23 +231,23 @@ def test_empty_positive_list(mocker: MockerFixture) -> None:
     "policy, expected",
     [
         (
-            {"minimum_refresh_interval": bound(30)},
+            {"minimum_refresh_interval": 30},
             "Refresh frequency must be 30 seconds or greater.",
         ),
         (
-            {"minimum_refresh_interval": bound(1, "minutes")},
+            {"minimum_refresh_interval": 60},
             "Refresh frequency must be 1 minute or greater.",
         ),
         (
-            {"maximum_refresh_interval": bound(1, "minutes")},
+            {"maximum_refresh_interval": 60},
             "Refresh frequency must be 1 minute or less.",
         ),
         (
-            {"maximum_refresh_interval": bound(1, "hours")},
+            {"maximum_refresh_interval": 3600},
             "Refresh frequency must be 1 hour or less.",
         ),
         (
-            {"maximum_refresh_interval": bound(6, "hours")},
+            {"maximum_refresh_interval": 21600},
             "Refresh frequency must be 6 hours or less.",
         ),
     ],
@@ -287,18 +281,18 @@ def test_bound_messages(policy: dict[str, Any], expected: str) -> None:
             "Refresh frequency must be 0 or a whole number of seconds.",
         ),
         (
-            {"auto_refresh_policy": {"minimum_refresh_interval": bound(0)}},
+            {"auto_refresh_policy": {"minimum_refresh_interval": 0}},
             "Use a whole number of seconds, minutes or hours.",
         ),
         (
-            {"auto_refresh_policy": {"minimum_refresh_interval": bound(2, "hours")}},
+            {"auto_refresh_policy": {"minimum_refresh_interval": 7200}},
             "2 hours isn't a standard interval. Select one from the list.",
         ),
         (
             {
                 "auto_refresh_policy": {
-                    "minimum_refresh_interval": bound(1, "hours"),
-                    "maximum_refresh_interval": bound(30),
+                    "minimum_refresh_interval": 3600,
+                    "maximum_refresh_interval": 30,
                 }
             },
             "Shortest interval must be shorter than or equal to the longest interval.",
@@ -323,7 +317,7 @@ def test_messages(metadata: dict[str, Any], expected: str) -> None:
 def test_no_standard_interval_message(mocker: MockerFixture) -> None:
     """Check no standard interval message."""
     set_intervals(mocker, without(86400))
-    policy = {"minimum_refresh_interval": bound(24, "hours")}
+    policy = {"minimum_refresh_interval": 86400}
     errors = check_refresh_policy({"auto_refresh_policy": policy}, policy)
     assert codes(errors) == [
         ("auto_refresh_policy.minimum_refresh_interval", "no_standard_interval")
@@ -338,14 +332,14 @@ def test_no_standard_interval_message(mocker: MockerFixture) -> None:
     "bounds, expected",
     [
         (
-            {"minimum_refresh_interval": bound(24, "hours")},
+            {"minimum_refresh_interval": 86400},
             ["minimum_refresh_interval"],
         ),
-        ({"maximum_refresh_interval": bound(5)}, ["maximum_refresh_interval"]),
+        ({"maximum_refresh_interval": 5}, ["maximum_refresh_interval"]),
         (
             {
-                "minimum_refresh_interval": bound(45),
-                "maximum_refresh_interval": bound(50),
+                "minimum_refresh_interval": 45,
+                "maximum_refresh_interval": 50,
             },
             ["minimum_refresh_interval", "maximum_refresh_interval"],
         ),
@@ -367,16 +361,9 @@ def test_runs_on_unchanged_policy(
 def test_every_standard_pair_leaves_a_standard_value() -> None:
     """Check every standard pair leaves a standard value."""
     standard = get_standard_refresh_intervals()
-    lengths = sorted(
-        {
-            seconds: bound(int(seconds // factor), unit)
-            for seconds, (unit, factor) in product(standard, UNITS.items())
-            if seconds % factor == 0
-        }.items()
-    )
-    pairs = [(lo, hi) for lo, hi in product(lengths, repeat=2) if lo[0] <= hi[0]]
+    pairs = [(lo, hi) for lo, hi in product(standard, repeat=2) if lo <= hi]
     assert len(pairs) == 45
-    for (_, low), (_, high) in pairs:
+    for low, high in pairs:
         policy = {"minimum_refresh_interval": low, "maximum_refresh_interval": high}
         assert check_refresh_policy({"auto_refresh_policy": policy}) == []
 
@@ -414,9 +401,15 @@ def disable_policy(mocker: MockerFixture) -> None:
             {"auto_refresh_allowed": "yes"},
             [(f"{POLICY}.auto_refresh_allowed", "invalid_policy")],
         ),
-        ({"minimum_refresh_interval": bound(0)}, [(MIN, "invalid_boundary")]),
-        ({"maximum_refresh_interval": bound(1, "days")}, [(MAX, "invalid_boundary")]),
-        ({"minimum_refresh_interval": 30}, [(MIN, "invalid_boundary")]),
+        ({"minimum_refresh_interval": 0}, [(MIN, "invalid_boundary")]),
+        (
+            {"maximum_refresh_interval": {"value": 1, "unit": "days"}},
+            [(MAX, "invalid_boundary")],
+        ),
+        (
+            {"minimum_refresh_interval": {"value": 30, "unit": "seconds"}},
+            [(MIN, "invalid_boundary")],
+        ),
     ],
 )
 def test_flag_off_checks_only_the_policy_shape(
@@ -437,11 +430,11 @@ def test_flag_off_checks_only_the_policy_shape(
             "auto_refresh_policy": {"auto_refresh_allowed": False},
             "refresh_frequency": 60,
         },
-        {"auto_refresh_policy": {"minimum_refresh_interval": bound(45)}},
+        {"auto_refresh_policy": {"minimum_refresh_interval": 45}},
         {
             "auto_refresh_policy": {
-                "minimum_refresh_interval": bound(2, "hours"),
-                "maximum_refresh_interval": bound(1, "hours"),
+                "minimum_refresh_interval": 7200,
+                "maximum_refresh_interval": 3600,
             },
             "refresh_frequency": 10,
         },
@@ -468,8 +461,8 @@ TYPE_CHANGES = [
     ({"auto_refresh_allowed": True}, {"auto_refresh_allowed": 1}, "invalid_policy"),
     ({"auto_refresh_allowed": False}, {"auto_refresh_allowed": 0}, "invalid_policy"),
     (
-        {"minimum_refresh_interval": bound(1)},
-        {"minimum_refresh_interval": bound(True)},
+        {"minimum_refresh_interval": 1},
+        {"minimum_refresh_interval": True},
         "invalid_boundary",
     ),
 ]
@@ -565,12 +558,8 @@ def test_flag_on_a_boolean_number_swap_is_a_change(
     "stored, submitted",
     [
         (
-            {"auto_refresh_policy": {"minimum_refresh_interval": bound(1, "minutes")}},
-            {
-                "auto_refresh_policy": {
-                    "minimum_refresh_interval": bound(1.0, "minutes")
-                }
-            },
+            {"auto_refresh_policy": {"minimum_refresh_interval": 60}},
+            {"auto_refresh_policy": {"minimum_refresh_interval": 60.0}},
         ),
         ({"refresh_frequency": 60}, {"refresh_frequency": 60.0}),
         ({}, {"refresh_frequency": 0}),
@@ -637,8 +626,8 @@ def test_a_numeric_bound_over_a_boolean_one_is_checked_against_the_list(
     set_intervals(mocker, [[0, "Off"], [30, "30 seconds"], [300, "5 minutes"]])
     assert codes(
         check_refresh_policy(
-            {"auto_refresh_policy": {"minimum_refresh_interval": bound(1, "minutes")}},
-            {"minimum_refresh_interval": bound(True, "minutes")},
+            {"auto_refresh_policy": {"minimum_refresh_interval": 1}},
+            {"minimum_refresh_interval": True},
         )
     ) == [(MIN, "invalid_boundary")]
 
@@ -654,9 +643,7 @@ def test_integral_float_policy_values_are_accepted() -> None:
     assert (
         check_refresh_policy(
             {
-                "auto_refresh_policy": {
-                    "minimum_refresh_interval": bound(1.0, "minutes")
-                },
+                "auto_refresh_policy": {"minimum_refresh_interval": 60.0},
                 "refresh_frequency": 60.0,
             }
         )

@@ -351,6 +351,10 @@ async def update_dashboard(
 ) -> UpdateDashboardResponse | DashboardError:
     """Patch an existing dashboard's layout, theme, styling, or metadata.
 
+    In json_metadata_overrides, auto_refresh_policy bounds
+    (minimum_refresh_interval and maximum_refresh_interval) use positive whole
+    seconds or null.
+
     Externally managed dashboards refuse mutations with
     ``managed_externally=True``; do not retry or request more permissions.
 
