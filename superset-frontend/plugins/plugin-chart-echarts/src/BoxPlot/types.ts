@@ -83,8 +83,6 @@ export const DEFAULT_FORM_DATA: BoxPlotQueryFormData = {
 
 export type DensityCurve = [number, number][];
 
-export type BoxPlotViolinWidthScale = 'per_group' | 'shared';
-
 export interface EchartsBoxPlotChartProps extends BaseChartProps<BoxPlotQueryFormData> {
   formData: BoxPlotQueryFormData;
 }

@@ -51,7 +51,7 @@ import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
-//custom rendering for a violin plot based on a violin item
+// custom rendering for a violin plot based on a violin item
 const renderViolin =
   (
     violinItems: ViolinItem[],
@@ -59,7 +59,7 @@ const renderViolin =
   ): CustomSeriesRenderItem =>
   (params: CustomSeriesRenderItemParams, api: CustomSeriesRenderItemAPI) => {
     const item = violinItems[params.dataIndex];
-    //check whether the item is valid. if not draw nothing
+    // nothing to draw for a missing item or an empty curve
     if (!item || item.density.length === 0) {
       return null;
     }
@@ -74,9 +74,9 @@ const renderViolin =
       opacity: item.isFiltered ? OpacityEnum.SemiTransparent : 0.6,
     };
 
-    //check whether there is only one density data point
+    // a constant group has a single density point, so draw it as a dot
     if (item.density.length === 1) {
-      const [_, y] = api.coord([category, item.density[0][0]]);
+      const [, y] = api.coord([category, item.density[0][0]]);
       return {
         type: 'circle',
         shape: {
@@ -88,10 +88,10 @@ const renderViolin =
       };
     }
 
-    //peak
     const peak = peakForViolinItem(item) || 1;
-    const maxWidthOfTheBand = 0.4; //limit each x value offset to 40% of the bandwidth
-    //create the outline of the density
+    // each half of the violin is at most 40% of the category width
+    const maxWidthOfTheBand = 0.4;
+    // outline of the density curve, mirrored on both sides of the centre
     const rightOutline = item.density.map(([value, density]) => {
       const [, y] = api.coord([category, value]);
 
@@ -166,14 +166,14 @@ export default function transformProps(
       `Median: ${numberFormatter(stats.median)}`,
       `1st Quartile: ${numberFormatter(stats.q1)}`,
       `Min: ${numberFormatter(stats.min)}`,
-      `# Observations: ${numberFormatter(stats.count)}`,
+      `# Observations: ${stats.count}`,
     ];
     if (stats.outliers && stats.outliers.length > 0) {
       statsArray.push(`# Outliers: ${stats.outliers.length}`);
     }
     return headline + statsArray.join('<br />');
   };
-  //create a list of violin items for each metric, including density and peak
+  // one item per group and metric, shared by the box, violin and outlier series
   const items = data
     .map((datum: any) => {
       const groupbyLabel = extractGroupbyLabel({
@@ -183,7 +183,6 @@ export default function transformProps(
         timeFormatter: getTimeFormatter(dateFormat),
       });
       return metricLabels.map(metric => {
-        // Implementation for mapping metrics
         const name =
           metricLabels.length === 1
             ? groupbyLabel
@@ -354,7 +353,7 @@ export default function transformProps(
     },
   };
 
-  //determine the series
+  // in violin mode, the inner box and outliers are drawn on top of the curve
   const series = isViolin
     ? [
         violinSeries,
