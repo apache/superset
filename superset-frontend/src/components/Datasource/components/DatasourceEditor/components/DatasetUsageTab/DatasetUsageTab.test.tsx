@@ -275,7 +275,7 @@ test('shows loading state during pagination fetch', async () => {
   expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
 
   // Find next page button
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -311,7 +311,7 @@ test('calls onFetchCharts with correct pagination parameters', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -337,7 +337,7 @@ test('shows error toast when fetch fails', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -362,7 +362,7 @@ test('handles slow network without race condition', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -403,7 +403,7 @@ test('scrolls to top after data loads, not before', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -474,7 +474,7 @@ test('cleans up animation frame on unmount during loading', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -519,7 +519,7 @@ test('handles AbortError without setState after unmount', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
   await userEvent.click(nextButton);
 
   // Should be loading
@@ -663,7 +663,7 @@ test('hides pagination when searching and restores it when cleared', async () =>
   });
 
   // Pagination is visible when not searching (check for page number listitem)
-  expect(screen.getByTitle('1')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Page 1' })).toBeInTheDocument();
 
   const searchInput = screen.getByPlaceholderText(
     'Search charts by name, editor, or dashboard',
@@ -678,7 +678,9 @@ test('hides pagination when searching and restores it when cleared', async () =>
   });
 
   // Pagination is hidden while searching
-  expect(screen.queryByTitle('Next Page')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Next Page' }),
+  ).not.toBeInTheDocument();
 
   await userEvent.clear(searchInput);
 
@@ -689,5 +691,5 @@ test('hides pagination when searching and restores it when cleared', async () =>
   });
 
   // Pagination is restored
-  expect(screen.getByTitle('1')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Page 1' })).toBeInTheDocument();
 });

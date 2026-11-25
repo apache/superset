@@ -710,7 +710,7 @@ test('supports bulk select and deselect all', async () => {
   });
 
   // Use the header checkbox to select all
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const selectAllCheckbox = screen.getAllByLabelText('Select current page')[0];
   expect(selectAllCheckbox).not.toBeChecked();
 
   await userEvent.click(selectAllCheckbox);
@@ -769,7 +769,7 @@ test('supports bulk export of selected charts', async () => {
   });
 
   // Use select all to select multiple charts
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const selectAllCheckbox = screen.getAllByLabelText('Select current page')[0];
   await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
@@ -816,7 +816,7 @@ test('supports bulk delete of selected charts', async () => {
   });
 
   // Use select all to select multiple charts
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const selectAllCheckbox = screen.getAllByLabelText('Select current page')[0];
   await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
