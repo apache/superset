@@ -5724,6 +5724,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
         allow_editorship: bool = True,
+        reject_unscoped_sql: bool = False,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -5750,10 +5751,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             operator can restore catalog and schema grants for those paths
             alone. Those SQL Lab paths also pass ``allow_editorship=False``,
             so editorship of a dataset does not authorize them when the flag
-            is off. Statements that cannot be fully parsed, and tables whose
-            schema cannot be determined, stay denied either way.
-            Reports, alerts, MetaDB, SQL validation, and dashboard
-            scope SQL keep passing True.
+            is off, and ``reject_unscoped_sql=True``, so unparsed SQL, schema
+            rebinding, and an unresolved schema stay denied on SQL Lab when
+            this flag is off. Reports, alerts, MetaDB, SQL validation, and
+            dashboard scope SQL keep passing True.
             The default (False) preserves the historical semantics for
             chart-data, ``/table_metadata/``, and ``/select_star/`` (dataset
             create/update/import additionally opt out of the editorship accept
@@ -5787,6 +5788,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             catalog/schema fallthroughs, so ``schema_access`` still authorizes
             defining a dataset. Ignored when ``force_dataset_match`` is True
             (editorship is already excluded there).
+        :param reject_unscoped_sql: When True, statements the parser cannot
+            fully model, scripts that rebind schema resolution (``USE``,
+            ``SET SCHEMA``, or a ``search_path`` change), and tables whose
+            schema cannot be determined are denied even when
+            ``force_dataset_match`` is False. SQL Lab passes True so those
+            denials stay on when ``SQLLAB_REQUIRE_DATASET_MATCH`` is off. A
+            catalog grant still covers every schema in that catalog. Callers
+            that leave this False, including chart-data and Explore, keep
+            the historical behavior: the same denials apply only when
+            ``force_dataset_match`` is True.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5981,15 +5992,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 parse_result = process_jinja_sql(
                     sql_for_parse, database, parse_template_params
                 )
-                # Refuse any statement the parser could not fully model:
-                # sqlglot ``exp.Command`` nodes (e.g. dynamic SQL inside a
-                # stored-procedure call) and non-sqlglot engines such as
-                # Kusto KQL whose statement classes do not produce a sqlglot
-                # AST. The per-table check below would see no tables and
-                # allow the script. This is independent of dataset matching:
-                # a schema or catalog grant must not authorize SQL whose
-                # tables cannot be enumerated.
-                if parse_result.script.has_unparseable_statement:
+                # Under strict dataset matching, and on SQL Lab
+                # (``reject_unscoped_sql``), refuse any statement the parser
+                # could not fully model: sqlglot ``exp.Command`` nodes (e.g.
+                # dynamic SQL inside a stored-procedure call) and non-sqlglot
+                # engines such as Kusto KQL whose statement classes do not
+                # produce a sqlglot AST. The per-table check below would see
+                # no tables and allow the script. Chart and Explore leave the
+                # flag off, so a schema grant there still authorizes that SQL.
+                if (
+                    force_dataset_match or reject_unscoped_sql
+                ) and parse_result.script.has_unparseable_statement:
                     raise SupersetSecurityException(
                         SupersetError(
                             error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -6005,10 +6018,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # Statements that rebind how unqualified table names resolve
                 # (``USE``, ``SET SCHEMA``, or a ``search_path`` change) make
                 # the qualification below diverge from what the engine uses at
-                # execution time. This is independent of dataset matching: a
-                # schema or catalog grant must not authorize a script that
-                # then switches the shared cursor to another schema.
-                if parse_result.script.changes_default_schema():
+                # execution time. SQL Lab rejects them even when dataset
+                # matching is off. Other callers reject them only under
+                # ``force_dataset_match``, matching the historical check.
+                if (
+                    force_dataset_match or reject_unscoped_sql
+                ) and parse_result.script.changes_default_schema():
                     raise SupersetSecurityException(
                         SupersetError(
                             error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -6145,15 +6160,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     ):
                         continue
 
-                # Refuse a table whose schema could not be pinned down.
+                # Under strict dataset matching, and on SQL Lab, refuse a
+                # table whose schema could not be pinned down.
                 # ``query_datasources_by_name`` drops the schema filter when
                 # schema is None and would otherwise return datasets in any
                 # schema, which the engine may resolve elsewhere via
                 # ``search_path``. A schema grant cannot cover that table.
                 # A catalog grant already continued above: it covers every
-                # schema in the catalog. This does not depend on dataset
-                # matching.
-                if not table_.schema:
+                # schema in the catalog. Chart and Explore leave this off, so
+                # an unresolved schema there still reaches the dataset lookup.
+                if (
+                    force_dataset_match or reject_unscoped_sql
+                ) and not table_.schema:
                     denied.add(table_)
                     continue
 

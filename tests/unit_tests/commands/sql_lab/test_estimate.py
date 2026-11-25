@@ -180,6 +180,7 @@ def test_validate_authorizes_the_sql_to_be_estimated(
         template_params={},
         force_dataset_match=True,
         allow_editorship=False,
+        reject_unscoped_sql=True,
     )
 
 

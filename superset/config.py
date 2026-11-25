@@ -2318,8 +2318,9 @@ SQLLAB_CTAS_NO_LIMIT = False
 # registered as datasets. Editorship of a dataset still does not authorize
 # SQL Lab. Scripts that rebind schema resolution (USE, SET SCHEMA, or a
 # search_path change), statements that cannot be fully parsed, and tables
-# whose schema cannot be determined stay denied either way. Chart, Explore,
-# and other non-SQL-Lab callers already honor those grants and are unchanged.
+# whose schema cannot be determined stay denied on these SQL Lab paths
+# either way. Chart, Explore, and other non-SQL-Lab callers already honor
+# schema and catalog grants, including for that SQL, and are unchanged.
 # Reports, alerts, MetaDB, and SQL validation keep the dataset-match
 # requirement regardless of this setting.
 SQLLAB_REQUIRE_DATASET_MATCH = True

@@ -36,4 +36,5 @@ class CanAccessQueryValidatorImpl(CanAccessQueryValidator):
             template_params=template_params,
             force_dataset_match=requires_dataset_match(),
             allow_editorship=False,
+            reject_unscoped_sql=True,
         )

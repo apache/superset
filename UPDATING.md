@@ -38,14 +38,15 @@ Set `SQLLAB_REQUIRE_DATASET_MATCH = False` to authorize those paths from
 table in that schema. `catalog_access` covers every table in the catalog,
 across schemas. Either grant includes tables that are not registered as
 datasets. Editorship of a dataset does not authorize SQL Lab in either
-setting. Scripts that rebind schema resolution (`USE`, `SET SCHEMA`, or a
-`search_path` change) stay denied either way: the access check would
-otherwise qualify unqualified names against the selected schema while the
-shared cursor reads the schema the script switched to. So does SQL that
-cannot be fully parsed, and a table whose schema cannot be determined. A
-catalog grant still covers every schema in that catalog. Chart and Explore
-checks are unchanged. Reports, alerts, MetaDB, and SQL validation keep
-requiring a dataset match.
+setting. On these SQL Lab paths, scripts that rebind schema resolution
+(`USE`, `SET SCHEMA`, or a `search_path` change) stay denied either way:
+the access check would otherwise qualify unqualified names against the
+selected schema while the shared cursor reads the schema the script
+switched to. So does SQL that cannot be fully parsed, and a table whose
+schema cannot be determined. A catalog grant still covers every schema in
+that catalog. Chart and Explore checks are unchanged, including for Kusto
+KQL and other SQL the parser cannot fully model. Reports, alerts, MetaDB,
+and SQL validation keep requiring a dataset match.
 
 - Dashboard history records related chart archives using the new
   `version_chart_archive_scope` table. Run `superset db upgrade` before deploying

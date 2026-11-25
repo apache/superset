@@ -109,6 +109,7 @@ class QueryEstimationCommand(BaseCommand):
             template_params=template_params,
             force_dataset_match=requires_dataset_match(),
             allow_editorship=False,
+            reject_unscoped_sql=True,
         )
 
     def _apply_sql_security(self, sql: str) -> str:

@@ -327,7 +327,8 @@ class Query(
 
         Re-validation of a SQL Lab query uses the same scoping as the initial
         execute path, so fetching results, exporting CSV, and
-        streaming-exporting all honor ``SQLLAB_REQUIRE_DATASET_MATCH``.
+        streaming-exporting all honor ``SQLLAB_REQUIRE_DATASET_MATCH`` and
+        keep the unscoped-SQL denials.
         ``raise_for_access`` parses ``executed_sql`` (the Jinja-rendered
         query that actually ran) when set, keeping the table set aligned
         with execution even though the original ``template_params`` are not
@@ -344,6 +345,7 @@ class Query(
             query=self,
             force_dataset_match=requires_dataset_match(),
             allow_editorship=False,
+            reject_unscoped_sql=True,
         )
 
     @property

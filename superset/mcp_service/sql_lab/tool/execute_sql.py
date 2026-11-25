@@ -141,6 +141,7 @@ async def _authorize_rendered_sql(
             template_params=None,
             force_dataset_match=requires_dataset_match(),
             allow_editorship=False,
+            reject_unscoped_sql=True,
         )
     except SupersetSecurityException as ex:
         await ctx.warning(
@@ -233,6 +234,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     template_params=template_params,
                     force_dataset_match=requires_dataset_match(),
                     allow_editorship=False,
+                    reject_unscoped_sql=True,
                 )
             except SupersetSecurityException as ex:
                 await ctx.warning(

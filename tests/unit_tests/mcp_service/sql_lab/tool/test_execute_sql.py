@@ -438,6 +438,7 @@ class TestExecuteSql:
             template_params={},
             force_dataset_match=True,
             allow_editorship=False,
+            reject_unscoped_sql=True,
         )
         mock_database.execute.assert_not_called()
 

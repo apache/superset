@@ -170,6 +170,7 @@ def test_format_sql_skips_dataset_match_when_disabled(
 
     assert response.status_code == 200
     assert raise_for_access.call_args.kwargs["force_dataset_match"] is False
+    assert raise_for_access.call_args.kwargs["reject_unscoped_sql"] is True
 
 
 @pytest.mark.parametrize(

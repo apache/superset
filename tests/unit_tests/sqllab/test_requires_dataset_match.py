@@ -60,6 +60,7 @@ def test_execute_validator_follows_config(mocker: MockerFixture) -> None:
         template_params={"a": 1},
         force_dataset_match=False,
         allow_editorship=False,
+        reject_unscoped_sql=True,
     )
 
 
@@ -77,4 +78,5 @@ def test_query_raise_for_access_follows_config(mocker: MockerFixture) -> None:
         query=query,
         force_dataset_match=False,
         allow_editorship=False,
+        reject_unscoped_sql=True,
     )
