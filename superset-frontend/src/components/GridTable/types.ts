@@ -77,5 +77,11 @@ export interface TableProps<RecordType> {
    * included, in the priority order the user applied them.
    */
   onServerSort?: (orderby: [string, boolean][]) => void;
+  /**
+   * The order rows arrive in when no sort is applied (`[[columnId,
+   * isAscending]]`). Entries for columns the grid shows get their sort arrow
+   * from the start, and clearing a sort returns to this state.
+   */
+  defaultSort?: [string, boolean][];
   themeOverrides?: GridThemeOverrides;
 }

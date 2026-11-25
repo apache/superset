@@ -106,3 +106,77 @@ test('clips multi-line cell values at the cell so they do not overlap the rows b
   // lines, so the clip has to be on the cell itself.
   expect(gridStyles).toMatch(/\.ag-cell\s*\{\s*overflow:\s*hidden;/);
 });
+
+const getGridApi = async (container: HTMLElement) => {
+  const gridContainer = container.querySelector<AgGridContainerElement>(
+    '[data-themed-ag-grid]',
+  );
+  await waitFor(() => expect(gridContainer?._agGridApi).toBeDefined());
+  return gridContainer!._agGridApi!;
+};
+
+const sortedColumns = (api: Awaited<ReturnType<typeof getGridApi>>) =>
+  api
+    .getColumnState()
+    .filter(state => state.sort)
+    .map(state => [state.colId, state.sort]);
+
+test('shows the default sort on a visible column from the start', async () => {
+  const onServerSort = jest.fn();
+  const { container } = render(
+    <GridTable
+      {...mockedProps}
+      defaultSort={[['b', false]]}
+      onServerSort={onServerSort}
+    />,
+  );
+  const api = await getGridApi(container);
+
+  await waitFor(() => expect(sortedColumns(api)).toEqual([['b', 'desc']]));
+  // Seeding the default order is not an explicit sort.
+  onServerSort.mock.calls.forEach(([orderby]) => expect(orderby).toEqual([]));
+});
+
+test('shows no sort when the default order is on a column the grid does not show', async () => {
+  const { container } = render(
+    <GridTable {...mockedProps} defaultSort={[['d', true]]} />,
+  );
+  const api = await getGridApi(container);
+
+  expect(sortedColumns(api)).toEqual([]);
+});
+
+test('clearing a sort returns to the default sort', async () => {
+  const onServerSort = jest.fn();
+  const { container } = render(
+    <GridTable
+      {...mockedProps}
+      defaultSort={[['b', false]]}
+      onServerSort={onServerSort}
+    />,
+  );
+  const api = await getGridApi(container);
+  await waitFor(() => expect(sortedColumns(api)).toEqual([['b', 'desc']]));
+
+  api.applyColumnState({
+    state: [{ colId: 'a', sort: 'asc' }],
+    defaultState: { sort: null },
+  });
+  await waitFor(() =>
+    expect(onServerSort).toHaveBeenLastCalledWith([['a', true]]),
+  );
+
+  api.applyColumnState({ defaultState: { sort: null } });
+  await waitFor(() => expect(sortedColumns(api)).toEqual([['b', 'desc']]));
+  expect(onServerSort).toHaveBeenLastCalledWith([]);
+});
+
+test('a column carrying the default order only toggles between directions', async () => {
+  const { container } = render(
+    <GridTable {...mockedProps} defaultSort={[['b', false]]} />,
+  );
+  const api = await getGridApi(container);
+
+  expect(api.getColumnDef('b')?.sortingOrder).toEqual(['desc', 'asc']);
+  expect(api.getColumnDef('a')?.sortingOrder).toBeUndefined();
+});

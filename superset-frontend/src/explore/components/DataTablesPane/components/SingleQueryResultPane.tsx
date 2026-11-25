@@ -63,6 +63,7 @@ export const SingleQueryResultPane = ({
   onDownloadXLSX,
   onReload,
   onServerSort,
+  defaultSort,
   isLoading = false,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
@@ -107,6 +108,7 @@ export const SingleQueryResultPane = ({
             externalFilter={keywordFilter}
             showRowNumber
             onServerSort={onServerSort}
+            defaultSort={defaultSort}
           />
         </GridSizer>
       </GridContainer>

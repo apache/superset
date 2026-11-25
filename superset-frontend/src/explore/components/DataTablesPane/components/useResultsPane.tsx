@@ -31,7 +31,13 @@ import {
   ensureIsArray,
   getChartMetadataRegistry,
   getClientErrorObject,
+  getColumnLabel,
+  getMetricLabel,
+  isAdhocColumn,
+  QueryFormColumn,
   QueryFormData,
+  QueryFormMetric,
+  QueryFormOrderBy,
   QueryData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -57,6 +63,23 @@ const StyledDiv = styled.div`
 `;
 
 const cache = new WeakMap();
+
+// The grid identifies columns by result label, so turn a query `orderby` into
+// `[[label, isAscending]]`.
+const toLabelledOrderby = (
+  orderby: QueryFormOrderBy[] | undefined,
+): [string, boolean][] =>
+  ensureIsArray(orderby)
+    .filter(
+      (item): item is [QueryFormColumn | QueryFormMetric, boolean] =>
+        item.length === 2 && item[0] != null,
+    )
+    .map(([col, asc]) => [
+      isAdhocColumn(col)
+        ? getColumnLabel(col)
+        : getMetricLabel(col as QueryFormMetric),
+      Boolean(asc),
+    ]);
 
 // `queriesResponse` is the loose `QueryData`; only reuse it when every entry is
 // a full v1 result (colnames/coltypes/data arrays), else fall back to the API.
@@ -94,6 +117,8 @@ export const useResultsPane = ({
   // click during that window send a server-side orderby for a post-processed
   // query before we actually know it's safe to do so.
   const [hasPostProcessing, setHasPostProcessing] = useState(true);
+  // The order each query returns rows in when the pane sends no `orderby`.
+  const [defaultSorts, setDefaultSorts] = useState<[string, boolean][][]>([]);
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
@@ -248,10 +273,12 @@ export const useResultsPane = ({
     })
       .then(payload => {
         if (!cancelled) {
+          const queries = ensureIsArray(payload?.queries);
           setHasPostProcessing(
-            ensureIsArray(payload?.queries).some(
-              query => (query?.post_processing?.length ?? 0) > 0,
-            ),
+            queries.some(query => (query?.post_processing?.length ?? 0) > 0),
+          );
+          setDefaultSorts(
+            queries.map(query => toLabelledOrderby(query?.orderby)),
           );
         }
       })
@@ -260,6 +287,7 @@ export const useResultsPane = ({
         // avoid producing incorrect results.
         if (!cancelled) {
           setHasPostProcessing(true);
+          setDefaultSorts([]);
         }
       });
     return () => {
@@ -339,6 +367,9 @@ export const useResultsPane = ({
         limitReachedMessage={limitReachedMessage}
         onRowLimitChange={handleRowLimitChange}
         isLoading={isLoading}
+        // Post-processing reorders rows after the SQL `orderby`, so that order
+        // isn't what the grid shows.
+        defaultSort={hasPostProcessing ? undefined : defaultSorts[idx]}
         onServerSort={
           // Client-side sort is exact when the full result fits within the row
           // limit, so only re-query when the rows were truncated. Post-processed
