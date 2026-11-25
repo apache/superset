@@ -883,7 +883,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       className="dashboard-header-container"
     >
       <VisuallyHidden as="h1">
-        {dashboardTitle || t('Dashboard')}
+        {editableTitleProps.title || t('Dashboard')}
       </VisuallyHidden>
       <PageHeaderWithActions
         editableTitleProps={editableTitleProps}
