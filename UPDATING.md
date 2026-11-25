@@ -41,6 +41,14 @@ assists people when migrating to a new version.
   rejects the save. Optional capture failures isolated by a successful savepoint
   rollback may still omit history without rejecting the save.
 
+- **OAuth login with a single provider:** when `OAUTH_PROVIDERS` contains exactly
+  one provider, the login page now skips the provider choice and redirects
+  straight to that provider's sign-in. After logout, users land on the login page
+  and are redirected to the provider again, which may sign them straight back in
+  while their provider session is active. Set `LOGOUT_REDIRECT_URL` (or override
+  `logout` in a custom OAuth view) to send users elsewhere or end the provider
+  session.
+
 - `list` and `pages` are now reserved extension publisher names. An
   extension already published under either will fail manifest validation
   and the `superset-extensions` CLI will refuse to build it; the host owns
