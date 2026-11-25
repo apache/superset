@@ -63,6 +63,8 @@ interface ActivityProps {
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
   isFetchingActivityData: boolean;
+  /** Bumped by the parent after a delete, so the Edited tab refetches too. */
+  refreshKey?: number;
 }
 
 const Styles = styled.div`
@@ -129,6 +131,7 @@ export default function ActivityTable({
   activityData,
   user,
   isFetchingActivityData,
+  refreshKey,
 }: ActivityProps) {
   const [editedCards, setEditedCards] = useState<ActivityData[]>();
   const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
@@ -155,7 +158,7 @@ export default function ActivityTable({
       isMounted = false;
       setIsFetchingEditedCards(false);
     };
-  }, [activeChild, user.userId]);
+  }, [activeChild, user.userId, refreshKey]);
 
   const tabs = [
     {

@@ -402,6 +402,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         setActiveChild={setActiveChild}
                         activityData={activityData}
                         isFetchingActivityData={isFetchingActivityData}
+                        refreshKey={refreshKey}
                       />
                     ) : (
                       <LoadingCards />
