@@ -2186,6 +2186,7 @@ class TestUpdateChartErrorPaths:
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
+    @pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
     @pytest.mark.asyncio
     async def test_update_command_exception_is_caught(
         self,
@@ -2194,9 +2195,11 @@ class TestUpdateChartErrorPaths:
         mock_check_access,
         mock_update_cmd_cls,
         mcp_server,
+        guest,
     ):
-        """CommandException from UpdateChartCommand.run() is captured and returned."""
+        """CommandException text reaches signed-in users; guests get a generic one."""
         from superset.commands.exceptions import CommandException
+        from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
         mock_chart = Mock()
         mock_chart.id = 5
@@ -2221,14 +2224,28 @@ class TestUpdateChartErrorPaths:
             "generate_preview": False,
             "chart_name": "Retry",
         }
+        notifications: list[str] = []
 
-        async with Client(mcp) as client:
-            result = await client.call_tool("update_chart", {"request": request})
+        async def log_handler(message: Any) -> None:
+            notifications.append(str(message.data))
+
+        with patch(
+            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            return_value=guest,
+        ):
+            async with Client(mcp, log_handler=log_handler) as client:
+                result = await client.call_tool("update_chart", {"request": request})
 
         assert result.structured_content["success"] is False
         error = result.structured_content["error"]
-        assert error["error_type"] == "CommandException"
-        assert "boom" in error["details"]
+        assert "Chart update failed" in error["message"]
+        if guest:
+            assert error["details"] == str(GENERIC_ERROR_MESSAGE)
+            for text in [str(result.structured_content), *notifications]:
+                assert "boom" not in text
+        else:
+            assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+            assert "boom" in error["details"]
 
     @patch.object(
         update_chart_module, "_validate_update_against_dataset", return_value=None

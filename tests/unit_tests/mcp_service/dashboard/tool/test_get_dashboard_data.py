@@ -25,6 +25,7 @@ import pytest
 from fastmcp import Client
 from pydantic import ValidationError
 
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
@@ -35,6 +36,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 TOOL = "get_dashboard_data"
 EXEC = "superset.mcp_service.dashboard.tool.get_dashboard_data.execute_chart_data"
@@ -1029,3 +1031,125 @@ def test_multi_query_completeness_uses_each_executed_limit() -> None:
     assert summary.queries[0].truncated is False
     assert summary.queries[1].truncated is True
     assert summary.queries[1].total_rows is None
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+async def _call_with_notifications(
+    mcp_server: object, request: dict[str, Any]
+) -> tuple[dict[str, Any], list[str]]:
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
+        data = await _call(client, request)
+    return data, notifications
+
+
+@patch(DAO)
+@pytest.mark.asyncio
+async def test_dashboard_lookup_failure_hides_exception_text(mock_dao, mcp_server):
+    mock_dao.side_effect = RuntimeError(_LEAK_MARKER)
+
+    data, notifications = await _call_with_notifications(mcp_server, {"identifier": 7})
+
+    assert data["error_type"] == "DashboardNotFound"
+    assert _LEAK_MARKER not in json.dumps(data)
+    assert not any(_LEAK_MARKER in text for text in notifications)
+    assert any(
+        "Dashboard not found or inaccessible: An unexpected error occurred" in text
+        for text in notifications
+    )
+
+
+@patch(DAO)
+@pytest.mark.asyncio
+async def test_dashboard_not_found_warning_has_no_exception_text(mock_dao, mcp_server):
+    from superset.commands.dashboard.exceptions import DashboardNotFoundError
+
+    mock_dao.side_effect = DashboardNotFoundError()
+
+    data, notifications = await _call_with_notifications(mcp_server, {"identifier": 7})
+
+    assert data["error_type"] == "DashboardNotFound"
+    assert any(
+        "Dashboard not found or inaccessible: identifier=7" in text
+        for text in notifications
+    )
+
+
+_SANITIZATION_REQUIRED = (
+    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
+)
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@patch(EXEC, new_callable=AsyncMock)
+@patch(DAO)
+@pytest.mark.asyncio
+async def test_chart_failure_hides_exception_text(
+    mock_dao, mock_exec, mcp_server, guest
+):
+    """Text of an exception Superset did not raise reaches no principal."""
+    mock_dao.return_value = _dashboard(
+        6, "D", [_slice(56, "Gender"), _slice(99, "Age")]
+    )
+    mock_exec.side_effect = [RuntimeError(_LEAK_MARKER), _chart_data(99, "Age")]
+
+    with patch(_SANITIZATION_REQUIRED, return_value=guest):
+        data, notifications = await _call_with_notifications(
+            mcp_server, {"identifier": 6}
+        )
+
+    by_id = {c["chart_id"]: c for c in data["charts"]}
+    assert by_id[56]["error"].startswith("Chart data failed: ")
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in by_id[56]["error"]
+    else:
+        assert "logged on the server" in by_id[56]["error"]
+    assert by_id[99]["error"] is None
+    assert _LEAK_MARKER not in json.dumps(data)
+    assert not any(_LEAK_MARKER in text for text in notifications)
+    assert any("chart_id=56" in text for text in notifications)
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@patch(EXEC, new_callable=AsyncMock)
+@patch(DAO)
+@pytest.mark.asyncio
+async def test_chart_query_failure_shows_engine_error_to_signed_in_users_only(
+    mock_dao, mock_exec, mcp_server, guest
+):
+    """A failed chart query reports the engine error to signed-in users.
+
+    Embedded guests get the generic message instead, as from the chart data API.
+    """
+    engine_error = f"column does not exist ({_LEAK_MARKER})"
+    mock_dao.return_value = _dashboard(
+        6, "D", [_slice(56, "Gender"), _slice(99, "Age")]
+    )
+    mock_exec.side_effect = [
+        ChartDataQueryFailedError(engine_error),
+        _chart_data(99, "Age"),
+    ]
+
+    with patch(_SANITIZATION_REQUIRED, return_value=guest):
+        data, notifications = await _call_with_notifications(
+            mcp_server, {"identifier": 6}
+        )
+
+    by_id = {c["chart_id"]: c for c in data["charts"]}
+    chart_error = by_id[56]["error"]
+    chart_notifications = [text for text in notifications if "chart_id=56" in text]
+    assert chart_notifications
+    assert by_id[99]["error"] is None
+    if guest:
+        assert chart_error.startswith(f"Chart data failed: {GENERIC_ERROR_MESSAGE}")
+        assert _LEAK_MARKER not in json.dumps(data)
+        assert not any(_LEAK_MARKER in text for text in notifications)
+    else:
+        assert chart_error.startswith(f"Chart data failed: {engine_error}")
+        assert all(engine_error in text for text in chart_notifications)

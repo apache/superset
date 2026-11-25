@@ -2311,7 +2311,7 @@ async def test_discovery_oauth_errors_preserve_authentication_guidance(
             "https://superset.example.test",
         )
         if redirect
-        else OAuth2Error("provider error")
+        else OAuth2Error("provider error password=hunter2 host=db.internal")
     )
     info = _discovery_info(id=1)
     with (
@@ -2334,23 +2334,33 @@ async def test_discovery_oauth_errors_preserve_authentication_guidance(
         "OAuth2Redirect" if redirect else "OAuth2Error"
     )
     log_error.assert_awaited_once()
-    assert f"error_type={type(error).__name__}" in log_error.call_args.args[0]
+    notification = log_error.call_args.args[0]
+    assert "hunter2" not in notification
+    assert "hunter2" not in str(response.structured_content)
     if redirect:
+        assert "needs database OAuth authorization" in notification
         assert (
             "https://oauth.example.test/authorize"
             in response.structured_content["error"]
         )
         assert "authorize access, then retry" in response.structured_content["error"]
     else:
-        assert "OAuth2 authentication error" in response.structured_content["error"]
+        assert notification.startswith(
+            "OAuth2 authentication error: Something went wrong while doing OAuth2"
+        )
+        assert response.structured_content["error"].startswith(
+            "OAuth2 authentication error: Something went wrong while doing OAuth2"
+        )
 
 
 @pytest.mark.asyncio
 async def test_discovery_unexpected_failure_logs_exception_class(
-    mcp_server: Any,
+    mcp_server: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Generic public error mapping keeps the original exception class in logs."""
+    """The exception class and text go to the server log, not to the client."""
     from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+
+    leak_marker = "password=hunter2 host=db.internal"
 
     info = _discovery_info(id=1)
     with (
@@ -2362,7 +2372,51 @@ async def test_discovery_unexpected_failure_logs_exception_class(
         patch.object(
             get_dashboard_info_module,
             "_enrich_filter_values",
-            side_effect=RuntimeError("unexpected fixture failure"),
+            side_effect=RuntimeError(f"unexpected fixture failure {leak_marker}"),
+        ),
+        patch.object(Context, "error", new_callable=AsyncMock) as log_error,
+        caplog.at_level(logging.ERROR),
+    ):
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1, "include_filter_values": True}},
+            )
+    assert response.structured_content["error_type"] == "InternalError"
+    assert leak_marker not in str(response.structured_content)
+    log_error.assert_awaited_once()
+    notification = log_error.call_args.args[0]
+    assert leak_marker not in notification
+    assert notification.startswith("Failed to get dashboard info: ")
+    assert "error_type=RuntimeError" in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True])
+async def test_discovery_superset_error_reaches_signed_in_users_only(
+    mcp_server: Any, guest: bool
+) -> None:
+    """A Superset exception's message reaches signed-in users, not guests."""
+    from superset.commands.exceptions import CommandException
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    marker = "filter values unavailable password=hunter2 host=db.internal"
+    info = _discovery_info(id=1)
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "_lookup_dashboard",
+            return_value=(info, DashboardLookupResult(result=info)),
+        ),
+        patch.object(
+            get_dashboard_info_module,
+            "_enrich_filter_values",
+            side_effect=CommandException(marker),
+        ),
+        patch(
+            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            return_value=guest,
         ),
         patch.object(Context, "error", new_callable=AsyncMock) as log_error,
     ):
@@ -2371,9 +2425,19 @@ async def test_discovery_unexpected_failure_logs_exception_class(
                 "get_dashboard_info",
                 {"request": {"identifier": 1, "include_filter_values": True}},
             )
+    error = response.structured_content["error"]
     assert response.structured_content["error_type"] == "InternalError"
     log_error.assert_awaited_once()
-    assert "error_type=RuntimeError" in log_error.call_args.args[0]
+    notification = log_error.call_args.args[0]
+    if guest:
+        expected = f"Failed to get dashboard info: {GENERIC_ERROR_MESSAGE}"
+        assert error.startswith(expected)
+        assert notification.startswith(expected)
+        assert "hunter2" not in str(response.structured_content)
+        assert "hunter2" not in notification
+    else:
+        assert error.startswith(f"Failed to get dashboard info: {marker}")
+        assert notification.startswith(f"Failed to get dashboard info: {marker}")
 
 
 def test_discovery_metadata_bounding_uses_configured_list_limit(app: Any) -> None:

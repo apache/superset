@@ -1686,6 +1686,23 @@ def test_native_skipped_points_consistently_fail_mcp_result_validation(
     assert result["queries"][0]["data"] == [row]
 
 
+def test_geographic_result_validation_type_error_hides_exception_text() -> None:
+    """An unexpected failure while validating rows returns a host message."""
+    form = {**form_for("deck_scatter")}
+    result = {"queries": [{"data": [{"lon": 0, "lat": 0}]}]}
+    with patch.object(
+        DeckScatterChartPlugin,
+        "_validate_rows",
+        side_effect=TypeError("password=hunter2 host=db.internal"),
+    ):
+        normalized = DeckScatterChartPlugin().normalize_query_result(result, form)
+    assert isinstance(normalized, ChartError)
+    assert normalized.error_type == "InvalidGeographicResult"
+    assert "hunter2" not in normalized.error
+    assert "db.internal" not in normalized.error
+    assert "Geographic query result could not be validated" in normalized.error
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
 @pytest.mark.parametrize("data_path", ["saved", "saved_cache"])

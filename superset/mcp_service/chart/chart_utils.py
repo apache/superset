@@ -74,6 +74,10 @@ from superset.mcp_service.chart.validation.dataset_validator import (
     resolve_exact_first_casefold,
 )
 from superset.mcp_service.common.error_schemas import DatasetContext
+from superset.mcp_service.utils.tool_errors import (
+    log_tool_exception,
+    tool_error_message,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 from superset.utils.core import DatasourceType, FilterOperator, remove_duplicates
@@ -227,13 +231,14 @@ def validate_chart_dataset(
         )
 
     except (AttributeError, ValueError, RuntimeError, SQLAlchemyError) as e:
-        logger.exception("Error validating chart dataset %s: %s", datasource_id, e)
+        summary = f"Error validating dataset (ID: {datasource_id})"
+        log_tool_exception(summary, e, dataset_id=datasource_id)
         return DatasetValidationResult(
             is_valid=False,
             dataset_id=datasource_id,
             dataset_name=None,
             warnings=[],
-            error=f"Error validating dataset (ID: {datasource_id}): {str(e)}",
+            error=tool_error_message(summary, e),
         )
 
 

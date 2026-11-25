@@ -50,6 +50,7 @@ from superset.mcp_service.chart.schemas import (
     WorldMapChartConfig,
 )
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.utils.tool_errors import internal_error_response
 
 logger = logging.getLogger(__name__)
 
@@ -304,8 +305,16 @@ class GeographicChartPlugin(BaseChartPlugin):
             return result
         try:
             self._validate_rows(result, form_data)
-        except (ValueError, TypeError, KeyError) as exc:
+        except ValueError as exc:
+            # Raised by the plugin's own row validators with host-authored text.
             return ChartError(error=str(exc), error_type="InvalidGeographicResult")
+        except (TypeError, KeyError) as exc:
+            return internal_error_response(
+                ChartError,
+                "Geographic query result could not be validated",
+                exc,
+                error_type="InvalidGeographicResult",
+            )
         return result
 
     # ------------------------------------------------------------------

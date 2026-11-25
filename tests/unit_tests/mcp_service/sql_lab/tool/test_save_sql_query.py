@@ -457,3 +457,72 @@ class TestSaveSqlQueryToolLogic:
                 assert call_attrs["description"] == "A test query"
         finally:
             _restore_modules(saved)
+
+    @pytest.mark.anyio
+    async def test_save_query_database_error_hides_exception_text(self) -> None:
+        """A failed insert re-raises without sending its text through ctx."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        leak_marker = "password=hunter2 host=db.internal"
+        mod, saved = _get_tool_module()
+        try:
+            notifications: list[str] = []
+
+            async def _record(message: str, *args, **kwargs) -> None:
+                notifications.append(message)
+
+            mock_ctx = MagicMock()
+            mock_ctx.info = _record
+            mock_ctx.error = _record
+            mock_ctx.warning = _record
+            mock_ctx.debug = _record
+
+            request = SaveSqlQueryRequest(database_id=1, label="Test", sql="SELECT 1")
+
+            mock_db_obj = MagicMock()
+            mock_db_obj.id = 1
+            mock_db_session = MagicMock()
+            (
+                mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
+            ) = mock_db_obj
+
+            mock_sm = MagicMock()
+            mock_sm.can_access_database.return_value = True
+
+            mock_dao = MagicMock()
+            mock_dao.create.side_effect = SQLAlchemyError(
+                f"insert failed {leak_marker}"
+            )
+
+            mock_g = MagicMock()
+            mock_g.user = Mock(id=1)
+
+            mock_event_logger = MagicMock()
+            mock_event_logger.log_context.return_value.__enter__ = Mock()
+            mock_event_logger.log_context.return_value.__exit__ = Mock(
+                return_value=False
+            )
+
+            with (
+                patch("superset.db", mock_db_session),
+                patch("superset.security_manager", mock_sm),
+                patch("superset.daos.query.SavedQueryDAO", mock_dao),
+                patch("flask.g", mock_g),
+                patch.object(mod, "event_logger", mock_event_logger),
+                patch(
+                    "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+                    return_value=False,
+                ),
+            ):
+                with pytest.raises(SQLAlchemyError):
+                    await mod.save_sql_query(request, mock_ctx)
+
+            mock_db_session.session.rollback.assert_called_once()
+            assert not any(leak_marker in text for text in notifications)
+            assert any(
+                text.startswith("Failed to save SQL query: A database error")
+                and "database_id=1" in text
+                for text in notifications
+            )
+        finally:
+            _restore_modules(saved)

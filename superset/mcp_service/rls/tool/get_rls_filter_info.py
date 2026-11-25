@@ -33,6 +33,10 @@ from superset.mcp_service.rls.schemas import (
     RlsFilterInfo,
     serialize_rls_filter_object,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,12 +105,14 @@ async def get_rls_filter_info(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "RLS filter info retrieval failed: identifier=%s, error=%s"
-            % (request.identifier, str(e))
+        await report_tool_error(
+            ctx, "Failed to get RLS filter info", e, identifier=request.identifier
         )
-        return RlsFilterError(
-            error=f"Failed to get RLS filter info: {str(e)}",
+        return internal_error_response(
+            RlsFilterError,
+            "Failed to get RLS filter info",
+            e,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

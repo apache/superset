@@ -55,6 +55,7 @@ from superset.mcp_service.chart.sunburst import (
     normalize_and_validate_sunburst_result_data,
     resolve_sunburst_result_roles,
 )
+from superset.mcp_service.utils.tool_errors import internal_error_response
 from superset.utils import json
 from superset.utils.core import DatasourceType, get_column_name
 
@@ -217,9 +218,13 @@ def generate_preview_from_form_data(
             )
 
     except Exception as e:
-        logger.error("Preview generation from form data failed: %s", e)
-        return ChartError(
-            error=f"Failed to generate preview: {str(e)}", error_type="PreviewError"
+        # Access refusals keep their text for guests too: their error types are
+        # in SAFE_ERROR_TYPES.
+        return internal_error_response(
+            ChartError,
+            "Failed to generate preview",
+            e,
+            error_type="PreviewError",
         )
 
 

@@ -32,9 +32,13 @@ from fastmcp import Client
 
 from superset.commands.dataset.exceptions import DatasetForbiddenError
 from superset.mcp_service.app import mcp
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 _FIND = "superset.daos.dataset.DatasetDAO.find_by_id_or_uuid"
 _COMMAND = "superset.commands.dataset.restore.RestoreDatasetCommand"
+_SANITIZATION_REQUIRED = (
+    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
+)
 
 _UUID = UUID("11111111-2222-3333-4444-555555555555")
 
@@ -201,24 +205,46 @@ async def test_restore_dataset_logical_duplicate(
 @patch(_COMMAND)
 @patch(_FIND)
 @pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
 async def test_restore_dataset_restore_failed(
-    mock_find: Mock, mock_command: Mock, mcp_server: object
+    mock_find: Mock, mock_command: Mock, mcp_server: object, guest: bool
 ) -> None:
-    """Other command failures return a structured error, not a permission one."""
+    """Other command failures return a structured error, not a permission one.
+
+    The command's message reaches a signed-in user; an embedded guest gets the
+    generic message in the response and the notification.
+    """
     from superset.commands.dataset.exceptions import DatasetRestoreFailedError
 
+    marker = "password=hunter2 host=db.internal"
     mock_find.return_value = _mock_dataset(dataset_id=10, table_name="orders")
-    mock_command.return_value.run.side_effect = DatasetRestoreFailedError("boom")
+    mock_command.return_value.run.side_effect = DatasetRestoreFailedError(marker)
+    notifications: list[str] = []
 
-    async with Client(mcp_server) as client:
-        result = await client.call_tool(
-            "restore_dataset", {"request": {"identifier": 10}}
-        )
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with patch(_SANITIZATION_REQUIRED, return_value=guest):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            result = await client.call_tool(
+                "restore_dataset", {"request": {"identifier": 10}}
+            )
 
     content = result.structured_content
     assert content["success"] is False
     assert content["permission_denied"] is False
-    assert content["error_type"] == "DatasetRestoreFailedError"
+    assert content["error_type"] == (
+        "GENERIC_BACKEND_ERROR" if guest else "GENERIC_COMMAND_ERROR"
+    )
+    assert (content["error"] or "").startswith("Dataset restore failed: ")
+    assert notifications
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in content["error"]
+        assert marker not in repr(content)
+        assert all(marker not in notification for notification in notifications)
+    else:
+        assert marker in content["error"]
+        assert any(marker in notification for notification in notifications)
 
 
 @patch(_COMMAND)
@@ -235,15 +261,25 @@ async def test_restore_dataset_sqlalchemy_error_is_generic(
         "UPDATE tables SET deleted_at = NULL", {}, Exception("secret-host refused")
     )
 
-    async with Client(mcp_server) as client:
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
         result = await client.call_tool(
             "restore_dataset", {"request": {"identifier": 10}}
         )
 
     content = result.structured_content
     assert content["success"] is False
-    assert content["error"] == "Dataset restore failed due to a database error."
-    assert "secret-host" not in (content["error"] or "")
+    assert (content["error"] or "").startswith(
+        "Dataset restore failed: A database error occurred."
+    )
+    assert content["error_type"] == "GENERIC_DB_ENGINE_ERROR"
+    assert "secret-host" not in repr(content)
+    assert notifications
+    assert all("secret-host" not in notification for notification in notifications)
 
 
 @patch(_FIND)

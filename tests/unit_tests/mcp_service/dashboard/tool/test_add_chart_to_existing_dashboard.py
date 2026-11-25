@@ -44,6 +44,7 @@ from superset import security_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.security.manager import SupersetSecurityManager
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -495,3 +496,65 @@ def test_add_chart_response_error_preserves_application_text() -> None:
         dashboard=None, dashboard_url=None, position=None, error=None
     )
     assert empty_response.error is None
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+@pytest.mark.parametrize(
+    ("raised", "guest", "expected"),
+    [
+        ("database", False, "A database error occurred."),
+        ("value", False, "An unexpected error occurred."),
+        ("command", False, _LEAK_MARKER),
+        ("command", True, str(GENERIC_ERROR_MESSAGE)),
+    ],
+)
+@patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+@patch("superset.db.session.get")
+@patch("superset.security_manager.raise_for_editorship")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_update_failure_error_text(
+    mock_find_by_id: Mock,
+    mock_raise_for_editorship: Mock,
+    mock_session_get: Mock,
+    mock_update_cmd_cls: Mock,
+    raised: str,
+    guest: bool,
+    expected: str,
+    mcp_server: object,
+) -> None:
+    """Superset's own failure message reaches a signed-in user; database and
+    library exception text, and any text for an embedded guest, stay
+    server-side."""
+    from sqlalchemy.exc import OperationalError
+
+    from superset.commands.dashboard.exceptions import DashboardUpdateFailedError
+
+    chart = _mock_chart(id=10)
+    mock_find_by_id.return_value = _mock_dashboard(id=1)
+    mock_raise_for_editorship.return_value = None
+    mock_session_get.return_value = chart
+    mock_update_cmd_cls.return_value.run.side_effect = {
+        "command": DashboardUpdateFailedError(_LEAK_MARKER),
+        "database": OperationalError("UPDATE dashboards", {}, Exception(_LEAK_MARKER)),
+        "value": ValueError(_LEAK_MARKER),
+    }[raised]
+
+    with patch(
+        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        return_value=guest,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard",
+                {"request": {"dashboard_id": 1, "chart_id": 10}},
+            )
+
+    content = result.structured_content
+    assert content["dashboard"] is None
+    assert content["error"].startswith("Failed to add chart to dashboard: ")
+    assert expected in content["error"]
+    if expected != _LEAK_MARKER:
+        assert _LEAK_MARKER not in str(content)

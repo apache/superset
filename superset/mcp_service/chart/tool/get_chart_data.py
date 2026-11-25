@@ -35,7 +35,6 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.chart.exceptions import (
-    ChartDataQueryFailedError,
     ChartDataQueryValidationError,
 )
 from superset.commands.exceptions import CommandException
@@ -75,7 +74,6 @@ from superset.mcp_service.chart.query_result import (
     validate_query_result_envelope,
 )
 from superset.mcp_service.chart.response_preflight import (
-    bounded_exception_message,
     finalize_chart_data_response,
 )
 from superset.mcp_service.chart.schemas import (
@@ -95,6 +93,11 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.mcp_service.utils.response_utils import (
     format_data_columns,
     format_data_quality,
+)
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+    safe_error,
 )
 from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
@@ -131,8 +134,12 @@ def _is_expected_json_load_error(exc: Exception) -> bool:
 
 
 def _access_denied_error(exc: SupersetSecurityException) -> ChartError:
-    """Report a query-time refusal in the category of the chart-data API's 403."""
-    return ChartError(error=bounded_exception_message(exc), error_type="AccessDenied")
+    """Report a query-time refusal in the category of the chart-data API's 403.
+
+    Access-denied error types are in ``SAFE_ERROR_TYPES``, so the refusal text
+    reaches embedded guests as well.
+    """
+    return ChartError(error=safe_error(exc).message, error_type="AccessDenied")
 
 
 # Errors the chart-data API answers with 400, whether raised before or while
@@ -149,10 +156,12 @@ def _validation_error(
     | QueryObjectValidationError
     | SemanticLayerQueryRejectedError,
 ) -> ChartError:
-    """Report an invalid query in the category of the chart-data API's 400."""
-    if isinstance(exc, SemanticLayerQueryRejectedError):
-        # Fixed host guidance; the provider's own text is never carried.
-        return ChartError(error=str(exc), error_type="ValidationError")
+    """Report an invalid query in the category of the chart-data API's 400.
+
+    Like the chart-data API, the message is the one Superset attached to the
+    exception, redacted for embedded guests. A semantic-layer rejection carries
+    fixed host guidance, never the provider's own text.
+    """
     # A run-time failure carries its validation error as the cause, so both
     # stages report the same text.
     cause: BaseException = (
@@ -160,9 +169,7 @@ def _validation_error(
         if isinstance(exc, ChartDataQueryValidationError) and exc.__cause__
         else exc
     )
-    return ChartError(
-        error=bounded_exception_message(cause), error_type="ValidationError"
-    )
+    return ChartError(error=safe_error(cause).message, error_type="ValidationError")
 
 
 _GENERIC_TYPE_MAP: dict[int, str] = {
@@ -1304,26 +1311,17 @@ async def _get_chart_data(  # noqa: C901
             logger.warning("Chart data access refused for chart %s", chart_id)
             return _access_denied_error(ex)
         except (CommandException, SupersetException, ValueError) as data_error:
-            error_text = bounded_exception_message(data_error)
-            await ctx.error(
-                "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
-                % (
-                    chart_id,
-                    error_text,
-                    type(data_error).__name__,
-                )
+            await report_tool_error(
+                ctx,
+                "Error retrieving chart data",
+                data_error,
+                chart_id=chart_id,
             )
-            if isinstance(data_error, ChartDataQueryFailedError):
-                # Query execution failed in the underlying database; this also
-                # covers connectivity and authentication failures. The caller
-                # receives the failure as a DataError.
-                logger.warning(
-                    "Chart data query failed for chart %s: %s", chart_id, error_text
-                )
-            else:
-                logger.error("Data retrieval error for chart %s", chart_id)
-            return ChartError(
-                error=f"Error retrieving chart data: {error_text}",
+            return internal_error_response(
+                ChartError,
+                "Error retrieving chart data",
+                data_error,
+                log=False,
                 error_type="DataError",
             )
 
@@ -1357,18 +1355,15 @@ async def _get_chart_data(  # noqa: C901
         CommandException,
         SQLAlchemyError,
     ) as e:
-        error_text = bounded_exception_message(e)
-        await ctx.error(
-            "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
-            % (
-                request.identifier,
-                error_text,
-                type(e).__name__,
-            )
+        await report_tool_error(
+            ctx, "Failed to get chart data", e, identifier=request.identifier
         )
-        logger.error("Domain error in get_chart_data")
-        return ChartError(
-            error=f"Failed to get chart data: {error_text}", error_type="InternalError"
+        return internal_error_response(
+            ChartError,
+            "Failed to get chart data",
+            e,
+            log=False,
+            error_type="InternalError",
         )
 
 
@@ -1573,10 +1568,10 @@ async def _query_from_form_data(  # noqa: C901
         logger.warning("Unsaved chart data access refused")
         return _access_denied_error(ex)
     except (CommandException, SupersetException, ValueError) as e:
-        error_text = bounded_exception_message(e)
-        logger.error("Domain error querying unsaved chart data")
-        return ChartError(
-            error=f"Error querying unsaved chart data: {error_text}",
+        return internal_error_response(
+            ChartError,
+            "Error querying unsaved chart data",
+            e,
             error_type="DataError",
         )
 

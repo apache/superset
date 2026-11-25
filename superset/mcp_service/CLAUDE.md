@@ -354,39 +354,66 @@ async def my_tool(request: MyRequest, ctx: Context) -> MyResponse:
     await ctx.info("Starting: param=%s" % (request.param,))
     await ctx.debug("Details: keys=%s" % (sorted(request.model_dump().keys()),))
     await ctx.warning("Something unexpected: %s" % (warning_msg,))
-    await ctx.error("Failed: %s" % (str(exc),))
     await ctx.report_progress(1, 5, "Step 1 of 5")
 ```
 
+FastMCP sends every `ctx.*` message to the client, so never format an
+exception into one. Report failures with `report_tool_error` (see Error
+Handling below).
+
 ### 9. Error Handling
 
-**Pattern**: Catch specific exceptions for known failure modes, use broad `Exception` only as the outermost safety net that re-raises:
+**Never format an exception into client output yourself.** Tool responses and
+`ctx.error`/`ctx.warning`/`ctx.info`/`ctx.debug` (sent to the client as log
+notifications) get their error text from `safe_error` in
+`superset/mcp_service/utils/tool_errors.py`, which follows the HTTP API's rule:
+
+- An exception Superset raised (`SupersetException`, `CommandException`) is
+  reported with its `message` and `SupersetErrorType`. For a failed query that
+  is the engine error, which a signed-in user needs. Embedded guests get the
+  generic message from `sanitize_error_message` unless the error type is one
+  Superset writes itself.
+- Any other exception (SQLAlchemy, drivers, providers, libraries) gets a fixed
+  message. Its text can carry SQL, parameters or connection details, so it only
+  goes to the server log.
 
 ```python
-from superset.commands.dataset.exceptions import DatasetInvalidError, DatasetCreateFailedError
+from superset.commands.dataset.exceptions import DatasetInvalidError
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 @tool(...)
-async def my_tool(request: MyRequest, ctx: Context) -> MyResponse:
+async def my_tool(request: MyRequest, ctx: Context) -> MyResponse | MyError:
     try:
-        # Specific exception handling for known failure modes
         with event_logger.log_context(action="mcp.my_tool"):
             result = SomeCommand(properties).run()
         return MyResponse(data=result)
 
     except DatasetInvalidError as exc:
-        # Return structured error response (don't raise)
-        await ctx.error("Validation failed: %s" % (exc.normalized_messages(),))
-        return MyResponse(error=str(exc.normalized_messages()))
+        # Superset-written validation text for the caller. Handlers like this
+        # one must be listed in HOST_MESSAGE_HANDLERS in
+        # tests/unit_tests/mcp_service/test_tool_error_text.py with a reason.
+        messages = exc.normalized_messages()
+        await ctx.warning("Validation failed: %s" % (messages,))
+        return MyError(error=str(messages), error_type="ValidationError")
 
-    except DatasetCreateFailedError as exc:
-        await ctx.error("Creation failed: %s" % (str(exc),))
-        return MyResponse(error=f"Failed: {exc}")
+    except (CommandException, SQLAlchemyError) as exc:
+        await report_tool_error(ctx, "Failed to create thing", exc)
+        return internal_error_response(
+            MyError, "Failed to create thing", exc, log=False
+        )
 
     except Exception as exc:
         # Outermost safety net: log and re-raise (middleware handles it)
-        await ctx.error("Unexpected: %s: %s" % (type(exc).__name__, str(exc)))
+        await report_tool_error(ctx, "Failed to create thing", exc)
         raise
 ```
+
+`tests/unit_tests/mcp_service/test_tool_error_text.py` scans the MCP service
+and fails when an `except` handler, or a function that takes an exception,
+formats the exception into client output instead of using these helpers.
 
 ### 10. Dataset Validation for Chart Tools
 

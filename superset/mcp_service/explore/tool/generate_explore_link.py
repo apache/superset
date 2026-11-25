@@ -56,6 +56,7 @@ from superset.mcp_service.common.error_schemas import (
     DatasetContext,
 )
 from superset.mcp_service.explore.schemas import GenerateExploreLinkResponse
+from superset.mcp_service.utils.tool_errors import report_tool_error
 from superset.mcp_service.utils.url_utils import (
     extract_permalink_key_from_url,
     get_superset_base_url,
@@ -386,19 +387,15 @@ async def generate_explore_link(  # noqa: C901
             ),
         )
     except Exception as e:
-        await ctx.error(
-            "Explore link generation failed for dataset_id=%s, chart_type=%s: %s: %s"
-            % (
-                request.dataset_id,
-                chart_type,
-                type(e).__name__,
-                str(e),
-            )
+        # The exception text stays in the server log; the client gets a
+        # host-owned message only.
+        error_message = await report_tool_error(
+            ctx,
+            "Failed to generate explore link",
+            e,
+            dataset_id=request.dataset_id,
+            chart_type=chart_type,
         )
-        # ``details`` intentionally omits ``str(e)`` so internal info
-        # (file paths, schema names) isn't echoed to the MCP response.
-        # The raw exception is already captured in the server-side log
-        # above via ``ctx.error``.
         return GenerateExploreLinkResponse(
             url="",
             form_data={},
@@ -409,9 +406,7 @@ async def generate_explore_link(  # noqa: C901
                 error_type="generation_failed",
                 error_code="MCP_EXPLORE_GENERATION_FAILED",
                 message="Failed to generate explore link",
-                details=(
-                    "An unexpected error occurred; check server logs for details."
-                ),
+                details=error_message,
             ),
             success=False,
         )

@@ -32,6 +32,10 @@ from superset.mcp_service.sql_lab.schemas import (
     OpenSqlLabRequest,
     SqlLabResponse,
 )
+from superset.mcp_service.utils.tool_errors import (
+    log_tool_exception,
+    tool_error_message,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
@@ -137,11 +141,15 @@ def open_sql_lab_with_context(
             logger.warning(
                 "Database rollback failed during error handling", exc_info=True
             )
-        logger.error("Error generating SQL Lab URL: %s", e)
+        log_tool_exception(
+            "Failed to generate SQL Lab URL",
+            e,
+            database_id=request.database_connection_id,
+        )
         return SqlLabResponse(
             url="",
             database_id=request.database_connection_id,
             schema_name=request.schema_name,
             title=request.title,
-            error=f"Failed to generate SQL Lab URL: {str(e)}",
+            error=tool_error_message("Failed to generate SQL Lab URL", e),
         )

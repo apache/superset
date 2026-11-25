@@ -22,6 +22,7 @@ autouse mock_auth fixture, matching the other dataset tool test files.
 """
 
 from collections.abc import Iterator
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -30,12 +31,16 @@ from fastmcp import Client
 from superset.commands.dataset.exceptions import DatasetForbiddenError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.tool.delete_dataset import _count_affected_objects
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 _RESOLVE = "superset.mcp_service.dataset.tool.delete_dataset.resolve_dataset"
 _COUNT = "superset.mcp_service.dataset.tool.delete_dataset._count_affected_objects"
 _RUN = "superset.commands.dataset.delete.DeleteDatasetCommand.run"
 _VALIDATE = "superset.commands.dataset.delete.DeleteDatasetCommand.validate"
 _FLAG = "superset.mcp_service.dataset.tool.delete_dataset.is_feature_enabled"
+_SANITIZATION_REQUIRED = (
+    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
+)
 
 
 @pytest.fixture
@@ -289,24 +294,46 @@ async def test_delete_dataset_permission_denied(
 @patch(_RUN)
 @patch(_RESOLVE)
 @pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
 async def test_delete_dataset_generic_command_error(
-    mock_resolve: Mock, mock_run: Mock, mock_count: Mock, mcp_server: object
+    mock_resolve: Mock,
+    mock_run: Mock,
+    mock_count: Mock,
+    mcp_server: object,
+    guest: bool,
 ) -> None:
-    """CommandException messages are user-facing and pass through."""
+    """CommandException messages reach a signed-in user; an embedded guest
+    gets the generic message in the response and the notification."""
     from superset.commands.exceptions import CommandException
 
+    marker = "Delete failed for domain reasons"
     mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")
-    mock_run.side_effect = CommandException("Delete failed for domain reasons")
+    mock_run.side_effect = CommandException(marker)
+    notifications: list[str] = []
 
-    async with Client(mcp_server) as client:
-        result = await client.call_tool(
-            "delete_dataset", {"request": {"identifier": 10}}
-        )
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with patch(_SANITIZATION_REQUIRED, return_value=guest):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            result = await client.call_tool(
+                "delete_dataset", {"request": {"identifier": 10}}
+            )
 
     content = result.structured_content
     assert content["success"] is False
-    assert "Delete failed for domain reasons" in (content["error"] or "")
-    assert content["error_type"] == "CommandException"
+    assert content["error_type"] == (
+        "GENERIC_BACKEND_ERROR" if guest else "GENERIC_COMMAND_ERROR"
+    )
+    assert (content["error"] or "").startswith("Dataset delete failed: ")
+    assert notifications
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in content["error"]
+        assert marker not in repr(content)
+        assert all(marker not in notification for notification in notifications)
+    else:
+        assert marker in content["error"]
+        assert any(marker in notification for notification in notifications)
 
 
 @patch(_COUNT, return_value=(0, 0))
@@ -324,15 +351,25 @@ async def test_delete_dataset_sqlalchemy_error_is_generic(
         "UPDATE tables SET deleted_at = now()", {}, Exception("secret-host refused")
     )
 
-    async with Client(mcp_server) as client:
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
         result = await client.call_tool(
             "delete_dataset", {"request": {"identifier": 10}}
         )
 
     content = result.structured_content
     assert content["success"] is False
-    assert content["error"] == "Dataset delete failed due to a database error."
-    assert "secret-host" not in (content["error"] or "")
+    assert (content["error"] or "").startswith(
+        "Dataset delete failed: A database error occurred."
+    )
+    assert content["error_type"] == "GENERIC_DB_ENGINE_ERROR"
+    assert "secret-host" not in repr(content)
+    assert notifications
+    assert all("secret-host" not in notification for notification in notifications)
 
 
 @patch(_RESOLVE)

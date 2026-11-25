@@ -2572,8 +2572,8 @@ class TestChartDataCommandValidation:
                 preview_format="table",
             )
 
-            # SupersetSecurityException is caught by the broad except and
-            # returned as a ChartError
+            # SupersetSecurityException carries host-authored access-denied
+            # text and is returned as a ChartError
             assert isinstance(result, ChartError)
             assert "Access denied" in result.error
             mock_command.run.assert_not_called()
@@ -4088,36 +4088,39 @@ async def test_saved_chart_query_error_keeps_api_category(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "make_error,expected_level",
+    "make_error,client_sees_text",
     [
         pytest.param(
             lambda: ChartDataQueryFailedError(
-                'Error: SQL compilation error: invalid identifier "dealer_name"'
+                'Error: SQL compilation error: invalid identifier "dealer_name" '
+                "marker-7f3a"
             ),
-            logging.WARNING,
-            id="query-failed-warning",
+            True,
+            id="query-failed",
         ),
         pytest.param(
-            lambda: SupersetException("unexpected service failure"),
-            logging.ERROR,
-            id="superset-exception-error",
+            lambda: SupersetException("unexpected service failure marker-7f3a"),
+            True,
+            id="superset-exception",
         ),
         pytest.param(
-            lambda: ValueError("unexpected value failure"),
-            logging.ERROR,
-            id="value-error-error",
+            lambda: ValueError("unexpected value failure marker-7f3a"),
+            False,
+            id="value-error",
         ),
     ],
 )
-async def test_saved_chart_data_error_log_level(
+async def test_saved_chart_data_error_text_for_signed_in_user(
     mcp_server: Any,
     mock_auth: Any,
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
     make_error: Callable[[], Exception],
-    expected_level: int,
+    client_sees_text: bool,
 ) -> None:
-    """Database query failures log at WARNING; other failures stay at ERROR."""
+    """Superset's own error text reaches a signed-in user; other text is logged."""
+    from superset.mcp_service.utils.tool_errors import UNEXPECTED_ERROR_MESSAGE
+
     routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
     routing._patch_query_path(monkeypatch, routing._make_chart(), make_error())
     monkeypatch.setattr(
@@ -4125,23 +4128,42 @@ async def test_saved_chart_data_error_log_level(
         "ChartDataCommand",
         _raising_command("run", make_error()),
     )
+    notifications: list[str] = []
 
-    with caplog.at_level(
-        logging.WARNING, logger="superset.mcp_service.chart.tool.get_chart_data"
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with (
+        patch(
+            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            return_value=False,
+        ),
+        caplog.at_level(
+            logging.WARNING, logger="superset.mcp_service.utils.tool_errors"
+        ),
     ):
-        async with Client(mcp_server) as client:
+        async with Client(mcp_server, log_handler=log_handler) as client:
             result: Any = await client.call_tool(
                 "get_chart_data", {"request": {"identifier": 1}}
             )
-            data: dict[str, Any] = json.loads(result.content[0].text)
+            text: str = result.content[0].text
+            data: dict[str, Any] = json.loads(text)
 
     assert data["error_type"] == "DataError"
-    levels = {
-        record.levelno
+    assert data["error"].startswith("Error retrieving chart data: ")
+    assert any("Error retrieving chart data" in note for note in notifications)
+    if client_sees_text:
+        assert "marker-7f3a" in data["error"]
+    else:
+        assert UNEXPECTED_ERROR_MESSAGE in data["error"]
+        for client_text in [text, *notifications]:
+            assert "marker-7f3a" not in client_text
+    server_log = " ".join(
+        record.getMessage()
         for record in caplog.records
-        if record.name == "superset.mcp_service.chart.tool.get_chart_data"
-    }
-    assert levels == {expected_level}
+        if record.name == "superset.mcp_service.utils.tool_errors"
+    )
+    assert "marker-7f3a" in server_log
 
 
 @pytest.mark.asyncio
@@ -4194,6 +4216,115 @@ async def test_unsaved_chart_query_error_keeps_api_category(
 
     assert data["error_type"] == error_type
     assert message in data["error"]
+
+
+ENGINE_ERROR_TEXT = 'relation "secret_schema.orders" does not exist'
+
+
+def _engine_query_failure() -> Exception:
+    return ChartDataQueryFailedError(f"Error: {ENGINE_ERROR_TEXT}")
+
+
+def _engine_validation_failure() -> Exception:
+    from superset.exceptions import QueryObjectValidationError
+
+    return QueryObjectValidationError(f"Error: {ENGINE_ERROR_TEXT}")
+
+
+def _patch_unsaved_query_path(
+    monkeypatch: pytest.MonkeyPatch, error: Exception
+) -> None:
+    """Route the form_data_key path into a command whose run raises ``error``."""
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "get_cached_form_data",
+        lambda *args, **kwargs: json.dumps(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+                "metrics": ["count"],
+                "groupby": ["gender"],
+                "row_limit": 10,
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *args, **kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command("run", error),
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@pytest.mark.parametrize(
+    "make_error,error_type",
+    [
+        pytest.param(_engine_query_failure, "DataError", id="query-failed"),
+        pytest.param(
+            _engine_validation_failure, "ValidationError", id="query-validation"
+        ),
+    ],
+)
+@pytest.mark.parametrize("path", ["saved", "unsaved"])
+async def test_chart_data_engine_error_is_redacted_for_guests(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    make_error: Callable[[], Exception],
+    error_type: str,
+    guest: bool,
+) -> None:
+    """Engine error text reaches a signed-in user but never an embedded guest.
+
+    This matches ``/api/v1/chart/data``, which passes the failure message
+    through ``sanitize_error_message``.
+    """
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    if path == "saved":
+        routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
+        routing._patch_query_path(monkeypatch, routing._make_chart(), make_error())
+        monkeypatch.setattr(
+            importlib.import_module("superset.commands.chart.data.get_data_command"),
+            "ChartDataCommand",
+            _raising_command("run", make_error()),
+        )
+        request: dict[str, Any] = {"identifier": 1}
+    else:
+        _patch_unsaved_query_path(monkeypatch, make_error())
+        request = {"form_data_key": "cached-key"}
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with patch(
+        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        return_value=guest,
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            result: Any = await client.call_tool("get_chart_data", {"request": request})
+            text: str = result.content[0].text
+            data: dict[str, Any] = json.loads(text)
+
+    assert data["error_type"] == error_type
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in data["error"]
+        for client_text in [text, *notifications]:
+            assert "secret_schema" not in client_text
+    else:
+        assert ENGINE_ERROR_TEXT in data["error"]
 
 
 MISSING_VALUE_QUERY: dict[str, Any] = {

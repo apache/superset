@@ -22,6 +22,7 @@ autouse mock_auth fixture, matching the other chart tool test files.
 """
 
 from collections.abc import Iterator
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -175,25 +176,52 @@ async def test_delete_chart_blocked_by_reports(
     assert "report" in (content["error"] or "").lower()
 
 
+async def _call_delete_capturing_logs(
+    mcp_server: object, identifier: int
+) -> tuple[dict[str, Any], list[str]]:
+    """Call delete_chart and return its structured content and ctx notifications."""
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
+        result = await client.call_tool(
+            "delete_chart", {"request": {"identifier": identifier}}
+        )
+    return result.structured_content, notifications
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
 @patch("superset.commands.chart.delete.DeleteChartCommand.run")
 @patch("superset.mcp_service.chart.tool.delete_chart.find_chart_by_identifier")
 @pytest.mark.asyncio
 async def test_delete_chart_generic_command_error(
-    mock_find: Mock, mock_run: Mock, mcp_server: object
+    mock_find: Mock, mock_run: Mock, mcp_server: object, guest: bool
 ) -> None:
-    """CommandException messages are user-facing and pass through."""
+    """CommandException messages reach signed-in users; guests get a generic one."""
     from superset.commands.exceptions import CommandException
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
     mock_find.return_value = _mock_chart(chart_id=10, slice_name="Sales")
     mock_run.side_effect = CommandException("Delete failed for domain reasons")
 
-    async with Client(mcp_server) as client:
-        result = await client.call_tool("delete_chart", {"request": {"identifier": 10}})
+    with patch(
+        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        return_value=guest,
+    ):
+        content, notifications = await _call_delete_capturing_logs(mcp_server, 10)
 
-    content = result.structured_content
     assert content["success"] is False
-    assert "Delete failed for domain reasons" in (content["error"] or "")
-    assert content["error_type"] == "CommandException"
+    assert "Chart delete failed" in (content["error"] or "")
+    assert any("Chart delete failed" in text for text in notifications)
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in (content["error"] or "")
+        for text in [str(content), *notifications]:
+            assert "domain reasons" not in text
+    else:
+        assert content["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert "Delete failed for domain reasons" in (content["error"] or "")
 
 
 @patch("superset.commands.chart.delete.DeleteChartCommand.run")
@@ -210,13 +238,15 @@ async def test_delete_chart_sqlalchemy_error_is_generic(
         "DELETE FROM slices WHERE id = 10", {}, Exception("secret-host refused")
     )
 
-    async with Client(mcp_server) as client:
-        result = await client.call_tool("delete_chart", {"request": {"identifier": 10}})
+    content, notifications = await _call_delete_capturing_logs(mcp_server, 10)
 
-    content = result.structured_content
     assert content["success"] is False
-    assert content["error"] == "Chart delete failed due to a database error."
-    assert "secret-host" not in (content["error"] or "")
+    assert content["error_type"] == "GENERIC_DB_ENGINE_ERROR"
+    assert "Chart delete failed" in (content["error"] or "")
+    assert "A database error occurred" in (content["error"] or "")
+    for text in [str(content), *notifications]:
+        assert "secret-host" not in text
+        assert "DELETE FROM slices" not in text
 
 
 @pytest.mark.asyncio

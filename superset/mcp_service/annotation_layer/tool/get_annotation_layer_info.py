@@ -31,6 +31,10 @@ from superset.mcp_service.annotation_layer.schemas import (
     serialize_annotation_layer,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,12 +91,14 @@ async def get_annotation_layer_info(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "Annotation layer lookup failed: id=%s, error=%s, error_type=%s"
-            % (request.id, str(e), type(e).__name__)
+        await report_tool_error(
+            ctx, "Failed to get annotation layer info", e, id=request.id
         )
-        return AnnotationLayerError(
-            error=f"Failed to get annotation layer info: {str(e)}",
+        return internal_error_response(
+            AnnotationLayerError,
+            "Failed to get annotation layer info",
+            e,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

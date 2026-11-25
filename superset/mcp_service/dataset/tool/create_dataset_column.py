@@ -29,6 +29,10 @@ from superset.mcp_service.dataset.schemas import (
 from superset.mcp_service.dataset.tool.update_dataset_column import (
     _serialize_column,
 )
+from superset.mcp_service.utils.tool_errors import (
+    report_tool_error,
+    tool_error_message,
+)
 
 
 @tool(
@@ -176,13 +180,17 @@ async def create_dataset_column(
         await ctx.warning("Dataset column validation failed: %s" % (messages,))
         return CreateDatasetColumnResponse(error=str(messages))
     except DatasetUpdateFailedError as exc:
-        await ctx.error("Dataset column create failed: %s" % (str(exc),))
+        await report_tool_error(
+            ctx, "Dataset column create failed", exc, dataset_id=request.dataset_id
+        )
         return CreateDatasetColumnResponse(
-            error=f"Failed to create column: {exc}",
+            error=tool_error_message("Failed to create column", exc)
         )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error creating dataset column: %s: %s"
-            % (type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Unexpected error creating dataset column",
+            exc,
+            dataset_id=request.dataset_id,
         )
         raise

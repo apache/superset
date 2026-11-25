@@ -36,6 +36,10 @@ from superset.mcp_service.saved_query.schemas import (
     SavedQueryInfo,
     serialize_saved_query_object,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -114,17 +118,14 @@ async def get_saved_query_info(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "Saved query information retrieval failed: identifier=%s, error=%s, "
-            "error_type=%s"
-            % (
-                request.identifier,
-                str(e),
-                type(e).__name__,
-            )
+        await report_tool_error(
+            ctx, "Failed to get saved query info", e, identifier=request.identifier
         )
-        return SavedQueryError(
-            error="Failed to get saved query info",
+        return internal_error_response(
+            SavedQueryError,
+            "Failed to get saved query info",
+            e,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

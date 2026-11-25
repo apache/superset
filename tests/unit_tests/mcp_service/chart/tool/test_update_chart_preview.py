@@ -228,6 +228,40 @@ class TestUpdateChartPreview:
         assert result["schema_version"] == "2.0"
         assert result["api_version"] == "v1"
 
+    def test_failure_hides_exception_text(self, mock_auth: Mock) -> None:
+        """An unexpected failure returns a host message, not the exception text."""
+        from sqlalchemy.exc import OperationalError
+
+        request = UpdateChartPreviewRequest(
+            dataset_id=1,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="country")],
+            ),
+        )
+        ctx = Mock()
+
+        with patch.object(
+            update_chart_preview_module,
+            "_find_dataset",
+            side_effect=OperationalError(
+                "password=hunter2 host=db.internal", None, Exception("boom")
+            ),
+        ):
+            result = asyncio.run(
+                update_chart_preview_module.update_chart_preview(
+                    request=request,
+                    ctx=ctx,
+                )
+            )
+
+        assert result["success"] is False
+        assert "Chart preview update failed" in result["error"]
+        assert "A database error occurred" in result["error"]
+        assert "hunter2" not in str(result)
+        assert "db.internal" not in str(result)
+        assert "hunter2" not in str(ctx.mock_calls)
+
     @pytest.mark.asyncio
     async def test_update_chart_preview_request_structure(self):
         """Test that chart preview update request structures are properly formed."""

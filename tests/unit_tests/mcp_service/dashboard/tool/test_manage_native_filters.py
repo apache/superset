@@ -49,6 +49,7 @@ from fastmcp import Client
 from superset.commands.dashboard.exceptions import DashboardForbiddenError
 from superset.mcp_service.app import mcp
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -3593,3 +3594,51 @@ async def test_add_filter_with_existing_plugin_cascade_parent(
     )
     assert not data.get("error")
     assert captured["payload"]["modified"][0]["cascadeParentIds"] == ["parent"]
+
+
+@pytest.mark.parametrize(
+    ("guest", "expected"),
+    [
+        (
+            False,
+            "Dashboard changed during native filter validation; "
+            "re-read the dashboard and retry.",
+        ),
+        (True, str(GENERIC_ERROR_MESSAGE)),
+    ],
+)
+@pytest.mark.asyncio
+async def test_update_failure_error_text(
+    mcp_server: object, guest: bool, expected: str
+) -> None:
+    """A failed native filter write reports Superset's message, such as the
+    concurrent-edit reason, to a signed-in user and the generic message to an
+    embedded guest."""
+    from superset.commands.dashboard.exceptions import (
+        DashboardNativeFiltersUpdateFailedError,
+    )
+
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER])
+    command = Mock()
+    command.return_value.run.side_effect = DashboardNativeFiltersUpdateFailedError(
+        "Dashboard changed during native filter validation; "
+        "re-read the dashboard and retry."
+    )
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, command),
+        patch(
+            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "remove": ["NATIVE_FILTER-existing1"]},
+        )
+
+    assert data["error"].startswith(f"Failed to update native filters: {expected}")
+    assert data["dashboard_id"] == 1
+    if guest:
+        assert "re-read the dashboard" not in json.dumps(data)

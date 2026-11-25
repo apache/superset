@@ -532,3 +532,36 @@ def test_dashboard_filter_existing_columns_still_work():
     for col in ("dashboard_title", "published", "favorite"):
         f = DashboardFilter.model_validate({"col": col, "opr": "eq", "value": "test"})
         assert f.col == col
+
+
+@pytest.mark.asyncio
+async def test_get_instance_info_failure_hides_exception_text(
+    mcp_server, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An unexpected failure is logged server-side and never sent through ctx."""
+    from fastmcp.exceptions import ToolError
+
+    leak_marker = "password=hunter2 host=db.internal"
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    instance_info_module = importlib.import_module(
+        "superset.mcp_service.system.tool.get_instance_info"
+    )
+    with (
+        patch.object(
+            instance_info_module,
+            "_run_instance_info",
+            side_effect=RuntimeError(f"metrics failed {leak_marker}"),
+        ),
+        caplog.at_level("ERROR"),
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            # The raised error is rendered by the error-handling middleware.
+            with pytest.raises(ToolError):
+                await client.call_tool("get_instance_info", {})
+
+    assert not any(leak_marker in text for text in notifications)
+    assert "Unexpected error in instance info" in caplog.text

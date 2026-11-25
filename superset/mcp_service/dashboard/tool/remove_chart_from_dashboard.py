@@ -52,6 +52,10 @@ from superset.mcp_service.dashboard.tool.governance_utils import (
     managed_dashboard_refusal,
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    tool_error_message,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -487,7 +491,7 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             dashboard_url=None,
             removed_layout_keys=[],
             permission_denied=True,
-            error=f"Permission denied: {str(e)}",
+            error=tool_error_message("Permission denied", e),
         )
 
     except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
@@ -499,11 +503,12 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             logger.warning(
                 "Database rollback failed during error handling", exc_info=True
             )
-        logger.error("Error removing chart from dashboard: %s", e)
-        return RemoveChartFromDashboardResponse(
+        return internal_error_response(
+            RemoveChartFromDashboardResponse,
+            "Failed to remove chart from dashboard",
+            e,
             dashboard=None,
             dashboard_url=None,
             removed_layout_keys=[],
             permission_denied=False,
-            error=f"Failed to remove chart from dashboard: {str(e)}",
         )

@@ -99,6 +99,11 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.tool_errors import (
+    log_tool_exception,
+    safe_error,
+    tool_error_message,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.models.slice import Slice
 from superset.semantic_layers.access import SemanticLayersDisabledError
@@ -1641,13 +1646,15 @@ async def update_chart(  # noqa: C901
                 "Database rollback failed during error handling", exc_info=True
             )
         execution_time = int((time.time() - start_time) * 1000)
+        log_tool_exception("Chart update failed", e, identifier=request.identifier)
+        client_error = safe_error(e)
         return _finalize_response(
             {
                 "chart": None,
                 "error": {
-                    "error_type": type(e).__name__,
-                    "message": f"Chart update failed: {e}",
-                    "details": str(e),
+                    "error_type": client_error.error_type.value,
+                    "message": tool_error_message("Chart update failed", e),
+                    "details": client_error.message,
                 },
                 "performance": {
                     "query_duration_ms": execution_time,

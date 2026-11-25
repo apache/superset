@@ -41,6 +41,10 @@ from superset.mcp_service.privacy import (
     requires_data_model_metadata_access,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -136,17 +140,14 @@ async def get_database_info(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "Database information retrieval failed: identifier=%s, error=%s, "
-            "error_type=%s"
-            % (
-                request.identifier,
-                str(e),
-                type(e).__name__,
-            )
+        await report_tool_error(
+            ctx, "Failed to get database info", e, identifier=request.identifier
         )
-        return DatabaseError(
-            error=f"Failed to get database info: {str(e)}",
+        return internal_error_response(
+            DatabaseError,
+            "Failed to get database info",
+            e,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

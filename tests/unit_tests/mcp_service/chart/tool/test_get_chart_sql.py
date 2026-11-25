@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from fastmcp import FastMCP
     from fastmcp.client.client import CallToolResult
 
+from superset.commands.exceptions import CommandException
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
 from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULTS,
@@ -487,7 +488,8 @@ async def test_get_chart_sql_maps_hostile_exception_without_string_hook() -> Non
 
     data = result.structured_content.get("result", result.structured_content)
     assert data["error_type"] == "QueryGenerationFailed"
-    assert "bounded failure" in data["error"]
+    assert "bounded failure" not in data["error"]
+    assert "Failed to generate chart SQL" in data["error"]
 
 
 class TestFindChartByIdentifier:
@@ -2196,7 +2198,74 @@ class TestDetachedInstanceError:
 
         data = json.loads(response.content[0].text)
         assert data["error_type"] == "DatabaseError"
-        assert data["error"] == (
-            "Chart SQL retrieval failed due to a database session error: "
-            "DetachedInstanceError"
-        )
+        assert "Chart SQL retrieval failed" in data["error"]
+        assert "A database error occurred" in data["error"]
+        assert "DetachedInstanceError" not in data["error"]
+        assert "not bound to a Session" not in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("exc", "guest", "client_sees_text"),
+    [
+        pytest.param(
+            ValueError("password=hunter2 host=db.internal"),
+            False,
+            False,
+            id="value-error",
+        ),
+        pytest.param(
+            CommandException("password=hunter2 host=db.internal"),
+            False,
+            True,
+            id="command-signed-in",
+        ),
+        pytest.param(
+            CommandException("password=hunter2 host=db.internal"),
+            True,
+            False,
+            id="command-guest",
+        ),
+    ],
+)
+async def test_unsaved_chart_sql_failure_text(
+    exc: Exception, guest: bool, client_sees_text: bool
+) -> None:
+    """Superset's own error text reaches signed-in users only; other text never."""
+    from contextlib import nullcontext
+
+    ctx = AsyncMock()
+    with (
+        patch.object(
+            _get_chart_sql_mod,
+            "_get_cached_form_data",
+            return_value='{"datasource_id": 1, "datasource_type": "table"}',
+        ),
+        patch.object(_get_chart_sql_mod, "_sql_from_form_data", side_effect=exc),
+        patch.object(
+            _get_chart_sql_mod.event_logger,
+            "log_context",
+            return_value=nullcontext(),
+        ),
+        patch(
+            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        result = await _get_chart_sql_mod._handle_unsaved_chart_sql("cached-key", ctx)
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "QueryGenerationFailed"
+    assert "Failed to generate SQL from cached form_data" in result.error
+    notifications = [
+        str(call.args[0])
+        for method in (ctx.info, ctx.warning, ctx.error, ctx.debug)
+        for call in method.await_args_list
+    ]
+    assert any("Failed to generate SQL from form_data" in n for n in notifications)
+    if client_sees_text:
+        assert "hunter2" in result.error
+    else:
+        for text in [result.error, *notifications]:
+            assert "hunter2" not in text
+            assert "db.internal" not in text

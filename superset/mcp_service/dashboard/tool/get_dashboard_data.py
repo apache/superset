@@ -31,6 +31,7 @@ from typing import Any, TYPE_CHECKING
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -49,6 +50,7 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardError,
     GetDashboardDataRequest,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
@@ -273,10 +275,22 @@ async def get_dashboard_data(
 
         with event_logger.log_context(action="mcp.get_dashboard_data.lookup"):
             dashboard = DashboardDAO.get_by_id_or_slug(str(request.identifier))
-    except Exception as exc:  # noqa: BLE001
+    except DashboardNotFoundError:
         await ctx.warning(
-            "Dashboard not found or inaccessible: identifier=%s, error=%s"
-            % (request.identifier, str(exc))
+            "Dashboard not found or inaccessible: identifier=%s" % (request.identifier,)
+        )
+        return DashboardError(
+            error=f"Dashboard not found or inaccessible: {request.identifier}",
+            error_type="DashboardNotFound",
+            timestamp=datetime.now(timezone.utc),
+        )
+    except Exception as exc:  # noqa: BLE001
+        await report_tool_error(
+            ctx,
+            "Dashboard not found or inaccessible",
+            exc,
+            level="warning",
+            identifier=request.identifier,
         )
         return DashboardError(
             error=f"Dashboard not found or inaccessible: {request.identifier}",
@@ -322,8 +336,12 @@ async def get_dashboard_data(
             # Reuse get_chart_data's core so guest auth + filter handling match.
             result = await execute_chart_data(chart_request, ctx)
         except Exception as exc:  # noqa: BLE001
-            await ctx.warning(
-                "Chart data failed: chart_id=%s, error=%s" % (slc.id, str(exc))
+            chart_error = await report_tool_error(
+                ctx,
+                "Chart data failed",
+                exc,
+                level="warning",
+                chart_id=slc.id,
             )
             charts.append(
                 DashboardChartData(
@@ -331,7 +349,7 @@ async def get_dashboard_data(
                     chart_name=slc.slice_name or "",
                     chart_type=slc.viz_type or "unknown",
                     filtered=bool(extra),
-                    error=str(exc),
+                    error=chart_error,
                 )
             )
             continue

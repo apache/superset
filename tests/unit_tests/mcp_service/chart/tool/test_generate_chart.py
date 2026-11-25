@@ -639,7 +639,8 @@ class TestCompileChart:
         result = _compile_chart({"metrics": []}, dataset_id=1)
 
         assert result.success is False
-        assert "invalid metric" in (result.error or "")
+        assert "invalid metric" not in (result.error or "")
+        assert "An unexpected error occurred" in (result.error or "")
 
 
 def _make_mock_chart(chart_id: int = 42) -> Mock:
@@ -1252,3 +1253,58 @@ async def test_saved_pie_default_name_metric_before_dimension() -> None:
     assert create.call_args.args[0]["slice_name"] == "total_revenue by region"
     assert result.chart.slice_name == "total_revenue by region"
     assert result.accessibility.alt_text == "Chart showing total_revenue by region"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("exc", "host_text"),
+    [
+        (ValueError("password=hunter2 host=db.internal"), "unexpected error"),
+        (SQLAlchemyError("password=hunter2 host=db.internal"), "database error"),
+    ],
+)
+async def test_generate_chart_failure_hides_exception_text(
+    exc: Exception, host_text: str
+) -> None:
+    """Generation failures reach the client and ctx only as host messages."""
+    request = GenerateChartRequest(
+        dataset_id="1",
+        config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
+        save_chart=True,
+        generate_preview=False,
+    )
+    ctx = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.debug = AsyncMock()
+    ctx.warning = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            side_effect=exc,
+        ),
+        patch("superset.db.session", MagicMock()),
+    ):
+        result = await generate_chart(request, ctx=ctx)
+
+    assert result.success is False
+    error = result.error
+    client_text = str(error.model_dump() if hasattr(error, "model_dump") else error)
+    assert host_text in client_text
+    assert "Chart generation failed" in client_text
+    notifications = [
+        str(call.args[0])
+        for method in (ctx.info, ctx.debug, ctx.warning, ctx.error)
+        for call in method.await_args_list
+    ]
+    assert any("Chart generation failed" in n for n in notifications)
+    for text in [client_text, *notifications]:
+        assert "hunter2" not in text
+        assert "db.internal" not in text

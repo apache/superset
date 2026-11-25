@@ -202,19 +202,21 @@ class ValidationPipeline:
             )
 
         except Exception as e:
-            logger.exception("Validation pipeline error")
             from superset.mcp_service.utils.error_builder import (
                 ChartErrorBuilder,
             )
+            from superset.mcp_service.utils.tool_errors import (
+                log_tool_exception,
+                tool_error_message,
+            )
 
-            # SECURITY FIX: Sanitize validation error to prevent information disclosure.
-            # logger.exception above already logged the original error; pass
-            # log_original=False so the sanitizer does not log it a second time at INFO.
-            sanitized_reason = _sanitize_validation_error(e, log_original=False)
+            log_tool_exception("Validation pipeline error", e)
             error = ChartErrorBuilder.build_error(
                 error_type="validation_system_error",
                 template_key="validation_error",
-                template_vars={"reason": sanitized_reason},
+                template_vars={
+                    "reason": tool_error_message("Validation pipeline error", e)
+                },
                 error_code="VALIDATION_PIPELINE_ERROR",
             )
             return ValidationResult(is_valid=False, error=error)

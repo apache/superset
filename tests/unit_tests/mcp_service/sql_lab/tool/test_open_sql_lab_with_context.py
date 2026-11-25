@@ -398,20 +398,29 @@ class TestOpenSqlLabWithContext:
             with (
                 patch(
                     "superset.daos.database.DatabaseDAO.find_by_id",
-                    side_effect=RuntimeError("connection reset"),
+                    side_effect=RuntimeError(
+                        "connection reset password=hunter2 host=db.internal"
+                    ),
                 ),
                 patch.object(
                     mod.event_logger, "log_context", return_value=nullcontext()
                 ),
                 patch.object(mod.db.session, "rollback") as mock_rollback,
             ):
-                response = mod.open_sql_lab_with_context(request, _make_mock_ctx())
+                ctx = _make_mock_ctx()
+                response = mod.open_sql_lab_with_context(request, ctx)
 
             mock_rollback.assert_called_once()
             assert response.url == ""
             assert response.database_id == 7
-            assert response.error == (
-                "Failed to generate SQL Lab URL: connection reset"
+            assert response.error is not None
+            assert response.error.startswith(
+                "Failed to generate SQL Lab URL: An unexpected error occurred."
             )
+            assert "connection reset" not in response.error
+            assert "hunter2" not in response.model_dump_json()
+            for method in ("error", "warning", "info", "debug"):
+                for call in getattr(ctx, method).call_args_list:
+                    assert "hunter2" not in str(call)
         finally:
             _restore_modules(saved_modules)

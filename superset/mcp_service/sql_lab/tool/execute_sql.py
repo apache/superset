@@ -56,6 +56,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 from superset.sql.parse import SQLScript
 
 logger = logging.getLogger(__name__)
@@ -108,8 +109,10 @@ async def _validate_non_destructive_sql(
                     error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR.value,
                 )
         except Exception as parse_err:
-            await ctx.error(
-                "DDL pre-check failed to parse SQL, blocking query: %s" % str(parse_err)
+            await report_tool_error(
+                ctx,
+                "DDL pre-check failed to parse SQL, blocking query",
+                parse_err,
             )
             return _invalid_sql_response()
 
@@ -281,12 +284,11 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR.value,
         )
     except Exception as e:
-        await ctx.error(
-            "SQL execution failed: error=%s, database_id=%s"
-            % (
-                str(e),
-                request.database_id,
-            )
+        await report_tool_error(
+            ctx,
+            "SQL execution failed",
+            e,
+            database_id=request.database_id,
         )
         raise
 

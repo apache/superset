@@ -52,6 +52,7 @@ from superset.mcp_service.dashboard.tool.governance_utils import (
     managed_dashboard_refusal,
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
+from superset.mcp_service.utils.tool_errors import internal_error_response
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -485,10 +486,11 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             logger.warning(
                 "Database rollback failed during error handling", exc_info=True
             )
-        logger.error("Error adding chart to dashboard: %s", e)
-        return AddChartToDashboardResponse(
+        return internal_error_response(
+            AddChartToDashboardResponse,
+            "Failed to add chart to dashboard",
+            e,
             dashboard=None,
             dashboard_url=None,
             position=None,
-            error=f"Failed to add chart to dashboard: {str(e)}",
         )

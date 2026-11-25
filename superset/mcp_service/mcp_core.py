@@ -117,8 +117,7 @@ class BaseCore(ABC):
         error_msg = f"Error in {self.__class__.__name__}"
         if context:
             error_msg += f" ({context})"
-        error_msg += f": {str(error)}"
-        self.logger.debug(error_msg, exc_info=True)
+        self.logger.debug("%s: %s", error_msg, error, exc_info=True)
 
     def _log_info(self, message: str) -> None:
         """Log an info message."""

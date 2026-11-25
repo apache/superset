@@ -23,6 +23,7 @@ about a specific dashboard.
 """
 
 import logging
+from datetime import datetime, timezone
 from time import monotonic
 from typing import Annotated, Any, cast, Literal
 
@@ -35,7 +36,6 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
-from superset.mcp_service.chart.response_preflight import bounded_exception_message
 from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
 from superset.mcp_service.dashboard.permalink import (
     dashboard_permalink_matches,
@@ -57,6 +57,10 @@ from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_size_utils import (
     finalize_dashboard_filter_values_response,
+)
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
 )
 
 logger = logging.getLogger(__name__)
@@ -202,19 +206,35 @@ def _serialize_info(
     return payload
 
 
-def _dashboard_retrieval_error(error: Exception) -> DashboardError:
-    """Preserve database authentication guidance before generic failure handling."""
+async def _dashboard_retrieval_error(
+    ctx: Context, error: Exception, identifier: int | str | None
+) -> DashboardError:
+    """Preserve database authentication guidance before generic failure handling.
+
+    The OAuth2 redirect message is built from the authorization URL only; any
+    other failure gets the client-safe message from ``safe_error`` and its
+    detail goes to the server log.
+    """
     if isinstance(error, OAuth2RedirectError):
+        await ctx.error(
+            "Dashboard information retrieval needs database OAuth "
+            "authorization: identifier=%s" % (identifier,)
+        )
         return DashboardError.create(
             build_oauth2_redirect_message(error), "OAuth2Redirect"
         )
     if isinstance(error, OAuth2Error):
-        return DashboardError.create(
-            f"OAuth2 authentication error: {bounded_exception_message(error)}",
-            "OAuth2Error",
-        )
-    return DashboardError.create(
-        f"Failed to get dashboard info: {str(error)}", "InternalError"
+        summary, error_type = "OAuth2 authentication error", "OAuth2Error"
+    else:
+        summary, error_type = "Failed to get dashboard info", "InternalError"
+    await report_tool_error(ctx, summary, error, identifier=identifier)
+    return internal_error_response(
+        DashboardError,
+        summary,
+        error,
+        log=False,
+        error_type=error_type,
+        timestamp=datetime.now(timezone.utc),
     )
 
 
@@ -427,9 +447,4 @@ async def get_dashboard_info(
         # Preserve the compact size-limit refusal without another serialization pass.
         raise
     except Exception as e:
-        error = _dashboard_retrieval_error(e)
-        await ctx.error(
-            "Dashboard information retrieval failed: identifier=%s, error=%s, "
-            "error_type=%s" % (request.identifier, error.error, type(e).__name__)
-        )
-        return error
+        return await _dashboard_retrieval_error(ctx, e, request.identifier)

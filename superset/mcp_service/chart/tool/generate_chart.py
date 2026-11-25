@@ -77,6 +77,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error, safe_error
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.utils import json
@@ -594,8 +595,7 @@ async def generate_chart(  # noqa: C901
                 response_warnings.extend(dataset_check.warnings)
 
             except CommandException as e:
-                logger.error("Chart creation failed: %s", e)
-                await ctx.error("Chart creation failed: error=%s" % (str(e),))
+                await report_tool_error(ctx, "Chart creation failed", e)
                 raise
             # Update explore URL to use saved chart
             explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
@@ -635,12 +635,12 @@ async def generate_chart(  # noqa: C901
                         "form_data_key=%s" % (form_data_key,)
                     )
             except CommandException as fdk_error:
-                logger.warning(
-                    "Failed to generate form_data_key for saved chart: %s",
+                await report_tool_error(
+                    ctx,
+                    "Failed to generate form_data_key",
                     fdk_error,
-                )
-                await ctx.warning(
-                    "Failed to generate form_data_key: error=%s" % (str(fdk_error),)
+                    level="warning",
+                    chart_id=chart_id,
                 )
                 # form_data_key remains None but chart is still valid
         else:
@@ -862,8 +862,9 @@ async def generate_chart(  # noqa: C901
 
             except (CommandException, ValueError, KeyError) as e:
                 # Log warning but don't fail the entire request
-                await ctx.warning("Preview generation failed: error=%s" % (str(e),))
-                logger.warning("Preview generation failed: %s", e)
+                await report_tool_error(
+                    ctx, "Preview generation failed", e, level="warning"
+                )
 
         # Return enhanced data while maintaining backward compatibility
         await ctx.report_progress(4, 5, "Building response")
@@ -1020,16 +1021,14 @@ async def generate_chart(  # noqa: C901
             logger.warning(
                 "Database rollback failed during error handling", exc_info=True
             )
-        await ctx.error(
-            "Chart generation failed: error=%s, execution_time_ms=%s"
-            % (
-                str(e),
-                int((time.time() - start_time) * 1000),
-            )
+        await report_tool_error(
+            ctx,
+            "Chart generation failed",
+            e,
+            execution_time_ms=int((time.time() - start_time) * 1000),
         )
+        reason = safe_error(e).message
         from superset.mcp_service.utils.error_builder import ChartErrorBuilder
-
-        logger.exception("Chart generation failed: %s", str(e))
 
         # request.config is always a validated ChartConfig, whose variants all
         # define chart_type as a discriminator field.
@@ -1042,7 +1041,7 @@ async def generate_chart(  # noqa: C901
             error_type="chart_generation_error",
             template_key="generation_failed",
             template_vars={
-                "reason": str(e),
+                "reason": reason,
                 "dataset_id": str(request.dataset_id),
                 "chart_type": chart_type,
             },

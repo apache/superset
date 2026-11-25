@@ -41,7 +41,6 @@ from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetExcept
 from superset.extensions import event_logger
 from superset.mcp_service.chart.query_result import validate_query_result_envelope
 from superset.mcp_service.chart.response_preflight import (
-    bounded_exception_message,
     finalize_query_dataset_response,
 )
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
@@ -70,9 +69,18 @@ from superset.mcp_service.privacy import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.mcp_service.utils.tool_errors import (
+    log_tool_exception,
+    tool_error_message,
+)
+from superset.utils import date_parser
 
 logger = logging.getLogger(__name__)
 
+
+_INVALID_QUERY_SUMMARY = (
+    "The query request was rejected. Check that filter values match their column types"
+)
 
 _NO_SAVED_METRICS_HINT = (
     "This dataset has no saved metrics, and query_dataset accepts saved "
@@ -446,41 +454,70 @@ async def _query_dataset(  # noqa: C901
         )
 
     except OAuth2Error as exc:
-        error_text = bounded_exception_message(exc)
-        await ctx.error("OAuth2 error: %s" % (error_text,))
-        return DatasetError.create(
-            error=f"OAuth2 authentication error: {error_text}",
-            error_type="OAuth2Error",
+        return await _query_failure(
+            ctx, "OAuth2 authentication error", exc, "OAuth2Error", request.dataset_id
         )
 
     except (CommandException, SupersetException) as exc:
-        error_text = bounded_exception_message(exc)
-        await ctx.error("Query failed: %s" % (error_text,))
-        return DatasetError.create(
-            error=f"Query execution failed: {error_text}",
-            error_type="QueryError",
+        return await _query_failure(
+            ctx, "Query execution failed", exc, "QueryError", request.dataset_id
         )
 
     except SQLAlchemyError as exc:
-        error_text = bounded_exception_message(exc)
-        logger.error("Database error while querying dataset")
-        await ctx.error("Database error: %s" % (error_text,))
-        return DatasetError.create(
-            error=f"Database error: {error_text}",
-            error_type="DatabaseError",
+        return await _query_failure(
+            ctx, "Database error", exc, "DatabaseError", request.dataset_id
         )
 
     except ValueError as exc:
-        # Expected user/agent-input validation (e.g. a reversed time_range where
-        # since > until raises "From date cannot be larger than to date" from
-        # date_parser.get_since_until). Return an actionable ValidationError
-        # without a full-traceback log — this is not a bug.
-        error_text = str(exc)
-        await ctx.error("Invalid request: %s" % (error_text,))
-        return DatasetError.create(
-            error=error_text,
-            error_type="ValidationError",
+        if _raised_by_date_parser(exc):
+            # Expected caller-input validation (e.g. a reversed time_range,
+            # where date_parser.get_since_until raises "From date cannot be
+            # larger than to date"). Superset wrote the text about the
+            # caller's own time_range, so it is returned as-is, without a
+            # traceback log: this is not a bug.
+            error_text = str(exc)
+            await ctx.error("Invalid request: %s" % (error_text,))
+            return DatasetError.create(
+                error=error_text,
+                error_type="ValidationError",
+            )
+        # Any other ValueError (a driver, pandas, the query pipeline) can
+        # carry SQL or connection details, so its text stays in the log.
+        return await _query_failure(
+            ctx,
+            _INVALID_QUERY_SUMMARY,
+            exc,
+            "ValidationError",
+            request.dataset_id,
         )
+
+
+def _raised_by_date_parser(exc: BaseException) -> bool:
+    """Return whether ``exc`` was raised inside ``superset.utils.date_parser``.
+
+    The date parser raises ``ValueError`` with text it writes about the
+    caller's time range; the innermost traceback frame is where it was raised.
+    """
+    tb = exc.__traceback__
+    if tb is None:
+        return False
+    while tb.tb_next is not None:
+        tb = tb.tb_next
+    return tb.tb_frame.f_globals.get("__name__") == date_parser.__name__
+
+
+async def _query_failure(
+    ctx: Context,
+    summary: str,
+    exc: Exception,
+    error_type: str,
+    dataset_id: int | str,
+) -> DatasetError:
+    """Log ``exc`` server-side and return a DatasetError with its safe message."""
+    log_tool_exception(summary, exc, dataset_id=dataset_id)
+    message = tool_error_message(summary, exc)
+    await ctx.error("%s (dataset_id=%s)" % (message, dataset_id))
+    return DatasetError.create(error=message, error_type=error_type)
 
 
 def _dataset_internal_error() -> DatasetError:

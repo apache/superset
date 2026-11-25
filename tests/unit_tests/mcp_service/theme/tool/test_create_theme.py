@@ -19,10 +19,12 @@
 
 import importlib
 from collections.abc import Iterator
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 from flask import Flask
 from marshmallow import ValidationError
 
@@ -61,6 +63,36 @@ def mock_auth() -> Iterator[Mock]:
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@patch.object(create_theme_module, "CreateThemeCommand")
+@patch.object(create_theme_module, "_sanitize_and_validate_theme_config")
+@pytest.mark.asyncio
+async def test_create_theme_unexpected_error_text_not_sent(
+    mock_sanitize: MagicMock,
+    mock_command_cls: MagicMock,
+    mcp_server: object,
+) -> None:
+    """An unexpected error is re-raised; the tool's notification omits its text."""
+    marker = "password=hunter2 host=db.internal"
+    config = {"token": {"colorPrimary": "#1d4ed8"}}
+    mock_sanitize.return_value = config
+    mock_command_cls.return_value.run.side_effect = RuntimeError(marker)
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
+        with pytest.raises(ToolError):
+            await client.call_tool(
+                "create_theme",
+                {"request": {"theme_name": "Corporate Blue", "json_data": config}},
+            )
+
+    assert any("details were logged on the server" in n for n in notifications)
+    assert all(marker not in notification for notification in notifications)
+    assert all("RuntimeError" not in notification for notification in notifications)
 
 
 @patch.object(create_theme_module, "CreateThemeCommand")

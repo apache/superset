@@ -39,6 +39,7 @@ from superset.mcp_service.system.system_utils import (
     INSTANCE_INFO_TIME_WINDOWS,
     redact_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import log_tool_exception
 
 logger = logging.getLogger(__name__)
 
@@ -121,8 +122,7 @@ def get_instance_info(
             raise
 
     except Exception as e:
-        error_msg = f"Unexpected error in instance info: {str(e)}"
-        logger.error(error_msg, exc_info=True)
+        log_tool_exception("Unexpected error in instance info", e)
         raise
 
 

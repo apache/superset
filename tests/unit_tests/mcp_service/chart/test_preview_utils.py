@@ -663,3 +663,99 @@ def test_unsaved_vega_preview_empty_result_honors_allows_empty_result(
     else:
         assert isinstance(preview, ChartError)
         assert preview.error_type == "NoDataError"
+
+
+def _preview_raising(exc: Exception, *, guest: bool = False) -> ChartError | Any:
+    """Run generate_preview_from_form_data with a command that raises ``exc``."""
+    form_data = {"viz_type": "table", "all_columns": ["region"]}
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ),
+        patch("superset.extensions.db.session.get", return_value=object()),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch("superset.common.query_context_factory.QueryContextFactory") as factory,
+        patch(
+            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        factory.return_value.create.return_value = MagicMock()
+        command.return_value.run.side_effect = exc
+        return preview_utils.generate_preview_from_form_data(form_data, 1, "table")
+
+
+@pytest.mark.parametrize(
+    ("raised", "host_text"),
+    [
+        ("sqlalchemy", "A database error occurred"),
+        ("runtime", "An unexpected error occurred"),
+    ],
+)
+def test_generate_preview_failure_hides_exception_text(
+    raised: str, host_text: str
+) -> None:
+    """Failures Superset did not raise return a host message, never their text."""
+    from sqlalchemy.exc import OperationalError
+
+    marker = "password=hunter2 host=db.internal"
+    exc: Exception = {
+        "sqlalchemy": OperationalError(marker, None, Exception(marker)),
+        "runtime": RuntimeError(marker),
+    }[raised]
+
+    result = _preview_raising(exc)
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "PreviewError"
+    assert "hunter2" not in result.error
+    assert "db.internal" not in result.error
+    assert "Failed to generate preview" in result.error
+    assert host_text in result.error
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+def test_generate_preview_engine_error_is_redacted_for_guests(guest: bool) -> None:
+    """A failed query's engine text reaches signed-in users only."""
+    from superset.commands.chart.exceptions import ChartDataQueryFailedError
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    engine_text = 'relation "secret_schema.orders" does not exist'
+    result = _preview_raising(
+        ChartDataQueryFailedError(f"Error: {engine_text}"), guest=guest
+    )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "PreviewError"
+    if guest:
+        assert "secret_schema" not in result.error
+        assert str(GENERIC_ERROR_MESSAGE) in result.error
+    else:
+        assert engine_text in result.error
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+def test_generate_preview_access_denied_text_survives_redaction(guest: bool) -> None:
+    """Access refusals keep their text for guests: the type is in SAFE_ERROR_TYPES."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    refusal = SupersetSecurityException(
+        SupersetError(
+            message="You need access to the datasource to view this chart.",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+    result = _preview_raising(refusal, guest=guest)
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "PreviewError"
+    assert result.error == (
+        "Failed to generate preview: "
+        "You need access to the datasource to view this chart."
+    )

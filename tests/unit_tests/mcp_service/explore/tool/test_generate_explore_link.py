@@ -1269,8 +1269,15 @@ class TestGenerateExploreLink:
 
         original_func = explore_module.map_config_to_form_data
 
+        leak_marker = "password=hunter2 host=db.internal"
+
         def raise_error(*args, **kwargs):
-            raise ValueError("Invalid config structure")
+            raise ValueError(f"Invalid config structure {leak_marker}")
+
+        notifications: list[str] = []
+
+        async def log_handler(message: object) -> None:
+            notifications.append(str(getattr(message, "data", message)))
 
         explore_module.map_config_to_form_data = raise_error
         try:
@@ -1279,7 +1286,7 @@ class TestGenerateExploreLink:
             )
             request = GenerateExploreLinkRequest(dataset_id="1", config=config)
 
-            async with Client(mcp_server) as client:
+            async with Client(mcp_server, log_handler=log_handler) as client:
                 result = await client.call_tool(
                     "generate_explore_link", {"request": request.model_dump()}
                 )
@@ -1293,11 +1300,16 @@ class TestGenerateExploreLink:
                 assert result.structured_content["success"] is False
                 error = result.structured_content["error"]
                 assert error["error_type"] == "generation_failed"
-                # ``details`` is the static, sanitized message; the raw
-                # exception text ("Invalid config structure") is kept
-                # only in the server-side log, not echoed to the client.
-                assert "check server logs" in error["details"]
-                assert "Invalid config structure" not in error["details"]
+                # ``details`` is the host-owned message; the raw exception
+                # text is kept only in the server-side log.
+                assert error["details"].startswith("Failed to generate explore link: ")
+                assert "logged on the server" in error["details"]
+                assert "Invalid config structure" not in str(result.structured_content)
+                assert leak_marker not in str(result.structured_content)
+                assert not any(leak_marker in text for text in notifications)
+                assert any(
+                    "Failed to generate explore link" in text for text in notifications
+                )
         finally:
             # Restore original function
             explore_module.map_config_to_form_data = original_func

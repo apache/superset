@@ -37,6 +37,10 @@ from superset.mcp_service.dataset.schemas import (
     RestoreDatasetRequest,
     RestoreDatasetResponse,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -230,11 +234,15 @@ async def restore_dataset(
                 ),
                 error_type="Forbidden",
             )
-        except DatasetLogicalDuplicateError as ex:
+        except DatasetLogicalDuplicateError:
             _rollback()
+            # The class message is a fixed, host-authored explanation; the
+            # command raises this error without arguments.
+            duplicate_message = DatasetLogicalDuplicateError.message
             return RestoreDatasetResponse(
                 success=False,
-                error=f"Dataset '{dataset_name}' (id={dataset_id}): {ex.message}",
+                error=f"Dataset '{dataset_name}' (id={dataset_id}): "
+                f"{duplicate_message}",
                 error_type="LogicalDuplicate",
             )
         except DatasetNotFoundError:
@@ -244,15 +252,13 @@ async def restore_dataset(
             )
         except (CommandException, SQLAlchemyError, ValueError) as ex:
             _rollback()
-            await ctx.error("Dataset restore failed: %s: %s" % (type(ex).__name__, ex))
-            return RestoreDatasetResponse(
+            await report_tool_error(
+                ctx, "Dataset restore failed", ex, dataset_id=dataset_id
+            )
+            return internal_error_response(
+                RestoreDatasetResponse,
+                "Dataset restore failed",
+                ex,
+                log=False,
                 success=False,
-                # Raw SQLAlchemy text can leak SQL or connection details; command
-                # and validation messages are user-facing by design.
-                error=(
-                    "Dataset restore failed due to a database error."
-                    if isinstance(ex, SQLAlchemyError)
-                    else f"Dataset restore failed: {ex}"
-                ),
-                error_type=type(ex).__name__,
             )

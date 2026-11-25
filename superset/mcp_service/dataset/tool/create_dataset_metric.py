@@ -29,6 +29,10 @@ from superset.mcp_service.dataset.schemas import (
 from superset.mcp_service.dataset.tool.update_dataset_metric import (
     _serialize_metric,
 )
+from superset.mcp_service.utils.tool_errors import (
+    report_tool_error,
+    tool_error_message,
+)
 
 
 @tool(
@@ -160,13 +164,17 @@ async def create_dataset_metric(
         await ctx.warning("Dataset metric validation failed: %s" % (messages,))
         return CreateDatasetMetricResponse(error=str(messages))
     except DatasetUpdateFailedError as exc:
-        await ctx.error("Dataset metric create failed: %s" % (str(exc),))
+        await report_tool_error(
+            ctx, "Dataset metric create failed", exc, dataset_id=request.dataset_id
+        )
         return CreateDatasetMetricResponse(
-            error=f"Failed to create metric: {exc}",
+            error=tool_error_message("Failed to create metric", exc)
         )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error creating dataset metric: %s: %s"
-            % (type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Unexpected error creating dataset metric",
+            exc,
+            dataset_id=request.dataset_id,
         )
         raise

@@ -28,6 +28,7 @@ from superset.mcp_service.dataset.schemas import (
     CreateVirtualDatasetRequest,
     CreateVirtualDatasetResponse,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 logger = logging.getLogger(__name__)
 
@@ -210,7 +211,12 @@ async def create_virtual_dataset(  # noqa: C901
             error=str(messages),
         )
     except DatasetCreateFailedError as exc:
-        await ctx.error(f"Virtual dataset creation failed: {exc}")
+        message = await report_tool_error(
+            ctx,
+            "Failed to create dataset",
+            exc,
+            database_id=request.database_id,
+        )
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -218,10 +224,15 @@ async def create_virtual_dataset(  # noqa: C901
             database_id=request.database_id,
             columns=[],
             url=None,
-            error=f"Failed to create dataset: {exc}",
+            error=message,
         )
     except DatasetUpdateFailedError as exc:
-        await ctx.error(f"Virtual dataset update failed: {exc}")
+        message = await report_tool_error(
+            ctx,
+            "Failed to update dataset metadata (creation rolled back)",
+            exc,
+            database_id=request.database_id,
+        )
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -229,13 +240,18 @@ async def create_virtual_dataset(  # noqa: C901
             database_id=request.database_id,
             columns=[],
             url=None,
-            error=f"Failed to update dataset metadata (creation rolled back): {exc}",
+            error=message,
         )
     except SupersetGenericDBErrorException as exc:
         # Defensive backstop for direct raises (see
         # test_create_virtual_dataset_sql_error_is_actionable).
-        logger.warning("Virtual dataset SQL validation failed", exc_info=True)
-        await ctx.warning(f"Virtual dataset SQL failed validation: {exc}")
+        message = await report_tool_error(
+            ctx,
+            "Dataset SQL could not be executed",
+            exc,
+            level="warning",
+            database_id=request.database_id,
+        )
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -243,10 +259,13 @@ async def create_virtual_dataset(  # noqa: C901
             database_id=request.database_id,
             columns=[],
             url=None,
-            error=f"Dataset SQL could not be executed: {exc}",
+            error=message,
         )
     except Exception as exc:
-        await ctx.error(
-            f"Unexpected error creating virtual dataset: {type(exc).__name__}: {exc}"
+        await report_tool_error(
+            ctx,
+            "Unexpected error creating virtual dataset",
+            exc,
+            database_id=request.database_id,
         )
         raise

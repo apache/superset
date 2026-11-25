@@ -48,6 +48,7 @@ from superset.mcp_service.dashboard.tool.remove_chart_from_dashboard import (
     _remove_chart_from_layout,
 )
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -765,3 +766,70 @@ async def test_forbidden_error_from_command_returns_permission_denied(
     assert content["permission_denied"] is True
     assert content["dashboard"] is None
     assert content["error"] is not None
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+@pytest.mark.parametrize(
+    ("raised", "guest", "expected", "denied"),
+    [
+        ("forbidden", False, _LEAK_MARKER, True),
+        ("forbidden", True, str(GENERIC_ERROR_MESSAGE), True),
+        ("command", False, _LEAK_MARKER, False),
+        ("command", True, str(GENERIC_ERROR_MESSAGE), False),
+        ("database", False, "A database error occurred.", False),
+        ("value", False, "An unexpected error occurred.", False),
+    ],
+)
+@patch(
+    "superset.commands.dashboard.update.UpdateDashboardCommand.run",
+)
+@patch("superset.security_manager.raise_for_editorship")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_update_failure_error_text(
+    mock_find_by_id: Mock,
+    mock_raise_for_editorship: Mock,
+    mock_run: Mock,
+    raised: str,
+    guest: bool,
+    expected: str,
+    denied: bool,
+    mcp_server: object,
+) -> None:
+    """Superset's own failure message reaches a signed-in user; database and
+    library exception text, and any text for an embedded guest, stay
+    server-side."""
+    from sqlalchemy.exc import OperationalError
+
+    from superset.commands.dashboard.exceptions import DashboardUpdateFailedError
+    from superset.commands.exceptions import ForbiddenError
+
+    mock_find_by_id.return_value = _mock_dashboard(
+        slices=[_mock_chart(id=10)],
+        position_json=json.dumps(_simple_grid_layout()),
+    )
+    mock_raise_for_editorship.return_value = None
+    mock_run.side_effect = {
+        "forbidden": ForbiddenError(_LEAK_MARKER),
+        "command": DashboardUpdateFailedError(_LEAK_MARKER),
+        "database": OperationalError("UPDATE dashboards", {}, Exception(_LEAK_MARKER)),
+        "value": ValueError(_LEAK_MARKER),
+    }[raised]
+
+    with patch(
+        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        return_value=guest,
+    ):
+        content = await _call_remove(mcp_server, chart_id=10)
+
+    assert content["dashboard"] is None
+    assert content["permission_denied"] is denied
+    prefix = (
+        "Permission denied: " if denied else "Failed to remove chart from dashboard: "
+    )
+    assert content["error"].startswith(prefix)
+    assert expected in content["error"]
+    if expected != _LEAK_MARKER:
+        assert _LEAK_MARKER not in str(content)

@@ -30,6 +30,7 @@ from superset.mcp_service.role.schemas import (
     RoleInfo,
     serialize_role_object,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 logger = logging.getLogger(__name__)
 
@@ -95,8 +96,7 @@ async def get_role_info(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "Role information retrieval failed: identifier=%s, error=%s, error_type=%s"
-            % (request.identifier, str(e), type(e).__name__)
+        await report_tool_error(
+            ctx, "Failed to get role info", e, identifier=request.identifier
         )
         raise

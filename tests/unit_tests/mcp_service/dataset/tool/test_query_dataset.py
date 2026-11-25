@@ -37,8 +37,11 @@ import pytz
 from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
+from sqlalchemy.exc import OperationalError
 
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.commands.exceptions import CommandException
+from superset.exceptions import OAuth2Error, SupersetException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
 from superset.mcp_service.dataset.schemas import DatasetError
@@ -47,6 +50,7 @@ from superset.mcp_service.privacy import tool_requires_data_model_metadata_acces
 from superset.utils import json
 from superset.utils.core import FilterValues, GenericDataType
 from superset.utils.date_parser import get_since_until
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
     HostileTimezone,
@@ -1485,6 +1489,138 @@ async def test_query_dataset_reversed_time_range(mcp_server: FastMCP) -> None:
     data = json.loads(result.content[0].text)
     assert data["error_type"] == "ValidationError"
     assert "From date cannot be larger than to date" in data["error"]
+
+
+_QUERY_LEAK_MARKER = "password=hunter2 host=db.internal"
+_SANITIZATION_REQUIRED = (
+    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
+)
+
+
+async def _query_failing_with(
+    mcp_server: FastMCP, exception: Exception, guest: bool
+) -> tuple[dict[str, Any], str, list[str]]:
+    """Run query_dataset with execution raising ``exception``; return the
+    parsed response, its raw text and the ctx notifications."""
+    notifications: list[str] = []
+
+    async def log_handler(log_message: Any) -> None:
+        notifications.append(str(log_message.data))
+
+    with (
+        patch.object(
+            query_dataset_module, "resolve_dataset", return_value=_make_dataset()
+        ),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=exception
+        ),
+        patch(_SANITIZATION_REQUIRED, return_value=guest),
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "metrics": ["count"]}},
+            )
+
+    text = result.content[0].text
+    return json.loads(text), text, notifications
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+@pytest.mark.parametrize(
+    "exception, error_type, summary",
+    [
+        (
+            ChartDataQueryFailedError(
+                f'column "x" does not exist {_QUERY_LEAK_MARKER}'
+            ),
+            "QueryError",
+            "Query execution failed",
+        ),
+        (
+            CommandException(_QUERY_LEAK_MARKER),
+            "QueryError",
+            "Query execution failed",
+        ),
+        (
+            SupersetException(_QUERY_LEAK_MARKER),
+            "QueryError",
+            "Query execution failed",
+        ),
+    ],
+    ids=["chart_data_query_failed", "command", "superset"],
+)
+async def test_query_dataset_superset_error_text_for_principal(
+    mcp_server: FastMCP,
+    exception: Exception,
+    error_type: str,
+    summary: str,
+    guest: bool,
+) -> None:
+    """A Superset exception's message (the engine error for a failed query)
+    reaches a signed-in user, who needs it to fix the query. An embedded guest
+    gets the generic message in the response and every notification."""
+    data, text, notifications = await _query_failing_with(mcp_server, exception, guest)
+
+    assert data["error_type"] == error_type
+    assert data["error"].startswith(f"{summary}: ")
+    assert notifications
+    if guest:
+        assert data["error"].startswith(f"{summary}: {GENERIC_ERROR_MESSAGE}")
+        assert _QUERY_LEAK_MARKER not in text
+        assert all(_QUERY_LEAK_MARKER not in n for n in notifications)
+        assert any(str(GENERIC_ERROR_MESSAGE) in n for n in notifications)
+    else:
+        assert _QUERY_LEAK_MARKER in data["error"]
+        assert any(_QUERY_LEAK_MARKER in n for n in notifications)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+@pytest.mark.parametrize(
+    "exception, error_type, summary, reason",
+    [
+        (
+            OAuth2Error(_QUERY_LEAK_MARKER),
+            "OAuth2Error",
+            "OAuth2 authentication error",
+            "Something went wrong while doing OAuth2",
+        ),
+        (
+            OperationalError("SELECT 1", {}, Exception(_QUERY_LEAK_MARKER)),
+            "DatabaseError",
+            "Database error",
+            "A database error occurred.",
+        ),
+        (
+            ValueError(_QUERY_LEAK_MARKER),
+            "ValidationError",
+            "The query request was rejected",
+            "An unexpected error occurred.",
+        ),
+    ],
+    ids=["oauth2", "sqlalchemy", "value_error"],
+)
+async def test_query_dataset_failure_text_not_sent(
+    mcp_server: FastMCP,
+    exception: Exception,
+    error_type: str,
+    summary: str,
+    reason: str,
+    guest: bool,
+) -> None:
+    """Driver, SQLAlchemy and provider text stays in the server log for every
+    principal; OAuth2Error keeps its upstream detail out of its message."""
+    data, text, notifications = await _query_failing_with(mcp_server, exception, guest)
+
+    assert data["error_type"] == error_type
+    assert data["error"].startswith(summary)
+    if not guest:
+        assert f": {reason}" in data["error"]
+    assert _QUERY_LEAK_MARKER not in text
+    assert notifications
+    assert all(_QUERY_LEAK_MARKER not in n for n in notifications)
 
 
 @pytest.mark.asyncio
