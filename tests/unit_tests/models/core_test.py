@@ -5657,7 +5657,30 @@ def test_default_schema_concurrent_keys_have_independent_budgets(
     shared_default_schema_cache: Cache, mocker: MockerFixture, key_count: int
 ) -> None:
     """Every database can read its cached schema within one network round trip."""
-    from superset.models.core import _retire_cached_engines
+    from superset.models.core import (
+        _DefaultSchemaCacheFlight,
+        _reserve_default_schema_cache_flight,
+        _retire_cached_engines,
+    )
+
+    mocker.patch("superset.models.core._DEFAULT_SCHEMA_CACHE_WAIT", 10)
+    joined = Event()
+    reads_started = Barrier(key_count)
+    reservations = 0
+
+    def reserve(
+        cache_key: str | None, deadline: float, publication_key: str | None
+    ) -> tuple[_DefaultSchemaCacheFlight | None, bool]:
+        """Keep reads in flight until all eight requests have reserved their slots."""
+        nonlocal reservations
+        flight = _reserve_default_schema_cache_flight(
+            cache_key, deadline, publication_key
+        )
+        # The caller holds the cache I/O condition while reserving each slot.
+        reservations += 1
+        if reservations == 8:
+            joined.set()
+        return flight
 
     databases = [
         Database(
@@ -5683,9 +5706,14 @@ def test_default_schema_concurrent_keys_have_independent_budgets(
     real_get = shared_default_schema_cache.get
 
     def slow_get(key: str) -> str | None:
-        """Spend most of each key's independent request budget in the cache."""
-        Event().wait(0.15)
+        """Require overlapping reads, without racing a 200 ms wall-clock budget."""
+        assert joined.wait(timeout=5)
+        reads_started.wait(timeout=5)
         return real_get(key)
+
+    mocker.patch(
+        "superset.models.core._reserve_default_schema_cache_flight", side_effect=reserve
+    )
 
     read = mocker.patch.object(shared_default_schema_cache, "get", side_effect=slow_get)
     barrier = Barrier(8)
@@ -5700,7 +5728,7 @@ def test_default_schema_concurrent_keys_have_independent_budgets(
     try:
         with ThreadPoolExecutor(max_workers=8) as executor:
             requests = [executor.submit(lookup, index) for index in range(8)]
-            assert [request.result(timeout=5) for request in requests] == [
+            assert [request.result(timeout=15) for request in requests] == [
                 f"schema_{index % key_count}" for index in range(8)
             ]
         assert read.call_count == key_count
