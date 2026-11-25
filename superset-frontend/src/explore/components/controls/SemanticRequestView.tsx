@@ -19,7 +19,8 @@
 import { t } from '@apache-superset/core/translation';
 import { styled, type SupersetTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
-import CodeSyntaxHighlighter, {
+import {
+  CodeSyntaxHighlighter,
   SupportedLanguage,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { CopyToClipboard } from 'src/components';

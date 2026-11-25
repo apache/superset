@@ -100,6 +100,20 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 
 The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.
 
+## API permissions and runtime availability
+
+The semantic APIs check endpoint permissions before evaluating `SEMANTIC_LAYERS` through the feature flag manager. See [runtime semantic-layer availability](/admin-docs/configuration/feature-flags#runtime-semantic-layer-availability) for permission, Public-role, `OPTIONS`, and `IS_FEATURE_ENABLED_FUNC` behavior.
+
+Semantic-view rows in the combined datasource list include `can_modify`. The
+datasets list uses it for Edit, Delete, and bulk-delete eligibility. It requires
+`can_write` on `SemanticView`, access to the view, and the write commands' shared
+modification rule: administrator, editor granted through `EXTRA_EDITORS_RESOLVER`,
+or creator. `can_modify` is a boolean and does not list editors; the row's
+existing `changed_by` still names the last editor, which is the creator until the
+view is first edited. This is a UI affordance, not a write authorization token: commands recheck access,
+and dependent assets can still prevent deletion. A missing flag does not grant
+modification permission.
+
 ## Provider obligations and isolated tests
 
 Store the parsed configuration instance on the writable `self.configuration`
@@ -249,8 +263,11 @@ includes an effective-role derivation marker, so context-scoped containment keys
 change even when the role list is empty. This
 prevents reuse of direct-only identities after group grants are revoked and causes
 a cold context-scoped containment cache; connection-scoped keys are unchanged.
-The SDK `identity_digest` is unchanged. The two SDK context types coexist and
-will be unified before any `superset-core` release.
+The SDK `identity_digest` is unchanged. The two SDK context types coexist:
+`from_configuration` receives `SemanticExecutionContext`, and
+`get_semantic_cache_context_identity` receives `SemanticCacheExecutionContext`.
+A future merge of the two would be a breaking change announced in the package
+changelog.
 `get_configuration_schema` and `get_runtime_schema` remain class methods outside
 this instance-binding contract.
 
@@ -278,6 +295,13 @@ membership reaches providers as one `IN` or `NOT_IN` leaf with an empty
 `frozenset`: render empty `IN` as FALSE and empty `NOT IN` as TRUE (NULL rows
 included), never as an empty SQL list. NULL comparison/LIKE operands are rejected
 before provider calls.
+User exclusions with non-NULL operands become
+`OrFilter(NOT_EQUALS(value), IS_NULL)`, `OrFilter(NOT_LIKE(value), IS_NULL)` or
+`OrFilter(NOT_ILIKE(value), IS_NULL)`. Non-empty `NOT_IN` selections without NULL
+become `OrFilter(NOT_IN(values), IS_NULL)` too. These groups keep missing-value
+rows, matching ordinary datasets. Explicit NULL exclusion and empty membership
+retain the leaf shapes above. This normalization applies to host user filters,
+not SDK-authored predicates; unsupported operators must still be refused.
 Scalar comparisons use the first collection value, or NULL for an empty collection,
 matching native datasources.
 
@@ -293,7 +317,8 @@ semantic views; explicit query filters still apply, including group-limit filter
 `OrFilter` is mandatory core vocabulary, not an optional capability. Every
 provider must render groups for main queries, row counts and group-limit
 subqueries. Upgrade adapters before, or atomically with, the host/SDK upgrade;
-leaf-only adapters cannot consume mixed positive NULL selections. `get_values` retains
+leaf-only adapters cannot consume mixed positive NULL selections or NULL-preserving
+exclusions, even if they previously accepted the exclusion as a leaf. `get_values` retains
 `set[Filter] | None`; its host caller supplies only a LIKE leaf or no filter.
 
 Query and group-limit readers need `isinstance` narrowing before accessing leaf
@@ -320,9 +345,11 @@ adapter module so older SDKs can still load the legacy leaf path.
 
 ### Result caches
 
-The host includes `semantic-null-filters-v1` in semantic result-cache keys. This
-separates legacy answers during rolling deployment without flushing unrelated
-caches. Keep this protocol marker alongside any metadata-generation cache keys.
+The host includes `semantic-null-filters-v2` in semantic result-cache keys. This
+separates answers computed before NULL-preserving exclusions during rolling
+deployment. Annotation cache context also includes this marker for every
+datasource, so ordinary dataset charts with annotation layers rebuild their
+cached results too. Keep this marker alongside metadata-generation cache keys.
 
 Containment-cache identities use format `v5`, separating grouped predicates from
 older leaf-only entries during rolling upgrades. OR groups require identical
@@ -342,16 +369,17 @@ from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 class MySemanticView(SemanticView):
     features = frozenset(
         {
-            # The backend accepts simple/custom-SQL column expressions built
-            # in Explore. Omit this member if it only accepts the view's own
-            # dimensions.
-            SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
             SemanticViewFeature.GROUP_LIMIT,
         }
     )
 ```
 
-The declared members are serialized to the Explore datasource payload as
+Only recognized, non-reserved SDK enum members grant capabilities. Raw strings,
+unknown values and malformed declarations are ignored rather than normalized.
+`ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved: the SDK has no
+supported adhoc column query shape, so declaring it grants nothing.
+
+The supported members are serialized to the Explore datasource payload as
 `semantic_view_features` (their stable string values). The provider's registry
 key is deliberately **not** sent: because the `@semantic_layer` decorator
 prefixes extension IDs, no stable bare key exists to publish, and behavior
@@ -366,11 +394,12 @@ components consume capabilities and must not read `semantic_view_features`, a
 registry key, or a user-editable display name. New provider-specific behavior
 belongs in a capability, not in a comparison inside a picker component.
 
-A view that does not declare `ADHOC_COLUMN_EXPRESSIONS` gets a Saved-only
-column picker: its dimensions are listed as Saved options and the Simple and
-Custom SQL modes are visible but disabled, so users cannot build an expression
-the backend would reject. Unknown feature strings and payloads with no
-`semantic_view_features` field are ignored, preserving existing behavior.
+All semantic views get Saved-only column pickers: their dimensions are listed
+as Saved options, with Simple and Custom SQL disabled. This also applies to old
+payloads missing `semantic_view_features` and stale payloads containing the
+reserved member. Existing unsupported expressions are not converted or saved
+automatically; choose a saved dimension instead. Ordinary SQL datasets retain
+their expression modes.
 
 ## Server pagination
 
@@ -550,19 +579,38 @@ rollback because disabled processes do not read or write it.
 
 ## Choosing a default time dimension
 
-A semantic view may set `preferred_temporal_dimension` to the name of a temporal
-dimension it exposes. Superset publishes that name as `main_dttm_col`, which
-Explore uses for the default time filter on new charts. The declaration is
-ignored if the name is absent or does not identify a temporal dimension.
+A semantic view may set `preferred_temporal_dimension: str | None = None` to an
+exact exposed temporal `Dimension.name`, including its qualification and case.
+Use the selection name, not a provider-private ID or display label. Superset
+publishes the validated name as `main_dttm_col`; `granularity_sqla` continues to
+list the available temporal choices. Explore uses the default when initializing
+a missing time filter. Unknown, non-temporal, or malformed declarations are
+ignored with an operator warning. `None` preserves fallback without a warning.
 
 ```python
 class MySemanticView(SemanticView):
-    preferred_temporal_dimension = "metric_time"
+    preferred_temporal_dimension: str | None = "metric_time"
 ```
 
+The provider owns the selection policy; the host does not infer business meaning
+from dimension names or grain suffixes. Grain variants sharing one name are not
+competing defaults. The conformance kit checks that a non-None declaration names
+an exposed Arrow date, timestamp, or time dimension and remains unchanged when
+the same catalog is reloaded. For names with multiple variants, the selected
+variant must be temporal: raw first, then the finest known grain, then lexical
+grain representation, as documented on `Grains`. A temporal sibling does not
+make a non-temporal selected variant eligible. It uses the existing `semantic_view` and
+`semantic_reloaded_view` fixtures; providers need no new method or fixture.
+
 Providers that omit the declaration retain Explore's existing first temporal
-column fallback. This preference does not change the time dimension already
-selected on a saved chart.
+column fallback. Explicit saved time bindings remain authoritative. However,
+saved charts with an omitted binding may adopt a provider's new default and
+change results **without saving the chart**. This includes a query with an
+explicit temporal filter but omitted granularity: the filter stays explicit,
+while an independently supplied time range can add bounds on the preferred date.
+There is no chart migration or compatibility shim. A deliberately different axis
+or an existing axis/filter mismatch still requires the author's decision; the
+default does not silently repair it.
 
 Dashboard chart pagination and empty filter resets do not contribute semantic
 member selections to other charts. Cross-filters that select members still carry

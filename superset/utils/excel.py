@@ -48,13 +48,48 @@ NEUTRAL_DOCUMENT_PROPERTIES: dict[str, Any] = {
 FORMULA_PREFIXES = {"=", "+", "-", "@"}
 
 
-def _quote_formula(value: Any) -> Any:
-    """Prefix a string with a quote when it would parse as a formula."""
-    return (
-        f"'{value}"
-        if isinstance(value, str) and len(value) and value[0] in FORMULA_PREFIXES
-        else value
+def looks_like_formula(text: str) -> bool:
+    """
+    Whether ``text`` would go into a workbook, or be read back, as a formula.
+
+    Leading whitespace is stripped first, then two forms are recognised. One is
+    a first character in ``FORMULA_PREFIXES``. The other is an array formula:
+    XlsxWriter's ``_write_token_as_string`` stores a string that starts with
+    ``{=`` and ends with ``}`` as an array formula cell, and a first-character
+    test cannot see it, since ``{`` also starts plain text such as JSON.
+    """
+    stripped = text.lstrip()
+    return bool(stripped) and (
+        stripped[0] in FORMULA_PREFIXES
+        or (stripped.startswith("{=") and stripped.endswith("}"))
     )
+
+
+def _quote_formula(value: Any) -> Any:
+    """Prefix a string with a quote when it would parse as a formula.
+
+    A string whose first character is ``=``, or one wrapped in ``{=`` and
+    ``}``, is stored as a formula cell by the writer, so quoting it is what
+    keeps a formula out of the workbook. Dropping the quote would put one in.
+    ``looks_like_formula`` decides which strings those are.
+
+    Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
+    quoted like ``"=cmd"``. That part is for consistency across the export paths
+    rather than to stop the workbook evaluating it: whitespace in front of the
+    prefix stops XlsxWriter recognising a formula at all, so the value is
+    written as a plain string cell either way. The CSV writer
+    (``_starts_like_spreadsheet_formula``) and the streaming writer both strip
+    before reading the prefix, so without this the same cell exports quoted
+    from two of the three paths and bare from this one. What the quote guards
+    against there is how a downstream viewer or a re-import reads the text, not
+    how XlsxWriter stored it.
+
+    The value is quoted as it arrived rather than stripped, so the cell keeps
+    whatever spacing came with it.
+    """
+    if not isinstance(value, str):
+        return value
+    return f"'{value}" if looks_like_formula(value) else value
 
 
 def _drop_timezone(value: Any) -> Any:

@@ -1664,6 +1664,84 @@ def test_ensure_totals_available_updates_cache_values():
     )
 
 
+def test_ensure_totals_available_contribution_without_options():
+    """
+    A contribution entry with no ``options`` key is valid input, since
+    ``options`` is optional in the post-processing schema.
+    ensure_totals_available must create ``options`` rather than raising
+    ``KeyError``, which previously escaped as a 500.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+
+    # Main query carries a contribution operation with no options dict.
+    main_query = QueryObject(
+        datasource=mock_datasource,
+        columns=["brokerage"],
+        metrics=["Amount In"],
+        row_limit=50000,
+        post_processing=[{"operation": "contribution"}],
+    )
+    # Totals query: no columns, has metrics, no post-processing.
+    totals_query = QueryObject(
+        datasource=mock_datasource,
+        columns=[],
+        metrics=["Amount In"],
+        row_limit=50000,
+        post_processing=[],
+    )
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.datasource = mock_datasource
+    mock_query_context.queries = [main_query, totals_query]
+    mock_query_context.result_type = "full"
+    mock_query_context.cache_values = {
+        "datasource": {"type": "table", "id": 1},
+        "queries": [
+            {
+                "columns": ["brokerage"],
+                "metrics": ["Amount In"],
+                "row_limit": 50000,
+                "post_processing": [{"operation": "contribution"}],
+            },
+            {
+                "columns": [],
+                "metrics": ["Amount In"],
+                "row_limit": 50000,
+                "post_processing": [],
+            },
+        ],
+        "result_type": "full",
+        "result_format": "json",
+    }
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    mock_query_result = MagicMock()
+    mock_query_result.df = pd.DataFrame({"Amount In": [40771550101.81883]})
+
+    with patch.object(
+        mock_query_context, "get_query_result", return_value=mock_query_result
+    ):
+        # Must not raise KeyError: 'options'.
+        processor.ensure_totals_available()
+
+    assert main_query.post_processing[0]["options"]["contribution_totals"] == {
+        "Amount In": 40771550101.81883
+    }
+
+
 def test_get_df_payload_validates_before_cache_key_generation():
     """
     Test that get_df_payload calls validate() before generating cache key.
@@ -2458,9 +2536,11 @@ def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     processor._qc_datasource = mock_datasource
 
     captured_columns: list[list[Any]] = []
+    captured_limits: list[int | None] = []
 
     def fake_get_query_result(sub_query: QueryObject) -> QueryResult:
         captured_columns.append(copy.copy(sub_query.columns))
+        captured_limits.append(sub_query.row_limit)
         return QueryResult(
             df=pd.DataFrame({"metric": [1]}),
             query="SELECT 1",
@@ -2478,6 +2558,7 @@ def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     assert captured_columns[1] == [adhoc_col]
     # Grand total level has no groupby columns.
     assert captured_columns[2] == []
+    assert captured_limits == [None, None, None]
 
 
 def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
@@ -2529,6 +2610,136 @@ def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
     # ...and the requested offset is applied exactly once, to the combined
     # result: 2 + 1 = 3 total rows in, minus an offset of 1 = 2 rows out.
     assert len(result.df) == 2
+
+
+def test_semantic_grouping_sets_fallback_bounds_each_level(app: Flask) -> None:
+    """A semantic rollup must refuse incomplete levels before showing totals."""
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    datasource: MagicMock = MagicMock()
+    datasource.type = "semantic_view"
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        grouping_sets=[["region"], []],
+        row_limit=3,
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = datasource
+
+    def execute(sub_query: QueryObject) -> QueryResult:
+        assert sub_query.row_limit == 3
+        assert sub_query.row_offset == 0
+        return QueryResult(
+            df=pd.DataFrame({"sales": [1, 2]}),
+            query="SELECT sales",
+            duration=timedelta(0),
+        )
+
+    datasource.get_query_result.side_effect = execute
+    result: QueryResult = processor._grouping_sets_fallback(query)
+    assert len(result.df) == 4
+    assert datasource.get_query_result.call_count == 2
+
+    datasource.get_query_result.reset_mock()
+
+    def full_level(sub_query: QueryObject) -> QueryResult:
+        return QueryResult(
+            df=pd.DataFrame({"sales": [1, 2, 3]}),
+            query="SELECT sales",
+            duration=timedelta(0),
+        )
+
+    datasource.get_query_result.side_effect = full_level
+    with pytest.raises(QueryObjectValidationError, match="Pivot Table.*limit"):
+        processor._grouping_sets_fallback(query)
+    assert datasource.get_query_result.call_count == 1
+
+
+def test_semantic_grouping_sets_fallback_rejects_too_many_levels(app: Flask) -> None:
+    """The fallback must reject large rollups before any provider call."""
+    from superset.common.query_object import QueryObject
+
+    datasource: MagicMock = MagicMock()
+    datasource.type = "semantic_view"
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        grouping_sets=[["region"]] * 10,
+        row_limit=3,
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = datasource
+
+    with pytest.raises(QueryObjectValidationError, match="Pivot Table.*levels"):
+        processor._grouping_sets_fallback(query)
+    datasource.get_query_result.assert_not_called()
+
+
+def test_semantic_grouping_sets_fallback_caps_saved_limit(app: Flask) -> None:
+    """A saved high cell limit cannot bypass the per-level query bound."""
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    datasource: MagicMock = MagicMock()
+    datasource.type = "semantic_view"
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        grouping_sets=[["region"]],
+        row_limit=50000,
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = datasource
+
+    def execute(sub_query: QueryObject) -> QueryResult:
+        assert sub_query.row_limit == 10000
+        return QueryResult(
+            df=pd.DataFrame({"sales": [1]}),
+            query="SELECT sales",
+            duration=timedelta(0),
+        )
+
+    datasource.get_query_result.side_effect = execute
+    processor._grouping_sets_fallback(query)
+    datasource.get_query_result.assert_called_once()
+
+    with patch.dict(app.config, {"ROW_LIMIT": 5}):
+        datasource.get_query_result.reset_mock()
+
+        def config_capped(sub_query: QueryObject) -> QueryResult:
+            assert sub_query.row_limit == 5
+            return execute_result
+
+        execute_result: QueryResult = QueryResult(
+            df=pd.DataFrame({"sales": [1]}),
+            query="SELECT sales",
+            duration=timedelta(0),
+        )
+        datasource.get_query_result.side_effect = config_capped
+        processor._grouping_sets_fallback(query)
+        datasource.get_query_result.assert_called_once()
+
+
+def test_semantic_grouping_sets_fallback_refuses_saved_offset(app: Flask) -> None:
+    """A saved offset cannot remove totals from a semantic pivot."""
+    from superset.common.query_object import QueryObject
+
+    datasource: MagicMock = MagicMock()
+    datasource.type = "semantic_view"
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        grouping_sets=[["region"]],
+        row_offset=1,
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = datasource
+
+    with pytest.raises(QueryObjectValidationError, match="Pivot Table pagination"):
+        processor._grouping_sets_fallback(query)
+    datasource.get_query_result.assert_not_called()
 
 
 def test_grouping_sets_fallback_mixed_levels_exact() -> None:
@@ -3096,7 +3307,7 @@ def test_semantic_annotation_generation_versions_sql_parent(
     assert old == {
         "user_id": 42,
         "source_rls": {"7": ["scope"]},
-        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "semantic_filter_protocol": "semantic-null-filters-v2",
         "source_versions": {"7": view.metadata_generation},
     }
     assert new != old
@@ -3305,7 +3516,7 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     assert current_key != legacy_key
     assert context == {
         **legacy_context,
-        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "semantic_filter_protocol": "semantic-null-filters-v2",
         "source_versions": {"7": view.metadata_generation},
     }
 

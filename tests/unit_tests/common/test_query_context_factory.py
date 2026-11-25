@@ -20,8 +20,15 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock, patch
 
+import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.types import (
+    Dimension,
+    Filter,
+    Operator,
+    PredicateType,
+)
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -29,6 +36,8 @@ from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.semantic_layers.mapper import _get_time_filter, ValidatedQueryObject
+from superset.superset_typing import AdhocColumn
 from superset.utils.cache import generate_cache_key
 from superset.utils.core import QueryObjectFilterClause
 
@@ -947,6 +956,207 @@ class TestQueryContextFactory:
         assert query_object.granularity is None
         assert query_object.columns == ["event_end"]
 
+    def test_apply_granularity_expression_xaxis_sets_main_dttm_col(self):
+        """SQL expression x-axis with time range falls back to main_dttm_col."""
+        from datetime import datetime
+
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2023, 1, 1)
+        query_object.to_dttm = None
+        query_object.time_range = None
+        query_object.columns = [
+            {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+                "columnType": "BASE_AXIS",
+            }
+        ]
+        query_object.filter = []
+
+        form_data = {
+            "x_axis": {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+            }
+        }
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ts", "is_dttm": True}]
+        datasource.main_dttm_col = "ts"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "ts"
+
+    def test_apply_granularity_expression_xaxis_no_time_range_no_fallback(self):
+        """SQL expression x-axis without time range does not set granularity."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = None
+        query_object.to_dttm = None
+        query_object.columns = [
+            {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+                "columnType": "BASE_AXIS",
+            }
+        ]
+        query_object.filter = []
+
+        form_data = {
+            "x_axis": {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+            }
+        }
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ts", "is_dttm": True}]
+        datasource.main_dttm_col = "ts"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity is None
+
+    def test_apply_granularity_expression_xaxis_no_main_dttm_col(self):
+        """SQL expression x-axis with time range but no main_dttm_col stays None."""
+        from datetime import datetime
+
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2023, 1, 1)
+        query_object.to_dttm = None
+        query_object.time_range = None
+        query_object.columns = [
+            {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+                "columnType": "BASE_AXIS",
+            }
+        ]
+        query_object.filter = []
+
+        form_data = {
+            "x_axis": {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+            }
+        }
+        datasource = Mock()
+        datasource.columns = []
+        datasource.main_dttm_col = None
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity is None
+
+    def test_apply_granularity_expression_xaxis_main_dttm_not_temporal(self):
+        """SQL expression x-axis fallback skipped if main_dttm_col is not temporal."""
+        from datetime import datetime
+
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2023, 1, 1)
+        query_object.to_dttm = None
+        query_object.time_range = None
+        query_object.columns = [
+            {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+                "columnType": "BASE_AXIS",
+            }
+        ]
+        query_object.filter = []
+
+        form_data = {
+            "x_axis": {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+            }
+        }
+        datasource = Mock()
+        # main_dttm_col points to a column not flagged as temporal
+        datasource.columns = [{"column_name": "ts", "is_dttm": False}]
+        datasource.main_dttm_col = "ts"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity is None
+
+    def test_apply_granularity_expression_xaxis_deduplicates_temporal_filter(self):
+        """Fallback removes existing TEMPORAL_RANGE filter for main_dttm_col."""
+        from datetime import datetime
+
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2023, 1, 1)
+        query_object.to_dttm = None
+        query_object.time_range = None
+        query_object.columns = [
+            {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+                "columnType": "BASE_AXIS",
+            }
+        ]
+        # Pre-existing TEMPORAL_RANGE filter for the main dttm column (e.g.
+        # left over from when 'ts' was the physical x-axis).
+        query_object.filter = [
+            {"col": "ts", "op": "TEMPORAL_RANGE", "val": "Last 7 days"},
+            {"col": "other", "op": "==", "val": "foo"},
+        ]
+
+        form_data = {
+            "x_axis": {
+                "sqlExpression": "duration * 0.05",
+                "expressionType": "SQL",
+                "label": "duration * 0.05",
+            }
+        }
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ts", "is_dttm": True}]
+        datasource.main_dttm_col = "ts"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "ts"
+        # TEMPORAL_RANGE filter for 'ts' removed to prevent duplicate WHERE clause
+        assert not any(
+            f.get("col") == "ts" and f.get("op") == "TEMPORAL_RANGE"
+            for f in query_object.filter
+        )
+        # Unrelated filter preserved
+        assert any(f.get("col") == "other" for f in query_object.filter)
+
+    def test_apply_granularity_physical_string_xaxis_no_fallback(self):
+        """Physical column string x-axis without granularity: no fallback."""
+        from datetime import datetime
+
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2023, 1, 1)
+        query_object.to_dttm = None
+        query_object.columns = ["non_temporal_col"]
+        query_object.filter = []
+
+        form_data = {"x_axis": "non_temporal_col"}
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ts", "is_dttm": True}]
+        datasource.main_dttm_col = "ts"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        # String x-axis is not an adhoc column so no fallback should trigger
+        assert query_object.granularity is None
+
     def test_apply_granularity_x_axis_not_temporal(self):
         """Test _apply_granularity when x_axis is not a temporal column"""
         query_object = Mock(spec=QueryObject)
@@ -1174,3 +1384,82 @@ def test_time_override_stamps_only_unbounded_saved_predicates(
     assert bool(filter_.get("isExtra")) == (
         already_extra or (dashboard and saved in (None, "No filter", "Aucun filtre"))
     )
+
+
+@pytest.mark.parametrize("preferred", [None, "order_date"])
+@pytest.mark.parametrize("explicit", [False, True])
+@pytest.mark.parametrize("with_filter", [False, True])
+def test_saved_temporal_bindings_use_default_only_for_omitted_granularity(
+    preferred: str | None, explicit: bool, with_filter: bool
+) -> None:
+    """Explicit predicates stay fixed; implicit bounds may adopt a new default."""
+    axis: str | AdhocColumn = (
+        "ship_date"
+        if explicit
+        else AdhocColumn(sqlExpression="amount / 10", label="amount_bucket")
+    )
+    form_data: dict[str, object] = {"x_axis": axis}
+    original_form_data: dict[str, object] = deepcopy(form_data)
+    filters: list[QueryObjectFilterClause] = (
+        [
+            {
+                "col": "delivery_date",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-01-10 : 2024-01-20",
+            }
+        ]
+        if with_filter
+        else []
+    )
+    original_filters: list[QueryObjectFilterClause] = deepcopy(filters)
+    datasource: Mock = Mock()
+    datasource.main_dttm_col = preferred
+    datasource.columns = [
+        {"column_name": "order_date", "is_dttm": True},
+        {"column_name": "ship_date", "is_dttm": True},
+        {"column_name": "delivery_date", "is_dttm": True},
+    ]
+    start: datetime = datetime(2024, 1, 1)
+    end: datetime = datetime(2024, 2, 1)
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=[axis],
+        metrics=[],
+        granularity="ship_date" if explicit else None,
+        from_dttm=start,
+        to_dttm=end,
+        time_range="2024-01-01 : 2024-02-01",
+        filters=deepcopy(filters),
+    )
+    QueryContextFactory()._apply_granularity(query, form_data, datasource)
+    expected: str | None = "ship_date" if explicit else preferred
+    assert query.granularity == expected
+    assert query.filter == original_filters
+    assert form_data == original_form_data
+    dimensions: dict[str, Dimension] = {
+        name: Dimension(name, name, pa.date32())
+        for name in ("order_date", "ship_date", "delivery_date")
+    }
+    predicate_subject: str | None = expected or (
+        "delivery_date" if with_filter else None
+    )
+    predicates: set[Filter] = _get_time_filter(query, None, dimensions)
+    assert predicates == (
+        {
+            Filter(
+                PredicateType.WHERE,
+                dimensions[predicate_subject],
+                Operator.GREATER_THAN_OR_EQUAL,
+                start,
+            ),
+            Filter(
+                PredicateType.WHERE,
+                dimensions[predicate_subject],
+                Operator.LESS_THAN,
+                end,
+            ),
+        }
+        if predicate_subject is not None
+        else set()
+    )
+    datasource.save.assert_not_called()
