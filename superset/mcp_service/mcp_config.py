@@ -310,19 +310,6 @@ MCP_CSRF_CONFIG = {
     "WTF_CSRF_TIME_LIMIT": None,
 }
 
-# FastMCP Factory Configuration
-MCP_FACTORY_CONFIG = {
-    "name": None,  # Will derive from APP_NAME in app.py
-    "branding": None,  # Will derive from APP_NAME in app.py
-    "instructions": None,  # Will use default from app.py (parameterized with branding)
-    "auth": None,  # No authentication by default
-    "lifespan": None,  # No custom lifespan
-    "tools": None,  # Auto-discover tools
-    "include_tags": None,  # Include all tags
-    "exclude_tags": None,  # Exclude no tags
-    "config": None,  # No additional config
-}
-
 # =============================================================================
 # MCP Storage and Caching Configuration
 # =============================================================================
@@ -391,6 +378,17 @@ MCP_FACTORY_CONFIG = {
 MCP_STORE_CONFIG: dict[str, Any] = {
     "enabled": False,  # Disabled by default - caching uses in-memory store
     "CACHE_REDIS_URL": None,  # Redis URL, e.g., "redis://localhost:6379/0"
+    # TLS settings, applied to rediss:// URLs only. The server certificate and
+    # hostname are verified by default. Point CACHE_REDIS_SSL_CA_CERTS at a CA
+    # bundle (PEM) when Redis uses a certificate from a private CA.
+    # CACHE_REDIS_SSL_CERT_REQS accepts "required" (default), "optional" or
+    # "none"; "none" disables certificate verification and is an explicit
+    # opt-out.
+    "CACHE_REDIS_SSL_CERT_REQS": "required",
+    "CACHE_REDIS_SSL_CA_CERTS": None,
+    # Seconds before a Redis read/write or connection attempt is abandoned.
+    "CACHE_REDIS_SOCKET_TIMEOUT": 5.0,
+    "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT": 5.0,
     # Wrapper class that prefixes all keys. Each consumer provides their own prefix.
     "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
     # EventStore settings (for multi-pod session management)
@@ -1035,16 +1033,3 @@ def get_mcp_config_with_overrides(
 
     # Start with defaults, then overlay any app_config values
     return {**defaults, **app_config}
-
-
-def get_mcp_factory_config() -> dict[str, Any]:
-    """
-    Get FastMCP factory configuration.
-
-    This can be customized by users to provide their own auth providers,
-    middleware, lifespan handlers, and other FastMCP configuration.
-
-    Returns:
-        Dictionary of FastMCP factory configuration options
-    """
-    return MCP_FACTORY_CONFIG.copy()

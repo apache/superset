@@ -543,61 +543,6 @@ def test_run_server_respects_structured_output_override() -> None:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
 
 
-@pytest.mark.parametrize("enabled", [False, True])
-def test_factory_server_respects_structured_output_setting(enabled: bool) -> None:
-    """Factory servers prepend the configured core stack to custom middleware."""
-    from superset.mcp_service.server import run_server
-
-    port = 59904
-    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
-    flask_app = MagicMock()
-    flask_app.config = {"MCP_STRUCTURED_OUTPUT_ENABLED": enabled}
-    mcp_instance = MagicMock()
-    core_middleware = [MagicMock(), MagicMock()]
-    custom_middleware = MagicMock()
-    factory_config = {"auth": None, "middleware": [custom_middleware]}
-
-    try:
-        with (
-            patch("superset.mcp_service.server.configure_logging"),
-            patch("superset.mcp_service.server._suppress_third_party_warnings"),
-            patch(
-                "superset.mcp_service.server.get_mcp_factory_config",
-                return_value=factory_config,
-            ),
-            patch(
-                "superset.mcp_service.flask_singleton.get_flask_app",
-                return_value=flask_app,
-            ),
-            patch(
-                "superset.mcp_service.server.create_mcp_app",
-                return_value=mcp_instance,
-            ) as mock_create_mcp_app,
-            patch(
-                "superset.mcp_service.server.build_middleware_list",
-                return_value=core_middleware,
-            ) as mock_build_middleware_list,
-            patch("superset.mcp_service.session_scope.install_mcp_session_scoping"),
-            patch("superset.mcp_service.server._apply_tool_search_transform"),
-            patch("superset.mcp_service.server._register_health_endpoint"),
-            patch("superset.mcp_service.server.create_event_store", return_value=None),
-            patch(
-                "superset.mcp_service.server._build_starlette_middleware",
-                return_value=[],
-            ),
-        ):
-            run_server(host="127.0.0.1", port=port, use_factory_config=True)
-
-        mock_build_middleware_list.assert_called_once_with(
-            structured_output_enabled=enabled
-        )
-        middleware = mock_create_mcp_app.call_args.kwargs["middleware"]
-        assert middleware == [*core_middleware, custom_middleware]
-    finally:
-        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
-
-
-@pytest.mark.parametrize("use_factory_config", [False, True])
 @pytest.mark.parametrize(
     ("flask_config", "expected"),
     [
@@ -627,7 +572,6 @@ def test_factory_server_respects_structured_output_setting(enabled: bool) -> Non
 def test_run_server_applies_native_list_config_only_in_native_mode(
     flask_config: dict[str, Any],
     expected: dict[str, Any] | None,
-    use_factory_config: bool,
 ) -> None:
     """The compact listing setting reaches the native server only."""
     from superset.mcp_service import server
@@ -641,15 +585,10 @@ def test_run_server_applies_native_list_config_only_in_native_mode(
                 mcp_instance,
                 _mock_build_middleware_list,
             ),
-            patch.object(server, "get_mcp_factory_config", return_value={}),
-            patch.object(server, "create_mcp_app", return_value=mcp_instance),
-            patch("superset.mcp_service.session_scope.install_mcp_session_scoping"),
             patch.object(server, "_apply_tool_search_transform") as search,
             patch.object(server, "_apply_compact_tool_list_transform") as compact,
         ):
-            run_server(
-                host="127.0.0.1", port=port, use_factory_config=use_factory_config
-            )
+            run_server(host="127.0.0.1", port=port)
 
         if expected is None:
             search.assert_called_once_with(
@@ -662,6 +601,40 @@ def test_run_server_applies_native_list_config_only_in_native_mode(
         else:
             search.assert_not_called()
             compact.assert_called_once_with(mcp_instance, expected)
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+def test_run_server_has_no_unauthenticated_factory_path() -> None:
+    """run_server() refuses the removed ``use_factory_config`` path.
+
+    That path built a second FastMCP instance from a module-level dict with
+    ``auth=None`` and no registered tools, and served it on the network. A
+    caller that still passes the flag must fail at startup instead of
+    getting an unauthenticated listener.
+    """
+    from fastmcp import FastMCP
+
+    from superset.mcp_service.server import run_server
+
+    port = 59906
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with (
+            _run_server_dependencies(flask_config={}) as (
+                mcp_instance,
+                _mock_build_middleware_list,
+            ),
+            patch("superset.mcp_service.session_scope.install_mcp_session_scoping"),
+            patch.object(FastMCP, "run") as factory_run,
+        ):
+            with pytest.raises(TypeError, match="use_factory_config"):
+                run_server(  # type: ignore[call-arg]
+                    host="127.0.0.1", port=port, use_factory_config=True
+                )
+
+        factory_run.assert_not_called()
+        mcp_instance.run.assert_not_called()
     finally:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
 

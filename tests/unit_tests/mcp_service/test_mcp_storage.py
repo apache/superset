@@ -17,7 +17,12 @@
 
 """Tests for MCP storage factory."""
 
+import ssl
+from typing import Any
 from unittest.mock import MagicMock, patch
+
+import pytest
+from redis.asyncio import Redis
 
 
 def test_get_mcp_store_returns_none_when_disabled():
@@ -182,7 +187,7 @@ def test_create_redis_store_handles_ssl_url():
             # Verify Redis client was created with SSL params
             call_kwargs = mock_redis_class.call_args[1]
             assert call_kwargs["ssl"] is True
-            assert call_kwargs["ssl_cert_reqs"] == "none"
+            assert call_kwargs["ssl_cert_reqs"] == "required"
             assert call_kwargs["host"] == "redis.example.com"
             assert call_kwargs["port"] == 6380
             assert call_kwargs["db"] == 1
@@ -272,3 +277,120 @@ def test_create_redis_store_handles_url_with_only_username():
             assert call_kwargs["host"] == "redis.example.com"
             # No password in URL means password should be None
             assert call_kwargs["password"] is None
+
+
+def _build_real_client(store_config: dict[str, Any]) -> Redis:
+    """Run _create_redis_store with a real redis-py client and return it.
+
+    Only RedisStore is stubbed, so the assertions below read the TLS and
+    timeout settings off the client redis-py actually builds, not off the
+    keyword arguments passed to a mock.
+    """
+    captured: dict[str, Redis] = {}
+
+    def _fake_store(client: Redis) -> MagicMock:
+        captured["client"] = client
+        return MagicMock()
+
+    with patch("key_value.aio.stores.redis.RedisStore", side_effect=_fake_store):
+        from superset.mcp_service.storage import _create_redis_store
+
+        result = _create_redis_store(store_config, wrap=False)
+
+    assert result is not None
+    return captured["client"]
+
+
+def _ssl_context(client: Redis) -> ssl.SSLContext:
+    connection = client.connection_pool.make_connection()
+    return connection.ssl_context.get()
+
+
+def test_create_redis_store_ssl_verifies_certificate_by_default() -> None:
+    """A rediss:// URL verifies the server certificate and hostname by default."""
+    client = _build_real_client(
+        {"CACHE_REDIS_URL": "rediss://:password@redis.example.com:6380/1"}
+    )
+
+    context = _ssl_context(client)
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname is True
+
+
+def test_create_redis_store_ssl_uses_configured_ca_bundle() -> None:
+    """CACHE_REDIS_SSL_CA_CERTS reaches the TLS context used to verify Redis."""
+    ca_path = "/etc/superset/redis-ca.pem"
+    client = _build_real_client(
+        {
+            "CACHE_REDIS_URL": "rediss://redis.example.com:6380/0",
+            "CACHE_REDIS_SSL_CA_CERTS": ca_path,
+        }
+    )
+
+    connection = client.connection_pool.make_connection()
+    redis_ssl_context = connection.ssl_context
+    assert redis_ssl_context.ca_certs == ca_path
+    assert redis_ssl_context.cert_reqs == ssl.CERT_REQUIRED
+
+
+def test_create_redis_store_ssl_verification_can_be_disabled() -> None:
+    """Operators can opt out of verification explicitly with "none"."""
+    client = _build_real_client(
+        {
+            "CACHE_REDIS_URL": "rediss://redis.example.com:6380/0",
+            "CACHE_REDIS_SSL_CERT_REQS": "none",
+        }
+    )
+
+    context = _ssl_context(client)
+    assert context.verify_mode == ssl.CERT_NONE
+    assert context.check_hostname is False
+
+
+def test_create_redis_store_rejects_unknown_cert_reqs() -> None:
+    """An unknown CACHE_REDIS_SSL_CERT_REQS value never yields a store."""
+    with patch("key_value.aio.stores.redis.RedisStore") as mock_store:
+        from superset.mcp_service.storage import _create_redis_store
+
+        result = _create_redis_store(
+            {
+                "CACHE_REDIS_URL": "rediss://redis.example.com:6380/0",
+                "CACHE_REDIS_SSL_CERT_REQS": "off",
+            },
+            wrap=False,
+        )
+
+    assert result is None
+    mock_store.assert_not_called()
+
+
+@pytest.mark.parametrize("url", ["redis://localhost:6379/0", "rediss://h:6380/0"])
+def test_create_redis_store_applies_default_timeouts(url: str) -> None:
+    """Socket and connect timeouts are bounded by default for both schemes."""
+    from superset.mcp_service.storage import (
+        DEFAULT_REDIS_SOCKET_CONNECT_TIMEOUT,
+        DEFAULT_REDIS_SOCKET_TIMEOUT,
+    )
+
+    client = _build_real_client({"CACHE_REDIS_URL": url})
+
+    connection = client.connection_pool.make_connection()
+    assert connection.socket_timeout == DEFAULT_REDIS_SOCKET_TIMEOUT
+    assert connection.socket_connect_timeout == DEFAULT_REDIS_SOCKET_CONNECT_TIMEOUT
+    assert connection.socket_timeout is not None
+    assert connection.socket_connect_timeout is not None
+
+
+def test_create_redis_store_applies_configured_timeouts() -> None:
+    """Configured timeouts override the defaults."""
+    client = _build_real_client(
+        {
+            "CACHE_REDIS_URL": "rediss://redis.example.com:6380/0",
+            "CACHE_REDIS_SOCKET_TIMEOUT": 2.5,
+            "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT": 1.5,
+        }
+    )
+
+    connection = client.connection_pool.make_connection()
+    assert connection.socket_timeout == 2.5
+    assert connection.socket_connect_timeout == 1.5

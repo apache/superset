@@ -33,6 +33,43 @@ from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
+# Bounded defaults so an unreachable or stalled Redis fails the request
+# instead of hanging it indefinitely.
+DEFAULT_REDIS_SOCKET_TIMEOUT = 5.0
+DEFAULT_REDIS_SOCKET_CONNECT_TIMEOUT = 5.0
+
+_VALID_SSL_CERT_REQS = frozenset({"required", "optional", "none"})
+
+
+def _ssl_kwargs(store_config: Dict[str, Any]) -> dict[str, Any]:
+    """
+    Build the TLS keyword arguments for a rediss:// connection.
+
+    The server certificate and hostname are verified by default. Operators
+    whose Redis presents a certificate from a private CA should point
+    CACHE_REDIS_SSL_CA_CERTS at that CA bundle; disabling verification with
+    CACHE_REDIS_SSL_CERT_REQS = "none" is an explicit opt-out.
+
+    Raises:
+        ValueError: If CACHE_REDIS_SSL_CERT_REQS is not a known value.
+    """
+    cert_reqs = store_config.get("CACHE_REDIS_SSL_CERT_REQS") or "required"
+    if cert_reqs not in _VALID_SSL_CERT_REQS:
+        raise ValueError(
+            "Invalid MCP_STORE_CONFIG CACHE_REDIS_SSL_CERT_REQS "
+            f"{cert_reqs!r}; expected one of {sorted(_VALID_SSL_CERT_REQS)}"
+        )
+    if cert_reqs == "none":
+        logger.warning(
+            "MCP Redis TLS certificate verification is disabled "
+            "(CACHE_REDIS_SSL_CERT_REQS='none')"
+        )
+    return {
+        "ssl": True,
+        "ssl_cert_reqs": cert_reqs,
+        "ssl_ca_certs": store_config.get("CACHE_REDIS_SSL_CA_CERTS"),
+    }
+
 
 def get_mcp_store(
     prefix: str | Callable[[], str],
@@ -91,7 +128,8 @@ def _create_redis_store(
     """
     Create a RedisStore, optionally wrapped with a prefix.
 
-    Handles SSL/TLS connections (rediss:// scheme) for cloud deployments.
+    Handles SSL/TLS connections (rediss:// scheme) for cloud deployments,
+    verifying the server certificate unless explicitly disabled.
 
     Args:
         store_config: MCP_STORE_CONFIG dict (Redis URL, wrapper type)
@@ -130,41 +168,34 @@ def _create_redis_store(
             except ValueError:
                 db = 0
 
+        redis_kwargs: dict[str, Any] = {
+            "host": parsed.hostname or "localhost",
+            "port": parsed.port or 6379,
+            "db": db,
+            "username": parsed.username,  # Support Redis 6+ ACLs
+            "password": parsed.password,
+            "decode_responses": True,
+            "socket_timeout": store_config.get(
+                "CACHE_REDIS_SOCKET_TIMEOUT", DEFAULT_REDIS_SOCKET_TIMEOUT
+            ),
+            "socket_connect_timeout": store_config.get(
+                "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT",
+                DEFAULT_REDIS_SOCKET_CONNECT_TIMEOUT,
+            ),
+            # Pin RESP2 (redis-py<8 behavior) so a library bump doesn't
+            # silently require RESP3 server support.
+            "protocol": 2,
+        }
+        if use_ssl:
+            redis_kwargs.update(_ssl_kwargs(store_config))
+
         # redis-py 8 dropped the generic type parameter from the async
         # client (it now uses distinct sync/async overloads internally).
-        redis_client: Redis
-        if use_ssl:
-            # For ElastiCache with self-signed certs, disable cert verification.
-            # NOTE: ssl_cert_reqs="none" disables certificate verification.
-            # Do not use Python None - that would default to CERT_REQUIRED.
-            redis_client = Redis(
-                host=parsed.hostname or "localhost",
-                port=parsed.port or 6379,
-                db=db,
-                username=parsed.username,  # Support Redis 6+ ACLs
-                password=parsed.password,
-                decode_responses=True,
-                ssl=True,
-                ssl_cert_reqs="none",
-                # Pin RESP2/no-timeout (redis-py<8 behavior) so a future
-                # library bump doesn't silently require RESP3 server
-                # support or introduce a new default socket timeout.
-                socket_timeout=None,
-                protocol=2,
-            )
-            logger.info("Created async Redis client with SSL")
-        else:
-            redis_client = Redis(
-                host=parsed.hostname or "localhost",
-                port=parsed.port or 6379,
-                db=db,
-                username=parsed.username,  # Support Redis 6+ ACLs
-                password=parsed.password,
-                decode_responses=True,
-                socket_timeout=None,
-                protocol=2,
-            )
-            logger.info("Created async Redis client")
+        redis_client: Redis = Redis(**redis_kwargs)
+        logger.info(
+            "Created async Redis client%s",
+            " with SSL" if use_ssl else "",
+        )
 
         # Pass pre-configured client to RedisStore
         redis_store = RedisStore(client=redis_client)

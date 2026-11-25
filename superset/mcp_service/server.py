@@ -35,10 +35,9 @@ from fastmcp.server.middleware import Middleware
 from pydantic.fields import FieldInfo
 from starlette.requests import ClientDisconnect
 
-from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
+from superset.mcp_service.app import init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
-    get_mcp_factory_config,
     MCP_NATIVE_TOOL_LIST_CONFIG,
     MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
@@ -1061,7 +1060,7 @@ def _build_starlette_middleware(
         flask_app = get_flask_app()
     # Auth is active only when an instantiated provider was passed in.
     # Config-flag presence is not sufficient — MCP_AUTH_FACTORY may return
-    # None, and use_factory_config auth lives outside Flask config entirely.
+    # None.
     auth_enabled = auth_provider is not None
     app_name: str = flask_app.config.get("APP_NAME", "Superset")
     app_icon: str = flask_app.config.get("APP_ICON", "")
@@ -1116,7 +1115,6 @@ def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
     debug: bool = False,
-    use_factory_config: bool = False,
     event_store_config: dict[str, Any] | None = None,
 ) -> None:
     """
@@ -1134,7 +1132,6 @@ def run_server(
         host: Host to bind to
         port: Port to bind to
         debug: Enable debug logging
-        use_factory_config: Use configuration from get_mcp_factory_config()
         event_store_config: Optional EventStore configuration dict.
             If None, reads from MCP_EVENT_STORE_CONFIG.
     """
@@ -1144,103 +1141,57 @@ def run_server(
 
     # DO NOT IMPORT TOOLS HERE!! IMPORT THEM IN app.py!!!!!
 
-    if use_factory_config:
-        # Use factory configuration for customization
-        logging.info("Creating MCP app from factory configuration...")
-        factory_config = get_mcp_factory_config()
-        from superset.mcp_service.flask_singleton import (  # noqa: PLC0415
-            get_flask_app,
-        )
+    # Build the server on the shared instance, with auth from Flask config
+    logging.info("Creating MCP app with default configuration...")
+    from superset.mcp_service.caching import create_response_caching_middleware
+    from superset.mcp_service.flask_singleton import get_flask_app
 
-        factory_flask_app = get_flask_app()
-        factory_middleware = factory_config.get("middleware") or ()
-        factory_config["middleware"] = [
-            *build_middleware_list(
-                structured_output_enabled=_structured_output_enabled(factory_flask_app)
-            ),
-            *factory_middleware,
-        ]
-        mcp_instance = create_mcp_app(**factory_config)
-        # The factory path bypasses init_fastmcp_server(), so install the
-        # per-tool-call session scoping here as well; without it concurrent
-        # tool calls share the greenlet-scoped db.session.
-        # Lazy import mirrors init_fastmcp_server() to avoid the circular
-        # import through superset.extensions during startup.
-        from superset.mcp_service.session_scope import (  # noqa: PLC0415
-            install_mcp_session_scoping,
-        )
+    flask_app = get_flask_app()
+    auth_provider = _create_auth_provider(flask_app)
 
-        install_mcp_session_scoping()
-        # Capture the actual auth object so the hello page reflects real auth state
-        auth_provider = factory_config.get("auth")
-        flask_app = None
+    middleware_list = build_middleware_list(
+        structured_output_enabled=_structured_output_enabled(flask_app)
+    )
 
-        # Apply tool search transform if configured
-        tool_search_config = factory_flask_app.config.get(
-            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
-        )
-        if tool_search_config.get("enabled", False):
-            _apply_tool_search_transform(mcp_instance, tool_search_config)
-        else:
-            _apply_compact_tool_list_transform(
-                mcp_instance,
-                factory_flask_app.config.get(
-                    "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
-                ),
-            )
-    else:
-        # Use default initialization with auth from Flask config
-        logging.info("Creating MCP app with default configuration...")
-        from superset.mcp_service.caching import create_response_caching_middleware
-        from superset.mcp_service.flask_singleton import get_flask_app
+    # Add optional middleware (innermost, closest to tool)
+    size_guard_middleware = create_response_size_guard_middleware()
+    if size_guard_middleware:
+        middleware_list.append(size_guard_middleware)
 
-        flask_app = get_flask_app()
-        auth_provider = _create_auth_provider(flask_app)
+    if caching_middleware := create_response_caching_middleware():
+        middleware_list.append(caching_middleware)
 
-        middleware_list = build_middleware_list(
-            structured_output_enabled=_structured_output_enabled(flask_app)
-        )
+    mcp_instance = init_fastmcp_server(
+        auth=auth_provider,
+        middleware=middleware_list or None,
+    )
 
-        # Add optional middleware (innermost, closest to tool)
-        size_guard_middleware = create_response_size_guard_middleware()
+    # Apply tool search transform if configured
+    tool_search_config = flask_app.config.get(
+        "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+    )
+    if tool_search_config.get("enabled", False):
+        _apply_tool_search_transform(mcp_instance, tool_search_config)
+        # Ensure the configured search tool name is excluded from the
+        # response size guard (search results are intentionally large)
         if size_guard_middleware:
-            middleware_list.append(size_guard_middleware)
-
-        if caching_middleware := create_response_caching_middleware():
-            middleware_list.append(caching_middleware)
-
-        mcp_instance = init_fastmcp_server(
-            auth=auth_provider,
-            middleware=middleware_list or None,
+            search_name = tool_search_config.get("search_tool_name", "search_tools")
+            size_guard_middleware.excluded_tools.add(search_name)
+    else:
+        _apply_compact_tool_list_transform(
+            mcp_instance,
+            flask_app.config.get(
+                "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
+            ),
         )
-
-        # Apply tool search transform if configured
-        tool_search_config = flask_app.config.get(
-            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
-        )
-        if tool_search_config.get("enabled", False):
-            _apply_tool_search_transform(mcp_instance, tool_search_config)
-            # Ensure the configured search tool name is excluded from the
-            # response size guard (search results are intentionally large)
-            if size_guard_middleware:
-                search_name = tool_search_config.get("search_tool_name", "search_tools")
-                size_guard_middleware.excluded_tools.add(search_name)
-        else:
-            _apply_compact_tool_list_transform(
-                mcp_instance,
-                flask_app.config.get(
-                    "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
-                ),
-            )
 
     _register_health_endpoint(mcp_instance)
 
     # Size tool admission against the metadata pool before serving traffic, so
     # an unusable pool configuration fails at startup rather than per call.
-    from superset.mcp_service.flask_singleton import get_flask_app
     from superset.mcp_service.worker import _get_pool
 
-    _get_pool(get_flask_app())
+    _get_pool(flask_app)
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
@@ -1260,10 +1211,8 @@ def run_server(
             # mode races a tool's progress notifications against the
             # transport teardown that follows its HTTP request, crashing the
             # session if a client disconnects mid-call.
-            stateless_http = (
-                flask_app.config.get("MCP_STATELESS_HTTP", MCP_STATELESS_HTTP)
-                if flask_app is not None
-                else MCP_STATELESS_HTTP
+            stateless_http = flask_app.config.get(
+                "MCP_STATELESS_HTTP", MCP_STATELESS_HTTP
             )
 
             if event_store is not None:
