@@ -121,6 +121,7 @@ import {
   isUnboundedRangeError,
   useDefaultTimeRangeCheck,
   useFilterLimitsStatus,
+  usePreFilterTimeRangeCheck,
   usePreviewHoldEffects,
   usePreviewRequests,
 } from './useFilterTimeRangeLimits';
@@ -806,6 +807,17 @@ const FiltersConfigForm = (
   if (pickerLimits) {
     newFormData.timeRangeLimits = pickerLimits;
   }
+  const {
+    preFilterPickerLimits,
+    preFilterTimeRangeHelp,
+    validatePreFilterTimeRange,
+  } = usePreFilterTimeRangeCheck({
+    status: limitsStatus,
+    form,
+    filterId,
+    datasetId,
+    datasourceType,
+  });
 
   const showDataset =
     !datasetId || datasetDetails || formFilter?.dataset?.label;
@@ -1975,10 +1987,18 @@ const FiltersConfigForm = (
                                             {
                                               validator: preFilterValidator,
                                             },
+                                            {
+                                              validator:
+                                                validatePreFilterTimeRange,
+                                            },
                                           ]}
+                                          help={preFilterTimeRangeHelp}
                                         >
                                           <DateFilterComponent
                                             name="time_range"
+                                            timeRangeLimits={
+                                              preFilterPickerLimits
+                                            }
                                             onChange={timeRange => {
                                               setNativeFilterFieldValues(
                                                 form,

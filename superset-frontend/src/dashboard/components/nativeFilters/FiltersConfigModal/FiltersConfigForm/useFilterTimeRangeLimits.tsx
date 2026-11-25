@@ -17,20 +17,27 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import {
   ClientErrorObject,
+  DatasourceType,
   ErrorTypeEnum,
   FeatureFlag,
   isFeatureEnabled,
   NO_TIME_RANGE,
+  SupersetClient,
   type SupersetError,
 } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
 import {
   checkTimeRange,
+  dashboardFilterLimits,
+  type DatasetLimitsPayload,
   hasLimits,
   type LimitCheck,
+  type Policy,
 } from 'src/utils/timeRangeLimits';
+import type { RootState } from 'src/dashboard/types';
 import {
   FILTERS_WITH_ADHOC_FILTERS,
   limitsUnavailableMessage,
@@ -367,5 +374,177 @@ export function useDefaultTimeRangeCheck({
     pickerLimits,
     rejectLimitsFailed,
     validateDefaultTimeRange,
+  };
+}
+
+/**
+ * The "Pre-filter available values" time range under the limits the filter's
+ * option query is checked against: the global and dashboard limits and those
+ * of the filter's own dataset. The dashboard's limits list only its charts'
+ * datasets, so the policy of a table only a filter uses is read from
+ * `GET /api/v1/dataset/{id}/time_range_limits/`. The picker gets the limits,
+ * and the validator checks the chosen range as the Default value of a Time
+ * Range filter is checked; while that policy can't be loaded it refuses.
+ */
+export function usePreFilterTimeRangeCheck({
+  status,
+  form,
+  filterId,
+  datasetId,
+  datasourceType,
+}: {
+  status: ReturnType<typeof useFilterLimitsStatus>;
+  form: FormInstance<NativeFiltersForm>;
+  filterId: string;
+  datasetId: number | string | undefined;
+  datasourceType: DatasourceType;
+}) {
+  const [message, setMessage] = useState<string>();
+  const [fetched, setFetched] = useState<Record<number, Policy | null>>({});
+  const datasetRequest = useRef<{
+    id: number;
+    policy: Promise<Policy | null>;
+  }>();
+  const payload = useSelector(
+    (state: RootState) => state.timeRangeLimits.payload,
+  );
+  const { loadedLimits } = status;
+  const ready = !!loadedLimits && !!payload;
+  const id = Number(datasetId);
+  const tableId =
+    datasourceType === DatasourceType.Table && Number.isInteger(id)
+      ? id
+      : undefined;
+  const listed =
+    tableId === undefined ||
+    !!payload?.datasets?.some(dataset => dataset.id === tableId);
+  const listedFailed = !!payload?.datasets?.some(
+    dataset => dataset.id === tableId && dataset.error,
+  );
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
+
+  const scopedLimits = (tablePolicy: Policy | null) => {
+    if (!loadedLimits || !payload) {
+      return undefined;
+    }
+    let datasets = payload.datasets ?? [];
+    if (!listed) {
+      datasets =
+        tablePolicy && tableId !== undefined
+          ? [{ id: tableId, name: '', policy: tablePolicy }]
+          : [];
+    }
+    const scoped = dashboardFilterLimits(
+      { ...payload, datasets },
+      loadedLimits.dashboardId,
+      new Set(tableId === undefined ? [] : [tableId]),
+    );
+    return hasLimits(scoped.levels) ? scoped : undefined;
+  };
+
+  const datasetPolicy = (table: number) => {
+    if (datasetRequest.current?.id !== table) {
+      const request = SupersetClient.get({
+        endpoint: `/api/v1/dataset/${table}/time_range_limits/`,
+      }).then(({ json }) => {
+        const policy =
+          (json as { result?: Partial<DatasetLimitsPayload> }).result
+            ?.dataset ?? null;
+        if (mounted.current) {
+          setFetched(previous => ({ ...previous, [table]: policy }));
+        }
+        return policy;
+      });
+      request.catch(() => {
+        if (datasetRequest.current?.policy === request) {
+          datasetRequest.current = undefined;
+        }
+      });
+      datasetRequest.current = { id: table, policy: request };
+    }
+    return datasetRequest.current.policy;
+  };
+
+  useEffect(() => {
+    if (ready && !listed && tableId !== undefined) {
+      datasetPolicy(tableId).catch(() => undefined);
+    }
+  }, [ready, listed, tableId]);
+
+  const limits = useMemo(() => {
+    if (!ready || listedFailed) {
+      return undefined;
+    }
+    if (listed) {
+      return scopedLimits(null);
+    }
+    return tableId !== undefined && tableId in fetched
+      ? scopedLimits(fetched[tableId])
+      : undefined;
+  }, [ready, listed, listedFailed, tableId, fetched, payload, loadedLimits]);
+  const errorId = `${filterId}-pre-filter-time-range-error`;
+  const timeRangePath: ['filters', string, 'time_range'] = [
+    'filters',
+    filterId,
+    'time_range',
+  ];
+
+  const validatePreFilterTimeRange = () => {
+    const timeRange = form.getFieldValue(timeRangePath);
+    if (!ready || !timeRange || timeRange === NO_TIME_RANGE) {
+      setMessage(undefined);
+      return Promise.resolve();
+    }
+    let scoped: Promise<ReturnType<typeof scopedLimits>>;
+    if (listedFailed) {
+      scoped = Promise.reject(new Error(limitsUnavailableMessage()));
+    } else if (listed || tableId === undefined) {
+      scoped = Promise.resolve(scopedLimits(null));
+    } else {
+      scoped = datasetPolicy(tableId).then(scopedLimits);
+    }
+    return scoped
+      .then(
+        found =>
+          found
+            ? checkTimeRange(timeRange, found.levels).then(
+                timeRangeCheckMessage,
+              )
+            : undefined,
+        () => limitsUnavailableMessage(),
+      )
+      .then(next => {
+        if (form.getFieldValue(timeRangePath) === timeRange) {
+          setMessage(next);
+        }
+        if (next) {
+          throw new Error(next);
+        }
+      });
+  };
+
+  useEffect(() => {
+    const timeRange = form.getFieldValue(timeRangePath);
+    if (limits && timeRange && timeRange !== NO_TIME_RANGE) {
+      form.validateFields([timeRangePath]).catch(() => undefined);
+    }
+  }, [limits, filterId]);
+
+  const shown = ready ? message : undefined;
+  return {
+    preFilterPickerLimits:
+      limits && shown ? { ...limits, describedBy: errorId } : limits,
+    preFilterTimeRangeHelp: shown ? (
+      <span id={errorId} role="alert">
+        {shown}
+      </span>
+    ) : undefined,
+    validatePreFilterTimeRange,
   };
 }
