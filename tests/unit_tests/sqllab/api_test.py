@@ -131,6 +131,7 @@ def test_format_sql_checks_access_before_rendering(
     assert response.status_code == 403
     raise_for_access.assert_called_once()
     assert raise_for_access.call_args.kwargs["force_dataset_match"] is True
+    assert raise_for_access.call_args.kwargs["allow_editorship"] is False
     get_template_processor.assert_not_called()
 
 
@@ -139,7 +140,11 @@ def test_format_sql_skips_dataset_match_when_disabled(
     client: Any,
     full_api_access: None,
 ) -> None:
-    """SQL formatting follows ``SQLLAB_REQUIRE_DATASET_MATCH``."""
+    """SQL formatting follows ``SQLLAB_REQUIRE_DATASET_MATCH``.
+
+    Editorship stays excluded when the flag is off. Dropping
+    ``allow_editorship=False`` fails this assertion.
+    """
     from flask import current_app
 
     database = mocker.MagicMock()
@@ -170,6 +175,7 @@ def test_format_sql_skips_dataset_match_when_disabled(
 
     assert response.status_code == 200
     assert raise_for_access.call_args.kwargs["force_dataset_match"] is False
+    assert raise_for_access.call_args.kwargs["allow_editorship"] is False
     assert raise_for_access.call_args.kwargs["reject_unscoped_sql"] is True
 
 
