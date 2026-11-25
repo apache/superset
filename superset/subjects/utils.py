@@ -16,9 +16,12 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from flask_appbuilder.security.sqla.models import Group, Role, User
     from sqlalchemy.sql import CompoundSelect, Select
 
@@ -28,6 +31,8 @@ from sqlalchemy import select, union_all
 from superset import db
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
+
+logger = logging.getLogger(__name__)
 
 
 def get_user_subject_ids_subquery(user_id: int) -> CompoundSelect:
@@ -141,47 +146,160 @@ def _assigns_creator_groups_as_viewers() -> bool:
     )
 
 
-def get_default_viewers_for_new_asset(user_id: int | None) -> list[Subject]:
+def creator_groups_as_viewers(user: User, asset_type: str) -> list[Subject]:
+    """Shipped ``DEFAULT_VIEWERS_FOR_NEW_ASSET`` implementation.
+
+    Returns the GROUP subjects of every group the creator belongs to. This is
+    what ``ASSIGN_CREATOR_GROUPS_AS_VIEWERS`` selects when no custom callable is
+    configured; deployments can also reference it explicitly or wrap it.
+    """
+    return get_user_group_subjects(user.id)
+
+
+def _resolve_user(user_id: int) -> User | None:
+    from flask import g
+
+    from superset import security_manager
+
+    current = getattr(g, "user", None) if has_app_context() else None
+    if current is not None and getattr(current, "id", None) == user_id:
+        return current
+    return db.session.get(security_manager.user_model, user_id)
+
+
+def _configured_default_resolver(key: str) -> Callable[..., list[Subject]] | None:
+    from flask import current_app
+
+    return current_app.config.get(key) if has_app_context() else None
+
+
+def _call_default_resolver(
+    resolver: Callable[..., list[Subject]], user: User, asset_type: str
+) -> list[Subject]:
+    """Call a deployment-supplied resolver, failing closed (``[]``) on error."""
+    try:
+        return list(resolver(user, asset_type) or [])
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "Default subjects resolver %r failed for %s; ignoring its result",
+            resolver,
+            asset_type,
+        )
+        return []
+
+
+def get_default_viewers_for_new_asset(
+    user_id: int | None, asset_type: str = "dashboard"
+) -> list[Subject]:
     """Return the viewers a newly created asset should default to.
 
-    The single place deciding how a creator's group membership propagates to a
-    new asset, so the paths that build assets outside the create commands
-    (save-as, importers, MCP tools) stay consistent with them. Empty unless
-    ``ASSIGN_CREATOR_GROUPS_AS_VIEWERS`` is enabled.
+    The single place deciding the default viewers of a new asset, so the paths
+    that build assets outside the create commands (save-as, importers, MCP
+    tools) stay consistent with them. Delegates to the
+    ``DEFAULT_VIEWERS_FOR_NEW_ASSET`` config callable when set; otherwise falls
+    back to :func:`creator_groups_as_viewers` when
+    ``ASSIGN_CREATOR_GROUPS_AS_VIEWERS`` is enabled, else returns ``[]``.
+    Always ``[]`` while ``ENABLE_VIEWERS`` is off.
 
     Only assets with a ``viewers`` relationship apply — datasets have editors
     only. Callers inside a flush event use
     :func:`get_default_viewers_for_groups` instead.
     """
-    if user_id is None or not _assigns_creator_groups_as_viewers():
+    from superset import is_feature_enabled
+
+    if user_id is None or not has_app_context():
         return []
-    return get_user_group_subjects(user_id)
+    resolver = _configured_default_resolver("DEFAULT_VIEWERS_FOR_NEW_ASSET")
+    if resolver is None:
+        if not _assigns_creator_groups_as_viewers():
+            return []
+        return get_user_group_subjects(user_id)
+    if not is_feature_enabled("ENABLE_VIEWERS"):
+        return []
+    if (user := _resolve_user(user_id)) is None:
+        return []
+    return _call_default_resolver(resolver, user, asset_type)
 
 
-def get_default_viewers_for_groups(groups: list[Group]) -> list[Subject]:
+def get_default_viewers_for_groups(
+    groups: list[Group],
+    user: User | None = None,
+    asset_type: str = "dashboard",
+) -> list[Subject]:
     """Like :func:`get_default_viewers_for_new_asset`, for in-memory groups.
 
     Callers inside a SQLAlchemy flush event cannot resolve membership by
     querying ``ab_user_group``: for a user being inserted, the association rows
     are written *after* the user's own INSERT, so the query returns nothing.
     Those callers already hold the group objects on the instance and pass them
-    here instead.
+    here instead, along with the in-memory *user*.
 
-    Resolution is all-or-nothing: if any group lacks a Subject row (an unsynced
-    group is a real deployment state — see the ``superset sync-subjects`` CLI),
-    the whole result is discarded and ``[]`` returned. A *partial* viewer set
-    would switch off the asset's datasource-access fallback
-    (``security_manager.raise_for_access``) while granting the unsynced group's
-    members nothing, locking them out; no viewers keeps the fallback intact and
-    is strictly safer. On-demand backfill isn't an option here — this runs in a
-    flush event, where :func:`get_or_create_group_subject`'s flush is unsafe.
+    A custom ``DEFAULT_VIEWERS_FOR_NEW_ASSET`` callable is called with *user*
+    (it must not query membership tables); it is skipped when *user* is omitted.
+
+    Resolution of the built-in group logic is all-or-nothing: if any group lacks
+    a Subject row (an unsynced group is a real deployment state — see the
+    ``superset sync-subjects`` CLI), the whole result is discarded and ``[]``
+    returned. A *partial* viewer set would switch off the asset's
+    datasource-access fallback (``security_manager.raise_for_access``) while
+    granting the unsynced group's members nothing, locking them out; no viewers
+    keeps the fallback intact and is strictly safer. On-demand backfill isn't an
+    option here — this runs in a flush event, where
+    :func:`get_or_create_group_subject`'s flush is unsafe.
     """
-    if not groups or not _assigns_creator_groups_as_viewers():
+    from superset import is_feature_enabled
+
+    if not has_app_context():
+        return []
+    resolver = _configured_default_resolver("DEFAULT_VIEWERS_FOR_NEW_ASSET")
+    if resolver is not None and resolver is not creator_groups_as_viewers:
+        if user is None or not is_feature_enabled("ENABLE_VIEWERS"):
+            return []
+        return _call_default_resolver(resolver, user, asset_type)
+    if not groups or not (
+        _assigns_creator_groups_as_viewers()
+        or (resolver is not None and is_feature_enabled("ENABLE_VIEWERS"))
+    ):
         return []
     subjects = subjects_from_groups(groups)
     if {subject.group_id for subject in subjects} != {group.id for group in groups}:
         return []
     return subjects
+
+
+def get_default_editors_for_new_asset(
+    user_id: int | None,
+    asset_type: str,
+    user: User | None = None,
+) -> list[Subject]:
+    """Return the editors a newly created asset should default to.
+
+    The creator's own USER subject is always first, so a custom
+    ``DEFAULT_EDITORS_FOR_NEW_ASSET`` callable can never lock the creator out of
+    their own asset. Subjects returned by the callable are appended (deduped).
+    If the callable raises, the error is logged and only the creator is used.
+
+    *asset_type* is ``"chart"``, ``"dashboard"`` or ``"dataset"``. Pass *user*
+    when the in-memory user is already at hand (e.g. inside a flush event).
+    """
+    if user_id is None:
+        return []
+    editors: list[Subject] = []
+    # An in-memory *user* means a flush event, where backfilling is unsafe.
+    lookup = get_user_subject if user else get_or_create_user_subject
+    if creator := lookup(user_id):
+        editors.append(creator)
+    resolver = _configured_default_resolver("DEFAULT_EDITORS_FOR_NEW_ASSET")
+    if resolver is None:
+        return editors
+    if (user := user or _resolve_user(user_id)) is None:
+        return editors
+    seen = {subject.id for subject in editors}
+    for subject in _call_default_resolver(resolver, user, asset_type):
+        if subject is not None and subject.id not in seen:
+            seen.add(subject.id)
+            editors.append(subject)
+    return editors
 
 
 def get_default_viewers_for_current_user() -> list[Subject]:

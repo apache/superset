@@ -3758,6 +3758,23 @@ EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 # Resolve additional editor subjects for a resource. Also used for editorship
 # checks and lockout-prevention logic.
 EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
+# Default viewers for every newly created chart/dashboard, across all creation
+# paths (create commands, copy/save-as, imports, MCP). Receives
+# (user, asset_type) with asset_type in {"chart", "dashboard"} and returns a list
+# of ``Subject``. ``user`` is the in-memory creator; the callable must not rely
+# on querying membership tables, as it may run inside a flush event. Explicit
+# ``viewers`` in a create payload replace these defaults. When unset, the
+# ``ASSIGN_CREATOR_GROUPS_AS_VIEWERS`` flag selects
+# ``superset.subjects.utils.creator_groups_as_viewers``. Ignored while
+# ``ENABLE_VIEWERS`` is off. Errors are logged and yield no default viewers.
+DEFAULT_VIEWERS_FOR_NEW_ASSET: Callable[..., list[Any]] | None = None
+# Default editors for every newly created chart/dashboard/dataset. Receives
+# (user, asset_type) with asset_type in {"chart", "dashboard", "dataset"} and
+# returns *additional* ``Subject`` editors (e.g. a fixed Role). The creator is
+# always kept as an editor, even if omitted from the result, and the returned
+# subjects are added to any editors explicitly requested in a create payload.
+# Errors are logged and fail closed to the creator only.
+DEFAULT_EDITORS_FOR_NEW_ASSET: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 # Contribute extra fields to a chart or dashboard export. Receives

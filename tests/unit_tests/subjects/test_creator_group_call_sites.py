@@ -213,7 +213,7 @@ def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
 
     assert created["viewers"] == [viewer]
     # Resolved from the in-memory collection, never by querying membership.
-    mock_for_groups.assert_called_once_with([group])
+    mock_for_groups.assert_called_once_with([group], user=user)
 
 
 def test_dashboard_importer_attaches_default_viewers(app_context) -> None:
@@ -555,5 +555,8 @@ def test_dashboard_copy_dao_resolves_creator_subjects_once(
         )
 
     assert len(copied.slices) == 3
-    mock_user_subject.assert_called_once_with(5)
-    mock_viewers.assert_called_once_with(5)
+    # One resolution per asset type (dashboard, chart), never one per chart.
+    assert mock_user_subject.call_count == 2
+    assert mock_viewers.call_count == 2
+    mock_viewers.assert_any_call(5)
+    mock_viewers.assert_any_call(5, "chart")

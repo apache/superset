@@ -287,7 +287,9 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
 
         # Datasets have editors only — there is no ``sqlatable_viewers`` table,
         # so a ``viewers`` key would be dropped by the DAO's ``setattr`` loop.
-        populate_subjects(self._properties, exceptions, include_viewers=False)
+        populate_subjects(
+            self._properties, exceptions, include_viewers=False, asset_type="dataset"
+        )
 
         self._validate_partition_mapping(exceptions)
 

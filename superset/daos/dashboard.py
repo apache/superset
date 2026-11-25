@@ -1374,15 +1374,18 @@ class DashboardDAO(BaseDAO[Dashboard]):
         # they would cost two extra queries for each chart in the dashboard.
         creator_editors: list[Any] = []
         creator_viewers: list[Any] = []
+        chart_editors: list[Any] = []
+        chart_viewers: list[Any] = []
         if getattr(g, "user", None):
             from superset.subjects.utils import (
+                get_default_editors_for_new_asset,
                 get_default_viewers_for_new_asset,
-                get_user_subject,
             )
 
-            user_subject = get_user_subject(g.user.id)
-            creator_editors = [user_subject] if user_subject else []
+            creator_editors = get_default_editors_for_new_asset(g.user.id, "dashboard")
             creator_viewers = get_default_viewers_for_new_asset(g.user.id)
+            chart_editors = get_default_editors_for_new_asset(g.user.id, "chart")
+            chart_viewers = get_default_viewers_for_new_asset(g.user.id, "chart")
         dash.editors = creator_editors
         dash.viewers = creator_viewers
         dash.dashboard_title = data["dashboard_title"]
@@ -1434,8 +1437,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 new_slice = slc.clone()
                 # ``Slice.clone()`` carries over no subjects, so both
                 # collections start empty on the new chart.
-                new_slice.editors = list(creator_editors)
-                new_slice.viewers = list(creator_viewers)
+                new_slice.editors = list(chart_editors)
+                new_slice.viewers = list(chart_viewers)
                 db.session.add(new_slice)
                 db.session.flush()
                 new_slice.dashboards.append(dash)

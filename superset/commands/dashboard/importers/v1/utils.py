@@ -497,19 +497,19 @@ def import_dashboard(  # noqa: C901
 
     if not existing and user:
         from superset.subjects.utils import (
+            get_default_editors_for_new_asset,
             get_default_viewers_for_new_asset,
-            get_user_subject,
         )
 
-        subj = get_user_subject(user.id)
-        if subj and subj not in dashboard.editors:
-            dashboard.editors.append(subj)
+        for editor in get_default_editors_for_new_asset(user.id, "dashboard"):
+            if editor not in dashboard.editors:
+                dashboard.editors.append(editor)
         # Resolved once by bulk importers and passed in; recomputed here only
         # for direct callers that omit it (one membership query per asset).
         viewers = (
             default_viewers
             if default_viewers is not None
-            else get_default_viewers_for_new_asset(user.id)
+            else get_default_viewers_for_new_asset(user.id, "dashboard")
         )
         for viewer in viewers:
             if viewer not in dashboard.viewers:
