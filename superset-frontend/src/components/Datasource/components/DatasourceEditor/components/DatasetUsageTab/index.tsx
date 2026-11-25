@@ -26,7 +26,8 @@ import {
   InfoTooltip,
   Input,
 } from '@superset-ui/core/components';
-import Table, {
+import {
+  Table,
   TableSize,
   SortOrder,
   type TablePaginationConfig,
