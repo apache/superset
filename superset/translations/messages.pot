@@ -5712,6 +5712,10 @@ msgstr ""
 msgid "Dimensions contain qualitative values such as names, dates, or geographical data. Use dimensions to categorize, segment, and reveal the details in your data. Dimensions affect the level of detail in the view."
 msgstr ""
 
+#, python-format
+msgid "Dimensions not in this semantic view: %(names)s. They may have been removed or renamed in the semantic layer. Select available dimensions or remove them."
+msgstr ""
+
 msgid "Directional"
 msgstr ""
 
@@ -9488,6 +9492,10 @@ msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr ""
 
 msgid "Metrics folder can only contain metric items"
+msgstr ""
+
+#, python-format
+msgid "Metrics not in this semantic view: %(names)s. They may have been removed or renamed in the semantic layer. Select available metrics or remove them."
 msgstr ""
 
 msgid "Metrics should be inside folders"
@@ -13931,6 +13939,10 @@ msgid "Sort filter values"
 msgstr ""
 
 msgid "Sort legend"
+msgstr ""
+
+#, python-format
+msgid "Sort members not in this semantic view: %(names)s. They may have been removed or renamed in the semantic layer. Choose another sort or remove it."
 msgstr ""
 
 msgid "Sort metric"
