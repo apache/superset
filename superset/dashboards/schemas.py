@@ -92,8 +92,9 @@ json_metadata_description = (
     "limit). With a policy, `refresh_frequency` must be 0 or a whole number of "
     "seconds that is a standard interval within the bounds, and 0 when "
     "auto-refresh isn't allowed. On create, a missing or null "
-    "`auto_refresh_policy` means no policy. An update or copy that omits "
-    "`auto_refresh_policy` keeps the stored policy; send null to remove it."
+    "`auto_refresh_policy` means no policy. An update that omits "
+    "`auto_refresh_policy` keeps the stored policy, and so does a copy unless "
+    "`replace_metadata` is true; send null to remove it."
 )
 published_description = (
     "Determines whether or not this dashboard is visible in the list of all dashboards."
