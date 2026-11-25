@@ -259,11 +259,9 @@ test('a long group title is cut short inside its strip rather than overflowing i
   expect(textStyle.minWidth).toBe('0');
 
   const headingStyle = getComputedStyle(heading);
-  // Never squeezed by the grid below it, and clear of the remove button --
-  // 8 units wide, 4 in from the right edge -- and the mark beside it.
+  // Never squeezed by the grid below it.
   expect(headingStyle.flexShrink).toBe('0');
   expect(headingStyle.minWidth).toBe('0');
-  expect(headingStyle.paddingRight).toBe('var(--canvas-controls-inset, 0px)');
   // Above the frame a first-row child draws 2 units outside its box, line
   // included, so neither the name nor the mark sits on it.
   expect(headingStyle.paddingBottom).toBe('9px');

@@ -111,6 +111,11 @@ def test_filter_select_registered() -> None:
     assert registry.get("filter.select") is FilterSelect
 
 
+def test_filter_select_is_titled_like_every_other_widget() -> None:
+    # Its renderer draws no label of its own: the canvas titles it by name.
+    assert FilterSelect.ui.show_title is True
+
+
 def test_filter_bar_registered() -> None:
     assert registry.get("filter.bar") is not None
 

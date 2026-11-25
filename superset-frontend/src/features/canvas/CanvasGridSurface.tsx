@@ -38,7 +38,6 @@
  */
 
 import {
-  CSSProperties,
   PointerEvent as ReactPointerEvent,
   MouseEvent as ReactMouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -49,9 +48,23 @@ import {
   useRef,
   useState,
 } from 'react';
-import { css, styled, useTheme } from '@apache-superset/core/theme';
+import {
+  css,
+  styled,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { Icons } from '@superset-ui/core/components';
+import { addAlpha } from '@superset-ui/core';
+import { Icons, Tag } from '@superset-ui/core/components';
+import { MARKS } from './changeMarks';
+import type {
+  DraftChange,
+  GestureKind,
+  GridLayout,
+  GridPlacement,
+  SpanConstraints,
+} from './types';
 import {
   columnWidth,
   exactDelta,
@@ -79,12 +92,6 @@ import type { LayoutGesture } from './useCanvasLayout';
 import { useCanvasDrag } from './useCanvasDrag';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 import { useCanvasSelection } from './useCanvasSelection';
-import type {
-  GestureKind,
-  GridLayout,
-  GridPlacement,
-  SpanConstraints,
-} from './types';
 
 interface Gesture {
   nodeId: string;
@@ -447,17 +454,6 @@ const Interactive = styled.div<{
       transition: border-color ${theme.motionDurationMid};
     }
 
-    /* A draft's new or edited widget, marked by the title row inside it
-       (see Titled). Its own frame rather than an outline on the content,
-       which would sit on whatever fills the widget's edges. */
-    &:has(> .canvas-content > [data-canvas-mark='new'])::before {
-      border-color: ${theme.colorSuccess};
-    }
-
-    &:has(> .canvas-content > [data-canvas-mark='edited'])::before {
-      border-color: ${theme.colorPrimary};
-    }
-
     ${
       showBounds &&
       css`
@@ -581,31 +577,28 @@ const handleOffset = (
 /**
  * Whether a widget's handles have a container's handles to clear.
  *
- * Only the child sitting under them does. A container's grip is at the top
- * left of its box, and a bare container's box begins where its first row of
- * children does -- so a child in that row, starting at the container's first
- * column, would paint over it and make the container ungrabbable. Every other
- * child has nothing to clear, and stepping it down would strand its handles in
- * the middle of the widget for no reason.
- *
- * Only the grip, because only the grip is on that side: a widget's own
- * controls and its remove button are on the right, and containers render
- * neither.
+ * Only the child sitting under them does. A container's handles are in the
+ * top right of its box, and a bare container's box begins where its first
+ * row of children does and ends at its last column -- so a child in that
+ * row, reaching the container's last column, would paint over them and make
+ * the container ungrabbable. Every other child has nothing to clear, and
+ * stepping it anyway would strand its handles for no reason.
  *
  * `chromeAbove` says the container draws something of its own over that strip,
  * such as a group's title. Its handles then sit in that chrome rather than on
- * its first row, so no child has anything to clear and none steps down.
+ * its first row, so no child has anything to clear.
  */
 export const stepsAside = (
   depth: number,
-  placement: { row: number; col: number } | undefined,
+  placement: { row: number; col: number; colSpan: number } | undefined,
+  columns: number,
   chromeAbove = false,
 ): boolean =>
   !chromeAbove &&
   depth > 0 &&
   placement !== undefined &&
   placement.row === 1 &&
-  placement.col === 1;
+  placement.col + placement.colSpan - 1 === columns;
 
 /**
  * The widget itself, kept inside the cells it was given.
@@ -781,32 +774,56 @@ const Selected = styled.div<{ depth: number }>`
  * on the way to it would be too easy to hit. No confirmation, because the
  * change is only in the draft and Undo in the banner reverses it.
  */
-/** The remove button's size, and how far in from the right edge it sits. */
-const REMOVE_SIZE_UNITS = 8;
-const REMOVE_INSET_UNITS = 4;
 /**
- * Room, in theme size units, that a strip sharing the top-right corner with
- * the remove button leaves at its right to stay clear of it.
+ * The handles: a cluster in the widget's top-right corner, where nothing of
+ * the widget's is while editing. Each is HANDLE_SIZE_UNITS square, centred on
+ * a title row HANDLE_ROW_UNITS tall; the remove button sits
+ * HANDLE_INSET_UNITS in from the right edge, the grip a HANDLE_GAP_UNITS gap
+ * left of it, and the change mark left of both.
  */
-export const CLEAR_OF_REMOVE_UNITS = REMOVE_INSET_UNITS + REMOVE_SIZE_UNITS;
+const HANDLE_SIZE_UNITS = 6;
+const HANDLE_INSET_UNITS = 4;
+const HANDLE_GAP_UNITS = 1;
+const HANDLE_ROW_UNITS = 8;
+const GRIP_RIGHT_UNITS =
+  HANDLE_INSET_UNITS + HANDLE_SIZE_UNITS + HANDLE_GAP_UNITS;
+const MARK_RIGHT_UNITS = GRIP_RIGHT_UNITS + HANDLE_SIZE_UNITS + 2;
+/** How far a child's cluster moves left of its container's; see stepsAside. */
+const HANDLE_STEP_UNITS = 2 * (HANDLE_SIZE_UNITS + HANDLE_GAP_UNITS);
 
-const Remove = styled.button<{ depth: number; offset: number }>`
-  ${({ theme, depth, offset }) => css`
-    position: absolute;
-    top: ${offset}px;
-    z-index: ${3 + depth};
-    /* In the top-right corner, level with the grip on the left: the widget's
-       own controls are hidden while editing, so nothing else is there. */
-    right: ${theme.sizeUnit * REMOVE_INSET_UNITS}px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: ${theme.sizeUnit * REMOVE_SIZE_UNITS}px;
-    height: ${theme.sizeUnit * REMOVE_SIZE_UNITS}px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: ${theme.colorTextSecondary};
+/**
+ * The backdrop every handle sits on. The handles float over the widget's
+ * title row, which reserves no room for them, so each one carries a pill of
+ * the page's elevated surface -- just short of opaque -- to read against
+ * whatever is under it without hiding it.
+ */
+const pill = (theme: SupersetTheme) => css`
+  background: ${addAlpha(theme.colorBgElevated, 0.9)};
+  border-radius: ${theme.borderRadiusSM}px;
+  box-shadow: ${theme.boxShadowTertiary};
+`;
+
+/** What the grip and the remove button share; `shift` is the step-aside. */
+const handle = (theme: SupersetTheme, depth: number, right: number) => css`
+  position: absolute;
+  top: ${(theme.sizeUnit * (HANDLE_ROW_UNITS - HANDLE_SIZE_UNITS)) / 2}px;
+  right: ${right}px;
+  /* Deeper handles above shallower ones: the innermost wins a shared spot. */
+  z-index: ${3 + depth};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: ${theme.sizeUnit * HANDLE_SIZE_UNITS}px;
+  height: ${theme.sizeUnit * HANDLE_SIZE_UNITS}px;
+  padding: 0;
+  border: none;
+  ${pill(theme)}
+  color: ${theme.colorTextSecondary};
+`;
+
+const Remove = styled.button<{ depth: number; shift: number }>`
+  ${({ theme, depth, shift }) => css`
+    ${handle(theme, depth, theme.sizeUnit * HANDLE_INSET_UNITS + shift)}
     cursor: pointer;
 
     &:hover {
@@ -815,36 +832,39 @@ const Remove = styled.button<{ depth: number; offset: number }>`
   `}
 `;
 
-const Grip = styled.button<{ depth: number; offset: number; left: number }>`
-  ${({ theme, depth, offset, left }) => css`
-    position: absolute;
-    /* Flush with the top, beside the widget's own controls and the resize
-       corners. */
-    top: ${offset}px;
-    /* Deeper handles above shallower ones: the innermost wins a shared spot. */
-    z-index: ${3 + depth};
-    /*
-     * Right of the north-west resize corner, which is 4 units at the corner,
-     * and right of a container's grip too when it would cover it; see
-     * stepsAside. Nothing else lives on this side: a widget's own controls
-     * and its remove button are both on the right.
-     */
-    left: ${left}px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* The same box as the controls button beside it, so the two line up. */
-    width: ${theme.sizeUnit * 8}px;
-    height: ${theme.sizeUnit * 8}px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: ${theme.colorTextSecondary};
+const Grip = styled.button<{ depth: number; shift: number }>`
+  ${({ theme, depth, shift }) => css`
+    ${handle(theme, depth, theme.sizeUnit * GRIP_RIGHT_UNITS + shift)}
     cursor: grab;
     touch-action: none;
 
     &:active {
       cursor: grabbing;
+    }
+  `}
+`;
+
+/**
+ * What just happened to a widget in the draft: its change mark, left of the
+ * handles in the widget's top right. Always shown, unlike the handles: the
+ * marks are what a reader of a draft scans for. It takes no presses, so the
+ * widget under it still does.
+ */
+const Mark = styled.div<{ depth: number; shift: number }>`
+  ${({ theme, depth, shift }) => css`
+    position: absolute;
+    top: 0;
+    right: ${theme.sizeUnit * MARK_RIGHT_UNITS + shift}px;
+    /* Under the handles: a hovered child's grip or remove button wins. */
+    z-index: ${2 + depth};
+    display: flex;
+    align-items: center;
+    height: ${theme.sizeUnit * HANDLE_ROW_UNITS}px;
+    pointer-events: none;
+
+    .ant-tag {
+      margin: 0;
+      ${pill(theme)}
     }
   `}
 `;
@@ -959,6 +979,8 @@ export interface CanvasGridSurfaceProps {
   isContainer?: (nodeId: string) => boolean;
   /** What to call a widget out loud, for the selection's accessible name. */
   labelOf?: (nodeId: string) => string;
+  /** Each changed widget's change in the draft, for its mark. */
+  marks?: Record<string, DraftChange['kind']>;
   onPlace: (
     nodeId: string,
     placement: GridPlacement,
@@ -1011,6 +1033,7 @@ export default function CanvasGridSurface({
   onMove,
   onRemove,
   renderNode,
+  marks,
 }: CanvasGridSurfaceProps) {
   const theme = useTheme();
   const drag = useCanvasDrag();
@@ -1834,16 +1857,16 @@ export default function CanvasGridSurface({
         const extent = placed
           ? placed.rowSpan * rowUnit + (placed.rowSpan - 1) * gap
           : 0;
-        // The handles stay in one row along the top. A child that would
-        // cover its container's grip moves its own grip right of it instead
-        // of stepping the whole row down, so the row stays level with the
-        // title beside it.
+        // The handles stay in one row along the top. A child whose top-right
+        // corner is its container's moves its cluster left of the container's
+        // rather than sharing the spot.
         const handlesTop = 0;
-        const gripLeft =
-          theme.sizeUnit *
-          (4 + (stepsAside(depth, placed, chromeAbove) ? 8 * depth : 0));
+        const handleShift = stepsAside(depth, placed, columns, chromeAbove)
+          ? theme.sizeUnit * HANDLE_STEP_UNITS * depth
+          : 0;
         const selectable = editable && Boolean(placements[childId]);
         const selected = selection.selectedId === childId;
+        const mark = marks?.[childId];
         // The container this drag would land in. Its own box, not the grid
         // inside it: the box is what the drop is tested against, and a
         // group's grid is that box less the title above it.
@@ -1860,12 +1883,6 @@ export default function CanvasGridSurface({
           >
             <Interactive
               className="canvas-interactive"
-              // Read by the widget's title, which clears the grip in a plan.
-              style={
-                {
-                  '--canvas-title-inset': `${gripLeft + theme.sizeUnit * 8}px`,
-                } as CSSProperties
-              }
               showBounds={drag.dragging}
               $editable={editable}
               $destination={destination}
@@ -1897,13 +1914,19 @@ export default function CanvasGridSurface({
               >
                 {rendered.get(childId)}
               </WidgetBody>
+              {mark && mark !== 'removed' && (
+                <Mark depth={depth} shift={handleShift}>
+                  <Tag color={MARKS[mark].color} data-test="canvas-widget-mark">
+                    {MARKS[mark].label()}
+                  </Tag>
+                </Mark>
+              )}
               {editable && placements[childId] && (
                 <>
                   <Grip
                     type="button"
                     depth={depth}
-                    offset={handlesTop}
-                    left={gripLeft}
+                    shift={handleShift}
                     className="canvas-handle"
                     aria-label={t('Move widget')}
                     data-test="canvas-drag-handle"
@@ -1915,7 +1938,7 @@ export default function CanvasGridSurface({
                   <Remove
                     type="button"
                     depth={depth}
-                    offset={handlesTop}
+                    shift={handleShift}
                     className="canvas-handle"
                     aria-label={t('Remove widget')}
                     data-test="canvas-remove-handle"

@@ -1004,24 +1004,42 @@ test('publishing a scope kind on the generic bus does nothing', () => {
 
 const marked = (...changes: DraftChange[]) => ({ ...result, changes });
 
+/** A node's own change mark, drawn by the surface over its box. */
+const markOf = (container: HTMLElement, nodeId: string) =>
+  Array.from(
+    container.querySelectorAll<HTMLElement>('[data-test="canvas-widget-mark"]'),
+  ).find(
+    mark =>
+      mark.closest('[data-node-id]')?.getAttribute('data-node-id') === nodeId,
+  );
+
 test('a widget carries the mark of what just happened to it', () => {
-  renderGrid(emptyScopeValues(), jest.fn(), {
+  const { container } = renderGrid(emptyScopeValues(), jest.fn(), {
     ...marked({ kind: 'moved', nodeId: 'c1', by: 'user' }),
     titles: { c1: 'Revenue' },
   });
 
-  expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('Moved');
+  const mark = markOf(container, 'c1') as HTMLElement;
+  expect(mark).toHaveTextContent('Moved');
+  // Over the widget, beside its handles, not in its title row: the widget
+  // reserves no room for it.
+  expect(mark.closest('.canvas-content')).toBeNull();
+  expect(
+    screen.getByTestId('canvas-widget-title').parentElement,
+  ).not.toContainElement(mark);
 });
 
 test('a changed widget with no name still says what happened', () => {
-  // The mark is the news; a widget nobody named has it just the same.
-  renderGrid(
+  // The mark is the news; a widget nobody named has it just the same, and no
+  // title row appears to hold it.
+  const { container } = renderGrid(
     emptyScopeValues(),
     jest.fn(),
     marked({ kind: 'new', nodeId: 'c1', by: 'ai' }),
   );
 
-  expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('New');
+  expect(markOf(container, 'c1')).toHaveTextContent('New');
+  expect(screen.queryByTestId('canvas-widget-title')).not.toBeInTheDocument();
 });
 
 test('a widget that was both edited and moved says it was edited', () => {
@@ -1040,28 +1058,50 @@ test('a widget that was both edited and moved says it was edited', () => {
   expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('Edited');
 });
 
-test('only a content change frames the widget', () => {
-  // New and edited change what a widget shows, so the surface frames them;
-  // a move only changes where it sits, and its tag says so.
-  const { container, unmount } = renderGrid(
+test('a change marks the widget and never frames it', () => {
+  // A frame on every new widget turned a draft the assistant had just filled
+  // into a wall of green; the tag alone carries the change.
+  const { container } = renderGrid(
     emptyScopeValues(),
     jest.fn(),
     marked({ kind: 'new', nodeId: 'c1', by: 'ai' }),
   );
-  expect(container.querySelector('[data-canvas-mark]')).toHaveAttribute(
-    'data-canvas-mark',
-    'new',
-  );
-  unmount();
 
-  const moved = renderGrid(
+  expect(container.querySelector('[data-canvas-mark]')).toBeNull();
+});
+
+test('a mark is shown on a canvas at rest and takes no presses', () => {
+  const { container } = renderGrid(
     emptyScopeValues(),
     jest.fn(),
     marked({ kind: 'moved', nodeId: 'c1', by: 'user' }),
+    jest.fn(),
+    false,
   );
-  expect(
-    moved.container.querySelector('[data-canvas-mark]'),
-  ).not.toBeInTheDocument();
+
+  const mark = markOf(container, 'c1') as HTMLElement;
+  expect(mark).toBeVisible();
+  const slot = getComputedStyle(mark.parentElement as HTMLElement);
+  expect(slot.pointerEvents).toBe('none');
+  // Left of the remove button and the grip: 6 units each, a unit apart, 4 in
+  // from the right edge, plus a gap.
+  expect(slot.right).toBe('76px');
+});
+
+test('a title reserves no room for the handles while editing', () => {
+  // Titles used to shift right on entering a plan to clear the grip; the
+  // handles sit on their own backdrop over the row instead.
+  renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    { ...result, titles: { c1: 'Revenue' } },
+    jest.fn(),
+    true,
+  );
+
+  const row = screen.getByTestId('canvas-widget-title')
+    .parentElement as HTMLElement;
+  expect(['', '0px']).toContain(getComputedStyle(row).paddingLeft);
 });
 
 test('an unchanged canvas marks nothing', () => {
@@ -1288,173 +1328,74 @@ const renderContainers = (...args: Parameters<typeof containers>) =>
     true,
   );
 
-/** The box a node's content renders in, which its frame reads its mark from. */
+/** The box a node's content renders in. */
 const contentOf = (container: HTMLElement, nodeId: string) =>
   container.querySelector(
     `[data-node-id="${nodeId}"] > .canvas-interactive > .canvas-content`,
   ) as HTMLElement;
 
-/** What sits directly in a node's content box, marked or not. */
-const frameOf = (container: HTMLElement, nodeId: string) =>
-  contentOf(container, nodeId).firstElementChild as HTMLElement;
-
-test('a titled group wears its mark in its own title strip, not a row above it', () => {
-  // The group's title already fills the one row the server keeps for its
-  // chrome. A row of its own above that pushed the group's last row past the
-  // group's edge, where the group clips it.
+test('a titled group wears its mark over its box, not in its title strip', () => {
+  // The mark is the surface's: the group's own chrome knows nothing of it,
+  // and no row is added above the group for it either.
   const { container } = renderContainers([
     { kind: 'edited', nodeId: 'titled', by: 'ai' },
   ]);
-  const frame = frameOf(container, 'titled');
+  const content = contentOf(container, 'titled');
+  const mark = markOf(container, 'titled') as HTMLElement;
 
-  // Still read by the surface, which frames an edited widget.
-  expect(frame).toHaveAttribute('data-canvas-mark', 'edited');
-  // Nothing between the frame and the group: no row, and the group takes the
-  // whole cell.
-  expect(frame.children).toHaveLength(1);
-  expect(frame.firstElementChild?.tagName).toBe('SECTION');
-  expect(getComputedStyle(frame).height).toBe('100%');
-  expect(getComputedStyle(frame).display).not.toBe('flex');
-
-  const mark = screen.getByTestId('canvas-widget-mark');
-  const [strip] = within(frame).getAllByRole('heading');
-  expect(strip).toHaveTextContent('Key numbers');
-  expect(strip).toContainElement(mark);
   expect(mark).toHaveTextContent('Edited');
   expect(mark).toBeVisible();
-  // A long title gives way to the mark rather than the other way round.
-  expect(getComputedStyle(mark).flexShrink).toBe('0');
+  expect(content).not.toContainElement(mark);
+  expect(content.children).toHaveLength(1);
+  expect(content.firstElementChild?.tagName).toBe('SECTION');
+  const [strip] = within(content).getAllByRole('heading');
+  expect(strip).toHaveTextContent('Key numbers');
+  expect(strip).not.toContainElement(mark);
 });
 
-test('tabs wear their mark in the tab bar, not a row above it', () => {
+test('tabs wear their mark over their box, not in the tab bar', () => {
   const { container } = renderContainers([
     { kind: 'new', nodeId: 'tabbed', by: 'ai' },
   ]);
-  const frame = frameOf(container, 'tabbed');
+  const content = contentOf(container, 'tabbed');
+  const mark = markOf(container, 'tabbed') as HTMLElement;
 
-  expect(frame).toHaveAttribute('data-canvas-mark', 'new');
-  expect(frame.children).toHaveLength(1);
-  expect(frame.firstElementChild).toHaveClass('ant-tabs');
-
-  const mark = screen.getByTestId('canvas-widget-mark');
   expect(mark).toHaveTextContent('New');
-  expect(mark).toBeVisible();
-  // In the bar's own slot after the tabs, so the overflow menu stays left of
-  // it rather than under it.
-  const extra = frame.querySelector(
-    '.ant-tabs-nav > .ant-tabs-extra-content',
-  ) as HTMLElement;
-  expect(extra).toContainElement(mark);
-  expect(frame.querySelector('.ant-tabs-nav-operations')).not.toContainElement(
-    mark,
-  );
+  expect(content.children).toHaveLength(1);
+  expect(content.firstElementChild).toHaveClass('ant-tabs');
+  expect(content).not.toContainElement(mark);
+  expect(content.querySelector('.ant-tabs-extra-content')).toBeNull();
 });
 
-test('a marked container keeps its mark clear of its remove button', () => {
-  // The remove button is 8 units wide, 4 units in from the right edge, in the
-  // same strip as a group's title and a tab bar.
-  const { container } = renderContainers([
-    { kind: 'edited', nodeId: 'titled', by: 'ai' },
-    { kind: 'moved', nodeId: 'tabbed', by: 'user' },
-  ]);
-  const [groupMark, tabsMark] = screen.getAllByTestId('canvas-widget-mark');
-
-  expect(
-    getComputedStyle(
-      within(frameOf(container, 'titled')).getAllByRole('heading')[0],
-    ).paddingRight,
-  ).toBe('var(--canvas-controls-inset, 0px)');
-  expect(
-    getComputedStyle(tabsMark.parentElement as HTMLElement).marginRight,
-  ).toBe('var(--canvas-controls-inset, 0px)');
-  // Set while editing, when there are remove buttons to clear.
-  expect(
-    getComputedStyle(screen.getByTestId('canvas-grid')).getPropertyValue(
-      '--canvas-controls-inset',
-    ),
-  ).toBe('48px');
-  expect(groupMark).toHaveTextContent('Edited');
-  expect(tabsMark).toHaveTextContent('Moved');
-  // The remove buttons are there to be cleared.
-  expect(
-    container.querySelector(
-      '[data-node-id="titled"] > .canvas-interactive > [data-test="canvas-remove-handle"]',
-    ),
-  ).toBeInTheDocument();
-});
-
-test('an untitled group keeps its mark in a row of its own', () => {
-  // Without a title there is no strip for the mark to sit in, and overlaying
-  // it would land it on the controls of the group's first row of children.
+test('an untitled group takes no row for its mark', () => {
   const { container } = renderContainers([
     { kind: 'new', nodeId: 'bare', by: 'ai' },
   ]);
-  const frame = frameOf(container, 'bare');
-  const mark = screen.getByTestId('canvas-widget-mark');
+  const content = contentOf(container, 'bare');
 
-  expect(frame).toHaveAttribute('data-canvas-mark', 'new');
-  expect(frame.children).toHaveLength(2);
-  const [row, body] = Array.from(frame.children);
-  expect(row).toContainElement(mark);
-  expect(body.querySelector('section')).not.toBeNull();
-  expect(body).not.toContainElement(mark);
+  expect(markOf(container, 'bare')).toHaveTextContent('New');
+  expect(content.children).toHaveLength(1);
+  expect(content.firstElementChild?.tagName).toBe('SECTION');
 });
 
 test("a group's mark stays with that group, not the groups inside it", () => {
   const outer = renderContainers([
     { kind: 'edited', nodeId: 'titled', by: 'ai' },
   ]);
-  const outerFrame = frameOf(outer.container, 'titled');
 
   expect(screen.getAllByTestId('canvas-widget-mark')).toHaveLength(1);
-  expect(
-    within(contentOf(outer.container, 'inner')).queryByTestId(
-      'canvas-widget-mark',
-    ),
-  ).toBeNull();
-  expect(within(outerFrame).getAllByRole('heading')[0]).toContainElement(
-    screen.getByTestId('canvas-widget-mark'),
-  );
+  expect(markOf(outer.container, 'titled')).toBeDefined();
+  expect(markOf(outer.container, 'inner')).toBeUndefined();
   outer.unmount();
 
   const inner = renderContainers([{ kind: 'new', nodeId: 'inner', by: 'ai' }]);
-  const innerFrame = frameOf(inner.container, 'inner');
 
   expect(screen.getAllByTestId('canvas-widget-mark')).toHaveLength(1);
-  expect(innerFrame).toHaveAttribute('data-canvas-mark', 'new');
-  expect(innerFrame.children).toHaveLength(1);
-  expect(within(innerFrame).getAllByRole('heading')[0]).toContainElement(
-    screen.getByTestId('canvas-widget-mark'),
-  );
-  // And the group around it is not framed for it.
-  expect(frameOf(inner.container, 'titled')).not.toHaveAttribute(
-    'data-canvas-mark',
-  );
+  expect(markOf(inner.container, 'inner')).toHaveTextContent('New');
+  expect(markOf(inner.container, 'titled')).toBeUndefined();
 });
 
-test('a titled group at other metrics still takes no row for its mark', () => {
-  // The strip is one row of the grid, gap included -- here 24 + 8 -- and a
-  // row above it would cost more of that than the title leaves.
-  const { container } = renderContainers(
-    [{ kind: 'edited', nodeId: 'titled', by: 'ai' }],
-    { rowUnit: 24, gap: 8 },
-  );
-  const frame = frameOf(container, 'titled');
-  const [strip] = within(frame).getAllByRole('heading');
-
-  expect(frame.children).toHaveLength(1);
-  expect(strip).toContainElement(screen.getByTestId('canvas-widget-mark'));
-  expect(getComputedStyle(strip).height).toContain('var(--canvas-chrome-rows');
-  expect(
-    getComputedStyle(
-      container.querySelector(
-        '[data-test="canvas-grid-surface"]',
-      ) as HTMLElement,
-    ).getPropertyValue('--canvas-chrome-rows'),
-  ).toBe('32px');
-});
-
-test('a canvas at rest leaves its container titles no room for absent controls', () => {
+test('a canvas at rest shows the marks of its containers too', () => {
   const { container } = renderGrid(
     emptyScopeValues(),
     jest.fn(),
@@ -1463,20 +1404,15 @@ test('a canvas at rest leaves its container titles no room for absent controls',
     false,
   );
 
-  expect(screen.getByTestId('canvas-widget-mark')).toBeVisible();
-  expect(
-    getComputedStyle(screen.getByTestId('canvas-grid')).getPropertyValue(
-      '--canvas-controls-inset',
-    ),
-  ).toBe('');
+  expect(markOf(container, 'titled')).toBeVisible();
   expect(
     container.querySelector('[data-test="canvas-remove-handle"]'),
   ).toBeNull();
 });
 
-test("an extension's own group keeps its mark in a row of its own", () => {
-  // It replaces the built-in renderer and knows nothing of the mark, so the
-  // mark must not be handed to it to draw.
+test("an extension's own group is marked like the built-in one", () => {
+  // It replaces the built-in renderer and knows nothing of the mark, which
+  // is why the mark is never handed to a renderer to draw.
   const override = registerWidgetRenderer('group', ({ renderGrid }) => (
     <section aria-label="custom group">{renderGrid()}</section>
   ));
@@ -1484,17 +1420,33 @@ test("an extension's own group keeps its mark in a row of its own", () => {
     const { container } = renderContainers([
       { kind: 'moved', nodeId: 'titled', by: 'user' },
     ]);
-    const frame = frameOf(container, 'titled');
 
-    expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('Moved');
-    expect(frame.children).toHaveLength(2);
-    expect(frame.firstElementChild).toContainElement(
-      screen.getByTestId('canvas-widget-mark'),
-    );
+    expect(markOf(container, 'titled')).toHaveTextContent('Moved');
+    expect(contentOf(container, 'titled').children).toHaveLength(1);
   } finally {
     // Disposing removes the type outright rather than restoring the built-in,
     // so put it back for anything that runs after this.
     override.dispose();
     registerWidgetRenderer('group', BUILTIN_RENDERERS.group);
   }
+});
+
+test('a titled group at other metrics keeps its title in the row the server keeps', () => {
+  // The strip is one row of the grid, gap included -- here 24 + 8.
+  const { container } = renderContainers(
+    [{ kind: 'edited', nodeId: 'titled', by: 'ai' }],
+    { rowUnit: 24, gap: 8 },
+  );
+  const [strip] = within(contentOf(container, 'titled')).getAllByRole(
+    'heading',
+  );
+
+  expect(getComputedStyle(strip).height).toContain('var(--canvas-chrome-rows');
+  expect(
+    getComputedStyle(
+      container.querySelector(
+        '[data-test="canvas-grid-surface"]',
+      ) as HTMLElement,
+    ).getPropertyValue('--canvas-chrome-rows'),
+  ).toBe('32px');
 });

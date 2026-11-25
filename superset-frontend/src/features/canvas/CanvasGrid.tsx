@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, ReactNode, useContext, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import type {
   CanvasChild,
   CanvasColors,
@@ -26,13 +26,12 @@ import type {
 } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { Tag } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
-import CanvasGridSurface, { CLEAR_OF_REMOVE_UNITS } from './CanvasGridSurface';
+import CanvasGridSurface from './CanvasGridSurface';
 import type { CanvasLayout } from './useCanvasLayout';
 import { CanvasDefinitionResult, DraftChange } from './types';
-import { MARKS, OUTLINED } from './changeMarks';
+import { CONTENT } from './changeMarks';
 import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 import { CanvasDragProvider } from './useCanvasDrag';
 import { useCanvasLogger } from './useCanvasLogger';
@@ -102,42 +101,7 @@ function eventsByNode(
   return byNode;
 }
 
-/**
- * The change mark of the container being rendered, for a container that draws
- * a title strip of its own to show in that strip; see `CanvasMarkHost`. Null
- * for every other widget, so a container's mark never reaches the containers
- * inside it.
- */
-const CanvasMarkContext = createContext<ReactNode>(null);
-
-/** The change mark this container shows in its own title strip, if any. */
-export const useCanvasMark = (): ReactNode => useContext(CanvasMarkContext);
-
-/**
- * A renderer that draws a title strip of its own for its change mark to sit
- * in says so, for the props it is given; see `useCanvasMark`.
- *
- * That strip is exactly the row the server keeps for the container's chrome,
- * and a container clips, so a row of the mark's own above it would push the
- * container's last row out of its box. Asking the renderer rather than the
- * widget type keeps an extension's replacement for a built-in container, which
- * cannot know about the mark, on the row of its own.
- */
-export type CanvasMarkHost = {
-  hostsMark?: (props: Record<string, unknown> | undefined) => boolean;
-};
-
-/**
- * Room a container leaves at the right of a strip it shares with its remove
- * button, set only while editing, when there is one.
- */
-const GridRoot = styled.div<{ $editable: boolean }>`
-  ${({ theme, $editable }) =>
-    $editable &&
-    css`
-      --canvas-controls-inset: ${theme.sizeUnit * CLEAR_OF_REMOVE_UNITS}px;
-    `}
-`;
+const GridRoot = styled.div``;
 
 const Stack = styled.div`
   ${({ theme }) => css`
@@ -147,21 +111,7 @@ const Stack = styled.div`
   `}
 `;
 
-/** Never squeezed by a long title, and no taller than the row it sits in. */
-const Mark = styled(Tag)`
-  ${({ theme }) => css`
-    flex: none;
-    margin: 0;
-    line-height: ${theme.sizeUnit * 5}px;
-  `}
-`;
-
-/**
- * A widget's title row above its content. A content change marks it with
- * `data-canvas-mark`, which the surface draws as the widget's frame (see
- * `Interactive`): out in the gap, so it never sits on the content, and
- * outside the content box, which scrolls and would clip it.
- */
+/** A widget's title row above its content. */
 const Titled = styled.div`
   ${({ theme }) => css`
     height: 100%;
@@ -179,60 +129,29 @@ const ALIGNMENT = {
 } as const;
 
 /**
- * The title row: the widget's name, and what just happened to it.
+ * The title row: the widget's name, the height of the handle strip the
+ * surface floats over it (`sizeUnit * 8`, see `Grip`), so the name and the
+ * handles sit on one line. It reserves no room for them: the handles and the
+ * change mark are the surface's, drawn over the widget on their own backdrop,
+ * so a canvas at rest and a plan line their titles up the same way.
  *
- * The same strip the handles occupy, and the same height as them
- * (`sizeUnit * 8`, see `Grip`), so the name, the tag, the grip, the remove
- * button and the menu all sit on one line. Left to its content height the row
- * hugged the widget's top edge and the text read as sitting on the border
- * rather than inside it.
- *
- * The clearances are the row's rather than the title's, because the handles
- * float over the row as a whole: an unnamed widget's tag would otherwise
- * start under the grip, and a long name would push the tag under the remove
- * button.
- *
- * The alignment is the row's rather than the text's for the same reason: the
- * name and the tag beside it read as one thing, and centring the text inside
- * its own box would leave the tag stranded at the far edge of the widget.
+ * The alignment is the row's rather than the text's, as `display.titleAlign`
+ * asks.
  */
-const TitleRow = styled.div<{
-  $align: 'left' | 'center' | 'right';
-  $inset: boolean;
-}>`
-  ${({ theme, $align, $inset }) => css`
+const TitleRow = styled.div<{ $align: 'left' | 'center' | 'right' }>`
+  ${({ theme, $align }) => css`
     display: flex;
     align-items: center;
     justify-content: ${ALIGNMENT[$align]};
     gap: ${theme.sizeUnit * 2}px;
     min-width: 0;
     min-height: ${theme.sizeUnit * 8}px;
-    /* Only while editing, when there are handles to clear; a canvas at rest
-       lines its titles up with the content under them. */
-    ${
-      $inset &&
-      css`
-        /* Clear of the grip, wherever the surface put it. */
-        padding-left: var(--canvas-title-inset, ${theme.sizeUnit * 12}px);
-        /* Clear of the remove button; the menu is hidden while editing. */
-        padding-right: ${theme.sizeUnit * CLEAR_OF_REMOVE_UNITS}px;
-      `
-    }
   `}
 `;
 
-/**
- * A widget's name, in the strip its handles share.
- *
- * The grip sits at the top left and the remove button and menu at the top
- * right, all absolutely positioned over this row, so the title is inset past
- * both rather than running under them. Horizontal room rather than a band of
- * its own: a tile is short, and a reserved strip above every title would cost
- * more of it than the handles do.
- */
+/** A widget's name, cut short rather than wrapped onto a second line. */
 const WidgetTitle = styled.div`
   ${({ theme }) => css`
-    /* Shrinks so the tag beside it is never the thing that gets cut. */
     min-width: 0;
     overflow: hidden;
     color: ${theme.colorTextHeading};
@@ -247,15 +166,6 @@ const WidgetTitle = styled.div`
 const TitledBody = styled.div`
   flex: 1;
   min-height: 0;
-`;
-
-/**
- * A container whose mark sits in its own chrome: the whole cell, with no row
- * above it. Still the content box's child, where the surface reads the mark
- * to frame the widget (see `Interactive`).
- */
-const MarkedInChrome = styled.div`
-  height: 100%;
 `;
 
 const Placeholder = styled.div`
@@ -436,7 +346,7 @@ export default function CanvasGrid({
     const found: Record<string, DraftChange['kind']> = {};
     (changes ?? []).forEach(({ nodeId, kind }) => {
       const held = found[nodeId];
-      if (held && (OUTLINED.has(held) || !OUTLINED.has(kind))) return;
+      if (held && (CONTENT.has(held) || !CONTENT.has(kind))) return;
       found[nodeId] = kind;
     });
     return found;
@@ -492,6 +402,7 @@ export default function CanvasGrid({
       onMove={move}
       onRemove={remove}
       renderNode={render}
+      marks={marks}
       depth={depth}
     />
   );
@@ -611,41 +522,17 @@ export default function CanvasGrid({
         />
       </ErrorBoundary>
     );
-    const mark = marks[nodeId];
-    const tag = mark && mark !== 'removed' && (
-      <Mark color={MARKS[mark].color} data-test="canvas-widget-mark">
-        {MARKS[mark].label()}
-      </Mark>
-    );
-    const frame = mark && OUTLINED.has(mark) ? mark : undefined;
-    const inChrome =
-      Boolean(mark) &&
-      !title &&
-      Boolean(
-        (Renderer as CanvasMarkHost).hostsMark?.(contentOf(nodeId)?.props),
-      );
-    // Every widget sets it, so a container's mark stops at its own chrome.
-    const body = (
-      <CanvasMarkContext.Provider value={inChrome ? tag : null}>
-        {widget}
-      </CanvasMarkContext.Provider>
-    );
-    if (inChrome) {
-      return <MarkedInChrome data-canvas-mark={frame}>{body}</MarkedInChrome>;
-    }
-    // A widget with neither a name nor a change has no row to draw.
-    if (!title && !mark) return body;
+    // The change mark is the surface's, drawn over the widget beside its
+    // handles; see `CanvasGridSurface`.
+    if (!title) return widget;
     return (
-      <Titled data-canvas-mark={frame}>
-        <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
-          {title && (
-            <WidgetTitle title={title} data-test="canvas-widget-title">
-              {title}
-            </WidgetTitle>
-          )}
-          {tag}
+      <Titled>
+        <TitleRow $align={display.titleAlign ?? 'left'}>
+          <WidgetTitle title={title} data-test="canvas-widget-title">
+            {title}
+          </WidgetTitle>
         </TitleRow>
-        <TitledBody>{body}</TitledBody>
+        <TitledBody>{widget}</TitledBody>
       </Titled>
     );
   }
@@ -656,7 +543,7 @@ export default function CanvasGrid({
           its container is a conversation between two of them. */}
       <CanvasDragProvider>
         <CanvasVersionContext.Provider value={versionUuid}>
-          <GridRoot data-test="canvas-grid" $editable={editable}>
+          <GridRoot data-test="canvas-grid">
             {renderGrid(
               ROOT_NODE_ID,
               orderOf(ROOT_NODE_ID, definition.root.children),

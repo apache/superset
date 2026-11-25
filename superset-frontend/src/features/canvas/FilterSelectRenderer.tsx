@@ -21,7 +21,7 @@ import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
-import { Select, Typography } from '@superset-ui/core/components';
+import { Select } from '@superset-ui/core/components';
 import type { SelectFilterValue } from './echarts/chartData';
 import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
@@ -139,7 +139,6 @@ function FilterSelect({
 
   return (
     <Wrapper>
-      <Typography.Text strong>{column || t('Filter')}</Typography.Text>
       <Select
         ariaLabel={column || t('Filter')}
         mode="multiple"

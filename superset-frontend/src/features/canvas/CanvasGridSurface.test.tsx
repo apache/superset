@@ -725,56 +725,60 @@ test('an abandoned gesture lets the shared drag state go too', () => {
   expect(screen.getByTestId('drag-probe')).toHaveTextContent('false');
 });
 
-const gripTop = () => getComputedStyle(handles('Move widget')[0]).top;
+const gripStyle = () => getComputedStyle(handles('Move widget')[0]);
+const removeStyle = () =>
+  getComputedStyle(screen.getAllByRole('button', { name: 'Remove widget' })[0]);
 
-test("a root grid's grip sits in the widget's top left", () => {
-  // The grip and the north-west resize corner share that corner, so the grip
-  // clears the corner's 4 units and matches its `top: 0`. Its own box stays a
-  // `sizeUnit * 8` square, the same as the controls on the other side, so the
-  // two sides read as one row across the top of the widget.
+test("a root grid's handles cluster in the widget's top right", () => {
+  // Centred on the title row (8 units) and 6 units square: the remove button
+  // 4 units in from the right edge, the grip a unit left of it. Nothing of
+  // the widget's is up there while editing, and the title on the left is
+  // never under either.
   renderSurface();
-  const grip = getComputedStyle(handles('Move widget')[0]);
 
-  expect(grip.top).toBe('0px');
-  expect(grip.left).toBe('16px');
-  expect(grip.height).toBe('32px');
-  expect(grip.width).toBe('32px');
+  expect(removeStyle().top).toBe('4px');
+  expect(removeStyle().right).toBe('16px');
+  expect(removeStyle().width).toBe('24px');
+  expect(removeStyle().height).toBe('24px');
+  expect(gripStyle().top).toBe('4px');
+  expect(gripStyle().right).toBe('44px');
+  expect(gripStyle().width).toBe('24px');
+  expect(gripStyle().height).toBe('24px');
 });
 
-/** Nested, and sitting right where the container's own grip is. */
+/** Nested, and sitting right where the container's own handles are. */
 const underContainerHandles = {
   live: { wide: { col: 1, row: 1, colSpan: 24, rowSpan: 4 } },
   childIds: ['wide'],
   depth: 1,
 };
 
-const gripLeft = () => getComputedStyle(handles('Move widget')[0]).left;
-
-test("a nested grid moves its grip clear of its container's", () => {
-  // A container's box begins where its first row of children does and its
-  // grip paints last, so sharing the top-left spot would let the container's
-  // grip swallow clicks meant for the child's. The child's grip moves right of
-  // it rather than down, so the handles stay one row level with the title.
+test("a nested grid moves its handles clear of its container's", () => {
+  // A container's box ends where its first row's last child does and its
+  // handles paint last, so sharing the top-right spot would let them swallow
+  // clicks meant for the child's. The child's cluster moves one cluster's
+  // width left of it rather than down, so the handles stay level with the
+  // title.
   renderSurface(underContainerHandles);
 
-  expect(gripTop()).toBe('0px');
-  expect(gripLeft()).toBe('48px');
+  expect(gripStyle().top).toBe('4px');
+  expect(removeStyle().right).toBe('72px');
+  expect(gripStyle().right).toBe('100px');
 });
 
-test('a nested widget clear of that grip keeps its own at the top', () => {
-  // Further along the row, so nothing of the container's is up there to
-  // clear. Stepping down anyway strands the handles in the middle of the
-  // widget -- which is what a nested KPI tile looked like.
+test('a nested widget clear of that corner keeps its handles in its own', () => {
+  // Short of the container's last column, so nothing of the container's is
+  // up there to clear.
   renderSurface({
     live: { beside: { col: 7, row: 1, colSpan: 6, rowSpan: 4 } },
     childIds: ['beside'],
     depth: 1,
   });
 
-  expect(gripTop()).toBe('0px');
+  expect(gripStyle().right).toBe('44px');
 });
 
-test('a nested widget below the first row keeps its handles at the top', () => {
+test('a nested widget below the first row keeps its handles in its corner', () => {
   // The container's handles are at the top of its box; a child further down
   // is nowhere near them, however wide it is.
   renderSurface({
@@ -783,21 +787,21 @@ test('a nested widget below the first row keeps its handles at the top', () => {
     depth: 1,
   });
 
-  expect(gripTop()).toBe('0px');
+  expect(gripStyle().right).toBe('44px');
 });
 
 test('a nested handle stays inside a short widget', () => {
-  // A one-row widget renders 40px tall. Stepping the grip down would put it
-  // over the widget below, where it would take presses meant for that one;
-  // stepping it right keeps it on the widget's top edge.
+  // A one-row widget renders 40px tall. Stepping the handles down would put
+  // them over the widget below, where they would take presses meant for that
+  // one; stepping them left keeps them on the widget's top edge.
   renderSurface({
     live: { short: { col: 1, row: 1, colSpan: 24, rowSpan: 1 } },
     childIds: ['short'],
     depth: 1,
   });
 
-  expect(gripTop()).toBe('0px');
-  expect(gripLeft()).toBe('48px');
+  expect(gripStyle().top).toBe('4px');
+  expect(gripStyle().right).toBe('100px');
 });
 
 test('a hidden handle does not take presses', () => {
@@ -2268,33 +2272,33 @@ test('a move still carries the widget rather than re-placing it', () => {
  * The corner case the rule exists for: the one child whose top-right would
  * land on its container's own handles.
  */
-const UNDER_THE_GRIP = { row: 1, col: 1 };
+const UNDER_THE_HANDLES = { row: 1, col: 19, colSpan: 6 };
+const COLUMNS = 24;
 
-test('the child under a bare container’s grip steps clear of it', () => {
+test('the child under a bare container’s handles steps clear of them', () => {
   // A container with nothing of its own above its grid starts where this
-  // child starts, so the two grips would sit on the same spot.
-  expect(stepsAside(1, UNDER_THE_GRIP)).toBe(true);
+  // child starts and ends where it ends, so the two clusters would sit on
+  // the same spot.
+  expect(stepsAside(1, UNDER_THE_HANDLES, COLUMNS)).toBe(true);
 });
 
-test('a child of a titled container keeps its handles at the top', () => {
-  // The title holds that strip, so the container's grip is already clear of
-  // the grid and stepping the child down only strands its own grip in the
-  // middle of the widget.
-  expect(stepsAside(1, UNDER_THE_GRIP, true)).toBe(false);
+test('a child of a titled container keeps its handles in its corner', () => {
+  // The title holds that strip, so the container's handles are already clear
+  // of the grid and stepping the child only strands its own.
+  expect(stepsAside(1, UNDER_THE_HANDLES, COLUMNS, true)).toBe(false);
 });
 
-test('only the child in the top left steps aside', () => {
-  // Further along the row, or below the first row, there is nothing above to
-  // collide with. The right-hand controls are not a container's, so a child
-  // at the far edge has nothing to clear either.
-  expect(stepsAside(1, { row: 1, col: 2 })).toBe(false);
-  expect(stepsAside(1, { row: 1, col: 19 })).toBe(false);
-  expect(stepsAside(1, { row: 2, col: 1 })).toBe(false);
+test('only the child in the top right steps aside', () => {
+  // Short of the last column, or below the first row, there is nothing above
+  // to collide with.
+  expect(stepsAside(1, { row: 1, col: 1, colSpan: 6 }, COLUMNS)).toBe(false);
+  expect(stepsAside(1, { row: 1, col: 13, colSpan: 6 }, COLUMNS)).toBe(false);
+  expect(stepsAside(1, { row: 2, col: 19, colSpan: 6 }, COLUMNS)).toBe(false);
 });
 
 test('a widget on the root grid never steps aside', () => {
-  // Nothing contains it, so there is no grip above it to clear.
-  expect(stepsAside(0, { row: 1, col: 1 })).toBe(false);
+  // Nothing contains it, so there are no handles above it to clear.
+  expect(stepsAside(0, UNDER_THE_HANDLES, COLUMNS)).toBe(false);
 });
 
 test('a widget can be taken off the canvas', () => {

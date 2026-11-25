@@ -204,8 +204,8 @@ class FilterSelect(Widget):
     # Not filterable: its options are the column's distinct values, which other
     # filters don't narrow.
     behavior = WidgetBehavior(filter=True)
-    # Labeled with its column.
-    ui = WidgetUi(default_size=(6, 2), show_title=False)
+    # Titled by its name, in the same row as every other widget's.
+    ui = WidgetUi(default_size=(6, 2))
 
     # The most datasets the dataset picker lists, by name.
     MAX_DATASET_CHOICES: ClassVar[int] = 500

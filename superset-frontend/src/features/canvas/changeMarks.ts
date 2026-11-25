@@ -27,8 +27,8 @@
  * Colour carries the kind of change, and every kind has its own:
  *
  * - **New** and **Edited** changed what a widget shows. They take the status
- *   colours and outline the widget as well, because "the numbers changed" is
- *   the news a reader must not miss.
+ *   colours, because "the numbers changed" is the news a reader must not
+ *   miss, and they outrank a layout change on the same widget.
  * - **Moved** and **Resized** changed only where a widget sits. They take
  *   plain hues rather than status ones -- nothing has gone right or wrong, so
  *   green and red would overstate them -- but they are still told apart at a
@@ -53,5 +53,5 @@ export const MARKS: Record<
   removed: { label: () => t('Removed'), color: 'error' },
 };
 
-/** Content changed, so the widget itself is outlined, not only tagged. */
-export const OUTLINED = new Set<DraftChange['kind']>(['new', 'edited']);
+/** Content changed, which outranks a layout change on the same widget. */
+export const CONTENT = new Set<DraftChange['kind']>(['new', 'edited']);
