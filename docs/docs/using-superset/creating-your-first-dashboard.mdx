@@ -632,7 +632,7 @@ outside that scope.
 Dashboards can be configured to refresh automatically at a fixed interval without user interaction. Open a dashboard, click the **⋮** (more options) menu in the top-right, and select **Set auto-refresh interval**. Choose an interval (e.g., every 10 seconds, 1 minute, or 10 minutes). The setting is per-session and resets when you close the tab.
 
 :::note
-Auto-refresh triggers a full data reload for all charts on the dashboard. For dashboards with expensive queries, choose longer intervals to avoid overloading your database.
+Auto-refresh triggers a full data reload for all charts on the dashboard and re-fetches native filter options while preserving your filter selections. For dashboards with expensive queries, choose longer intervals to avoid overloading your database.
 :::
 
 ### Last Queried Timestamp
