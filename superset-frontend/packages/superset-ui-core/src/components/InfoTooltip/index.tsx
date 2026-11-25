@@ -97,7 +97,6 @@ export const InfoTooltip = ({
           &&&:active {
             box-shadow: none;
             background: none;
-            outline: none;
             color: ${theme.colorTextTertiary};
           }
           ${onClick ? 'cursor: pointer;' : ''}

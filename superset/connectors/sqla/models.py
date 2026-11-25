@@ -25,7 +25,7 @@ from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cache
-from typing import Any, Callable, cast, Optional, Union
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
@@ -73,13 +73,17 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    contains_jinja,
     declares_array_type,
+    epoch_mapping_refusal,
     equality_mirrors_safely,
-    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
     known_mirror_verdict,
     mirrorable_operators,
+    MirrorVerdictScope,
+    partition_mapping_supported,
+    raw_instant_refusal,
     resolve_partition_mapping,
     value_round_trips,
 )
@@ -96,6 +100,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetGenericDBErrorException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
@@ -110,6 +115,7 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import (
+    _is_temporal_column,
     AuditMixinNullable,
     CertificationMixin,
     ExploreMixin,
@@ -145,6 +151,9 @@ from superset.utils.sqlalchemy_events import (
     register_delete_listener,
 )
 
+if TYPE_CHECKING:
+    from superset.utils.rls import RLSSchema
+
 config = current_app.config  # Backward compatibility for tests
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -164,6 +173,19 @@ class MetadataResult:
     added: list[str] = field(default_factory=list)
     removed: list[str] = field(default_factory=list)
     modified: list[str] = field(default_factory=list)
+
+
+def _default_unset_column_flags(column: TableColumn) -> None:
+    """Default *column*'s ``groupby`` and ``filterable`` flags when unset.
+
+    A column sync runs this on every column the source reports. A newly
+    discovered column, or a legacy row whose flags were never written,
+    gets both enabled; a flag the dataset owner turned off stays off.
+    """
+    if column.groupby is None:
+        column.groupby = True
+    if column.filterable is None:
+        column.filterable = True
 
 
 def _is_calculated_column(column: TableColumn) -> bool:
@@ -311,6 +333,42 @@ def _physical_display_column(reference: dict[str, Any]) -> str | None:
         and reference.get("sqlExpression") == label
     ):
         return label
+    return None
+
+
+def _column_param_name(column_: Any) -> str | None:
+    """Return the column name a ``COLUMN_FORM_DATA_PARAMS`` entry refers to.
+
+    Entries are not uniformly shaped. Most params hold plain column names or
+    adhoc-column dicts, but ``order_by_cols`` holds ``[column, ascending]``
+    pairs -- canonically JSON *strings* (``'["col", false]'``), though older
+    writers persisted them as real lists. A raw list reaching ``set.update()``
+    raises ``TypeError: unhashable type: 'list'`` and 500s
+    ``GET /api/v1/dashboard/<id>/datasets``, which leaves the whole dashboard
+    without datasource metadata. Mirror the tolerance that
+    ``superset.common.form_data_query_context`` already applies: accept the
+    pair in either encoding and take the column half, which may itself be an
+    adhoc column. A string that is not valid JSON is a plain column name
+    (bracketed names such as ``[Revenue]`` are legal). Any other shape yields
+    ``None`` and is skipped rather than crashing the request.
+    """
+    if utils.is_adhoc_column(column_):
+        return utils.get_column_name(column_)
+    if isinstance(column_, str):
+        # A JSON-encoded ``[column, ascending]`` pair, or a plain column name.
+        if column_.startswith("["):
+            try:
+                parsed = json.loads(column_)
+            except (TypeError, ValueError):
+                return column_
+            return (
+                _column_param_name(parsed[0])
+                if parsed and isinstance(parsed, list)
+                else None
+            )
+        return column_
+    if isinstance(column_, (list, tuple)):
+        return _column_param_name(column_[0]) if column_ else None
     return None
 
 
@@ -918,13 +976,10 @@ class BaseDatasource(
                 column_names.update(query_context_column_names)
             else:
                 _columns = [
-                    (
-                        utils.get_column_name(column_)
-                        if utils.is_adhoc_column(column_)
-                        else column_
-                    )
+                    name
                     for column_param in COLUMN_FORM_DATA_PARAMS
                     for column_ in utils.as_list(form_data.get(column_param) or [])
+                    if (name := _column_param_name(column_)) is not None
                 ]
                 column_names.update(_columns)
 
@@ -1420,7 +1475,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
         Historically a TableColumn object (from an ORM perspective) was tightly bound to
         a SqlaTable object, however with the introduction of the Query datasource this
-        is no longer true, i.e., the SqlaTable relationship is optional.
+        is no longer true, i.e., the SqlaTable relationship is optional. Tableless
+        Query columns retain exact result-set names, just like virtual dataset columns.
 
         Now the TableColumn is either directly associated with the Database object (
         which is unknown to the ORM) or indirectly via the SqlaTable object (courtesy of
@@ -1579,11 +1635,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             # surrounding operator precedence (e.g. COUNT(DISTINCT ...)).
             col = Grouping(literal_column(expression, type_=type_))
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            col = column(identifier, type_=type_)
         col = self.database.make_sqla_column_compatible(col, label)
         return col
 
@@ -1617,11 +1675,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            sqla_col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            sqla_col = column(identifier, type_=type_)
             return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
             if template_processor:
@@ -1662,11 +1722,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            col = column(identifier, type_=type_)
         if (
             apply_dataset_offset
             and time_grain
@@ -2259,6 +2321,19 @@ class SqlaTable(
         return self.partition_filter_mapping_summary
 
     @property
+    def supports_partition_filter_mapping(self) -> bool:
+        """
+        Whether the editor should offer partition filter mapping for this dataset.
+
+        A structural property of the engine, not of the dataset: mirroring a
+        filter onto a partition column only prunes work on engines whose tables
+        are laid out as partition directories (Hive-family). The editor reads it
+        off the dataset payload so the dropdown never appears on an engine where
+        the concept does not exist.
+        """
+        return self.db_engine_spec.supports_partition_filter_mapping
+
+    @property
     def partition_filter_mapping_summary(self) -> dict[str, Any] | None:
         """
         Self-contained summary of the mapping for the Explore indicator.
@@ -2285,23 +2360,30 @@ class SqlaTable(
         type bail-out is not part of that verdict, so it is checked here as
         `resolve_partition_mapping` checks it.
 
-        Gated on the feature flag for the same reason `resolve_partition_mapping`
-        is: with the flag off nothing is mirrored, so reporting an active mapping
-        would have the Explore indicator promise a predicate the query never
-        carries.
+        Gated by `partition_mapping_supported`, the same check
+        `resolve_partition_mapping` makes: with the flag off, or on an engine
+        that does not support partition filter mapping, nothing is mirrored, so
+        reporting an active mapping would have the Explore indicator promise a
+        predicate the query never carries.
         """
-        if not self.partition_column or not is_feature_enabled(
-            PARTITION_FILTER_MAPPING_FLAG
-        ):
+        if not self.partition_column or not partition_mapping_supported(self):
             return None
 
         columns_by_name = {column.column_name: column for column in self.columns}
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
         transform = mapped_column.partition_value_transform if mapped_column else None
+        partition_column = columns_by_name.get(self.partition_column)
+        safety_refusal = epoch_mapping_refusal(
+            self, mapped_column_name, self.partition_column, transform
+        ) or raw_instant_refusal(
+            self, mapped_column_name, self.partition_column, transform, probe=False
+        )
         active = bool(
-            self.partition_column in columns_by_name
-            and not declares_array_type(columns_by_name[self.partition_column].type)
+            not safety_refusal
+            and partition_column is not None
+            and not declares_array_type(partition_column.type)
+            and not contains_jinja(partition_column.expression)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
             and is_transform_active(transform, self.database.backend)
@@ -2310,24 +2392,27 @@ class SqlaTable(
         is_monotonic = bool(
             mapped_column is not None and mapped_column.partition_transform_is_monotonic
         )
+        evaluable = (
+            known_mirror_verdict(
+                MirrorVerdictScope(self, mapped_column_name, self.partition_column),
+                transform,
+            )
+            if active and transform
+            else None
+        )
         return {
             "partition_column": self.partition_column,
             "mapped_column": mapped_column_name,
             "active": active,
-            # Whether the last probe of this transform produced a mirror.
+            "safety_refusal": safety_refusal,
+            # Whether the last chart or preview of this mapping produced a mirror.
             # `active` is the save path's own verdict and deliberately stays
             # that -- a parse, which a misspelled function clears happily -- so
             # a second, weaker claim carries what only the engine can answer.
             # `None` means nothing has probed yet, which is honest on a cold
             # cache and is not `False`: reporting a working mapping as broken
             # until a chart runs trades one wrong claim for another.
-            "evaluable": (
-                known_mirror_verdict(
-                    self.database, self.catalog, self.schema, transform
-                )
-                if active and transform
-                else None
-            ),
+            "evaluable": evaluable,
             # The transform `evaluable` above is a verdict *about*. The dataset
             # editor applies a stored refusal only while the expression in the
             # box still is this one -- without it, reopening a dataset whose
@@ -2344,6 +2429,12 @@ class SqlaTable(
             # helper the query path uses, for the same reason
             # `mirrorable_operators` is.
             "literal_resolution": self._column_literal_resolution(mapped_column).value,
+            # Whether the engine compares the mapped column as a date or
+            # timestamp. There a string the server cannot read as ISO 8601 is
+            # declined at every resolution -- the instant is what is probed, and
+            # it has none -- which `literal_resolution` alone cannot tell the
+            # glyph: a TIMESTAMP and a VARCHAR both compare the full value.
+            "mapped_column_is_temporal": _is_temporal_column(mapped_column),
             # Which characters this database's driver and engine would not
             # spell the same way, for the same reason and read by the same
             # glyph: a filter value carrying one is declined by the query path
@@ -2359,6 +2450,11 @@ class SqlaTable(
                 for character in ("'", "\\")
                 if not value_round_trips(self.database, f"a{character}b")
             ],
+            # What the glyph and the time range control promise, so empty until
+            # the engine has confirmed the mapping. `evaluable` keeps saying
+            # whether it was refused or just not asked yet, but this is the field
+            # every promise reads, and a probe on this path would put a warehouse
+            # round trip on every Explore and dashboard load.
             "mirrorable_operators": sorted(
                 operator.value
                 for operator in mirrorable_operators(
@@ -2370,7 +2466,9 @@ class SqlaTable(
                         mapped_column, self.database.db_engine_spec
                     ),
                 )
-            ),
+            )
+            if evaluable is True
+            else [],
         }
 
     @property
@@ -2498,8 +2596,7 @@ class SqlaTable(
             else:
                 sqla_column = column(
                     self.db_engine_spec.prepare_identifier(
-                        column_name,
-                        normalize_columns=bool(self.normalize_columns),
+                        column_name, exact_case=self.is_virtual
                     )
                 )
 
@@ -2595,6 +2692,38 @@ class SqlaTable(
             sqla_column,
             effective_offset_hours,
         )
+
+    def _probe_adhoc_column(
+        self, sql: str, sql_expression: str
+    ) -> list[ResultSetColumnType]:
+        """
+        Run the zero-row type probe for an adhoc column.
+
+        A database error here is typically a user-authored expression the
+        database rejects (unknown column, or a function this engine doesn't
+        support). Point at the expression instead of surfacing a bare driver
+        error, and flag it as a warning rather than an unexpected error.
+        """
+        try:
+            return get_columns_description(
+                self.database,
+                self.catalog,
+                self.schema or None,
+                sql,
+            )
+        except SupersetGenericDBErrorException as ex:
+            raise SupersetGenericDBErrorException(
+                message=_(
+                    "The custom SQL expression %(expression)s could not be "
+                    "run against this dataset's database: %(error)s. Check "
+                    "that it only uses columns and functions this database "
+                    "supports.",
+                    expression=sql_expression,
+                    error=ex.error.message,
+                ),
+                level=ErrorLevel.WARNING,
+                extra=ex.error.extra,
+            ) from ex
 
     def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
@@ -2692,12 +2821,7 @@ class SqlaTable(
                 # SupersetGenericDBErrorException from get_columns_description and
                 # is allowed to propagate unchanged; only a genuine empty result
                 # (the column truly isn't there) is a ColumnNotFoundException.
-                col_desc = get_columns_description(
-                    self.database,
-                    self.catalog,
-                    self.schema or None,
-                    sql,
-                )
+                col_desc = self._probe_adhoc_column(sql, sql_expression)
                 if not col_desc:
                     raise ColumnNotFoundException(message="Column not found")
                 is_dttm = col_desc[0]["is_dttm"]  # type: ignore
@@ -2901,8 +3025,7 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
-            new_column.groupby = True
-            new_column.filterable = True
+            _default_unset_column_flags(new_column)
             columns.append(new_column)
             # Never the partition column. It is a technical column -- an epoch
             # integer, a lowercased region key -- that no analyst filters on,
@@ -3278,7 +3401,7 @@ class SqlaTable(
         self,
         *,
         resolve_catalog: Callable[[], str | None] | None = None,
-        resolve_schema: Callable[[], str] | None = None,
+        resolve_schema: Callable[[], RLSSchema] | None = None,
     ) -> list[str]:
         """Key caches on table-bound inner RLS, with viewer isolation on failure."""
         from superset.utils.rls import collect_rls_predicates_for_sql

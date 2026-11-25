@@ -45,7 +45,7 @@ from superset.commands.dataset.importers.v1.utils import (
     import_dataset,
     validate_data_uri,
 )
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError, ImportFailedError
 from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.datasets.schemas import ImportV1ColumnSchema, ImportV1DatasetSchema
@@ -2314,7 +2314,7 @@ def test_import_dataset_without_editor_permission(
     )
 
     with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dataset(config, overwrite=True)
 
         assert (
@@ -2512,7 +2512,7 @@ def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_editor(
     )
 
     with override_user(non_editor):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dataset(config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)
     mock_is_editor.assert_called_once_with(existing)
@@ -2564,7 +2564,7 @@ def test_import_soft_deleted_dataset_raises_when_caller_lacks_can_write(
     db.session.add(existing)
     db.session.flush()
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_dataset(config, overwrite=False)
     assert "can_write" in str(excinfo.value)
     # Case B contract: deleted_at must remain set after the exception. A
@@ -3146,7 +3146,7 @@ def test_import_dataset_identity_collision_requires_overwrite_permission(
     }
 
     with override_user(importer_user):
-        with pytest.raises(ImportFailedError) as excinfo:
+        with pytest.raises(ForbiddenError) as excinfo:
             import_dataset(copy.deepcopy(config), overwrite=True)
     assert "overwrite" in str(excinfo.value).lower()
 

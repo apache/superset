@@ -138,7 +138,7 @@ test('should render activation success page when activationHash is present', () 
   expect(screen.getByText('Registration successful')).toBeInTheDocument();
   expect(
     screen.getByText(
-      'Your account is activated. You can log in with your credentials.',
+      'Your account is activated. You can sign in with your credentials.',
     ),
   ).toBeInTheDocument();
   expect(screen.getByTestId('login-button')).toBeInTheDocument();
@@ -148,6 +148,14 @@ test('should not render registration form on activation page', () => {
   renderActivated();
   expect(screen.queryByTestId('username-input')).not.toBeInTheDocument();
   expect(screen.queryByTestId('register-button')).not.toBeInTheDocument();
+});
+
+test('should show a "Sign in" link to the login route after activation', () => {
+  renderActivated();
+  expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
+    'href',
+    '/login/',
+  );
 });
 
 test('should call ensureAppRoot for login link on activation page', () => {

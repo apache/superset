@@ -83,6 +83,14 @@ for your target database.
 Click the **Test Connection** button to confirm things work end to end. If the connection looks good, save the configuration
 by clicking the **Connect** button in the bottom right corner of the modal window:
 
+Closing the connection window starts a fresh session the next time you add a database.
+A pending save may still complete on the server and refresh the database list, but
+its response does not populate or close the new connection window. Check the database
+list before retrying a save that was pending when you closed the window. In the
+connection wizard, **Back** from the credentials step returns to database selection
+even while a save is pending; it does not cancel a create or update request already
+sent to the server.
+
 Congratulations, you've just added a new data source in Superset!
 
 ### Sharing a Database Connection
@@ -107,6 +115,11 @@ we register the **cleaned_sales_data** table from the **examples** database.
 <img src={useBaseUrl('/img/tutorial/tutorial_09_add_new_table.png')} />
 
 To finish, click the **Add** button in the bottom right corner. You should now see your dataset in the list of datasets.
+
+When Semantic Layers is enabled, the chart creation page calls datasets and semantic views
+**datasources**. Its **Add a datasource** link opens the Datasources list, where **New**
+offers both kinds. The adjacent **create a semantic view** link opens that creation form
+directly. With Semantic Layers disabled, the link opens the dataset creation form.
 
 ### Organizing Datasets into Folders
 
@@ -137,6 +150,26 @@ for how the column should be treated in the Explore workflow:
 
 <img src={useBaseUrl('/img/tutorial/tutorial_column_properties.png')} />
 
+#### Snowflake column name casing
+
+For physical Snowflake datasets, Superset uses the dialect's automatic identifier
+quoting, regardless of **Normalize column names**. Lowercase metadata such as
+`species` is referenced unquoted and resolves to Snowflake's uppercase `SPECIES`.
+Uppercase and mixed-case names retain the dialect's quoting. If a physical column
+was created with a case-sensitive lowercase name, use a calculated column with an
+explicitly quoted expression such as `"species"`.
+
+For virtual datasets and SQL Lab query datasources, Superset quotes exact result
+column names in column references, adhoc metric fallbacks, and the `TableColumn`
+timestamp paths (column-based time grains, legacy timeseries, and temporal
+filters). This preserves case-sensitive aliases such as
+`SELECT species AS "species" FROM iris` in those paths.
+
+The Explore x-axis (`BASE_AXIS`) on a SQL Lab `Query` uses a separate path,
+`Query.adhoc_column_to_sqla`, which builds the expression with `literal_column`.
+That path is unchanged from master: a lowercase timestamp expression such as
+`ts` still compiles to unquoted `DATE_TRUNC('MONTH', ts)` for a monthly grain.
+
 ### Superset semantic layer
 
 Superset has a thin semantic layer that adds many quality of life improvements for analysts.
@@ -164,6 +197,11 @@ You can also certify metrics if you'd like for your team in this view.
 - [Blog: Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
 - [Blog: Unlocking the Power of Virtual Datasets](https://preset.io/blog/unlocking-the-power-of-virtual-datasets-in-apache-superset/)
   :::
+
+### Finding charts by semantic view
+
+With Semantic Layers enabled, the **Datasource** filter on the Charts list includes
+semantic views as well as datasets. Select a view to find charts built from it.
 
 ### Integer precision in semantic views
 
@@ -368,11 +406,32 @@ to users with access to the underlying datasets, or, when `ENABLE_VIEWERS` is en
 who have viewer access directly or through an assigned role or group subject.
 :::
 
+### Opening a shared dashboard view
+
+Shared dashboard links can include saved filters. While those filters load, the
+page displays “Loading the view shared with you…”. If the request fails or times
+out, Superset retries once, then opens the default view with a warning. Use
+**Try again** to reload the original shared filters. Expired filter links show a
+warning without a retry button; ask the sender for a new link.
+
+After a fallback, refreshing the page retries the original link until you change
+a filter. Applying a native filter or clicking a chart to cross-filter dismisses the
+warning and creates a new saved filter key without overwriting the shared state.
+Copying or emailing a permalink through the dashboard Share menu while fallback
+is active shares the default view and displays a warning toast. Tab and heading
+anchor links and the embedded permalink API do not display that warning.
+
 ### Mark a Dashboard as Favorite
 
 You can mark a dashboard as a favorite by clicking on the star icon next to the title of your dashboard. This makes it easier to find it in the list of dashboards or on the home page.
 
 ### Customizing dashboard
+
+Dashboard access errors distinguish missing dashboards (**404 Not Found**) from
+existing dashboards you cannot view (**403 Forbidden**). The dashboard page shows
+a separate permission message for a 403 response. Opening a dashboard directly
+in a browser renders the dashboard error page with the corresponding HTTP status;
+API requests return JSON error responses.
 
 The following URL parameters can be used to modify how the dashboard is rendered:
 
@@ -396,6 +455,16 @@ Top Nav and remove the Filter Bar:
 ### Table Chart Features
 
 The **Table** chart type has several advanced capabilities worth knowing:
+
+#### Client-side Paging
+
+With server pagination disabled, sorting or searching a Table returns it to the first
+page. Changing query criteria, such as a dashboard filter, also returns it to the
+first page even if the returned rows are identical. Refreshing the same query,
+including changed values from auto-refresh, or updating cross-filter selection
+highlighting preserves the selected page (unless it is no longer in range).
+Server-paginated Tables also return to the first page on sort changes. This applies
+to both dataset and semantic-view Tables.
 
 #### Conditional Formatting
 
@@ -553,6 +622,10 @@ These menu items respect your permissions: the dashboard export menu only appear
 ### Sharing a Specific Tab
 
 When a dashboard has tabs, each tab gets its own shareable URL. Navigate to the tab you want to share and copy the URL from your browser's address bar — the tab anchor is encoded in the URL so that anyone opening the link lands directly on that tab.
+
+When you return to a dashboard with selected native filters, those values apply to charts
+in each filter's configured scope. A filter scoped to one tab does not apply to charts
+outside that scope.
 
 ### Auto-Refresh
 

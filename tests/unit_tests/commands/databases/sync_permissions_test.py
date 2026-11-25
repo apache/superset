@@ -20,6 +20,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.commands.database.exceptions import (
@@ -352,6 +353,9 @@ def test_sync_permissions_command_rename_db_in_perms(
     find_pvm_mock = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.find_permission_view_menu"
     )
+    rename_pvm_mock = mocker.patch(
+        "superset.commands.database.sync_permissions.rename_permission_view_menu"
+    )
     mock_catalog_perm = mocker.MagicMock()
     mock_catalog_perm.view_menu.name = "[old_name].[catalog]"
     mock_schema_perm = mocker.MagicMock()
@@ -380,7 +384,7 @@ def test_sync_permissions_command_rename_db_in_perms(
     mock_dataset_dao = mocker.patch(
         "superset.commands.database.sync_permissions.DatasetDAO"
     )
-    mock_dataset_dao.get_related_objects.return_value = {"charts": [mock_chart]}
+    mock_dataset_dao.get_charts_for_datasets.return_value = [mock_chart]
 
     cmmd = SyncPermissionsCommand(
         1, None, old_db_connection_name="old_name", db_connection=database_with_catalog
@@ -395,12 +399,15 @@ def test_sync_permissions_command_rename_db_in_perms(
         ]
     )
 
-    assert (
-        mock_catalog_perm.view_menu.name == f"[{database_with_catalog.name}].[catalog1]"
-    )
-    assert (
-        mock_schema_perm.view_menu.name
-        == f"[{database_with_catalog.name}].[catalog1].[schema1]"
+    rename_pvm_mock.assert_has_calls(
+        [
+            mocker.call(
+                mock_catalog_perm, f"[{database_with_catalog.name}].[catalog1]"
+            ),
+            mocker.call(
+                mock_schema_perm, f"[{database_with_catalog.name}].[catalog1].[schema1]"
+            ),
+        ]
     )
     assert mock_dataset.catalog_perm == f"[{database_with_catalog.name}].[catalog1]"
     assert (
@@ -457,3 +464,57 @@ def test_sync_permissions_command_rename_bypasses_visibility_filter(
     assert all({SqlaTable, Slice} <= bypass for bypass in observed_bypass), (
         "dataset perm rewrite ran without the soft-delete visibility bypass"
     )
+
+
+def test_sync_permissions_command_rename_skips_dashboard_metadata_scan(
+    mocker: MockerFixture, database_with_catalog: MagicMock, session: Session
+) -> None:
+    """
+    The perm rewrite only needs the charts built on each dataset, so it must not
+    trigger the dashboard metadata scan that the full related-objects lookup runs.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.dataset import DatasetDAO
+    from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    Dashboard.metadata.create_all(session.get_bind())
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(table_name="my_dataset", schema="main", database=database)
+    db.session.add_all([database, dataset])
+    db.session.flush()
+    chart = Slice(
+        slice_name="chart",
+        datasource_id=dataset.id,
+        datasource_type="table",
+        viz_type="table",
+        catalog_perm="[old_name].[catalog1]",
+        schema_perm="[old_name].[catalog1].[schema1]",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    mocker.patch(
+        "superset.commands.database.sync_permissions."
+        "security_manager.find_permission_view_menu",
+        return_value=None,
+    )
+    mock_database_dao = mocker.patch(
+        "superset.commands.database.sync_permissions.DatabaseDAO"
+    )
+    mock_database_dao.get_datasets.return_value = [dataset]
+    dashboard_scan = mocker.patch.object(
+        DatasetDAO,
+        "_dashboard_ids_targeting_datasets",
+        side_effect=AssertionError("dashboard metadata scanned during perm sync"),
+    )
+
+    cmmd = SyncPermissionsCommand(
+        1, None, old_db_connection_name="old_name", db_connection=database_with_catalog
+    )
+    cmmd._rename_database_in_permissions("catalog1", ["schema1"])
+
+    dashboard_scan.assert_not_called()
+    assert chart.catalog_perm == f"[{database_with_catalog.name}].[catalog1]"
+    assert chart.schema_perm == f"[{database_with_catalog.name}].[catalog1].[schema1]"

@@ -92,7 +92,6 @@ def test_streaming_sql_result_export_command_init():
     assert command._client_id == "client_123"
     assert command._chunk_size == 500
     assert command._query is None
-    assert command._current_app is not None
 
 
 def test_streaming_sql_result_export_command_default_chunk_size():
@@ -176,7 +175,7 @@ def test_csv_generation_with_select_sql(mocker, mock_query, mock_result_proxy):
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = (
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
         mock_result_proxy
     )
     mock_connection.__enter__.return_value = mock_connection
@@ -230,7 +229,9 @@ def test_csv_generation_with_executed_sql_and_limit(
     ]
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -265,7 +266,9 @@ def test_csv_generation_with_special_characters(mocker, mock_query):
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -310,7 +313,7 @@ def test_limiting_factor_dropdown(mocker, mock_query):
         mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
         mock_connection = MagicMock()
-        mock_connection.execution_options.return_value.execute.return_value = (
+        mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
             mock_result
         )
         mock_connection.__enter__.return_value = mock_connection
@@ -355,7 +358,7 @@ def test_limiting_factor_query_and_dropdown(mocker, mock_query):
         mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
         mock_connection = MagicMock()
-        mock_connection.execution_options.return_value.execute.return_value = (
+        mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
             mock_result
         )
         mock_connection.__enter__.return_value = mock_connection
@@ -389,7 +392,9 @@ def test_empty_result_set(mocker, mock_query):
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -418,7 +423,9 @@ def test_error_handling_yields_error_marker(mocker, mock_query):
     mock_db_base = mocker.patch("superset.commands.streaming_export.base.db")
     mock_session = MagicMock()
     mock_db_base.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.side_effect = Exception("Database connection failed")
+    mock_query.database.get_sqla_engine.side_effect = Exception(
+        "Database connection failed"
+    )
 
     mock_db_sqllab = mocker.patch(
         "superset.commands.sql_lab.streaming_export_command.db"
@@ -445,7 +452,7 @@ def test_connection_is_closed_after_streaming(mocker, mock_query, mock_result_pr
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = (
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
         mock_result_proxy
     )
     mock_connection.__enter__.return_value = mock_connection
@@ -477,7 +484,7 @@ def test_streaming_execution_options_enabled(mocker, mock_query, mock_result_pro
     mock_connection = MagicMock()
     mock_execution_options = Mock()
     mock_connection.execution_options.return_value = mock_execution_options
-    mock_execution_options.execute.return_value = mock_result_proxy
+    mock_execution_options.exec_driver_sql.return_value = mock_result_proxy
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -494,7 +501,9 @@ def test_streaming_execution_options_enabled(mocker, mock_query, mock_result_pro
     generator = csv_generator_callable()
     list(generator)
 
-    mock_connection.execution_options.assert_called_once_with(stream_results=True)
+    mock_connection.execution_options.assert_called_once_with(
+        stream_results=True, no_parameters=True
+    )
 
 
 @patch("superset.commands.streaming_export.base.logger")
@@ -505,7 +514,7 @@ def test_completion_logging(mock_logger, mocker, mock_query, mock_result_proxy):
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = (
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
         mock_result_proxy
     )
     mock_connection.__enter__.return_value = mock_connection
@@ -544,7 +553,9 @@ def test_null_values_handling(mocker, mock_query):
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -582,7 +593,7 @@ def test_catalog_and_schema_passed_to_engine(mocker, mock_query, mock_result_pro
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = (
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
         mock_result_proxy
     )
     mock_connection.__enter__.return_value = mock_connection
@@ -624,7 +635,9 @@ def test_csv_export_config_custom_separator(mocker, mock_query) -> None:
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -672,7 +685,9 @@ def test_csv_export_config_custom_decimal(mocker, mock_query) -> None:
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -718,7 +733,9 @@ def test_csv_export_config_combined_sep_and_decimal(mocker, mock_query) -> None:
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -768,7 +785,9 @@ def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query) -
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
+        mock_result
+    )
     mock_connection.__enter__.return_value = mock_connection
     mock_connection.__exit__.return_value = None
 
@@ -806,7 +825,7 @@ def test_streaming_export_applies_sql_mutator(mocker, mock_query, mock_result_pr
     executing it -- that's the hook a deployment's SQL_QUERY_MUTATOR runs
     through (e.g. to strip a trailing semicolon some engines' HTTP endpoints
     reject, per the issue's Trino repro). _execute_query_and_stream sends
-    the raw SQL straight to engine.connect().execute(text(sql)) instead,
+    the raw SQL straight to engine.connect().exec_driver_sql(sql) instead,
     bypassing it entirely.
     """
     mock_query.select_sql = None
@@ -819,7 +838,7 @@ def test_streaming_export_applies_sql_mutator(mocker, mock_query, mock_result_pr
     )
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = (
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
         mock_result_proxy
     )
     mock_connection.__enter__.return_value = mock_connection
@@ -838,7 +857,7 @@ def test_streaming_export_applies_sql_mutator(mocker, mock_query, mock_result_pr
     list(csv_generator_callable())
 
     executed_sql = str(
-        mock_connection.execution_options.return_value.execute.call_args[0][0]
+        mock_connection.execution_options.return_value.exec_driver_sql.call_args[0][0]
     )
     assert not executed_sql.rstrip().endswith(";"), (
         "streaming export sent the raw, unmutated SQL to the engine -- "
@@ -857,19 +876,13 @@ def test_streaming_export_preserves_impersonated_user_context(
     app_context, mocker, mock_query, mock_result_proxy
 ):
     """
-    Checks the other half of apache/superset#40465's theory: that the
-    streaming path drops user impersonation because it acquires its engine
-    "without this context" (unlike other call sites, which the issue says
-    use a get_sqla_engine_with_context(user_name=...) that doesn't actually
-    exist anywhere in this codebase). Independently verified this does NOT
-    reproduce: BaseStreamingCSVExportCommand.run() captures flask.g's full
-    __dict__ (including g.user) before entering the deferred generator, and
-    csv_generator() restores it via preserve_g_context before calling
-    _execute_query_and_stream -- so Database.get_sqla_engine's internal
-    get_effective_user()/get_username() call (which every engine-acquisition
-    call site relies on for impersonation, streaming or not) sees the same
-    acting user it would anywhere else. This pins that behavior rather than
-    the bug the issue reports for it.
+    Covers the other half of apache/superset#40465: the streaming path must
+    impersonate the acting user. Database.get_sqla_engine resolves the
+    impersonated user through get_effective_user()/get_username(), which read
+    g.user, so the deferred generator has to see the same g.user as the code
+    that created it. A real, ORM-backed user is also detached by the request
+    teardown before the body streams; that case is covered by
+    test_streaming_export_reloads_a_detached_acting_user in the chart tests.
     """
     g.user = Mock(username="alice")
     assert get_username() == "alice"
@@ -881,7 +894,7 @@ def test_streaming_export_preserves_impersonated_user_context(
     mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = (
+    mock_connection.execution_options.return_value.exec_driver_sql.return_value = (
         mock_result_proxy
     )
     mock_connection.__enter__.return_value = mock_connection

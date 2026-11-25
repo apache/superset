@@ -19,8 +19,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { ReactNode } from 'react';
-import configureStore from 'redux-mock-store';
-import { DAYJS_LOCALE_MAPPING, LOCALE_MAPPING, useLocale } from './useLocale';
+import createMockStore from 'redux-mock-store';
+import { LOCALE_MAPPING, toDayjsLocale, useLocale } from './useLocale';
 
 // jest.mock is hoisted before variable declarations, so jest.fn() must be
 // called directly inside the factory. The mock reference is obtained via
@@ -49,6 +49,20 @@ jest.mock('dayjs/locale/ko', () => ({}), { virtual: true });
 jest.mock('dayjs/locale/sk', () => ({}), { virtual: true });
 jest.mock('dayjs/locale/sl', () => ({}), { virtual: true });
 jest.mock('dayjs/locale/nl', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/ar', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/ca', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/fa', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/fi', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/lv', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/mi', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/pl', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/ro', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/sr-cyrl', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/sr', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/ta', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/th', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/tr', () => ({}), { virtual: true });
+jest.mock('dayjs/locale/uk', () => ({}), { virtual: true });
 
 // Mock antd locale modules — __esModule: true ensures locale.default resolves correctly
 // under Jest's CommonJS/ESM interop
@@ -128,7 +142,7 @@ jest.mock(
   { virtual: true },
 );
 
-const mockStore = configureStore([]);
+const mockStore = createMockStore([]);
 
 function createWrapper(locale: string) {
   const store = mockStore({ common: { locale } });
@@ -160,18 +174,30 @@ test('LOCALE_MAPPING zh_TW is a callable that returns a Promise', () => {
   expect(result).toBeInstanceOf(Promise);
 });
 
-// ── DAYJS_LOCALE_MAPPING ────────────────────────────────────────────────────
+// ── toDayjsLocale ────────────────────────────────────────────────────────
 
-test('DAYJS_LOCALE_MAPPING maps zh_TW to zh-tw', () => {
-  expect(DAYJS_LOCALE_MAPPING.zh_TW).toBe('zh-tw');
+test('toDayjsLocale maps zh_TW to zh-tw via normalization', () => {
+  expect(toDayjsLocale('zh_TW')).toBe('zh-tw');
 });
 
-test('DAYJS_LOCALE_MAPPING maps zh to zh-cn', () => {
-  expect(DAYJS_LOCALE_MAPPING.zh).toBe('zh-cn');
+test('toDayjsLocale maps zh to zh-cn via explicit override', () => {
+  expect(toDayjsLocale('zh')).toBe('zh-cn');
 });
 
-test('DAYJS_LOCALE_MAPPING maps pt_BR to pt-br', () => {
-  expect(DAYJS_LOCALE_MAPPING.pt_BR).toBe('pt-br');
+test('toDayjsLocale maps pt_BR to pt-br via normalization', () => {
+  expect(toDayjsLocale('pt_BR')).toBe('pt-br');
+});
+
+test('toDayjsLocale passes already-normalized codes through unchanged', () => {
+  expect(toDayjsLocale('fr')).toBe('fr');
+});
+
+test('toDayjsLocale maps each Serbian script to the dayjs name for that script', () => {
+  // dayjs and Babel name the two scripts the other way around, so normalizing
+  // 'sr' would hand the Cyrillic catalog the Latin locale, and 'sr_Latn' would
+  // normalize to 'sr-latn', which dayjs does not ship.
+  expect(toDayjsLocale('sr')).toBe('sr-cyrl');
+  expect(toDayjsLocale('sr_Latn')).toBe('sr');
 });
 
 // ── useLocale hook ──────────────────────────────────────────────────────────

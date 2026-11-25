@@ -19,7 +19,7 @@
 import { AriaAttributes, Ref } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
-import jQuery from 'jquery';
+import jquery from 'jquery';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
 import { configure as configureTranslation } from '@apache-superset/core/translation';
@@ -77,7 +77,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-g.$ = jQuery(g.window);
+g.$ = jquery(g.window);
 
 configureTranslation();
 setupSupersetClient();

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import type {
   PartitionMappingColumn,
   PartitionMappingDatasource,
@@ -33,6 +34,26 @@ import type {
  * transform and the check that blocks saving it cannot drift apart.
  */
 const JINJA_PATTERN = /\{\{|\{%|\{#/;
+
+/**
+ * Whether the dataset editor should offer partition filter mapping at all.
+ *
+ * The single source of truth for the gate, so every place that shows partition
+ * mapping UI stays in lockstep: it needs the feature flag on, a datasource to
+ * read, and an engine that advertises support (`supports_partition_filter_mapping`,
+ * true only for partition-directory engines like Hive/Impala/Spark). This lived
+ * inline at one call site and was missed at another, which showed the section on
+ * engines that do not support it -- hence one predicate both sites share.
+ */
+export function partitionFilterMappingEnabled(
+  datasource: PartitionMappingDatasource | undefined,
+): boolean {
+  return (
+    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+    Boolean(datasource) &&
+    Boolean(datasource?.supports_partition_filter_mapping)
+  );
+}
 
 /**
  * The column whose filters are mirrored.
@@ -189,6 +210,18 @@ export function valueTransformIssues(
     ];
   }
 
+  if (transform?.trim() && !/:value\b/.test(transform)) {
+    return [
+      {
+        field: 'partition_value_transform',
+        message: t(
+          'Include :value in the transform to represent the filter value.',
+        ),
+        blocking: false,
+      },
+    ];
+  }
+
   return [];
 }
 
@@ -339,6 +372,11 @@ export function defaultTransformFor(
 /** Declared types whose values are numbers rather than strings. */
 const NUMERIC_TYPE_RE =
   /INT|NUMERIC|DECIMAL|DOUBLE|FLOAT|REAL|NUMBER|BIGNUMERIC/i;
+
+/** Whether a declared column type holds numbers rather than strings. */
+export function isNumericType(type: string | null | undefined): boolean {
+  return Boolean(type && NUMERIC_TYPE_RE.test(type));
+}
 
 /**
  * The sample instant, 2026-01-15 10:47:23 UTC, in each epoch representation.
@@ -696,6 +734,41 @@ export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
     return columns;
   }
   return clearMappingTransforms(columns);
+}
+
+/**
+ * The mapped column whose value transform a change would throw away, if any.
+ *
+ * Every way the mapping can move clears the transform it moves off, on
+ * purpose: carrying it over mirrors an expression nobody checked against its
+ * new column, and leaving it behind lets it come back to life later. That is
+ * still a loss the owner did not ask for when the change was to something else
+ * -- the default datetime column, or the partition column -- and losing it
+ * stops pruning for every chart on the dataset. So the editor asks first, and
+ * this is how it knows when to.
+ *
+ * Only the transform the mapping is actually mirroring counts. A transform
+ * stranded on some other column is not live, the panel never shows it, and
+ * clearing it is the repair `clearUnmappedTransforms` exists to make; asking
+ * about it would be asking the owner to confirm a cleanup they cannot see.
+ *
+ * `before` and `after` are the columns either side of the change, physical and
+ * calculated alike, since `main_dttm_col` can name either.
+ */
+export function discardedMappedTransform(
+  datasource: PartitionMappingDatasource,
+  before: PartitionMappingColumn[],
+  after: PartitionMappingColumn[],
+): string | null {
+  const mappedColumn = resolveMappedColumn(datasource);
+  const transformOf = (columns: PartitionMappingColumn[]) =>
+    columns.find(column => column.column_name === mappedColumn)
+      ?.partition_value_transform || null;
+  const transform = transformOf(before);
+  if (!mappedColumn || !transform || transformOf(after) === transform) {
+    return null;
+  }
+  return mappedColumn;
 }
 
 /**

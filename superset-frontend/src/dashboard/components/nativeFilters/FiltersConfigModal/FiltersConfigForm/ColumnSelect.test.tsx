@@ -23,8 +23,14 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { Column, JsonObject, getClientErrorObject } from '@superset-ui/core';
-import { ColumnSelect } from './ColumnSelect';
+import {
+  Column,
+  DatasourceType,
+  JsonObject,
+  getClientErrorObject,
+} from '@superset-ui/core';
+import { semanticViewDimensionsToColumns } from 'src/utils/semanticViewStructure';
+import { ColumnSelect, getColumnOptions } from './ColumnSelect';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -65,6 +71,58 @@ const createProps = (extraProps: JsonObject = {}) => ({
   value: 'column_name_01',
   onChange: jest.fn(),
   ...extraProps,
+});
+
+test('semantic column labels remain readable and distinct without changing IDs', () => {
+  const columns = [
+    { column_name: 'CUSTOMERS.SEGMENT', verbose_name: 'Segment' },
+    { column_name: 'ORDERS.SEGMENT', verbose_name: 'Segment' },
+    { column_name: 'ORDERS.STATUS', verbose_name: 'Status' },
+    { column_name: 'ORDERS.DATE' },
+  ] as Column[];
+
+  expect(
+    getColumnOptions(columns, () => true, false, DatasourceType.SemanticView),
+  ).toEqual([
+    { label: 'Segment (CUSTOMERS.SEGMENT)', value: 'CUSTOMERS.SEGMENT' },
+    { label: 'Segment (ORDERS.SEGMENT)', value: 'ORDERS.SEGMENT' },
+    { label: 'Status', value: 'ORDERS.STATUS' },
+    { label: 'ORDERS.DATE', value: 'ORDERS.DATE' },
+  ]);
+});
+
+test('semantic picker options use mapped labels and keep member IDs', () => {
+  const columns = semanticViewDimensionsToColumns([
+    { name: 'CUSTOMERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
+    { name: 'ORDERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
+    { name: 'ORDERS.STATUS', type: 'string', verbose_name: 'Status' },
+    { name: 'ORDERS.DATE', type: 'date32[day]', verbose_name: null },
+    {
+      name: 'ORDERS.CREATED_AT',
+      type: 'timestamp[us]',
+      grain: 'Day',
+      verbose_name: 'Created day',
+    },
+    {
+      name: 'ORDERS.CREATED_AT',
+      type: 'timestamp[us]',
+      grain: null,
+      verbose_name: 'Created at',
+    },
+  ]);
+
+  expect(
+    getColumnOptions(columns, () => true, false, DatasourceType.SemanticView),
+  ).toEqual([
+    { label: 'Segment (CUSTOMERS.SEGMENT)', value: 'CUSTOMERS.SEGMENT' },
+    { label: 'Segment (ORDERS.SEGMENT)', value: 'ORDERS.SEGMENT' },
+    { label: 'Status', value: 'ORDERS.STATUS' },
+    { label: 'ORDERS.DATE', value: 'ORDERS.DATE' },
+    { label: 'Created at', value: 'ORDERS.CREATED_AT' },
+  ]);
+  expect(
+    columns.find(column => column.column_name === 'ORDERS.DATE')?.verbose_name,
+  ).toBeUndefined();
 });
 
 afterAll(() => {

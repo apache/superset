@@ -25,7 +25,10 @@ from superset.commands.utils import (
     populate_subject_list,
     populate_subjects,
 )
-from superset.subjects.exceptions import SubjectsNotFoundValidationError
+from superset.subjects.exceptions import (
+    SubjectsNotFoundValidationError,
+    ViewersDisabledValidationError,
+)
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import (
@@ -516,8 +519,9 @@ def test_compute_subject_list(mock_populate, current_ids, new_ids, expected_call
 # --------------------------------------------------------------------------
 
 
+@patch("superset.commands.utils.is_feature_enabled", return_value=True)
 @patch("superset.commands.utils.populate_subject_list")
-def test_populate_subjects_all_variants(mock_populate):
+def test_populate_subjects_all_variants(mock_populate, mock_flag):
     """Editors + viewers; editors only; include_viewers=False."""
     editor_s = [_make_subject(1)]
     viewer_s = [_make_subject(2)]
@@ -568,8 +572,9 @@ def test_populate_subjects_all_variants(mock_populate):
     )
 
 
+@patch("superset.commands.utils.is_feature_enabled", return_value=True)
 @patch("superset.commands.utils.compute_subject_list")
-def test_compute_subjects_all_variants(mock_compute):
+def test_compute_subjects_all_variants(mock_compute, mock_flag):
     """Editors + viewers; no viewers attr; include_viewers=False."""
     model = MagicMock()
     model.editors = [_make_subject(1)]
@@ -691,3 +696,127 @@ def test_get_user_subject_ids_serves_a_stale_set_within_the_request(app) -> None
             "superset.subjects.utils._query_user_subject_ids", return_value=[7, 99]
         ):
             assert get_user_subject_ids(1) == [7]
+
+
+# --------------------------------------------------------------------------
+# ENABLE_VIEWERS gate on viewer writes
+# --------------------------------------------------------------------------
+
+
+@patch("superset.commands.utils.is_feature_enabled", return_value=False)
+@patch("superset.commands.utils.populate_subject_list")
+def test_populate_subjects_rejects_viewers_when_flag_disabled(mock_populate, mock_flag):
+    """Viewers are enforced regardless of the flag, so a create payload must
+    not be able to add them while the flag hides them from the UI."""
+    editor_s = [_make_subject(1)]
+    viewer_s = [_make_subject(2)]
+    mock_populate.side_effect = [editor_s, viewer_s]
+
+    props: dict = {"editors": [1], "viewers": [2]}
+    populate_subjects(props, exceptions := [])
+
+    assert props["editors"] == editor_s
+    assert props["viewers"] == [2]  # left as raw IDs; command raises
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], ViewersDisabledValidationError)
+    mock_flag.assert_called_with("ENABLE_VIEWERS")
+
+
+@patch("superset.commands.utils.is_feature_enabled", return_value=False)
+@patch("superset.commands.utils.populate_subject_list")
+def test_populate_subjects_accepts_empty_viewers_when_flag_disabled(
+    mock_populate, mock_flag
+):
+    editor_s = [_make_subject(1)]
+    mock_populate.side_effect = [editor_s, []]
+
+    props: dict = {"editors": [1], "viewers": []}
+    populate_subjects(props, exceptions := [])
+
+    assert props["viewers"] == []
+    assert not exceptions
+
+
+@patch("superset.commands.utils.is_feature_enabled", return_value=True)
+@patch("superset.commands.utils.populate_subject_list")
+def test_populate_subjects_accepts_viewers_when_flag_enabled(mock_populate, mock_flag):
+    viewer_s = [_make_subject(2)]
+    mock_populate.side_effect = [[_make_subject(1)], viewer_s]
+
+    props: dict = {"editors": [1], "viewers": [2]}
+    populate_subjects(props, exceptions := [])
+
+    assert props["viewers"] == viewer_s
+    assert not exceptions
+
+
+@patch("superset.commands.utils.is_feature_enabled", return_value=False)
+@patch("superset.commands.utils.compute_subject_list")
+def test_compute_subjects_rejects_new_viewers_when_flag_disabled(
+    mock_compute, mock_flag
+):
+    model = MagicMock()
+    model.editors = [_make_subject(1)]
+    model.viewers = [_make_subject(2)]
+    mock_compute.side_effect = [model.editors, [_make_subject(2), _make_subject(3)]]
+
+    props: dict = {"viewers": [2, 3]}
+    compute_subjects(model, props, exceptions := [])
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], ViewersDisabledValidationError)
+
+
+@patch("superset.commands.utils.is_feature_enabled", return_value=False)
+@patch("superset.commands.utils.compute_subject_list")
+def test_compute_subjects_allows_removing_viewers_when_flag_disabled(
+    mock_compute, mock_flag
+):
+    """Clearing stale viewers (the only way to lift a hidden restriction)
+    must keep working while the flag is off; so must re-sending the current
+    list, which round-tripping API clients do."""
+    model = MagicMock()
+    model.editors = [_make_subject(1)]
+    model.viewers = [_make_subject(2), _make_subject(3)]
+
+    # Clear
+    mock_compute.side_effect = [model.editors, []]
+    props: dict = {"viewers": []}
+    compute_subjects(model, props, exceptions := [])
+    assert props["viewers"] == []
+    assert not exceptions
+
+    # Shrink
+    mock_compute.reset_mock(side_effect=True)
+    mock_compute.side_effect = [model.editors, [_make_subject(2)]]
+    props = {"viewers": [2]}
+    compute_subjects(model, props, exceptions := [])
+    assert [s.id for s in props["viewers"]] == [2]
+    assert not exceptions
+
+    # Unchanged round-trip
+    mock_compute.reset_mock(side_effect=True)
+    mock_compute.side_effect = [model.editors, list(model.viewers)]
+    props = {"viewers": [2, 3]}
+    compute_subjects(model, props, exceptions := [])
+    assert not exceptions
+
+
+@patch("superset.commands.utils.is_feature_enabled", return_value=False)
+@patch("superset.commands.utils.compute_subject_list")
+def test_compute_subjects_preserves_viewers_when_payload_omits_them(
+    mock_compute, mock_flag
+):
+    """An update that does not mention viewers keeps the existing list even
+    while the flag is off; only explicit additions are blocked."""
+    model = MagicMock()
+    model.editors = [_make_subject(1)]
+    model.viewers = [_make_subject(2)]
+    mock_compute.side_effect = [model.editors, list(model.viewers)]
+
+    props: dict = {"editors": [1]}
+    compute_subjects(model, props, exceptions := [])
+
+    assert [s.id for s in props["viewers"]] == [2]
+    assert not exceptions
+    mock_flag.assert_not_called()

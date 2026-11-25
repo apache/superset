@@ -18,13 +18,18 @@
 
 from datetime import datetime
 from typing import Optional
+from unittest.mock import Mock, patch
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
+from flask import Flask
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
 from superset.constants import TimeGrain
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetTimeoutException
 from superset.sql.parse import Table
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -351,7 +356,7 @@ def test_spark_identifier_quote_uses_backticks() -> None:
     }
 
 
-def test_the_partition_transform_default_is_hive_syntax() -> None:
+def test_hive_does_not_guess_the_epoch_partition_bucket() -> None:
     """
     `unix_timestamp(:value)` only belongs on engines where it parses. The
     one-argument form takes the bound being mirrored; the zero-argument form
@@ -360,9 +365,9 @@ def test_the_partition_transform_default_is_hive_syntax() -> None:
     from superset.db_engine_specs.hive import HiveEngineSpec
     from superset.db_engine_specs.spark import SparkEngineSpec
 
-    assert HiveEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+    assert HiveEngineSpec.partition_value_transform_default is None
     # Spark SQL inherits from Hive and shares the syntax.
-    assert SparkEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+    assert SparkEngineSpec.partition_value_transform_default is None
 
 
 def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:
@@ -373,3 +378,184 @@ def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert PrestoEngineSpec.partition_value_transform_default is None
+
+
+def test_hive_supports_partition_filter_mapping() -> None:
+    """
+    Hive tables are partition-directory laid out, so the editor offers the
+    mapping. Spark SQL inherits from Hive and shares the layout.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    assert HiveEngineSpec.supports_partition_filter_mapping is True
+    assert SparkEngineSpec.supports_partition_filter_mapping is True
+
+
+def test_partition_filter_mapping_is_not_inherited_by_presto() -> None:
+    """
+    HiveEngineSpec extends PrestoEngineSpec, so pin that the capability did not
+    travel up: Presto/Trino tables are not partition-directory laid out.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.supports_partition_filter_mapping is False
+
+
+@pytest.mark.parametrize("quote", ["'", '"'])
+def test_extract_hive_strict_partition_error(quote: str, app_context: None) -> None:
+    """Thrift repr quoting must not obscure an actionable strict-mode error."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    detail = "SemanticException [Error 10056]: No partition predicate found"
+    error = Exception(
+        f"TExecuteStatementResp(status=TStatus(errorMessage={quote}{detail}{quote}))"
+    )
+    message = HiveEngineSpec.extract_error_message(error)
+    assert "Hive requires a partition filter" in message
+    assert "TExecuteStatementResp" not in message
+
+
+def test_extract_hive_structured_status() -> None:
+    """Use the driver's message without depending on its repr format."""
+    from types import SimpleNamespace
+
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    error = Exception(
+        SimpleNamespace(status=SimpleNamespace(errorMessage="Table 'events' not found"))
+    )
+    assert (
+        HiveEngineSpec.extract_error_message(error)
+        == "hive error: Table 'events' not found"
+    )
+
+
+@pytest.mark.parametrize("detail", ["ordinary database error", ""])
+def test_extract_hive_error_fallback(detail: str) -> None:
+    """Unstructured errors retain their original message."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert (
+        HiveEngineSpec.extract_error_message(Exception(detail))
+        == f"hive error: {detail}"
+    )
+
+
+@pytest.mark.parametrize(
+    "error, expected",
+    [
+        (
+            "TExecuteStatementResp(status=TStatus("
+            "errorMessage=\"Table not found 'events'\"))",
+            "Table not found 'events'",
+        ),
+        ("plain failure", "plain failure"),
+    ],
+)
+def test_extract_hive_error_from_string(error: str, expected: str) -> None:
+    """SQL Lab hands `extract_errors` the stringified exception."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec._extract_error_message(error) == expected  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="The query exceeded the 30 seconds timeout.",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_handle_cursor_propagates_time_limits(timeout: Exception) -> None:
+    """
+    A SQL Lab time limit that fires while the logs are fetched is not a failed
+    ``fetch_logs`` call: it fires only once, so swallowing it leaves the query
+    running until the hard limit.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    # The pyhive driver needs thrift, which is not always installed.
+    states = Mock(
+        INITIALIZED_STATE="INITIALIZED_STATE",
+        RUNNING_STATE="RUNNING_STATE",
+        FINISHED_STATE="FINISHED_STATE",
+    )
+    hive = Mock(ttypes=Mock(TOperationState=states))
+
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"hive": 0}
+    query: Mock = Mock(id=1, progress=0)
+    cursor: Mock = Mock()
+    # Finite, so a swallowed time limit shows up as a failed assertion rather than
+    # a loop that never ends.
+    cursor.poll.side_effect = [
+        Mock(operationState=states.RUNNING_STATE),
+        Mock(operationState=states.RUNNING_STATE),
+        Mock(operationState=states.FINISHED_STATE),
+    ]
+    cursor.fetch_logs.side_effect = timeout
+    with (
+        app.app_context(),
+        patch("superset.db_engine_specs.hive.db") as db,
+        patch("superset.db_engine_specs.hive.time.sleep"),
+        patch.dict("sys.modules", {"pyhive": Mock(hive=hive), "pyhive.hive": hive}),
+    ):
+        db.session.query.return_value.filter_by.return_value.one.return_value = query
+        query.status = "running"
+        with pytest.raises(type(timeout)):
+            HiveEngineSpec.handle_cursor(cursor, query)
+    cursor.fetch_logs.assert_called_once_with()
+    # Mock methods do not interrupt a guarded RPC, so cleanup remains enabled.
+    assert cursor._operationHandle is not None
+    cursor._connection._transport.close.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="The query exceeded the 30 seconds timeout.",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+@pytest.mark.parametrize("interrupted", ["poll", "fetch"])
+def test_fetch_data_preserves_clean_cursor_on_time_limits(
+    interrupted: str, timeout: Exception
+) -> None:
+    """A limit outside a guarded RPC leaves normal cleanup enabled."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    class ProgrammingError(Exception):
+        pass
+
+    # The pyhive driver needs thrift, which is not always installed.
+    ttypes = Mock()
+    pyhive = Mock(exc=Mock(ProgrammingError=ProgrammingError))
+    cursor: Mock = Mock()
+    if interrupted == "poll":
+        cursor.poll.side_effect = timeout
+    with (
+        patch.dict(
+            "sys.modules",
+            {"pyhive": pyhive, "TCLIService": Mock(ttypes=ttypes)},
+        ),
+        patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout),
+    ):
+        with pytest.raises(type(timeout)) as raised:
+            HiveEngineSpec.fetch_data(cursor)
+
+    assert raised.value is timeout
+    assert cursor._operationHandle is not None
+    cursor._connection._transport.close.assert_not_called()
+    cursor.close.assert_not_called()

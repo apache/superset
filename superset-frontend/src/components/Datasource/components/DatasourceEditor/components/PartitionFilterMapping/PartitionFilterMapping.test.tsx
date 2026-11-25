@@ -24,6 +24,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { getClientErrorObject } from '@superset-ui/core';
 import PartitionColumnFields from './PartitionColumnFields';
@@ -86,8 +87,31 @@ test('the mapped column shows as following the default datetime column', () => {
   );
 
   expect(screen.getByText('Maps to partition')).toBeInTheDocument();
-  expect(screen.getByText('event_time')).toBeInTheDocument();
-  expect(screen.getByText('Default datetime column')).toBeInTheDocument();
+  // The implicit mapping renders both values as two segments inside one
+  // outlined container, rather than a filled pill plus loose text.
+  const mappedColumn = screen.getByTestId('mapped-column-default');
+  expect(within(mappedColumn).getByText('event_time')).toBeInTheDocument();
+  expect(
+    within(mappedColumn).getByText('Default datetime column'),
+  ).toBeInTheDocument();
+});
+
+test('the selected partition column shows its name and type pill when closed', () => {
+  render(
+    <PartitionColumnFields
+      datasource={{ main_dttm_col: 'event_time', partition_column: 'dt_epoch' }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  // The closed Select shows the rich label -- column name plus its type pill --
+  // not just the bare column name.
+  const select = screen.getByTestId('partition-column-select');
+  expect(within(select).getByText('dt_epoch')).toBeInTheDocument();
+  expect(within(select).getByText('BIGINT')).toBeInTheDocument();
 });
 
 test('a partition column with nothing mapped warns that queries will not prune', () => {
@@ -119,6 +143,7 @@ test('an active mapping states which column mirrors onto which', () => {
       columns={MAPPED_COLUMNS}
       allColumns={MAPPED_COLUMNS}
       onPartitionColumnChange={jest.fn()}
+      previewMirrors
       onNavigateToColumn={jest.fn()}
     />,
   );
@@ -141,6 +166,7 @@ test('without "preserves ordering" the banner does not promise the time range', 
       columns={MAPPED_COLUMNS}
       allColumns={MAPPED_COLUMNS}
       onPartitionColumnChange={jest.fn()}
+      previewMirrors
       onNavigateToColumn={jest.fn()}
     />,
   );
@@ -167,6 +193,7 @@ test('with "preserves ordering" the banner promises every filter', () => {
       columns={orderedColumns}
       allColumns={orderedColumns}
       onPartitionColumnChange={jest.fn()}
+      previewMirrors
       onNavigateToColumn={jest.fn()}
     />,
   );
@@ -217,6 +244,8 @@ test('the banner also defers to the stored mapping the engine refused', () => {
         partition_filter_mapping: {
           evaluable: false,
           evaluated_transform: 'unix_timestamp(:value)',
+          mapped_column: 'event_time',
+          partition_column: 'dt_epoch',
         },
       }}
       columns={MAPPED_COLUMNS}
@@ -231,9 +260,11 @@ test('the banner also defers to the stored mapping the engine refused', () => {
   ).not.toBeInTheDocument();
 });
 
-test('a mapping nothing has judged yet still states what it will do', () => {
+test('a mapping nothing has judged yet says so rather than promising a mirror', () => {
   // `null` is not a refusal: a preview still in flight, or a mapping no chart
-  // has run, must not read as broken.
+  // has run, must not read as broken. It is not a pass either (SC-130302): a
+  // transform that only emits NULL clears every static check, and the banner
+  // promised a mirror for it until its verdict came back.
   render(
     <PartitionColumnFields
       datasource={{
@@ -249,9 +280,43 @@ test('a mapping nothing has judged yet still states what it will do', () => {
     />,
   );
 
+  expect(screen.getByTestId('partition-mapping-unconfirmed')).toHaveTextContent(
+    'Partition pruning on event_time has not been confirmed.',
+  );
   expect(
-    screen.getByText(/will automatically apply an equivalent filter to/),
+    screen.queryByText(/will automatically apply an equivalent filter to/),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText(/scan every partition/)).not.toBeInTheDocument();
+  // The helper line above that warning must not state the mirror as fact.
+  expect(
+    screen.queryByText(/Filters on this column are mirrored/),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByText(/mirroring has not been confirmed/),
   ).toBeInTheDocument();
+});
+
+test('the helper line states the mirror as fact once the verdict confirms it', () => {
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+      previewMirrors
+    />,
+  );
+
+  expect(
+    screen.getByText(/Filters on this column are mirrored/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/mirroring has not been confirmed/),
+  ).not.toBeInTheDocument();
 });
 
 test('no partition column means no "maps to partition" at all', () => {
@@ -449,6 +514,102 @@ test('a failed preview shows the error instead of a predicate', async () => {
   ).not.toBeInTheDocument();
 });
 
+// Not only a safety refusal: an operator or engine the mirror cannot use
+// withdraws it too, and the copy must not call either one a refusal.
+test.each(['unbucketed_epoch', 'operator'])(
+  'a transform the preview rejects for %s is not described as mirrored',
+  async reason => {
+    fetchMock.post(PREVIEW_URL, {
+      result: {
+        valid: false,
+        reason,
+        error: 'The preview rejected this transform.',
+      },
+    });
+
+    render(
+      <PartitionMappingSection
+        item={{ column_name: 'event_time', is_dttm: true }}
+        value="unix_timestamp(:value)"
+        datasource={{
+          id: 1,
+          main_dttm_col: 'event_time',
+          partition_column: 'dt_epoch',
+        }}
+        onMoveMappingHere={jest.fn()}
+        onRemoveMapping={jest.fn()}
+        onMonotonicChange={jest.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText('Filters will not be mirrored'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Filters on this column are mirrored onto the partition field.',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/with this transform they are not mirrored/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/refused/)).not.toBeInTheDocument();
+  },
+);
+
+test('the column banner does not call a refused mapping mirrored', () => {
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+      previewMirrors={false}
+    />,
+  );
+
+  expect(
+    screen.queryByText(
+      'Filters on this column are mirrored onto the partition column.',
+    ),
+  ).not.toBeInTheDocument();
+});
+
+test('data validation is offered only for a numeric partition key', () => {
+  const renderWith = (type: string) =>
+    render(
+      <PartitionMappingSection
+        item={{ column_name: 'event_time', is_dttm: true }}
+        value=""
+        datasource={{
+          main_dttm_col: 'event_time',
+          partition_column: 'dt_key',
+          columns: [
+            { column_name: 'event_time', type: 'TIMESTAMP' },
+            { column_name: 'dt_key', type },
+          ],
+        }}
+        onMoveMappingHere={jest.fn()}
+        onRemoveMapping={jest.fn()}
+        onMonotonicChange={jest.fn()}
+      />,
+    );
+
+  const { unmount } = renderWith('VARCHAR');
+  expect(
+    screen.queryByRole('button', { name: 'Validate against data' }),
+  ).not.toBeInTheDocument();
+  unmount();
+  renderWith('BIGINT');
+  expect(
+    screen.getByRole('button', { name: 'Validate against data' }),
+  ).toBeInTheDocument();
+});
+
 test('only the mapped row publishes a preview verdict', async () => {
   // Every expanded column renders this component and they all report to the
   // same `onPreviewVerdict`, but only the mapped one previews anything
@@ -529,6 +690,8 @@ test('a stored refusal stops applying once the transform changes', () => {
         partition_filter_mapping: {
           evaluable: false,
           evaluated_transform: 'no_such_fn(:value)',
+          mapped_column: 'event_time',
+          partition_column: 'dt_epoch',
         },
       }}
       columns={MAPPED_COLUMNS}
@@ -538,10 +701,14 @@ test('a stored refusal stops applying once the transform changes', () => {
     />,
   );
 
-  // `MAPPED_COLUMNS` holds `unix_timestamp(:value)`, not the refused text.
+  // `MAPPED_COLUMNS` holds `unix_timestamp(:value)`, not the refused text, so
+  // the refusal says nothing about it -- and nothing else has judged it yet.
   expect(
-    screen.getByText(/will automatically apply an equivalent filter to/),
+    screen.getByTestId('partition-mapping-unconfirmed'),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/is not mirroring filters/),
+  ).not.toBeInTheDocument();
 });
 
 test('designating a partition column does not claim it is hidden from Explore', () => {
@@ -661,6 +828,76 @@ test('removing the mapping is reported to the editor', async () => {
   await userEvent.click(screen.getByText('Remove mapping'));
 
   expect(onRemoveMapping).toHaveBeenCalled();
+  // This row already is the default datetime column, so there is nowhere for
+  // the mapping to move back to and no return-to-default note.
+  expect(
+    screen.queryByTestId('remove-partition-mapping-helper'),
+  ).not.toBeInTheDocument();
+});
+
+test('clearing an explicit override says the mapping returns to the default datetime column', async () => {
+  // A null `partition_mapped_column` means "follow `main_dttm_col`", so with a
+  // default datetime column the action moves the mapping rather than removing
+  // it -- the label and note have to say so.
+  fetchMock.post(PREVIEW_URL, { result: { valid: false } });
+  const onRemoveMapping = jest.fn();
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country', type: 'TEXT' }}
+      value="lower(:value)"
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'region_key',
+        partition_mapped_column: 'country',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={onRemoveMapping}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(screen.queryByText('Remove mapping')).not.toBeInTheDocument();
+  expect(
+    screen.getByTestId('remove-partition-mapping-helper'),
+  ).toHaveTextContent(
+    'The mapping returns to the default datetime column (event_time).',
+  );
+
+  await userEvent.click(screen.getByText('Reset to default datetime column'));
+
+  expect(onRemoveMapping).toHaveBeenCalled();
+});
+
+test('without a default datetime column the mapping is genuinely removed', async () => {
+  // Nothing to fall back to, so clearing the override does leave no mapped
+  // column and "Remove mapping" is the honest label.
+  fetchMock.post(PREVIEW_URL, { result: { valid: false } });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country', type: 'TEXT' }}
+      value="lower(:value)"
+      datasource={{
+        id: 1,
+        main_dttm_col: null,
+        partition_column: 'region_key',
+        partition_mapped_column: 'country',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(screen.getByText('Remove mapping')).toBeInTheDocument();
+  expect(
+    screen.queryByText('Reset to default datetime column'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId('remove-partition-mapping-helper'),
+  ).not.toBeInTheDocument();
 });
 
 /**
@@ -916,6 +1153,7 @@ test.each([
       columns={MAPPED_COLUMNS}
       allColumns={MAPPED_COLUMNS}
       onPartitionColumnChange={jest.fn()}
+      previewMirrors
       onNavigateToColumn={onNavigateToColumn}
     />,
   );
@@ -1455,3 +1693,217 @@ test('the unsaved notice is not reported as a failed verdict', async () => {
   ).toBeInTheDocument();
   expect(onPreviewVerdict).not.toHaveBeenCalledWith(false);
 });
+
+test('saved safety refusal is shown before expanding or previewing the mapped row', () => {
+  const datasource = {
+    main_dttm_col: 'event_time',
+    partition_column: 'dt_epoch',
+    partition_filter_mapping: {
+      safety_refusal: {
+        reason: 'unbucketed_epoch' as const,
+        mapped_column: 'event_time',
+        partition_column: 'dt_epoch',
+        value_transform: 'unix_timestamp(:value)',
+        message: 'Raw epoch conversion does not specify the partition bucket.',
+      },
+    },
+  };
+  const common = {
+    columns: MAPPED_COLUMNS,
+    onPartitionColumnChange: jest.fn(),
+    onNavigateToColumn: jest.fn(),
+  };
+  const { rerender } = render(
+    <PartitionColumnFields
+      {...common}
+      datasource={datasource}
+      allColumns={MAPPED_COLUMNS}
+      previewMirrors
+    />,
+  );
+  expect(
+    screen.getByText(
+      'Raw epoch conversion does not specify the partition bucket.',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/will automatically apply/),
+  ).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.called()).toBe(false);
+  const corrected = MAPPED_COLUMNS.map(column =>
+    column.column_name === 'event_time'
+      ? {
+          ...column,
+          partition_value_transform: 'floor(unix_timestamp(:value)/3600)*3600',
+        }
+      : column,
+  );
+  rerender(
+    <PartitionColumnFields
+      {...common}
+      datasource={datasource}
+      allColumns={corrected}
+      previewMirrors
+    />,
+  );
+  expect(
+    screen.queryByText(
+      'Raw epoch conversion does not specify the partition bucket.',
+    ),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText(/will automatically apply/)).toBeInTheDocument();
+});
+
+test('a stored pass about another partition column is not a confirmation', () => {
+  // The stored verdict is keyed on the transform text alone, so after the
+  // partition column is re-pointed it still reads as a pass -- for a mirror
+  // onto a column nobody has checked it against.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_filter_mapping: {
+          evaluable: true,
+          evaluated_transform: 'unix_timestamp(:value)',
+          mapped_column: 'event_time',
+          partition_column: 'dt_other',
+        },
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByTestId('partition-mapping-unconfirmed'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/will automatically apply an equivalent filter to/),
+  ).not.toBeInTheDocument();
+});
+
+test.each([429, 500])(
+  'an unavailable preview (%s) is not a failed mapping verdict and can be retried',
+  async status => {
+    let calls = 0;
+    fetchMock.post(PREVIEW_URL, callLog => {
+      // `fetch-retry` re-sends a request an earlier test aborted, and
+      // fetch-mock still runs this handler for it. Count live requests only.
+      if (callLog.signal?.aborted) {
+        return { status: 499 };
+      }
+      calls += 1;
+      return calls === 1
+        ? { status, body: { message: 'Preview request failed' } }
+        : {
+            body: {
+              result: { valid: true, emitted_predicate: 'dt_epoch = 1' },
+            },
+          };
+    });
+    const onPreviewVerdict = jest.fn();
+    render(
+      <PartitionMappingSection
+        item={{ column_name: 'event_time', is_dttm: true }}
+        value="unix_timestamp(:value)"
+        datasource={{
+          id: 1,
+          main_dttm_col: 'event_time',
+          partition_column: 'dt_epoch',
+        }}
+        onMoveMappingHere={jest.fn()}
+        onRemoveMapping={jest.fn()}
+        onMonotonicChange={jest.fn()}
+        onPreviewVerdict={onPreviewVerdict}
+      />,
+    );
+    expect(
+      await screen.findByText('Preview temporarily unavailable'),
+    ).toBeVisible();
+    if (status === 429) {
+      expect(
+        screen.getByText(
+          'Too many preview requests. Wait a moment and try again.',
+        ),
+      ).toBeVisible();
+    }
+    expect(
+      screen.queryByText('Filters will not be mirrored'),
+    ).not.toBeInTheDocument();
+    expect(onPreviewVerdict).not.toHaveBeenCalledWith(false);
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('dt_epoch = 1')).toBeVisible();
+    expect(onPreviewVerdict).toHaveBeenLastCalledWith(true);
+    expect(calls).toBe(2);
+  },
+);
+
+test('a missing placeholder has a field-associated explanation without a preview request', async () => {
+  const props = {
+    item: { column_name: 'event_time', is_dttm: true },
+    datasource: { main_dttm_col: 'event_time', partition_column: 'dt_epoch' },
+    onMoveMappingHere: jest.fn(),
+    onRemoveMapping: jest.fn(),
+    onMonotonicChange: jest.fn(),
+  };
+  const { rerender } = render(
+    <PartitionMappingSection {...props} value="unix_timestamp(event_time)" />,
+  );
+  expect(
+    screen.getByRole('textbox', { name: 'Value transform' }),
+  ).toHaveAccessibleDescription(
+    'Include :value in the transform to represent the filter value.',
+  );
+  rerender(
+    <PartitionMappingSection {...props} value="unix_timestamp(:value)" />,
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByText(
+        'Include :value in the transform to represent the filter value.',
+      ),
+    ).not.toBeInTheDocument(),
+  );
+});
+
+test.each(['{Enter}', ' '])(
+  'moving a mapping with %s transfers focus to its transform',
+  async key => {
+    const onMoveMappingHere = jest.fn();
+    const props = {
+      item: { column_name: 'country', type: 'TEXT' },
+      value: '',
+      datasource: { main_dttm_col: 'event_time', partition_column: 'dt_epoch' },
+      onMoveMappingHere,
+      onRemoveMapping: jest.fn(),
+      onMonotonicChange: jest.fn(),
+    };
+    const { rerender } = render(<PartitionMappingSection {...props} />);
+    screen
+      .getByRole('button', { name: 'Move mapping to this column →' })
+      .focus();
+    await userEvent.keyboard(key);
+    expect(onMoveMappingHere).toHaveBeenCalledWith('country');
+    rerender(
+      <PartitionMappingSection
+        {...props}
+        datasource={{ ...props.datasource, partition_mapped_column: 'country' }}
+      />,
+    );
+    const input = screen.getByRole('textbox', { name: 'Value transform' });
+    expect(input).toHaveFocus();
+    await userEvent.keyboard(':value');
+    expect(input).toHaveValue(':value');
+    screen.getByRole('checkbox').focus();
+    rerender(
+      <PartitionMappingSection
+        {...props}
+        datasource={{ ...props.datasource, partition_mapped_column: 'country' }}
+      />,
+    );
+    expect(screen.getByRole('checkbox')).toHaveFocus();
+  },
+);

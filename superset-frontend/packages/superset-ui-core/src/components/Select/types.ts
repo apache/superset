@@ -29,13 +29,26 @@ export type RawValue = string | number;
 
 export type V = string | number | null | undefined;
 
-export type LabeledValue = AntdLabeledValue;
+export type LabeledValue = AntdLabeledValue & {
+  isNewOption?: boolean;
+};
 
-export type CustomLabeledValue = { label?: ReactNode; value?: V };
+export type CustomLabeledValue = {
+  label?: ReactNode;
+  value?: V;
+  /** Flag identifying optimistic custom options created when allowNewOptions is enabled */
+  isNewOption?: boolean;
+};
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
 
-export type SelectValue = AntdSelectValue | null;
+export type SelectValue =
+  | RawValue
+  | RawValue[]
+  | LabeledValue
+  | LabeledValue[]
+  | null
+  | undefined;
 
 export type { RefSelectProps };
 
