@@ -156,8 +156,13 @@ export const useResultsPane = ({
     // chart's data instead of a second request. The chart always ran with a
     // row_limit >= effectiveRowLimit, so its first `effectiveRowLimit` rows
     // match what a dedicated results query would return — slice locally to keep
-    // the row-limit dropdown working without a duplicate query.
-    if (queriesResponse?.length && queriesResponse.every(isV1QueryResult)) {
+    // the row-limit dropdown working without a duplicate query. A server-side
+    // sort needs rows the chart never fetched in that order, so it skips reuse.
+    if (
+      orderby.length === 0 &&
+      queriesResponse?.length &&
+      queriesResponse.every(isV1QueryResult)
+    ) {
       const mapped = queriesResponse.map(q => {
         const result = q as ChartDataResponseResult;
         const limitedData = ensureIsArray(result.data).slice(
@@ -221,7 +226,7 @@ export const useResultsPane = ({
         if (requestId !== latestRequestId.current) return;
         setIsLoading(false);
       });
-  }, [cappedFormData, isRequest, queriesResponse, effectiveRowLimit]);
+  }, [cappedFormData, isRequest, queriesResponse, effectiveRowLimit, orderby]);
 
   useEffect(() => {
     if (errorMessage) {
