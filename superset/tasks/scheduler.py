@@ -116,9 +116,22 @@ def scheduler(self: Task) -> None:  # pylint: disable=unused-argument
         else datetime.now(tz=timezone.utc)
     )
     for active_schedule in active_schedules:
-        for schedule in cron_schedule_window(
-            triggered_at, active_schedule.crontab, active_schedule.timezone
-        ):
+        # One schedule that croniter cannot evaluate must not stop the rest.
+        # The task retries with the same trigger time on any exception, which
+        # would also queue the schedules before it again.
+        try:
+            schedules = list(
+                cron_schedule_window(
+                    triggered_at, active_schedule.crontab, active_schedule.timezone
+                )
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "Could not compute run times for report schedule %s, skipping it",
+                active_schedule.id,
+            )
+            continue
+        for schedule in schedules:
             logger.info("Scheduling alert %s eta: %s", active_schedule.name, schedule)
             async_options = {
                 "eta": schedule,
