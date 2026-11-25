@@ -215,10 +215,6 @@ def generate_dashboard(  # noqa: C901
 ) -> GenerateDashboardResponse:
     """Create a NEW dashboard from chart IDs.
 
-    In json_metadata_overrides, auto_refresh_policy bounds
-    (minimum_refresh_interval and maximum_refresh_interval) use positive whole
-    seconds or null.
-
     IMPORTANT:
     - Use this tool ONLY when creating a brand-new dashboard.
     - To add a chart to an EXISTING dashboard, use add_chart_to_existing_dashboard.
