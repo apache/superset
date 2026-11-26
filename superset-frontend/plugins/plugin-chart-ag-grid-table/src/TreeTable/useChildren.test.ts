@@ -357,6 +357,21 @@ test('a failed batch marks open rows as error, drops the others, and a later ope
   });
 });
 
+test('a child level without a parent column shows an error', () => {
+  const { result } = renderHook(useChildren, {
+    initialProps: params({
+      formData: {
+        ...formData,
+        levels: [session, { ...step, parent_column: undefined }],
+      },
+      expanded: new Set(['s1']),
+    }),
+  });
+  act(() => result.current.open(['s1']));
+  expect(result.current.areas.get(areaKey(['s1']))?.state).toBe('error');
+  expect(requestBodies()).toHaveLength(0);
+});
+
 test('Retry loads only that parent', async () => {
   failNext = 1;
   const { result } = renderHook(

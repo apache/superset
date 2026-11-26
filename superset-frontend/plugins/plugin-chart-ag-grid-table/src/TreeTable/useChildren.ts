@@ -453,10 +453,20 @@ export default function useChildren({
         if (refreshRun.current?.level === level)
           options = { ...options, refresh: true };
       }
+      const allLevels = latest.current.formData.levels ?? [];
+      const childLevel = allLevels[level];
+      if (!childLevel?.parent_column) {
+        setEntries(previous => {
+          const next = new Map(previous);
+          paths.forEach(path =>
+            next.set(areaKey(path), { ...loadingEntry, status: 'error' }),
+          );
+          return next;
+        });
+        advanceRefresh(refreshRun.current, level);
+        return;
+      }
       const sendPart = (paths: string[][]) => {
-        const allLevels = latest.current.formData.levels ?? [];
-        const childLevel = allLevels[level];
-        if (!childLevel?.parent_column || !paths.length) return;
         const keys = paths.map(areaKey);
         const request: TreeTableChildRequest = {
           level,
