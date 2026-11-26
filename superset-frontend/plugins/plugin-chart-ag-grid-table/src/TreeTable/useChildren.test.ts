@@ -357,6 +357,22 @@ test('a failed batch marks open rows as error, drops the others, and a later ope
   });
 });
 
+test('a refresh lets previously failed parents be batched again', async () => {
+  failNext = 1;
+  const { result, rerender } = renderHook(useChildren, {
+    initialProps: params(),
+  });
+  act(() => result.current.open(['s1']));
+  await flush();
+  expect(requestBodies().map(parentIdsOf)).toEqual([pageKeys]);
+
+  rerender(params({ data: [...data] }));
+  act(() => result.current.open(['s4']));
+  await flush();
+  expect(parentIdsOf(requestBodies()[1])).toEqual(pageKeys);
+  expect(result.current.entries.get(areaKey(['s4']))?.status).toBe('loaded');
+});
+
 test('a child level without a parent column shows an error', () => {
   const { result } = renderHook(useChildren, {
     initialProps: params({

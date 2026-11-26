@@ -899,6 +899,7 @@ export default function useChildren({
       return;
     }
     abortAll();
+    failed.current.clear();
     const keys = latest.current.pageKeys;
     const onPage = new Set(keys);
     setRecords(
