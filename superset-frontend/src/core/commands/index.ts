@@ -26,7 +26,7 @@ const commandsMap: Map<string, Command> = new Map();
 
 const commandRegistry: Map<string, (...args: any[]) => any> = new Map();
 
-const registerCommand: typeof commandsApi.registerCommand = (
+export const registerCommand: typeof commandsApi.registerCommand = (
   command: Command,
   callback: (...args: any[]) => any,
   thisArg?: any,

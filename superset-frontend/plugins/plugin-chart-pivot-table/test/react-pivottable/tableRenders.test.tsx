@@ -22,6 +22,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { getTimeFormatter } from '@superset-ui/core';
+import { MetricsLayoutEnum } from '../../src/types';
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import {
   aggregatorTemplates,
@@ -1509,6 +1510,206 @@ test('TableRenderer ignores collapseRows when row subtotals are off', () => {
   expect(screen.getByText('London')).toBeInTheDocument();
 });
 
+const NESTED_COL_DATA = [
+  {
+    kind: 'fruit',
+    item: 'apple',
+    metric: 'sales',
+    value: 1,
+    __rows: ['metric'],
+    __columns: ['kind', 'item'],
+  },
+  {
+    kind: 'fruit',
+    item: 'pear',
+    metric: 'sales',
+    value: 2,
+    __rows: ['metric'],
+    __columns: ['kind', 'item'],
+  },
+  {
+    kind: 'veg',
+    item: 'leek',
+    metric: 'sales',
+    value: 4,
+    __rows: ['metric'],
+    __columns: ['kind', 'item'],
+  },
+  {
+    kind: 'fruit',
+    metric: 'sales',
+    value: 3,
+    __rows: ['metric'],
+    __columns: ['kind'],
+  },
+  {
+    kind: 'veg',
+    metric: 'sales',
+    value: 4,
+    __rows: ['metric'],
+    __columns: ['kind'],
+  },
+];
+
+function buildDepthProps(tableOptions: Record<string, unknown>, depth = 0) {
+  return buildDefaultProps({
+    data: THREE_LEVEL_ROW_DATA,
+    rows: ['country', 'region', 'city'],
+    cols: [],
+    vals: ['value'],
+    tableOptions,
+    defaultRowExpansionDepth: depth,
+  });
+}
+
+function rerenderWithTheme(
+  rerender: (ui: ReactElement) => void,
+  props: Record<string, unknown>,
+) {
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <TableRenderer {...(props as ReturnType<typeof buildDefaultProps>)} />
+    </ThemeProvider>,
+  );
+}
+
+test('TableRenderer collapses rows below the default row expansion depth', () => {
+  const props = buildDepthProps({ rowSubTotals: true }, 2);
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('US')).toBeInTheDocument();
+  expect(screen.getByText('West')).toBeInTheDocument();
+  expect(screen.getByText('East')).toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+  expect(screen.queryByText('NYC')).not.toBeInTheDocument();
+
+  clickRowGroupToggle('West');
+
+  expect(screen.getByText('LA')).toBeInTheDocument();
+  expect(screen.getByText('SF')).toBeInTheDocument();
+  expect(screen.queryByText('NYC')).not.toBeInTheDocument();
+});
+
+test.each([MetricsLayoutEnum.ROWS, MetricsLayoutEnum.COLUMNS])(
+  'TableRenderer keeps the first dimension visible with a leading metric on %s',
+  leadingMetricAxis => {
+    const names = ['Metric', 'kind', 'item'];
+    const metricsOnRows = leadingMetricAxis === MetricsLayoutEnum.ROWS;
+    const data = [
+      { Metric: 'sales', kind: 'fruit', item: 'apple', value: 3 },
+      { Metric: 'sales', kind: 'fruit', value: 3 },
+      { Metric: 'sales', value: 3 },
+    ].map((record, index) => {
+      const level = names.slice(0, names.length - index);
+      return {
+        ...record,
+        __metricKey: 'Metric',
+        __rows: metricsOnRows ? level : [],
+        __columns: metricsOnRows ? [] : level,
+      };
+    });
+    const props = buildDefaultProps({
+      data,
+      rows: metricsOnRows ? names : [],
+      cols: metricsOnRows ? [] : names,
+      vals: ['value'],
+      tableOptions: { rowSubTotals: true, colSubTotals: true },
+      leadingMetricAxis,
+      defaultRowExpansionDepth: 1,
+      defaultColExpansionDepth: 1,
+    });
+    renderWithTheme(<TableRenderer {...props} />);
+
+    expect(screen.getByText('fruit')).toBeInTheDocument();
+    expect(screen.queryByText('apple')).not.toBeInTheDocument();
+  },
+);
+
+test('TableRenderer re-applies the default row expansion depth when it changes', () => {
+  const { rerender } = renderWithTheme(
+    <TableRenderer {...buildDepthProps({ rowSubTotals: true }, 0)} />,
+  );
+  expect(screen.getByText('LA')).toBeInTheDocument();
+
+  rerenderWithTheme(rerender, buildDepthProps({ rowSubTotals: true }, 1));
+  expect(screen.getByText('US')).toBeInTheDocument();
+  expect(screen.queryByText('West')).not.toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+
+  rerenderWithTheme(rerender, buildDepthProps({ rowSubTotals: true }, 2));
+  expect(screen.getByText('West')).toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+
+  rerenderWithTheme(rerender, buildDepthProps({ rowSubTotals: true }, 0));
+  expect(screen.getByText('LA')).toBeInTheDocument();
+});
+
+test('TableRenderer resets manual toggles when the default row expansion depth changes', () => {
+  const { rerender } = renderWithTheme(
+    <TableRenderer {...buildDepthProps({ rowSubTotals: true }, 2)} />,
+  );
+  clickRowGroupToggle('West');
+  expect(screen.getByText('LA')).toBeInTheDocument();
+
+  // Depth 1 collapses West by default. A surviving manual expand of West
+  // would keep LA visible once US is expanded.
+  rerenderWithTheme(rerender, buildDepthProps({ rowSubTotals: true }, 1));
+  clickRowGroupToggle('US');
+  expect(screen.getByText('West')).toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+});
+
+test('TableRenderer lets collapseRows override the default row expansion depth', () => {
+  const props = buildDepthProps({ rowSubTotals: true, collapseRows: true }, 2);
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('US')).toBeInTheDocument();
+  expect(screen.queryByText('West')).not.toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+});
+
+test('TableRenderer ignores the default row expansion depth when row subtotals are off', () => {
+  const props = buildDepthProps({ rowSubTotals: false }, 1);
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('West')).toBeInTheDocument();
+  expect(screen.getByText('LA')).toBeInTheDocument();
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+});
+
+test('TableRenderer collapses column groups below the default column expansion depth', () => {
+  const buildColProps = (depth: number) =>
+    buildDefaultProps({
+      data: NESTED_COL_DATA,
+      rows: ['metric'],
+      cols: ['kind', 'item'],
+      vals: ['value'],
+      tableOptions: { colSubTotals: true },
+      defaultColExpansionDepth: depth,
+    });
+  const { rerender } = renderWithTheme(<TableRenderer {...buildColProps(1)} />);
+
+  expect(screen.getByText('fruit')).toBeInTheDocument();
+  expect(screen.getByText('veg')).toBeInTheDocument();
+  expect(screen.queryByText('apple')).not.toBeInTheDocument();
+  expect(screen.queryByText('leek')).not.toBeInTheDocument();
+
+  const toggle = screen
+    .getByText('fruit')
+    .closest('th')
+    ?.querySelector('button.toggle');
+  if (!toggle) {
+    throw new Error('No column-group toggle for fruit');
+  }
+  fireEvent.click(toggle);
+  expect(screen.getByText('apple')).toBeInTheDocument();
+  expect(screen.queryByText('leek')).not.toBeInTheDocument();
+
+  rerenderWithTheme(rerender, buildColProps(0));
+  expect(screen.getByText('apple')).toBeInTheDocument();
+  expect(screen.getByText('leek')).toBeInTheDocument();
+});
+
 test('TableRenderer does not treat prototype key names as collapsed', () => {
   // Leaf keys are `constructor\\0NYC`, so PivotData can store them. The
   // ancestor walk still looks up the bare prefix `constructor` / `toString`.
@@ -1742,3 +1943,56 @@ test('TableRenderer keeps each metric aggregation on its own formatter', () => {
   expect(grandTotalCells.length).toBe(1);
   expect(grandTotalCells[0]).toHaveTextContent('3.000 r');
 });
+
+test.each([
+  { hideEmptyColumns: false, sortColumn: 'B' },
+  { hideEmptyColumns: false, sortColumn: 'C' },
+  { hideEmptyColumns: true, sortColumn: 'C' },
+])(
+  'reset sorting when empty-column visibility changes ($hideEmptyColumns, $sortColumn)',
+  ({ hideEmptyColumns, sortColumn }) => {
+    const props = buildDefaultProps({
+      rows: ['row'],
+      cols: ['column'],
+      vals: ['value'],
+      aggregateFunction: 'Sum',
+      data: ['first', 'second'].flatMap(row => [
+        { row, column: 'A', value: 1 },
+        { row, column: 'B', value: null },
+        { row, column: 'C', value: row === 'first' ? 20 : 10 },
+      ]),
+    });
+    const { container, rerender } = renderWithTheme(
+      <TableRenderer {...props} hideEmptyColumns={hideEmptyColumns} />,
+    );
+    const sort = (column: string) => {
+      const header = Array.from(
+        container.querySelectorAll('th.pvtColLabel'),
+      ).find(node => node.textContent === column)!;
+      fireEvent.click(header.querySelector('.anticon')!);
+    };
+    const rowLabels = () =>
+      Array.from(container.querySelectorAll('th.pvtRowLabel')).map(
+        node => node.textContent,
+      );
+    sort(sortColumn);
+    expect(
+      screen.getByRole('button', { name: `Sorted by ${sortColumn} ascending` }),
+    ).toBeInTheDocument();
+    if (sortColumn === 'C') expect(rowLabels()).toEqual(['second', 'first']);
+    rerender(
+      <ThemeProvider theme={supersetTheme}>
+        <TableRenderer {...props} hideEmptyColumns={!hideEmptyColumns} />
+      </ThemeProvider>,
+    );
+    expect(
+      screen.queryByRole('button', { name: /Sorted by/ }),
+    ).not.toBeInTheDocument();
+    expect(rowLabels()).toEqual(['first', 'second']);
+    sort('C');
+    expect(
+      screen.getByRole('button', { name: 'Sorted by C ascending' }),
+    ).toBeInTheDocument();
+    expect(rowLabels()).toEqual(['second', 'first']);
+  },
+);

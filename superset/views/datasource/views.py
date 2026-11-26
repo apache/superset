@@ -76,7 +76,7 @@ _DATASET_TYPES = frozenset({DatasourceType.TABLE.value, DatasourceType.DATASET.v
 
 
 def _load_dataset_for_samples(
-    view: BaseSupersetView, params: dict[str, Any]
+    params: dict[str, Any],
 ) -> tuple[DatasourceModel | None, FlaskResponse | None]:
     """Pre-fetch and access-check the dataset for an authenticated request.
 
@@ -96,7 +96,7 @@ def _load_dataset_for_samples(
             database_id_or_uuid=params["datasource_id"],
         )
     except (DatasourceNotFound, DatasourceTypeNotSupportedError):
-        return None, view.response_404()
+        return None, json_error_response(_("Not found"), status=404)
     try:
         security_manager.raise_for_access(datasource=dataset)
     except SupersetSecurityException:
@@ -172,6 +172,7 @@ def _partition_transform_error(
 def _partition_mapping_reference_error(
     orm_datasource: Any,
     datasource_dict: dict[str, Any],
+    database_changed: bool,
 ) -> str | None:
     """
     Why this request's partition mapping references cannot be stored, if any.
@@ -191,38 +192,80 @@ def _partition_mapping_reference_error(
     design in `validate_partition_mapping`, and refusing it here would recreate
     exactly the unsaveable dataset this function exists to prevent.
 
-    Gated on the feature flag, like `UpdateDatasetCommand`'s own call: with the
-    flag off nothing mirrors, and a deployment that never turned the feature on
-    should not start failing saves over a reference nothing reads.
-    """
-    if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
-        return None
+    Not gated on the feature flag, and only for what this request breaks --
+    the bargain `UpdateDatasetCommand._validate_partition_mapping` strikes, and
+    for its reasons. Gated, a flag-off save stored any reference and the first
+    flag-on save refused it; refusing a reference that was already broken in
+    storage meant this endpoint's own GET-then-POST client could not save the
+    dataset at all, whatever it changed.
 
+    Gated on the engine, again like `UpdateDatasetCommand`: the editor hides the
+    mapping and the query path ignores it on an engine without the capability,
+    so its owner could not see or repair the reference this would refuse. That
+    engine is the one the request leaves the dataset on, and `save` assigns only
+    `database_id`, so on a move `orm_datasource.database` still answers for the
+    database being left.
+    """
     partition_column = datasource_dict.get("partition_column")
     if not partition_column:
         return None
 
-    database = getattr(orm_datasource, "database", None)
-    if database is None:
+    database = (
+        DatasetDAO.get_database_by_id(datasource_dict["database"]["id"])
+        if database_changed
+        else getattr(orm_datasource, "database", None)
+    )
+    if (
+        database is None
+        or not database.db_engine_spec.supports_partition_filter_mapping
+    ):
         return None
 
     # The columns the request is about to write, not the ones in storage:
     # `update_from_object` replaces the collection, so a reference has to be
     # checked against what will be there afterwards.
-    column_names = {
-        column.get("column_name")
+    columns_by_name = {
+        column.get("column_name"): column
         for column in datasource_dict.get("columns") or []
         if column.get("column_name")
     }
+    stored_columns = {
+        column.column_name: column
+        for column in getattr(orm_datasource, "columns", None) or []
+    }
+    stored_issues = (
+        {
+            (issue.field, str(issue.message))
+            for issue in validate_partition_mapping(
+                column_names=set(stored_columns),
+                partition_column=orm_datasource.partition_column,
+                partition_mapped_column=orm_datasource.partition_mapped_column,
+                main_dttm_col=orm_datasource.main_dttm_col,
+                transform=None,
+                engine=database.backend,
+                partition_expression=getattr(
+                    stored_columns.get(orm_datasource.partition_column),
+                    "expression",
+                    None,
+                ),
+            )
+            if issue.blocking
+        }
+        if getattr(orm_datasource, "partition_column", None)
+        else set()
+    )
     for issue in validate_partition_mapping(
-        column_names=column_names,
+        column_names=set(columns_by_name),
         partition_column=partition_column,
         partition_mapped_column=datasource_dict.get("partition_mapped_column"),
         main_dttm_col=datasource_dict.get("main_dttm_col"),
         transform=None,
         engine=database.backend,
+        partition_expression=columns_by_name.get(partition_column, {}).get(
+            "expression"
+        ),
     ):
-        if issue.blocking:
+        if issue.blocking and (issue.field, str(issue.message)) not in stored_issues:
             return str(issue.message)
     return None
 
@@ -545,7 +588,9 @@ class Datasource(BaseSupersetView):
         # And the mapping's own column references, for the same reason: they
         # ride in on `update_from_object` with no validation, and a dangling one
         # fails every later PUT rather than this request.
-        if error := _partition_mapping_reference_error(orm_datasource, datasource_dict):
+        if error := _partition_mapping_reference_error(
+            orm_datasource, datasource_dict, database_changed
+        ):
             return json_error_response(error, status=422)
 
         orm_datasource.update_from_object(datasource_dict)
@@ -656,21 +701,21 @@ class Datasource(BaseSupersetView):
             # spaces, so the lookup below would validate whichever unrelated
             # SqlaTable happens to share the integer id.
             if params["datasource_type"] not in _DATASET_TYPES:
-                return self.response_404()
+                return json_error_response(_("Not found"), status=404)
             dashboard_id = params["dashboard_id"]
             dataset = DatasetDAO.find_by_id(
                 params["datasource_id"], skip_base_filter=True
             )
             dashboard = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
             if not (dashboard and dataset):
-                return self.response_404()
+                return json_error_response(_("Not found"), status=404)
             if not security_manager.can_drill_dataset_via_dashboard_access(
                 dataset,
                 dashboard,
             ):
                 return json_error_response(_("Forbidden"), status=403)
         else:
-            dataset, error_response = _load_dataset_for_samples(self, params)
+            dataset, error_response = _load_dataset_for_samples(params)
             if error_response is not None:
                 return error_response
 
