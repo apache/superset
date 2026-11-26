@@ -641,7 +641,9 @@ test('a rejected layout write settles the draft again at the revision it had', a
   // A 409 means the draft moved on elsewhere: the canvas is refetched, and
   // until that lands the revision on screen is still the last one fetched.
   fetchMock.patch(draftEndpoint, 409);
-  const reload = jest.fn();
+  // Reports when it is done, as the definition hook's reload does: the
+  // reverted gesture is then retried, conflicts again, and is given up.
+  const reload = jest.fn(() => Promise.resolve());
   renderWith(DRAFT, { reload, active: active(true) });
   const { seen, stop } = recordActiveCanvas();
 
