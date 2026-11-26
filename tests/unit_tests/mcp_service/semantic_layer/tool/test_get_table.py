@@ -42,6 +42,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.semantic_layers.errors import (
     SemanticBackendError,
     SemanticQueryErrorCode,
+    SemanticResultCompletenessError as ProviderResultCompletenessError,
 )
 from superset_core.semantic_layers.transport import (
     ProviderRequestError,
@@ -58,6 +59,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     QueryObjectValidationError,
+    SemanticResultCompletenessError,
     SupersetErrorException,
     SupersetSecurityException,
 )
@@ -335,6 +337,101 @@ async def test_get_table_rewraps_host_signal_raised_inside_provider(
     assert "token=abc" not in str(ctx.info.await_args_list)
     assert "token=abc" not in str(ctx.error.await_args_list)
     assert "token=abc" not in caplog.text
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_get_table_preserves_host_completeness_guidance(
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The translated completeness error keeps its fixed recovery guidance."""
+    provider_error: ProviderResultCompletenessError = ProviderResultCompletenessError(
+        "incomplete"
+    )
+    provider_error.__cause__ = RuntimeError("password=hunter2")
+    with pytest.raises(SemanticResultCompletenessError) as captured:
+        execute_semantic_query(MagicMock(side_effect=provider_error))
+    monkeypatch.setattr(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "_run_get_table_query",
+        AsyncMock(side_effect=captured.value),
+    )
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(view_id=5, metrics=["bookings"]), ctx
+    )
+
+    assert response.error_code == "INVALID_QUERY"
+    assert response.error_type == "ValidationError"
+    assert "Narrow the time range" in response.error
+    assert "hunter2" not in response.model_dump_json()
+    assert "hunter2" not in str(ctx.error.await_args_list)
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("shape", ["direct_host", "subclass"])
+async def test_get_table_does_not_trust_provider_host_completeness_shapes(
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    shape: str,
+) -> None:
+    """Only the exact host-translated error may keep completeness guidance."""
+    caplog.set_level("DEBUG")
+    core_error: ProviderResultCompletenessError = ProviderResultCompletenessError(
+        "incomplete"
+    )
+    if shape == "direct_host":
+        host_error: SemanticResultCompletenessError = SemanticResultCompletenessError(
+            "incomplete"
+        )
+        host_error.args = ("password=hunter2",)
+        with pytest.raises(SemanticResultCompletenessError) as captured:
+            with provider_code():
+                raise host_error from core_error
+        failure: SemanticResultCompletenessError = captured.value
+    else:
+
+        class ProviderCompletenessSubclassError(SemanticResultCompletenessError):
+            """A provider-controlled host-class subtype."""
+
+        failure = ProviderCompletenessSubclassError("incomplete")
+        failure.args = ("password=hunter2",)
+        with pytest.raises(ProviderResultCompletenessError) as captured_core:
+            with provider_code():
+                raise core_error
+        failure.__cause__ = captured_core.value
+
+    monkeypatch.setattr(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "_run_get_table_query",
+        AsyncMock(side_effect=failure),
+    )
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(view_id=5, metrics=["bookings"]), ctx
+    )
+
+    assert response.error_code == "GENERIC_BACKEND_ERROR"
+    assert "hunter2" not in response.model_dump_json()
+    assert "hunter2" not in str(ctx.error.await_args_list)
+    assert "hunter2" not in caplog.text
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")

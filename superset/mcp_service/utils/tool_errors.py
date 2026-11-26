@@ -22,13 +22,18 @@ from superset_core.semantic_layers.errors import (
     SemanticBackendError,
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
+    SemanticResultCompletenessError as ProviderResultCompletenessError,
 )
 from superset_core.semantic_layers.transport import ProviderRequestError
 
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.errors import SupersetError, SupersetErrorType
-from superset.exceptions import QueryObjectValidationError, SupersetErrorException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SemanticResultCompletenessError,
+    SupersetErrorException,
+)
 from superset.mcp_service.chart.response_preflight import bounded_exception_message
 from superset.semantic_layers.exceptions import (
     is_provider_fault,
@@ -83,6 +88,24 @@ def _superset_exception_error(
     )
 
 
+def _translated_completeness_error(
+    chain: list[BaseException],
+) -> tuple[str, str, str] | None:
+    """Keep fixed host guidance produced from a provider completeness signal."""
+    for error in chain:
+        if (
+            type(error) is SemanticResultCompletenessError
+            and isinstance(error.__cause__, ProviderResultCompletenessError)
+            and not is_provider_fault(error)
+        ):
+            return (
+                SemanticQueryErrorCode.INVALID_QUERY.value,
+                bounded_exception_message(error),
+                "ValidationError",
+            )
+    return None
+
+
 def public_query_error(exc: Exception, *, semantic: bool) -> tuple[str, str, str]:
     """Return a safe error code, message, and MCP type for a failed query.
 
@@ -91,6 +114,9 @@ def public_query_error(exc: Exception, *, semantic: bool) -> tuple[str, str, str
     Dataset engine errors follow the same guest rule as the HTTP chart API.
     """
     chain: list[BaseException] = _causal_chain(exc)
+
+    if semantic and (completeness := _translated_completeness_error(chain)) is not None:
+        return completeness
 
     if semantic and contains_provider_fault(exc):
         return (
