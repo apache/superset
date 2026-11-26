@@ -27,6 +27,7 @@ from flask import g
 from jinja2.exceptions import TemplateSyntaxError
 from pytest_mock import MockerFixture
 
+from superset.commands.sql_lab.export import SqlResultExportCommand
 from superset.commands.sql_lab.streaming_export_command import (
     StreamingSqlResultExportCommand,
 )
@@ -1033,6 +1034,7 @@ def test_streaming_non_finite_decimal_csv(decimal_separator: str | None) -> None
     [
         ("INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 4", "postgresql"),
         ("IF FALSE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;", "bigquery"),
+        ("IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF;", "bigquery"),
         (
             "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF; DELETE FROM t WHERE TRUE;",
             "bigquery",
@@ -1087,6 +1089,7 @@ def test_streaming_export_rejects_mutating_scripts(
         ("INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 100001", "postgresql"),
         ("BEGIN INSERT INTO log VALUES (1); SELECT n FROM t; END;", "bigquery"),
         ("IF FALSE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;", "bigquery"),
+        ("IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF;", "bigquery"),
         (
             "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF; DELETE FROM t WHERE TRUE;",
             "bigquery",
@@ -1149,3 +1152,54 @@ def test_streaming_export_buffers_mutating_script_results(
     execute.assert_not_called()
     mock_query.database.get_df.assert_not_called()
     mock_query.database.get_sqla_engine.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        ("mysql", "SHOW TABLES FROM some_schema"),
+        ("postgresql", "SHOW server_version"),
+        ("kustokql", "print 1"),
+    ],
+)
+@pytest.mark.parametrize("use_select_sql", [False, True])
+def test_streaming_export_reruns_non_bigquery_unparseable_reads_without_backend(
+    mocker: MockerFixture,
+    mock_query: MagicMock,
+    engine: str,
+    sql: str,
+    use_select_sql: bool,
+) -> None:
+    """Opaque reads reach the streaming connection, not the stored-row fallback."""
+    mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    mocker.patch.dict(
+        "superset.commands.streaming_export.base.app.config", {"CSV_EXPORT": {}}
+    )
+    mock_query.database.db_engine_spec.engine = engine
+    mock_query.select_sql = sql if use_select_sql else None
+    mock_query.executed_sql = "SELECT 1" if use_select_sql else sql
+    _setup_sqllab_mocks(mocker, mock_query)
+    connection = MagicMock()
+    result = connection.execution_options.return_value.exec_driver_sql.return_value
+    result.keys.return_value = ["n"]
+    result.fetchmany.side_effect = [[(1,), (2,)], []]
+    engine_mock = (
+        mock_query.database.get_sqla_engine.return_value.__enter__.return_value
+    )
+    engine_mock.connect.return_value.__enter__.return_value = connection
+    buffered = mocker.spy(SqlResultExportCommand, "run")
+    command = StreamingSqlResultExportCommand("client_id")
+    command.validate()
+
+    assert command._get_sql_and_database() == (
+        sql,
+        mock_query.database,
+        mock_query.catalog,
+        mock_query.schema,
+    )
+    assert "".join(command.run()()) == "n\r\n1\r\n2\r\n"
+    connection.execution_options.return_value.exec_driver_sql.assert_called_once_with(
+        sql
+    )
+    buffered.assert_not_called()
+    mock_query.database.get_df.assert_not_called()

@@ -39,7 +39,9 @@ assists people when migrating to a new version.
   fail if those results are unavailable. Streaming downloads fall back to the
   buffered export for these scripts. BigQuery control-flow bodies that the
   parser cannot inspect are checked for mutation tokens; scripts with unsupported
-  syntax use stored rows rather than risk repeating writes.
+  BigQuery syntax use stored rows rather than risk repeating writes. Other
+  engines retain the export re-execution fallback for opaque statements unless
+  a mutation is detected.
 
 - Provider tests inheriting `SemanticProviderConformance` must supply four
   additional `semantic_query_cases`: `or_not_in`, `or_not_equals`, `or_not_like`,

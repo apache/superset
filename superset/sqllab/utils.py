@@ -124,17 +124,21 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
 
 
 def is_export_sql_read_only(sql: str, engine: str) -> bool:
-    """Only rerun scripts whose parsed statements can be proven read-only."""
+    """Reject detected writes and BigQuery scripts the parser cannot inspect."""
     try:
         script = SQLScript(sql, engine)
         # A successful parse can still contain opaque commands. In particular,
         # BigQuery IF/ELSE parsing can omit branches and trailing statements,
         # so absence of a mutation in the returned AST is not proof of safety.
-        return not (script.has_unparseable_statement or script.has_mutation())
+        return not (
+            (engine == "bigquery" and script.has_unparseable_statement)
+            or script.has_mutation()
+        )
     except SupersetParseError:
-        # Unsupported scripting syntax may hide writes. Stored results can
-        # still be exported, but the script must never be re-executed.
-        return False
+        # Unsupported BigQuery scripting syntax may hide writes. Other engines
+        # retain their export fallback rather than treating a parse failure as
+        # proof of mutation (e.g. dialect-specific metadata commands).
+        return engine != "bigquery"
 
 
 def validate_export_sql(sql: str, engine: str) -> None:

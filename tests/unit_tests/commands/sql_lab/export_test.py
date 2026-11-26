@@ -325,3 +325,78 @@ def test_csv_export_never_reruns_bigquery_script_blocks(
             command.run()
         assert exc.value.status == 400
     query.database.get_df.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        ("mysql", "SHOW TABLES FROM some_schema"),
+        ("postgresql", "SHOW server_version"),
+        ("kustokql", "print 1"),
+    ],
+)
+@pytest.mark.parametrize("use_select_sql", [False, True])
+def test_csv_export_reruns_non_bigquery_unparseable_reads_without_backend(
+    mocker: MockerFixture, engine: str, sql: str, use_select_sql: bool
+) -> None:
+    """Opaque metadata reads and KQL retain the export fallback to get_df."""
+    from superset.sql.parse import SQLScript
+
+    script = SQLScript(sql, engine)
+    assert script.has_unparseable_statement
+    assert not script.has_mutation()
+    mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+    query = MagicMock()
+    query.select_sql = sql if use_select_sql else None
+    query.executed_sql = "SELECT 1" if use_select_sql else sql
+    query.limiting_factor = LimitingFactor.NOT_LIMITED
+    query.database.db_engine_spec.engine = engine
+    query.database.get_df.return_value = pd.DataFrame({"n": [1, 2]})
+    command = SqlResultExportCommand("client_id")
+    mocker.patch.object(command, "validate")
+    command._query = query
+
+    result = command.run()
+
+    assert result["data"] == b"n\n1\n2\n"
+    assert result["count"] == 2
+    query.database.get_df.assert_called_once_with(sql, query.catalog, query.schema)
+
+
+@pytest.mark.parametrize("use_select_sql", [False, True])
+def test_csv_export_bigquery_unparseable_script_uses_stored_rows(
+    mocker: MockerFixture, use_select_sql: bool
+) -> None:
+    """A BigQuery opaque body stays fail-closed even without detected mutations."""
+    from superset.sql.parse import SQLScript
+
+    sql = "IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF;"
+    script = SQLScript(sql, "bigquery")
+    assert script.has_unparseable_statement
+    assert not script.has_mutation()
+    backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
+    backend.get.return_value = b"blob"
+    mocker.patch(
+        "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
+    )
+    mocker.patch(
+        "superset.commands.sql_lab.export._deserialize_results_payload",
+        return_value={"data": [{"n": 1}], "columns": [{"name": "n"}]},
+    )
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+    query = MagicMock()
+    query.results_key = "key"
+    query.select_sql = sql if use_select_sql else None
+    query.executed_sql = "SELECT 1" if use_select_sql else sql
+    query.limiting_factor = LimitingFactor.MEMORY
+    query.database.db_engine_spec.engine = "bigquery"
+    command = SqlResultExportCommand("client_id")
+    mocker.patch.object(command, "validate")
+    command._query = query
+
+    assert command.run()["data"] == b"n\n1\n"
+    backend.get.assert_called_once_with("key")
+    query.database.get_df.assert_not_called()

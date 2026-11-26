@@ -75,3 +75,11 @@ def test_export_sql_requires_fully_parsed_read_only_script(
     from superset.sqllab.utils import is_export_sql_read_only
 
     assert is_export_sql_read_only(sql, "bigquery") is expected
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "bigquery"])
+def test_export_sql_parse_failure_policy_is_engine_scoped(engine: str) -> None:
+    """Only BigQuery export validation rejects SQL solely for a parse failure."""
+    from superset.sqllab.utils import is_export_sql_read_only
+
+    assert is_export_sql_read_only("SELECT (", engine) is (engine != "bigquery")
