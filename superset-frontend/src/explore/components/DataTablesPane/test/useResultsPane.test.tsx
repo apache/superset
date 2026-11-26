@@ -169,6 +169,56 @@ describe('useResultsPane query data reuse', () => {
     );
   });
 
+  test('re-queries the server instead of reusing chart data after a server-side sort', async () => {
+    mockedGetChartDataRequest.mockResolvedValue({
+      json: {
+        result: [
+          {
+            colnames: ['genre'],
+            coltypes: [1],
+            data: [{ genre: 'Western' }, { genre: 'Thriller' }],
+            rowcount: 2,
+          },
+        ],
+      },
+    });
+    const props = createResultsPaneOnDashboardProps({
+      sliceId: 209,
+      rowLimit: 2,
+      queriesResponse: [
+        {
+          colnames: ['genre'],
+          coltypes: [1],
+          data: [{ genre: 'Action' }, { genre: 'Horror' }, { genre: 'Comedy' }],
+          rowcount: 3,
+        },
+      ],
+    });
+
+    const { container } = render(<ResultsPaneOnDashboard {...props} />, {
+      useRedux: true,
+    });
+
+    expect(await screen.findByText('Action')).toBeVisible();
+    expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
+
+    const header = await waitFor(() => {
+      const label = container.querySelector('.ag-header-cell-label');
+      expect(label).toBeInTheDocument();
+      return label as HTMLElement;
+    });
+    await userEvent.click(header);
+
+    await waitFor(() =>
+      expect(mockedGetChartDataRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          formData: expect.objectContaining({ orderby: [['genre', true]] }),
+        }),
+      ),
+    );
+    expect(await screen.findByText('Western')).toBeInTheDocument();
+  });
+
   test("warns about this pane's own row limit, not the chart's, when the pane's selector is what caps the result", async () => {
     // chart row_limit (2000) is well above this pane's default 1000-row
     // selector, so the selector - not the chart - is what truncates here.

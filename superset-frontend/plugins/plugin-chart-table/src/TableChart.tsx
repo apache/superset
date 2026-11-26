@@ -1476,6 +1476,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 col.toggleSortBy();
               }
             }}
+            // Expose sort state to assistive technology. Only
+            // sortable headers advertise aria-sort; the value tracks the
+            // ascending/descending/none cycle rendered by <SortIcon>.
+            aria-sort={
+              col.canSort
+                ? col.isSorted
+                  ? col.isSortedDesc
+                    ? 'descending'
+                    : 'ascending'
+                  : 'none'
+                : undefined
+            }
             onClick={onClick}
             data-column-name={col.id}
             {...(allowRearrangeColumns && {

@@ -269,7 +269,16 @@ def _count_star_query_context(
             "type": datasource.type,
             "id": datasource.id,
         },
-        queries=[{**payload, **count_star_metric} if payload else count_star_metric],
+        # `orderby` is omitted from the count query: ordering a bare COUNT(*)
+        # by a data column is meaningless and errors on stricter databases.
+        queries=[
+            {
+                **{key: value for key, value in payload.items() if key != "orderby"},
+                **count_star_metric,
+            }
+            if payload
+            else count_star_metric
+        ],
         form_data=form_data,
         result_type=ChartDataResultType.FULL,
         force=force,

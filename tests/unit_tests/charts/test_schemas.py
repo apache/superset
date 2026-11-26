@@ -896,3 +896,24 @@ def test_aggregate_accepts_an_empty_groupby(app_context: None) -> None:
         ]
         == []
     )
+
+
+@pytest.mark.parametrize("direction", ["sideways", 2, None])
+def test_query_object_schema_rejects_non_boolean_sort_direction(
+    app_context: None, direction: object
+) -> None:
+    """Every query object's sort direction must be a boolean."""
+    with pytest.raises(ValidationError) as excinfo:
+        chart_schemas.ChartDataQueryObjectSchema().load(
+            {"orderby": [["col1", direction]]}
+        )
+    assert "orderby" in excinfo.value.messages
+
+
+def test_query_object_schema_accepts_boolean_sort_direction(
+    app_context: None,
+) -> None:
+    loaded = chart_schemas.ChartDataQueryObjectSchema().load(
+        {"orderby": [["col1", False]]}
+    )
+    assert loaded["orderby"] == [("col1", False)]
