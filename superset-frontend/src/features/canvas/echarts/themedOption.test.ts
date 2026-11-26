@@ -31,6 +31,7 @@ const theme = {
   colorSplit: '#333',
   colorPrimary: '#20a7c9',
   fontFamily: 'Inter',
+  sizeUnit: 4,
 } as unknown as SupersetTheme;
 
 test('styles text and only the components the option uses', () => {
@@ -126,4 +127,47 @@ test('the option wins over theme defaults, and theme overrides win last', () => 
     fontFamily: 'Inter',
     fontSize: 14,
   });
+});
+
+test('a cartesian chart gets a tight grid that keeps its axis labels in', () => {
+  const { grid } = themedOption(
+    { xAxis: { type: 'category' }, yAxis: {} },
+    theme,
+    [],
+  );
+
+  expect(grid).toEqual({
+    top: 20,
+    right: 20,
+    bottom: 20,
+    left: 20,
+    outerBoundsMode: 'same',
+    outerBoundsContain: 'axisLabel',
+  });
+});
+
+test('the grid leaves room for a legend and a slider zoom', () => {
+  const { grid } = themedOption(
+    { xAxis: {}, yAxis: {}, legend: {}, dataZoom: [{ type: 'slider' }] },
+    theme,
+    [],
+  );
+
+  expect(grid).toMatchObject({ top: 40, bottom: 60 });
+});
+
+test("the option's own grid wins over the default", () => {
+  const { grid } = themedOption(
+    { xAxis: {}, yAxis: {}, grid: { left: 80 } },
+    theme,
+    [],
+  );
+
+  expect(grid).toMatchObject({ left: 80, right: 20 });
+});
+
+test('a chart without axes gets no grid', () => {
+  expect(
+    themedOption({ series: [{ type: 'pie' }] }, theme, []),
+  ).not.toHaveProperty('grid');
 });
