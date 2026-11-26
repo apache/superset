@@ -23,6 +23,9 @@ import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { Button, EmptyState } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { chat, useChat } from 'src/core';
+import { LOG_ACTIONS_CANVAS_CHAT_PANEL } from 'src/logger/LogUtils';
+import { useCanvasLogger } from './useCanvasLogger';
 import CanvasGrid, { EventValues, ScopeValues } from './CanvasGrid';
 import DraftBanner from './DraftBanner';
 import CanvasToolbar from './CanvasToolbar';
@@ -115,6 +118,8 @@ export default function CanvasBody({
   active,
 }: CanvasBodyProps) {
   const layout = useCanvasLayout(canvasId, result, reload, draftToken);
+  const { chat: registeredChat } = useChat();
+  const log = useCanvasLogger(canvasId, { isDraft: Boolean(draftToken) });
   const { addDangerToast } = useToasts();
   // A write that doesn't land is said once, where the user is looking. A
   // notice above the canvas is off-screen on anything taller than the window,
@@ -242,8 +247,20 @@ export default function CanvasBody({
       {isEmpty ? (
         <EmptyState
           size="medium"
-          title={t('This canvas is empty')}
-          description={t('Ask the chat to add widgets to it.')}
+          image="empty-charts.svg"
+          title={t('Your canvas is empty')}
+          description={t('Tell the AI assistant what you want to see.')}
+          {...(registeredChat && {
+            buttonText: t('Open AI assistant'),
+            buttonAction: () => {
+              chat.setDisplayMode('panel');
+              chat.open();
+              log(LOG_ACTIONS_CANVAS_CHAT_PANEL, {
+                open: true,
+                trigger: 'empty_state',
+              });
+            },
+          })}
         />
       ) : (
         <CanvasGrid

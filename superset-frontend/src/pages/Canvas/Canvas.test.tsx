@@ -102,7 +102,7 @@ test('shows the canvas title and an empty state', async () => {
 
   expect(await screen.findByText('Exec overview')).toBeInTheDocument();
   expect(screen.getByText('KPIs and trend')).toBeInTheDocument();
-  expect(screen.getByText('This canvas is empty')).toBeInTheDocument();
+  expect(screen.getByText('Your canvas is empty')).toBeInTheDocument();
   await waitFor(() =>
     expect(canvas.getActiveCanvas()).toStrictEqual({
       id: 7,
@@ -124,7 +124,7 @@ test('reloads the definition when this canvas changes', async () => {
   });
 
   render(<CanvasPage />, { useRedux: true, useRouter: true });
-  expect(await screen.findByText('This canvas is empty')).toBeInTheDocument();
+  expect(await screen.findByText('Your canvas is empty')).toBeInTheDocument();
 
   fetchMock.removeRoute(definitionEndpoint);
   fetchMock.get(definitionEndpoint, definition(['a'], 2), {
@@ -174,7 +174,9 @@ test('the edit button opens the draft on this canvas', async () => {
 
   // The draft banner only renders once the page is showing a draft.
   expect(
-    await screen.findByText('Draft. Only you can see these changes.'),
+    await screen.findByText(
+      "You're editing. Only you can see changes until you save.",
+    ),
   ).toBeInTheDocument();
 
   const [draftCall] = fetchMock.callHistory
@@ -365,7 +367,9 @@ test.each(['Save', 'Discard'])(
     post.mockClear();
     fireEvent.click(screen.getByRole('button', { name: 'Edit canvas' }));
     expect(
-      await screen.findByText('Draft. Only you can see these changes.'),
+      await screen.findByText(
+        "You're editing. Only you can see changes until you save.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('draft-chart')).toHaveTextContent('north');
     await waitFor(() =>
@@ -374,7 +378,9 @@ test.each(['Save', 'Discard'])(
     fireEvent.click(screen.getByRole('button', { name: action }));
     await waitFor(() =>
       expect(
-        screen.queryByText('Draft. Only you can see these changes.'),
+        screen.queryByText(
+          "You're editing. Only you can see changes until you save.",
+        ),
       ).not.toBeInTheDocument(),
     );
     expect(screen.getByTestId('draft-chart')).toHaveTextContent('north');
@@ -553,7 +559,7 @@ test.each([
     500,
     'pending',
     pendingIn('tok-a', 2),
-    'Draft. Only you can see these changes.',
+    "You're editing. Only you can see changes until you save.",
   ],
   [
     404,
@@ -629,7 +635,9 @@ test('a draft of another canvas says nothing', async () => {
   renderPage();
 
   expect(
-    await screen.findByText('Draft. Only you can see these changes.'),
+    await screen.findByText(
+      "You're editing. Only you can see changes until you save.",
+    ),
   ).toBeInTheDocument();
   await settle();
   expect(canvas.getActiveCanvas()).toBeUndefined();
