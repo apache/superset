@@ -14715,6 +14715,9 @@ msgstr ""
 msgid "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used."
 msgstr ""
 
+msgid "The chart could not be loaded."
+msgstr ""
+
 msgid "The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns."
 msgstr ""
 
@@ -15622,6 +15625,9 @@ msgid "There is currently no information to display."
 msgstr ""
 
 msgid "There is no chart definition associated with this component, could it have been deleted?"
+msgstr ""
+
+msgid "There is no chart to draw: the form data does not name a chart type."
 msgstr ""
 
 msgid "There is not enough space for this component. Try decreasing its width, or increasing the destination width."
