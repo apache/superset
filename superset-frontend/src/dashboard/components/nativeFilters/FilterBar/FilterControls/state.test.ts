@@ -31,7 +31,6 @@ import {
 } from '../../dependencyGraph';
 import {
   useFilterDependencies,
-  useTransitiveChildIds,
   useTransitiveParentIds,
 } from './state';
 
@@ -183,24 +182,4 @@ test('useFilterDependencies returns empty object when parent state is missing', 
     wrapper,
   });
   expect(result.current).toEqual({});
-});
-
-test('useTransitiveChildIds reads descendant filter config from redux', () => {
-  const wrapper = buildWrapper({
-    A: { cascadeParentIds: [] },
-    B: { cascadeParentIds: ['A'] },
-    C: { cascadeParentIds: ['B'] },
-    D: { cascadeParentIds: ['B'] },
-  });
-  const { result } = renderHook(() => useTransitiveChildIds('A'), { wrapper });
-  expect(result.current).toEqual(['B', 'C', 'D']);
-});
-
-test('useTransitiveChildIds returns empty for a leaf filter', () => {
-  const wrapper = buildWrapper({
-    A: { cascadeParentIds: [] },
-    B: { cascadeParentIds: ['A'] },
-  });
-  const { result } = renderHook(() => useTransitiveChildIds('B'), { wrapper });
-  expect(result.current).toEqual([]);
 });

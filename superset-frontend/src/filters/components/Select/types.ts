@@ -74,7 +74,7 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   filterBarOrientation?: FilterBarOrientation;
   isOverflowingFilterBar?: boolean;
   clearAllTrigger?: Record<string, boolean>;
-  cascadeClearTrigger?: Record<string, boolean>;
+  cascadeClearTrigger?: boolean;
   onClearAllComplete?: (filterId: string) => void;
   onCascadeClearComplete?: (filterId: string) => void;
 } & PluginFilterHooks;
