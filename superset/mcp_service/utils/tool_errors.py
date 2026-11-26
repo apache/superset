@@ -282,6 +282,11 @@ _QUERY_FAILURES: tuple[type[BaseException], ...] = (
 )
 
 
+_SAFE_CODES: frozenset[str] = frozenset(
+    error_type.value for error_type in SAFE_ERROR_TYPES
+)
+
+
 def _is_query_failure(exc: Exception) -> bool:
     return any(isinstance(error, _QUERY_FAILURES) for error in _causal_chain(exc))
 
@@ -312,6 +317,14 @@ def safe_error(
             code, message, _ = public_query_error(
                 exc, semantic=semantic or provider_fault
             )
+            # Like /api/v1/chart/data, an embedded guest gets the generic
+            # message unless Superset wrote the text itself, also for a
+            # semantic query.
+            if (
+                code not in _SAFE_CODES
+                and error_sanitization.is_sanitization_required()
+            ):
+                message = str(GENERIC_ERROR_MESSAGE)
             return SafeError(code=code, message=_bounded(message))
     # Read through the module, like sanitize_error_message, so both rules see
     # the same principal.

@@ -187,14 +187,52 @@ def test_query_rule_keeps_superset_text_it_does_not_classify() -> None:
     assert result.message == "Dataset could not be found"
 
 
-@pytest.mark.usefixtures("guest")
-def test_query_rejection_carries_host_guidance() -> None:
+@pytest.mark.parametrize("principal", ["signed_in", "guest"])
+def test_query_rejection_carries_host_guidance_for_signed_in_users(
+    request: pytest.FixtureRequest, principal: str
+) -> None:
+    request.getfixturevalue(principal)
     code = SemanticQueryErrorCode.UNSUPPORTED_QUERY
 
     result = safe_error(SemanticLayerQueryRejectedError(code), query=True)
 
     assert result.code == code.value
-    assert result.message == rejection_message(code)
+    if principal == "signed_in":
+        assert result.message == rejection_message(code)
+    else:
+        assert result.message == str(GENERIC_ERROR_MESSAGE)
+
+
+@pytest.mark.parametrize("principal", ["signed_in", "guest"])
+def test_semantic_validation_text_is_redacted_for_guests(
+    request: pytest.FixtureRequest, principal: str
+) -> None:
+    request.getfixturevalue(principal)
+
+    result = safe_error(
+        QueryObjectValidationError("Unknown metric secret_metric on view_x"),
+        query=True,
+        semantic=True,
+    )
+
+    if principal == "signed_in":
+        assert result.message == "Unknown metric secret_metric on view_x"
+    else:
+        assert "secret_metric" not in result.message
+        assert result.message == str(GENERIC_ERROR_MESSAGE)
+
+
+@pytest.mark.usefixtures("guest")
+def test_guest_keeps_security_text_on_the_query_path() -> None:
+    error = SupersetError(
+        message="You need access to the following tables: orders",
+        error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+        level=ErrorLevel.ERROR,
+    )
+
+    result = safe_error(SupersetSecurityException(error), query=True, semantic=True)
+
+    assert result.message == error.message
 
 
 @pytest.mark.usefixtures("signed_in")

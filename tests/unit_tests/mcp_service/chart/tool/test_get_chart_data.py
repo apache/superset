@@ -4479,6 +4479,34 @@ def _patch_refused_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> Mag
 
 
 @pytest.mark.asyncio
+async def test_semantic_chart_validation_text_is_redacted_for_guests(
+    app_context: None,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A semantic query's validation text is redacted for an embedded guest,
+    as ``/api/v1/chart/data`` does through ``sanitize_error_message``."""
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    provider: MagicMock = _patch_refused_filter_semantic_chart(monkeypatch)
+
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=True,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 1}}
+            )
+            data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "ValidationError"
+    assert data["error"] == str(GENERIC_ERROR_MESSAGE)
+    provider.get_table.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_saved_chart_mapper_refusal_is_validation_error(
     app_context: None,
     mcp_server: Any,
