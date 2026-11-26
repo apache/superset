@@ -17,3 +17,10 @@
  * under the License.
  */
 export * from './Alert';
+// Named rather than `export *`: this namespace is handed to extensions, so
+// anything on it is API. A blanket re-export put `getSecondaryButtonStyle`
+// and `getSecondaryButtonHoverStyles` here, which are how this package's own
+// Button is styled and not something to commit to.
+export { Button } from './Button';
+export type * from './Button/types';
+export * from './Tooltip';
