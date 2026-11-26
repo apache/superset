@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -29,6 +30,7 @@ from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.exceptions import CacheLoadError
+from superset.models.helpers import QueryResult
 
 
 def _query_timing() -> QueryTiming:
@@ -418,6 +420,24 @@ def test_dataframe_payload_result_emits_cache_outcome(
     assert ("chart_data.query.annotations" in timers) is (not is_loaded)
 
 
+def _picklable_query_result(status: QueryStatus) -> QueryResult:
+    """A query result whose cached payload can be serialized for the size check."""
+    return cast(
+        QueryResult,
+        SimpleNamespace(
+            status=status,
+            query="SELECT 1",
+            applied_template_filters=[],
+            applied_filter_columns=[],
+            rejected_filter_columns=[],
+            error_message=None,
+            df=pd.DataFrame({"col1": [1]}),
+            sql_rowcount=1,
+            semantic_cache_status=None,
+        ),
+    )
+
+
 @pytest.mark.parametrize(
     ("status", "timeout", "backend", "config", "expect_write"),
     [
@@ -441,9 +461,7 @@ def test_cache_set_timed_only_for_cache_writes(
     app_context: None,
 ) -> None:
     """Only writes that reach the cache backend are timed."""
-    query_result: MagicMock = MagicMock()
-    query_result.status = status
-    query_result.df = pd.DataFrame({"col1": [1]})
+    query_result = _picklable_query_result(status)
     region_cache: MagicMock = MagicMock()
     region_cache.cache = NullCache() if backend == "null" else SimpleCache()
 
@@ -471,9 +489,7 @@ def test_cache_set_timed_when_backend_write_raises(
     stats_logger_manager: MagicMock, app_context: None
 ) -> None:
     """A failing backend write is still part of the write distribution."""
-    query_result: MagicMock = MagicMock()
-    query_result.status = QueryStatus.SUCCESS
-    query_result.df = pd.DataFrame({"col1": [1]})
+    query_result = _picklable_query_result(QueryStatus.SUCCESS)
     region_cache: MagicMock = MagicMock()
     region_cache.cache = SimpleCache()
     region_cache.set.side_effect = RuntimeError("backend down")

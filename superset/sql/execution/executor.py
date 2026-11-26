@@ -70,6 +70,7 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
+from flask_caching.backends import NullCache
 
 from superset import db
 from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
@@ -88,6 +89,7 @@ from superset.sql.execution.serialization import deserialize_nested_columns
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
 from superset.utils import core as utils, json
+from superset.utils.cache import skip_oversized_cache_value
 from superset.utils.dates import now_as_float
 from superset.utils.hashing import hash_from_str
 
@@ -1607,6 +1609,11 @@ class SQLExecutor:
         if result.status != QueryStatus.SUCCESS:
             return
 
+        # With caching disabled there is nothing to write, so skip building and
+        # measuring the serialized value.
+        if isinstance(cache_manager.data_cache.cache, NullCache):
+            return
+
         cache_key = self._generate_cache_key(sql, opts)
         if cache_key is None:
             return
@@ -1649,6 +1656,12 @@ class SQLExecutor:
             ],
             "total_execution_time_ms": result.total_execution_time_ms,
         }
+
+        # An oversized result is left uncached and any older result under the key
+        # is removed; ``_get_from_cache`` then misses and the query re-runs on the
+        # next request.
+        if skip_oversized_cache_value(cache_manager.data_cache, cache_key, cached_data):
+            return
 
         cache_manager.data_cache.set(
             cache_key,
