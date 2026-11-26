@@ -18,8 +18,12 @@
  */
 
 import { t } from '@apache-superset/core/translation';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  ControlPanelState,
+} from '@superset-ui/chart-controls';
 import { validateInteger } from '@superset-ui/core';
+import TilePropertyControl from './TilePropertyControl';
 import {
   fillColorPicker,
   mapboxStyle,
@@ -64,6 +68,21 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'tile_json_url',
+            config: {
+              type: 'TextControl',
+              label: t('TileJSON URL'),
+              description: t(
+                "Optional. Address of the tile server's TileJSON, e.g. http://localhost:3000/places. Used to list the properties the tiles contain; without it, the dataset's columns are listed.",
+              ),
+              default: '',
+              renderTrigger: true,
+              rerender: ['tooltip_properties'],
+            },
+          },
+        ],
+        [
+          {
             name: 'source_layer',
             config: {
               type: 'TextControl',
@@ -73,6 +92,7 @@ const config: ControlPanelConfig = {
               ),
               default: '',
               renderTrigger: true,
+              rerender: ['tooltip_properties'],
             },
           },
         ],
@@ -141,18 +161,19 @@ const config: ControlPanelConfig = {
           {
             name: 'tooltip_properties',
             config: {
-              type: 'SelectControl',
-              multi: true,
-              freeForm: true,
-              clearable: true,
+              type: TilePropertyControl,
               label: t('Tooltip properties'),
               description: t(
                 'Tile properties to list in the tooltip, in this order. To place them yourself, write {{ name }} in the template below.',
               ),
               default: [],
               renderTrigger: true,
-              mapStateToProps: state => ({
-                choices: columnChoices(state.datasource),
+              mapStateToProps: (state: ControlPanelState) => ({
+                tileJsonUrl: (state.controls?.tile_json_url?.value ??
+                  state.form_data?.tile_json_url) as string | undefined,
+                sourceLayer: (state.controls?.source_layer?.value ??
+                  state.form_data?.source_layer) as string | undefined,
+                datasetChoices: columnChoices(state.datasource),
               }),
             },
           },
