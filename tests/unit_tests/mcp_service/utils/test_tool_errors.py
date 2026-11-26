@@ -356,6 +356,20 @@ def test_chart_mapper_value_error_keeps_its_guidance() -> None:
 
 
 @pytest.mark.usefixtures("signed_in")
+def test_chart_helper_value_error_keeps_its_guidance() -> None:
+    from superset.mcp_service.chart.chart_helpers import (
+        _required_deck_spatial_cols,
+    )
+
+    with pytest.raises(ValueError, match="Spatial configuration") as excinfo:
+        _required_deck_spatial_cols({})
+
+    assert safe_error(excinfo.value, query=True).message == (
+        "Spatial configuration is required for this chart"
+    )
+
+
+@pytest.mark.usefixtures("signed_in")
 def test_value_error_raised_outside_host_validators_is_hidden() -> None:
     with pytest.raises(ValueError, match="invalid literal") as excinfo:
         int(DRIVER_TEXT)

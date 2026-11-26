@@ -664,6 +664,27 @@ class TestCompileChart:
 
     @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
     @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_chart_config_error_keeps_guidance(
+        self, mock_factory_cls, mock_cmd_cls
+    ):
+        """A ValueError the chart query builder raises about the config is kept."""
+        from superset.mcp_service.chart.chart_helpers import (
+            _required_deck_spatial_cols,
+        )
+
+        mock_factory_cls.return_value.create.side_effect = (
+            lambda *args, **kwargs: _required_deck_spatial_cols({})
+        )
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "Spatial configuration is required for this chart" in (
+            result.error or ""
+        )
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_compile_chart_time_range_error_keeps_guidance(
         self, mock_factory_cls, mock_cmd_cls
     ):

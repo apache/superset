@@ -200,6 +200,8 @@ MAX_MESSAGE_BYTES = 512
 # and gets the fixed message.
 HOST_VALUE_ERROR_MODULES: tuple[str, ...] = (
     "superset.utils.date_parser",
+    "superset.mcp_service.common.time_range_validation",
+    "superset.mcp_service.chart.chart_helpers",
     "superset.mcp_service.chart.chart_utils",
     "superset.mcp_service.chart.plugins.",
 )
