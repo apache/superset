@@ -66,6 +66,22 @@ def test_a_parent_with_only_null_children_is_one_empty_row() -> None:
     ]
 
 
+@pytest.mark.parametrize("parent", [None, "", "s1"])
+def test_distinct_parent_rows_without_children_are_kept(parent: str | None) -> None:
+    """Match the distinct parent rows shown on screen."""
+    df = frame(
+        [
+            (parent, "Voice", None, "x"),
+            (parent, "Chat", None, "y"),
+            (parent, "Voice", None, "z"),
+        ]
+    )
+    assert records(tree_rows(df, two_levels())) == [
+        {"session": parent, "channel": "Voice", "step": None, "t": None},
+        {"session": parent, "channel": "Chat", "step": None, "t": None},
+    ]
+
+
 @pytest.mark.parametrize("parent", [None, ""])
 def test_an_empty_parent_id_with_children_is_one_empty_row(parent: Any) -> None:
     df = frame(
@@ -77,6 +93,20 @@ def test_an_empty_parent_id_with_children_is_one_empty_row(parent: Any) -> None:
         {"session": parent, "channel": "Voice", "step": None, "t": None},
         {"session": "s2", "channel": "Chat", "step": "z", "t": "2026-11-08 01:00:00"},
     ]
+
+
+def test_childless_parents_can_project_nested_columns() -> None:
+    """Compare nested projections while preserving their original values."""
+    voice = {"labels": ["Voice"], "count": 2}
+    chat = {"labels": ["Chat"], "count": 2}
+    df = frame(
+        [
+            (None, voice, None, "x"),
+            (None, chat, None, "y"),
+            (None, {"count": 2, "labels": ["Voice"]}, None, "z"),
+        ]
+    )
+    assert tree_rows(df, two_levels())["channel"].tolist() == [voice, chat]
 
 
 def test_all_children_out_of_range_is_one_empty_row() -> None:

@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame
@@ -70,6 +71,23 @@ def _integer_children(df: DataFrame, columns: Sequence[str]) -> DataFrame:
     return df
 
 
+def _nested_key(value: Any) -> Any:
+    """Make nested database values hashable without changing the exported cells."""
+    if isinstance(value, dict):
+        return frozenset((key, _nested_key(item)) for key, item in value.items())
+    if isinstance(value, (list, tuple, np.ndarray)):
+        return tuple(_nested_key(item) for item in value)
+    return value
+
+
+def _first_distinct(rows: DataFrame) -> pd.Series:
+    """Keep the first row for each distinct ancestor projection."""
+    try:
+        return ~rows.duplicated()
+    except TypeError:
+        return ~rows.map(_nested_key).duplicated()
+
+
 def tree_rows(
     df: DataFrame,
     levels: list[dict[str, Any]],
@@ -83,7 +101,8 @@ def tree_rows(
     is neither NULL nor empty, its own ID is not NULL and, when the level has
     a ``time_column`` and ``bounds`` are set, its time is inside every bound.
     A group of rows with the same ancestor IDs keeps its member rows, or else
-    its first row with the columns of that level and the levels below empty.
+    one row per distinct set of ancestor columns with the columns of that
+    level and the levels below empty.
 
     :param df: DataFrame, already sorted by the query.
     :param levels: One entry per level: ``id_column``, ``columns`` (the
@@ -121,8 +140,14 @@ def tree_rows(
 
         group_keys = df.groupby(path, sort=False, dropna=False).ngroup()
         has_member = member.groupby(group_keys).transform("any")
-        first = ~group_keys.duplicated()
-        blank = first & ~has_member
+        ancestor_columns = path + [
+            column
+            for level in levels[:j]
+            for column in level.get("columns", [])
+            if column in df.columns and column not in path
+        ]
+        blank = ~has_member
+        blank.loc[blank] = _first_distinct(df.loc[blank, ancestor_columns])
         keep = member | blank
 
         child_columns = [
