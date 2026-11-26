@@ -48,7 +48,7 @@ jobs:
         with:
           requirements-type: base
 
-      - name: "Set up liccheck"
+      - name: Check license of Python dependencies
         run: |
           # liccheck (as of 0.9.2) still does a bare `import pkg_resources`
           # without declaring setuptools as a dependency, relying on it
@@ -72,9 +72,16 @@ jobs:
           python -m zipfile -e /tmp/old-setuptools/setuptools-*.whl /tmp/old-setuptools-extracted/
           cp -r /tmp/old-setuptools-extracted/pkg_resources "$(python -c 'import site; print(site.getsitepackages()[0])')/"
           uv pip install --system liccheck
-      - name: "Run liccheck"
-        run: |
           # run the checks
           liccheck -R output.txt
           # Print the report
           cat output.txt
+
+      - name: Setup Java
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Check Apache license header's presence
+        run: ./scripts/check_license_header.sh
