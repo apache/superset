@@ -107,6 +107,40 @@ async def test_invalid_copy_parameters_keep_title_guidance(
     assert "non-empty dashboard_title" in content["error"]
 
 
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_refresh_policy_rejection_reports_the_field_errors(
+    mock_source: Mock, mcp_server: object
+) -> None:
+    """A copy refused on refresh settings names them, not the title."""
+    from superset.extensions import feature_flag_manager
+
+    mock_source.return_value = Dashboard(
+        id=1,
+        dashboard_title="Source",
+        json_metadata=json.dumps({"auto_refresh_policy": {}, "refresh_frequency": 45}),
+        position_json=json.dumps(SOURCE_POSITIONS),
+    )
+    client: Client
+    with (
+        patch.dict(feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": True}),
+        patch.object(security_manager, "is_editor", return_value=True),
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "duplicate_dashboard",
+                {"request": {"dashboard_id": 1, "dashboard_title": "Valid title"}},
+            )
+    content: dict[str, Any] = result.structured_content
+    assert content["dashboard"] is None
+    assert "non-empty dashboard_title" not in content["error"]
+    assert content["error"] == (
+        "Dashboard '1' could not be duplicated because its refresh settings are "
+        "invalid: json_metadata.refresh_frequency: Refresh frequency must be one "
+        "of the standard intervals."
+    )
+
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
