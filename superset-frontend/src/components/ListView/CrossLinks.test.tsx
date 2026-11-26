@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import CrossLinks, { CrossLinksProps } from './CrossLinks';
 
 const mockedProps = {
@@ -92,4 +97,57 @@ test('should render a custom prefix link', () => {
 test('should render multiple links', () => {
   setup();
   expect(screen.getAllByRole('link')).toHaveLength(4);
+});
+
+test('mixed archived and live items each occupy one measured element', () => {
+  setup({
+    crossLinks: [
+      { id: 1, title: 'Live dashboard' },
+      { id: 2, title: 'Archived dashboard', archived: true },
+      { id: 3, title: 'Another live dashboard', archived: false },
+    ],
+  });
+
+  const items = screen.getByTestId('crosslinks');
+  expect(items.childNodes).toHaveLength(3);
+  expect(
+    Array.from(items.childNodes).every(
+      node => node.nodeType === Node.ELEMENT_NODE,
+    ),
+  ).toBe(true);
+  expect(items.children[1]).toHaveTextContent(', Archived dashboard(archived)');
+  expect(screen.getByText(/Archived dashboard/).closest('a')).toBeNull();
+  expect(screen.getByLabelText('Archived')).toHaveTextContent('(archived)');
+  expect(screen.getAllByRole('link')).toHaveLength(2);
+  expect(screen.getByRole('link', { name: 'Live dashboard' })).toHaveAttribute(
+    'href',
+    '/dashboard/1',
+  );
+});
+
+test('passes archived state to the overflow tooltip', async () => {
+  const scrollWidth = jest
+    .spyOn(HTMLElement.prototype, 'scrollWidth', 'get')
+    .mockReturnValue(100);
+  const clientWidth = jest
+    .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+    .mockReturnValue(0);
+  try {
+    setup({
+      crossLinks: [
+        { id: 1, title: 'Live dashboard' },
+        { id: 2, title: 'Archived dashboard', archived: true },
+      ],
+    });
+    await userEvent.hover(screen.getByTestId('count-crosslinks'));
+    const tooltip = await screen.findByRole('tooltip');
+    expect(
+      within(tooltip).getByText('Archived dashboard').closest('a'),
+    ).toBeNull();
+    expect(within(tooltip).getByLabelText('Archived')).toBeInTheDocument();
+    expect(within(tooltip).getAllByRole('link')).toHaveLength(1);
+  } finally {
+    scrollWidth.mockRestore();
+    clientWidth.mockRestore();
+  }
 });

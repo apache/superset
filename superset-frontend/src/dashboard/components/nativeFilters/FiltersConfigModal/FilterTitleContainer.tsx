@@ -33,7 +33,7 @@ import {
   SortableContext,
 } from '@dnd-kit/sortable';
 import { FilterRemoval } from './types';
-import DraggableFilter from './DraggableFilter';
+import { DraggableFilter } from './DraggableFilter';
 
 export const FilterTitle = styled.div`
   ${({ theme }) => `
