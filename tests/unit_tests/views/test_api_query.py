@@ -55,6 +55,26 @@ def test_query_returns_400_for_invalid_query_context(
     create.assert_not_called()
 
 
+def test_query_returns_400_for_missing_query_context(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A request with no ``query_context`` form field at all (e.g. a client
+    bug or malformed proxy request) must yield a clean 400, not an unhandled
+    ``werkzeug.exceptions.BadRequestKeyError`` from ``request.form["..."]``
+    (see SUPERSET-PYTHON-1CKW)."""
+    create = mocker.patch(
+        "superset.common.query_context_factory.QueryContextFactory.create"
+    )
+
+    response = client.post(QUERY_URL, data={})
+
+    assert response.status_code == 400
+    assert "query_context" in response.get_data(as_text=True)
+    create.assert_not_called()
+
+
 def test_query_valid_query_context_reaches_factory(
     client: Any,
     full_api_access: None,

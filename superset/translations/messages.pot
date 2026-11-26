@@ -19316,6 +19316,9 @@ msgstr ""
 msgid "query"
 msgstr ""
 
+msgid "query_context is required"
+msgstr ""
+
 msgid "query_context must be a JSON object"
 msgstr ""
 
