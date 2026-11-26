@@ -2735,6 +2735,31 @@ def test_table_metadata_happy_path(
     )
 
 
+def test_table_metadata_connection_error(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    An ``OperationalError`` raised while fetching table metadata (e.g. the
+    customer's database is unreachable or misconfigured) must surface as a
+    typed 422, not an unhandled 500.
+    """
+    from sqlalchemy.exc import OperationalError
+
+    database = mocker.MagicMock()
+    database.backend = "postgresql"
+    database.db_engine_spec.get_table_metadata.side_effect = OperationalError(
+        "connection failed", None, None
+    )
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 422
+    assert "Unable to connect to the database" in response.json["message"]
+
+
 def test_table_metadata_no_table(
     mocker: MockerFixture,
     client: Any,

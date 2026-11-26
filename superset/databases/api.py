@@ -1200,6 +1200,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -1231,7 +1233,26 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         # Partition info is engine-agnostic at this layer: the generic dispatch
         # passes it to the engine spec, which decides whether to use it. Non-ODPS
         # specs ignore the parameter.
-        payload = database.db_engine_spec.get_table_metadata(database, table, partition)
+        try:
+            payload = database.db_engine_spec.get_table_metadata(
+                database, table, partition
+            )
+        except OperationalError as ex:
+            # A failure to connect to (or query) the customer's own database
+            # here is a client-side configuration problem (bad URI, DB
+            # unreachable, etc), not a Superset bug, so it must not log at
+            # error/exception level or propagate as an unhandled 500.
+            logger.warning(
+                "Unable to fetch table metadata due to a database connection error: %s",
+                ex,
+            )
+            return self.response(
+                422,
+                message=(
+                    "Unable to connect to the database. "
+                    "Please check your database connection."
+                ),
+            )
 
         return self.response(200, **payload)
 
