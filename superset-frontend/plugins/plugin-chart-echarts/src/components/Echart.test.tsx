@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { EChartsCoreOption } from 'echarts/core';
+import { init } from 'echarts/core';
 import { render, waitFor } from '../../../../spec/helpers/testing-library';
 import Echart, {
   ECHARTS_HOST_CLASS,
@@ -109,6 +110,7 @@ jest.mock('echarts/features', () => ({
 
 jest.mock('echarts/renderers', () => ({
   CanvasRenderer: 'CanvasRenderer',
+  SVGRenderer: 'SVGRenderer',
 }));
 
 const initialState = {
@@ -145,14 +147,18 @@ const setStandalone = (standalone?: string) => {
   );
 };
 
+const originalFeatureFlags = window.featureFlags;
+
 afterEach(() => {
   window.history.replaceState({}, '', originalLocation);
+  window.featureFlags = originalFeatureFlags;
 });
 
 beforeEach(() => {
   Object.keys(listeners).forEach(name => {
     delete listeners[name];
   });
+  (init as jest.Mock).mockClear();
   Object.values(mockChart).forEach(value => {
     if (jest.isMockFunction(value)) {
       value.mockClear();
@@ -306,3 +312,25 @@ test('marks the host painted only on the ECharts `finished` event', async () => 
   trigger('finished');
   expect(host).toHaveClass(ECHARTS_RENDER_FINISHED_CLASS);
 });
+
+test.each([
+  [true, 'svg'],
+  [false, 'canvas'],
+  [undefined, 'canvas'],
+])(
+  'initializes ECharts with the %p ACCESSIBLE_CHART_RENDERING flag using the %s renderer',
+  async (flag, renderer) => {
+    window.featureFlags =
+      flag === undefined
+        ? {}
+        : { ...originalFeatureFlags, ACCESSIBLE_CHART_RENDERING: flag };
+    render(renderEchart(), { initialState, useRedux: true });
+
+    await waitFor(() => expect(init).toHaveBeenCalledTimes(1));
+    expect(init).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      null,
+      expect.objectContaining({ renderer }),
+    );
+  },
+);
