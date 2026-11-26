@@ -691,7 +691,7 @@ test('should refresh queries when polling returns new results', () => {
   newState = sqlLabReducer(
     {
       ...newState,
-      queries: { abcd: {} },
+      queries: { abcd: {} as any },
     },
     actions.refreshQueries({
       abcd: {
@@ -701,7 +701,9 @@ test('should refresh queries when polling returns new results', () => {
       },
     }),
   );
-  expect(newState.queries.abcd.changed_on).toBe(DENORMALIZED_CHANGED_ON);
+  expect((newState.queries.abcd as any).changed_on).toBe(
+    DENORMALIZED_CHANGED_ON,
+  );
   expect(newState.queries.abcd.startDttm).toBe(Number(startDttmInStr));
   expect(newState.queries.abcd.endDttm).toBe(Number(endDttmInStr));
   expect(newState.queriesLastUpdate).toBe(CHANGED_ON_TIMESTAMP);
