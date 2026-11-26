@@ -304,7 +304,7 @@ def _prepare_samples_query(
 # ``JSONB``, ``INTEGER[]``, ``bitmap``) stay eligible: a false positive only
 # matters when it excludes every column, in which case ordering is dropped.
 _UNORDERABLE_COLUMN_TYPE_PATTERN = re.compile(
-    r"^\s*(json|array|struct|record|map|geography|geometry|xml)\b",
+    r"^\s*(json|array|struct|record|map|geography|geometry|xml(?:type)?)\b",
     re.IGNORECASE,
 )
 
