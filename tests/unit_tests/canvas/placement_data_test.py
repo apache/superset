@@ -259,42 +259,55 @@ def test_a_draft_of_another_canvas_is_not_found(
     run_binding.assert_not_called()
 
 
-def test_having_filters_go_to_extras_having() -> None:
-    """A chart's adhoc filters carried as-is: a SQL filter on aggregates must
-    not land in WHERE, and a simple HAVING filter has no query-object form."""
+def test_fixed_filters_become_query_filters_and_sql_clauses() -> None:
     payload = query_context_payload(
         {
             **BINDING,
             "filters": [
-                {"expressionType": "SQL", "clause": "WHERE", "sqlExpression": "a > 1"},
-                {
-                    "expressionType": "SQL",
-                    "clause": "HAVING",
-                    "sqlExpression": "SUM(revenue) > 100",
-                },
-                {
-                    "expressionType": "SIMPLE",
-                    "clause": "HAVING",
-                    "subject": "revenue",
-                    "operator": ">",
-                    "comparator": 5,
-                },
-                {
-                    "expressionType": "SIMPLE",
-                    "subject": "country",
-                    "operator": "==",
-                    "comparator": "FR",
-                },
+                {"column": "country", "op": "=", "value": "FR"},
+                {"column": "deal_size", "op": "IN", "value": ["Small", "Medium"]},
+                {"column": "status", "op": "IS NOT NULL"},
+                {"sql": "a > 1"},
+                {"sql": "SUM(revenue) > 100", "clause": "HAVING"},
             ],
         }
     )
 
     query = payload["queries"][0]
+    assert query["filters"] == [
+        {"col": "country", "op": "==", "val": "FR"},
+        {"col": "deal_size", "op": "IN", "val": ["Small", "Medium"]},
+        {"col": "status", "op": "IS NOT NULL", "val": None},
+    ]
     assert query["extras"] == {
         "where": "(a > 1)",
         "having": "(SUM(revenue) > 100)",
     }
-    assert query["filters"] == [{"col": "country", "op": "==", "val": "FR"}]
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        # Explore's adhoc filter shape.
+        {
+            "expressionType": "SIMPLE",
+            "subject": "country",
+            "operator": "==",
+            "comparator": "Atlantis",
+        },
+        {"country": "Atlantis"},
+        {"column": "country", "op": "IN", "value": "Atlantis"},
+        {"column": "country", "op": "IS NULL", "value": "Atlantis"},
+    ],
+)
+def test_a_filter_of_an_unknown_shape_is_refused_not_skipped(
+    stored: dict[str, Any],
+) -> None:
+    """Skipping it would show every row under a filtered title."""
+    from superset.exceptions import QueryObjectValidationError
+
+    with pytest.raises(QueryObjectValidationError, match="filter 0 is not valid"):
+        query_context_payload({**BINDING, "filters": [stored]})
 
 
 def test_runtime_filters_narrow_only_the_bindings_dataset() -> None:

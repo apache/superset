@@ -28,10 +28,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
-# Values a select filter publishes.
-FilterScalar = str | int | float | bool
+from superset.exceptions import QueryObjectValidationError
+from superset.widgets.controls import BindingFilter, ColumnFilter, FilterScalar
+
+# The query object spells equality differently from the binding.
+QUERY_OPERATOR = {"=": "=="}
+
+_binding_filters = TypeAdapter(list[BindingFilter])
 
 
 class RuntimeFilter(BaseModel):
@@ -79,22 +84,27 @@ def query_context_payload(
     filters: list[dict[str, Any]] = []
     where: list[str] = []
     having: list[str] = []
-    for adhoc in binding.get("filters") or []:
-        on_aggregates = adhoc.get("clause") == "HAVING"
-        if adhoc.get("expressionType") == "SQL":
-            if adhoc.get("sqlExpression"):
-                clauses = having if on_aggregates else where
-                clauses.append(f"({adhoc['sqlExpression']})")
-        elif adhoc.get("subject") and not on_aggregates:
-            # A simple HAVING filter has no query-object form; the chart
-            # pipeline (``processFilters``) drops it the same way.
+    # A filter the binding's schema doesn't accept is refused, never skipped:
+    # skipping it would show unfiltered data under a filtered title.
+    try:
+        fixed = _binding_filters.validate_python(binding.get("filters") or [])
+    except ValidationError as ex:
+        first = ex.errors()[0]
+        raise QueryObjectValidationError(
+            f"The chart's filter {first['loc'][0]} is not valid: {first['msg']}"
+        ) from ex
+    for fixed_filter in fixed:
+        if isinstance(fixed_filter, ColumnFilter):
             filters.append(
                 {
-                    "col": adhoc["subject"],
-                    "op": adhoc.get("operator"),
-                    "val": adhoc.get("comparator"),
+                    "col": fixed_filter.column,
+                    "op": QUERY_OPERATOR.get(fixed_filter.op, fixed_filter.op),
+                    "val": fixed_filter.value,
                 }
             )
+        else:
+            clauses = having if fixed_filter.clause == "HAVING" else where
+            clauses.append(f"({fixed_filter.sql})")
     for runtime in runtime_filters or []:
         if runtime.dataset_id == binding["datasetId"] and runtime.values:
             filters.append({"col": runtime.column, "op": "IN", "val": runtime.values})

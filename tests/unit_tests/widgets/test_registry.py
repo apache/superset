@@ -166,28 +166,39 @@ def test_data_binding_declares_column_and_metric_controls() -> None:
     assert data_binding_props["metrics"]["x-control"] == "metric-multi"
 
 
-def test_data_binding_round_trip_preserves_filters() -> None:
-    # `filters` isn't a schema-visible DataBinding field (no control panel or
-    # MCP editor authors it yet — see `superset/widgets/controls.py`), but a
-    # dashboard filter binding can still populate it on `node.props`. The
-    # `validate` endpoint's `model_validate(...).model_dump(by_alias=True)`
-    # round trip (mirrored here) is exactly what the frontend commits back to
-    # `node.props` on every edit, so it must not silently drop the field.
+def test_data_binding_filters_are_in_the_schema_and_validated() -> None:
     widget = _block(WIDGET_TYPE)
-    control_values = {
-        "dataBinding": {
-            "datasetId": 1,
-            "metrics": ["count"],
-            "filters": [{"clause": "WHERE", "expressionType": "SIMPLE"}],
-        },
-    }
-    assert widget.validate_control_values(control_values) == []
-    values = widget.controls_class.model_validate(control_values).model_dump(
-        by_alias=True
+    schema = widget.get_control_schema(None, None)
+    filters = schema["$defs"]["DataBinding"]["properties"]["filters"]
+    assert "column" in filters["description"]
+    assert "sql" in filters["description"]
+
+    def binding(*filters: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "dataBinding": {"datasetId": 1, "metrics": ["count"], "filters": filters}
+        }
+
+    valid = binding(
+        {"column": "country", "op": "=", "value": "FR"},
+        {"sql": "SUM(revenue) > 100", "clause": "HAVING"},
     )
+    assert widget.validate_control_values(valid) == []
+    values = widget.controls_class.model_validate(valid).model_dump(by_alias=True)
     assert values["dataBinding"]["filters"] == [
-        {"clause": "WHERE", "expressionType": "SIMPLE"}
+        {"column": "country", "op": "=", "value": "FR"},
+        {"sql": "SUM(revenue) > 100", "clause": "HAVING"},
     ]
+
+    # Explore's adhoc shape, and a bare column/value, are refused on write
+    # rather than stored and skipped at query time.
+    for shape in (
+        {"clause": "WHERE", "expressionType": "SIMPLE"},
+        {"country": "FR"},
+        {"column": "country", "op": "=", "value": ["FR"]},
+    ):
+        errors = widget.validate_control_values(binding(shape))
+        assert errors, shape
+        assert errors[0]["loc"][:3] == ["dataBinding", "filters", "0"]
 
 
 def test_color_dimension_declares_column_control() -> None:
@@ -208,6 +219,7 @@ def test_data_binding_schema_is_unchanged_after_metric_control_extraction() -> N
         "datasetId",
         "metrics",
         "dimensions",
+        "filters",
         "orderBy",
         "rowLimit",
     ]
@@ -271,6 +283,7 @@ def test_data_binding_schema_unchanged_via_mcp_boundary() -> None:
         "datasetId",
         "metrics",
         "dimensions",
+        "filters",
         "orderBy",
         "rowLimit",
     ]

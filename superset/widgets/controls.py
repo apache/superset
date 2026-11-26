@@ -31,9 +31,80 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.json_schema import SkipJsonSchema
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from superset_core.widgets import MetricControl
+
+FilterScalar = str | int | float | bool
+
+
+class ColumnFilter(BaseModel):
+    """A fixed filter on one column of the binding's dataset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    column: str = Field(min_length=1, description="A column of the dataset.")
+    op: Literal[
+        "=",
+        "!=",
+        ">",
+        ">=",
+        "<",
+        "<=",
+        "LIKE",
+        "ILIKE",
+        "NOT LIKE",
+        "IN",
+        "NOT IN",
+        "IS NULL",
+        "IS NOT NULL",
+    ] = Field(
+        description=(
+            "LIKE / ILIKE / NOT LIKE take % wildcards; IN / NOT IN take a list; "
+            "IS NULL / IS NOT NULL take no value."
+        ),
+    )
+    value: FilterScalar | list[FilterScalar] | None = Field(
+        default=None,
+        description=(
+            "The value compared against: one scalar, a list for IN / NOT IN, "
+            "omitted for IS NULL / IS NOT NULL."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _value_fits_operator(self) -> ColumnFilter:
+        if self.op in ("IS NULL", "IS NOT NULL"):
+            if self.value is not None:
+                raise ValueError(f"{self.op} takes no value")
+        elif self.op in ("IN", "NOT IN"):
+            if not isinstance(self.value, list) or not self.value:
+                raise ValueError(f"{self.op} takes a non-empty list of values")
+        elif self.value is None or isinstance(self.value, list):
+            raise ValueError(f"{self.op} takes a single value")
+        return self
+
+
+class SqlFilter(BaseModel):
+    """A free SQL predicate, on rows (``WHERE``) or on aggregates
+    (``HAVING``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sql: str = Field(
+        min_length=1,
+        description=(
+            "A boolean SQL expression in the dataset's dialect, e.g. "
+            "`order_date >= '2024-01-01'` or `SUM(sales) > 1000` with "
+            '`"clause": "HAVING"`.'
+        ),
+    )
+    clause: Literal["WHERE", "HAVING"] = Field(
+        default="WHERE",
+        description="WHERE filters rows before aggregation, HAVING after it.",
+    )
+
+
+BindingFilter = ColumnFilter | SqlFilter
 
 
 class SortKey(BaseModel):
@@ -61,6 +132,7 @@ class DataBinding(MetricControl):
         "datasetId",
         "metrics",
         "dimensions",
+        "filters",
         "orderBy",
         "rowLimit",
     ]
@@ -76,15 +148,17 @@ class DataBinding(MetricControl):
         description="Columns to group by (the categories / series).",
         json_schema_extra={"x-control": "column-multi"},
     )
-    # No `x-control` yet authors it through the control panel or MCP — it's
-    # populated by other means (e.g. a dashboard filter binding a chart).
-    # `SkipJsonSchema` keeps it out of the control schema (so `field_order`
-    # doesn't need it) while still round-tripping through `model_dump`;
-    # without it, committing the backend-normalized dump (see
-    # `commitWidgetProps`) would silently discard any authored filters, since
-    # Pydantic's default `extra="ignore"` drops fields the model doesn't
-    # declare.
-    filters: SkipJsonSchema[list[dict[str, Any]]] = Field(default_factory=list)
+    filters: list[BindingFilter] = Field(
+        default_factory=list,
+        title="Filters",
+        description=(
+            "The chart's own fixed filters, all applied (AND), on top of what "
+            "the canvas's filter widgets add at view time. "
+            '`{"column": "country", "op": "=", "value": "FR"}` filters one '
+            'column; `{"sql": "<predicate>"}` is a free SQL predicate, with '
+            '`"clause": "HAVING"` to filter aggregates.'
+        ),
+    )
     row_limit: int = Field(
         default=1000,
         ge=1,

@@ -22,12 +22,17 @@ import { SupersetClient } from '@superset-ui/core';
 import { DRAFT_TOKEN_HEADER, VERSION_HEADER } from '../useCanvasDefinition';
 import type { DataRow } from './resolveBindings';
 
+/** A fixed filter of a binding: on one column, or a free SQL predicate. */
+export type BindingFilter =
+  | { column: string; op: string; value?: unknown }
+  | { sql: string; clause?: 'WHERE' | 'HAVING' };
+
 /** A widget's `dataBinding` prop: the query the server runs for it. */
 export interface DataBinding {
   datasetId: number;
   metrics: unknown[];
   dimensions?: string[];
-  filters?: Record<string, unknown>[];
+  filters?: BindingFilter[];
   rowLimit?: number;
   orderBy?: { field: string; descending?: boolean }[];
 }
