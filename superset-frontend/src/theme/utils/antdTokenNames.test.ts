@@ -150,6 +150,20 @@ test('dashboard tile tokens are recognized as valid Superset custom tokens', () 
   });
 });
 
+test('login page tokens are recognized as valid Superset custom tokens', () => {
+  const loginTokens = [
+    'loginPageBackgroundImageUrl',
+    'loginFormBrandLogoUrl',
+    'loginPageBackgroundOverlayColor',
+    'loginPageBackgroundBlur',
+  ];
+
+  loginTokens.forEach(token => {
+    expect(isValidTokenName(token)).toBe(true);
+    expect(isSupersetCustomToken(token)).toBe(true);
+  });
+});
+
 test('isValidTokenName recognizes deployment-registered EXTRA_THEME_TOKENS', () => {
   expect(isValidTokenName('customDeploymentToken')).toBe(true);
 });
