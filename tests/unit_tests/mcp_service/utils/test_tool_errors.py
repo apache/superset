@@ -44,6 +44,7 @@ from superset.mcp_service.utils.tool_errors import (
     log_tool_exception,
     MAX_MESSAGE_BYTES,
     public_query_error,
+    raised_by_host_validation,
     report_tool_error,
     safe_error,
     tool_error_message,
@@ -256,6 +257,49 @@ def test_other_exceptions_never_reach_the_client(
         assert result.message == message
     else:
         assert result.message == str(GENERIC_ERROR_MESSAGE)
+
+
+@pytest.mark.parametrize("principal", ["signed_in", "guest"])
+def test_date_parser_value_error_keeps_its_guidance(
+    request: pytest.FixtureRequest, principal: str
+) -> None:
+    from superset.utils.date_parser import get_since_until
+
+    request.getfixturevalue(principal)
+    with pytest.raises(ValueError, match="From date") as excinfo:
+        get_since_until(time_range="2025-01-01 : 2024-01-01")
+
+    result = safe_error(excinfo.value)
+
+    assert raised_by_host_validation(excinfo.value)
+    if principal == "signed_in":
+        assert result.message == "From date cannot be larger than to date"
+    else:
+        assert result.message == str(GENERIC_ERROR_MESSAGE)
+
+
+@pytest.mark.usefixtures("signed_in")
+def test_chart_mapper_value_error_keeps_its_guidance() -> None:
+    from superset.mcp_service.chart.chart_utils import map_table_config
+    from superset.mcp_service.chart.schemas import TableChartConfig
+
+    with pytest.raises(ValueError, match="at least one column") as excinfo:
+        map_table_config(
+            TableChartConfig.model_construct(chart_type="table", columns=[])
+        )
+
+    assert safe_error(excinfo.value).message == (
+        "Table chart must have at least one column"
+    )
+
+
+@pytest.mark.usefixtures("signed_in")
+def test_value_error_raised_outside_host_validators_is_hidden() -> None:
+    with pytest.raises(ValueError, match="invalid literal") as excinfo:
+        int(DRIVER_TEXT)
+
+    assert not raised_by_host_validation(excinfo.value)
+    assert safe_error(excinfo.value).message == UNEXPECTED_ERROR_MESSAGE
 
 
 @pytest.mark.usefixtures("signed_in")

@@ -153,7 +153,8 @@ def public_query_error(
 # * Any other exception Superset raised (``SupersetException``,
 #   ``CommandException``) is reported with its ``message``, which embedded
 #   guests only see when the ``SupersetErrorType`` is one Superset writes itself
-#   (``SAFE_ERROR_TYPES``).
+#   (``SAFE_ERROR_TYPES``). So is a ValueError raised by one of Superset's
+#   validators of the caller's arguments (``HOST_VALUE_ERROR_MODULES``).
 # * Any other exception (SQLAlchemy, a database driver, a library) gets a fixed
 #   message. Its text can carry SQL, bound parameters, connection strings or
 #   hostnames, so it only goes to the server log.
@@ -193,6 +194,16 @@ UNEXPECTED_ERROR_MESSAGE = (
 # Engine errors can be long; responses carry a bounded prefix.
 MAX_MESSAGE_BYTES = 512
 
+# Modules whose own ``raise ValueError(...)`` describes the caller's arguments,
+# such as a reversed time range or a chart config a plugin rejects. A
+# ValueError raised anywhere else (a driver, pandas, a library) can carry data
+# and gets the fixed message.
+HOST_VALUE_ERROR_MODULES: tuple[str, ...] = (
+    "superset.utils.date_parser",
+    "superset.mcp_service.chart.chart_utils",
+    "superset.mcp_service.chart.plugins.",
+)
+
 
 @dataclass(frozen=True)
 class SafeError:
@@ -204,6 +215,23 @@ class SafeError:
 
     code: str
     message: str
+
+
+def raised_by_host_validation(exc: BaseException) -> bool:
+    """Whether ``exc`` is a ValueError raised in ``HOST_VALUE_ERROR_MODULES``.
+
+    The innermost traceback frame is where the exception was raised.
+    """
+    if not isinstance(exc, ValueError) or exc.__traceback__ is None:
+        return False
+    tb = exc.__traceback__
+    while tb.tb_next is not None:
+        tb = tb.tb_next
+    module = str(tb.tb_frame.f_globals.get("__name__", ""))
+    return any(
+        module == prefix or (prefix.endswith(".") and module.startswith(prefix))
+        for prefix in HOST_VALUE_ERROR_MODULES
+    )
 
 
 def _superset_error(exc: BaseException) -> SupersetError:
@@ -222,6 +250,12 @@ def _superset_error(exc: BaseException) -> SupersetError:
             message=str(exc.message),
             error_type=error_type,
             level=ErrorLevel.WARNING if exc.status < 500 else ErrorLevel.ERROR,
+        )
+    if raised_by_host_validation(exc):
+        return SupersetError(
+            message=str(exc),
+            error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+            level=ErrorLevel.WARNING,
         )
     if isinstance(exc, SQLAlchemyError):
         return SupersetError(
@@ -266,7 +300,9 @@ def safe_error(
     Anything else follows the general rule: signed-in users get the message
     Superset attached to the exception, cut to ``MAX_MESSAGE_BYTES``; embedded
     guests get a generic message unless the error type is one Superset writes
-    itself; exceptions Superset did not raise always get a fixed message.
+    itself. That includes a ValueError Superset raised about the caller's
+    arguments (see :func:`raised_by_host_validation`). Other exceptions always
+    get a fixed message.
     """
     if query and isinstance(exc, Exception) and (semantic or _is_query_failure(exc)):
         code, message, _ = public_query_error(exc, semantic=semantic)

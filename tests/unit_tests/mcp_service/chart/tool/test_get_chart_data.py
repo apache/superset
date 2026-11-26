@@ -4327,6 +4327,66 @@ async def test_chart_data_engine_error_is_redacted_for_guests(
         assert ENGINE_ERROR_TEXT in data["error"]
 
 
+class _ReversedTimeRangeCommand:
+    """ChartDataCommand stand-in whose run hits the date parser's own check."""
+
+    def __init__(self, query_context: object) -> None:
+        self.query_context: object = query_context
+
+    def validate(self) -> None:
+        pass
+
+    def run(self) -> dict[str, Any]:
+        from superset.utils.date_parser import get_since_until
+
+        get_since_until(time_range="2025-01-01 : 2024-01-01")
+        return {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@pytest.mark.parametrize("path", ["saved", "unsaved"])
+async def test_chart_data_time_range_error_keeps_date_parser_guidance(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    guest: bool,
+) -> None:
+    """The date parser's text about the caller's time range reaches a signed-in
+    user, so the caller can fix the request; a guest gets the generic text."""
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    if path == "saved":
+        routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
+        routing._patch_query_path(
+            monkeypatch, routing._make_chart(), _engine_query_failure()
+        )
+        request: dict[str, Any] = {"identifier": 1}
+    else:
+        _patch_unsaved_query_path(monkeypatch, _engine_query_failure())
+        request = {"form_data_key": "cached-key"}
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _ReversedTimeRangeCommand,
+    )
+
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=guest,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool("get_chart_data", {"request": request})
+            data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "DataError"
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in data["error"]
+    else:
+        assert "From date cannot be larger than to date" in data["error"]
+
+
 MISSING_VALUE_QUERY: dict[str, Any] = {
     "columns": ["STATUS"],
     "metrics": ["ORDER_COUNT"],

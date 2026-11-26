@@ -642,6 +642,25 @@ class TestCompileChart:
         assert "invalid metric" not in (result.error or "")
         assert "An unexpected error occurred" in (result.error or "")
 
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_time_range_error_keeps_guidance(
+        self, mock_factory_cls, mock_cmd_cls
+    ):
+        """A ValueError the date parser raises about the time range is kept."""
+        from superset.utils.date_parser import get_since_until
+
+        mock_factory_cls.return_value.create.side_effect = (
+            lambda *args, **kwargs: get_since_until(
+                time_range="2025-01-01 : 2024-01-01"
+            )
+        )
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "From date cannot be larger than to date" in (result.error or "")
+
 
 def _make_mock_chart(chart_id: int = 42) -> Mock:
     """Create a mock chart with all attributes needed by serialize_chart_object."""
@@ -1308,3 +1327,48 @@ async def test_generate_chart_failure_hides_exception_text(
     for text in [client_text, *notifications]:
         assert "hunter2" not in text
         assert "db.internal" not in text
+
+
+def _reject_empty_table_config(*args: Any, **kwargs: Any) -> Any:
+    """Raise the chart mapper's own ValueError about the caller's config."""
+    from superset.mcp_service.chart.chart_utils import map_table_config
+
+    return map_table_config(
+        TableChartConfig.model_construct(chart_type="table", columns=[])
+    )
+
+
+@pytest.mark.asyncio
+async def test_generate_chart_failure_keeps_chart_config_guidance() -> None:
+    """A chart mapper's validation text about the caller's config is returned."""
+    request = GenerateChartRequest(
+        dataset_id="1",
+        config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
+        save_chart=True,
+        generate_preview=False,
+    )
+    ctx = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.debug = AsyncMock()
+    ctx.warning = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            side_effect=_reject_empty_table_config,
+        ),
+        patch("superset.db.session", MagicMock()),
+    ):
+        result = await generate_chart(request, ctx=ctx)
+
+    assert result.success is False
+    error = result.error
+    client_text = str(error.model_dump() if hasattr(error, "model_dump") else error)
+    assert "Table chart must have at least one column" in client_text
