@@ -152,152 +152,144 @@ test('ordinary pre-filter subjects keep their existing labels', async () => {
   expect(screen.getAllByText('Region')).toHaveLength(2);
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('AdhocFilterControl', () => {
-  test('should render with default props', () => {
-    renderComponent();
-    expect(screen.getByText('Add filter')).toBeInTheDocument();
-    expect(screen.getByTestId('adhoc-filter-control')).toBeInTheDocument();
+test('should render with default props', () => {
+  renderComponent();
+  expect(screen.getByText('Add filter')).toBeInTheDocument();
+  expect(screen.getByTestId('adhoc-filter-control')).toBeInTheDocument();
+});
+
+test('should render existing filters', () => {
+  const existingFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'column1',
+    operator: '==',
+    comparator: 'test',
+    clause: Clauses.Where,
   });
 
-  test('should render existing filters', () => {
-    const existingFilter = new AdhocFilter({
+  renderComponent({ value: [existingFilter] });
+  expect(screen.getByText("column1 = 'test'")).toBeInTheDocument();
+});
+
+test('should call onChange when removing a filter', async () => {
+  const existingFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'column1',
+    operator: '==',
+    comparator: 'test',
+    clause: Clauses.Where,
+  });
+  const onChange = jest.fn();
+
+  renderComponent({ value: [existingFilter], onChange });
+
+  const removeButton = screen.getByTestId('remove-control-button');
+  await userEvent.click(removeButton);
+
+  expect(onChange).toHaveBeenCalledWith([]);
+});
+
+test('should show add filter button when no filters exist', () => {
+  renderComponent();
+  const addButton = screen.getByTestId('add-filter-button');
+  expect(addButton).toBeInTheDocument();
+});
+
+test('should handle partition column data', async () => {
+  const mockPartitionColumn = 'date_column';
+  const mockResponse = {
+    partitions: {
+      cols: [mockPartitionColumn],
+    },
+  };
+
+  const createMockResponse = () => {
+    const response = new Response(JSON.stringify(mockResponse), {
+      status: 200,
+      statusText: 'OK',
+      headers: new Headers({
+        'Content-Type': 'application/json',
+      }),
+    });
+
+    jest
+      .spyOn(response, 'json')
+      .mockImplementation(() => Promise.resolve(mockResponse));
+    return response;
+  };
+
+  global.fetch = jest
+    .fn()
+    .mockImplementation(() => Promise.resolve(createMockResponse()));
+
+  renderComponent();
+
+  await screen.findByTestId('adhoc-filter-control');
+
+  const component = screen.getByTestId('adhoc-filter-control');
+  expect(component).toBeInTheDocument();
+});
+
+test('should save a new simple filter built in the popover', async () => {
+  const onChange = jest.fn();
+  renderComponent({
+    onChange,
+    operators: [Operators.Equals, Operators.GreaterThan],
+  });
+
+  await userEvent.click(screen.getByTestId('add-filter-button'));
+  expect(screen.getByRole('tab', { name: /simple/i })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  await userEvent.click(await screen.findByTestId('select-element'));
+  await userEvent.click(await screen.findByRole('option', { name: 'column1' }));
+  await userEvent.click(await screen.findByLabelText('Select operator'));
+  await userEvent.click(
+    await screen.findByRole('option', { name: /Equal to/ }),
+  );
+  await userEvent.type(screen.getByTestId('adhoc-filter-simple-value'), 'abc');
+  await userEvent.click(
+    screen.getByTestId('adhoc-filter-edit-popover-save-button'),
+  );
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const [[savedFilters]] = onChange.mock.calls;
+  expect(savedFilters).toHaveLength(1);
+  expect(savedFilters[0]).toEqual(
+    expect.objectContaining({
       expressionType: ExpressionTypes.Simple,
       subject: 'column1',
       operator: '==',
-      comparator: 'test',
+      comparator: 'abc',
+    }),
+  );
+  expect(await screen.findByText("column1 = 'abc'")).toBeInTheDocument();
+});
+
+test('should save a new custom SQL filter built in the popover', async () => {
+  const onChange = jest.fn();
+  renderComponent({ onChange });
+
+  await userEvent.click(screen.getByTestId('add-filter-button'));
+  await userEvent.click(screen.getByRole('tab', { name: /custom sql/i }));
+
+  await userEvent.click(screen.getByRole('textbox'));
+  await userEvent.paste('column2 > 5');
+  await userEvent.click(
+    screen.getByTestId('adhoc-filter-edit-popover-save-button'),
+  );
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const [[savedFilters]] = onChange.mock.calls;
+  expect(savedFilters).toHaveLength(1);
+  expect(savedFilters[0]).toEqual(
+    expect.objectContaining({
+      expressionType: ExpressionTypes.Sql,
+      sqlExpression: 'column2 > 5',
       clause: Clauses.Where,
-    });
-
-    renderComponent({ value: [existingFilter] });
-    expect(screen.getByText("column1 = 'test'")).toBeInTheDocument();
-  });
-
-  test('should call onChange when removing a filter', async () => {
-    const existingFilter = new AdhocFilter({
-      expressionType: ExpressionTypes.Simple,
-      subject: 'column1',
-      operator: '==',
-      comparator: 'test',
-      clause: Clauses.Where,
-    });
-    const onChange = jest.fn();
-
-    renderComponent({ value: [existingFilter], onChange });
-
-    const removeButton = screen.getByTestId('remove-control-button');
-    await userEvent.click(removeButton);
-
-    expect(onChange).toHaveBeenCalledWith([]);
-  });
-
-  test('should show add filter button when no filters exist', () => {
-    renderComponent();
-    const addButton = screen.getByTestId('add-filter-button');
-    expect(addButton).toBeInTheDocument();
-  });
-
-  test('should handle partition column data', async () => {
-    const mockPartitionColumn = 'date_column';
-    const mockResponse = {
-      partitions: {
-        cols: [mockPartitionColumn],
-      },
-    };
-
-    const createMockResponse = () => {
-      const response = new Response(JSON.stringify(mockResponse), {
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers({
-          'Content-Type': 'application/json',
-        }),
-      });
-
-      jest
-        .spyOn(response, 'json')
-        .mockImplementation(() => Promise.resolve(mockResponse));
-      return response;
-    };
-
-    global.fetch = jest
-      .fn()
-      .mockImplementation(() => Promise.resolve(createMockResponse()));
-
-    renderComponent();
-
-    await screen.findByTestId('adhoc-filter-control');
-
-    const component = screen.getByTestId('adhoc-filter-control');
-    expect(component).toBeInTheDocument();
-  });
-
-  test('should save a new simple filter built in the popover', async () => {
-    const onChange = jest.fn();
-    renderComponent({
-      onChange,
-      operators: [Operators.Equals, Operators.GreaterThan],
-    });
-
-    await userEvent.click(screen.getByTestId('add-filter-button'));
-    expect(screen.getByRole('tab', { name: /simple/i })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-
-    await userEvent.click(await screen.findByTestId('select-element'));
-    await userEvent.click(
-      await screen.findByRole('option', { name: 'column1' }),
-    );
-    await userEvent.click(await screen.findByLabelText('Select operator'));
-    await userEvent.click(
-      await screen.findByRole('option', { name: /Equal to/ }),
-    );
-    await userEvent.type(
-      screen.getByTestId('adhoc-filter-simple-value'),
-      'abc',
-    );
-    await userEvent.click(
-      screen.getByTestId('adhoc-filter-edit-popover-save-button'),
-    );
-
-    expect(onChange).toHaveBeenCalledTimes(1);
-    const [[savedFilters]] = onChange.mock.calls;
-    expect(savedFilters).toHaveLength(1);
-    expect(savedFilters[0]).toEqual(
-      expect.objectContaining({
-        expressionType: ExpressionTypes.Simple,
-        subject: 'column1',
-        operator: '==',
-        comparator: 'abc',
-      }),
-    );
-    expect(await screen.findByText("column1 = 'abc'")).toBeInTheDocument();
-  });
-
-  test('should save a new custom SQL filter built in the popover', async () => {
-    const onChange = jest.fn();
-    renderComponent({ onChange });
-
-    await userEvent.click(screen.getByTestId('add-filter-button'));
-    await userEvent.click(screen.getByRole('tab', { name: /custom sql/i }));
-
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.paste('column2 > 5');
-    await userEvent.click(
-      screen.getByTestId('adhoc-filter-edit-popover-save-button'),
-    );
-
-    expect(onChange).toHaveBeenCalledTimes(1);
-    const [[savedFilters]] = onChange.mock.calls;
-    expect(savedFilters).toHaveLength(1);
-    expect(savedFilters[0]).toEqual(
-      expect.objectContaining({
-        expressionType: ExpressionTypes.Sql,
-        sqlExpression: 'column2 > 5',
-        clause: Clauses.Where,
-      }),
-    );
-    expect(await screen.findByText('column2 > 5')).toBeInTheDocument();
-  });
+    }),
+  );
+  expect(await screen.findByText('column2 > 5')).toBeInTheDocument();
 });

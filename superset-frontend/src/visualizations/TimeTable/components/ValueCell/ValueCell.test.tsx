@@ -26,58 +26,55 @@ const mockColumn = {
   d3format: '.2f',
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ValueCell', () => {
-  test('should render a formatted value', () => {
-    render(<ValueCell value={300} column={mockColumn} />);
+test('should render a formatted value', () => {
+  render(<ValueCell value={300} column={mockColumn} />);
 
-    expect(screen.getByText('300.00')).toBeInTheDocument();
-  });
+  expect(screen.getByText('300.00')).toBeInTheDocument();
+});
 
-  test('should render decimal values', () => {
-    render(<ValueCell value={1.5} column={mockColumn} />);
+test('should render decimal values', () => {
+  render(<ValueCell value={1.5} column={mockColumn} />);
 
-    expect(screen.getByText('1.50')).toBeInTheDocument();
-  });
+  expect(screen.getByText('1.50')).toBeInTheDocument();
+});
 
-  test('should render zero', () => {
-    render(<ValueCell value={0} column={mockColumn} />);
+test('should render zero', () => {
+  render(<ValueCell value={0} column={mockColumn} />);
 
-    expect(screen.getByText('0.00')).toBeInTheDocument();
-  });
+  expect(screen.getByText('0.00')).toBeInTheDocument();
+});
 
-  test('should render negative values', () => {
-    render(<ValueCell value={-200} column={mockColumn} />);
+test('should render negative values', () => {
+  render(<ValueCell value={-200} column={mockColumn} />);
 
-    expect(screen.getByText('-200.00')).toBeInTheDocument();
-  });
+  expect(screen.getByText('-200.00')).toBeInTheDocument();
+});
 
-  test('should render an error message instead of the value', () => {
-    render(
-      <ValueCell
-        value={null}
-        errorMsg="The time lag set at 10 is too large"
-        column={mockColumn}
-      />,
-    );
+test('should render an error message instead of the value', () => {
+  render(
+    <ValueCell
+      value={null}
+      errorMsg="The time lag set at 10 is too large"
+      column={mockColumn}
+    />,
+  );
 
-    expect(
-      screen.getByText(/The time lag set at 10 is too large/),
-    ).toBeInTheDocument();
-  });
+  expect(
+    screen.getByText(/The time lag set at 10 is too large/),
+  ).toBeInTheDocument();
+});
 
-  test('should apply color styling when bounds are provided', () => {
-    const columnWithBounds = {
-      ...mockColumn,
-      bounds: [0, 1000] as [number, number],
-    };
+test('should apply color styling when bounds are provided', () => {
+  const columnWithBounds = {
+    ...mockColumn,
+    bounds: [0, 1000] as [number, number],
+  };
 
-    const { container } = render(
-      <ValueCell value={300} column={columnWithBounds} />,
-    );
+  const { container } = render(
+    <ValueCell value={300} column={columnWithBounds} />,
+  );
 
-    const span = container.querySelector('span[data-value="300"]');
+  const span = container.querySelector('span[data-value="300"]');
 
-    expect(span).toBeInTheDocument();
-  });
+  expect(span).toBeInTheDocument();
 });
