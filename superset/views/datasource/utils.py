@@ -32,6 +32,7 @@ from superset.daos.datasource import DatasourceDAO
 from superset.utils.core import (
     apply_max_row_limit,
     extract_dataframe_dtypes,
+    extract_display_labels,
     QueryStatus,
 )
 
@@ -378,6 +379,7 @@ def _fetch_samples_via_cursor(
     return {
         "data": df.to_dict(orient="records"),
         "colnames": colnames,
+        "collabels": extract_display_labels({}, colnames, datasource),
         "coltypes": coltypes,
         "status": QueryStatus.SUCCESS,
     }

@@ -309,6 +309,13 @@ describe('DataTablesPane', () => {
               '{"label": "Custom Metric"}',
               '{"label": "Custom Metric"}__contribution',
             ],
+            // The backend echoes names it has no verbose label for.
+            collabels: [
+              'plain_column',
+              'revenue__contribution',
+              '{"label": "Custom Metric"}',
+              '{"label": "Custom Metric"}__contribution',
+            ],
             coltypes: [1, 1, 1, 1],
             rowcount: 1,
             sql_rowcount: 1,

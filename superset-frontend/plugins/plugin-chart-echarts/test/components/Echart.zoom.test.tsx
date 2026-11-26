@@ -177,6 +177,7 @@ test('180px Day chart renders full boundary dates without intersecting', async (
     to_dttm: null,
     data: timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
     colnames: ['__timestamp', 'sales'],
+    collabels: ['__timestamp', 'sales'],
     coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
     label_map: { __timestamp: ['__timestamp'], sales: ['sales'] },
   };

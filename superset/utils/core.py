@@ -1982,6 +1982,76 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
+def _datasource_verbose_names(datasource: Explorable | None) -> dict[str, str]:
+    """Map dataset column and saved metric names to their display labels.
+
+    Column and metric metadata may be ORM objects or plain dicts; entries without
+    a verbose name map to their own name.
+    """
+    verbose_names: dict[str, str] = {}
+    if not datasource:
+        return verbose_names
+
+    def _items(attr: str) -> list[Any]:
+        # Only real collections count; some explorables (and test doubles) expose
+        # these attributes as non-iterable placeholders.
+        value = getattr(datasource, attr, None)
+        return list(value) if isinstance(value, (list, tuple, set)) else []
+
+    sources: list[tuple[str, list[Any]]] = [
+        ("column_name", _items("columns")),
+        ("metric_name", _items("metrics")),
+    ]
+    for name_key, items in sources:
+        for item in items:
+            if isinstance(item, dict):
+                name = item.get(name_key)
+                verbose_name = item.get("verbose_name")
+            else:
+                name = getattr(item, name_key, None)
+                verbose_name = getattr(item, "verbose_name", None)
+            if isinstance(name, str) and name and name not in verbose_names:
+                verbose_names[name] = (
+                    verbose_name if isinstance(verbose_name, str) else ""
+                ) or name
+    return verbose_names
+
+
+def extract_display_labels(
+    label_map: dict[str, list[str]],
+    colnames: list[str],
+    datasource: Explorable | None = None,
+) -> list[str]:
+    """Extract display labels for a list of column names based on a label map
+    and an optional datasource.
+
+    An output column that is itself a key of ``label_map`` is resolved by its own
+    identity (the verbose name of a matching dataset column or saved metric, else
+    the name itself), so an alias given to a different output column built from
+    the same source expression never leaks onto it.
+    """
+    if not colnames:
+        return []
+
+    label_map = label_map or {}
+
+    # Build column -> label mapping (skip self-references)
+    columns_to_label: dict[str, str] = {}
+    for label, cols in label_map.items():
+        for col in cols:
+            if label != col and col not in columns_to_label:
+                columns_to_label[col] = label
+
+    verbose_names = _datasource_verbose_names(datasource)
+
+    def resolve(col: str) -> str:
+        if col not in label_map and (alias := columns_to_label.get(col)):
+            return alias
+        return verbose_names.get(col, col)
+
+    return [resolve(col) for col in colnames]
+
+
 def extract_column_dtype(col: ColumnMetadata) -> GenericDataType:
     # Check for temporal type
     if hasattr(col, "is_temporal") and col.is_temporal:

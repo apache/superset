@@ -36,6 +36,7 @@ from superset.utils.core import (
     check_is_safe_zip,
     DateColumn,
     extract_dataframe_dtypes,
+    extract_display_labels,
     FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
@@ -2265,3 +2266,76 @@ def test_extract_dataframe_dtypes_with_duplicate_columns() -> None:
     df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
     result = extract_dataframe_dtypes(df)
     assert len(result) == 3
+
+
+def _display_labels_datasource(
+    columns: list[Any], metrics: list[Any] | None = None
+) -> MagicMock:
+    datasource = MagicMock()
+    datasource.columns = columns
+    datasource.metrics = metrics or []
+    return datasource
+
+
+def test_extract_display_labels_accepts_dict_column_metadata() -> None:
+    """Dict-shaped column metadata resolves to its verbose name without raising."""
+    datasource = _display_labels_datasource(
+        [
+            {"column_name": "revenue", "verbose_name": "Revenue"},
+            {"column_name": "region", "is_dttm": False},
+            {"is_dttm": False},
+        ]
+    )
+    assert extract_display_labels(
+        {"revenue": ["revenue"], "region": ["region"]},
+        ["revenue", "region"],
+        datasource,
+    ) == ["Revenue", "region"]
+
+
+def test_extract_display_labels_uses_orm_column_verbose_name() -> None:
+    """ORM-style columns resolve to verbose_name, falling back to column_name."""
+    datasource = _display_labels_datasource(
+        [
+            MagicMock(column_name="revenue", verbose_name="Revenue"),
+            MagicMock(column_name="region", verbose_name=None),
+        ]
+    )
+    assert extract_display_labels({}, ["revenue", "region", "other"], datasource) == [
+        "Revenue",
+        "region",
+        "other",
+    ]
+
+
+def test_extract_display_labels_does_not_leak_alias_onto_raw_column() -> None:
+    """An adhoc alias of a column does not relabel the raw column itself."""
+    datasource = _display_labels_datasource(
+        [MagicMock(column_name="revenue", verbose_name="Revenue")]
+    )
+    label_map = {"revenue": ["revenue"], "Revenue copy": ["revenue"]}
+    assert extract_display_labels(
+        label_map, ["revenue", "Revenue copy"], datasource
+    ) == ["Revenue", "Revenue copy"]
+
+
+def test_extract_display_labels_handles_missing_label_map() -> None:
+    """A payload without a label map still yields one label per column."""
+    assert extract_display_labels({}, ["a", "b"]) == ["a", "b"]
+    assert extract_display_labels({}, []) == []
+
+
+def test_extract_display_labels_uses_saved_metric_verbose_name() -> None:
+    """Saved metrics resolve to their verbose name, as dicts or objects."""
+    datasource = _display_labels_datasource(
+        [],
+        [
+            {"metric_name": "sum__num", "verbose_name": "Yearly Total"},
+            MagicMock(metric_name="count", verbose_name="Row Count"),
+        ],
+    )
+    assert extract_display_labels(
+        {"sum__num": ["sum__num"], "count": ["count"]},
+        ["sum__num", "count"],
+        datasource,
+    ) == ["Yearly Total", "Row Count"]
