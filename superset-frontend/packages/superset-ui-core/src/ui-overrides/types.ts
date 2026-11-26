@@ -31,6 +31,7 @@ import type {
 } from '../query';
 import type { JsonResponse } from '../connection';
 import type { MenuItem } from '../components/Menu';
+import type { TimeRangeLimits } from '../time-comparison';
 
 /**
  * A function which returns text (or marked-up text)
@@ -231,6 +232,7 @@ export interface DateFilterControlProps {
   overlayStyle?: 'Modal' | 'Popover';
   isOverflowingFilterBar?: boolean;
   displayFormat?: string;
+  timeRangeLimits?: TimeRangeLimits;
 }
 
 export interface ExploreChartHeaderProps {

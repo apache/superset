@@ -17,12 +17,31 @@
 import re
 from typing import Any, Mapping, Union
 
-from marshmallow import fields, post_dump, post_load, pre_load, Schema
+from marshmallow import (
+    fields,
+    post_dump,
+    post_load,
+    pre_load,
+    Schema,
+    validates,
+    validates_schema,
+)
 from marshmallow.validate import Length, OneOf, ValidationError
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.subjects.schemas import SubjectReferenceField, SubjectResponseSchema
 from superset.tags.models import TagType
+from superset.time_range_limits.policy import (
+    check_stricter_than_global,
+    imported_dashboard_errors,
+    limits_errors,
+    limits_shape_error,
+    parse_time_range_limits,
+    parse_written_policy,
+    stored_limits,
+    TIME_RANGE_LIMITS_KEY,
+    TimeRangeLimitsInvalidError,
+)
 from superset.utils import json
 from superset.utils.schema import (
     DiscardIsManagedExternallyMixin,
@@ -242,6 +261,7 @@ class DashboardJSONMetadataSchema(Schema):
         allow_none=True,
         validate=OneOf(["default", "force_on", "force_off"]),
     )
+    time_range_limits = fields.Raw(allow_none=True)
 
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument
@@ -466,7 +486,23 @@ class BaseDashboardSchema(Schema):
         return data
 
 
-class DashboardPostSchema(BaseDashboardSchema):
+class TimeRangeLimitsMixin:
+    """Checks the shape of ``json_metadata.time_range_limits`` on a write."""
+
+    # pylint: disable=unused-argument
+    @validates_schema(skip_on_field_errors=True)
+    def validate_time_range_limits(self, data: dict[str, Any], **kwargs: Any) -> None:
+        if not (json_metadata := data.get("json_metadata")):
+            return
+        try:
+            parse_written_policy(json.loads(json_metadata).get(TIME_RANGE_LIMITS_KEY))
+        except TimeRangeLimitsInvalidError as ex:
+            raise ValidationError(
+                limits_shape_error("json_metadata.time_range_limits", ex)
+            ) from ex
+
+
+class DashboardPostSchema(TimeRangeLimitsMixin, BaseDashboardSchema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
@@ -512,7 +548,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     uuid = fields.UUID(allow_none=True)
 
 
-class DashboardCopySchema(Schema):
+class DashboardCopySchema(TimeRangeLimitsMixin, Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
@@ -539,9 +575,106 @@ class DashboardCopySchema(Schema):
             "description": "Whether or not to also copy all charts on the dashboard"
         }
     )
+    adjust_time_ranges = fields.Boolean(
+        load_default=False,
+        metadata={
+            "description": "Apply the changes the copy's time ranges need to fit "
+            "the time range limits. Without it, a copy that needs them answers 422 "
+            "with the changes in time_range_adjustments, and nothing is copied."
+        },
+    )
+    time_range_adjustments_fingerprint = fields.String(
+        load_default=None,
+        allow_none=True,
+        metadata={
+            "description": "The time_range_adjustments_fingerprint of the 422 the "
+            "caller agreed to. With it, adjust_time_ranges applies only those "
+            "changes and answers a new 422 if they changed since; without it, "
+            "adjust_time_ranges applies whatever changes are needed."
+        },
+    )
 
 
-class DashboardPutSchema(DiscardIsManagedExternallyMixin, BaseDashboardSchema):
+class TimeRangeAdjustmentSchema(Schema):
+    kind = fields.String(metadata={"description": "time_range_limit or filter_default"})
+    dashboard = fields.String(metadata={"description": "Dashboard title"})
+    dashboard_key = fields.String(
+        metadata={
+            "description": "The source dashboard's UUID on a copy, the imported "
+            "dashboard's UUID on an import"
+        }
+    )
+    file = fields.String(
+        allow_none=True, metadata={"description": "Import file of the dashboard"}
+    )
+    name = fields.String(
+        metadata={"description": "Dashboard title for a rule, filter name otherwise"}
+    )
+    filter_id = fields.String(
+        allow_none=True, metadata={"description": "Native filter id"}
+    )
+    field = fields.String(
+        metadata={
+            "description": "max_span, max_look_back or max_look_forward for a rule; "
+            "default or applied_range for a filter"
+        }
+    )
+    old = fields.Raw(allow_none=True, metadata={"description": "Stored value"})
+    new = fields.Raw(allow_none=True, metadata={"description": "Value saved"})
+    old_label = fields.String(metadata={"description": "Stored value in words"})
+    new_label = fields.String(metadata={"description": "Value saved in words"})
+
+
+FINGERPRINT_DESCRIPTION = (
+    "Send back with adjust_time_ranges to agree to exactly these changes"
+)
+
+
+class TimeRangeAdjustmentsResponseSchema(Schema):
+    message = fields.Raw(
+        metadata={
+            "description": "The changes, in words, and how to agree to them; for "
+            "invalid parameters, a map of fields to their errors instead",
+            "oneOf": [{"type": "string"}, {"type": "object"}],
+        }
+    )
+    time_range_adjustments = fields.List(fields.Nested(TimeRangeAdjustmentSchema))
+    time_range_adjustments_fingerprint = fields.String(
+        metadata={"description": FINGERPRINT_DESCRIPTION}
+    )
+
+
+class TimeRangeAdjustmentsFileSchema(Schema):
+    time_range_adjustments = fields.List(fields.Nested(TimeRangeAdjustmentSchema))
+
+
+class TimeRangeAdjustmentsImportErrorItemSchema(Schema):
+    message = fields.String()
+    error_type = fields.String()
+    level = fields.String()
+    extra = fields.Dict(
+        keys=fields.String(),
+        values=fields.Nested(TimeRangeAdjustmentsFileSchema),
+        metadata={
+            "description": "When time ranges need changes: each dashboard file "
+            "mapped to its changes, and the fingerprint",
+            "properties": {
+                "time_range_adjustments_fingerprint": {
+                    "type": "string",
+                    "description": FINGERPRINT_DESCRIPTION,
+                }
+            },
+        },
+    )
+
+
+class TimeRangeAdjustmentsImportErrorSchema(Schema):
+    errors = fields.List(fields.Nested(TimeRangeAdjustmentsImportErrorItemSchema))
+
+
+class DashboardPutSchema(
+    TimeRangeLimitsMixin, DiscardIsManagedExternallyMixin, BaseDashboardSchema
+):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
@@ -628,6 +761,28 @@ class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
     color_scheme_domain = fields.List(fields.String(), allow_none=False)
 
 
+class DashboardTimeRangeLimitsPutSchema(Schema):
+    global_revision = fields.Integer(
+        allow_none=True,
+        metadata={"description": "Accepted and ignored: the global has no revisions."},
+    )
+    policy = fields.Raw(
+        required=True,
+        allow_none=True,
+        metadata={
+            "description": "The dashboard's time range limits, or null to remove them."
+        },
+    )
+
+    # pylint: disable=unused-argument
+    @validates_schema(skip_on_field_errors=True)
+    def validate_policy(self, data: dict[str, Any], **kwargs: Any) -> None:
+        try:
+            parse_time_range_limits(data["policy"])
+        except TimeRangeLimitsInvalidError as ex:
+            raise ValidationError(limits_shape_error("policy", ex)) from ex
+
+
 class DashboardScreenshotPostSchema(Schema):
     dataMask = fields.Dict(  # noqa: N815
         keys=fields.Str(),
@@ -689,6 +844,47 @@ class ImportV1DashboardSchema(Schema):
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)
     extra = fields.Dict(allow_none=True, load_only=True)
+
+    @validates("metadata")
+    def validate_metadata(self, value: dict[str, Any], **kwargs: Any) -> None:
+        try:
+            parse_written_policy(value.get(TIME_RANGE_LIMITS_KEY))
+        except TimeRangeLimitsInvalidError as ex:
+            raise ValidationError(limits_shape_error(TIME_RANGE_LIMITS_KEY, ex)) from ex
+
+    # pylint: disable=unused-argument
+    @validates_schema(skip_on_field_errors=True)
+    def validate_stricter_than_global(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        from superset.models.dashboard import Dashboard
+
+        raw = (data.get("metadata") or {}).get(TIME_RANGE_LIMITS_KEY)
+
+        def find_existing() -> Dashboard | None:
+            from superset.commands.importers.v1.utils import find_existing_for_import
+
+            # The row the import overwrites or restores, as import_dashboard finds it.
+            existing = find_existing_for_import(Dashboard, data["uuid"])
+            if existing is None and (slug := data.get("slug")) is not None:
+                existing = (
+                    db.session.query(Dashboard)
+                    .filter(Dashboard.slug == slug, Dashboard.deleted_at.is_(None))
+                    .one_or_none()
+                )
+            return existing
+
+        if errors := check_stricter_than_global(
+            parse_written_policy(raw), None, "dashboard"
+        ):
+            if (existing := find_existing()) is not None:
+                errors = imported_dashboard_errors(
+                    raw, stored_limits(existing.json_metadata)
+                )
+        if errors:
+            raise ValidationError(
+                {"metadata": limits_errors(TIME_RANGE_LIMITS_KEY, errors)}
+            )
 
 
 class EmbeddedDashboardConfigSchema(Schema):

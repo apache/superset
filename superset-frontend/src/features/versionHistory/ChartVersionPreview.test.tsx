@@ -232,3 +232,30 @@ test('malformed snapshot params surface as an error, not a crash', async () => {
   });
   expect(screen.getByRole('alert')).toBeInTheDocument();
 });
+
+test('shows the time range limits rejection the server sends for the version', async () => {
+  (requestChartDataResolved as jest.Mock).mockRejectedValue(
+    new Response(
+      JSON.stringify({
+        errors: [
+          {
+            error_type: 'TIME_RANGE_LIMIT_ERROR',
+            message: "Range can't be longer than 30 days. This one is 45 days.",
+            level: 'error',
+            extra: { reason_code: 'MAX_SPAN_EXCEEDED' },
+          },
+        ],
+      }),
+      { status: 400 },
+    ),
+  );
+  renderPreview();
+
+  expect(
+    await screen.findByText(
+      "Range can't be longer than 30 days. This one is 45 days.",
+    ),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('alert')).toBeInTheDocument();
+  expect(screen.queryByTestId('super-chart')).not.toBeInTheDocument();
+});

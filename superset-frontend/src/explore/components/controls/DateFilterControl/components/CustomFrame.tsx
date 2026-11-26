@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { customTimeRangeDecode } from '@superset-ui/core';
 import {
@@ -41,14 +42,127 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
   CustomRangeKey,
+  FieldError,
   FrameComponentProps,
+  FrameLimits,
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { Dayjs } from 'dayjs';
 import { useLocale } from 'src/hooks/useLocale';
+import { fieldAria, fieldSlot } from './limitFields';
+
+type Calendar = 'start' | 'end' | 'anchor';
+
+// rc-picker's default text for a showTime picker; CustomFrame passes no format.
+const PICKER_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+
+type SpecificPickerProps = {
+  control: 'sinceDatetime' | 'untilDatetime';
+  datetime: string;
+  onChange: (control: CustomRangeKey, value: string) => void;
+  limits: FrameLimits | undefined;
+  error: FieldError | undefined;
+  disabledDate: ((current: Dayjs) => boolean) | undefined;
+  ariaLabel: string;
+  calendarProps: { onOpenChange?: (open: boolean) => void };
+};
+
+function SpecificPicker({
+  control,
+  datetime,
+  onChange,
+  limits,
+  error,
+  disabledDate,
+  ariaLabel,
+  calendarProps,
+}: SpecificPickerProps) {
+  const value = useMemo(() => dttmToDayjs(datetime), [datetime]);
+  const typedDate = useRef<Dayjs | null>(null);
+  const edited = useRef(false);
+  // rc-picker drops a typed date its disabledDate rejects; with limits on it
+  // is committed on blur or Enter, so its error shows.
+  const commitTyped = () => {
+    const typed = typedDate.current;
+    typedDate.current = null;
+    if (typed && disabledDate?.(typed) && !typed.isSame(value)) {
+      onChange(control, typed.format(DAYJS_FORMAT));
+    }
+  };
+  const valueProps = limits
+    ? {
+        value,
+        onCalendarChange: (date: Dayjs | Dayjs[] | null) => {
+          // Escape and closing the calendar reset it to the stored date
+          // before the blur; only a reset typed in the input drops the date.
+          const reset = !Array.isArray(date) && !!date?.isSame(value);
+          if (reset && !edited.current) {
+            return;
+          }
+          edited.current = false;
+          typedDate.current = Array.isArray(date) ? null : date;
+        },
+        onFocus: () => {
+          typedDate.current = null;
+        },
+        onBlur: commitTyped,
+        onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
+          edited.current =
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey &&
+            (event.key.length === 1 ||
+              event.key === 'Backspace' ||
+              event.key === 'Delete');
+          if (event.key === 'Enter') {
+            if (
+              typedDate.current?.format(PICKER_FORMAT) !==
+              event.currentTarget.value
+            ) {
+              typedDate.current = null;
+            }
+            commitTyped();
+          }
+        },
+      }
+    : { defaultValue: value };
+  return (
+    <DatePicker
+      showTime
+      onChange={(date: Dayjs) => onChange(control, date.format(DAYJS_FORMAT))}
+      allowClear={false}
+      getPopupContainer={() => document.body}
+      disabledDate={disabledDate}
+      aria-label={limits ? ariaLabel : undefined}
+      {...valueProps}
+      {...calendarProps}
+      {...fieldAria(limits, error)}
+      {...(limits && {
+        'aria-invalid': !limits.pending && (!!error || !!limits.rowInvalid),
+      })}
+    />
+  );
+}
 
 export function CustomFrame(props: FrameComponentProps) {
+  const { limits } = props;
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
   const datePickerLocale = useLocale();
+  const [openCalendars, setOpenCalendars] = useState<
+    Partial<Record<Calendar, boolean>>
+  >({});
+  const calendarOpen = Object.values(openCalendars).some(Boolean);
+  const onCalendarOpenChange = limits?.onCalendarOpenChange;
+  useEffect(() => {
+    onCalendarOpenChange?.(calendarOpen);
+    return () => onCalendarOpenChange?.(false);
+  }, [calendarOpen, onCalendarOpenChange]);
+  const calendarProps = (calendar: Calendar) =>
+    limits
+      ? {
+          onOpenChange: (open: boolean) =>
+            setOpenCalendars(previous => ({ ...previous, [calendar]: open })),
+        }
+      : {};
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
   }
@@ -127,51 +241,63 @@ export function CustomFrame(props: FrameComponentProps) {
                 placement="right"
               />
             </div>
-            <Select
-              ariaLabel={t('Start (inclusive)')}
-              options={SINCE_MODE_OPTIONS}
-              value={sinceMode}
-              onChange={(value: string) => onChange('sinceMode', value)}
-            />
-            {sinceMode === 'specific' && (
-              <Row>
-                <DatePicker
-                  showTime
-                  defaultValue={dttmToDayjs(sinceDatetime)}
-                  onChange={(datetime: Dayjs) =>
-                    onChange('sinceDatetime', datetime.format(DAYJS_FORMAT))
-                  }
-                  allowClear={false}
-                  getPopupContainer={() => document.body}
+            {fieldSlot(
+              limits,
+              limits?.start,
+              <>
+                <Select
+                  ariaLabel={t('Start (inclusive)')}
+                  options={SINCE_MODE_OPTIONS}
+                  value={sinceMode}
+                  onChange={(value: string) => onChange('sinceMode', value)}
+                  name={limits?.startId}
+                  {...fieldAria(limits, limits?.start)}
                 />
-              </Row>
-            )}
-            {sinceMode === 'relative' && (
-              <Row gutter={8}>
-                <Col span={11}>
-                  {/* Make sure sinceGrainValue looks like a positive integer */}
-                  <InputNumber
-                    placeholder={t('Relative quantity')}
-                    value={Math.abs(sinceGrainValue)}
-                    min={1}
-                    defaultValue={1}
-                    onChange={value =>
-                      onGrainValue('sinceGrainValue', value || 1)
-                    }
-                    onStep={value =>
-                      onGrainValue('sinceGrainValue', value || 1)
-                    }
-                  />
-                </Col>
-                <Col span={13}>
-                  <Select
-                    ariaLabel={t('Relative period')}
-                    options={SINCE_GRAIN_OPTIONS}
-                    value={sinceGrain}
-                    onChange={(value: string) => onChange('sinceGrain', value)}
-                  />
-                </Col>
-              </Row>
+                {sinceMode === 'specific' && (
+                  <Row>
+                    <SpecificPicker
+                      control="sinceDatetime"
+                      datetime={sinceDatetime}
+                      onChange={onChange}
+                      limits={limits}
+                      error={limits?.start}
+                      disabledDate={limits?.disabledStartDate}
+                      ariaLabel={t('Start (inclusive)')}
+                      calendarProps={calendarProps('start')}
+                    />
+                  </Row>
+                )}
+                {sinceMode === 'relative' && (
+                  <Row gutter={8}>
+                    <Col span={11}>
+                      {/* Make sure sinceGrainValue looks like a positive integer */}
+                      <InputNumber
+                        placeholder={t('Relative quantity')}
+                        aria-label={limits ? t('Relative quantity') : undefined}
+                        value={Math.abs(sinceGrainValue)}
+                        min={1}
+                        defaultValue={1}
+                        onChange={value =>
+                          onGrainValue('sinceGrainValue', value || 1)
+                        }
+                        onStep={value =>
+                          onGrainValue('sinceGrainValue', value || 1)
+                        }
+                      />
+                    </Col>
+                    <Col span={13}>
+                      <Select
+                        ariaLabel={t('Relative period')}
+                        options={SINCE_GRAIN_OPTIONS}
+                        value={sinceGrain}
+                        onChange={(value: string) =>
+                          onChange('sinceGrain', value)
+                        }
+                      />
+                    </Col>
+                  </Row>
+                )}
+              </>,
             )}
           </Col>
           <Col span={12}>
@@ -182,50 +308,62 @@ export function CustomFrame(props: FrameComponentProps) {
                 placement="right"
               />
             </div>
-            <Select
-              ariaLabel={t('End (exclusive)')}
-              options={UNTIL_MODE_OPTIONS}
-              value={untilMode}
-              onChange={(value: string) => onChange('untilMode', value)}
-            />
-            {untilMode === 'specific' && (
-              <Row>
-                <DatePicker
-                  showTime
-                  defaultValue={dttmToDayjs(untilDatetime)}
-                  onChange={(datetime: Dayjs) =>
-                    onChange('untilDatetime', datetime.format(DAYJS_FORMAT))
-                  }
-                  allowClear={false}
-                  getPopupContainer={() => document.body}
+            {fieldSlot(
+              limits,
+              limits?.end,
+              <>
+                <Select
+                  ariaLabel={t('End (exclusive)')}
+                  options={UNTIL_MODE_OPTIONS}
+                  value={untilMode}
+                  onChange={(value: string) => onChange('untilMode', value)}
+                  name={limits?.endId}
+                  {...fieldAria(limits, limits?.end)}
                 />
-              </Row>
-            )}
-            {untilMode === 'relative' && (
-              <Row gutter={8}>
-                <Col span={11}>
-                  <InputNumber
-                    placeholder={t('Relative quantity')}
-                    value={untilGrainValue}
-                    min={1}
-                    defaultValue={1}
-                    onChange={value =>
-                      onGrainValue('untilGrainValue', value || 1)
-                    }
-                    onStep={value =>
-                      onGrainValue('untilGrainValue', value || 1)
-                    }
-                  />
-                </Col>
-                <Col span={13}>
-                  <Select
-                    ariaLabel={t('Relative period')}
-                    options={UNTIL_GRAIN_OPTIONS}
-                    value={untilGrain}
-                    onChange={(value: string) => onChange('untilGrain', value)}
-                  />
-                </Col>
-              </Row>
+                {untilMode === 'specific' && (
+                  <Row>
+                    <SpecificPicker
+                      control="untilDatetime"
+                      datetime={untilDatetime}
+                      onChange={onChange}
+                      limits={limits}
+                      error={limits?.end}
+                      disabledDate={limits?.disabledEndDate}
+                      ariaLabel={t('End (exclusive)')}
+                      calendarProps={calendarProps('end')}
+                    />
+                  </Row>
+                )}
+                {untilMode === 'relative' && (
+                  <Row gutter={8}>
+                    <Col span={11}>
+                      <InputNumber
+                        placeholder={t('Relative quantity')}
+                        aria-label={limits ? t('Relative quantity') : undefined}
+                        value={untilGrainValue}
+                        min={1}
+                        defaultValue={1}
+                        onChange={value =>
+                          onGrainValue('untilGrainValue', value || 1)
+                        }
+                        onStep={value =>
+                          onGrainValue('untilGrainValue', value || 1)
+                        }
+                      />
+                    </Col>
+                    <Col span={13}>
+                      <Select
+                        ariaLabel={t('Relative period')}
+                        options={UNTIL_GRAIN_OPTIONS}
+                        value={untilGrain}
+                        onChange={(value: string) =>
+                          onChange('untilGrain', value)
+                        }
+                      />
+                    </Col>
+                  </Row>
+                )}
+              </>,
             )}
           </Col>
         </Row>
@@ -254,6 +392,8 @@ export function CustomFrame(props: FrameComponentProps) {
                     }
                     allowClear={false}
                     className="control-anchor-to-datetime"
+                    aria-label={limits ? t('Anchor to') : undefined}
+                    {...calendarProps('anchor')}
                     getPopupContainer={() => document.body}
                   />
                 </Col>

@@ -25,6 +25,7 @@ import {
   SupersetError,
   isFeatureEnabled,
   FeatureFlag,
+  DatasourceType,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
@@ -40,6 +41,12 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
+import TimeRangeLimitsSection from 'src/components/TimeRangeLimits/TimeRangeLimitsSection';
+import useTimeRangeLimits from 'src/components/TimeRangeLimits/useTimeRangeLimits';
+import {
+  fieldErrorsOf,
+  splitExtra,
+} from 'src/components/TimeRangeLimits/policyDraft';
 import { withCertificationFields } from '../utils';
 import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 import type { DatasourceModalProps } from '../types';
@@ -82,6 +89,37 @@ const StyledDatasourceModal = styled(Modal)`
   }
 `;
 
+function splitForLimits<T extends { extra?: string }>(
+  source: T,
+  enabled: boolean,
+): { source: T; keyAsRead: unknown } {
+  if (!enabled) {
+    return { source, keyAsRead: undefined };
+  }
+  const { extra, keyAsRead } = splitExtra(source.extra);
+  return {
+    source: extra === source.extra ? source : { ...source, extra },
+    keyAsRead,
+  };
+}
+
+function certifiedExtra(
+  datasource: Pick<
+    DatasetObject,
+    | 'extra'
+    | 'dataset_certification_changed'
+    | 'certified_by'
+    | 'certification_details'
+  >,
+): string | undefined {
+  return datasource.dataset_certification_changed
+    ? setDatasetCertification(datasource.extra, {
+        certified_by: datasource.certified_by,
+        certification_details: datasource.certification_details,
+      })
+    : datasource.extra;
+}
+
 export function buildExtraJsonObject(
   item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
 ) {
@@ -107,7 +145,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   show,
 }) => {
   const theme = useTheme();
-  const [currentDatasource, setCurrentDatasource] = useState(datasource);
+  const isSqla =
+    datasource.type === DatasourceType.Table ||
+    (datasource as { datasource_type?: string }).datasource_type === 'table';
+  const limitsOn = isFeatureEnabled(FeatureFlag.TimeRangeLimits) && isSqla;
+  const [opened] = useState(() => splitForLimits(datasource, limitsOn));
+  const [keyAsRead, setKeyAsRead] = useState<unknown>(opened.keyAsRead);
+  const [currentDatasource, setCurrentDatasource] = useState(opened.source);
   // SQL of the server snapshot the form started from. The caller's, unless
   // this modal read the dataset itself — then "did the SQL change?" has to be
   // asked against the snapshot the payload is actually built from.
@@ -153,8 +197,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           ...json.result,
           columns: withCertificationFields(json.result.columns),
         };
+        const split = splitForLimits(seeded, limitsOn);
         setSeededSql(seeded.sql);
-        setCurrentDatasource(seeded);
+        setKeyAsRead(split.keyAsRead);
+        setCurrentDatasource(split.source);
         setVersionEtag(response.headers.get('ETag') ?? undefined);
       })
       .catch(() => {
@@ -176,7 +222,32 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   // The API reports a physical dataset's SQL as `null`, the editor as `''`.
   const sqlChanged = (baselineSql ?? '') !== (currentDatasource.sql ?? '');
 
-  const buildPayload = (datasource: Record<string, any>) => {
+  const noTimeColumn = !(
+    currentDatasource.columns?.some(column => column.is_dttm) ||
+    currentDatasource.main_dttm_col
+  );
+  const limits = useTimeRangeLimits({
+    level: 'dataset',
+    id: currentDatasource.id,
+    show,
+    isSqla,
+    keyAsRead,
+    noTimeColumn,
+  });
+  const extraCheck = limits.loading
+    ? undefined
+    : limits.extraFor(certifiedExtra(currentDatasource));
+  const saveErrors = [
+    ...errors,
+    ...new Set([
+      ...limits.validationErrors(),
+      ...(extraCheck && !extraCheck.ok && extraCheck.error
+        ? [extraCheck.error]
+        : []),
+    ]),
+  ];
+
+  const buildPayload = (datasource: Record<string, any>, extra?: string) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
       database_id: datasource.database?.id,
@@ -201,12 +272,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource.cache_timeout === '' ? null : datasource.cache_timeout,
       is_sqllab_view: datasource.is_sqllab_view,
       template_params: datasource.template_params,
-      extra: datasource.dataset_certification_changed
-        ? setDatasetCertification(datasource.extra, {
-            certified_by: datasource.certified_by,
-            certification_details: datasource.certification_details,
-          })
-        : datasource.extra,
+      extra,
       is_managed_externally: datasource.is_managed_externally,
       external_url: datasource.external_url,
       metrics: datasource?.metrics?.map(
@@ -267,12 +333,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     return payload;
   };
   const onConfirmSave = async () => {
+    const extra = limits.extraFor(certifiedExtra(currentDatasource));
+    if (!extra.ok) {
+      return;
+    }
     // Pull out extra fields into the extra object
     setIsSaving(true);
     try {
       await SupersetClient.put({
         endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${sqlChanged && syncColumns}`,
-        jsonPayload: buildPayload(currentDatasource),
+        jsonPayload: buildPayload(currentDatasource, extra.extra),
         ...(versionEtag ? { headers: { 'If-Match': versionEtag } } : {}),
       });
 
@@ -313,6 +383,23 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       } else if (typeof error.error === 'string') {
         // backward compatible with old error messages
         errorText = error.error;
+      }
+      if (limits.enabled) {
+        const status = (response as Response | undefined)?.status;
+        const fields =
+          status === 400 || status === 422
+            ? fieldErrorsOf(error.message, 'extra.time_range_limits.')
+            : {};
+        if (Object.keys(fields).length) {
+          limits.setServerErrors(fields);
+        } else if (
+          status !== 400 &&
+          status !== 422 &&
+          limits.changed &&
+          !noTimeColumn
+        ) {
+          limits.setSaveFailed(true);
+        }
       }
       modal.error({
         title: t('Error saving dataset'),
@@ -450,7 +537,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             disabled={
               isSaving ||
               isLoadingDatasource ||
-              errors.length > 0 ||
+              limits.loading ||
+              saveErrors.length > 0 ||
               currentDatasource.is_managed_externally
             }
             tooltip={
@@ -458,8 +546,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 ? t(
                     "This dataset is managed externally, and can't be edited in Superset",
                   )
-                : errors.length > 0
-                  ? errors.join('\n')
+                : saveErrors.length > 0
+                  ? saveErrors.join('\n')
                   : ''
             }
           >
@@ -489,6 +577,32 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           onChange={onDatasourceChange}
           setIsEditing={setIsEditing}
           currencies={currencies}
+          timeRangeLimits={
+            limits.enabled && (
+              <TimeRangeLimitsSection
+                level="dataset"
+                global={limits.global}
+                value={limits.value}
+                stored={limits.stored}
+                needsReview={limits.needsReview}
+                eligibleTimeGrains={limits.eligibleTimeGrains}
+                timeGrainLabels={limits.timeGrainLabels}
+                errors={limits.errors}
+                state={limits.state}
+                pending={limits.pending}
+                failure={limits.failure}
+                saveFailed={limits.saveFailed}
+                removing={limits.removing}
+                showApplyNote={false}
+                noTimeColumn={noTimeColumn}
+                onChange={limits.onChange}
+                onRetry={limits.retry}
+                onRetrySave={onClickSave}
+                onRemove={limits.remove}
+                saveCheck={limits.saveCheck}
+              />
+            )
+          }
         />
       )}
       {contextHolder}

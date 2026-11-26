@@ -43,6 +43,11 @@ import type {
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
+import {
+  TIME_RANGE_ADJUSTMENTS_FINGERPRINT_KEY,
+  TIME_RANGE_ADJUSTMENTS_KEY,
+  type TimeRangeAdjustment,
+} from 'src/components/TimeRangeAdjustmentList/types';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
 import { normalizeSubjectToPickerValue } from 'src/features/subjects/SubjectPicker/utils';
@@ -571,6 +576,50 @@ export const getSSHPrivateKeyPasswordsNeeded = (
       .map(([fileName]) => fileName),
   );
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isTimeRangeAdjustment = (value: unknown): value is TimeRangeAdjustment =>
+  isRecord(value) &&
+  (value.kind === 'time_range_limit' || value.kind === 'filter_default') &&
+  typeof value.dashboard === 'string' &&
+  typeof value.name === 'string' &&
+  typeof value.field === 'string' &&
+  typeof value.old_label === 'string' &&
+  typeof value.new_label === 'string';
+
+export const isTimeRangeAdjustments = (
+  payload: unknown,
+): payload is { [TIME_RANGE_ADJUSTMENTS_KEY]: TimeRangeAdjustment[] } =>
+  isRecord(payload) &&
+  Array.isArray(payload[TIME_RANGE_ADJUSTMENTS_KEY]) &&
+  payload[TIME_RANGE_ADJUSTMENTS_KEY].every(isTimeRangeAdjustment);
+
+const errorExtras = (errors: unknown): Record<string, unknown>[] =>
+  Array.isArray(errors)
+    ? errors.flatMap(error =>
+        isRecord(error) && isRecord(error.extra) ? [error.extra] : [],
+      )
+    : [];
+
+export const getTimeRangeAdjustments = (
+  errors: unknown,
+): TimeRangeAdjustment[] =>
+  errorExtras(errors).flatMap(extra =>
+    Object.values(extra).flatMap(payload =>
+      isTimeRangeAdjustments(payload)
+        ? payload[TIME_RANGE_ADJUSTMENTS_KEY]
+        : [],
+    ),
+  );
+
+export const getTimeRangeAdjustmentsFingerprint = (
+  errors: unknown,
+): string | undefined =>
+  errorExtras(errors)
+    .map(extra => extra[TIME_RANGE_ADJUSTMENTS_FINGERPRINT_KEY])
+    .find((value): value is string => typeof value === 'string');
+
 export const getAlreadyExists = (errors: Record<string, any>[]) =>
   errors.flatMap(error =>
     Object.entries(error.extra)
@@ -613,10 +662,16 @@ export const getEncryptedExtraFieldsNeeded = (
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {
     const noIssuesCodes = Object.entries(error.extra || {}).filter(
-      ([key]) => key !== 'issue_codes',
+      ([key]) =>
+        key !== 'issue_codes' && key !== TIME_RANGE_ADJUSTMENTS_FINGERPRINT_KEY,
     );
 
-    if (noIssuesCodes.length === 0) return true;
+    if (noIssuesCodes.length === 0) {
+      return (
+        typeof error.extra?.[TIME_RANGE_ADJUSTMENTS_FINGERPRINT_KEY] !==
+        'string'
+      );
+    }
 
     return !noIssuesCodes.every(
       ([, payload]) =>
@@ -625,7 +680,8 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
         isNeedsSSHPassword(payload) ||
         isNeedsSSHPrivateKey(payload) ||
         isNeedsSSHPrivateKeyPassword(payload) ||
-        isNeedsEncryptedExtraField(payload),
+        isNeedsEncryptedExtraField(payload) ||
+        isTimeRangeAdjustments(payload),
     );
   });
 

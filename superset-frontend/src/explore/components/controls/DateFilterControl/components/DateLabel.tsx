@@ -29,13 +29,17 @@ export type DateLabelProps = {
   isActive?: boolean;
   isPlaceholder?: boolean;
   onClick?: (event: MouseEvent) => void;
+  // Time range limits on: a focus outline and a hidden decorative icon.
+  accessible?: boolean;
+  triggerRef?: RefObject<HTMLButtonElement>;
 };
 
 const LabelContainer = styled.button<{
   isActive?: boolean;
   isPlaceholder?: boolean;
+  accessible?: boolean;
 }>`
-  ${({ theme, isActive, isPlaceholder }) => css`
+  ${({ theme, isActive, isPlaceholder, accessible }) => css`
     appearance: none;
     font: inherit;
     width: 100%;
@@ -60,6 +64,16 @@ const LabelContainer = styled.button<{
       border-color: ${theme.colorPrimary};
     }
 
+    ${
+      accessible &&
+      css`
+        &:focus-visible {
+          outline: ${theme.lineWidthFocus}px solid ${theme.colorPrimaryBorder};
+          outline-offset: 1px;
+        }
+      `
+    }
+
     .date-label-content {
       color: ${isPlaceholder ? theme.colorTextPlaceholder : theme.colorText};
       overflow: hidden;
@@ -82,8 +96,11 @@ const LabelContainer = styled.button<{
 `;
 
 export const DateLabel = forwardRef(
-  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => (
-    <LabelContainer type="button" {...props}>
+  (
+    { triggerRef, ...props }: DateLabelProps,
+    ref: RefObject<HTMLSpanElement>,
+  ) => (
+    <LabelContainer ref={triggerRef} type="button" {...props}>
       <span
         id={`date-label-${props.name}`}
         className="date-label-content"
@@ -91,7 +108,10 @@ export const DateLabel = forwardRef(
       >
         {typeof props.label === 'string' ? t(props.label) : props.label}
       </span>
-      <Icons.CalendarOutlined iconSize="s" />
+      <Icons.CalendarOutlined
+        iconSize="s"
+        aria-hidden={props.accessible || undefined}
+      />
     </LabelContainer>
   ),
 );

@@ -25,6 +25,9 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import select
 
+from superset.time_range_limits.adjustments import TimeRangeAdjustmentsRequiredError
+from superset.time_range_limits.policy import FEATURE_FLAG
+from superset.utils import json
 from tests.unit_tests.fixtures.assets_configs import (
     charts_config_1,
     charts_config_2,
@@ -285,6 +288,7 @@ def test_import_threads_overwrite_flag(mocker: MockerFixture, session: Session) 
     )
     mocked_chart.return_value.viz_type = "table"
     mocked_dash = mocker.patch.object(assets_module, "import_dashboard")
+    mocked_dash.return_value = (mocker.Mock(), [])
     mocker.patch.object(assets_module, "find_chart_uuids", return_value=[])
     mocker.patch.object(assets_module, "update_id_refs", side_effect=lambda c, *_: c)
     mocker.patch.object(assets_module, "migrate_dashboard")
@@ -597,6 +601,223 @@ def test_import_removes_dashboard_charts(
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards
+
+
+DEMO_GLOBAL = {
+    "schema_version": 1,
+    "max_span": {"quantity": 12, "time_grain": "P1W"},
+    "max_look_back": {"quantity": 12, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 3, "time_grain": "P1M"},
+}
+
+
+def span(quantity: int) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "max_span": {"quantity": quantity, "time_grain": "P1W"},
+        "max_look_back": None,
+        "max_look_forward": None,
+    }
+
+
+def assets_bundle(limits: Any, dataset_limits: Any = None) -> dict[str, str]:
+    dashboards = copy.deepcopy(dashboards_config_1)
+    for config in dashboards.values():
+        config["metadata"]["time_range_limits"] = limits
+    datasets = copy.deepcopy(datasets_config)
+    if dataset_limits is not None:
+        for config in datasets.values():
+            config["extra"] = {"time_range_limits": dataset_limits}
+    configs = {
+        **copy.deepcopy(databases_config),
+        **datasets,
+        **copy.deepcopy(charts_config_1),
+        **dashboards,
+    }
+    return {
+        "metadata.yaml": yaml.safe_dump(
+            {"version": "1.0.0", "type": "assets", "timestamp": "2026-10-23T00:00:00"}
+        ),
+        **{name: yaml.safe_dump(config) for name, config in configs.items()},
+    }
+
+
+@pytest.fixture
+def limits(mocker: MockerFixture, session: Session) -> None:
+    from flask import current_app
+
+    from superset import db, security_manager
+    from superset.extensions import feature_flag_manager
+    from superset.models.slice import Slice
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: True},
+    )
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": DEMO_GLOBAL})
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Slice.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+
+def count_assets() -> tuple[int, int, int]:
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    return (
+        db.session.query(Dashboard).count(),
+        db.session.query(Slice).count(),
+        db.session.query(SqlaTable).count(),
+    )
+
+
+def test_import_assets_rejects_a_looser_override(limits: None) -> None:
+    from superset.commands.exceptions import ImportFailedError
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+
+    with pytest.raises(ImportFailedError):
+        ImportAssetsCommand(assets_bundle(span(13))).run()
+    assert count_assets() == (0, 0, 0)
+
+
+def test_import_assets_rejects_a_looser_dataset_extra(limits: None) -> None:
+    from superset import db
+    from superset.commands.exceptions import ImportFailedError
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.connectors.sqla.models import SqlaTable
+
+    with pytest.raises(ImportFailedError):
+        ImportAssetsCommand(assets_bundle(span(9), dataset_limits=span(13))).run()
+    assert count_assets() == (0, 0, 0)
+
+    ImportAssetsCommand(assets_bundle(span(9), dataset_limits=span(12))).run()
+    assert count_assets()[2] > 0
+    for dataset in db.session.query(SqlaTable):
+        assert json.loads(dataset.extra)["time_range_limits"] == span(12)
+
+
+def test_import_assets_accepts_a_stricter_override(limits: None) -> None:
+    from superset import db
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.dashboard import Dashboard
+
+    ImportAssetsCommand(assets_bundle(span(12))).run()
+
+    dashboard = db.session.query(Dashboard).one()
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == span(12)
+
+
+def test_import_assets_overwrite_clamps_an_inherited_override(
+    limits: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.dashboard import Dashboard
+
+    contents = assets_bundle(span(20))
+    global_limits = current_app.config["TIME_RANGE_LIMITS_GLOBAL"]
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": None})
+    ImportAssetsCommand(contents).run()
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.params_dict["time_range_limits"] == span(20)
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_limits})
+    with pytest.raises(TimeRangeAdjustmentsRequiredError) as excinfo:
+        ImportAssetsCommand(contents, overwrite=True).run()
+    assert excinfo.value.status == 422
+    assert list(excinfo.value.normalized_messages()) == [
+        "dashboards/Video_Game_Sales_11.yaml",
+        "time_range_adjustments_fingerprint",
+    ]
+    assert [item["new_label"] for item in excinfo.value.payload()] == ["12 weeks"]
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.params_dict["time_range_limits"] == span(20)
+
+    ImportAssetsCommand(contents, overwrite=True, adjust_time_ranges=True).run()
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.params_dict["time_range_limits"] == span(12)
+
+
+def test_import_assets_refuses_an_unfittable_time_default_with_422(
+    limits: None, mocker: MockerFixture
+) -> None:
+    """Like the dashboard import, a Time Range default no rolling range can
+    replace is a 422 naming the filter, not the bundle's generic 500."""
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.dashboard import Dashboard
+    from superset.time_range_limits.adjustments import TimeRangeDefaultsInvalidError
+
+    zero_hours = {"quantity": 0, "time_grain": "PT1H"}
+    contents = assets_bundle(
+        span(20), dataset_limits={**span(12), "max_look_forward": zero_hours}
+    )
+    file_name = "dashboards/Video_Game_Sales_11.yaml"
+    config = yaml.safe_load(contents[file_name])
+    config["metadata"]["native_filter_configuration"] = [
+        {"id": "NATIVE_FILTER-time", "filterType": "filter_time"}
+    ]
+    contents[file_name] = yaml.safe_dump(config)
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": span(20)})
+    ImportAssetsCommand(contents).run()
+    mocker.patch.dict(
+        current_app.config,
+        {"TIME_RANGE_LIMITS_GLOBAL": {**span(12), "max_look_back": zero_hours}},
+    )
+
+    with pytest.raises(TimeRangeDefaultsInvalidError) as excinfo:
+        ImportAssetsCommand(contents, overwrite=True, adjust_time_ranges=True).run()
+
+    assert excinfo.value.status == 422
+    errors = excinfo.value.normalized_messages()[file_name]
+    assert list(errors) == [
+        "json_metadata.native_filter_configuration.NATIVE_FILTER-time.defaultDataMask"
+    ]
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.params_dict["time_range_limits"] == span(20)
+
+
+def test_import_assets_flag_off_accepts_a_looser_override(
+    limits: None, mocker: MockerFixture
+) -> None:
+    from superset import db
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.extensions import feature_flag_manager
+    from superset.models.dashboard import Dashboard
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: False},
+    )
+
+    ImportAssetsCommand(assets_bundle(span(13))).run()
+
+    dashboard = db.session.query(Dashboard).one()
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == span(13)
+
+
+def test_import_assets_under_a_bad_global_writes_nothing(
+    limits: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset.commands.exceptions import ImportFailedError
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": {}})
+    with pytest.raises(ImportFailedError):
+        ImportAssetsCommand(assets_bundle(span(1))).run()
+    assert count_assets() == (0, 0, 0)
 
 
 @pytest.mark.parametrize(

@@ -25,7 +25,7 @@ response schema; unifying that shape is left to a follow-up.
 """
 
 import logging
-from typing import TYPE_CHECKING, TypeVar
+from typing import Any, TYPE_CHECKING, TypeVar
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -127,3 +127,41 @@ def managed_dashboard_refusal(dashboard: "Dashboard") -> str | None:
             "and it cannot be changed here. Do not retry."
         )
     return None
+
+
+def time_range_limits_error(
+    metadata_overrides: dict[str, Any], stored_json_metadata: str | None
+) -> tuple[str, str] | None:
+    """``(error_type, message)`` when ``metadata_overrides`` sets dashboard time
+    range limits a REST write would refuse, else ``None``.
+
+    The same write check as ``UpdateDashboardCommand``: a bad shape, or a rule
+    looser than the global one unless unchanged from ``stored_json_metadata``.
+    An omitted or null key has no policy to check.
+    """
+    from superset.time_range_limits.policy import (
+        json_text_limits_errors,
+        stored_limits,
+        TIME_RANGE_LIMITS_KEY,
+        TimeRangeLimitsUnavailableError,
+    )
+    from superset.utils import json
+
+    if TIME_RANGE_LIMITS_KEY not in metadata_overrides:
+        return None
+    try:
+        errors = json_text_limits_errors(
+            json.dumps(
+                {TIME_RANGE_LIMITS_KEY: metadata_overrides[TIME_RANGE_LIMITS_KEY]}
+            ),
+            stored_limits(stored_json_metadata),
+            "dashboard",
+            f"json_metadata_overrides.{TIME_RANGE_LIMITS_KEY}",
+        )
+    except TimeRangeLimitsUnavailableError as ex:
+        return "TimeRangeLimitsUnavailable", ex.error.message
+    if not errors:
+        return None
+    return "TimeRangeLimitsInvalid", "; ".join(
+        f"{field}: {' '.join(messages)}" for field, messages in errors.items()
+    )

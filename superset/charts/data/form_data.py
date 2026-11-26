@@ -61,3 +61,15 @@ def set_query_context_form_data(
             "form_data": form_data,
         }
     )
+
+
+def set_checked_form_data(query_context: QueryContext) -> None:
+    """
+    Expose the first query the time range limits checked to the Jinja macros
+    that read the request's form data, which can carry keys the check never
+    reads.
+    """
+    form_data = query_context.form_data or {}
+    g.form_data_checked = next(
+        (_serialize_query(query, form_data) for query in query_context.queries), {}
+    )

@@ -32,6 +32,7 @@ export type RunQueryButtonProps = {
   isNewChart: boolean;
   canStopQuery: boolean;
   chartIsStale: boolean;
+  describedBy?: string;
 };
 
 export const RunQueryButton = ({
@@ -42,6 +43,7 @@ export const RunQueryButton = ({
   isNewChart,
   canStopQuery,
   chartIsStale,
+  describedBy,
 }: RunQueryButtonProps) => {
   const theme = useTheme();
   const gestureHandlers = useRunStopButton(loading, loading ? onStop : onQuery);
@@ -55,6 +57,7 @@ export const RunQueryButton = ({
       {...gestureHandlers}
       buttonStyle={chartIsStale ? 'primary' : 'secondary'}
       disabled={!!errorMessage}
+      aria-describedby={describedBy}
       data-test="run-query-button"
     >
       {isNewChart ? t('Create chart') : t('Update chart')}

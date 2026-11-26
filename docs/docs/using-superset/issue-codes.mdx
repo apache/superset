@@ -332,3 +332,20 @@ The database was deleted.
 ```
 
 The operation failed because the database referenced no longer exists. Please reach out to your administrator for further assistance.
+
+## Issue 1042
+
+```
+The time range is outside the allowed limits, or the limits can't be verified.
+```
+
+The chart or query asks for a time range that the time range limits don't allow, or the limits that apply to it can't be read. The error's `reason_code` says which:
+
+- `MAX_SPAN_EXCEEDED`, `MAX_LOOK_BACK_EXCEEDED`, `MAX_LOOK_FORWARD_EXCEEDED`: the range is too long, starts too early or ends too late. Pick a time range inside the limits named in the error message, or ask an editor or admin to change them.
+- `UNBOUNDED_RANGE`: the range has no start or no end. Choose both. On a dashboard, ask a dashboard editor to add or scope a time range filter.
+- `NO_VALID_RANGE`: the limits leave no valid time range at all. Only an editor or admin can fix them.
+- `POLICY_UNAVAILABLE` (HTTP 503): the global, dataset or dashboard setting isn't valid, so the query is blocked until it is fixed. Retry the request, or ask an editor or admin to check the time range limits.
+
+Admins: see [Time range limits](/admin-docs/configuration/time-range-limits) for the setup, the error fields and what fails closed.
+
+The error's `actual` range uses the server's UTC offset, and its `timezone` is the server's `TZ` environment variable, or the local time zone abbreviation (for example `CEST`) when `TZ` isn't set. Set `TZ` to an IANA name (for example `America/Sao_Paulo`) to get that name instead.

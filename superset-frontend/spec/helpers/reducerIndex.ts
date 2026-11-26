@@ -24,6 +24,7 @@ import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
 import nativeFilters from 'src/dashboard/reducers/nativeFilters';
 import datasources from 'src/dashboard/reducers/datasources';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
+import timeRangeLimits from 'src/dashboard/reducers/timeRangeLimits';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 import messageToasts from 'src/components/MessageToasts/reducers';
 import saveModal from 'src/explore/reducers/saveModalReducer';
@@ -56,6 +57,7 @@ export default {
   impressionId,
   messageToasts,
   sliceEntities,
+  timeRangeLimits,
   saveModal,
   explore,
   sqlLab,

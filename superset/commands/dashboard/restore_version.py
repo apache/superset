@@ -32,6 +32,7 @@ from superset.commands.version_restore import BaseRestoreVersionCommand
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.time_range_limits.policy import check_restored_limits
 from superset.versioning.restore import ChartPurgedDuringRestoreError, RestoreResult
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -53,6 +54,17 @@ class RestoreDashboardVersionCommand(BaseRestoreVersionCommand):
     not_found_exc = DashboardNotFoundError
     forbidden_exc = DashboardForbiddenError
     failed_exc = DashboardUpdateFailedError
+
+    def _before_revert(self, entity: Dashboard) -> str | None:
+        return entity.json_metadata
+
+    def _after_revert(self, entity: Dashboard, live: str | None) -> None:
+        check_restored_limits(
+            entity.json_metadata,
+            live,
+            "dashboard",
+            "json_metadata.time_range_limits",
+        )
 
     def run(self) -> RestoreResult:
         """Restore, confirming a reported chart-purge race before surfacing it.

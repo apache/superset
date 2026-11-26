@@ -88,6 +88,7 @@ export interface ExploreChartHeaderProps {
   chart: ChartState;
   user: User;
   saveDisabled?: boolean;
+  saveDescribedBy?: string;
   metadata?: ExplorePageInitialData['metadata'];
   isSaveModalVisible?: boolean;
 }
@@ -122,6 +123,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   isStarred,
   sliceName,
   saveDisabled,
+  saveDescribedBy,
   metadata,
   isSaveModalVisible,
 }) => {
@@ -392,6 +394,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
             buttonStyle="secondary"
             onClick={showModal}
             disabled={saveDisabled || isVersionPreviewActive}
+            aria-describedby={saveDescribedBy}
             data-test="query-save-button"
             css={saveButtonStyles}
             icon={<Icons.SaveOutlined />}
@@ -401,7 +404,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         </div>
       </Tooltip>
     ),
-    [isVersionPreviewActive, saveDisabled, showModal],
+    [isVersionPreviewActive, saveDescribedBy, saveDisabled, showModal],
   );
 
   const menuDropdownProps = useMemo(

@@ -29,6 +29,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     json_metadata: dict[str, Any],
     position_json: dict[str, Any],
     filter_boxes: list[Slice],
+    sources: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """
     Convert the legacy filter scopes et al. to the native filter configuration.
@@ -44,6 +45,8 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     :param json_metadata: The dashboard metadata
     :param position_json: The dashboard layout
     :param filter_boxes: The filter-box charts associated with the dashboard
+    :param sources: If given, receives each new filter's id mapped to
+        ``"<filter-box UUID>:<field>"``, which stays the same across conversions
     :returns: The native filter configuration
     :see: convert_filter_scopes
     """
@@ -105,6 +108,8 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
                 },
                 "type": "NATIVE_FILTER",
             }
+            if sources is not None:
+                sources[fltr["id"]] = f"{filter_box.uuid}:{field}"
 
             if field == "__time_col" and params.get("show_sqla_time_column"):
                 fltr.update(
@@ -283,11 +288,14 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     )
 
 
-def migrate_dashboard(dashboard: Dashboard) -> None:  # noqa: C901
+def migrate_dashboard(  # noqa: C901
+    dashboard: Dashboard, sources: dict[str, str] | None = None
+) -> None:
     """
     Convert the dashboard to use native filters.
 
     :param dashboard: The dashboard to convert
+    :param sources: See ``convert_filter_scopes_to_native_filters``
     """
 
     # Mapping between the CHART- and MARKDOWN- IDs.
@@ -312,6 +320,7 @@ def migrate_dashboard(dashboard: Dashboard) -> None:  # noqa: C901
                 json_metadata,
                 position_json,
                 filter_boxes=list(filter_boxes_by_id.values()),
+                sources=sources,
             ),
         )
 

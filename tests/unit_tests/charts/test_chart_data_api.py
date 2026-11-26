@@ -89,6 +89,7 @@ def test_should_run_async_requires_async_mode_flag() -> None:
     qc.result_format = ChartDataResultFormat.JSON
     qc.result_type = ChartDataResultType.FULL
     qc.get_cache_timeout.return_value = 300
+    qc.limit_value_list_window = False
 
     with (
         patch("superset.charts.data.api.is_feature_enabled", return_value=True),
@@ -119,6 +120,12 @@ def test_should_run_async_requires_async_mode_flag() -> None:
         # processor resolves a fallback, so async stays available.
         qc.get_cache_timeout.return_value = None
         assert api._should_run_async({"async_mode": True}, qc) is True
+
+        # A value list the time range limits gave a window → sync: the window
+        # depends on the clock, so the task and the read-back could differ.
+        qc.limit_value_list_window = True
+        assert api._should_run_async({"async_mode": True}, qc) is False
+        qc.limit_value_list_window = False
 
         # Caching explicitly disabled → sync even when opted in (async reads from
         # the cache).
@@ -154,6 +161,7 @@ def test_should_run_async_gates_on_effective_query_result_type(
     qc.result_format = ChartDataResultFormat.JSON
     qc.result_type = ChartDataResultType.FULL
     qc.get_cache_timeout.return_value = 300
+    qc.limit_value_list_window = False
     # A query without its own result type inherits the context's.
     qc.queries = [MagicMock(result_type=rt) for rt in query_result_types]
 
@@ -185,6 +193,7 @@ def test_should_run_async_requires_subscribeable_identity() -> None:
     qc.result_format = ChartDataResultFormat.JSON
     qc.result_type = ChartDataResultType.FULL
     qc.get_cache_timeout.return_value = 300
+    qc.limit_value_list_window = False
 
     with (
         patch("superset.charts.data.api.is_feature_enabled", return_value=True),
@@ -241,6 +250,7 @@ def test_should_run_async_requires_task_read_permission() -> None:
     qc.result_format = ChartDataResultFormat.JSON
     qc.result_type = ChartDataResultType.FULL
     qc.get_cache_timeout.return_value = 300
+    qc.limit_value_list_window = False
 
     with (
         patch("superset.charts.data.api.is_feature_enabled", return_value=True),

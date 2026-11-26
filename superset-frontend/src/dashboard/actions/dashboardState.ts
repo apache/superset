@@ -31,7 +31,10 @@ import {
   promiseTimeout,
   JsonObject,
   DatasourceType,
+  type ClientErrorObject,
+  type AgGridChartState,
 } from '@superset-ui/core';
+import type { TimeRangeAdjustment } from 'src/components/TimeRangeAdjustmentList/types';
 import {
   addChart,
   removeChart,
@@ -42,6 +45,7 @@ import { t } from '@apache-superset/core/translation';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
+  SAVE_TYPE_NEWDASHBOARD_ADJUSTED,
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
 } from 'src/dashboard/util/constants';
@@ -65,7 +69,6 @@ import { navigateWithState, navigateTo } from 'src/utils/navigationUtils';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import type { AgGridChartState } from '@superset-ui/core';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import { nanoid } from 'nanoid';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
@@ -79,6 +82,7 @@ import {
 import { fetchDatasourceMetadata, setDatasources } from './datasources';
 import { updateDirectPathToFilter } from './dashboardFilters';
 import { SET_IN_SCOPE_STATUS_OF_FILTERS } from './nativeFilters';
+import { refetchTimeRangeLimitsAfterSave } from './timeRangeLimits';
 import getOverwriteItems from '../util/getOverwriteItems';
 import {
   applyColors,
@@ -376,6 +380,22 @@ export function setOverrideConfirm(
   };
 }
 
+export const SET_COPY_ADJUST_CONFIRM = 'SET_COPY_ADJUST_CONFIRM';
+
+interface SetCopyAdjustConfirmAction {
+  type: typeof SET_COPY_ADJUST_CONFIRM;
+  copyAdjustConfirmMetadata: DashboardState['copyAdjustConfirmMetadata'];
+}
+
+export function setCopyAdjustConfirm(
+  copyAdjustConfirmMetadata: DashboardState['copyAdjustConfirmMetadata'],
+): SetCopyAdjustConfirmAction {
+  return {
+    type: SET_COPY_ADJUST_CONFIRM,
+    copyAdjustConfirmMetadata,
+  };
+}
+
 export const SAVE_DASHBOARD_STARTED = 'SAVE_DASHBOARD_STARTED';
 
 interface SaveDashboardStartedAction {
@@ -473,6 +493,7 @@ export function saveDashboardRequest(
   data: DashboardSaveData,
   id: number,
   saveType: string,
+  timeRangeAdjustmentsFingerprint?: string,
 ): (dispatch: AppDispatch, getState: GetState) => Promise<JsonObject | void> {
   return (dispatch: AppDispatch, getState: GetState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
@@ -633,6 +654,12 @@ export function saveDashboardRequest(
           updatedDashboard.json_metadata as string,
         );
         dispatch(setDashboardMetadata(parsedMetadata));
+        dispatch(
+          refetchTimeRangeLimitsAfterSave(
+            id,
+            parsedMetadata.time_range_limits as JsonObject | undefined,
+          ),
+        );
         if (parsedMetadata.chart_configuration) {
           dispatch({
             type: SAVE_CHART_CONFIG_COMPLETE,
@@ -773,6 +800,10 @@ export function saveDashboardRequest(
       css: cleanedData.css,
       duplicate_slices: cleanedData.duplicate_slices,
       json_metadata: JSON.stringify(cleanedData.metadata),
+      ...(saveType === SAVE_TYPE_NEWDASHBOARD_ADJUSTED && {
+        adjust_time_ranges: true,
+        time_range_adjustments_fingerprint: timeRangeAdjustmentsFingerprint,
+      }),
     };
 
     return SupersetClient.post({
@@ -780,7 +811,29 @@ export function saveDashboardRequest(
       jsonPayload: copyPayload,
     })
       .then(response => onCopySuccess(response))
-      .catch(response => onError(response));
+      .catch(async response => {
+        const {
+          time_range_adjustments: adjustments,
+          time_range_adjustments_fingerprint: fingerprint,
+        } = (await getClientErrorObject(response)) as ClientErrorObject & {
+          time_range_adjustments?: TimeRangeAdjustment[];
+          time_range_adjustments_fingerprint?: string;
+        };
+        if (!Array.isArray(adjustments) || typeof fingerprint !== 'string') {
+          return onError(response);
+        }
+        dispatch(saveDashboardFinished());
+        dispatch(
+          setCopyAdjustConfirm({
+            dashboardId: id,
+            data,
+            adjustments,
+            fingerprint,
+            changed: Boolean(timeRangeAdjustmentsFingerprint),
+          }),
+        );
+        return undefined;
+      });
   };
 }
 

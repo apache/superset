@@ -60,4 +60,5 @@ export const RoutePaths = {
   GROUPS: '/list_groups/',
   EXTENSIONS: '/extensions/list/',
   EXTENSION_PAGE: '/extensions/pages/:pageId',
+  TIME_RANGE_LIMITS: '/timerangelimits/list/',
 } as const;

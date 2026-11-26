@@ -35,7 +35,10 @@ import {
   getSSHPrivateKeysNeeded,
   getSSHPrivateKeyPasswordsNeeded,
   getEncryptedExtraFieldsNeeded,
+  getTimeRangeAdjustments,
+  getTimeRangeAdjustmentsFingerprint,
 } from 'src/views/CRUD/utils';
+import type { TimeRangeAdjustment } from 'src/components/TimeRangeAdjustmentList/types';
 import type {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilterValue as FilterValue,
@@ -607,6 +610,9 @@ interface ImportResourceState {
   sshPrivateKeyNeeded: string[];
   sshPrivateKeyPasswordNeeded: string[];
   encryptedExtraFieldsNeeded: FileEncryptedExtraFields[];
+  timeRangeAdjustments: TimeRangeAdjustment[];
+  timeRangeAdjustmentsFingerprint?: string;
+  timeRangeAdjustmentsChanged?: boolean;
   failed: boolean;
 }
 
@@ -623,6 +629,7 @@ export function useImportResource(
     sshPrivateKeyNeeded: [],
     sshPrivateKeyPasswordNeeded: [],
     encryptedExtraFieldsNeeded: [],
+    timeRangeAdjustments: [],
     failed: false,
   });
 
@@ -640,6 +647,7 @@ export function useImportResource(
       encryptedExtraSecrets: Record<string, Record<string, string>> = {},
       overwrite = false,
       overwriteAll = false,
+      timeRangeAdjustmentsFingerprint?: string,
     ) => {
       // Set loading state
       updateState({
@@ -668,6 +676,13 @@ export function useImportResource(
         // this will be rechecked in the backend
         // but no harm to only send it if overwrite is true
         formData.append('overwrite_all', overwriteAll ? 'true' : 'false');
+      }
+      if (timeRangeAdjustmentsFingerprint) {
+        formData.append('adjust_time_ranges', 'true');
+        formData.append(
+          'time_range_adjustments_fingerprint',
+          timeRangeAdjustmentsFingerprint,
+        );
       }
       /* The import bundle may contain ssh tunnel passwords; if required
        * they should be provided by the user during import.
@@ -722,6 +737,9 @@ export function useImportResource(
             sshPrivateKeyNeeded: [],
             sshPrivateKeyPasswordNeeded: [],
             encryptedExtraFieldsNeeded: [],
+            timeRangeAdjustments: [],
+            timeRangeAdjustmentsFingerprint: undefined,
+            timeRangeAdjustmentsChanged: false,
             failed: false,
           });
           return true;
@@ -764,6 +782,12 @@ export function useImportResource(
                   error.errors,
                 ),
                 alreadyExists: getAlreadyExists(error.errors),
+                timeRangeAdjustments: getTimeRangeAdjustments(error.errors),
+                timeRangeAdjustmentsFingerprint:
+                  getTimeRangeAdjustmentsFingerprint(error.errors),
+                timeRangeAdjustmentsChanged: Boolean(
+                  timeRangeAdjustmentsFingerprint,
+                ),
               });
             }
             return false;
@@ -786,6 +810,9 @@ export function useImportResource(
       sshPrivateKeyNeeded: [],
       sshPrivateKeyPasswordNeeded: [],
       encryptedExtraFieldsNeeded: [],
+      timeRangeAdjustments: [],
+      timeRangeAdjustmentsFingerprint: undefined,
+      timeRangeAdjustmentsChanged: false,
     });
   }, [updateState]);
 

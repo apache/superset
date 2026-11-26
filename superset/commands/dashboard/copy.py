@@ -15,8 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from functools import partial
 from typing import Any
+
+from marshmallow import ValidationError
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
@@ -27,6 +30,21 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
+from superset.time_range_limits.adjustments import (
+    check_consent,
+    FINGERPRINT_KEY,
+    limit_adjustments,
+    TimeRangeAdjustment,
+)
+from superset.time_range_limits.policy import (
+    clamp_inherited_copy_limits,
+    json_text_limits_errors,
+    limits_errors,
+    stored_limits,
+    TIME_RANGE_LIMITS_KEY,
+)
+from superset.time_range_limits.save_check import fit_copy_filter_defaults
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -36,6 +54,12 @@ class CopyDashboardCommand(BaseCommand):
     def __init__(self, original_dash: Dashboard, data: dict[str, Any]) -> None:
         self._original_dash = original_dash
         self._properties = data.copy()
+        self._adjust_time_ranges = bool(
+            self._properties.pop("adjust_time_ranges", False)
+        )
+        self._fingerprint: str | None = self._properties.pop(FINGERPRINT_KEY, None)
+        self._adjustments: list[TimeRangeAdjustment] = []
+        self._source_key = str(original_dash.uuid) if original_dash.uuid else ""
 
     @transaction(on_error=partial(on_error, reraise=DashboardCopyError))
     def run(self) -> Dashboard:
@@ -53,7 +77,13 @@ class CopyDashboardCommand(BaseCommand):
         from superset.versioning.changes import ACTION_KIND_CLONE, ACTION_KIND_KEY
 
         db.session.info[ACTION_KIND_KEY] = ACTION_KIND_CLONE
-        return DashboardDAO.copy_dashboard(self._original_dash, self._properties)
+        dashboard = DashboardDAO.copy_dashboard(self._original_dash, self._properties)
+        if errors := fit_copy_filter_defaults(
+            dashboard, datetime.now(), self._adjustments, self._source_key
+        ):
+            raise DashboardInvalidError(exceptions=[ValidationError(errors)])
+        check_consent(self._adjustments, self._adjust_time_ranges, self._fingerprint)
+        return dashboard
 
     def validate(self) -> None:
         if not self._properties.get("dashboard_title") or not self._properties.get(
@@ -62,3 +92,40 @@ class CopyDashboardCommand(BaseCommand):
             raise DashboardInvalidError()
         if not security_manager.is_editor(self._original_dash):
             raise DashboardForbiddenError()
+        metadata = json.loads(self._properties["json_metadata"])
+        if (
+            TIME_RANGE_LIMITS_KEY not in metadata
+            and not self._properties.get("replace_metadata", False)
+            and TIME_RANGE_LIMITS_KEY in self._original_dash.params_dict
+        ):
+            metadata[TIME_RANGE_LIMITS_KEY] = self._original_dash.params_dict[
+                TIME_RANGE_LIMITS_KEY
+            ]
+        if errors := json_text_limits_errors(
+            json.dumps(metadata),
+            stored_limits(self._original_dash.json_metadata),
+            "dashboard",
+            "json_metadata.time_range_limits",
+        ):
+            raise DashboardInvalidError(exceptions=[ValidationError(errors)])
+        self._adjustments = []
+        if TIME_RANGE_LIMITS_KEY in metadata:
+            raw = metadata[TIME_RANGE_LIMITS_KEY]
+            try:
+                metadata[TIME_RANGE_LIMITS_KEY] = clamp_inherited_copy_limits(
+                    raw, stored_limits(self._original_dash.json_metadata)
+                )
+            except ValidationError as ex:
+                errors = limits_errors(
+                    "json_metadata.time_range_limits", ex.normalized_messages()
+                )
+                raise DashboardInvalidError(
+                    exceptions=[ValidationError(errors)]
+                ) from ex
+            self._adjustments = limit_adjustments(
+                self._properties["dashboard_title"],
+                raw,
+                metadata[TIME_RANGE_LIMITS_KEY],
+                self._source_key,
+            )
+        self._properties["json_metadata"] = json.dumps(metadata)

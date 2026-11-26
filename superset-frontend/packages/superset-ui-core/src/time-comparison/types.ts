@@ -70,3 +70,29 @@ export type CustomRangeDecodeType = {
   customRange: CustomRangeType;
   matchedFlag: boolean;
 };
+
+/**
+ * Time range limits, in the shape the server's limit payloads send them
+ */
+
+export type Rule = { quantity: number; time_grain: string } | null;
+
+export type Policy = {
+  max_span: Rule;
+  max_look_back: Rule;
+  max_look_forward: Rule;
+};
+
+export type Source = 'global' | 'dataset' | 'dashboard';
+
+export type Level = { source: Source; policy: Policy | null };
+
+export type TimeRangeLimits = {
+  levels: Level[];
+  dashboardId?: number;
+  timezone?: string;
+  // Id of an error shown outside the picker that describes its trigger.
+  describedBy?: string;
+  // Id of the label outside the picker that names its trigger.
+  labelledBy?: string;
+};

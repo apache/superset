@@ -170,6 +170,20 @@ class ImportExportRestApi(BaseSupersetApi):
                         backwards compatibility. When ``false``, the import
                         fails if any of the assets already exist.
                       type: boolean
+                    adjust_time_ranges:
+                      description: >-
+                        apply the changes a dashboard's time ranges need to fit
+                        the time range limits? Without it, an import that needs
+                        them answers 422 listing the changes, and nothing is
+                        imported.
+                      type: boolean
+                    time_range_adjustments_fingerprint:
+                      description: >-
+                        the time_range_adjustments_fingerprint of the 422 the
+                        caller agreed to. With it, adjust_time_ranges applies
+                        only those changes and answers a new 422 if they changed
+                        since; without it, whatever changes are needed.
+                      type: string
           responses:
             200:
               description: Assets import result
@@ -185,7 +199,17 @@ class ImportExportRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
             422:
-              $ref: '#/components/responses/422'
+              description: >-
+                The bundle is invalid, or the time ranges of its dashboards
+                need changes the request has not agreed to. Nothing is
+                imported. For
+                time range changes, errors[0].extra maps each dashboard file to
+                {"time_range_adjustments": [...]} and holds
+                time_range_adjustments_fingerprint.
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/TimeRangeAdjustmentsImportErrorSchema'
             500:
               $ref: '#/components/responses/500'
         """
@@ -217,6 +241,10 @@ class ImportExportRestApi(BaseSupersetApi):
             contents,
             sparse=sparse,
             overwrite=overwrite,
+            adjust_time_ranges=request.form.get("adjust_time_ranges") == "true",
+            time_range_adjustments_fingerprint=request.form.get(
+                "time_range_adjustments_fingerprint"
+            ),
             passwords=passwords,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,

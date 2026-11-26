@@ -40,6 +40,7 @@ import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
 import nativeFilters from 'src/dashboard/reducers/nativeFilters';
 import dashboardDatasources from 'src/dashboard/reducers/datasources';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
+import timeRangeLimits from 'src/dashboard/reducers/timeRangeLimits';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
@@ -158,6 +159,7 @@ const reducers = {
   dashboardState,
   dashboardLayout,
   sliceEntities,
+  timeRangeLimits,
   reports,
   saveModal,
   explore,

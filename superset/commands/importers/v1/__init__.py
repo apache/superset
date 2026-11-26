@@ -17,8 +17,9 @@
 
 from __future__ import annotations
 
+import copy
 import logging
-from typing import Any
+from typing import Any, cast, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from marshmallow import Schema, validate  # noqa: F401
@@ -40,7 +41,34 @@ from superset.daos.base import BaseDAO
 from superset.models.core import Database  # noqa: F401
 from superset.utils.decorators import transaction
 
+if TYPE_CHECKING:
+    from superset.datasets.schemas import ImportV1DatasetSchema
+
 logger = logging.getLogger(__name__)
+
+
+def import_validation_error(
+    model_name: str, exceptions: list[ValidationError]
+) -> CommandInvalidError:
+    """Build the import message and preserve the structured validation errors."""
+    detailed_errors = []
+    for ex in exceptions:
+        if hasattr(ex, "messages") and isinstance(ex.messages, dict):
+            for file_name, errors in ex.messages.items():
+                logger.warning("Validation failed for %s: %s", file_name, errors)
+                detailed_errors.append(f"{file_name}: {errors}")
+        else:
+            logger.warning("Import validation error: %s", ex)
+            detailed_errors.append(str(ex))
+
+    error_summary = "; ".join(detailed_errors)
+    message = f"Error importing {model_name}: {error_summary}"
+    if any(isinstance(ex, ImportFormatValidationError) for ex in exceptions):
+        message += ". " + _(
+            "Re-export the assets from a compatible Superset version, "
+            "then retry with the new file."
+        )
+    return CommandInvalidError(message, exceptions)
 
 
 class ImportModelsCommand(BaseCommand):
@@ -70,6 +98,17 @@ class ImportModelsCommand(BaseCommand):
         )
         self.overwrite: bool = kwargs.get("overwrite", False)
         self._configs: dict[str, Any] = {}
+        self.schemas = dict(self.schemas)
+        if dataset_schema := self.schemas.get("datasets/"):
+            dataset_schema = cast(
+                "ImportV1DatasetSchema", copy.deepcopy(dataset_schema)
+            )
+            dataset_schema.overwrite_existing = self._dataset_overwrite()
+            self.schemas["datasets/"] = dataset_schema
+
+    def _dataset_overwrite(self) -> bool:
+        """Whether this command writes existing bundled datasets."""
+        return False
 
     @staticmethod
     # ruff: noqa: C901
@@ -134,27 +173,7 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
-            detailed_errors = []
-            for ex in exceptions:
-                # Extract detailed error information
-                if hasattr(ex, "messages") and isinstance(ex.messages, dict):
-                    for file_name, errors in ex.messages.items():
-                        logger.warning(
-                            "Validation failed for %s: %s", file_name, errors
-                        )
-                        detailed_errors.append(f"{file_name}: {errors}")
-                else:
-                    logger.warning("Import validation error: %s", ex)
-                    detailed_errors.append(str(ex))
-
-            error_summary = "; ".join(detailed_errors)
-            message = f"Error importing {self.model_name}: {error_summary}"
-            if any(isinstance(ex, ImportFormatValidationError) for ex in exceptions):
-                message += ". " + _(
-                    "Re-export the assets from a compatible Superset version, "
-                    "then retry with the new file."
-                )
-            raise CommandInvalidError(message, exceptions)
+            raise import_validation_error(self.model_name, exceptions)
 
     def _reused_dependency_uuids(self) -> set[str]:
         """

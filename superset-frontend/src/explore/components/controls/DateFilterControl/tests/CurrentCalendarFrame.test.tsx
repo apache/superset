@@ -18,7 +18,7 @@
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import { CurrentCalendarFrame } from '../components/CurrentCalendarFrame';
-import { CurrentDay, CurrentWeek } from '../types';
+import { CurrentDay, CurrentQuarter, CurrentWeek } from '../types';
 
 const mockOnChange = jest.fn();
 
@@ -38,4 +38,39 @@ test('selects the radio button matching the current value', () => {
   render(<CurrentCalendarFrame onChange={mockOnChange} value={CurrentDay} />);
 
   expect(screen.getByRole('radio', { name: CurrentDay })).toBeChecked();
+});
+
+test('with limits the checked option shows and stays enabled', () => {
+  render(
+    <CurrentCalendarFrame
+      onChange={jest.fn()}
+      value={CurrentQuarter}
+      limits={{
+        startId: 'start',
+        endId: 'end',
+        presets: { [CurrentQuarter]: 'too late', [CurrentWeek]: 'too late' },
+      }}
+    />,
+  );
+
+  const quarter = screen.getByRole('radio', { name: CurrentQuarter });
+  expect(quarter).toBeChecked();
+  expect(quarter).toBeEnabled();
+  expect(screen.getByRole('radio', { name: CurrentWeek })).toBeDisabled();
+});
+
+test('with limits the default is the first allowed option', () => {
+  const onChange = jest.fn();
+  render(
+    <CurrentCalendarFrame
+      onChange={onChange}
+      value="InvalidValue"
+      limits={{
+        startId: 'start',
+        endId: 'end',
+        presets: { [CurrentWeek]: 'too late' },
+      }}
+    />,
+  );
+  expect(onChange).toHaveBeenCalledWith(CurrentDay);
 });

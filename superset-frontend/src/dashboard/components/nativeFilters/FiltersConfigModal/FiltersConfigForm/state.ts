@@ -53,6 +53,7 @@ export const useDefaultValue = (
   formFilter?: NativeFiltersFormItem,
   filterToEdit?: Filter,
   customizationToEdit?: ChartCustomization,
+  requiredByLimits = false,
 ): [boolean, boolean, string, Function] => {
   const enableEmptyFilter = !!formFilter?.controlValues?.enableEmptyFilter;
   const defaultToFirstItem = !!formFilter?.controlValues?.defaultToFirstItem;
@@ -64,7 +65,7 @@ export const useDefaultValue = (
   const setHasDefaultValue = (value = false) => {
     const required = enableEmptyFilter && !defaultToFirstItem;
     setIsRequired(required);
-    setHasPartialDefaultValue(required ? true : value);
+    setHasPartialDefaultValue(required || requiredByLimits ? true : value);
   };
 
   useEffect(() => {
@@ -73,7 +74,7 @@ export const useDefaultValue = (
         ? false
         : !!formFilter?.defaultDataMask?.filterState?.value,
     );
-  }, [defaultToFirstItem, enableEmptyFilter]);
+  }, [defaultToFirstItem, enableEmptyFilter, requiredByLimits]);
 
   useEffect(() => {
     const defaultValue =
@@ -81,7 +82,7 @@ export const useDefaultValue = (
       customizationToEdit?.defaultDataMask?.filterState?.value;
 
     setHasDefaultValue(defaultToFirstItem ? false : !!defaultValue);
-  }, [filterToEdit, customizationToEdit, defaultToFirstItem]);
+  }, [filterToEdit, customizationToEdit, defaultToFirstItem, requiredByLimits]);
 
   useEffect(() => {
     let tooltip = '';

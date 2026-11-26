@@ -123,6 +123,17 @@ def skips_count_star(datasource: Datasource) -> bool:
     )
 
 
+def _name_limit_dashboard(
+    dashboard_id: int | None, *query_contexts: QueryContext | None
+) -> None:
+    """Name the dashboard whose time range limits apply to the queries."""
+    if not dashboard_id:
+        return
+    for query_context in query_contexts:
+        if query_context is not None:
+            query_context.limit_dashboard_id = dashboard_id
+
+
 def _split_samples_form_data(
     payload: dict[str, Any] | None, dashboard_id: int | None
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
@@ -151,6 +162,7 @@ def get_samples(  # pylint: disable=too-many-arguments
     payload: dict[str, Any] | None = None,
     datasource: Datasource | None = None,
     dashboard_id: int | None = None,
+    limit_dashboard_id: int | None = None,
 ) -> dict[str, Any]:
     if datasource is None:
         datasource = DatasourceDAO.get_datasource(
@@ -209,6 +221,7 @@ def get_samples(  # pylint: disable=too-many-arguments
         if skip_count
         else _count_star_query_context(datasource, payload, form_data, force)
     )
+    _name_limit_dashboard(limit_dashboard_id, samples_instance, count_star_instance)
 
     # The samples request body is not shaped like a chart data request, so Jinja
     # macros such as url_param() would otherwise see no form data and render

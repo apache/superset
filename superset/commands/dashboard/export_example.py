@@ -36,6 +36,11 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.common.db_query_status import QueryStatus
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.time_range_limits.enforcement import check_datasource_open_query
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -239,6 +244,7 @@ def export_dataset_yaml(
 def export_dataset_data(
     dataset: SqlaTable,
     sample_rows: int | None = None,
+    dashboard: Dashboard | None = None,
 ) -> bytes | None:
     """Export dataset data to Parquet format. Returns bytes or None on failure."""
     from superset import db  # pylint: disable=import-outside-toplevel
@@ -265,6 +271,14 @@ def export_dataset_data(
     except SupersetSecurityException:
         logger.info(
             "Skipping data export for dataset %s: requester not entitled",
+            dataset.table_name,
+        )
+        return None
+    try:
+        check_datasource_open_query(dataset, dashboard)
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError):
+        logger.warning(
+            "Skipping data export for dataset %s: time range limits apply",
             dataset.table_name,
         )
         return None
@@ -678,7 +692,9 @@ class ExportExampleCommand(BaseCommand):
 
                 # Export data only for datasets that need it
                 if self._export_data and needs_data:
-                    data = export_dataset_data(dataset, self._sample_rows)
+                    data = export_dataset_data(
+                        dataset, self._sample_rows, self._dashboard
+                    )
                     if data:
                         yield (
                             f"data/{data_file}",
@@ -701,7 +717,7 @@ class ExportExampleCommand(BaseCommand):
             yield ("dataset.yaml", _make_yaml_generator(dataset_config))
 
             if self._export_data and needs_data:
-                data = export_dataset_data(dataset, self._sample_rows)
+                data = export_dataset_data(dataset, self._sample_rows, self._dashboard)
                 if data:
                     yield ("data.parquet", _make_bytes_generator(data))
 

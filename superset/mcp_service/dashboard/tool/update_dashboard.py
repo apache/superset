@@ -48,8 +48,10 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.mcp_service.dashboard.tool.governance_utils import (
     managed_dashboard_refusal,
+    time_range_limits_error,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -239,6 +241,22 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
     return changed
 
 
+def _validate_metadata_overrides(
+    dashboard: Any, request: UpdateDashboardRequest
+) -> DashboardError | None:
+    """Conflicting metadata keys, and time range limits a REST update refuses."""
+    try:
+        metadata_overrides = _collect_metadata_overrides(request)
+    except ValueError as ex:
+        return DashboardError(error=str(ex), error_type="InvalidRequest")
+    if limits_error := time_range_limits_error(
+        metadata_overrides, dashboard.json_metadata
+    ):
+        error_type, message = limits_error
+        return DashboardError(error=message, error_type=error_type)
+    return None
+
+
 def _validate_update_request(
     dashboard: Any, request: UpdateDashboardRequest
 ) -> DashboardError | None:
@@ -282,10 +300,8 @@ def _validate_update_request(
                 error_type="InvalidCSS",
             )
 
-    try:
-        _collect_metadata_overrides(request)
-    except ValueError as ex:
-        return DashboardError(error=str(ex), error_type="InvalidRequest")
+    if metadata_error := _validate_metadata_overrides(dashboard, request):
+        return metadata_error
 
     if request.tags is not None:
         try:
@@ -316,6 +332,7 @@ def _validate_update_request(
         openWorldHint=False,
     ),
 )
+@limit_path("mcp")
 async def update_dashboard(
     request: UpdateDashboardRequest, ctx: Context
 ) -> UpdateDashboardResponse | DashboardError:

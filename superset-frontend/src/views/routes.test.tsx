@@ -30,6 +30,7 @@ jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
 // test. The statically imported bindings above are unaffected by either.
 afterEach(() => {
   jest.dontMock('@superset-ui/core');
+  jest.dontMock('src/utils/getBootstrapData');
   jest.resetModules();
 });
 
@@ -100,6 +101,37 @@ test('password recovery pages are matched before the /login/ prefix route', () =
     expect(firstMatch?.path).toBe(pathname);
   });
 });
+
+test.each([
+  ['Admin', true, true],
+  ['Admin', false, false],
+  ['Alpha', true, false],
+])(
+  'has the time range limits route for %s with the flag %s: %s',
+  (role, flag, expected) => {
+    const { featureFlags } = window;
+    window.featureFlags = { TIME_RANGE_LIMITS: flag };
+    let paths: string[] = [];
+    try {
+      jest.isolateModules(() => {
+        jest.doMock('src/utils/getBootstrapData', () => ({
+          __esModule: true,
+          default: () => ({
+            user: { username: 'user', permissions: {}, roles: { [role]: [] } },
+            common: { conf: {} },
+          }),
+        }));
+        // eslint-disable-next-line global-require
+        paths = require('./routes').routes.map(
+          ({ path }: { path: string }) => path,
+        );
+      });
+    } finally {
+      window.featureFlags = featureFlags;
+    }
+    expect(paths.includes('/timerangelimits/list/')).toBe(expected);
+  },
+);
 
 /**
  * The route that serves contributed pages is one concrete host route.

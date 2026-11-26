@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { isEqual, sortBy } from 'lodash-es';
+import { isEqual, sortBy, uniq } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   Filter,
@@ -76,6 +76,8 @@ export interface ModalSaveLogicParams {
   onSave: (changes: SaveChangesType) => Promise<void>;
   canBeUsedAsDependency: (filterId: string) => boolean;
   resetForm: (isSaving?: boolean) => void;
+  timeRangeLimitsLoading?: boolean;
+  timeRangeDefaultsCheck?: Promise<Record<string, string | undefined>>;
 }
 
 export interface ModalSaveLogic {
@@ -104,6 +106,8 @@ export function useModalSaveLogic({
   onSave,
   canBeUsedAsDependency,
   resetForm,
+  timeRangeLimitsLoading = false,
+  timeRangeDefaultsCheck,
 }: ModalSaveLogicParams): ModalSaveLogic {
   const dispatch = useDispatch();
 
@@ -227,6 +231,23 @@ export function useModalSaveLogic({
   }, [form, filterState, customizationState, chartCustomizationIds, filterIds]);
 
   const saveChanges = useCallback(async () => {
+    if (timeRangeDefaultsCheck) {
+      const messages = await timeRangeDefaultsCheck;
+      const blocked = Object.keys(messages).filter(
+        id =>
+          messages[id] &&
+          !filterState.renderedIds.includes(id) &&
+          !filterState.removedItems[id],
+      );
+      if (blocked.length) {
+        filterState.setErroredIds(
+          uniq([...filterState.erroredIds, ...blocked]),
+        );
+        setActiveItem(blocked[0]);
+        return;
+      }
+    }
+
     const values: NativeFiltersForm | null = await validateForm(
       form,
       currentItemId,
@@ -371,6 +392,8 @@ export function useModalSaveLogic({
     setActiveItem,
     configFormRef,
     resetForm,
+    timeRangeDefaultsCheck,
+    filterState,
   ]);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -431,7 +454,7 @@ export function useModalSaveLogic({
 
     const hasChanges = hasFilterChanges || hasCustomizationChanges;
 
-    return hasNoErrors && hasChanges;
+    return hasNoErrors && hasChanges && !timeRangeLimitsLoading;
   }, [
     filterState.erroredIds,
     filterState.changes,
@@ -439,6 +462,7 @@ export function useModalSaveLogic({
     customizationState.changes,
     initialFilterOrder,
     initialCustomizationOrder,
+    timeRangeLimitsLoading,
   ]);
 
   return {

@@ -91,6 +91,7 @@ interface DatasourceControlActions {
     validationErrors?: unknown[],
     options?: { programmatic?: boolean },
   ) => void;
+  refreshExploreTimeRangeLimits?: () => void;
 }
 
 interface FormData {
@@ -246,6 +247,7 @@ export default function DatasourceControl({
     (savedDatasource: Datasource) => {
       // Cast to ExtendedDatasource for the component's internal use
       actions.changeDatasource(savedDatasource as ExtendedDatasource);
+      actions.refreshExploreTimeRangeLimits?.();
       // Cast datasource for getTemporalColumns which expects Dataset | QueryResponse
       const { temporalColumns, defaultTemporalColumn } = getTemporalColumns(
         savedDatasource as Parameters<typeof getTemporalColumns>[0],

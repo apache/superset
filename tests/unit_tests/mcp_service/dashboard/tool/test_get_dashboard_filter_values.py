@@ -997,6 +997,28 @@ def test_structured_literal_search_never_executes_jinja(
     assert "ESCAPE '/'" in compiled
 
 
+@with_feature_flags(TIME_RANGE_LIMITS=True)
+def test_time_range_limits_keep_the_probe_out_of_jinja_form_data(
+    native_query: dict[str, Any],
+) -> None:
+    """The limits check leaves the dropdown's form data to the discovery query."""
+    seen: list[list[dict[str, Any]]] = []
+
+    def execute(command: ChartDataCommand, **kwargs: Any) -> dict[str, Any]:
+        seen.append(g.form_data["queries"][0]["filters"])
+        return {"queries": [{"data": [{"region": "Bikes"}]}]}
+
+    native_query["run"].side_effect = execute
+    choices.discover_filter_values(
+        _dashboard(),
+        _request(
+            filter_value_requests=[{"filter_id": "region", "exact_value": "Bikes"}]
+        ),
+    )
+    assert seen
+    assert not any(f.get("is_literal") for f in seen[0])
+
+
 @pytest.mark.parametrize(
     ("value", "parent_sql"),
     [

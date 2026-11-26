@@ -39,6 +39,17 @@ import {
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
 import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
+import {
+  ExploreTimeRangeCheck,
+  ExploreTimeRangeLimits,
+  SET_EXPLORE_TIME_RANGE_LIMITS,
+  SET_TIME_RANGE_CHECK,
+  SET_TIME_RANGE_RUN_ON_VALID,
+  REQUEST_TIME_RANGE_FOCUS,
+  TimeRangeFocusRequest,
+  TimeRangeLimitsAction,
+  TimeRangeRunOnValid,
+} from '../actions/timeRangeLimitsActions';
 import { Slice } from 'src/types/Chart';
 import { CompatibilityResult, SaveActionType } from 'src/explore/types';
 
@@ -73,6 +84,10 @@ export interface ExploreState {
   compatibility?: CompatibilityResult;
   saveAction?: SaveActionType | null;
   chartStates?: Record<number, JsonObject>;
+  timeRangeLimits?: ExploreTimeRangeLimits;
+  timeRangeCheck?: ExploreTimeRangeCheck;
+  timeRangeRunOnValid?: TimeRangeRunOnValid | null;
+  timeRangeFocusRequest?: TimeRangeFocusRequest | null;
 }
 
 // Action type definitions
@@ -206,6 +221,7 @@ type ExploreAction =
   | SetForceQueryAction
   | UpdateExploreChartStateAction
   | SetCompatibilityAction
+  | TimeRangeLimitsAction
   | HydrateExplore
   | { type: typeof actions.RESET_SEMANTIC_SELECTIONS };
 
@@ -227,6 +243,50 @@ interface ExtendedControlState {
 
 interface MetricItem {
   label?: string;
+}
+
+const withoutAll = (list: unknown[] | undefined, removed: string[]) =>
+  (list ?? []).filter(item => !removed.includes(item as string));
+
+/**
+ * Replace the errors the last check put on each control with the new check's,
+ * in `externalValidationErrors` and in `validationErrors` (validators +
+ * external, as `getControlState`).
+ */
+function applyTimeRangeCheckErrors(
+  controls: ControlStateMapping,
+  previous: Record<string, string[]>,
+  next: Record<string, string[]>,
+): ControlStateMapping {
+  const names = new Set([...Object.keys(previous), ...Object.keys(next)]);
+  if (!names.size) {
+    return controls;
+  }
+  const updated = { ...controls };
+  names.forEach(name => {
+    const control = controls[name];
+    if (!control) {
+      return;
+    }
+    const removed = previous[name] ?? [];
+    const added = next[name] ?? [];
+    const external = [
+      ...withoutAll(control.externalValidationErrors, removed),
+      ...added,
+    ];
+    const validation = withoutAll(control.validationErrors, removed);
+    added.forEach(message => {
+      if (!validation.includes(message)) {
+        validation.push(message);
+      }
+    });
+    updated[name] = {
+      ...control,
+      externalValidationErrors: external,
+      validationErrors: validation,
+    };
+  });
+  return updated;
 }
 
 type ActionHandlers = {
@@ -703,6 +763,51 @@ export default function exploreReducer(
             lastModified: typedAction.lastModified,
           },
         },
+      };
+    },
+    [SET_EXPLORE_TIME_RANGE_LIMITS]() {
+      const typedAction = action as Extract<
+        TimeRangeLimitsAction,
+        { type: typeof SET_EXPLORE_TIME_RANGE_LIMITS }
+      >;
+      return {
+        ...state,
+        timeRangeLimits: typedAction.limits,
+      };
+    },
+    [SET_TIME_RANGE_CHECK]() {
+      const { check } = action as Extract<
+        TimeRangeLimitsAction,
+        { type: typeof SET_TIME_RANGE_CHECK }
+      >;
+      return {
+        ...state,
+        controls: applyTimeRangeCheckErrors(
+          state.controls,
+          state.timeRangeCheck?.controlErrors ?? {},
+          check.controlErrors,
+        ),
+        timeRangeCheck: check,
+      };
+    },
+    [SET_TIME_RANGE_RUN_ON_VALID]() {
+      const { run } = action as Extract<
+        TimeRangeLimitsAction,
+        { type: typeof SET_TIME_RANGE_RUN_ON_VALID }
+      >;
+      return {
+        ...state,
+        timeRangeRunOnValid: run,
+      };
+    },
+    [REQUEST_TIME_RANGE_FOCUS]() {
+      const { request } = action as Extract<
+        TimeRangeLimitsAction,
+        { type: typeof REQUEST_TIME_RANGE_FOCUS }
+      >;
+      return {
+        ...state,
+        timeRangeFocusRequest: request,
       };
     },
     [HYDRATE_EXPLORE]() {

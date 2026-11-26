@@ -32,6 +32,7 @@ import CustomizationContentRenderer from './CustomizationContentRenderer';
 import { FiltersConfigFormHandle } from '../FiltersConfigForm/FiltersConfigForm';
 import { NativeFiltersForm, FilterRemoval } from '../types';
 import { isFilterId, isChartCustomizationId } from '../utils';
+import type { DashboardTimeRangeLimitsState } from '../useDashboardTimeRangeLimits';
 
 const StyledContentFlex = styled(Flex)`
   flex: 1;
@@ -76,6 +77,7 @@ export interface ConfigModalContentProps {
   validateDependencies: () => void;
   getDependencySuggestion: (filterId: string) => string;
   handleModifyItem: (id: string) => void;
+  timeRangeLimits?: DashboardTimeRangeLimitsState;
 }
 
 function ConfigModalContent({
@@ -99,6 +101,7 @@ function ConfigModalContent({
   validateDependencies,
   getDependencySuggestion,
   handleModifyItem,
+  timeRangeLimits,
 }: ConfigModalContentProps) {
   const isFilterActive =
     isFilterId(currentItemId) && filterIds.includes(currentItemId);
@@ -155,6 +158,7 @@ function ConfigModalContent({
           validateDependencies={validateDependencies}
           getDependencySuggestion={getDependencySuggestion}
           handleModifyItem={handleModifyItem}
+          timeRangeLimits={timeRangeLimits}
         />
       </div>
       <div

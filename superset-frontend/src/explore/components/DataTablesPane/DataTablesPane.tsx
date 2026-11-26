@@ -89,6 +89,7 @@ export const DataTablesPane = ({
   setForceQuery,
   canDownload,
   queriesResponse,
+  dashboardId,
 }: DataTablesPaneProps) => {
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
@@ -253,6 +254,7 @@ export const DataTablesPane = ({
                   setForceQuery={setForceQuery}
                   isVisible={ResultTypes.Samples === activeTabKey}
                   canDownload={canDownload}
+                  dashboardId={dashboardId}
                 />
               </StyledDiv>
             ),

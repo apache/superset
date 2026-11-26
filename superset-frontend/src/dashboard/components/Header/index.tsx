@@ -69,6 +69,7 @@ import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
+import CopyAdjustConfirm from '../CopyAdjustConfirm';
 import {
   addDangerToast,
   addSuccessToast,
@@ -962,6 +963,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       )}
 
       <OverwriteConfirm />
+      <CopyAdjustConfirm />
 
       {userCanCurate && (
         <DashboardEmbedModal

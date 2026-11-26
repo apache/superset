@@ -2612,6 +2612,40 @@ async def test_get_table_normalizes_nested_builtin_cells(
     assert data["dataset_name"] == mock_ds.table_name
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_get_table_returns_time_range_limit_error(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+) -> None:
+    """A query outside the time range limits keeps its own error type."""
+    from superset.time_range_limits.policy import TimeRangeLimitError
+
+    message = "Range can't be longer than 7 days. This one is 30 days."
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        side_effect=TimeRangeLimitError(
+            "MAX_SPAN_EXCEEDED", message, {"rule": "max_span"}
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time", "country_name"],
+                    }
+                },
+            )
+
+    returned = SemanticLayerError.model_validate(json.loads(result.content[0].text))
+    assert returned.error_type == "TIME_RANGE_LIMIT_ERROR"
+    assert returned.message == message
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("transport", [False, True])
 async def test_sdk_fault_retains_mcp_query_error_without_cause(

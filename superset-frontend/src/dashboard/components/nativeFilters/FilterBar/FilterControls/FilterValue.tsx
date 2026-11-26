@@ -31,6 +31,8 @@ import { Alert } from '@apache-superset/core/components';
 import { logging } from '@apache-superset/core/utils';
 import {
   ChartDataResponseResult,
+  FeatureFlag,
+  isFeatureEnabled,
   Behavior,
   DataMask,
   DatasourceType,
@@ -67,9 +69,18 @@ import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import {
   getFormData,
+  FILTERS_WITH_ADHOC_FILTERS,
   isSelectionFreeGrainControlMask,
+  limitsUnavailableMessage,
   withNativeFilterProvenance,
 } from '../../utils';
+import {
+  limitFailureMessage,
+  useFilterTimeRangeLimits,
+  useOptionQueryHeld,
+  useServerMarks,
+  useTimeRangeLimitsMode,
+} from '../utils';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
@@ -204,8 +215,26 @@ const FilterValue: FC<FilterValueProps> = ({
   const dispatch = useDispatch();
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
+  const isTimeRangeFilter = filterType === 'filter_time';
+  const limitsMode = useTimeRangeLimitsMode();
+  const limitsLoading = limitsMode === 'loading' && isTimeRangeFilter;
+  const canHoldRequest =
+    isFeatureEnabled(FeatureFlag.TimeRangeLimits) &&
+    !isCustomization &&
+    FILTERS_WITH_ADHOC_FILTERS.includes(filterType);
+  const timeRangeLimits = useFilterTimeRangeLimits(
+    filterType,
+    isCustomization ? undefined : filter.chartsInScope,
+  );
+  const serverMark = useServerMarks()[id];
+  const held =
+    useOptionQueryHeld() &&
+    !isCustomization &&
+    FILTERS_WITH_ADHOC_FILTERS.includes(filterType);
+  const requestRef = useRef<AbortController | null>(null);
 
   const handleFilterLoadFinish = useCallback(() => {
+    requestRef.current = null;
     setIsRefreshing(false);
     setIsLoading(false);
     if (shouldRefresh) {
@@ -227,6 +256,12 @@ const FilterValue: FC<FilterValueProps> = ({
     if (!inViewFirstTime) {
       return;
     }
+    if (held) {
+      if (shouldRefresh) {
+        dispatch(onFiltersRefreshSuccess());
+      }
+      return;
+    }
     const newFormData = getFormData({
       ...filter,
       datasetId,
@@ -239,6 +274,9 @@ const FilterValue: FC<FilterValueProps> = ({
       granularity_sqla: granularitySqla,
       dashboardId,
     });
+    if (timeRangeLimits) {
+      newFormData.timeRangeLimits = timeRangeLimits;
+    }
     const filterOwnState = filter.dataMask?.ownState || {};
     if (transitiveParentIds.length) {
       // Prevent unnecessary backend requests by validating ancestor filter
@@ -308,22 +346,39 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
+      const controller = canHoldRequest ? new AbortController() : null;
+      requestRef.current = controller;
       const query = isSemanticRange(newFormData)
         ? Promise.resolve(queriesDataPlaceholder)
-        : requestChartDataResolved({
-            formData: newFormData,
-            force: shouldRefresh,
-            ownState: filterOwnState,
-            requestParams: { async_mode_override: asyncModeOverride },
-          });
+        : requestChartDataResolved(
+            {
+              formData: newFormData,
+              force: shouldRefresh,
+              ownState: filterOwnState,
+              requestParams: {
+                async_mode_override: asyncModeOverride,
+                ...(controller && { signal: controller.signal }),
+              },
+            },
+            ...(controller ? [controller.signal] : []),
+          );
       query
         .then(queriesResponse => {
+          if (controller?.signal.aborted) {
+            return;
+          }
           setState(queriesResponse as ChartDataResponseResult[]);
           setError(undefined);
           handleFilterLoadFinish();
         })
         .catch((error: Response) => {
+          if (controller?.signal.aborted) {
+            return;
+          }
           getClientErrorObject(error).then(clientErrorObject => {
+            if (controller?.signal.aborted) {
+              return;
+            }
             // Raw error details stay in devtools; they are not rendered.
             logging.warn('Failed to load filter values', clientErrorObject);
             // `fetch` rejects with a TypeError (in every browser) only when no
@@ -340,6 +395,8 @@ const FilterValue: FC<FilterValueProps> = ({
     }
   }, [
     inViewFirstTime,
+    canHoldRequest,
+    held,
     dependencies,
     datasetId,
     groupby,
@@ -353,7 +410,28 @@ const FilterValue: FC<FilterValueProps> = ({
     transitiveParentIds,
     parentDefaultToFirstItem,
     asyncModeOverride,
+    timeRangeLimits,
   ]);
+
+  useEffect(() => {
+    if (!held) {
+      return;
+    }
+    const hadNoData = !!requestRef.current || !!error;
+    if (requestRef.current) {
+      requestRef.current.abort();
+      requestRef.current = null;
+    }
+    if (hadNoData) {
+      setFormData({ inView: false });
+    }
+    setIsRefreshing(false);
+    if (hadNoData) {
+      setIsLoading(true);
+    }
+    setError(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [held]);
 
   useEffect(() => {
     if (outlinedFilterId && outlinedFilterId === filter.id) {
@@ -447,13 +525,23 @@ const FilterValue: FC<FilterValueProps> = ({
     ],
   );
 
-  const filterState = useMemo(
-    () => ({
-      ...filter.dataMask?.filterState,
-      validateStatus,
-    }),
-    [filter.dataMask?.filterState, validateStatus],
-  );
+  const filterState = useMemo(() => {
+    const selected = filter.dataMask?.filterState;
+    if (selected?.limitInvalid) {
+      return { ...selected, validateStatus: 'error' as const };
+    }
+    // A failure the chart ranges check found, shown for the applied value
+    // only: picking any other value clears it.
+    if (serverMark && selected?.value === serverMark.value) {
+      return {
+        ...selected,
+        validateStatus: 'error' as const,
+        limitInvalid: true,
+        validateMessage: limitFailureMessage(serverMark.failure),
+      };
+    }
+    return { ...selected, validateStatus };
+  }, [filter.dataMask?.filterState, serverMark, validateStatus]);
 
   const displaySettings = useMemo(
     () => ({
@@ -462,6 +550,17 @@ const FilterValue: FC<FilterValueProps> = ({
     }),
     [orientation, overflow],
   );
+
+  if (held) {
+    return (
+      <ErrorAlert
+        errorType={t('Cannot load filter')}
+        message={limitsUnavailableMessage()}
+        type="error"
+        compact
+      />
+    );
+  }
 
   const selectionSources = getSemanticSelectionSources(
     filter.dataMask?.extraFormData,
@@ -559,11 +658,12 @@ const FilterValue: FC<FilterValueProps> = ({
       data-test="form-item-value"
       orientation={orientation}
       overflow={overflow}
+      aria-busy={limitsLoading || undefined}
     >
-      {isLoading ? (
+      {isLoading || limitsLoading ? (
         <Flex align="center">
           <Loading position="inline" size="s" muted />
-          {hasDepsFilterValue
+          {hasDepsFilterValue && !limitsLoading
             ? t('Awaiting filter selection')
             : t('Loading filter values')}
         </Flex>

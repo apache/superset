@@ -21,11 +21,14 @@ from typing import Any
 import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
+from sqlalchemy.orm.session import Session
 
 from superset.datasets.schemas import (
     validate_partition_key,
     validate_python_date_format,
 )
+from superset.time_range_limits.policy import FEATURE_FLAG
+from superset.utils import json
 
 
 # pylint: disable=too-few-public-methods
@@ -452,6 +455,231 @@ def test_import_metric_schema_rejects_invalid_d3format() -> None:
             }
         )
     assert "d3format" in exc.value.messages
+
+
+LIMITS: dict[str, Any] = {
+    "schema_version": 1,
+    "max_span": {"quantity": 90, "time_grain": "P1D"},
+    "max_look_back": {"quantity": 13, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 0, "time_grain": "P1D"},
+}
+NO_LIMITS: dict[str, Any] = {
+    "schema_version": 1,
+    "max_span": None,
+    "max_look_back": None,
+    "max_look_forward": None,
+}
+
+
+@pytest.fixture
+def limits_on(mocker: MockerFixture) -> None:
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: True},
+    )
+
+
+@pytest.fixture
+def limits_off(mocker: MockerFixture) -> None:
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: False},
+    )
+
+
+def import_v1_dataset_config(**overrides: Any) -> dict[str, Any]:
+    return {
+        "table_name": "my_table",
+        "uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
+        "version": "1.0.0",
+        "database_uuid": "a2dc77af-e654-49bb-b321-40f6b559a1ee",
+        **overrides,
+    }
+
+
+BAD_EXTRA = [
+    {
+        "time_range_limits": {
+            **LIMITS,
+            "max_span": {"quantity": 0, "time_grain": "P1D"},
+        }
+    },
+    {
+        "time_range_limits": {
+            **LIMITS,
+            "max_span": {"quantity": "90", "time_grain": "P1D"},
+        }
+    },
+    {"time_range_limits": {**LIMITS, "max_range_day": 90}},
+    {"time_range_limits": {**LIMITS, "max_look_back": {"quantity": 13}}},
+    {
+        "time_range_limits": {
+            **LIMITS,
+            "max_look_forward": {"quantity": 1, "time_grain": "tomorrow"},
+        }
+    },
+    {"time_range_limits": {**LIMITS, "schema_version": 2}},
+    {"time_range_limits": {"max_range": "90 days"}},
+    {"time_range_limits": {}},
+    {"time_range_limits": []},
+    {"certification": {}, "time_range_limits": "90"},
+    json.dumps(
+        {
+            "time_range_limits": {
+                **LIMITS,
+                "max_look_back": {"quantity": -1, "time_grain": "P1D"},
+            }
+        }
+    ),
+]
+
+
+@pytest.mark.parametrize("extra", BAD_EXTRA)
+def test_import_v1_dataset_schema_rejects_bad_time_range_limits(
+    extra: Any, limits_on: None
+) -> None:
+    from superset.datasets.schemas import ImportV1DatasetSchema
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatasetSchema().load(import_v1_dataset_config(extra=extra))
+
+    assert list(excinfo.value.messages) == ["extra"]
+
+
+@pytest.mark.parametrize("extra", BAD_EXTRA)
+def test_import_v1_dataset_schema_keeps_a_bad_policy_with_the_flag_off(
+    extra: Any, limits_off: None
+) -> None:
+    from superset.datasets.schemas import ImportV1DatasetSchema
+
+    loaded = ImportV1DatasetSchema().load(import_v1_dataset_config(extra=extra))
+
+    expected = json.loads(extra) if isinstance(extra, str) else extra
+    assert loaded["extra"] == expected
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"time_range_limits": LIMITS},
+        json.dumps({"time_range_limits": {**LIMITS, "max_look_back": None}}),
+        {"time_range_limits": None},
+        {"time_range_limits": NO_LIMITS},
+        {"certification": {"certified_by": "me"}},
+        {},
+        None,
+        "",
+        "not json",
+    ],
+)
+def test_import_v1_dataset_schema_accepts_valid_extra(extra: Any) -> None:
+    from superset.datasets.schemas import ImportV1DatasetSchema
+
+    loaded = ImportV1DatasetSchema().load(import_v1_dataset_config(extra=extra))
+
+    if isinstance(extra, dict):
+        assert loaded["extra"] == extra
+    elif isinstance(extra, str) and extra.startswith("{"):
+        assert loaded["extra"] == json.loads(extra)
+    else:
+        assert loaded["extra"] is None
+
+
+def test_import_v1_dataset_schema_keys_errors_by_field(
+    mocker: MockerFixture, session: Session
+) -> None:
+    from flask import current_app
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasets.schemas import ImportV1DatasetSchema
+    from superset.extensions import feature_flag_manager
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: True},
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "TIME_RANGE_LIMITS_GLOBAL": {
+                **NO_LIMITS,
+                "max_span": {"quantity": 12, "time_grain": "P1W"},
+            }
+        },
+    )
+
+    def load(quantity: int) -> dict[str, Any]:
+        limits = {**NO_LIMITS, "max_span": {"quantity": quantity, "time_grain": "P1W"}}
+        with pytest.raises(ValidationError) as excinfo:
+            ImportV1DatasetSchema().load(
+                import_v1_dataset_config(extra={"time_range_limits": limits})
+            )
+        return excinfo.value.messages
+
+    assert list(load(0)["extra"]) == ["time_range_limits.max_span.quantity"]
+    assert load(13) == {
+        "extra": {
+            "time_range_limits.max_span.quantity": [
+                "Dataset maximum span must be 12 weeks or less."
+            ]
+        }
+    }
+
+
+def test_import_v1_dataset_schema_without_extra() -> None:
+    from superset.datasets.schemas import ImportV1DatasetSchema
+
+    assert "extra" not in ImportV1DatasetSchema().load(import_v1_dataset_config())
+
+
+def test_time_range_limits_round_trip_through_export_and_import(
+    session: Session,
+) -> None:
+    import uuid
+
+    import yaml
+
+    from superset import db
+    from superset.commands.dataset.export import ExportDatasetsCommand
+    from superset.commands.dataset.importers.v1.utils import import_dataset
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasets.schemas import ImportV1DatasetSchema
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    extra = {"certification": {"certified_by": "me"}, "time_range_limits": LIMITS}
+    dataset = SqlaTable(
+        table_name="my_table", database=database, extra=json.dumps(extra)
+    )
+    db.session.add(dataset)
+    db.session.flush()
+
+    exported = yaml.safe_load(
+        ExportDatasetsCommand._file_content(dataset)  # pylint: disable=protected-access
+    )
+    assert exported["extra"] == extra
+
+    config = ImportV1DatasetSchema().load(exported)
+    config.update(database_id=database.id, uuid=uuid.uuid4(), table_name="copy")
+    imported = import_dataset(config, ignore_permissions=True)
+
+    assert imported.id != dataset.id
+    assert json.loads(imported.extra) == extra
 
 
 @pytest.mark.parametrize(

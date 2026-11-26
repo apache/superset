@@ -43,6 +43,8 @@ import Subject from 'src/types/Subject';
 import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
 import { AutoRefreshStatus } from './types/autoRefresh';
+import type { TimeRangeLimitsState } from './reducers/timeRangeLimits';
+import type { TimeRangeAdjustment } from 'src/components/TimeRangeAdjustmentList/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
@@ -144,6 +146,13 @@ export type DashboardState = {
     }[];
     dashboardId: number;
     data: JsonObject;
+  };
+  copyAdjustConfirmMetadata?: {
+    dashboardId: number;
+    data: JsonObject;
+    adjustments: TimeRangeAdjustment[];
+    fingerprint: string;
+    changed: boolean;
   };
   chartStates?: Record<string, JsonObject>;
   autoRefreshStatus?: AutoRefreshStatus;
@@ -282,6 +291,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
+  timeRangeLimits: TimeRangeLimitsState;
   user: UserWithPermissionsAndRoles;
   common?: { conf: JsonObject };
   lastModifiedTime: number;

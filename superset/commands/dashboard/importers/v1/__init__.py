@@ -18,10 +18,11 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from typing import Any
 
 from flask_babel import gettext as _
-from marshmallow import Schema
+from marshmallow import Schema, ValidationError
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
@@ -39,12 +40,14 @@ from superset.commands.dashboard.exceptions import DashboardImportError
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
     find_native_filter_datasets,
+    fit_imported_dashboard_defaults,
     import_dashboard,
     update_id_refs,
 )
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
-from superset.commands.importers.v1 import ImportModelsCommand
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.v1 import import_validation_error, ImportModelsCommand
 from superset.commands.importers.v1.errors import (
     import_error_context,
     ImportBundleError,
@@ -67,6 +70,10 @@ from superset.semantic_layers.import_export import (
 )
 from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.themes.schemas import ImportV1ThemeSchema
+from superset.time_range_limits.adjustments import (
+    check_consent,
+    TimeRangeAdjustment,
+)
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -92,6 +99,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
     def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any) -> None:
         self.overwrite_all = kwargs.pop("overwrite_all", False)
+        self.adjust_time_ranges = kwargs.pop("adjust_time_ranges", False)
+        self.time_range_adjustments_fingerprint = kwargs.pop(
+            "time_range_adjustments_fingerprint", None
+        )
         super().__init__(contents, *args, **kwargs)
         # With both flags set, `_import` overwrites related databases, so their
         # schema must ask for any secret the stored connection cannot reveal.
@@ -101,6 +112,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 overwrites_existing=self.overwrite and self.overwrite_all
             ),
         }
+
+    def _dataset_overwrite(self) -> bool:
+        """Whether this command writes existing bundled datasets."""
+        return self.overwrite and self.overwrite_all
 
     # not sure if overriding run is the best approach here
     # it works fine and is better than a global variable imo
@@ -115,6 +130,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 self.overwrite,
                 self.contents,
                 overwrite_all=self.overwrite_all,
+                adjust_time_ranges=self.adjust_time_ranges,
+                time_range_adjustments_fingerprint=(
+                    self.time_range_adjustments_fingerprint
+                ),
             )
 
     # TODO (betodealmeida): refactor to use code from other commands
@@ -320,7 +339,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
         # layer. The same pattern is applied in
         # ``superset/commands/importers/v1/assets.py`` and the spike's
         # ``DatasetDAO.update_columns`` rewrite.
-        dashboards: list[Dashboard] = []
+        dashboards: list[tuple[Dashboard, str, bool]] = []
+        adjustments: list[TimeRangeAdjustment] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 restore_dashboard_references(
@@ -336,10 +356,19 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     config["theme_id"] = None
                     del config["theme_uuid"]
                 with import_error_context(file_name):
-                    dashboard = import_dashboard(
-                        config, overwrite=overwrite, default_viewers=default_viewers
-                    )
-                dashboards.append(dashboard)
+                    try:
+                        dashboard, limit_changes = import_dashboard(
+                            config, overwrite=overwrite, default_viewers=default_viewers
+                        )
+                    except CommandInvalidError as ex:
+                        raise import_validation_error(
+                            "dashboard",
+                            [ValidationError({file_name: ex.normalized_messages()})],
+                        ) from ex
+                dashboards.append((dashboard, file_name, bool(limit_changes)))
+                adjustments.extend(
+                    replace(item, file_name=file_name) for item in limit_changes
+                )
 
                 # Resolve the dashboard's chart membership from the imported
                 # position_json and apply it to the ORM relationship.
@@ -391,8 +420,27 @@ class ImportDashboardsCommand(ImportModelsCommand):
                         )
 
         # Migrate any filter-box charts to native dashboard filters.
-        for dashboard in dashboards:
-            migrate_dashboard(dashboard)
+        for dashboard, file_name, clamped in dashboards:
+            migrated: dict[str, str] = {}
+            migrate_dashboard(dashboard, migrated)
+            if clamped:
+                with import_error_context(file_name):
+                    try:
+                        changes = fit_imported_dashboard_defaults(dashboard, migrated)
+                    except CommandInvalidError as ex:
+                        raise import_validation_error(
+                            "dashboard",
+                            [ValidationError({file_name: ex.normalized_messages()})],
+                        ) from ex
+                adjustments.extend(
+                    replace(item, file_name=file_name) for item in changes
+                )
+
+        check_consent(
+            adjustments,
+            kwargs.get("adjust_time_ranges", False),
+            kwargs.get("time_range_adjustments_fingerprint"),
+        )
 
         # Remove all obsolete filter-box charts.
         for chart in charts:

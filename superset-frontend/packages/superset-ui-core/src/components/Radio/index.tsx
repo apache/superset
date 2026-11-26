@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { AriaAttributes } from 'react';
 import {
   Radio as AntRadio,
   type CheckboxOptionType,
@@ -24,14 +25,15 @@ import {
 
 import { Space, type SpaceProps } from '../Space';
 
-export type RadioGroupWrapperProps = RadioGroupProps & {
+export type RadioGroupWrapperProps = Omit<RadioGroupProps, 'options'> & {
   spaceConfig?: {
     direction?: SpaceProps['direction'];
     size?: SpaceProps['size'];
     align?: SpaceProps['align'];
     wrap?: SpaceProps['wrap'];
   };
-  options: CheckboxOptionType[];
+  options: (CheckboxOptionType &
+    Pick<AriaAttributes, 'aria-invalid' | 'aria-describedby'>)[];
 };
 
 const RadioGroup = ({
@@ -39,11 +41,19 @@ const RadioGroup = ({
   options,
   ...props
 }: RadioGroupWrapperProps) => {
-  const content = options.map((option: CheckboxOptionType) => (
-    <AntRadio key={option.value} value={option.value}>
-      {option.label}
-    </AntRadio>
-  ));
+  const content = options.map(
+    (option: RadioGroupWrapperProps['options'][number]) => (
+      <AntRadio
+        key={option.value}
+        value={option.value}
+        disabled={option.disabled}
+        aria-invalid={option['aria-invalid']}
+        aria-describedby={option['aria-describedby']}
+      >
+        {option.label}
+      </AntRadio>
+    ),
+  );
   return (
     <AntRadio.Group {...props}>
       {spaceConfig ? <Space {...spaceConfig}>{content}</Space> : content}

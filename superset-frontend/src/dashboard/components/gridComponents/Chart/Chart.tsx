@@ -29,10 +29,15 @@ import {
   memo,
   RefObject,
 } from 'react';
-import type { ChartCustomization, JsonObject } from '@superset-ui/core';
+import type {
+  ChartCustomization,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { DatasourceType, VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { Loading } from '@superset-ui/core/components';
 import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -89,6 +94,8 @@ import getFormDataWithExtraFilters from '../../../util/charts/getFormDataWithExt
 import { useChartCustomizationFromRedux } from '../../nativeFilters/state';
 import { PLACEHOLDER_DATASOURCE } from '../../../constants';
 import { DashboardDatasetsContext } from '../../../contexts/DashboardDatasetsContext';
+import useChartTimeRangeHold from './useChartTimeRangeHold';
+import HeldChartPlaceholder from './HeldChartPlaceholder';
 
 interface ChartProps {
   id: number;
@@ -601,6 +608,12 @@ const Chart = (props: ChartProps) => {
       ),
     [dataMaskOwnState, chartState, formData, sliceVizType],
   );
+  const hold = useChartTimeRangeHold({
+    chartId: props.id,
+    chart,
+    formData: formData as unknown as QueryFormData,
+    ownState,
+  });
 
   const exportTable = useCallback(
     async (format: string, isFullCSV: boolean, isPivot = false) => {
@@ -906,40 +919,61 @@ const Chart = (props: ChartProps) => {
           />
         )}
 
-        <ChartContainer
-          width={width}
-          height={getChartHeight()}
-          addFilter={addFilter}
-          onFilterMenuOpen={handleFilterMenuOpen}
-          onFilterMenuClose={handleFilterMenuClose}
-          annotationData={chart.annotationData ?? undefined}
-          chartAlert={chart.chartAlert ?? undefined}
-          chartId={props.id}
-          chartStatus={chartStatus ?? undefined}
-          chartStackTrace={chart.chartStackTrace ?? undefined}
-          datasource={chartDatasource}
-          dashboardId={props.dashboardId}
-          initialValues={EMPTY_OBJECT}
-          formData={
-            formData as unknown as import('@superset-ui/core').QueryFormData
-          }
-          ownState={ownState}
-          queriesResponse={chart.queriesResponse ?? null}
-          latestQueryFormData={chart.latestQueryFormData}
-          timeout={timeout}
-          triggerQuery={chart.triggerQuery && !waitingForTemporalMetadata}
-          vizType={slice.viz_type}
-          setControlValue={props.setControlValue ?? NOOP}
-          datasetsStatus={
-            datasetsStatus as 'loading' | 'error' | 'complete' | undefined
-          }
-          isInView={props.isInView}
-          emitCrossFilters={emitCrossFilters}
-          hasCrossFilterTargets={hasCrossFilterTargets}
-          onChartStateChange={handleChartStateChange}
-          suppressLoadingSpinner={suppressLoadingSpinner}
-          filterState={dataMask[props.id]?.filterState}
-        />
+        {hold.heldView === 'loading' && hold.hasChartOnScreen && (
+          <ChartOverlay
+            data-test="chart-held"
+            style={{
+              width,
+              height: getChartHeight(),
+            }}
+          >
+            <Loading size="s" muted />
+          </ChartOverlay>
+        )}
+        {hold.showHeldPlaceholder ? (
+          <HeldChartPlaceholder
+            view={hold.heldView}
+            width={width}
+            height={getChartHeight()}
+          />
+        ) : (
+          <ChartContainer
+            width={width}
+            height={getChartHeight()}
+            addFilter={addFilter}
+            onFilterMenuOpen={handleFilterMenuOpen}
+            onFilterMenuClose={handleFilterMenuClose}
+            annotationData={chart.annotationData ?? undefined}
+            chartAlert={chart.chartAlert ?? undefined}
+            chartId={props.id}
+            chartStatus={chartStatus ?? undefined}
+            chartStackTrace={chart.chartStackTrace ?? undefined}
+            datasource={chartDatasource}
+            dashboardId={props.dashboardId}
+            initialValues={EMPTY_OBJECT}
+            formData={
+              formData as unknown as import('@superset-ui/core').QueryFormData
+            }
+            ownState={ownState}
+            queriesResponse={chart.queriesResponse ?? null}
+            latestQueryFormData={chart.latestQueryFormData}
+            timeout={timeout}
+            triggerQuery={
+              hold.releasedTriggerQuery && !waitingForTemporalMetadata
+            }
+            vizType={slice.viz_type}
+            setControlValue={props.setControlValue ?? NOOP}
+            datasetsStatus={
+              datasetsStatus as 'loading' | 'error' | 'complete' | undefined
+            }
+            isInView={props.isInView}
+            emitCrossFilters={emitCrossFilters}
+            hasCrossFilterTargets={hasCrossFilterTargets}
+            onChartStateChange={handleChartStateChange}
+            suppressLoadingSpinner={suppressLoadingSpinner}
+            filterState={dataMask[props.id]?.filterState}
+          />
+        )}
       </ChartWrapper>
 
       {!isLoading && showChartTimestamps && queriedDttm != null && (
