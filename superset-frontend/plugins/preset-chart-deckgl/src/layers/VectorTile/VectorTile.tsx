@@ -36,6 +36,7 @@ import { GetLayerType } from '../../factory';
 import { Viewport } from '../../utils/fitViewport';
 import { getMapboxApiKey } from '../../utils/mapbox';
 import { getLayerSettings, VectorTileFormData } from './layerSettings';
+import { createTooltipContent } from '../../utilities/tooltipUtils';
 
 // Pixel units keep points and lines visible at every zoom level.
 const POINT_RADIUS_PX = 4;
@@ -44,7 +45,7 @@ const LINE_WIDTH_PX = 1;
 // Added by MVTLoader to every feature, not sent by the tile server.
 const LOADER_LAYER_NAME_KEY = 'layerName';
 
-function setTooltipContent(o: JsonObject) {
+function renderDefaultTooltip(o: JsonObject) {
   const properties = o.object?.properties;
   if (!properties) {
     return null;
@@ -79,6 +80,8 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({
     return null;
   }
 
+  const tooltipContent = createTooltipContent(formData, renderDefaultTooltip);
+
   return new MVTLayer({
     id: `vector-tile-layer-${formData.slice_id}`,
     data: tileUrl,
@@ -100,7 +103,7 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({
     ...commonLayerProps({
       formData,
       setTooltip,
-      setTooltipContent,
+      setTooltipContent: tooltipContent,
     }),
   });
 };

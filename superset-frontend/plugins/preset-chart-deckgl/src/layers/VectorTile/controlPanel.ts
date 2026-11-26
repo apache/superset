@@ -25,6 +25,8 @@ import {
   mapboxStyle,
   maplibreStyle,
   mapProvider,
+  tooltipTemplate,
+  tooltipContents,
   viewport,
 } from '../../utilities/Shared_DeckGL';
 
@@ -129,6 +131,11 @@ const config: ControlPanelConfig = {
           },
         ],
       ],
+    },
+    {
+      label: t('Tooltip'),
+      expanded: true,
+      controlSetRows: [[tooltipContents], [tooltipTemplate]],
     },
   ],
 };
