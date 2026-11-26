@@ -9744,3 +9744,26 @@ def test_has_mutation_in_bigquery_load_data(operation: str) -> None:
     )
     assert SQLStatement(sql.split(";")[0], "bigquery").is_mutating()
     assert SQLScript(sql, "bigquery").has_mutation()
+
+
+@pytest.mark.parametrize(
+    "engine, sql, expected",
+    [
+        ("mssql", "BEGIN INSERT INTO log VALUES (1) END; SELECT n FROM t", True),
+        ("mssql", "BEGIN SELECT 1 END; SELECT 2", True),
+        (
+            "mysql",
+            "IF TRUE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;",
+            True,
+        ),
+        ("bigquery", "BEGIN SELECT 1; END;", True),
+        ("mssql", "IF 1=1 SELECT 1 ELSE SELECT 2", False),
+        ("postgresql", "SELECT 'BEGIN INSERT' AS n; SELECT 2", False),
+        ("postgresql", "SHOW server_version", False),
+        ("mysql", "SHOW TABLES FROM some_schema", False),
+        ("kustokql", "print 1", False),
+    ],
+)
+def test_has_opaque_scripting_body(engine: str, sql: str, expected: bool) -> None:
+    """Only SQL control flow with unmodeled bodies is unsafe to inspect for reruns."""
+    assert SQLScript(sql, engine).has_opaque_scripting_body() is expected
