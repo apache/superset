@@ -51,3 +51,7 @@ export {
   getSemanticSelectionSources,
   isGrainOnlyExtraFormData,
 } from './semanticSelection';
+export {
+  arrowBufferToQueryData,
+  arrowTableToDataRecords,
+} from './arrowToQueryData';

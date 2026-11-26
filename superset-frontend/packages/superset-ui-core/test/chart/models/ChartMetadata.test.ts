@@ -90,4 +90,15 @@ describe('ChartMetadata', () => {
     expect(optedIn.supportsCascadeDependencies).toBe(true);
     expect(optedOut.clone().supportsCascadeDependencies).toBe(false);
   });
+  test('defaults supportsArrowFormat to falsy, opting a viz type in only when set true', () => {
+    const unset = new ChartMetadata({ name: 'unset', thumbnail: 'test.png' });
+    const optedIn = new ChartMetadata({
+      name: 'opted in',
+      thumbnail: 'test.png',
+      supportsArrowFormat: true,
+    });
+    expect(unset.supportsArrowFormat).toBeFalsy();
+    expect(optedIn.supportsArrowFormat).toBe(true);
+    expect(optedIn.clone().supportsArrowFormat).toBe(true);
+  });
 });
