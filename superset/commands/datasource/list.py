@@ -23,6 +23,7 @@ from typing import Any, cast
 
 from sqlalchemy import union_all
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
@@ -163,15 +164,16 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         )
 
         result: list[dict[str, Any]] = []
-        for row in rows:
-            if row.source_type == "database":
-                ds_obj = cast(SqlaTable | None, datasets_map.get(row.item_id))
-                if ds_obj:
-                    result.append(_dataset_schema.dump(ds_obj))
-            else:
-                sv_obj = cast(SemanticView | None, sv_map.get(row.item_id))
-                if sv_obj:
-                    result.append(_semantic_view_schema.dump(sv_obj))
+        with security_manager.cache_permission_checks():
+            for row in rows:
+                if row.source_type == "database":
+                    ds_obj = cast(SqlaTable | None, datasets_map.get(row.item_id))
+                    if ds_obj:
+                        result.append(_dataset_schema.dump(ds_obj))
+                else:
+                    sv_obj = cast(SemanticView | None, sv_map.get(row.item_id))
+                    if sv_obj:
+                        result.append(_semantic_view_schema.dump(sv_obj))
 
         # Inject RLS summaries for dataset entries so the combined list
         # includes the same `rls_filters` summary shape available on

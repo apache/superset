@@ -48,7 +48,9 @@ import {
   ModifiedInfo,
   TagsList,
   ListView,
+  type ListViewColumn,
   ListViewActionsBar,
+  ListViewTitleCell,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewActionProps,
@@ -57,7 +59,11 @@ import {
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
+import {
+  QueryObjectColumns,
+  SavedQueryObject,
+  FileEncryptedExtraFields,
+} from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -71,9 +77,9 @@ const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
     'import them together with the saved queries. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+    '"Certificate" section of the database configuration is not ' +
+    'present in export files, and should be added manually after the ' +
+    'import if it is needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more saved queries that already exist. ' +
@@ -100,8 +106,19 @@ type SavedQueryCellProps = {
   };
 };
 
+// The first table name ellipsizes; the "(+N)" count always stays visible.
 const StyledTableLabel = styled.div`
+  display: flex;
+
+  .table-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .count {
+    flex-shrink: 0;
     margin-left: 5px;
     color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
@@ -155,6 +172,9 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
   const history = useHistory();
 
   const openSavedQueryImportModal = () => {
@@ -340,29 +360,35 @@ function SavedQueryList({
   };
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<SavedQueryObject>[]>(
     () => [
       {
         accessor: 'label',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         Cell: ({
           row: {
             original: { id, label },
           },
-        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
+        }: any) => (
+          <ListViewTitleCell>
+            <Link to={`/sqllab?savedQueryId=${id}`} title={label}>
+              {label}
+            </Link>
+          </ListViewTitleCell>
+        ),
         id: 'label',
       },
       {
         accessor: 'description',
         Header: t('Description'),
-        size: 'xl',
+        layout: 'longtext',
         id: 'description',
       },
       {
         accessor: 'database.database_name',
         Header: t('Database'),
-        size: 'lg',
+        layout: 'identifier',
         id: 'database.database_name',
       },
       {
@@ -374,7 +400,7 @@ function SavedQueryList({
       {
         accessor: 'schema',
         Header: t('Schema'),
-        size: 'lg',
+        layout: 'identifier',
         id: 'schema',
       },
       {
@@ -389,7 +415,7 @@ function SavedQueryList({
           if (names.length) {
             return (
               <StyledTableLabel>
-                <span>{main}</span>
+                <span className="table-name">{main}</span>
                 <Popover
                   placement="right"
                   title={t('TABLES')}
@@ -412,7 +438,7 @@ function SavedQueryList({
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
-        size: 'lg',
+        layout: 'identifier',
         disableSortBy: true,
         id: 'sql_tables',
       },
@@ -427,6 +453,7 @@ function SavedQueryList({
             tags={tags.filter(
               (tag: TagType) => tag.type === TagTypeEnum.Custom,
             )}
+            maxTags={3}
           />
         ),
         Header: t('Tags'),
@@ -434,6 +461,7 @@ function SavedQueryList({
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
         id: 'tags',
+        layout: 'tags',
       },
       {
         Cell: ({
@@ -448,14 +476,14 @@ function SavedQueryList({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
         accessor: 'created_by.first_name',
         Header: t('Created by'),
         disableSortBy: true,
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { created_by: createdBy },
@@ -522,6 +550,7 @@ function SavedQueryList({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actionsWide',
         disableSortBy: true,
       },
       {
@@ -739,6 +768,8 @@ function SavedQueryList({
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
       {preparingExport && <Loading />}
     </>
