@@ -203,6 +203,7 @@ export * from './SafeMarkdown/SafeMarkdown';
 export * from './Select';
 export * from './Space';
 export * from './Steps';
+export * from './Tour';
 export * from './Table';
 export * from './TableView';
 export * from './Tag';
