@@ -125,7 +125,7 @@ test('changing pages clears selection and fetches a server-side page', async () 
   await screen.findByText('user1');
   await userEvent.click(screen.getAllByRole('checkbox')[1]);
   expect(screen.getByText('1 Selected')).toBeInTheDocument();
-  await userEvent.click(screen.getByTitle('2'));
+  await userEvent.click(screen.getByRole('button', { name: 'Page 2' }));
   expect(screen.getByText('0 Select')).toBeInTheDocument();
   await waitFor(() =>
     expect(

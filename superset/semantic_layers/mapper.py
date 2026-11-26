@@ -458,10 +458,12 @@ def _coerce_empty_result(
     )
 
 
-def _cast_resample_date_axes(table: pa.Table, query_object: QueryObject) -> pa.Table:
-    """Give resample's DatetimeIndex guard typed axes without changing DATE series."""
+def _cast_datetime_postprocessing_axes(
+    table: pa.Table, query_object: QueryObject
+) -> pa.Table:
+    """Give resample and Prophet datetime axes without changing DATE series."""
     if not any(
-        operation.get("operation") == "resample"
+        operation.get("operation") in {"resample", "prophet"}
         for operation in query_object.post_processing
     ):
         return table
@@ -523,7 +525,7 @@ def map_semantic_result_to_query_result(
     return QueryResult(
         # Core data
         df=stringify_extension_columns(
-            _cast_resample_date_axes(semantic_result.results, query_object)
+            _cast_datetime_postprocessing_axes(semantic_result.results, query_object)
         ).to_pandas(integer_object_nulls=True),
         query=query_str,
         duration=duration,
@@ -1068,7 +1070,7 @@ def _convert_query_object_filter(
                 "Must specify a value for this comparison."
             )
 
-    return _normalize_membership_filter(
+    return _normalize_user_filter(
         Filter(
             type=PredicateType.WHERE,
             column=dimension,
@@ -1078,8 +1080,8 @@ def _convert_query_object_filter(
     )
 
 
-def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
-    """Normalize NULL equality/membership; empty membership stays a SQL constant.
+def _normalize_user_filter(filter_: Filter) -> set[FilterExpression]:
+    """Normalize user NULL selections and preserve NULL rows in exclusions.
 
     An empty ``IN`` is FALSE and an empty ``NOT IN`` is TRUE, NULL rows included,
     at the filter's position in the query. Providers render the constant.
@@ -1090,6 +1092,16 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
         operator=Operator.IS_NOT_NULL if negated else Operator.IS_NULL,
         value=None,
     )
+    if filter_.value is not None and filter_.operator in {
+        Operator.NOT_EQUALS,
+        Operator.NOT_LIKE,
+        Operator.NOT_ILIKE,
+    }:
+        return {
+            OrFilter(
+                frozenset({filter_, replace(null_filter, operator=Operator.IS_NULL)})
+            )
+        }
     if filter_.operator in {Operator.EQUALS, Operator.NOT_EQUALS}:
         return {null_filter} if filter_.value is None else {filter_}
     if filter_.operator not in {Operator.IN, Operator.NOT_IN}:
@@ -1103,6 +1115,16 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
     if not values:
         return {replace(filter_, value=values)}
     if None not in values:
+        # User exclusions keep unselected NULL rows, like ordinary datasets.
+        # Keep SDK NOT_IN leaf semantics intact for providers and cache reuse.
+        if filter_.operator == Operator.NOT_IN:
+            return {
+                OrFilter(
+                    frozenset(
+                        {filter_, replace(null_filter, operator=Operator.IS_NULL)}
+                    )
+                )
+            }
         return {filter_}
 
     non_null_values: frozenset[FilterValues] = values - {None}
