@@ -467,10 +467,11 @@ HOST_MESSAGE_HANDLERS: dict[tuple[str, str, str], str] = {
 }
 
 
-# Handlers converted to safe_error in a separate change. Remove the entry when
-# the module is converted; the stale-entry test enforces that.
+# Handlers converted to the tool_errors helpers in a separate change. The
+# stale-entry test does not report these, so either change can land first;
+# remove an entry once its handler is converted.
 PENDING_HANDLERS: dict[tuple[str, str, str], str] = {
-    key: "get_table moves to safe_error in its own change"
+    key: "get_table moves to public_query_error in its own change"
     for key in (
         (
             "semantic_layer/tool/get_table.py",
@@ -752,7 +753,7 @@ def test_mcp_service_sends_no_exception_text_to_clients() -> None:
 
 def test_host_message_allowlist_has_no_stale_entries() -> None:
     used = {finding.key for finding in scan_mcp_service()}
-    stale = sorted((set(HOST_MESSAGE_HANDLERS) | set(PENDING_HANDLERS)) - used)
+    stale = sorted(set(HOST_MESSAGE_HANDLERS) - used)
     assert not stale, f"Remove stale allowlist entries: {stale}"
 
 
