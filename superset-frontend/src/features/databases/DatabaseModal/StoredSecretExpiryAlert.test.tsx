@@ -247,3 +247,116 @@ test('a token the browser clock passed but the server did not expire is listed a
   ]);
   expect(screen.getByRole('alert')).toHaveClass('ant-alert-warning');
 });
+
+const renderReplaced = (
+  entries: Record<string, EncryptedExtraExpiration>,
+  replacedSecrets: Record<string, string | null>,
+  labels: Record<string, string> = {
+    '$.connect_args.jwt': 'JWT Token',
+    '$.connect_args.password': 'Password',
+  },
+) => {
+  jest.useFakeTimers();
+  jest.setSystemTime(NOW);
+  render(
+    <StoredSecretExpiryAlert
+      isEditMode
+      sensitiveFields={labels}
+      expirations={entries}
+      replacedSecrets={replacedSecrets}
+      onGoToSecureExtra={jest.fn()}
+    />,
+  );
+};
+
+test('the alert hides once the only expired token is replaced by one that expires later', () => {
+  renderReplaced(expirations, {
+    '$.connect_args.jwt': '2027-02-22T12:00:00.000Z',
+  });
+
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test('a replaced token leaves the alert while the stored lines and the link stay', () => {
+  renderReplaced(
+    {
+      '$.connect_args.jwt': EXPIRED,
+      '$.connect_args.password': expiring('2026-11-10T13:00:00Z'),
+    },
+    { '$.connect_args.jwt': '2027-02-22T12:00:00.000Z' },
+  );
+
+  const alert = screen.getByRole('alert');
+  expect(lineTexts()).toEqual([
+    'The stored Password expires in 5 days (Nov 10, 2026).',
+  ]);
+  expect(alert).not.toHaveTextContent('JWT Token');
+  expect(alert).toHaveClass('ant-alert-warning');
+  expect(
+    within(alert).getByRole('button', { name: 'Go to Secure extra' }),
+  ).toBeInTheDocument();
+});
+
+test('a new token that already expired is an error about the new token, without the link', () => {
+  renderReplaced(expirations, {
+    '$.connect_args.jwt': '2026-11-04T12:00:00.000Z',
+  });
+
+  const alert = screen.getByRole('alert');
+  expect(alert).toHaveTextContent(
+    'The new, unsaved JWT Token expired on Nov 4, 2026.',
+  );
+  expect(alert).not.toHaveTextContent('The stored');
+  expect(alert).toHaveClass('ant-alert-error');
+  expect(alert).not.toHaveTextContent(ACTION);
+  expect(
+    within(alert).queryByRole('button', { name: 'Go to Secure extra' }),
+  ).not.toBeInTheDocument();
+});
+
+test('a new token expiring soon is a warning about the new token', () => {
+  renderReplaced(expirations, {
+    '$.connect_args.jwt': '2026-11-08T12:00:00.000Z',
+  });
+
+  const alert = screen.getByRole('alert');
+  expect(alert).toHaveTextContent(
+    'The new, unsaved JWT Token expires in 3 days (Nov 8, 2026).',
+  );
+  expect(alert).toHaveClass('ant-alert-warning');
+});
+
+const alertTitle = () =>
+  screen.getByRole('alert').querySelector('.ant-alert-title');
+
+test('a single expired token titles the alert with its label, as the modal error alert does', () => {
+  renderAlert(expirations);
+
+  expect(screen.getByRole('alert')).toHaveClass('ant-alert-with-description');
+  expect(alertTitle()).toHaveTextContent(/^JWT Token expired$/);
+});
+
+test('a single expiring token titles the alert as expiring soon', () => {
+  renderExpiringAt('2026-11-10T13:00:00Z');
+
+  expect(alertTitle()).toHaveTextContent(/^JWT Token expires soon$/);
+});
+
+test('several tokens share one plain title, with the lines expired first', () => {
+  renderAtNow(
+    {
+      '$.connect_args.password': expiring('2026-11-10T13:00:00Z'),
+      '$.connect_args.jwt': EXPIRED,
+    },
+    {
+      '$.connect_args.jwt': 'JWT Token',
+      '$.connect_args.password': 'Password',
+    },
+  );
+
+  expect(alertTitle()).toHaveTextContent(/^Tokens expired or expiring soon$/);
+  expect(lineTexts()).toEqual([
+    'The stored JWT Token expired on Nov 3, 2026.',
+    'The stored Password expires in 5 days (Nov 10, 2026).',
+  ]);
+});

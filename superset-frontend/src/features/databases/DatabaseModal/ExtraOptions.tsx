@@ -49,7 +49,7 @@ import { useCommonConf } from '../state';
 import SecureExtraHints, {
   resolveMaskedSecretFields,
 } from './SecureExtraHints';
-import { expiryLines } from './expiry';
+import { expiryLines, ReplacedTokens } from './expiry';
 
 // Timing of the scroll to Secure extra after a focus request. The tab switch
 // and the panel's opening animate the layout, so the scroll waits until the
@@ -92,6 +92,7 @@ const ExtraOptions = ({
   onExtraEditorChange,
   extraExtension,
   secretsGeneration = 0,
+  replacedSecrets,
   focusSecureExtra,
   onSecureExtraFocused,
 }: {
@@ -108,6 +109,8 @@ const ExtraOptions = ({
   extraExtension: DatabaseConnectionExtension | undefined;
   // Bumped after each save, so revealed endings never outlive the stored values.
   secretsGeneration?: number;
+  // Stored tokens replaced in the editor, with the new token's expiry.
+  replacedSecrets?: ReplacedTokens;
   // Each new value opens the Security panel and scrolls to Secure extra.
   focusSecureExtra?: number;
   // Called once a focus request has been scrolled to and checked.
@@ -204,10 +207,12 @@ const ExtraOptions = ({
         )
       : [];
 
-  // The stored tokens that expired or expire soon, listed under the editor.
+  // The stored tokens that expired or expire soon, listed under the editor,
+  // and the new tokens pasted over them.
   const expiryNotes = expiryLines(
     db?.engine_information?.encrypted_extra_sensitive_fields ?? {},
     db?.engine_information?.encrypted_extra_expirations ?? {},
+    replacedSecrets,
   );
   const secureExtraRef = useRef<HTMLDivElement>(null);
   // Ace measures itself when it mounts. Mounted inside a panel or tab that is
@@ -792,26 +797,43 @@ const ExtraOptions = ({
                         'username:password syntax normally used by SQLAlchemy.',
                     )}
                   </div>
-                  {expiryNotes.map(({ path, text, expired }) => (
-                    // The icon carries the severity; the text stays readable.
-                    <Flex
-                      key={path}
-                      data-test="secure-extra-expiry-note"
-                      align="center"
-                      gap={theme.sizeUnit}
-                    >
-                      <Icons.ExclamationCircleFilled
-                        iconSize="s"
-                        iconColor={
-                          expired ? theme.colorError : theme.colorWarning
-                        }
-                        aria-hidden
-                      />
-                      <Typography.Text type={expired ? 'danger' : undefined}>
-                        {text}
-                      </Typography.Text>
-                    </Flex>
-                  ))}
+                  {/* Announces the lines that change as a token is pasted. */}
+                  <div aria-live="polite">
+                    {expiryNotes.map(({ path, text, severity }) => (
+                      // The icon carries the severity; the text stays readable.
+                      <Flex
+                        key={path}
+                        data-test="secure-extra-expiry-note"
+                        align="center"
+                        gap={theme.sizeUnit}
+                      >
+                        {severity === 'success' ? (
+                          <Icons.CheckCircleFilled
+                            iconSize="s"
+                            iconColor={theme.colorSuccess}
+                            aria-hidden
+                          />
+                        ) : (
+                          <Icons.ExclamationCircleFilled
+                            iconSize="s"
+                            iconColor={
+                              severity === 'error'
+                                ? theme.colorError
+                                : theme.colorWarning
+                            }
+                            aria-hidden
+                          />
+                        )}
+                        <Typography.Text
+                          type={severity === 'error' ? 'danger' : undefined}
+                          // Typography sets body size; the helper is small.
+                          style={{ fontSize: theme.fontSizeSM }}
+                        >
+                          {text}
+                        </Typography.Text>
+                      </Flex>
+                    ))}
+                  </div>
                 </div>
               </StyledInputContainer>
               {typeof db?.id === 'number' && secretFields.length > 0 && (

@@ -30,7 +30,7 @@ import {
 } from '@superset-ui/core/components';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { EncryptedExtraHint, EncryptedExtraSecretField } from '../types';
-import { isExpiringSoon } from './expiry';
+import { isExpiringSoon, isRecord } from './expiry';
 import { StyledInputContainer } from './styles';
 
 const BULLETS = '•'.repeat(20);
@@ -43,9 +43,6 @@ const INPUT_STYLES = {
   prefix: { marginInlineEnd: 0, fontVariantLigatures: 'no-contextual' },
   count: { minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' },
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Lists the masked values of a Secure extra JSON that sit at the engine's

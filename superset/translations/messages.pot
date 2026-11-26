@@ -437,6 +437,14 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s expired"
+msgstr ""
+
+#, python-format
+msgid "%s expires soon"
+msgstr ""
+
+#, python-format
 msgid "%s field"
 msgid_plural "%s fields"
 msgstr[0] ""
@@ -15078,6 +15086,24 @@ msgstr ""
 msgid "The name of the rule must be unique"
 msgstr ""
 
+#, python-format
+msgid "The new %s expires on %s. Click Finish to save it."
+msgstr ""
+
+#, python-format
+msgid "The new, unsaved %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The new, unsaved %s expires in %s day (%s)."
+msgid_plural "The new, unsaved %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The new, unsaved %s expires today at %s."
+msgstr ""
+
 msgid "The number color \"steps\""
 msgstr ""
 
@@ -16577,6 +16603,9 @@ msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
 msgstr ""
 
 msgid "Token Request URI"
+msgstr ""
+
+msgid "Tokens expired or expiring soon"
 msgstr ""
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
