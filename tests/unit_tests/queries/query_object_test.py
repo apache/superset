@@ -1100,7 +1100,10 @@ def test_get_datasource_database_retrying_succeeds_after_transient_deque_race():
         ),
         create=True,
     ):
-        assert query_object._get_datasource_database_retrying() is mock_database
+        assert (
+            query_object._get_datasource_database_retrying(mock_datasource)
+            is mock_database
+        )
 
 
 def test_get_datasource_database_retrying_reraises_unrelated_runtime_errors():
@@ -1118,4 +1121,4 @@ def test_get_datasource_database_retrying_reraises_unrelated_runtime_errors():
         create=True,
     ):
         with pytest.raises(RuntimeError, match="something else entirely"):
-            query_object._get_datasource_database_retrying()
+            query_object._get_datasource_database_retrying(mock_datasource)

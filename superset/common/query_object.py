@@ -594,9 +594,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # YYYY-MM-DD:YYYY-MM-DD
             return False
 
-    def _get_datasource_database_retrying(self) -> Database:
+    def _get_datasource_database_retrying(self, datasource: BaseDatasource) -> Database:
         """
-        Resolve ``self.datasource.database``, retrying once on a transient
+        Resolve ``datasource.database``, retrying once on a transient
         SQLAlchemy race.
 
         This attribute access triggers a lazy-load through SQLAlchemy's ORM,
@@ -610,7 +610,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         500 to chart-data requests.
         """
         try:
-            return self.datasource.database
+            return datasource.database
         except RuntimeError as ex:
             if "deque mutated during iteration" not in str(ex):
                 raise
@@ -619,7 +619,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 "event-dispatch race: %s",
                 ex,
             )
-            return self.datasource.database
+            return datasource.database
 
     def _sanitize_filters(self) -> None:
         from superset.jinja_context import get_template_processor
@@ -630,7 +630,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             clause = self.extras.get(param)
             if clause and self.datasource:
                 try:
-                    database = self._get_datasource_database_retrying()
+                    database = self._get_datasource_database_retrying(self.datasource)
                     processor = get_template_processor(
                         database=database, table=self.datasource
                     )
