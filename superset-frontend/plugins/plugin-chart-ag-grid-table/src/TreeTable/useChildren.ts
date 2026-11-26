@@ -738,14 +738,14 @@ export default function useChildren({
       const key = areaKey(path);
       epochs.current.set(key, epochOf(key) + 1);
       const run = refreshRun.current;
-      const refreshLevel = run?.level;
-      if (refreshLevel !== undefined) {
+      if (run) {
+        const firstUnsentLevel = run.sent ? run.level + 1 : run.level;
         setEntries(previous => {
           const next = new Map(previous);
           previous.forEach((_entry, candidate) => {
             const candidatePath = pathOf(candidate);
             if (
-              candidatePath.length > refreshLevel &&
+              candidatePath.length >= firstUnsentLevel &&
               path.every((part, index) => candidatePath[index] === part)
             )
               next.delete(candidate);

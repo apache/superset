@@ -2627,6 +2627,53 @@ test('reopening a child skipped during refresh fetches fresh rows', async () => 
   expect(result.current.areas.get(key)?.state).toBe('loaded');
 });
 
+test('reopening a child collapsed before its refresh round fetches fresh rows', async () => {
+  const replies = controlledTransport();
+  const props = {
+    ...refreshRoundProps(),
+    expanded: new Set(['k', 'z']),
+  };
+  const { result, rerender } = renderHook(useChildren, { initialProps: props });
+  act(() => result.current.open(['k']));
+  await act(async () => replies[0].resolve(refreshSteps()));
+  await act(async () => replies[1].resolve(refreshActions(['k1', 'k3'], true)));
+  const refreshed = { ...props, data: [...data] };
+  rerender(refreshed);
+
+  const incomplete = refreshSteps();
+  incomplete[0].data = incomplete[0].data.filter(row => row.session_id === 'k');
+  await act(async () => replies[2].resolve(incomplete));
+  expect(callsIn(replies[3].body)).toEqual([['z']]);
+
+  const withoutZ = { ...refreshed, expanded: new Set(['k']) };
+  act(() => {
+    result.current.close(['z']);
+    rerender(withoutZ);
+  });
+  expect(replies[3].signal?.aborted).toBe(true);
+  expect(replies).toHaveLength(4);
+  const path = ['k', 'k1'];
+  const key = areaKey(path);
+  act(() => {
+    result.current.close(path);
+    rerender({ ...withoutZ, childToggled: new Set([areaKey(['k', 'k3'])]) });
+  });
+  await act(async () => replies[3].resolve(refreshSteps()));
+  expect(callsIn(replies[4].body)).toEqual([['k'], ['k3']]);
+  await act(async () => replies[4].resolve(refreshActions(['k3'], true)));
+
+  act(() => {
+    result.current.open(path);
+    rerender(withoutZ);
+  });
+  expect(replies.length).toBe(6);
+  expect(callsIn(replies[5].body)).toEqual([['k'], ['k1', 'k2', 'k4']]);
+  await act(async () =>
+    replies[5].resolve(refreshActions(['k1', 'k2', 'k4'], true)),
+  );
+  expect(result.current.areas.get(key)?.state).toBe('loaded');
+});
+
 const sortActions = (
   result: { current: ReturnType<typeof useChildren> },
   ascending = false,
