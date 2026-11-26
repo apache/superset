@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 09:45+1100\n"
+"POT-Creation-Date: 2026-11-26 14:16-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4608,6 +4608,9 @@ msgstr ""
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr ""
 
+msgid "Custom Time Presets"
+msgstr ""
+
 msgid "Custom color palettes"
 msgstr ""
 
@@ -4627,6 +4630,9 @@ msgid "Custom fields not available in aggregated heatmap cells"
 msgstr ""
 
 msgid "Custom time filter plugin"
+msgstr ""
+
+msgid "Custom time presets"
 msgstr ""
 
 msgid "Custom width of the screenshot in pixels"
@@ -6384,6 +6390,9 @@ msgid "Enter a value transform before validating against data."
 msgstr ""
 
 msgid "Enter alert name"
+msgstr ""
+
+msgid "Enter custom relative time ranges (e.g., \"Last 5 minutes\", \"Last 2 hours\")"
 msgstr ""
 
 msgid "Enter duration in seconds"
@@ -8206,6 +8215,9 @@ msgstr ""
 msgid "Invalid currency code in saved metrics"
 msgstr ""
 
+msgid "Invalid custom time preset"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr ""
 
@@ -8291,6 +8303,10 @@ msgstr ""
 
 #, python-format
 msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
+msgid "Invalid time preset: %s. Use the format \"Last <number> <unit>\", e.g. \"Last 5 minutes\"."
 msgstr ""
 
 #, python-format
@@ -18645,6 +18661,9 @@ msgid "e.g. xy12345.us-east-2.aws"
 msgstr ""
 
 msgid "e.g., CI/CD Pipeline, Analytics Script"
+msgstr ""
+
+msgid "e.g., Last 5 minutes"
 msgstr ""
 
 msgid "edit mode"
