@@ -29,10 +29,7 @@ import {
   FilterConfigMap,
   resolveTransitiveParentIds,
 } from '../../dependencyGraph';
-import {
-  useFilterDependencies,
-  useTransitiveParentIds,
-} from './state';
+import { useFilterDependencies, useTransitiveParentIds } from './state';
 
 const mockStore = configureStore([]);
 
