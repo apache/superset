@@ -199,6 +199,15 @@ def test_data_binding_filters_are_in_the_schema_and_validated() -> None:
         errors = widget.validate_control_values(binding(shape))
         assert errors, shape
         assert errors[0]["loc"][:3] == ["dataBinding", "filters", "0"]
+        # One shape is checked, the one the keys say, and the union tag
+        # pydantic adds is not a level of the stored value.
+        assert errors[0]["loc"][3:] in ([], ["column"]), errors
+    errors = widget.validate_control_values(
+        binding({"sql": "a > 1", "clause": "where"})
+    )
+    assert [error["loc"] for error in errors] == [
+        ["dataBinding", "filters", "0", "clause"]
+    ]
 
 
 def test_color_dimension_declares_column_control() -> None:

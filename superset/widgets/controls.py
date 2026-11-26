@@ -36,8 +36,12 @@ from pydantic import (
     ConfigDict,
     Discriminator,
     Field,
+    field_validator,
     model_validator,
     Tag,
+    TypeAdapter,
+    ValidationError,
+    ValidatorFunctionWrapHandler,
 )
 from superset_core.widgets import MetricControl
 
@@ -137,6 +141,24 @@ BindingFilter = Annotated[
     Discriminator(_filter_kind),
 ]
 
+_binding_filters = TypeAdapter(list[BindingFilter])
+
+
+def parse_binding_filters(value: Any) -> list[ColumnFilter | SqlFilter]:
+    """``value`` as a binding's filters, or ``ValidationError`` whose locations
+    are ``(index, field)``: the union tag pydantic puts between them is not a
+    level of the stored value."""
+    try:
+        return _binding_filters.validate_python(value)
+    except ValidationError as ex:
+        errors = []
+        for error in ex.errors(include_url=False):
+            loc = error["loc"]
+            if len(loc) >= 2 and loc[1] in ("column", "sql"):
+                loc = (loc[0], *loc[2:])
+            errors.append({**error, "loc": loc})
+        raise ValidationError.from_exception_data(ex.title, errors) from None
+
 
 class SortKey(BaseModel):
     """One sort key of a ``dataBinding``: a metric label or a dimension."""
@@ -206,6 +228,24 @@ class DataBinding(MetricControl):
             '`[{"field": "revenue", "descending": true}]` for a top N.'
         ),
     )
+
+    @field_validator("filters", mode="wrap")
+    @classmethod
+    def _filters_without_union_tags(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler
+    ) -> Any:
+        try:
+            return handler(value)
+        except ValidationError as ex:
+            raise ValidationError.from_exception_data(
+                ex.title,
+                [
+                    {**error, "loc": (error["loc"][0], *error["loc"][2:])}
+                    if len(error["loc"]) >= 2 and error["loc"][1] in ("column", "sql")
+                    else error
+                    for error in ex.errors(include_url=False)
+                ],
+            ) from None
 
 
 class MetricTileControls(BaseModel):

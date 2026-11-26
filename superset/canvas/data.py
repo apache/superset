@@ -28,15 +28,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from superset.exceptions import QueryObjectValidationError
-from superset.widgets.controls import BindingFilter, ColumnFilter, FilterScalar
+from superset.widgets.controls import ColumnFilter, FilterScalar, parse_binding_filters
 
 # The query object spells equality differently from the binding.
 QUERY_OPERATOR = {"=": "=="}
-
-_binding_filters = TypeAdapter(list[BindingFilter])
 
 
 class RuntimeFilter(BaseModel):
@@ -87,7 +85,7 @@ def query_context_payload(
     # A filter the binding's schema doesn't accept is refused, never skipped:
     # skipping it would show unfiltered data under a filtered title.
     try:
-        fixed = _binding_filters.validate_python(binding.get("filters") or [])
+        fixed = parse_binding_filters(binding.get("filters") or [])
     except ValidationError as ex:
         raise QueryObjectValidationError(_filter_error(ex)) from ex
     for fixed_filter in fixed:
@@ -142,8 +140,7 @@ def _filter_error(ex: ValidationError) -> str:
     loc = first["loc"]
     if not loc or not isinstance(loc[0], int):
         return f"The chart's filters are not valid: {first['msg']}"
-    # After the index comes the union tag, then the field.
-    field_path = ".".join(str(part) for part in loc[2:])
+    field_path = ".".join(str(part) for part in loc[1:])
     where = f"filter {loc[0]}" + (f" ({field_path})" if field_path else "")
     return f"The chart's {where} is not valid: {first['msg']}"
 

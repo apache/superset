@@ -91,7 +91,13 @@ def _is_collapsible(root: dict[str, Any], node: dict[str, Any]) -> bool:
     if node.get("type") == "array":
         items = node.get("items")
         if isinstance(items, dict):
-            return _is_object(_deref(root, items))
+            # Items of several shapes (``anyOf`` / ``oneOf``) are objects when
+            # any shape is.
+            shapes = items.get("anyOf") or items.get("oneOf") or [items]
+            return any(
+                isinstance(shape, dict) and _is_object(_deref(root, shape))
+                for shape in shapes
+            )
     return False
 
 
