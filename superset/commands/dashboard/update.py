@@ -355,6 +355,17 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
 
 class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
+    def __init__(
+        self,
+        model_id: int,
+        data: dict[str, Any],
+        *,
+        expected_metadata: str | None = None,
+    ) -> None:
+        """Optionally reject writes built from a stale dashboard snapshot."""
+        super().__init__(model_id, data)
+        self._expected_metadata = expected_metadata
+
     @transaction(
         on_error=partial(on_error, reraise=DashboardNativeFiltersUpdateFailedError)
     )
@@ -362,10 +373,34 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         super().validate()
         assert self._model
 
-        configuration = DashboardDAO.update_native_filters_config(
-            self._model, self._properties
-        )
+        with db.session.no_autoflush:
+            configuration = DashboardDAO.update_native_filters_config(
+                self._model, self._properties
+            )
 
+            if self._expected_metadata is not None:
+                # Lock the row before comparing the snapshot. A no-op UPDATE
+                # also works on databases without SELECT FOR UPDATE, retaining
+                # the lock through the ORM flush and commit without bypassing
+                # metadata history/version hooks. Compare in Python so database
+                # collations cannot hide case-only changes in filter IDs.
+                query = db.session.query(Dashboard).filter(
+                    Dashboard.id == self._model_id
+                )
+                matched = query.update(
+                    {Dashboard.json_metadata: Dashboard.json_metadata},
+                    synchronize_session=False,
+                )
+                stored_metadata = (
+                    query.with_entities(Dashboard.json_metadata)
+                    .with_for_update()
+                    .scalar()
+                )
+                if matched != 1 or (stored_metadata or "") != self._expected_metadata:
+                    raise DashboardNativeFiltersUpdateFailedError(
+                        "Dashboard changed during native filter validation; "
+                        "re-read the dashboard and retry."
+                    )
         return configuration
 
 

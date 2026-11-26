@@ -17751,6 +17751,13 @@ msgstr[1] ""
 
 #, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -22426,6 +22433,9 @@ msgstr ""
 "Metriken), die diesem neuen Datensatz entsprechen, wurden beibehalten."
 
 msgid "Your account is activated. You can log in with your credentials."
+msgstr "Ihr Konto ist aktiviert. Sie können sich mit Ihren Zugangsdaten anmelden."
+
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "Ihr Konto ist aktiviert. Sie können sich mit Ihren Zugangsdaten anmelden."
 
 msgid "Your changes will be lost if you leave without saving."
