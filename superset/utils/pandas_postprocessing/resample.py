@@ -246,6 +246,10 @@ def resample(  # pylint: disable=too-many-arguments
     _validate_projected_rows(df.index.min(), df.index.max(), rule)
 
     if method == "asfreq" and fill_value is not None:
+        # fill_value only makes sense for numeric (metric) columns; a non-numeric
+        # (dimension/label) column has no meaningful "zero" and, since pandas 3.0
+        # enforces per-column dtype purity, writing a number into a string column
+        # raises instead of silently coercing.
         _df = df.resample(rule).asfreq()
         numeric_columns = _df.select_dtypes(include="number").columns
         _df[numeric_columns] = _df[numeric_columns].fillna(fill_value)
