@@ -516,8 +516,7 @@ def test_mssql_resource_governor_error_is_a_failed_query_not_a_500(
     mock_query_context.get_payload_result.side_effect = error
     database = Mock()
     database.db_engine_spec.extract_error_message.return_value = (
-        "mssql error: The request limit for the database is 400 and has "
-        "been reached."
+        "mssql error: The request limit for the database is 400 and has been reached."
     )
     mock_query_context.datasource = Mock(database=database)
 
