@@ -201,9 +201,15 @@ def _mock_command(captured: dict[str, Any]) -> Callable[[int, dict[str, Any]], M
     new filters appended, deletions removed).
     """
 
-    def command_factory(dashboard_id: int, payload: dict[str, Any]) -> Mock:
+    def command_factory(
+        dashboard_id: int,
+        payload: dict[str, Any],
+        *,
+        expected_metadata: str | None = None,
+    ) -> Mock:
         captured["dashboard_id"] = dashboard_id
         captured["payload"] = payload
+        captured["expected_metadata"] = expected_metadata
 
         command = Mock()
 
@@ -2977,3 +2983,613 @@ async def test_add_dataset_only_filter_rejects_select_flags(
             },
         )
     command.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Filter dependencies (cascade_parent_ids)
+# ---------------------------------------------------------------------------
+
+
+def _child_filter(
+    filter_id: str, parents: list[str], base: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Build an existing select filter that depends on ``parents``."""
+    conf = copy.deepcopy(base or EXISTING_SELECT_FILTER)
+    conf["id"] = filter_id
+    conf["cascadeParentIds"] = list(parents)
+    return conf
+
+
+async def _manage(
+    mcp_server: object,
+    filters: list[dict[str, Any]],
+    request: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Run the tool against ``filters`` and return (response, captured)."""
+    captured: dict[str, Any] = {"current_config": filters}
+    dashboard = _mock_dashboard(filters=filters)
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(mcp_server, {"dashboard_id": 1, **request})
+    return data, captured
+
+
+@pytest.mark.asyncio
+async def test_add_filter_with_cascade_parent(mcp_server: object) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_select",
+                    "name": "City",
+                    "dataset_id": 5,
+                    "column": "region",
+                    # Duplicates collapse, order is kept.
+                    "cascade_parent_ids": [
+                        "NATIVE_FILTER-existing1",
+                        "NATIVE_FILTER-existing1",
+                    ],
+                }
+            ]
+        },
+    )
+
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "NATIVE_FILTER-existing1"
+    ]
+    by_id = {f["id"]: f for f in data["filters"]}
+    new_id = data["added_filter_ids"][0]
+    assert by_id[new_id]["cascade_parent_ids"] == ["NATIVE_FILTER-existing1"]
+    assert by_id["NATIVE_FILTER-existing1"]["cascade_parent_ids"] == []
+
+
+@pytest.mark.asyncio
+async def test_add_filter_without_cascade_parent_keeps_empty_list(
+    mcp_server: object,
+) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_select",
+                    "name": "City",
+                    "dataset_id": 5,
+                    "column": "region",
+                }
+            ]
+        },
+    )
+
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == []
+
+
+@pytest.mark.asyncio
+async def test_update_sets_replaces_and_clears_cascade_parents(
+    mcp_server: object,
+) -> None:
+    filters = [
+        EXISTING_SELECT_FILTER,
+        EXISTING_RANGE_FILTER,
+        EXISTING_TIME_FILTER,
+        _child_filter("NATIVE_FILTER-child", []),
+    ]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {
+            "update": [
+                {
+                    "id": "NATIVE_FILTER-child",
+                    "cascade_parent_ids": [
+                        "NATIVE_FILTER-existing1",
+                        "NATIVE_FILTER-existing3",
+                        "NATIVE_FILTER-existing2",
+                    ],
+                }
+            ]
+        },
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "NATIVE_FILTER-existing1",
+        "NATIVE_FILTER-existing3",
+        "NATIVE_FILTER-existing2",
+    ]
+
+    # Omitting the field leaves the dependency alone.
+    filters[3] = _child_filter("NATIVE_FILTER-child", ["NATIVE_FILTER-existing1"])
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "NATIVE_FILTER-child", "name": "Renamed"}]},
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "NATIVE_FILTER-existing1"
+    ]
+
+    # An empty list clears it.
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "NATIVE_FILTER-child", "cascade_parent_ids": []}]},
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == []
+
+
+@pytest.mark.asyncio
+async def test_update_unknown_cascade_parent_rejected(mcp_server: object) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER, _child_filter("NATIVE_FILTER-child", [])],
+        {
+            "update": [
+                {"id": "NATIVE_FILTER-child", "cascade_parent_ids": ["no-such-filter"]}
+            ]
+        },
+    )
+
+    assert "no-such-filter" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_add_unknown_cascade_parent_rejected(mcp_server: object) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_select",
+                    "name": "City",
+                    "dataset_id": 5,
+                    "column": "region",
+                    "cascade_parent_ids": ["no-such-filter"],
+                }
+            ]
+        },
+    )
+
+    assert "no-such-filter" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_self_dependency_rejected(mcp_server: object) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER],
+        {
+            "update": [
+                {
+                    "id": "NATIVE_FILTER-existing1",
+                    "cascade_parent_ids": ["NATIVE_FILTER-existing1"],
+                }
+            ]
+        },
+    )
+
+    assert "cannot depend on itself" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_cascade_cycle_rejected(mcp_server: object) -> None:
+    """country <- city <- street; making country depend on street closes a loop."""
+    filters = [
+        _child_filter("country", []),
+        _child_filter("city", ["country"]),
+        _child_filter("street", ["city"]),
+    ]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "country", "cascade_parent_ids": ["street"]}]},
+    )
+
+    assert "cycle" in data["error"]
+    assert "country -> street -> city -> country" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_cascade_cycle_via_two_updates_in_one_request_rejected(
+    mcp_server: object,
+) -> None:
+    """Each update is acyclic alone; together they form a loop."""
+    filters = [_child_filter("a", []), _child_filter("b", [])]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {
+            "update": [
+                {"id": "a", "cascade_parent_ids": ["b"]},
+                {"id": "b", "cascade_parent_ids": ["a"]},
+            ]
+        },
+    )
+
+    assert "cycle" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_cascade_parent_must_support_dependencies(
+    mcp_server: object,
+) -> None:
+    filters: list[dict[str, Any]] = [
+        EXISTING_TIMEGRAIN_FILTER,
+        EXISTING_TIMECOLUMN_FILTER,
+        EXISTING_DIVIDER,
+        _child_filter("NATIVE_FILTER-child", []),
+    ]
+    for parent in (
+        "NATIVE_FILTER-existing4",
+        "NATIVE_FILTER-existing6",
+        "NATIVE_FILTER_DIVIDER-existing5",
+    ):
+        data, captured = await _manage(
+            mcp_server,
+            filters,
+            {"update": [{"id": "NATIVE_FILTER-child", "cascade_parent_ids": [parent]}]},
+        )
+        assert "cannot be parents" in data["error"]
+        assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_cascade_parent_removed_in_same_request_rejected(
+    mcp_server: object,
+) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER, _child_filter("NATIVE_FILTER-child", [])],
+        {
+            "remove": ["NATIVE_FILTER-existing1"],
+            "update": [
+                {
+                    "id": "NATIVE_FILTER-child",
+                    "cascade_parent_ids": ["NATIVE_FILTER-existing1"],
+                }
+            ],
+        },
+    )
+
+    assert "NATIVE_FILTER-existing1" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "existing,spec",
+    [
+        (EXISTING_TIMEGRAIN_FILTER, {"id": "NATIVE_FILTER-existing4"}),
+        (EXISTING_TIMECOLUMN_FILTER, {"id": "NATIVE_FILTER-existing6"}),
+        (EXISTING_DIVIDER, {"id": "NATIVE_FILTER_DIVIDER-existing5"}),
+    ],
+)
+async def test_update_cascade_parents_rejected_on_unsupported_type(
+    mcp_server: object, existing: dict[str, Any], spec: dict[str, Any]
+) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER, existing],
+        {
+            "update": [
+                {**spec, "cascade_parent_ids": ["NATIVE_FILTER-existing1"]},
+            ]
+        },
+    )
+
+    assert "cascade_parent_ids" in data["error"]
+    assert "only apply to" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "spec",
+    [
+        {"filter_type": "divider", "name": "Sep"},
+        {"filter_type": "filter_timegrain", "name": "Grain", "dataset_id": 5},
+        {"filter_type": "filter_timecolumn", "name": "Col", "dataset_id": 5},
+    ],
+)
+async def test_add_cascade_parents_rejected_on_unsupported_type(
+    mcp_server: object, spec: dict[str, Any]
+) -> None:
+    from fastmcp.exceptions import ToolError
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH) as command,
+        pytest.raises(ToolError, match="cascade_parent_ids.*only apply to"),
+    ):
+        await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [{**spec, "cascade_parent_ids": ["NATIVE_FILTER-existing1"]}],
+            },
+        )
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_remove_parent_strips_it_from_dependent_filters(
+    mcp_server: object,
+) -> None:
+    """Deleting a parent must not leave dangling IDs on filters that used it."""
+    filters = [
+        _child_filter("country", []),
+        _child_filter("region", []),
+        _child_filter("city", ["country", "region"]),
+        _child_filter("unrelated", ["region"]),
+    ]
+
+    data, captured = await _manage(mcp_server, filters, {"remove": ["country"]})
+
+    assert data["error"] is None
+    assert captured["payload"]["deleted"] == ["country"]
+    # Only the dependent filter is rewritten; untouched ones are not.
+    assert [m["id"] for m in captured["payload"]["modified"]] == ["city"]
+    by_id = {f["id"]: f for f in data["filters"]}
+    assert by_id["city"]["cascade_parent_ids"] == ["region"]
+    assert by_id["unrelated"]["cascade_parent_ids"] == ["region"]
+    assert data["updated_filter_ids"] == ["city"]
+    # The stored config of the dependent filter is otherwise unchanged.
+    expected = _child_filter("city", ["region"])
+    assert captured["payload"]["modified"][0] == expected
+
+
+@pytest.mark.asyncio
+async def test_remove_parent_strips_it_from_filter_updated_in_same_request(
+    mcp_server: object,
+) -> None:
+    filters = [
+        _child_filter("country", []),
+        _child_filter("city", ["country"]),
+    ]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"remove": ["country"], "update": [{"id": "city", "name": "City"}]},
+    )
+
+    assert data["error"] is None
+    assert [m["id"] for m in captured["payload"]["modified"]] == ["city"]
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == []
+    assert captured["payload"]["modified"][0]["name"] == "City"
+    assert data["updated_filter_ids"] == ["city"]
+
+
+@pytest.mark.asyncio
+async def test_remove_filter_without_dependents_does_not_rewrite_others(
+    mcp_server: object,
+) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER, EXISTING_TIME_FILTER],
+        {"remove": ["NATIVE_FILTER-existing1"]},
+    )
+
+    assert data["error"] is None
+    assert captured["payload"] == {"deleted": ["NATIVE_FILTER-existing1"]}
+
+
+@pytest.mark.asyncio
+async def test_existing_dangling_parent_does_not_block_unrelated_update(
+    mcp_server: object,
+) -> None:
+    """Legacy dangling parents on untouched filters are not this request's job."""
+    filters = [
+        EXISTING_SELECT_FILTER,
+        _child_filter("legacy", ["long-gone"]),
+    ]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {
+            "update": [
+                {
+                    "id": "NATIVE_FILTER-existing1",
+                    "cascade_parent_ids": [],
+                }
+            ]
+        },
+    )
+
+    assert data["error"] is None
+    assert [m["id"] for m in captured["payload"]["modified"]] == [
+        "NATIVE_FILTER-existing1"
+    ]
+
+
+def test_cascade_parent_ids_field_is_documented_in_schemas() -> None:
+    from superset.mcp_service.dashboard.schemas import (
+        BaseNewFilterSpec,
+        NativeFilterUpdateSpec,
+    )
+
+    assert "cascade_parent_ids" in BaseNewFilterSpec.model_fields
+    assert "cascade_parent_ids" in NativeFilterUpdateSpec.model_fields
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("rename", [False, True])
+@pytest.mark.parametrize("malformed_first", [False, True])
+async def test_remove_parent_preserves_malformed_dependency_entries(
+    mcp_server: object, rename: bool, malformed_first: bool
+) -> None:
+    """Removal tolerates unhashable legacy entries, including on updated children."""
+    child = _child_filter("city", ["country", "region"])
+    malformed = [{"legacy": "value"}, ["legacy"], None]
+    child["cascadeParentIds"] = (
+        malformed + ["country", "region"]
+        if malformed_first
+        else ["country", "region"] + malformed
+    )
+    filters = [_child_filter("country", []), _child_filter("region", []), child]
+    request: dict[str, Any] = {"remove": ["country"]}
+    if rename:
+        request["update"] = [{"id": "city", "name": "Renamed"}]
+
+    data, captured = await _manage(mcp_server, filters, request)
+
+    assert data["error"] is None
+    modified = captured["payload"]["modified"]
+    assert len(modified) == 1
+    assert modified[0]["cascadeParentIds"] == (
+        malformed + ["region"] if malformed_first else ["region"] + malformed
+    )
+    assert "country" in child["cascadeParentIds"]
+    assert next(f for f in data["filters"] if f["id"] == "city")[
+        "cascade_parent_ids"
+    ] == ["region"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("echo_dead_parent", [False, True])
+async def test_dead_parent_read_modify_write(
+    mcp_server: object, echo_dead_parent: bool
+) -> None:
+    """Hidden legacy parents do not prevent editing the visible dependencies."""
+    from superset.mcp_service.dashboard.schemas import _extract_native_filters
+
+    filters = [
+        _child_filter("country", []),
+        _child_filter("region", []),
+        _child_filter("city", ["deleted", "region"]),
+    ]
+    summaries = _extract_native_filters(
+        json.dumps({"native_filter_configuration": filters})
+    )
+    assert summaries[2].cascade_parent_ids == ["region"]
+    # Also exercise the manage response's separate summary path.
+    data, _ = await _manage(
+        mcp_server, filters, {"update": [{"id": "city", "name": "City"}]}
+    )
+    assert data["filters"][2]["cascade_parent_ids"] == ["region"]
+    parents = [*summaries[2].cascade_parent_ids, "country"]
+    if echo_dead_parent:
+        parents.append("deleted")
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "city", "cascade_parent_ids": parents}]},
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "region",
+        "country",
+    ]
+    assert filters[2]["cascadeParentIds"] == ["deleted", "region"]
+
+
+@pytest.mark.asyncio
+async def test_stale_parent_on_another_filter_is_still_unknown(
+    mcp_server: object,
+) -> None:
+    """Only dead parents already stored on this filter may be silently dropped."""
+    data, captured = await _manage(
+        mcp_server,
+        [_child_filter("city", ["deleted"]), _child_filter("region", [])],
+        {"update": [{"id": "region", "cascade_parent_ids": ["deleted"]}]},
+    )
+    assert "not on the dashboard" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_remove_reports_all_trimmed_children_once(mcp_server: object) -> None:
+    """Implicit and explicit child updates are reported without duplicates."""
+    data, captured = await _manage(
+        mcp_server,
+        [
+            _child_filter("country", []),
+            _child_filter("region", ["country"]),
+            _child_filter("city", ["country", "region"]),
+            _child_filter("unrelated", []),
+        ],
+        {"remove": ["country"], "update": [{"id": "region", "name": "Region"}]},
+    )
+    assert data["error"] is None
+    assert data["updated_filter_ids"] == ["region", "city"]
+    assert [f["id"] for f in captured["payload"]["modified"]] == ["region", "city"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("custom_side", ["parent", "child"])
+async def test_existing_plugin_filter_supports_cascade_dependencies(
+    mcp_server: object, custom_side: str
+) -> None:
+    """Stored native plugins can participate on either side of a cascade."""
+    parent = _child_filter("parent", [])
+    child = _child_filter("child", [])
+    (parent if custom_side == "parent" else child)["filterType"] = (
+        "custom_native_filter"
+    )
+    data, captured = await _manage(
+        mcp_server,
+        [parent, child],
+        {"update": [{"id": "child", "cascade_parent_ids": ["parent"]}]},
+    )
+    assert "error" not in data or data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == ["parent"]
+
+
+@pytest.mark.asyncio
+async def test_native_filter_write_uses_validated_metadata_snapshot(
+    mcp_server: object,
+) -> None:
+    """The command's compare-and-write guard must cover the validated snapshot."""
+    filters = [EXISTING_SELECT_FILTER]
+    _, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "NATIVE_FILTER-existing1", "name": "Renamed"}]},
+    )
+    assert (
+        captured["expected_metadata"] == _mock_dashboard(filters=filters).json_metadata
+    )
+
+
+@pytest.mark.asyncio
+async def test_add_filter_with_existing_plugin_cascade_parent(
+    mcp_server: object,
+) -> None:
+    """Adding a built-in child must accept a stored plugin parent too."""
+    parent = _child_filter("parent", [])
+    parent["filterType"] = "custom_native_filter"
+    data, captured = await _manage(
+        mcp_server,
+        [parent],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_time",
+                    "name": "Time",
+                    "cascade_parent_ids": ["parent"],
+                }
+            ]
+        },
+    )
+    assert not data.get("error")
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == ["parent"]

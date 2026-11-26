@@ -1658,6 +1658,9 @@ msgstr ""
 msgid "Alert ended grace period."
 msgstr ""
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr ""
 
@@ -2401,6 +2404,12 @@ msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
 msgstr ""
 
 msgid "Archived by"
+msgstr ""
+
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, including "
+"assets you cannot view. Archiving or permanently deleting this dataset can "
+"prevent those assets from working after they are recovered."
 msgstr ""
 
 msgid "Archived items must be recovered before they can be opened."
@@ -5246,6 +5255,9 @@ msgstr ""
 msgid "Default color"
 msgstr ""
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr ""
 
@@ -5262,6 +5274,9 @@ msgid "Default message"
 msgstr ""
 
 msgid "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space"
+msgstr ""
+
+msgid "Default row expansion depth"
 msgstr ""
 
 msgid "Default schema (database) to connect to"
@@ -6755,6 +6770,10 @@ msgstr ""
 msgid "Expand %s"
 msgstr ""
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr ""
 
@@ -7616,6 +7635,9 @@ msgstr ""
 msgid "Fullscreen is not supported in this browser."
 msgstr ""
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr ""
 
@@ -7929,7 +7951,13 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr ""
 
+msgid "How many column group levels to show expanded on initial load. Select \"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
+msgstr ""
+
+msgid "How many row group levels to show expanded on initial load. Select \"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-level rows (children collapsed)."
 msgstr ""
 
 msgid "How many top values to select"
@@ -9049,9 +9077,6 @@ msgid "Logarithmic x-axis"
 msgstr ""
 
 msgid "Logarithmic y-axis"
-msgstr ""
-
-msgid "Login"
 msgstr ""
 
 msgid "Login count"
@@ -10564,6 +10589,9 @@ msgid "Open filters"
 msgstr ""
 
 msgid "Open in SQL Lab"
+msgstr ""
+
+msgid "Open in Superset"
 msgstr ""
 
 msgid "Open in SQL lab"
@@ -14929,6 +14957,9 @@ msgstr ""
 msgid "The following charts were omitted because an error occurred while exporting them:"
 msgstr ""
 
+msgid "The following charts were omitted because their chart type is not yet supported on semantic views. To include them, switch each chart to a supported type such as Table, Bar or Line."
+msgstr ""
+
 msgid "The following charts were omitted because their size cannot be determined before they run. Ask an administrator to enable background exports to include them."
 msgstr ""
 
@@ -18393,7 +18424,7 @@ msgstr ""
 msgid "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained."
 msgstr ""
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr ""
 
 msgid "Your changes will be lost if you leave without saving."
@@ -19553,4 +19584,66 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+#, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
+msgstr ""
+
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
+msgid "Select an approved Teams channel"
+msgstr ""
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
+msgid "A configured Teams destination key is required"
+msgstr ""
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
 msgstr ""

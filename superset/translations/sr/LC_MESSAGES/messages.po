@@ -28047,6 +28047,9 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Ваш налог је активиран. Можете се пријавити користећи своје акредитиве."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "Ваш налог је активиран. Можете се пријавити користећи своје акредитиве."
+
 # ru, sk, uk]
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Ваше измене ће бити изгубљене ако одете без чувања."

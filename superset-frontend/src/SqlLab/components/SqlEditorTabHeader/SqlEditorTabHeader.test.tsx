@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import {
   fireEvent,
@@ -48,7 +48,7 @@ jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
 ));
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 const setup = (queryEditor: QueryEditor, store?: Store) =>
   render(<SqlEditorTabHeader queryEditor={queryEditor} />, {
     useRedux: true,

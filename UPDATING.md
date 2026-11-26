@@ -41,6 +41,14 @@ assists people when migrating to a new version.
   rejects the save. Optional capture failures isolated by a successful savepoint
   rollback may still omit history without rejecting the save.
 
+- **OAuth login with a single provider:** when `OAUTH_PROVIDERS` contains exactly
+  one provider, the login page now skips the provider choice and redirects
+  straight to that provider's sign-in. After logout, users land on the login page
+  and are redirected to the provider again, which may sign them straight back in
+  while their provider session is active. Set `LOGOUT_REDIRECT_URL` (or override
+  `logout` in a custom OAuth view) to send users elsewhere or end the provider
+  session.
+
 - `list` and `pages` are now reserved extension publisher names. An
   extension already published under either will fail manifest validation
   and the `superset-extensions` CLI will refuse to build it; the host owns
@@ -3038,6 +3046,8 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or the relative anchor itself) previously resolved that anchor in UTC before formatting it into a naive datetime string, which was then re-parsed elsewhere as local time. For users outside UTC, this made the resolved anchor drift by their browser's UTC offset. "Now"/"Today" now resolve directly in local time, matching the later local re-parse.
 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
+
+- [43712](https://github.com/apache/superset/pull/43712): As the `ascend.io` platform shut down, its DB integration has been removed. Any existing `ascend://` DB connections and related resources (charts, datasets, etc.) will stop working after upgrading and must be either repointed or removed.
 
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
 
