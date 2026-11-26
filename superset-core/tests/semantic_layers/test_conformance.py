@@ -20,7 +20,7 @@ from dataclasses import replace
 from datetime import date
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import NoReturn, TYPE_CHECKING
 
 import pyarrow as pa
 import pytest
@@ -243,8 +243,8 @@ def test_exclusion_witness_rejects_weak_fixtures(
         expected = expected.slice(1)
     query = replace(query, filters={group, *outer})
 
-    def must_not_execute(query: SemanticQuery) -> SemanticResult:
-        pytest.fail("invalid fixture reached provider execution")
+    def must_not_execute(query: SemanticQuery) -> NoReturn:
+        raise RuntimeError("invalid fixture reached provider execution")
 
     monkeypatch.setattr(semantic_view, "get_table", must_not_execute)
     with pytest.raises(AssertionError):
