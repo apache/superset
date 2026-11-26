@@ -46,7 +46,10 @@ from superset.data_export.enqueue import (
     FEATURE_FLAG as FULL_EXPORT_FEATURE_FLAG,
     KIND_QUERY,
 )
-from superset.data_export.schemas import FullExportQueuedResponseSchema
+from superset.data_export.schemas import (
+    FullExportQueuedResponseSchema,
+    QueryFullExportPostSchema,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.extensions import event_logger, security_manager
@@ -108,6 +111,7 @@ class SqlLabRestApi(BaseSupersetApi):
         FormatQueryPayloadSchema,
         FullExportQueuedResponseSchema,
         QueryExecutionResponseSchema,
+        QueryFullExportPostSchema,
         SQLLabBootstrapSchema,
     )
 
@@ -399,6 +403,11 @@ class SqlLabRestApi(BaseSupersetApi):
               type: string
             name: client_id
             description: The SQL query result identifier
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/QueryFullExportPostSchema'
           responses:
             202:
               description: Export queued
@@ -426,6 +435,12 @@ class SqlLabRestApi(BaseSupersetApi):
         ) and not security_manager.can_access("can_export_data", "Superset"):
             return self.response_403()
 
+        try:
+            # Tolerate an empty body: the format has a default.
+            body = QueryFullExportPostSchema().load(request.get_json(silent=True) or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
         query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
         if query is None:
             return self.response_404()
@@ -442,6 +457,7 @@ class SqlLabRestApi(BaseSupersetApi):
             payload={
                 "client_id": client_id,
                 "label": query.tab_name or _("SQL Lab query"),
+                "format": body["format"],
             },
         )
         if isinstance(outcome, EnqueueRefusal):

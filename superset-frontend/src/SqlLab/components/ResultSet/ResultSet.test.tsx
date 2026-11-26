@@ -1283,15 +1283,23 @@ describe('uncapped export', () => {
     expect(queryByTestId('export-full-data-button')).not.toBeInTheDocument();
   });
 
-  test('queues an export of the query behind the shown results', async () => {
-    mockFullDataExportAvailable = true;
-    mockRequestFullDataExport.mockClear();
-    const { getByTestId } = setup(mockedProps, storeWithExportPermission());
+  test.each([
+    ['All rows as .CSV', 'csv'],
+    ['All rows as Excel', 'xlsx'],
+  ])(
+    'queues a %s export of the query behind the results',
+    async (label, format) => {
+      mockFullDataExportAvailable = true;
+      mockRequestFullDataExport.mockClear();
+      const { getByTestId } = setup(mockedProps, storeWithExportPermission());
 
-    fireEvent.click(getByTestId('export-full-data-button'));
+      fireEvent.click(getByTestId('export-full-data-button'));
+      fireEvent.click(await screen.findByText(label));
 
-    expect(mockRequestFullDataExport).toHaveBeenCalledWith({
-      endpoint: `/api/v1/sqllab/full_export/${queries[0].id}/`,
-    });
-  });
+      expect(mockRequestFullDataExport).toHaveBeenCalledWith({
+        endpoint: `/api/v1/sqllab/full_export/${queries[0].id}/`,
+        jsonPayload: { format },
+      });
+    },
+  );
 });

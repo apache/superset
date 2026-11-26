@@ -35,6 +35,7 @@ import {
   Button,
   ButtonGroup,
   Divider,
+  Dropdown,
   Tooltip,
   Input,
   Label,
@@ -452,28 +453,49 @@ const ResultSet = ({
             />
           )}
           {csv && isFullDataExportAvailable() && (
-            <Button
-              buttonSize="small"
-              variant="text"
-              color="primary"
-              icon={<Icons.MailOutlined iconSize="m" />}
-              tooltip={
-                !canExportData
-                  ? t("You don't have permission to export data")
-                  : t(
-                      'Export every row this query returns. It runs in the background and you get an email with a download link.',
-                    )
-              }
-              aria-label={t('Export all rows (emailed link)')}
+            <Dropdown
+              trigger={['click']}
               disabled={!canExportData || isExportingFullData}
-              data-test="export-full-data-button"
-              onClick={() => {
-                if (!canExportData) return;
-                requestFullDataExport({
-                  endpoint: `/api/v1/sqllab/full_export/${query.id}/`,
-                });
+              menu={{
+                selectable: false,
+                onClick: ({ key }: { key: string }) => {
+                  if (!canExportData) return;
+                  requestFullDataExport({
+                    endpoint: `/api/v1/sqllab/full_export/${query.id}/`,
+                    jsonPayload: { format: key },
+                  });
+                },
+                items: [
+                  {
+                    key: 'csv',
+                    label: t('All rows as .CSV'),
+                    'data-test': 'export-full-data-csv',
+                  },
+                  {
+                    key: 'xlsx',
+                    label: t('All rows as Excel'),
+                    'data-test': 'export-full-data-xlsx',
+                  },
+                ],
               }}
-            />
+            >
+              <Button
+                buttonSize="small"
+                variant="text"
+                color="primary"
+                icon={<Icons.MailOutlined iconSize="m" />}
+                tooltip={
+                  !canExportData
+                    ? t("You don't have permission to export data")
+                    : t(
+                        'Export every row this query returns. It runs in the background and you get an email with a download link.',
+                      )
+                }
+                aria-label={t('Export all rows (emailed link)')}
+                disabled={!canExportData || isExportingFullData}
+                data-test="export-full-data-button"
+              />
+            </Dropdown>
           )}
           <CopyToClipboard
             text={

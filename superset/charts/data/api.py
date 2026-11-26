@@ -529,7 +529,7 @@ class ChartDataRestApi(ChartRestApi):
         outcome = enqueue_full_export(
             kind=KIND_CHART,
             target=self._full_export_target(query_context, json_body),
-            payload=self._full_export_payload(query_context),
+            payload=self._full_export_payload(query_context, body["format"]),
         )
         if isinstance(outcome, EnqueueRefusal):
             return self.response(outcome.status, message=outcome.message)
@@ -576,10 +576,13 @@ class ChartDataRestApi(ChartRestApi):
             return f"slice:{slice_.id}"
         return f"datasource:{json_body.get('datasource')}"
 
-    def _full_export_payload(self, query_context: QueryContext) -> dict[str, Any]:
+    def _full_export_payload(
+        self, query_context: QueryContext, export_format: str
+    ) -> dict[str, Any]:
         """What the worker rebuilds the export from."""
         slice_ = query_context.slice_
         payload: dict[str, Any] = {
+            "format": export_format,
             "query_context": self._uncapped_query_payload(query_context),
             "label": (
                 slice_.slice_name

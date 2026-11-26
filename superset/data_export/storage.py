@@ -66,7 +66,7 @@ def is_full_export_available() -> bool:
     return True
 
 
-def resolve_object_key(kind: str, job_id: str) -> str:
+def resolve_object_key(kind: str, job_id: str, extension: str = "csv") -> str:
     """The storage object key this export's file is uploaded under."""
     key_prefix = current_app.config["FULL_DATA_EXPORT_KEY_PREFIX"]
     if callable(key_prefix):
@@ -74,4 +74,4 @@ def resolve_object_key(kind: str, job_id: str) -> str:
         # only known in task context (e.g. a multi-tenant installation
         # scoping a shared bucket per tenant).
         key_prefix = key_prefix()
-    return f"{key_prefix}{kind}/{job_id}.csv"
+    return f"{key_prefix}{kind}/{job_id}.{extension}"

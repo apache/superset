@@ -69,6 +69,7 @@ def test_the_export_is_named_and_keyed_by_the_query(
     assert kwargs["payload"] == {
         "client_id": "abc123",
         "label": "Untitled Query 3",
+        "format": "csv",
     }
     assert kwargs["target"] == "abc123"
 
@@ -150,3 +151,31 @@ def test_a_refusal_from_the_enqueue_guards_is_passed_through(
 
     assert response.status_code == 400
     assert "background exports" in json.loads(response.data)["message"]
+
+
+def test_the_format_defaults_to_csv_for_an_empty_body(
+    session: Session, client: Any, full_api_access: None, queued: MagicMock
+) -> None:
+    """The button sends no body; a missing format must not fail the request."""
+    client.post(URL)
+
+    assert queued.call_args.kwargs["payload"]["format"] == "csv"
+
+
+def test_an_excel_export_can_be_requested(
+    session: Session, client: Any, full_api_access: None, queued: MagicMock
+) -> None:
+    client.post(URL, json={"format": "xlsx"})
+
+    assert queued.call_args.kwargs["payload"]["format"] == "xlsx"
+
+
+def test_an_unknown_format_is_rejected(
+    session: Session, client: Any, full_api_access: None, queued: MagicMock
+) -> None:
+    """Rejected at the door rather than in the worker, where it would cost a
+    queued job and a failure email."""
+    response = client.post(URL, json={"format": "parquet"})
+
+    assert response.status_code == 400
+    queued.assert_not_called()

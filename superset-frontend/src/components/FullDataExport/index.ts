@@ -23,4 +23,7 @@ export {
   POLL_INTERVAL_MS,
   POLL_TIMEOUT_MS,
 } from './useFullDataExport';
-export type { FullDataExportRequest } from './useFullDataExport';
+export type {
+  FullDataExportFormat,
+  FullDataExportRequest,
+} from './useFullDataExport';

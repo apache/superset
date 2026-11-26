@@ -28,12 +28,18 @@ assists people when migrating to a new version.
 
 A new feature flag, off by default, adds one export path that no row cap
 bounds: with it on, a user can ask for every row a chart's query or a SQL Lab
-result returns. A Celery worker streams the rows into a CSV in
-`EXPORT_STORAGE` and the requester gets an expiring download link, emailed to
-them and also polled by the page they asked from, which downloads the file as
-soon as it is ready. Neither `ROW_LIMIT` nor `SQL_MAX_ROW` is applied, and
-there is no row or file-size ceiling; the cost of one export is bounded by its
-time limit instead.
+result returns, as CSV or as Excel. A Celery worker streams the rows into a
+file in `EXPORT_STORAGE` and the requester gets an expiring download link,
+emailed to them and also polled by the page they asked from, which downloads
+the file as soon as it is ready. Neither `ROW_LIMIT` nor `SQL_MAX_ROW` is
+applied, and there is no row or file-size ceiling; the cost of one export is
+bounded by its time limit instead.
+
+An `.xlsx` export spreads its rows across continuation sheets (`Chart`,
+`Chart~2`, ...) once a worksheet's 1,048,575-row capacity is reached, so the
+workbook holds every row rather than stopping at the limit. The dashboard
+Excel export is unchanged and still truncates one sheet with a visible
+notice.
 
 This is distinct from `ALLOW_FULL_CSV_EXPORT`, which only lifts a table
 chart's own row limit up to `SQL_MAX_ROW` and still downloads within the
@@ -59,8 +65,10 @@ without it the requester still gets the file through status polling, so a user
 who navigates away before the export finishes has no other way to retrieve it.
 
 New endpoints: `POST /api/v1/chart/data/full_export/` (body: the same query
-context `/api/v1/chart/data/` accepts, under `query_context`) and
-`POST /api/v1/sqllab/full_export/<client_id>/` both return `202` with a job id,
+context `/api/v1/chart/data/` accepts, under `query_context`, plus an optional
+`format` of `csv` or `xlsx`) and
+`POST /api/v1/sqllab/full_export/<client_id>/` (optional `format` body) both
+return `202` with a job id,
 resolved through `GET /api/v1/data_export/status/<job_id>/` and downloaded from
 `GET /api/v1/data_export/download/<job_id>/`. The download endpoint is
 login-free, like the dashboard Excel export's: the unguessable job id is the

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { JsonObject, QueryFormData } from '@superset-ui/core';
+import type { FullDataExportFormat } from 'src/components/FullDataExport';
 
 export interface SliceHeaderControlsProps {
   slice: {
@@ -55,7 +56,7 @@ export interface SliceHeaderControlsProps {
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
-  exportFullData?: (sliceId: number) => void;
+  exportFullData?: (sliceId: number, format: FullDataExportFormat) => void;
   handleToggleFullSize: () => void;
 
   addDangerToast: (message: string) => void;

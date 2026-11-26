@@ -39,7 +39,10 @@ import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 
 import { buildV1ChartDataPayload, exportChart } from 'src/explore/exploreUtils';
-import { useFullDataExport } from 'src/components/FullDataExport';
+import {
+  useFullDataExport,
+  type FullDataExportFormat,
+} from 'src/components/FullDataExport';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import {
@@ -769,31 +772,36 @@ const Chart = (props: ChartProps) => {
    * link. Unlike the exports above it is not bounded by `ROW_LIMIT` or
    * `SQL_MAX_ROW`, so it cannot be answered within the request.
    */
-  const exportFullData = useCallback(async () => {
-    boundActionCreators.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
-      slice_id: sliceSliceId,
-      is_cached: isCached,
-    });
-    const queryContext = await buildV1ChartDataPayload({
-      formData:
-        formData as unknown as import('@superset-ui/core').QueryFormData,
-      force: false,
-      resultFormat: 'csv',
-      resultType: 'full',
-      ownState: dataMaskOwnState,
-    });
-    await requestFullDataExport({
-      endpoint: '/api/v1/chart/data/full_export/',
-      jsonPayload: { query_context: queryContext },
-    });
-  }, [
-    boundActionCreators.logEvent,
-    dataMaskOwnState,
-    formData,
-    isCached,
-    requestFullDataExport,
-    sliceSliceId,
-  ]);
+  const exportFullData = useCallback(
+    async (_sliceId: number, format: FullDataExportFormat = 'csv') => {
+      boundActionCreators.logEvent(
+        format === 'csv'
+          ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
+          : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
+        { slice_id: sliceSliceId, is_cached: isCached },
+      );
+      const queryContext = await buildV1ChartDataPayload({
+        formData:
+          formData as unknown as import('@superset-ui/core').QueryFormData,
+        force: false,
+        resultFormat: 'csv',
+        resultType: 'full',
+        ownState: dataMaskOwnState,
+      });
+      await requestFullDataExport({
+        endpoint: '/api/v1/chart/data/full_export/',
+        jsonPayload: { query_context: queryContext, format },
+      });
+    },
+    [
+      boundActionCreators.logEvent,
+      dataMaskOwnState,
+      formData,
+      isCached,
+      requestFullDataExport,
+      sliceSliceId,
+    ],
+  );
 
   const forceRefresh = useCallback(() => {
     boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {

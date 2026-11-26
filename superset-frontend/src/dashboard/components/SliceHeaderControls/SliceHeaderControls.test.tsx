@@ -1235,11 +1235,17 @@ test('Uncapped export is offered only where the deployment can deliver one', asy
   await openMenu();
   await userEvent.hover(screen.getByText('Download'));
   expect(
-    screen.queryByText('Export all rows (emailed link)'),
+    screen.queryByText('Export all rows to .CSV (emailed link)'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Export all rows to Excel (emailed link)'),
   ).not.toBeInTheDocument();
 });
 
-test('Should "export all rows" for any viz type', async () => {
+test.each([
+  ['Export all rows to .CSV (emailed link)', 'csv'],
+  ['Export all rows to Excel (emailed link)', 'xlsx'],
+])('Should "%s" for any viz type', async (label, format) => {
   // Unlike the full-CSV items this is the chart's own query, not a table's
   // rendered rows, so it is not restricted to table charts.
   mockFullDataExportAvailable = true;
@@ -1247,9 +1253,7 @@ test('Should "export all rows" for any viz type', async () => {
   renderWrapper(props);
   await openMenu();
   await userEvent.hover(screen.getByText('Download'));
-  await userEvent.click(
-    await screen.findByText('Export all rows (emailed link)'),
-  );
-  expect(props.exportFullData).toHaveBeenCalledWith(371);
+  await userEvent.click(await screen.findByText(label));
+  expect(props.exportFullData).toHaveBeenCalledWith(371, format);
   mockFullDataExportAvailable = false;
 });

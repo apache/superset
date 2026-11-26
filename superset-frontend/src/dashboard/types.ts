@@ -409,6 +409,7 @@ export enum MenuKeys {
   ExportXlsx = 'export_xlsx',
   ExportFullXlsx = 'export_full_xlsx',
   ExportFullData = 'export_full_data',
+  ExportFullDataXlsx = 'export_full_data_xlsx',
   ForceRefresh = 'force_refresh',
   Fullscreen = 'fullscreen',
   ToggleChartDescription = 'toggle_chart_description',

@@ -59,7 +59,7 @@ def test_encode_csv_stream_uses_configured_encoding(encoding: str) -> None:
 class _FakeResultProxy:
     """A server-side cursor over a fixed set of rows."""
 
-    def __init__(self, rows: list[tuple[int, ...]], columns: list[str]) -> None:
+    def __init__(self, rows: list[tuple[Any, ...]], columns: list[str]) -> None:
         self._rows = rows
         self._columns = columns
         self._position = 0
@@ -67,7 +67,7 @@ class _FakeResultProxy:
     def keys(self) -> list[str]:
         return self._columns
 
-    def fetchmany(self, size: int) -> list[tuple[int, ...]]:
+    def fetchmany(self, size: int) -> list[tuple[Any, ...]]:
         batch = self._rows[self._position : self._position + size]
         self._position += len(batch)
         return batch
@@ -180,3 +180,93 @@ def test_a_browser_consumer_still_gets_the_error_marker() -> None:
     ):
         stream = command.run()
         assert "__STREAM_ERROR__" in "".join(stream())
+
+
+def _rows_from(command: BaseStreamingCSVExportCommand, rows: int) -> list[Any]:
+    """Drive ``_execute_query_and_stream_rows`` over a fake cursor."""
+    proxy = _FakeResultProxy(
+        [(index, f"n{index}") for index in range(rows)], ["n", "s"]
+    )
+    database = MagicMock()
+    connection = database.get_sqla_engine.return_value.__enter__.return_value
+    connection = connection.connect.return_value.__enter__.return_value
+    connection.execution_options.return_value.exec_driver_sql.return_value = proxy
+
+    with patch("superset.commands.streaming_export.base.db"):
+        return list(
+            command._execute_query_and_stream_rows(  # noqa: SLF001
+                "SELECT n, s FROM t", database, None
+            )
+        )
+
+
+def test_the_row_stream_yields_the_header_then_the_rows() -> None:
+    """A spreadsheet writer needs cells, not characters; parsing the CSV back
+    apart would undo the formatting the export just applied."""
+    command = _Command(chunk_size=2)
+
+    streamed = _rows_from(command, 5)
+
+    assert streamed[0] == ["n", "s"]
+    assert streamed[1:] == [[index, f"n{index}"] for index in range(5)]
+
+
+def test_the_row_stream_reports_its_row_count() -> None:
+    seen: list[tuple[int, int]] = []
+    command = _Command(progress_callback=lambda r, b: seen.append((r, b)))
+
+    _rows_from(command, 5)
+
+    assert seen[-1][0] == 5
+
+
+def test_the_row_stream_reports_an_empty_result() -> None:
+    """So a consumer never has to tell "no rows" from "never ran"."""
+    seen: list[tuple[int, int]] = []
+    command = _Command(progress_callback=lambda r, b: seen.append((r, b)))
+
+    streamed = _rows_from(command, 0)
+
+    assert streamed == [["n", "s"]]
+    assert seen[-1][0] == 0
+
+
+def test_the_row_stream_honours_a_row_limit() -> None:
+    """A SQL Lab export keeps a LIMIT the user wrote themselves, and it is
+    applied after the fetch, so it has to bound this stream too."""
+    command = _Command(chunk_size=2)
+    proxy = _FakeResultProxy([(index,) for index in range(10)], ["n"])
+    database = MagicMock()
+    connection = database.get_sqla_engine.return_value.__enter__.return_value
+    connection = connection.connect.return_value.__enter__.return_value
+    connection.execution_options.return_value.exec_driver_sql.return_value = proxy
+
+    with patch("superset.commands.streaming_export.base.db"):
+        streamed = list(
+            command._execute_query_and_stream_rows(  # noqa: SLF001
+                "SELECT n FROM t", database, 3
+            )
+        )
+
+    assert streamed == [["n"], [0], [1], [2]]
+
+
+def test_a_row_stream_failure_propagates() -> None:
+    """There is no marker row a consumer could tell apart from data, so the
+    exception has to be the signal."""
+    command = _Command()
+    with (
+        patch.object(
+            _Command,
+            "_get_sql_and_database",
+            return_value=("SELECT 1", None, None, None),
+        ),
+        patch.object(
+            _Command,
+            "_execute_query_and_stream_rows",
+            side_effect=RuntimeError("the warehouse said no"),
+        ),
+    ):
+        stream = command.run_rows()
+        with pytest.raises(RuntimeError, match="the warehouse said no"):
+            list(stream())

@@ -14,9 +14,9 @@ query by the time there are results to export.
 
 The `ALLOW_UNCAPPED_DATA_EXPORT` feature flag adds one export path that no row
 cap bounds. With it on, a user can ask for **every row** a chart's query or a
-SQL Lab result returns. A background worker streams the rows into a CSV file,
-and the requester gets a download link: by email, and in the page they asked
-from, which downloads the file as soon as it is ready.
+SQL Lab result returns, as CSV or as Excel. A background worker streams the
+rows into a file, and the requester gets a download link: by email, and in the
+page they asked from, which downloads the file as soon as it is ready.
 
 This is deliberately not the default. An uncapped export can run for a long
 time and produce an arbitrarily large file, so enabling it is a per-deployment
@@ -34,12 +34,13 @@ changes the other's behavior.
 ## Using the export
 
 **From a chart** — in Explore, open **... (actions) → Download → Export All
-Data** and choose **Export all rows (emailed link)**. On a dashboard, the same
-item is in a chart's **... → Download** menu, and the dashboard's currently
-applied filters are included.
+Data** and choose **Export all rows to .CSV** or **Export all rows to Excel**
+(both say *emailed link*). On a dashboard the same two items are in a chart's
+**... → Download** menu, and the dashboard's currently applied filters are
+included.
 
 **From SQL Lab** — run your query, then use the envelope button next to
-**Download to CSV** in the results pane.
+**Download to CSV** in the results pane and pick a format.
 
 Either way the request returns immediately. You get a message that the export
 is being prepared, and then:
@@ -168,8 +169,11 @@ Raise both together for exports that legitimately run longer.
   statement that returns rows would drop whatever the earlier ones set up.
 - **Guest and anonymous sessions** cannot request an uncapped export: there is
   no address to send the link to.
-- **The file is CSV.** An uncapped export has no row ceiling, and a worksheet
-  does (1,048,576 rows), so there is no Excel equivalent.
+- **Excel spreads large results over several sheets.** A worksheet holds
+  1,048,575 data rows, so an export past that continues on `Chart~2`,
+  `Chart~3` and so on. Nothing is lost, but a workbook of several million rows
+  is slow to open and awkward to work with; CSV is the better choice at that
+  size, and it is the default.
 - **Worker disk.** The file is written to the worker's temporary directory
   before it is uploaded, and removed afterwards. Size the worker's disk for the
   largest export you expect to allow.

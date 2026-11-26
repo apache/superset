@@ -233,3 +233,32 @@ def test_a_request_without_a_query_context_is_rejected(
 
     assert response.status_code == 400
     queued.assert_not_called()
+
+
+def test_the_format_defaults_to_csv(
+    session: Session, client: Any, full_api_access: None, queued: MagicMock
+) -> None:
+    _post(client)
+
+    assert queued.call_args.kwargs["payload"]["format"] == "csv"
+
+
+def test_an_excel_export_can_be_requested(
+    session: Session, client: Any, full_api_access: None, queued: MagicMock
+) -> None:
+    client.post(URL, json={"query_context": QUERY_CONTEXT, "format": "xlsx"})
+
+    assert queued.call_args.kwargs["payload"]["format"] == "xlsx"
+
+
+def test_an_unknown_format_is_rejected(
+    session: Session, client: Any, full_api_access: None, queued: MagicMock
+) -> None:
+    """Rejected at the door rather than in the worker, where it would cost a
+    queued job and a failure email."""
+    response = client.post(
+        URL, json={"query_context": QUERY_CONTEXT, "format": "parquet"}
+    )
+
+    assert response.status_code == 400
+    queued.assert_not_called()

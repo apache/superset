@@ -30,10 +30,11 @@ from __future__ import annotations
 import math
 import numbers
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from datetime import date, datetime
 from decimal import Decimal
 from io import BytesIO
+from itertools import chain, islice
 from typing import Any
 
 import xlsxwriter
@@ -48,6 +49,9 @@ _RESERVED_SHEET_NAME = "history"
 
 # A worksheet holds at most 1,048,576 rows; one is reserved for the header.
 MAX_DATA_ROWS_PER_SHEET = 1_048_576 - 1
+
+# Distinguishes "the rows ran out" from a row that is itself falsy.
+_NO_MORE_ROWS = object()
 
 # Excel cannot represent integers beyond 10**15 without precision loss.
 _MAX_EXCEL_INT = 10**15
@@ -192,31 +196,89 @@ class StreamingXlsxWriter:
             Excel's per-sheet limit; when the data is larger a final notice row
             is appended and the dropped rows are not counted)
         """
-        sheet_name = sanitize_sheet_name(name, self._used_sheet_names)
-        worksheet = self._workbook.add_worksheet(sheet_name)
-        worksheet.write_row(0, 0, [_sanitize_cell(col) for col in columns])
-
         # Reserve the final row for a truncation notice, so when the data
         # exceeds the sheet's capacity the user can see rows were dropped
         # instead of silently losing them.
-        row_cap = MAX_DATA_ROWS_PER_SHEET - 1
-        written = 0
-        truncated = False
-        for row in rows:
-            if written >= row_cap:
-                truncated = True
-                break
-            worksheet.write_row(written + 1, 0, [_sanitize_cell(cell) for cell in row])
-            written += 1
-
-        if truncated:
+        worksheet = self._start_sheet(name, columns)
+        remaining: Iterator[Sequence[Any]] = iter(rows)
+        written = self._write_rows(worksheet, remaining, MAX_DATA_ROWS_PER_SHEET - 1)
+        if next(remaining, _NO_MORE_ROWS) is not _NO_MORE_ROWS:
             worksheet.write_string(
                 written + 1,
                 0,
                 f"[Truncated: only first {written:,} rows exported]",
             )
+        return written
 
+    def add_rolling_sheets(
+        self,
+        name: str,
+        columns: Sequence[Any],
+        rows: Iterable[Sequence[Any]],
+    ) -> int:
+        """
+        Write data rows across as many sheets as they need, truncating nothing.
+
+        A worksheet holds just over a million rows, so an export that is meant
+        to hold *every* row cannot live on one. Each continuation sheet repeats
+        the header and takes the base name again, which
+        :func:`sanitize_sheet_name` disambiguates to ``name~2``, ``name~3``...
+        Rows are written forward-only, one sheet after another, which is what
+        ``constant_memory`` mode allows.
+
+        :param name: Desired base sheet name (sanitized/de-duplicated)
+        :param columns: Column headers, repeated on every sheet
+        :param rows: Iterable of row sequences, streamed one at a time
+        :returns: The total number of data rows written
+        """
+        remaining: Iterator[Sequence[Any]] = iter(rows)
+        total = 0
+        sheets = 0
+        while True:
+            # Pull the first row before adding the sheet it goes on: a sheet
+            # that fills exactly as the rows run out would otherwise be
+            # followed by a continuation sheet holding nothing but a header.
+            try:
+                first = next(remaining)
+            except StopIteration:
+                if sheets == 0:
+                    # An empty result still gets its header, and a workbook
+                    # with no sheets at all is not a readable file.
+                    self._start_sheet(name, columns)
+                return total
+            worksheet = self._start_sheet(name, columns)
+            sheets += 1
+            total += self._write_rows(
+                worksheet, chain([first], remaining), MAX_DATA_ROWS_PER_SHEET
+            )
+
+    def _start_sheet(self, name: str, columns: Sequence[Any]) -> Any:
+        """Add a worksheet under a unique name and write its header row."""
+        sheet_name = sanitize_sheet_name(name, self._used_sheet_names)
+        worksheet = self._workbook.add_worksheet(sheet_name)
+        worksheet.write_row(0, 0, [_sanitize_cell(col) for col in columns])
         self.sheet_count += 1
+        return worksheet
+
+    @staticmethod
+    def _write_rows(
+        worksheet: Any,
+        rows: Iterable[Sequence[Any]],
+        row_cap: int,
+    ) -> int:
+        """Write at most ``row_cap`` rows under the header.
+
+        Consumes no more than it writes: a row pulled to discover the cap and
+        then not written is a row silently lost, which matters as soon as the
+        caller continues onto another sheet. Callers that need to know whether
+        anything is left look for themselves.
+
+        :returns: the number of rows written
+        """
+        written = 0
+        for row in islice(rows, row_cap):
+            worksheet.write_row(written + 1, 0, [_sanitize_cell(cell) for cell in row])
+            written += 1
         return written
 
     def add_image_sheet(self, name: str, image_bytes: bytes) -> None:

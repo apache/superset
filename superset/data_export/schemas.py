@@ -19,6 +19,9 @@
 from __future__ import annotations
 
 from marshmallow import fields, Schema
+from marshmallow.validate import OneOf
+
+from superset.data_export.formats import FORMAT_CSV, FORMATS
 
 
 class FullExportQueuedResponseSchema(Schema):
@@ -59,6 +62,22 @@ class FullExportStatusResponseSchema(Schema):
     )
 
 
+def export_format_field() -> fields.String:
+    """The file a full export is delivered as. Shared by both request
+    schemas so the chart and SQL Lab endpoints cannot offer different sets."""
+    return fields.String(
+        load_default=FORMAT_CSV,
+        validate=[OneOf(list(FORMATS))],
+        metadata={
+            "description": (
+                "The file format to deliver: 'csv' (default) or 'xlsx'. An "
+                "xlsx export spreads results across continuation sheets past "
+                "a worksheet's row limit rather than truncating."
+            )
+        },
+    )
+
+
 class ChartFullExportPostSchema(Schema):
     """A full export request for a chart.
 
@@ -77,3 +96,10 @@ class ChartFullExportPostSchema(Schema):
             )
         },
     )
+    format = export_format_field()
+
+
+class QueryFullExportPostSchema(Schema):
+    """A full export request for a SQL Lab query result."""
+
+    format = export_format_field()

@@ -36,7 +36,10 @@ import {
   exportChart,
   getChartKey,
 } from 'src/explore/exploreUtils';
-import { useFullDataExport } from 'src/components/FullDataExport';
+import {
+  useFullDataExport,
+  type FullDataExportFormat,
+} from 'src/components/FullDataExport';
 import { ChartState } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 
@@ -281,22 +284,25 @@ export const useExploreDataExport = ({
    * is not bounded by ``ROW_LIMIT`` or ``SQL_MAX_ROW``, so it cannot be
    * answered within the request.
    */
-  const exportFullData = useCallback(async () => {
-    if (!canDownloadCSV) return;
+  const exportFullData = useCallback(
+    async (format: FullDataExportFormat = 'csv') => {
+      if (!canDownloadCSV) return;
 
-    const queryContext = await buildV1ChartDataPayload({
-      formData: latestQueryFormData as QueryFormData,
-      force: false,
-      resultFormat: 'csv',
-      resultType: 'full',
-      ownState,
-    });
+      const queryContext = await buildV1ChartDataPayload({
+        formData: latestQueryFormData as QueryFormData,
+        force: false,
+        resultFormat: 'csv',
+        resultType: 'full',
+        ownState,
+      });
 
-    await requestFullDataExport({
-      endpoint: '/api/v1/chart/data/full_export/',
-      jsonPayload: { query_context: queryContext },
-    });
-  }, [canDownloadCSV, latestQueryFormData, ownState, requestFullDataExport]);
+      await requestFullDataExport({
+        endpoint: '/api/v1/chart/data/full_export/',
+        jsonPayload: { query_context: queryContext, format },
+      });
+    },
+    [canDownloadCSV, latestQueryFormData, ownState, requestFullDataExport],
+  );
 
   return {
     exportCSV,

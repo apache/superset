@@ -62,10 +62,13 @@ def build_success_email(  # pylint: disable=too-many-arguments
     requested_at: datetime,
     expires_at: datetime,
     ttl_seconds: int,
+    format_label: str = "CSV",
     partial_note: str | None = None,
 ) -> str:
     """Render the success email body (HTML).
 
+    :param format_label: names the format on the download button, so the
+        requester can see they are getting what they asked for
     :param partial_note: an already-translated sentence about what the file
         does *not* contain, when the export could not cover everything the
         source would show on screen
@@ -75,7 +78,7 @@ def build_success_email(  # pylint: disable=too-many-arguments
         label=escape(label),
         rows=humanize_row_count(row_count),
     )
-    button = __("Download CSV file")
+    button = __("Download %(format)s file", format=format_label)
     expiry = __(
         "This link expires in %(duration)s (%(when)s UTC).",
         duration=humanize_ttl(ttl_seconds),

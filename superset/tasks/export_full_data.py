@@ -47,8 +47,8 @@ from flask import current_app
 
 from superset import security_manager
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
-from superset.commands.streaming_export.base import encode_csv_stream
 from superset.data_export import email
+from superset.data_export.formats import content_type, resolve_format
 from superset.data_export.links import LINKS
 from superset.data_export.sources import FullExportSource, resolve_source
 from superset.data_export.storage import is_full_export_available, resolve_object_key
@@ -72,8 +72,6 @@ DEFAULT_HARD_TIME_LIMIT = 3660
 # otherwise) so it actually synchronizes across the web server and workers --
 # unlike a plain cache, which is a no-op under the default ``NullCache``.
 EXPORT_LOCK_NAMESPACE = "full_data_export"
-
-CSV_MIMETYPE = "text/csv"
 
 _GENERIC_FAILURE_MESSAGE = (
     "An error occurred while generating the file. Please try again, or "
@@ -111,10 +109,6 @@ def release_lock(lock_params: dict[str, Any], lock_token: str | None) -> None:
 
 def _link_ttl() -> int:
     return int(current_app.config["FULL_DATA_EXPORT_LINK_TTL_SECONDS"])
-
-
-def _csv_encoding() -> str:
-    return current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
 
 
 def _mark_running(job_id: str) -> None:
@@ -234,20 +228,6 @@ def _resolve_user(user_id: int) -> Any:
     return user
 
 
-def _stream_to_file(source: FullExportSource, path: str, encoding: str) -> None:
-    """Run the export and write its CSV to ``path``.
-
-    The chunks are encoded with the configured ``CSV_EXPORT`` encoding, the
-    same way the response-bound streaming export encodes them, so a codec
-    with a preamble (the default ``utf-8-sig``) writes its byte order mark
-    once at the start of the file.
-    """
-    stream = source.command.run()
-    with open(path, "wb") as handle:
-        for chunk in encode_csv_stream(stream(), encoding):
-            handle.write(chunk)
-
-
 @celery_app.task(
     name="export_full_data",
     bind=True,
@@ -309,6 +289,9 @@ def export_full_data(  # pylint: disable=too-many-locals,too-many-statements
                     "(e.g. superset.utils.s3.S3ExportStorage())."
                 )
 
+            # Resolved before anything is written: an unknown format must
+            # fail the job rather than produce a file in the wrong one.
+            export_format = resolve_format(payload.get("format"))
             chunk_size = int(current_app.config["FULL_DATA_EXPORT_CHUNK_SIZE"])
             source = resolve_source(kind, payload, chunk_size, progress)
             label = source.label
@@ -318,16 +301,15 @@ def export_full_data(  # pylint: disable=too-many-locals,too-many-statements
             source.command.validate()
 
             file_descriptor, tmp_path = tempfile.mkstemp(
-                suffix=".csv", prefix=f"full-export-{job_id}-"
+                suffix=f".{export_format.extension}", prefix=f"full-export-{job_id}-"
             )
             os.close(file_descriptor)
-            encoding = _csv_encoding()
-            _stream_to_file(source, tmp_path, encoding)
+            export_format.write(source, tmp_path)
 
             storage_config = current_app.config["EXPORT_STORAGE"]
             storage_backend = storage_config["backend"]
             bucket = storage_config["bucket"]
-            key = resolve_object_key(source.kind, job_id)
+            key = resolve_object_key(source.kind, job_id, export_format.extension)
             storage_backend.upload_file(tmp_path, bucket, key)
 
             ttl = _link_ttl()
@@ -340,8 +322,8 @@ def export_full_data(  # pylint: disable=too-many-locals,too-many-statements
                 key,
                 expires_at,
                 backend=f"{backend_cls.__module__}.{backend_cls.__qualname__}",
-                filename=f"{source.filename}.csv",
-                mimetype=f"{CSV_MIMETYPE}; charset={encoding}",
+                filename=f"{source.filename}.{export_format.extension}",
+                mimetype=content_type(export_format),
                 row_count=rows_written,
             )
 
@@ -353,6 +335,7 @@ def export_full_data(  # pylint: disable=too-many-locals,too-many-statements
                 duration=datetime.now() - started_at,
                 row_count=rows_written,
                 byte_count=bytes_written,
+                export_format=export_format.name,
                 status="success",
             )
 
@@ -370,6 +353,7 @@ def export_full_data(  # pylint: disable=too-many-locals,too-many-statements
                             # email labels its timestamps "UTC", so convert.
                             expires_at=expires_at.astimezone(timezone.utc),
                             ttl_seconds=ttl,
+                            format_label=export_format.label,
                             partial_note=payload.get("partial_note"),
                         ),
                     )

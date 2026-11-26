@@ -62,6 +62,13 @@ interface PollState {
   sawRunning: boolean;
 }
 
+/**
+ * The file an uncapped export is delivered as. CSV is the default; an Excel
+ * export spreads results across continuation sheets past a worksheet's row
+ * limit rather than truncating.
+ */
+export type FullDataExportFormat = 'csv' | 'xlsx';
+
 export interface FullDataExportRequest {
   /** The endpoint that queues the export for this kind of data. */
   endpoint: string;

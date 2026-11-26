@@ -616,31 +616,39 @@ test('Uncapped export is offered only where the deployment can deliver one', asy
   await userEvent.hover(await screen.findByText('Data Export Options'));
   await userEvent.hover(await screen.findByText('Export All Data'));
   expect(
-    screen.queryByText('Export all rows (emailed link)'),
+    screen.queryByText('Export all rows to .CSV (emailed link)'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Export all rows to Excel (emailed link)'),
   ).not.toBeInTheDocument();
 });
 
-test('the uncapped export posts the chart query context to the full export endpoint', async () => {
-  mockFullDataExportAvailable = true;
-  mockRequestFullDataExport.mockClear();
+test.each([
+  ['Export all rows to .CSV (emailed link)', 'csv'],
+  ['Export all rows to Excel (emailed link)', 'xlsx'],
+])(
+  'the uncapped export posts the query context and the format (%s)',
+  async (label, format) => {
+    mockFullDataExportAvailable = true;
+    mockRequestFullDataExport.mockClear();
 
-  render(<TestComponent {...defaultProps} />, { useRedux: true });
+    render(<TestComponent {...defaultProps} />, { useRedux: true });
 
-  await userEvent.hover(await screen.findByText('Data Export Options'));
-  await userEvent.hover(await screen.findByText('Export All Data'));
-  await userEvent.click(
-    await screen.findByText('Export all rows (emailed link)'),
-  );
+    await userEvent.hover(await screen.findByText('Data Export Options'));
+    await userEvent.hover(await screen.findByText('Export All Data'));
+    await userEvent.click(await screen.findByText(label));
 
-  await waitFor(() =>
-    expect(mockRequestFullDataExport).toHaveBeenCalledWith(
-      expect.objectContaining({
-        endpoint: '/api/v1/chart/data/full_export/',
-        jsonPayload: expect.objectContaining({
-          query_context: expect.anything(),
+    await waitFor(() =>
+      expect(mockRequestFullDataExport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: '/api/v1/chart/data/full_export/',
+          jsonPayload: expect.objectContaining({
+            query_context: expect.anything(),
+            format,
+          }),
         }),
-      }),
-    ),
-  );
-  mockFullDataExportAvailable = false;
-});
+      ),
+    );
+    mockFullDataExportAvailable = false;
+  },
+);
