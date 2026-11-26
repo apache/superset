@@ -552,7 +552,9 @@ class ImportV1DatasetSchema(Schema):
         return data
 
     @validates_schema
-    def validate_extra(self, data: dict[str, Any], **kwargs: Any) -> None:
+    def validate_extra_default_time_filter(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
         """
         Reject a default time filter that new charts could not query.
         """
