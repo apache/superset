@@ -17,7 +17,7 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -35,7 +35,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import ArchivedList from 'src/pages/ArchivedList';
 
-const mockStore = configureStore([thunk]);
+const mockStore = createMockStore([thunk]);
 const store = mockStore({});
 
 /** A store whose user holds `can_read` on only the given FAB resources. */
