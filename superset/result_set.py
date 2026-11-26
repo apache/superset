@@ -162,15 +162,15 @@ def _opaque_numeric_to_decimal(column: pa.ChunkedArray) -> pa.ChunkedArray:
     if storage.null_count == len(storage):
         return storage
     fraction = pc.replace_substring_regex(storage, pattern=r"^[^.]*\.?", replacement="")
+    integer = pc.replace_substring_regex(
+        storage, pattern=r"^[+-]?0*([0-9]*).*$", replacement=r"\1"
+    )
     scale = pc.max(pc.utf8_length(fraction)).as_py() or 0
-    for decimal_type in (pa.decimal128, pa.decimal256):
-        precision = 38 if decimal_type is pa.decimal128 else 76
-        if scale > precision:
-            continue
-        try:
+    digits = (pc.max(pc.utf8_length(integer)).as_py() or 0) + scale
+    # Arrow's string-to-decimal cast does not reject values that overflow.
+    for decimal_type, precision in ((pa.decimal128, 38), (pa.decimal256, 76)):
+        if digits <= precision:
             return pc.cast(storage, decimal_type(precision, scale))
-        except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
-            continue
     return storage
 
 

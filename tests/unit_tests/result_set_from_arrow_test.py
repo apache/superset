@@ -219,6 +219,23 @@ def test_opaque_numeric_nulls_non_finite_and_keeps_decimal() -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    "value,arrow_type",
+    [
+        ("9" * 60 + ".5", pa.decimal256(76, 1)),
+        ("-" + "1" * 80, pa.string()),
+        ("0" * 50 + "1.5", pa.decimal128(38, 1)),
+    ],
+)
+def test_opaque_numeric_never_overflows(value: str, arrow_type: pa.DataType) -> None:
+    opaque = pa.opaque(pa.string(), "numeric", "PostgreSQL")
+    storage = pa.array([value])
+    table = pa.table({"n": pa.ExtensionArray.from_storage(opaque, storage)})
+    column = SupersetResultSet.from_arrow(table, BaseEngineSpec).pa_table.column("n")
+    assert column.type == arrow_type
+    assert Decimal(str(column.to_pylist()[0])) == Decimal(value)
+
+
 def test_json_extension_is_lazy() -> None:
     storage = pa.array(['{"a": 1}', None, "5"])
     table = pa.table({"j": pa.ExtensionArray.from_storage(pa.json_(), storage)})
