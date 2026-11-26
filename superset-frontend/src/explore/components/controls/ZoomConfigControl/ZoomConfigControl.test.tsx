@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
-import ZoomConfigControl from './ZoomConfigControl';
+import { ZoomConfigControl } from './ZoomConfigControl';
 import { ZoomConfigs } from './types';
 import { computeConfigValues } from './zoomUtil';
 

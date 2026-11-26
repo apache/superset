@@ -51,24 +51,17 @@ import { groupHeadline } from './display';
 import VersionHistoryPanel from './VersionHistoryPanel';
 
 /**
- * The explore flex row (datasource rail + control rail + chart) cannot give
- * up enough width for the panel on narrow viewports; below the XL breakpoint
- * the panel overlays the page (anchored to the relatively-positioned explore
- * container) instead of being pushed past the viewport edge.
+ * Overlay the Explore content so the combined minimum widths of the chart
+ * and resizable sidebars cannot push history beyond the content viewport.
  */
 const PanelHost = styled.div`
   ${({ theme }) => `
-    height: 100%;
-    flex-shrink: 0;
-    @media (max-width: ${theme.screenXL}px) {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      height: auto;
-      z-index: 20;
-      box-shadow: ${theme.boxShadow};
-    }
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: ${theme.boxShadow};
   `}
 `;
 

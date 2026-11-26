@@ -3975,6 +3975,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -4017,6 +4019,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "disable_ssh_tunneling": True,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": "`",
@@ -4090,6 +4094,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -4149,6 +4155,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "disable_ssh_tunneling": True,
                         "supports_oauth2": True,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -4222,6 +4230,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": "`",
@@ -4250,6 +4260,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -4299,6 +4311,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": "`",
@@ -4327,6 +4341,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',

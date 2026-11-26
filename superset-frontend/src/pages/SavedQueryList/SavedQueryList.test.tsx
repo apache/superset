@@ -17,7 +17,7 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore, { MockStoreEnhanced } from 'redux-mock-store';
+import createMockStore, { MockStoreEnhanced } from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -94,7 +94,7 @@ fetchMock.post(permalinkEndpoint, {
 fetchMock.delete(queryEndpoint, {}, { name: queryEndpoint });
 
 const renderList = (props = {}, storeOverrides = {}) => {
-  const store = configureStore([thunk])({
+  const store = createMockStore([thunk])({
     user: {
       ...mockUser,
       roles: { Admin: [['can_write', 'SavedQuery']] },

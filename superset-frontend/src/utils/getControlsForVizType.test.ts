@@ -67,36 +67,33 @@ const fakePluginControls: JsonObject = {
   ],
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('getControlsForVizType', () => {
-  beforeEach(() => {
-    getChartControlPanelRegistry().registerValue(
-      'chart_controls_inventory_fake',
-      fakePluginControls,
-    );
-  });
+beforeEach(() => {
+  getChartControlPanelRegistry().registerValue(
+    'chart_controls_inventory_fake',
+    fakePluginControls,
+  );
+});
 
-  test('returns a map of the controls', () => {
-    expect(
-      JSON.stringify(getControlsForVizType('chart_controls_inventory_fake')),
-    ).toEqual(
-      JSON.stringify({
-        y_axis_bounds: {
-          type: 'BoundsControl',
-          label: 'Value bounds',
-          default: [null, null],
-          description: 'Value bounds for the y axis',
-        },
-        adhoc_filters: {
-          type: 'AdhocFilterControl',
-          label: 'Fake Filters',
-          default: null,
-        },
-        column_collection: {
-          type: 'CollectionControl',
-          label: 'Fake Collection Control',
-        },
-      }),
-    );
-  });
+test('returns a map of the controls', () => {
+  expect(
+    JSON.stringify(getControlsForVizType('chart_controls_inventory_fake')),
+  ).toEqual(
+    JSON.stringify({
+      y_axis_bounds: {
+        type: 'BoundsControl',
+        label: 'Value bounds',
+        default: [null, null],
+        description: 'Value bounds for the y axis',
+      },
+      adhoc_filters: {
+        type: 'AdhocFilterControl',
+        label: 'Fake Filters',
+        default: null,
+      },
+      column_collection: {
+        type: 'CollectionControl',
+        label: 'Fake Collection Control',
+      },
+    }),
+  );
 });

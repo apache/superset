@@ -28,7 +28,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { MemoryRouter, useHistory } from 'react-router-dom';
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { ReactNode, useState } from 'react';
 import { ListView, type ListViewProps } from './ListView';
 import { ListViewFilterOperator, type ListViewFetchDataConfig } from './types';
@@ -57,7 +57,7 @@ type MockedListViewProps = Omit<
 };
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 const fetchSelectsMock = jest.fn(() =>
   Promise.resolve({ data: [], totalCount: 0 }),
@@ -219,30 +219,37 @@ const factory = (overrides?: Partial<ListViewProps>) => {
   );
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ListView', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    factory();
-  });
+// factory() renders a ListView. It used to run from a describe-scoped
+// beforeEach, so only the tests that share that rendered list should call it.
+const setupListView = () => {
+  jest.clearAllMocks();
+  factory();
+};
 
-  afterEach(() => {
-    mockedPropsComprehensive.fetchData.mockClear();
-    mockedPropsComprehensive.bulkActions.forEach(ba => {
-      ba.onSelect.mockClear();
-    });
+const cleanupListView = () => {
+  mockedPropsComprehensive.fetchData.mockClear();
+  mockedPropsComprehensive.bulkActions.forEach(ba => {
+    ba.onSelect.mockClear();
   });
+};
 
-  test('calls fetchData on mount', () => {
+test('calls fetchData on mount', () => {
+  setupListView();
+  try {
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalledWith({
       filters: [],
       pageIndex: 0,
       pageSize: 1,
       sortBy: [],
     });
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('calls fetchData on sort', async () => {
+test('calls fetchData on sort', async () => {
+  setupListView();
+  try {
     // sort-header[0] is the first data column ('id'); the select-all
     // column header carries `data-test="header-toggle-all"` instead
     // of `sort-header` (see TableCollection's `header.cell` slot).
@@ -260,18 +267,28 @@ describe('ListView', () => {
         },
       ],
     });
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('renders pagination controls', () => {
+test('renders pagination controls', () => {
+  setupListView();
+  try {
     const paginationList = screen.getByRole('list');
     expect(paginationList).toBeInTheDocument();
 
-    const pageOneItem = screen.getByRole('listitem', { name: '1' });
+    const pageOneItem = screen.getByRole('button', { name: 'Page 1' });
     expect(pageOneItem).toBeInTheDocument();
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('calls fetchData on page change', async () => {
-    const pageTwoItem = screen.getByRole('listitem', { name: '2' });
+test('calls fetchData on page change', async () => {
+  setupListView();
+  try {
+    const pageTwoItem = screen.getByRole('button', { name: 'Page 2' });
     await userEvent.click(pageTwoItem);
 
     await waitFor(() => {
@@ -284,9 +301,14 @@ describe('ListView', () => {
       );
       expect(pageChangeCall).toBeDefined();
     });
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('handles bulk actions on 1 row', async () => {
+test('handles bulk actions on 1 row', async () => {
+  setupListView();
+  try {
     const checkboxes = screen.getAllByRole('checkbox');
     await userEvent.click(checkboxes[1]); // Index 1 is the first row checkbox
 
@@ -305,16 +327,26 @@ describe('ListView', () => {
         time: '2020-11-18T07:53:45.354Z',
       },
     ]);
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('renders UI filters', () => {
+test('renders UI filters', () => {
+  setupListView();
+  try {
     // select and datetime_range filters render as compact pill buttons;
     // search filter renders as a text input
     const filterPills = screen.getAllByTestId('compact-filter-pill');
     expect(filterPills).toHaveLength(3); // ID, Age, Time
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('calls fetchData on filter', async () => {
+test('calls fetchData on filter', async () => {
+  setupListView();
+  try {
     // Click the ID compact pill to open its option panel
     const idPill = screen.getByRole('button', { name: 'ID' });
     await userEvent.click(idPill);
@@ -344,9 +376,14 @@ describe('ListView', () => {
         ],
       }),
     );
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('calls fetchData on card view sort', async () => {
+test('calls fetchData on card view sort', async () => {
+  setupListView();
+  try {
     factory({
       renderCard: jest.fn(),
       initialSort: [{ id: 'something' }],
@@ -362,9 +399,14 @@ describe('ListView', () => {
     await userEvent.click(sortOption);
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalled();
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('names the view toggle buttons after the view they show', () => {
+test('names the view toggle buttons after the view they show', () => {
+  setupListView();
+  try {
     factory({
       renderCard: jest.fn(),
       data: [],
@@ -377,9 +419,14 @@ describe('ListView', () => {
     expect(
       screen.getByRole('button', { name: 'List view' }),
     ).toBeInTheDocument();
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('switches view mode via click of the toggle buttons', async () => {
+test('switches view mode via click of the toggle buttons', async () => {
+  setupListView();
+  try {
     const { container } = factory({
       renderCard: jest.fn(),
       data: [],
@@ -397,7 +444,9 @@ describe('ListView', () => {
 
     await userEvent.click(cardToggle);
     expect(screen.getByTestId('empty-state')).toHaveClass('card');
-  });
+  } finally {
+    cleanupListView();
+  }
 });
 
 // Mobile support tests

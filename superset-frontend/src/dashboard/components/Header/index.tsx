@@ -102,7 +102,7 @@ import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
-import AutoRefreshIndicator from '../AutoRefreshIndicator';
+import { AutoRefreshIndicator } from '../AutoRefreshIndicator';
 import { RefreshButton } from '../RefreshButton';
 
 type DashboardPropertiesUpdate = {
