@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
 
@@ -40,6 +40,9 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         self,
         query_context: QueryContext,
         chunk_size: int = 1000,
+        *,
+        progress_callback: Callable[[int, int], None] | None = None,
+        raise_on_error: bool = False,
     ):
         """
         Initialize the chart streaming export command.
@@ -47,8 +50,14 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         Args:
             query_context: The query context containing datasource and query details
             chunk_size: Number of rows to fetch per database query (default: 1000)
+            progress_callback: See ``BaseStreamingCSVExportCommand``
+            raise_on_error: See ``BaseStreamingCSVExportCommand``
         """
-        super().__init__(chunk_size)
+        super().__init__(
+            chunk_size,
+            progress_callback=progress_callback,
+            raise_on_error=raise_on_error,
+        )
         self._query_context = query_context
 
     def validate(self) -> None:

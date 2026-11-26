@@ -23,6 +23,7 @@ import csv
 import io
 import logging
 import time
+import traceback
 from abc import abstractmethod
 from contextvars import copy_context
 from decimal import Decimal
@@ -133,14 +134,32 @@ class BaseStreamingCSVExportCommand(BaseCommand):
     - _get_row_limit(): Return optional row limit for the export
     """
 
-    def __init__(self, chunk_size: int = 1000):
+    def __init__(
+        self,
+        chunk_size: int = 1000,
+        *,
+        progress_callback: Callable[[int, int], None] | None = None,
+        raise_on_error: bool = False,
+    ):
         """
         Initialize the streaming export command.
 
         Args:
             chunk_size: Number of rows to fetch per database query (default: 1000)
+            progress_callback: Called with (rows, bytes) written so far every
+                time a chunk is flushed, and once more when the export
+                finishes. A consumer that keeps the file (rather than
+                streaming it to a browser) needs the counts for its own
+                bookkeeping, and the stream itself carries no row count.
+            raise_on_error: Let a failure mid-stream propagate instead of
+                yielding the ``__STREAM_ERROR__`` marker the browser-facing
+                path relies on. A consumer that writes the chunks to a file
+                must not store a truncated export as a complete one, so it
+                asks for the exception.
         """
         self._chunk_size = chunk_size
+        self._progress_callback = progress_callback
+        self._raise_on_error = raise_on_error
 
     @abstractmethod
     def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
@@ -374,6 +393,13 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                         total_bytes += chunk_bytes
                         row_count = rows_processed
                         yield data_chunk
+                        if self._progress_callback:
+                            self._progress_callback(row_count, total_bytes)
+
+                    if self._progress_callback:
+                        # Fires even for an empty result set, so a consumer
+                        # never has to tell "no rows" from "never ran".
+                        self._progress_callback(row_count, total_bytes)
 
                     # Log completion
                     total_time = time.time() - start_time
@@ -384,6 +410,20 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                         total_mb,
                         total_time,
                     )
+
+    def _handle_stream_error(self, error: Exception) -> str:
+        """Report a failure that happened mid-stream.
+
+        By then the response headers are long gone, so the browser-facing path
+        detects a failed export from a marker in the body. A consumer that
+        writes the chunks to a file instead gets the exception: it must not
+        keep a truncated export as a complete one.
+        """
+        logger.error("Error in streaming CSV generator: %s", error)
+        logger.error("Traceback: %s", traceback.format_exc())
+        if self._raise_on_error:
+            raise error
+        return "__STREAM_ERROR__:Export failed. Please try again in some time.\n"
 
     def run(self) -> Callable[[], Iterator[str]]:
         """
@@ -411,16 +451,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                     sql, database, limit, catalog, schema
                 )
             except Exception as e:
-                logger.error("Error in streaming CSV generator: %s", e)
-                import traceback
-
-                logger.error("Traceback: %s", traceback.format_exc())
-
-                # Send error marker for frontend to detect
-                error_marker = (
-                    "__STREAM_ERROR__:Export failed. Please try again in some time.\n"
-                )
-                yield error_marker
+                yield self._handle_stream_error(e)
 
         def stream() -> Iterator[str]:
             """

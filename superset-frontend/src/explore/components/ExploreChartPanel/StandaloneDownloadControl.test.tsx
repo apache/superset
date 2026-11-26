@@ -65,6 +65,9 @@ describe('StandaloneDownloadControl', () => {
       exportCSVPivoted: jest.fn(),
       exportJson,
       exportExcel,
+      exportFullData: jest.fn(),
+      isFullDataExportAvailable: false,
+      isExportingFullData: false,
       handleExportError: jest.fn(),
       streamingExportState,
     });

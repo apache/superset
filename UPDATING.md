@@ -24,6 +24,84 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Uncapped data exports (`ALLOW_UNCAPPED_DATA_EXPORT`)
+
+A new feature flag, off by default, adds one export path that no row cap
+bounds: with it on, a user can ask for every row a chart's query or a SQL Lab
+result returns. A Celery worker streams the rows into a CSV in
+`EXPORT_STORAGE` and the requester gets an expiring download link, emailed to
+them and also polled by the page they asked from, which downloads the file as
+soon as it is ready. Neither `ROW_LIMIT` nor `SQL_MAX_ROW` is applied, and
+there is no row or file-size ceiling; the cost of one export is bounded by its
+time limit instead.
+
+This is distinct from `ALLOW_FULL_CSV_EXPORT`, which only lifts a table
+chart's own row limit up to `SQL_MAX_ROW` and still downloads within the
+request. Both can be on at once and neither changes the other's behavior.
+Unflagged exports are unchanged.
+
+```python
+FEATURE_FLAGS = {"ALLOW_UNCAPPED_DATA_EXPORT": True}
+
+from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
+
+EXPORT_STORAGE = {
+    "bucket": "my-export-bucket",
+    "backend": S3ExportStorage(),
+}
+```
+
+It needs `EXPORT_STORAGE` (both a `bucket` and a `backend`) and a configured
+`CELERY_CONFIG`. Without them the endpoints answer `400` and the UI hides the
+action rather than falling back to a download inside the request, which is
+exactly the limit the feature exists to remove. SMTP is used to email the link;
+without it the requester still gets the file through status polling, so a user
+who navigates away before the export finishes has no other way to retrieve it.
+
+New endpoints: `POST /api/v1/chart/data/full_export/` (body: the same query
+context `/api/v1/chart/data/` accepts, under `query_context`) and
+`POST /api/v1/sqllab/full_export/<client_id>/` both return `202` with a job id,
+resolved through `GET /api/v1/data_export/status/<job_id>/` and downloaded from
+`GET /api/v1/data_export/download/<job_id>/`. The download endpoint is
+login-free, like the dashboard Excel export's: the unguessable job id is the
+credential, and access to the chart or query was checked when the export was
+requested.
+
+The status endpoint is a new FAB resource, so **run `superset init`** after
+upgrading to grant `can_read on DataExport`; Gamma and Alpha receive it
+automatically. Requesting an export needs the same export permission as a
+normal CSV download (`can_csv on Superset`, or `can_export_data` under
+`GRANULAR_EXPORT_CONTROLS`), plus read access to the chart or query.
+
+What an uncapped export does *not* include:
+
+- **Post-processed results.** A pivot table, forecast or totals row is computed
+  from the whole frame in memory, which an uncapped export cannot do; the
+  endpoint returns `400` and the chart's raw rows remain available.
+- **A chart's secondary queries.** A chart that runs more than one query (a
+  table with totals, a time comparison) exports its main result set, and the
+  email says so.
+- **Guest and anonymous sessions.** They have no address to send the link to,
+  so the endpoints answer `403`.
+- **SQL Lab queries whose cap cannot be removed.** A `PERCENT`/`WITH TIES`
+  clause, a ClickHouse `LIMIT ... BY`, and the Oracle `ROWNUM` filter used on
+  releases without `FETCH FIRST` are predicates rather than clauses, so the
+  export is refused with an explanation instead of silently truncating. A
+  `LIMIT` the user wrote in their own SQL is kept: only Superset's cap is
+  removed. Multi-statement scripts are refused for the same reason -- running
+  only the last statement would drop what the earlier ones set up.
+
+Every finished export writes an audit log entry (`full_data_export`) with the
+requester, the chart or query, the row count, the byte count and the duration;
+failures and timeouts are logged with their status.
+
+Config keys: `FULL_DATA_EXPORT_KEY_PREFIX`,
+`FULL_DATA_EXPORT_LINK_TTL_SECONDS` (24h), `FULL_DATA_EXPORT_SOFT_TIME_LIMIT`
+and `FULL_DATA_EXPORT_HARD_TIME_LIMIT` (1h), `FULL_DATA_EXPORT_CHUNK_SIZE`.
+Raise the time limits for exports that legitimately run longer -- with no row
+ceiling, that budget is what bounds a single export.
+
+
 - Provider tests inheriting `SemanticProviderConformance` must supply four
   additional `semantic_query_cases`: `or_not_in`, `or_not_equals`, `or_not_like`,
   and `or_not_ilike`. These check the existing normalized exclusion-filter

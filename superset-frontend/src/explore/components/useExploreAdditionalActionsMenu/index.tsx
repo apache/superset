@@ -131,6 +131,7 @@ const MENU_KEYS = {
   EXPORT_TO_CSV: 'export_to_csv',
   EXPORT_TO_JSON: 'export_to_json',
   EXPORT_TO_XLSX: 'export_to_xlsx',
+  EXPORT_FULL_DATA: 'export_full_data',
   EXPORT_ALL_SCREENSHOT: 'export_all_screenshot',
   EXPORT_ALL_PNG_TRANSPARENT: 'export_all_png_transparent',
   EXPORT_ALL_PNG_SOLID: 'export_all_png_solid',
@@ -164,6 +165,7 @@ const DATA_AND_PDF_EXPORT_KEYS: string[] = [
   MENU_KEYS.EXPORT_TO_CSV_PIVOTED,
   MENU_KEYS.EXPORT_TO_JSON,
   MENU_KEYS.EXPORT_TO_XLSX,
+  MENU_KEYS.EXPORT_FULL_DATA,
   MENU_KEYS.EXPORT_ALL_PDF,
   MENU_KEYS.EXPORT_CURRENT_TO_CSV,
   MENU_KEYS.EXPORT_CURRENT_TO_JSON,
@@ -463,6 +465,9 @@ export const useExploreAdditionalActionsMenu = (
     exportCSVPivoted,
     exportJson,
     exportExcel,
+    exportFullData,
+    isFullDataExportAvailable,
+    isExportingFullData,
     handleExportError,
     streamingExportState,
   } = useExploreDataExport({
@@ -901,6 +906,28 @@ export const useExploreAdditionalActionsMenu = (
         },
       },
     );
+
+    // Only where the deployment can deliver one: the backend reports the
+    // feature flag and the storage/worker setup as a single value, so this
+    // never offers an action whose request would be refused.
+    if (isFullDataExportAvailable) {
+      allDataChildren.push({
+        key: MENU_KEYS.EXPORT_FULL_DATA,
+        label: dataExportLabel(t('Export all rows (emailed link)')),
+        icon: <Icons.FileOutlined />,
+        disabled: !canDownloadCSV || isExportingFullData,
+        onClick: () => {
+          exportFullData();
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+        },
+      });
+    }
 
     const currentViewChildren = [
       {

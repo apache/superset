@@ -27,16 +27,15 @@ from __future__ import annotations
 from datetime import datetime
 
 from flask import current_app
-from flask_babel import gettext as __, ngettext
+from flask_babel import gettext as __
 from markupsafe import escape
 
 from superset.utils.core import send_email_smtp
-
-_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-_FOOTER_STYLE = "color:#888;font-size:12px;"
-_BUTTON_STYLE = (
-    "display:inline-block;padding:10px 16px;background:#20a7c9;color:#ffffff;"
-    "text-decoration:none;border-radius:4px;"
+from superset.utils.export_email import (
+    BUTTON_STYLE as _BUTTON_STYLE,
+    FOOTER_STYLE as _FOOTER_STYLE,
+    format_datetime as _fmt,
+    humanize_ttl as _humanize_ttl,
 )
 
 # Reason keys under which the export groups charts it could not export.
@@ -50,28 +49,6 @@ ERROR_UNBOUNDED = "unbounded-query"
 # The chart uses a visualization semantic views don't support yet.
 ERROR_UNSUPPORTED_CHART_TYPE = "unsupported-chart-type"
 ERROR_GENERAL = "general-exception"
-
-
-def _fmt(dt: datetime) -> str:
-    return dt.strftime(_DATETIME_FORMAT)
-
-
-def _humanize_ttl(seconds: int) -> str:
-    """Render a TTL as a human-readable, pluralized, translatable duration.
-
-    Whole hours read as "24 hours"; sub-hour and non-hour values keep their
-    minutes (e.g. "1 hour 30 minutes", "15 minutes") so the stated lifetime
-    always matches the link's real expiration.
-    """
-    hours, remainder = divmod(seconds, 3600)
-    parts: list[str] = []
-    if hours:
-        parts.append(ngettext("%(num)d hour", "%(num)d hours", hours))
-    if minutes := remainder // 60:
-        parts.append(ngettext("%(num)d minute", "%(num)d minutes", minutes))
-    if not parts:
-        parts.append(ngettext("%(num)d second", "%(num)d seconds", seconds))
-    return " ".join(parts)
 
 
 def build_subject(dashboard_title: str, *, success: bool) -> str:

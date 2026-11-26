@@ -17,14 +17,10 @@
 """
 Status tracking and long-lived download links for dashboard Excel exports.
 
-The download link shared with the requester is a Superset endpoint, never a
-raw or signed storage URL: signed URLs are transferable bearer credentials
-Superset cannot observe or revoke once issued, their real lifetime is bounded
-by the signing credentials' own session (not just their nominal expiry), and
-some ambient identities (e.g. direct workload identity federation) cannot
-sign at all. The link's lifetime is enforced by this module via the
-``key_value`` store's ``expires_on``, and the file itself streams through
-Superset with the deployment's storage credentials at click time.
+The link model -- a Superset endpoint rather than a signed storage URL, with
+its lifetime enforced through the ``key_value`` store, and keyed by the job id
+the enqueue response hands back -- lives in ``superset.utils.export_links``,
+which this module binds to the dashboard Excel export's own resource and path.
 
 The download endpoint (``download_xlsx``) intentionally requires no login:
 the access-control decision for the underlying dashboard was already enforced
@@ -32,12 +28,6 @@ once, when the export was originally requested (see
 ``security_manager.raise_for_access`` in
 ``superset.dashboards.api.export_xlsx``); the unguessable key handed only to
 that requester is the "possession of the link is the credential" model.
-
-Every entry is keyed by ``job_id`` -- the same id the ``export_xlsx`` POST
-response hands back -- rather than a separately-generated identifier, so a
-caller that only has the job id (e.g. a polling frontend for a session with
-no email on file, such as an embedded/guest dashboard) can resolve both
-status and, once ready, a download link from that one id.
 """
 
 from __future__ import annotations
@@ -46,41 +36,36 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from flask import current_app
+from superset.key_value.types import KeyValueResource
+from superset.utils.export_links import (
+    CODEC,
+    ExportDownloadLinks,
+    STATUS_ERROR,
+    STATUS_READY,
+    STATUS_RUNNING,
+)
 
-from superset.daos.key_value import KeyValueDAO
-from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
-from superset.utils.decorators import transaction
-from superset.utils.urls import headless_url
+__all__ = [
+    "CODEC",
+    "DOWNLOAD_PATH",
+    "RESOURCE",
+    "STATUS_ERROR",
+    "STATUS_READY",
+    "STATUS_RUNNING",
+    "build_download_url",
+    "create_download_link",
+    "download_path",
+    "get_export_status",
+    "mark_export_failed",
+    "mark_export_running",
+    "resolve_download_link",
+]
 
 RESOURCE = KeyValueResource.EXCEL_EXPORT_DOWNLOAD
-CODEC = JsonKeyValueCodec()
 
 DOWNLOAD_PATH = "/api/v1/dashboard/export_xlsx/download/{job_id}/"
 
-STATUS_READY = "ready"
-STATUS_ERROR = "error"
-STATUS_RUNNING = "running"
-
-
-@transaction()
-def _sweep_and_upsert(
-    job_id: UUID, value: dict[str, Any], expires_at: datetime
-) -> None:
-    # Lazily sweep expired entries each time one is written; there is no
-    # dedicated cleanup job, so this resource keeps itself tidy on write.
-    # upsert (not create) so a retried/duplicate write for the same job_id
-    # overwrites cleanly instead of colliding on the primary key.
-    # @transaction commits now; the worker session otherwise only commits when
-    # the task settles, leaving statuses invisible to polling web pods.
-    KeyValueDAO.delete_expired_entries(RESOURCE)
-    KeyValueDAO.upsert_entry(
-        resource=RESOURCE,
-        value=value,
-        codec=CODEC,
-        key=job_id,
-        expires_on=expires_at,
-    )
+_LINKS = ExportDownloadLinks(RESOURCE, DOWNLOAD_PATH)
 
 
 def download_path(job_id: UUID) -> str:
@@ -88,19 +73,13 @@ def download_path(job_id: UUID) -> str:
     ``APPLICATION_ROOT`` when Superset is served under a subpath. Handed to the
     polling frontend, which resolves it against its own origin (the one host
     the user is provably reachable at)."""
-    path = DOWNLOAD_PATH.format(job_id=job_id)
-    app_root = (current_app.config.get("APPLICATION_ROOT") or "/").rstrip("/")
-    # Prepend unconditionally: a ``startswith`` guard would drop a root that
-    # merely prefixes the API path, e.g. ``APPLICATION_ROOT="/api"``.
-    return f"{app_root}{path}" if app_root else path
+    return _LINKS.download_path(job_id)
 
 
 def build_download_url(job_id: UUID) -> str:
     """Absolute download URL for ``job_id``, for the email (which cannot be
-    origin-relative). Based on ``WEBDRIVER_BASEURL_USER_FRIENDLY``, with
-    ``APPLICATION_ROOT`` preserved (a root-absolute path would otherwise
-    replace the base URL's whole path in ``urljoin``)."""
-    return headless_url(download_path(job_id), user_friendly=True)
+    origin-relative)."""
+    return _LINKS.build_download_url(job_id)
 
 
 def create_download_link(
@@ -118,12 +97,7 @@ def create_download_link(
     ``expires_at`` should be a naive datetime in the same timezone convention
     ``KeyValueEntry.is_expired()`` compares against (naive ``datetime.now()``).
     """
-    _sweep_and_upsert(
-        job_id,
-        {"status": STATUS_READY, "bucket": bucket, "key": key, "backend": backend},
-        expires_at,
-    )
-    return build_download_url(job_id)
+    return _LINKS.create_download_link(job_id, bucket, key, expires_at, backend)
 
 
 def mark_export_running(job_id: UUID, expires_at: datetime) -> None:
@@ -133,7 +107,7 @@ def mark_export_running(job_id: UUID, expires_at: datetime) -> None:
     here. Overwritten by the terminal record; ``expires_at`` is the backstop
     if the worker dies first.
     """
-    _sweep_and_upsert(job_id, {"status": STATUS_RUNNING}, expires_at)
+    _LINKS.mark_export_running(job_id, expires_at)
 
 
 def mark_export_failed(job_id: UUID, message: str, expires_at: datetime) -> None:
@@ -142,19 +116,19 @@ def mark_export_failed(job_id: UUID, message: str, expires_at: datetime) -> None
     key forever. ``message`` is shown to whoever is polling, so keep it
     generic rather than an internal exception string.
     """
-    _sweep_and_upsert(job_id, {"status": STATUS_ERROR, "message": message}, expires_at)
+    _LINKS.mark_export_failed(job_id, message, expires_at)
 
 
 def get_export_status(job_id: UUID) -> dict[str, Any] | None:
     """The stored status payload for ``job_id``, or ``None`` if it is unknown
     (still running, or never existed) or has expired."""
-    return KeyValueDAO.get_value(RESOURCE, job_id, CODEC)
+    return _LINKS.get_export_status(job_id)
 
 
 def resolve_download_link(job_id: UUID) -> tuple[str, str, str | None] | None:
     """The ``(bucket, object_key, backend_path)`` for a *ready* download, or
     ``None`` if it is missing, expired, still running, or errored."""
-    payload = get_export_status(job_id)
-    if payload is None or payload.get("status") != STATUS_READY:
+    payload = _LINKS.resolve_download(job_id)
+    if payload is None:
         return None
     return payload["bucket"], payload["key"], payload.get("backend")

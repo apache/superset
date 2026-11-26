@@ -178,6 +178,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       supersetCanDownload = false,
       exportPivotCSV,
       exportFullCSV,
+      exportFullData,
       exportFullXLSX,
       slice,
       componentId,
@@ -417,6 +418,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportCSV={exportCSV}
                   exportPivotCSV={exportPivotCSV}
                   exportFullCSV={exportFullCSV}
+                  exportFullData={exportFullData}
                   exportXLSX={exportXLSX}
                   exportFullXLSX={exportFullXLSX}
                   supersetCanExplore={supersetCanExplore}

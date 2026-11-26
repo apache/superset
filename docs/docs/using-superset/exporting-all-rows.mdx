@@ -1,0 +1,175 @@
+---
+title: Exporting Every Row (Uncapped Exports)
+hide_title: true
+sidebar_position: 9
+version: 1
+---
+
+# Exporting Every Row (Uncapped Exports)
+
+Every export Superset offers by default is bounded. A chart export falls back
+to `ROW_LIMIT` when the chart has no limit of its own, and SQL Lab writes
+`min(your limit, SQL_MAX_ROW)` into the SQL it runs, so the cap is part of the
+query by the time there are results to export.
+
+The `ALLOW_UNCAPPED_DATA_EXPORT` feature flag adds one export path that no row
+cap bounds. With it on, a user can ask for **every row** a chart's query or a
+SQL Lab result returns. A background worker streams the rows into a CSV file,
+and the requester gets a download link: by email, and in the page they asked
+from, which downloads the file as soon as it is ready.
+
+This is deliberately not the default. An uncapped export can run for a long
+time and produce an arbitrarily large file, so enabling it is a per-deployment
+decision.
+
+:::note
+
+`ALLOW_UNCAPPED_DATA_EXPORT` is not the same as `ALLOW_FULL_CSV_EXPORT`. The
+latter only lifts a *table chart's own* row limit up to `SQL_MAX_ROW`, and
+still builds the file inside the request. Both can be on at once, and neither
+changes the other's behavior.
+
+:::
+
+## Using the export
+
+**From a chart** — in Explore, open **... (actions) → Download → Export All
+Data** and choose **Export all rows (emailed link)**. On a dashboard, the same
+item is in a chart's **... → Download** menu, and the dashboard's currently
+applied filters are included.
+
+**From SQL Lab** — run your query, then use the envelope button next to
+**Download to CSV** in the results pane.
+
+Either way the request returns immediately. You get a message that the export
+is being prepared, and then:
+
+- an **email** with a download link, which expires after
+  `FULL_DATA_EXPORT_LINK_TTL_SECONDS` (24 hours by default), and
+- an **automatic download** if you are still on the page when the file is
+  ready.
+
+If the export runs longer than ten minutes the page stops waiting and says so;
+the export keeps going and the email still arrives. If it fails or hits its
+time limit, you get a message saying what happened rather than a file that
+quietly stops short.
+
+One export of the same chart or query per user runs at a time. Asking again
+while one is in flight is refused with a message rather than queueing a second
+copy of the same work.
+
+## Prerequisites
+
+The feature needs three things. Where any is missing the endpoints answer
+`400` and the UI hides the action, rather than falling back to a download
+inside the request — that request-bound download is exactly the limit this
+feature exists to remove.
+
+1. **The feature flag.**
+
+   ```python
+   FEATURE_FLAGS = {"ALLOW_UNCAPPED_DATA_EXPORT": True}
+   ```
+
+2. **Export storage**, shared with the dashboard Excel export. Both a bucket
+   and a backend are required; there is no implicit default.
+
+   ```python
+   from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
+
+   EXPORT_STORAGE = {
+       "bucket": "my-export-bucket",
+       "backend": S3ExportStorage(),
+   }
+   ```
+
+3. **A Celery worker**, with `CELERY_CONFIG` set. The export is written by a
+   worker; there is no in-request path.
+
+SMTP is optional but strongly recommended: without it the requester can only
+retrieve the file through the polling download, so navigating away before the
+export finishes loses it.
+
+After upgrading, **run `superset init`**: the status endpoint is a new
+Flask-AppBuilder resource, and its `can_read on DataExport` permission has to
+be created and granted. Gamma and Alpha receive it automatically.
+
+Requesting an export needs the same export permission as a normal CSV download
+(`can_csv on Superset`, or `can_export_data` under
+`GRANULAR_EXPORT_CONTROLS`), plus read access to the chart or query.
+
+## What the file contains
+
+The rows are the query's own, straight from the warehouse. Nothing between
+the database and the file bounds them: `ROW_LIMIT` and `SQL_MAX_ROW` are not
+applied, and there is no row or byte ceiling.
+
+A few things are therefore *not* included, and the export says so rather than
+leaving you to notice:
+
+- **Post-processed results.** A pivot table, a forecast or a totals row is
+  computed from the whole result set in memory, which is the one thing an
+  uncapped export cannot do. Such a request is refused with an explanation;
+  the chart's raw rows are still exportable.
+- **A chart's secondary queries.** Some charts run more than one query — a
+  table with totals, a time comparison. The file holds the chart's main result
+  set, and the email says so.
+- **Formatting applied in the browser.** Column renames, reordering and
+  client-side filtering are part of the chart, not the query.
+
+## Permissions and row-level security
+
+The query runs in the worker **under the requesting user**, and its SQL is
+generated there rather than carried over from the request. Dataset access and
+row-level security apply exactly as they do on screen; a user cannot export
+rows they could not see in the chart.
+
+Access is checked twice: when the export is requested, and again in the worker
+before the query runs, because a job can sit queued while a user's roles or a
+dataset's RLS rules change.
+
+The download link is a Superset URL, not a signed storage URL, and the file
+streams through Superset with the deployment's own storage credentials. The
+endpoint requires no login: the unguessable job id, emailed only to the
+requester, is the credential, and access to the underlying data was checked
+when the export was requested. Links expire through Superset rather than at
+the storage layer, so a lifetime is actually enforceable.
+
+## Auditing
+
+Every finished export writes an audit log entry, `full_data_export`, with the
+requesting user, the chart or query, the row count, the byte count and how
+long it took. Failures and timeouts are logged with their status. The row
+count is only known once the file is complete, so it is written by the worker
+rather than by the request that queued the job.
+
+## Configuration keys
+
+| Key | Default | Purpose |
+| --- | --- | --- |
+| `FULL_DATA_EXPORT_KEY_PREFIX` | `"data-exports/"` | Key prefix for export objects: `{prefix}{kind}/{job_id}.csv`. A callable is resolved per export, inside the worker. |
+| `FULL_DATA_EXPORT_LINK_TTL_SECONDS` | `86400` | Lifetime of the download link. |
+| `FULL_DATA_EXPORT_SOFT_TIME_LIMIT` | `3600` | When the task gives up and tells the requester it timed out. |
+| `FULL_DATA_EXPORT_HARD_TIME_LIMIT` | `3660` | When the worker process is killed. The backstop. |
+| `FULL_DATA_EXPORT_CHUNK_SIZE` | `1000` | Rows fetched per round trip. |
+
+With no row ceiling, the time limits are what bound a single export's cost.
+Raise both together for exports that legitimately run longer.
+
+## Limitations
+
+- **SQL Lab queries whose cap cannot be removed.** A `PERCENT` or `WITH TIES`
+  clause, a ClickHouse `LIMIT ... BY`, and the Oracle `ROWNUM` filter used on
+  releases without `FETCH FIRST` bound rows with a predicate rather than a
+  clause that can be dropped. Such an export is refused with an explanation
+  instead of silently stopping at the cap. A `LIMIT` you wrote yourself is
+  always kept: only Superset's cap is removed.
+- **Multi-statement SQL Lab scripts** are refused, because running only the
+  statement that returns rows would drop whatever the earlier ones set up.
+- **Guest and anonymous sessions** cannot request an uncapped export: there is
+  no address to send the link to.
+- **The file is CSV.** An uncapped export has no row ceiling, and a worksheet
+  does (1,048,576 rows), so there is no Excel equivalent.
+- **Worker disk.** The file is written to the worker's temporary directory
+  before it is uploaded, and removed afterwards. Size the worker's disk for the
+  largest export you expect to allow.
