@@ -660,6 +660,20 @@ test('saves legend index to sessionStorage when the legend is scrolled', () => {
   );
 });
 
+test('does not persist legend state or index for unsaved charts (id 0)', () => {
+  render(<ChartRenderer {...requiredProps} chartId={0} />);
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+
+  act(() => {
+    hooks.onLegendStateChanged({ series1: false });
+    hooks.onLegendScroll(3);
+  });
+
+  expect(sessionStorage.getItem('chart_legend_state_0')).toBeNull();
+  expect(sessionStorage.getItem('chart_legend_index_0')).toBeNull();
+  expect(sessionStorage.getItem('chart_legend_lru')).toBeNull();
+});
+
 test('loads legend state from sessionStorage on mount', () => {
   const mockLegendState = { series1: true, series2: false };
   const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;

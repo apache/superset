@@ -541,6 +541,8 @@ function ChartRendererComponent({
   const handleLegendStateChanged = useCallback(
     (legendState: LegendState): void => {
       setState(prev => ({ ...prev, legendState }));
+      // Unsaved Explore charts all share id 0, so their legend state isn't persisted
+      if (!chartId) return;
       try {
         sessionStorage.setItem(
           `chart_legend_state_${chartId}`,
@@ -560,6 +562,7 @@ function ChartRendererComponent({
   const handleLegendScroll = useCallback(
     (legendIndex: number): void => {
       setState(prev => ({ ...prev, legendIndex }));
+      if (!chartId) return;
       try {
         sessionStorage.setItem(
           `chart_legend_index_${chartId}`,
