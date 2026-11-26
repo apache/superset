@@ -899,20 +899,77 @@ def test_normalize_catalog_wraps_long_lines_and_keeps_content(
     assert "Machine-translated via backfill_po.py" in entry.tcomment
 
 
+_PERCENT_HELP = (
+    "Value: type the exact numbers used for coloring below. % of column is "
+    "unavailable with Server pagination enabled."
+)
+
+
+@pytest.mark.parametrize(
+    "msgid",
+    ["% of total", "% of", "% of column total", "% calculation", _PERCENT_HELP],
+)
 def test_normalize_catalog_marks_percent_labels_no_python_format(
-    tmp_path: Path,
+    tmp_path: Path, msgid: str
 ) -> None:
+    """read_po re-adds python-format; normalize_catalog must drop it again.
+
+    It shares babel_update.sh's check, so a backfill does not re-flag what the
+    update pass unflagged, including a long msgid Babel writes across lines.
+    """
     po = _write_catalog(
         tmp_path,
-        '#, python-format\nmsgid "% of total"\nmsgstr "% du total"\n',
+        f'#, python-format\nmsgid "{msgid}"\nmsgstr "% du total"\n',
     )
 
     backfill_po.normalize_catalog(po)
 
-    entry = polib.pofile(str(po)).find("% of total")
+    entry = polib.pofile(str(po)).find(msgid)
     assert entry is not None
     assert "no-python-format" in entry.flags
     assert "python-format" not in entry.flags
+
+
+@pytest.mark.parametrize(
+    ("msgid", "msgstr"),
+    [
+        ("%(rows)d rows returned", "%(rows)d lignes renvoyées"),
+        ("%(count)s rows, % of total", "%(count)s lignes, % du total"),
+    ],
+)
+def test_normalize_catalog_keeps_python_format_on_real_placeholders(
+    tmp_path: Path, msgid: str, msgstr: str
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        f'#, python-format\nmsgid "{msgid}"\nmsgstr "{msgstr}"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    entry = polib.pofile(str(po)).find(msgid)
+    assert entry is not None
+    assert "python-format" in entry.flags
+    assert "no-python-format" not in entry.flags
+
+
+def test_normalize_catalog_judges_a_plural_on_both_ids(tmp_path: Path) -> None:
+    """A plural entry's msgid_plural counts: a real placeholder keeps the flag."""
+    po = _write_catalog(
+        tmp_path,
+        "#, python-format\n"
+        'msgid "% of one"\n'
+        'msgid_plural "%(num)d of many"\n'
+        'msgstr[0] "%(num)d sur un"\n'
+        'msgstr[1] "%(num)d sur plusieurs"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    entry = polib.pofile(str(po)).find("% of one")
+    assert entry is not None
+    assert "python-format" in entry.flags
+    assert "no-python-format" not in entry.flags
 
 
 # --- _run_claude: retry on transient CLI failures -------------------------------

@@ -52,12 +52,14 @@ Options:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 
@@ -810,9 +812,21 @@ def _process_batches(
     return translated_count, failed_count
 
 
-# Mirrors the post-processing at the end of babel_update.sh: Babel tags these
-# msgids python-format because of the bare ``%``, but they are literal labels.
-_PERCENT_LABEL_MSGIDS = {"% calculation", "% of parent", "% of total"}
+def _load_is_pseudo_format() -> Callable[[Iterable[str]], bool]:
+    """Return ``is_pseudo_format`` from the sibling ``unflag_pseudo_format.py``.
+
+    babel_update.sh runs that script after its update pass, and a backfill must
+    apply the same check or it re-flags what the script unflagged. The scripts
+    here are run by path rather than installed as a package, so the sibling is
+    loaded by file path, which works however this module itself was loaded.
+    """
+    path = Path(__file__).resolve().with_name("unflag_pseudo_format.py")
+    spec = importlib.util.spec_from_file_location("unflag_pseudo_format", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.is_pseudo_format
 
 
 def normalize_catalog(po_path: Path) -> None:
@@ -827,11 +841,15 @@ def normalize_catalog(po_path: Path) -> None:
     """
     from babel.messages.pofile import read_po, write_po
 
+    is_pseudo_format = _load_is_pseudo_format()
     lang = po_path.parent.parent.name
     with open(po_path, "rb") as f:
         catalog = read_po(f, locale=lang)
+    # read_po re-adds python-format to labels that only look like format
+    # strings ("% of" reads as "% o"); drop it as babel_update.sh does.
     for message in catalog:
-        if message.id in _PERCENT_LABEL_MSGIDS and "python-format" in message.flags:
+        ids = message.id if isinstance(message.id, (list, tuple)) else [message.id]
+        if "python-format" in message.flags and is_pseudo_format(ids):
             message.flags.discard("python-format")
             message.flags.add("no-python-format")
     with open(po_path, "wb") as f:

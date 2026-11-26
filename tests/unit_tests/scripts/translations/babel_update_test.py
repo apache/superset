@@ -101,10 +101,10 @@ def _stage_script(root: Path) -> Path:
     (root / "superset" / "translations").mkdir(parents=True, exist_ok=True)
     script = root / "scripts" / "translations" / "babel_update.sh"
     shutil.copy(_SCRIPT_PATH, script)
-    shutil.copy(
-        _SCRIPT_PATH.parent / "apply_do_not_translate.py",
-        root / "scripts" / "translations" / "apply_do_not_translate.py",
-    )
+    for helper in ("apply_do_not_translate.py", "unflag_pseudo_format.py"):
+        shutil.copy(
+            _SCRIPT_PATH.parent / helper, root / "scripts" / "translations" / helper
+        )
     # The stamping step refuses to run without its registry; an empty one
     # stamps nothing, keeping the fixture's shape untouched.
     (root / "superset" / "translations" / "do-not-translate.txt").write_text(
@@ -386,3 +386,127 @@ def test_the_trailing_line_strip_keeps_the_last_entry_intact(
             f"{path.name} must end with its last entry intact and no trailing "
             f"blank line; the strip removed the wrong line:\n{text[-80:]!r}"
         )
+
+
+# --- the python-format unflagging step ----------------------------------------
+
+_UNFLAG_COMMAND = "python scripts/translations/unflag_pseudo_format.py || exit 1"
+
+
+def test_the_unflag_step_runs_last_and_is_fatal() -> None:
+    """Babel re-adds python-format on every write, so the unflag must come last."""
+    commands = [line.strip() for line in _script_text().splitlines()]
+    assert _UNFLAG_COMMAND in commands, (
+        "babel_update.sh must run unflag_pseudo_format.py and stop on failure "
+        f"(`{_UNFLAG_COMMAND}`): this script has no `set -e`, so an unguarded "
+        "failure would publish catalogs with the python-format flag back on"
+    )
+    update_calls = [
+        i for i, cmd in enumerate(commands) if cmd.startswith("pybabel update")
+    ]
+    assert update_calls, "no `pybabel update` invocation found in babel_update.sh"
+    assert commands.index(_UNFLAG_COMMAND) > update_calls[-1], (
+        "the unflag step must run AFTER `pybabel update`, which re-adds the flag"
+    )
+
+
+# A template and a catalog as pybabel leaves them: an accidental `% of`
+# flagged python-format, next to a real placeholder that must keep its flag.
+_FLAGGED_POT = """\
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\\n"
+
+#, python-format
+msgid "% of"
+msgstr ""
+
+#, python-format
+msgid "%(rows)d rows"
+msgstr ""
+"""
+
+_FLAGGED_PO = _FLAGGED_POT.replace(
+    'msgid "% of"\nmsgstr ""', 'msgid "% of"\nmsgstr "% von"'
+)
+
+
+def _stage_flagged_run(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
+    """Stage the real script, with pybabel stubbed to leave the fixtures as-is."""
+    root = tmp_path / "repo"
+    script = _stage_script(root)
+    translations = root / "superset" / "translations"
+    po = translations / "de" / "LC_MESSAGES" / "messages.po"
+    po.parent.mkdir(parents=True)
+    po.write_text(_FLAGGED_PO, encoding="utf-8")
+
+    stub_dir = tmp_path / "bin"
+    stub_dir.mkdir()
+    _add_interpreter_shims(stub_dir)
+    pybabel = stub_dir / "pybabel"
+    pybabel.write_text(
+        "#!/bin/bash\n"
+        'if [ "$1" = "extract" ]; then\n'
+        "  while [ $# -gt 0 ]; do\n"
+        f'    if [ "$1" = "-o" ]; then cat > "$2" <<\'POT\'\n{_FLAGGED_POT}POT\n'
+        "    fi\n"
+        "    shift\n"
+        "  done\n"
+        "fi\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    pybabel.chmod(pybabel.stat().st_mode | stat.S_IEXEC)
+    return script, stub_dir, translations / "messages.pot", po
+
+
+def _run_staged(
+    script: Path, stub_dir: Path, tmp_path: Path
+) -> subprocess.CompletedProcess[str]:
+    bash = shutil.which("bash")
+    msgcat = shutil.which("msgcat")
+    assert bash, "bash is required to run the script under test"
+    assert msgcat, "guaranteed present by _require_msgcat in the caller"
+    return subprocess.run(  # noqa: S603
+        [bash, str(script)],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            "PATH": f"{stub_dir}:{Path(msgcat).parent}:/usr/bin:/bin",
+            "HOME": str(tmp_path),
+        },
+    )
+
+
+def test_the_script_unflags_accidental_format_labels(tmp_path: Path) -> None:
+    """End-to-end on the real script: the template and catalogs come out fixed."""
+    _require_msgcat()
+    script, stub_dir, pot, po = _stage_flagged_run(tmp_path)
+
+    proc = _run_staged(script, stub_dir, tmp_path)
+    assert proc.returncode == 0, f"script failed: {proc.stderr}"
+
+    for path in (pot, po):
+        text = path.read_text(encoding="utf-8")
+        assert '#, no-python-format\nmsgid "% of"' in text, (
+            f"{path.name}: `% of` must leave the script unflagged:\n{text}"
+        )
+        assert '#, python-format\nmsgid "%(rows)d rows"' in text, (
+            f"{path.name}: a real placeholder must keep python-format:\n{text}"
+        )
+
+
+def test_a_failing_unflag_step_fails_the_script(tmp_path: Path) -> None:
+    """`|| exit 1` in behaviour: a broken unflag step must not exit 0."""
+    _require_msgcat()
+    script, stub_dir, _, _ = _stage_flagged_run(tmp_path)
+    broken = script.parent / "unflag_pseudo_format.py"
+    broken.write_text("raise SystemExit(1)\n", encoding="utf-8")
+
+    proc = _run_staged(script, stub_dir, tmp_path)
+
+    assert proc.returncode != 0, (
+        "a failed unflag step must make babel_update.sh exit non-zero; it "
+        f"returned 0. stderr={proc.stderr!r}"
+    )
