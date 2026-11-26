@@ -170,6 +170,7 @@ export {
   type SliderRangeProps,
 } from './Slider';
 export { Splitter, type SplitterProps } from './Splitter';
+export { Statistic, type StatisticProps } from './Statistic';
 
 export { Switch, type SwitchProps } from './Switch';
 

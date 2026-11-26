@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type { CanvasRendererProps, FilterValue } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
@@ -41,6 +48,8 @@ export interface WidgetRows extends PlacementData {
   error?: string;
   /** The binding's dataset as `<id>__table`, for opening it elsewhere. */
   datasource?: string;
+  /** Runs the query again, as after a failure. */
+  retry?: () => void;
 }
 
 /** Restrict the shared normalizer to server responses and fixed transport errors. */
@@ -94,6 +103,7 @@ export function useWidgetRows(
     draftToken ?? null,
     versionUuid ?? null,
   ]);
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<{ key: string; value: WidgetRows }>({
     key,
     value: { rows: [], loading: bound },
@@ -165,7 +175,8 @@ export function useWidgetRows(
     };
     // The key stands in for the binding and filters, recreated every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasId, log, nodeId, key, refreshKey]);
+  }, [canvasId, log, nodeId, key, refreshKey, attempt]);
+  const retry = useCallback(() => setAttempt(count => count + 1), []);
 
   const datasource = bound ? `${binding?.datasetId}__table` : undefined;
   // Stable between renders, so callers can depend on it in effects.
@@ -173,7 +184,8 @@ export function useWidgetRows(
     () => ({
       ...(state.key === key ? state.value : { rows: [], loading: bound }),
       datasource,
+      retry,
     }),
-    [state, key, bound, datasource],
+    [state, key, bound, datasource, retry],
   );
 }

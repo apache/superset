@@ -29,6 +29,7 @@ import { MetricTileRenderer, TableRenderer } from './dataRenderers';
 import { useWidgetRows } from './useWidgetRows';
 import WithQuery from './WithQuery';
 import FilterSelectRenderer from './FilterSelectRenderer';
+import { WidgetError, WidgetSkeleton } from './WidgetStates';
 
 type Props = CanvasRendererProps;
 
@@ -187,24 +188,19 @@ const Markdown = styled.div`
 const MarkdownRenderer = (widget: Props) => {
   const { props, filters, refreshKey } = widget;
   const binding = props?.dataBinding as DataBinding | undefined;
-  const { rows, error, query, language, datasource } = useWidgetRows(
-    widget,
-    filters,
-    refreshKey,
-  );
+  const { rows, loading, error, query, language, datasource, retry } =
+    useWidgetRows(widget, filters, refreshKey);
 
   const content = text(props?.content);
+  if (datasource && loading && rows.length === 0) {
+    return <WidgetSkeleton shape="text" />;
+  }
+  if (error) return <WidgetError message={error} onRetry={retry} />;
   return (
     <WithQuery query={query} language={language} datasource={datasource}>
       <Markdown>
         <SafeMarkdown
-          source={
-            error
-              ? `${t('Data unavailable')}: ${error}`
-              : binding?.datasetId
-                ? renderTemplate(content, rows)
-                : content
-          }
+          source={binding?.datasetId ? renderTemplate(content, rows) : content}
         />
       </Markdown>
     </WithQuery>

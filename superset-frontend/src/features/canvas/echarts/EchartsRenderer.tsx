@@ -20,7 +20,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CanvasRendererProps } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
-import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import {
   getCategoricalSchemeRegistry,
   getClientErrorObject,
@@ -28,6 +28,7 @@ import {
 import { applyStructuredChrome, EchartsChromeValue } from './chrome';
 import { useWidgetRows } from '../useWidgetRows';
 import WithQuery from '../WithQuery';
+import { WidgetError, WidgetNoData, WidgetSkeleton } from '../WidgetStates';
 import { resolveOption } from './resolveBindings';
 import { applyStructuredSeries, StructuredProps } from './structuredSeries';
 import { themedOption, withLabelColors } from './themedOption';
@@ -36,18 +37,6 @@ const Chart = styled.div`
   width: 100%;
   height: 100%;
   min-height: 120px;
-`;
-
-const Message = styled.div`
-  ${({ theme }) => css`
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: ${theme.sizeUnit * 2}px;
-    color: ${theme.colorTextSecondary};
-    text-align: center;
-  `}
 `;
 
 const describe = async (error: unknown): Promise<string> => {
@@ -132,15 +121,26 @@ export default function EchartsRenderer(widget: CanvasRendererProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, optionKey, theme, scheme, labelColorsKey]);
 
-  const message = data.error ?? error;
+  const bound = data.datasource !== undefined;
+  if (bound && data.loading && data.rows.length === 0) {
+    return <WidgetSkeleton shape="chart" />;
+  }
+  if (data.error) {
+    return <WidgetError message={data.error} onRetry={data.retry} />;
+  }
   return (
     <WithQuery
       query={data.query}
       language={data.language}
       datasource={data.datasource}
     >
-      {message ? (
-        <Message>{t('This chart could not be drawn: %s', message)}</Message>
+      {error ? (
+        <WidgetError
+          title={t("This chart couldn't be drawn.")}
+          message={error}
+        />
+      ) : bound && data.rows.length === 0 ? (
+        <WidgetNoData filtered={filters.length + crossFilters.length > 0} />
       ) : (
         /*
          * Opted out of the canvas's body drag. ECharts paints its own drag

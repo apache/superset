@@ -17,17 +17,28 @@
  * under the License.
  */
 import type { CanvasRendererProps } from 'src/core/canvas/types';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import EchartsRenderer from './EchartsRenderer';
+
+const mockRows = {
+  rows: [{ x: 1 }] as Record<string, unknown>[],
+  loading: false,
+  error: undefined as string | undefined,
+};
 
 jest.mock('../useWidgetRows', () => ({
   ...jest.requireActual('../useWidgetRows'),
   useWidgetRows: () => ({
-    rows: [],
-    loading: false,
+    ...mockRows,
     query: 'SELECT 1',
     language: 'sql',
     datasource: '13__table',
+    retry: jest.fn(),
   }),
 }));
 
@@ -68,7 +79,49 @@ test('the chart opts its canvas out of the widget drag', () => {
   );
 });
 
-beforeEach(() => mockSetOption.mockClear());
+beforeEach(() => {
+  mockSetOption.mockClear();
+  Object.assign(mockRows, {
+    rows: [{ x: 1 }],
+    loading: false,
+    error: undefined,
+  });
+});
+
+test('a chart still loading shows a placeholder, not a blank box', () => {
+  Object.assign(mockRows, { rows: [], loading: true });
+  render(<EchartsRenderer {...widget} />, { useRedux: true, useRouter: true });
+
+  expect(screen.getByTestId('canvas-widget-loading')).toBeInTheDocument();
+});
+
+test('a chart with no rows says so', () => {
+  Object.assign(mockRows, { rows: [] });
+  render(
+    <EchartsRenderer
+      {...widget}
+      filters={[{ filterNodeId: 'f', value: { values: ['EMEA'] } }]}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(
+    screen.getByText('No results for the current filters'),
+  ).toBeInTheDocument();
+});
+
+test('a failed query keeps its message behind Details', () => {
+  Object.assign(mockRows, { rows: [], error: 'column "x" does not exist' });
+  render(<EchartsRenderer {...widget} />, { useRedux: true, useRouter: true });
+
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    "This widget's data couldn't be loaded.",
+  );
+  expect(screen.queryByText('column "x" does not exist')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+  expect(screen.getByText('column "x" does not exist')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+});
 
 const drawnTooltip = async (echartsOptions: Record<string, unknown>) => {
   render(<EchartsRenderer {...widget} props={{ echartsOptions }} />, {
