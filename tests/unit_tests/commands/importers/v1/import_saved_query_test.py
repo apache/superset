@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError
 from superset.commands.query.importers.v1 import utils
 
 
@@ -47,7 +47,7 @@ def test_overwrite_of_another_users_saved_query_is_rejected(
     mocker.patch.object(utils, "get_user", return_value=attacker)
     import_from_dict = mocker.patch.object(utils.SavedQuery, "import_from_dict")
 
-    with pytest.raises(ImportFailedError):
+    with pytest.raises(ForbiddenError):
         utils.import_saved_query({"uuid": "some-uuid"}, overwrite=True)
 
     import_from_dict.assert_not_called()
@@ -106,7 +106,7 @@ def test_create_without_can_write_is_rejected(mocker: MockerFixture) -> None:
     _wire_existing(mocker, None)
     mocker.patch.object(utils.security_manager, "can_access", return_value=False)
 
-    with pytest.raises(ImportFailedError):
+    with pytest.raises(ForbiddenError):
         utils.import_saved_query({"uuid": "some-uuid"}, overwrite=False)
 
 

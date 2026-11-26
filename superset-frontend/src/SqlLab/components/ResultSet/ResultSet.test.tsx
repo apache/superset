@@ -24,7 +24,7 @@ import {
   fireEvent,
   within,
 } from 'spec/helpers/testing-library';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
@@ -166,7 +166,7 @@ beforeEach(() => {
 });
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 const setup = (props?: any, store?: Store) =>
   render(<ResultSet {...props} />, {
     useRedux: true,
@@ -1206,5 +1206,41 @@ describe('ResultSet', () => {
       expect(queryByText('banana')).not.toBeInTheDocument();
     });
     expect(queryByText('apple')).toBeInTheDocument();
+  });
+
+  test('opens long text values in a modal from the results grid', async () => {
+    setupAGGridModules();
+    const longLog = `${'error detail '.repeat(15)}end`;
+    const longTextQuery = {
+      ...queries[0],
+      id: 'longTextQueryId',
+      cached: false,
+      results: {
+        columns: [{ is_dttm: false, column_name: 'log', type: 'STRING' }],
+        selected_columns: [
+          { is_dttm: false, column_name: 'log', type: 'STRING' },
+        ],
+        data: [{ log: longLog }],
+      },
+    };
+    const { findByTestId } = setup(
+      { ...mockedProps, cache: false, queryId: longTextQuery.id },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [longTextQuery.id]: longTextQuery,
+          },
+        },
+      }),
+    );
+
+    const trigger = await findByTestId('span-modal-trigger');
+    fireEvent.click(trigger);
+    expect(await findByTestId('text-modal-body')).toHaveTextContent(
+      longLog.trim(),
+    );
   });
 });

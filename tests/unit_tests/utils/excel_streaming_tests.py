@@ -126,8 +126,11 @@ def test_sanitize_cell_out_of_range_decimal_is_blanked() -> None:
 def test_sanitize_cell_quotes_formula_behind_whitespace(
     value: str, expected: str
 ) -> None:
-    # Spreadsheet apps evaluate formulas even when preceded by spaces/tabs, so
-    # the formula guard must look past leading whitespace.
+    # Whitespace in front of the prefix stops XlsxWriter recognising a formula
+    # at all, so these are written as plain string cells whether or not they
+    # are quoted. The guard looks past leading whitespace so that the three
+    # export paths agree on which cells are quoted, and for how a downstream
+    # viewer or a re-import reads the text.
     assert _sanitize_cell(value) == expected
 
 
@@ -166,6 +169,35 @@ def test_writer_quotes_formula_cells(tmp_path: Path) -> None:
 
     sheets = _read_workbook(path)
     assert sheets["data"][1][0] == "'=cmd()"
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("{=1+1}", "'{=1+1}"),
+        (" {=1+1}", "' {=1+1}"),
+        ('{"a": 1}', '{"a": 1}'),
+        ("{1+1}", "{1+1}"),
+        ("{=1+1", "{=1+1"),
+        ("{=1+1} ", "{=1+1} "),
+    ],
+)
+def test_sanitize_cell_quotes_array_formula(value: str, expected: str) -> None:
+    # XlsxWriter stores a string wrapped in ``{=`` and ``}`` as an array
+    # formula, so that exact form is quoted and other braced text is not.
+    assert _sanitize_cell(value) == expected
+
+
+def test_writer_quotes_array_formula_cells(tmp_path: Path) -> None:
+    openpyxl = pytest.importorskip("openpyxl")
+    path = str(tmp_path / "out.xlsx")
+    writer = StreamingXlsxWriter(path)
+    writer.add_sheet("data", ["{=1+1}"], [["{=SUM(A1:A2)}"]])
+    writer.close()
+
+    sheet = openpyxl.load_workbook(path).active
+    assert [sheet["A1"].value, sheet["A2"].value] == ["'{=1+1}", "'{=SUM(A1:A2)}"]
+    assert [sheet["A1"].data_type, sheet["A2"].data_type] == ["s", "s"]
 
 
 def test_writer_caps_rows_per_sheet(

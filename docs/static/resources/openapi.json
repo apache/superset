@@ -291,7 +291,7 @@
             "type": "string"
           },
           "entity_name": {
-            "description": "Name of the source entity *at the time of the change* \u2014 denormalized from the validity-strategy shadow row. Survives entity rename / delete.",
+            "description": "Name of the source entity *at the time of the change* \u2014 denormalized from the validity-strategy shadow row, or from the capture-time payload for ``__archive__`` records. Preserved across renames; redacted for deleted related entities.",
             "type": "string"
           },
           "entity_uuid": {
@@ -322,7 +322,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "Content category \u2014 what kind of thing changed. ``field`` is the fallback for scalar changes without a more specific category. Per-record.",
+            "description": "Content category \u2014 what kind of thing changed. ``field`` is the fallback for scalar changes without a more specific category. Per-record. ``__archive__`` announces a chart archive in related dashboard activity only.",
             "enum": [
               "filter",
               "metric",
@@ -339,7 +339,8 @@
               "color_palette",
               "field",
               "__meta__",
-              "__creation__"
+              "__creation__",
+              "__archive__"
             ],
             "type": "string"
           },
@@ -372,11 +373,11 @@
             "type": "string"
           },
           "summary": {
-            "description": "Synthesized headline for ``source: \"related\"`` records \u2014 e.g., ``\"Dataset updated: Sales Transactions\"``. Empty string for ``source: \"self\"`` records, except ``__meta__`` self records (e.g. restore announcements), which carry their own headline.",
+            "description": "Synthesized headline for ``source: \"related\"`` records \u2014 e.g., ``\"Dataset updated: Sales Transactions\"`` or ``\"Chart archived: Sales\"``. Empty string for ``source: \"self\"`` records, except ``__meta__`` self records (e.g. restore announcements), which carry their own headline.",
             "type": "string"
           },
           "to_value": {
-            "description": "New value; ``null`` = removed.",
+            "description": "New value; ``null`` = removed. For ``__archive__``, an object with the archived chart's ``entity_uuid`` and capture-time ``entity_name``; null when related detail is redacted.",
             "nullable": true
           },
           "transaction_id": {
@@ -2175,6 +2176,9 @@
           "last_saved_by": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
+          "localized_name": {
+            "readOnly": true
+          },
           "params": {
             "nullable": true,
             "type": "string"
@@ -2958,6 +2962,12 @@
             "description": "The id of the chart.",
             "type": "integer"
           },
+          "localized_name": {
+            "description": "The chart name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "slice_name": {
             "description": "The name of the chart.",
             "type": "string"
@@ -3070,6 +3080,11 @@
           },
           "is_managed_externally": {
             "type": "boolean"
+          },
+          "localized_name": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
           },
           "params": {
             "type": "string"
@@ -3207,6 +3222,9 @@
           },
           "last_saved_by": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+          },
+          "localized_name": {
+            "readOnly": true
           },
           "params": {
             "nullable": true,
@@ -4427,6 +4445,12 @@
             "description": "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter  specific parameters.",
             "type": "string"
           },
+          "localized_title": {
+            "description": "The dashboard title resolved for the viewer's locale (read-only). Falls back to dashboard_title when no translation applies.",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "position_json": {
             "description": "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view",
             "type": "string"
@@ -4587,6 +4611,9 @@
           },
           "is_managed_externally": {
             "type": "boolean"
+          },
+          "localized_title": {
+            "readOnly": true
           },
           "published": {
             "nullable": true,
@@ -6912,6 +6939,9 @@
             "nullable": true,
             "type": "string"
           },
+          "supports_partition_filter_mapping": {
+            "readOnly": true
+          },
           "table_name": {
             "maxLength": 250,
             "type": "string"
@@ -7854,11 +7884,83 @@
         },
         "type": "object"
       },
+      "EncryptedExtraExpiration": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EncryptedExtraHintSchema": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired; null when expires_at is null",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC; null when the value is not a JWT with an exp claim",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Human readable name of the masked field",
+            "type": "string"
+          },
+          "path": {
+            "description": "JSONPath of the masked field",
+            "type": "string"
+          },
+          "suffix": {
+            "description": "Last characters of the stored value (of the base64 body for a PEM key), null when the value is too short to reveal any",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "path"
+        ],
+        "type": "object"
+      },
+      "EncryptedExtraHintsResponseSchema": {
+        "properties": {
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/EncryptedExtraHintSchema"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "EngineInformation": {
         "properties": {
           "disable_ssh_tunneling": {
             "description": "SSH tunnel is not available to the database",
             "type": "boolean"
+          },
+          "encrypted_extra_expirations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EncryptedExtraExpiration"
+            },
+            "description": "On `/connection` only: JSONPath of each stored sensitive encrypted_extra field holding a JWT with an exp claim, and when it expires. The signature is not verified.",
+            "type": "object"
+          },
+          "encrypted_extra_sensitive_fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "JSONPath of each sensitive encrypted_extra field and its label. On the database GET and on `available`: the engine's declared patterns. On `/connection`: the fields present in the stored encrypted_extra.",
+            "type": "object"
           },
           "identifier_quote": {
             "allOf": [
@@ -7871,6 +7973,11 @@
           "oauth2_enabled": {
             "description": "OAuth2 authentication is enabled on this connection",
             "type": "boolean"
+          },
+          "partition_value_transform_default": {
+            "description": "Default partition value transform the dataset editor offers, or null for none",
+            "nullable": true,
+            "type": "string"
           },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
@@ -7886,6 +7993,10 @@
           },
           "supports_offset": {
             "description": "The database supports OFFSET in SQL queries. Engines like Elasticsearch SQL return False.",
+            "type": "boolean"
+          },
+          "supports_partition_filter_mapping": {
+            "description": "The dataset editor offers partition filter mapping on this database's datasets",
             "type": "boolean"
           },
           "supports_schemas": {
@@ -9480,7 +9591,8 @@
               "Email",
               "Slack",
               "SlackV2",
-              "Webhook"
+              "Webhook",
+              "Teams"
             ],
             "type": "string"
           }
@@ -12395,6 +12507,12 @@
             "description": "If the chart is managed outside externally.",
             "type": "boolean"
           },
+          "localized_name": {
+            "description": "The slice name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "modified": {
             "description": "Last modification in human readable form.",
             "type": "string"
@@ -15004,6 +15122,11 @@
             },
             "type": "array"
           },
+          "include_archived_dashboards": {
+            "default": false,
+            "description": "Append archived dashboards the caller may enumerate to each returned chart's dashboards, marked archived. Ignored unless soft delete is enabled.",
+            "type": "boolean"
+          },
           "keys": {
             "items": {
               "enum": [
@@ -16904,7 +17027,28 @@
                     },
                     "result": {
                       "items": {
-                        "$ref": "#/components/schemas/ChartRestApi.get_list"
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/ChartRestApi.get_list"
+                          },
+                          {
+                            "properties": {
+                              "dashboards": {
+                                "items": {
+                                  "properties": {
+                                    "archived": {
+                                      "description": "Present when archived dashboard expansion is enabled for the request. True for archived dashboards; false for live ones.",
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "type": "object"
+                                },
+                                "type": "array"
+                              }
+                            },
+                            "type": "object"
+                          }
+                        ]
                       },
                       "type": "array"
                     }
@@ -22659,6 +22803,13 @@
                             "description": "Whether the engine supports SSH Tunnels",
                             "type": "boolean"
                           },
+                          "encrypted_extra_sensitive_fields": {
+                            "additionalProperties": {
+                              "type": "string"
+                            },
+                            "description": "JSONPath of each sensitive encrypted_extra field and its label",
+                            "type": "object"
+                          },
                           "supports_file_upload": {
                             "description": "Whether the engine supports file uploads",
                             "type": "boolean"
@@ -23445,6 +23596,58 @@
           }
         ],
         "summary": "Get a database connection info",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/encrypted_extra_hints/": {
+      "get": {
+        "description": "Returns the label and last characters of each sensitive field in the database's encrypted extra, so that a stored secret can be told apart from another one without revealing it. A JWT also gets the expiry its unverified exp claim states. The number of characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty when it is 0 or less.",
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncryptedExtraHintsResponseSchema"
+                }
+              }
+            },
+            "description": "Hints for the masked fields"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get hints for the masked fields of a database's encrypted extra",
         "tags": [
           "Database"
         ]
@@ -26880,7 +27083,25 @@
             "$ref": "#/components/responses/404"
           },
           "500": {
-            "$ref": "#/components/responses/500"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "errors": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Unexpected error, or the analytics database refused or dropped the connection (the response then carries a typed `errors` list). Deliberately not 502/503/504, which SupersetClient retries."
           }
         },
         "security": [
@@ -28193,6 +28414,46 @@
         ]
       }
     },
+    "/api/v1/me/api_key_scopes/": {
+      "get": {
+        "description": "Lists the ``superset:<resource>:<action>`` API-key scopes the current user is allowed to put on a new API key, i.e. the subset of the scope catalog that does not exceed the user's own permissions. Returns a 401 error if the user is unauthenticated.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The allowed scopes"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the self-issuable API-key scopes",
+        "tags": [
+          "Current User"
+        ]
+      }
+    },
     "/api/v1/me/roles/": {
       "get": {
         "description": "Gets the user roles corresponding to the agent making the request, or returns a 401 error if the user is unauthenticated.",
@@ -29090,6 +29351,11 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "default_executor": {
+                      "description": "Fixed default execution account, visible only to admins.",
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "result": {
                       "$ref": "#/components/schemas/ReportConfigurationSchema"
                     }
@@ -29392,6 +29658,59 @@
           }
         ],
         "summary": "Subscribe to a chart or dashboard report",
+        "tags": [
+          "Report Schedules"
+        ]
+      }
+    },
+    "/api/v1/report/teams_destinations/": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "properties": {
+                          "available": {
+                            "type": "boolean"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Approved destinations and installation availability"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List approved Teams alert destinations",
         "tags": [
           "Report Schedules"
         ]

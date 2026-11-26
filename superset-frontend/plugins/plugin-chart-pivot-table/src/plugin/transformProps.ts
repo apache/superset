@@ -208,6 +208,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowTotals,
     rowSubTotals,
     collapseRows,
+    hideEmptyColumns = true,
     valueFormat,
     dateFormat,
     metricsLayout,
@@ -217,6 +218,8 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     timeGrainSqla,
     currencyFormat,
     allowRenderHtml,
+    defaultRowExpansionDepth = 0,
+    defaultColExpansionDepth = 0,
   } = pivotFormData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
@@ -288,6 +291,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowTotals,
     rowSubTotals,
     collapseRows: Boolean(collapseRows),
+    hideEmptyColumns,
     valueFormat,
     currencyFormat,
     currencyCodeColumn,
@@ -306,5 +310,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     onContextMenu,
     timeGrainSqla,
     allowRenderHtml,
+    defaultRowExpansionDepth,
+    defaultColExpansionDepth,
   };
 }

@@ -137,6 +137,19 @@ EXISTING_TIMEGRAIN_FILTER = {
     "cascadeParentIds": [],
 }
 
+EXISTING_TIMECOLUMN_FILTER = {
+    "id": "NATIVE_FILTER-existing6",
+    "type": "NATIVE_FILTER",
+    "filterType": "filter_timecolumn",
+    "name": "Date Column",
+    "description": "",
+    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+    "targets": [{"datasetId": 5}],
+    "controlValues": {"enableEmptyFilter": False},
+    "defaultDataMask": {"filterState": {"value": None}, "extraFormData": {}},
+    "cascadeParentIds": [],
+}
+
 EXISTING_DIVIDER = {
     "id": "NATIVE_FILTER_DIVIDER-existing5",
     "type": "DIVIDER",
@@ -188,9 +201,15 @@ def _mock_command(captured: dict[str, Any]) -> Callable[[int, dict[str, Any]], M
     new filters appended, deletions removed).
     """
 
-    def command_factory(dashboard_id: int, payload: dict[str, Any]) -> Mock:
+    def command_factory(
+        dashboard_id: int,
+        payload: dict[str, Any],
+        *,
+        expected_metadata: str | None = None,
+    ) -> Mock:
         captured["dashboard_id"] = dashboard_id
         captured["payload"] = payload
+        captured["expected_metadata"] = expected_metadata
 
         command = Mock()
 
@@ -538,6 +557,151 @@ async def test_add_filter_timegrain_with_invalid_dataset(mcp_server):
 
 
 @pytest.mark.asyncio
+async def test_add_filter_timecolumn(mcp_server):
+    """A time column filter carries a dataset target and no column."""
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()) as get_dataset,
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_timecolumn",
+                        "name": "Date Column",
+                        "dataset_id": 5,
+                        "enable_empty_filter": True,
+                        "scope_chart_ids": [10],
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    new_id = data["added_filter_ids"][0]
+    config = captured["payload"]["modified"][0]
+    assert config["id"] == new_id
+    assert config["type"] == "NATIVE_FILTER"
+    assert config["name"] == "Date Column"
+    assert config["filterType"] == "filter_timecolumn"
+    assert config["targets"] == [{"datasetId": 5}]
+    assert config["controlValues"] == {"enableEmptyFilter": True}
+    assert config["scope"] == {"rootPath": ["ROOT_ID"], "excluded": [11]}
+    assert config["cascadeParentIds"] == []
+    assert config["defaultDataMask"] == {
+        "filterState": {"value": None},
+        "extraFormData": {},
+    }
+    assert data["filters"][0]["filter_type"] == "filter_timecolumn"
+    assert data["filters"][0]["targets"] == [{"datasetId": 5}]
+    get_dataset.assert_called_once_with(5)
+
+
+@pytest.mark.asyncio
+async def test_add_filter_timecolumn_with_invalid_dataset(mcp_server):
+    """A time column filter's dataset is validated at creation."""
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=None),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_timecolumn",
+                        "name": "Date Column",
+                        "dataset_id": 999,
+                    }
+                ],
+            },
+        )
+
+    assert "Dataset with ID 999 not found" in data["error"]
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("filter_type", ["filter_timegrain", "filter_timecolumn"])
+async def test_add_dataset_only_filter_rejects_a_column(
+    mcp_server: object, filter_type: str
+) -> None:
+    """A column on a dataset-only filter is rejected, not silently dropped.
+
+    The filter would store no column, so accepting it would let a caller
+    believe the filter was pinned to that column. Updates reject it for these
+    types too.
+    """
+    from fastmcp.exceptions import ToolError
+
+    captured: dict[str, Any] = {"current_config": []}
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)) as command,
+    ):
+        with pytest.raises(
+            ToolError,
+            match=(f"type '{filter_type}'; fields .*column.*only apply to"),
+        ):
+            await _call(
+                mcp_server,
+                {
+                    "dashboard_id": 1,
+                    "add": [
+                        {
+                            "filter_type": filter_type,
+                            "name": "Date",
+                            "dataset_id": 5,
+                            "column": "ds",
+                        }
+                    ],
+                },
+            )
+
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_add_filter_timecolumn_accepts_a_null_column(mcp_server):
+    """An explicit null column is the same as leaving it out."""
+    captured: dict = {"current_config": []}
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_timecolumn",
+                        "name": "Date Column",
+                        "dataset_id": 5,
+                        "column": None,
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["targets"] == [{"datasetId": 5}]
+
+
+@pytest.mark.asyncio
 async def test_add_divider(mcp_server):
     """A divider has no dataset/column; it stores title+description and is
     keyed by a NATIVE_FILTER_DIVIDER- id, matching the frontend's shape."""
@@ -838,6 +1002,231 @@ async def test_update_timegrain_dataset_target(mcp_server):
     assert config["filterType"] == "filter_timegrain"
     assert config["targets"] == [{"datasetId": 6}]
     get_dataset.assert_called_once_with(6)
+
+
+@pytest.mark.asyncio
+async def test_update_timecolumn_enable_empty_filter(mcp_server):
+    captured: dict = {"current_config": [EXISTING_TIMECOLUMN_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing6",
+                        "name": "Order or ship date",
+                        "enable_empty_filter": True,
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_timecolumn"
+    assert config["name"] == "Order or ship date"
+    assert config["controlValues"]["enableEmptyFilter"] is True
+    assert config["targets"] == [{"datasetId": 5}]
+
+
+@pytest.mark.asyncio
+async def test_update_timecolumn_dataset_target(mcp_server):
+    """A time column filter's dataset target can be repointed after creation."""
+    captured: dict = {"current_config": [EXISTING_TIMECOLUMN_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()) as get_dataset,
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing6", "dataset_id": 6}],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_timecolumn"
+    assert config["targets"] == [{"datasetId": 6}]
+    get_dataset.assert_called_once_with(6)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
+@pytest.mark.parametrize(
+    "existing_filter,stored_value,extra_key,available_values,non_temporal_columns",
+    [
+        (EXISTING_TIMECOLUMN_FILTER, "old_date", "granularity_sqla", ["new_date"], []),
+        (
+            EXISTING_TIMECOLUMN_FILTER,
+            "old_date",
+            "granularity_sqla",
+            ["new_date"],
+            ["old_date"],
+        ),
+        (
+            EXISTING_TIMECOLUMN_FILTER,
+            "old_date",
+            "granularity_sqla",
+            ["old_date", "new_date"],
+            [],
+        ),
+        (EXISTING_TIMEGRAIN_FILTER, "P1M", "time_grain_sqla", ["P1D"], []),
+        (EXISTING_TIMEGRAIN_FILTER, "P1M", "time_grain_sqla", ["P1D", "P1M"], []),
+    ],
+    ids=[
+        "column-stale",
+        "column-not-temporal",
+        "column-retained",
+        "grain-stale",
+        "grain-retained",
+    ],
+)
+async def test_update_dataset_revalidates_temporal_default(
+    mcp_server: object,
+    existing_filter: dict[str, Any],
+    stored_value: str,
+    extra_key: str,
+    available_values: list[str],
+    non_temporal_columns: list[str],
+    enable_empty_filter: bool,
+) -> None:
+    """Retargeting clears incompatible defaults but preserves supported ones."""
+    existing = copy.deepcopy(existing_filter)
+    existing["controlValues"]["enableEmptyFilter"] = enable_empty_filter
+    existing["defaultDataMask"] = {
+        "filterState": {"value": [stored_value]},
+        "extraFormData": {extra_key: stored_value},
+    }
+    original = copy.deepcopy(existing)
+    captured: dict[str, Any] = {"current_config": [existing]}
+    dataset = _mock_dataset(available_values)
+    dataset.id = 6
+    for column in dataset.columns:
+        column.is_temporal = True
+    for name in non_temporal_columns:
+        column = Mock(column_name=name, is_temporal=False)
+        dataset.columns.append(column)
+    dataset.time_grain_sqla = [(value, value) for value in available_values]
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[existing])),
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": existing["id"], "dataset_id": 6}],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["targets"] == [{"datasetId": 6}]
+    assert config["defaultDataMask"] == (
+        original["defaultDataMask"]
+        if stored_value in available_values
+        else {"filterState": {"value": None}, "extraFormData": {}}
+    )
+    assert existing == original
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "existing_filter", [EXISTING_TIMECOLUMN_FILTER, EXISTING_TIMEGRAIN_FILTER]
+)
+@pytest.mark.parametrize("update", [{"name": "Renamed"}, {"dataset_id": 5}])
+async def test_update_temporal_filter_without_dataset_change_keeps_default(
+    mcp_server: object,
+    existing_filter: dict[str, Any],
+    update: dict[str, Any],
+) -> None:
+    """Unchanged dataset targets do not trigger default revalidation."""
+    existing = copy.deepcopy(existing_filter)
+    is_timecolumn = existing["filterType"] == "filter_timecolumn"
+    value = "old_date" if is_timecolumn else "P1M"
+    extra_key = "granularity_sqla" if is_timecolumn else "time_grain_sqla"
+    existing["defaultDataMask"] = {
+        "filterState": {"value": [value]},
+        "extraFormData": {extra_key: value},
+    }
+    captured: dict[str, Any] = {"current_config": [existing]}
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[existing])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()) as get_dataset,
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "update": [{"id": existing["id"], **update}]},
+        )
+
+    assert data["error"] is None
+    assert (
+        captured["payload"]["modified"][0]["defaultDataMask"]
+        == existing["defaultDataMask"]
+    )
+    assert get_dataset.call_count == (1 if "dataset_id" in update else 0)
+
+
+@pytest.mark.asyncio
+async def test_update_timecolumn_dataset_target_must_exist(mcp_server):
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=None),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing6", "dataset_id": 999}],
+            },
+        )
+
+    assert "Dataset with ID 999 not found" in data["error"]
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field",
+    [
+        {"column": "ds"},
+        {"multi_select": True},
+        {"default_value": ["a"]},
+        {"default_time_range": "Last week"},
+    ],
+)
+async def test_update_unrelated_field_on_timecolumn_filter_rejected(mcp_server, field):
+    """Fields that belong to other filter types are refused for a time column."""
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing6", **field}],
+            },
+        )
+
+    assert "has type 'filter_timecolumn'" in data["error"]
+    assert next(iter(field)) in data["error"]
 
 
 @pytest.mark.asyncio
@@ -1340,12 +1729,20 @@ async def test_add_with_invalid_dataset(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_with_invalid_column(mcp_server):
+@pytest.mark.parametrize("can_view_metadata", [True, False])
+async def test_add_with_invalid_column(
+    mcp_server: object, can_view_metadata: bool
+) -> None:
+    """Column suggestions through MCP require metadata access."""
     dashboard = _mock_dashboard(filters=[])
 
     with (
         patch(DAO_FIND_BY_ID, return_value=dashboard),
         patch(DATASET_FIND_BY_ID, return_value=_mock_dataset(["region", "ds"])),
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=can_view_metadata,
+        ),
     ):
         data = await _call(
             mcp_server,
@@ -1362,8 +1759,10 @@ async def test_add_with_invalid_column(mcp_server):
             },
         )
 
-    assert "Column 'nonexistent' not found in dataset 5" in data["error"]
-    assert "region" in data["error"]
+    expected = "Column 'nonexistent' not found in dataset 5."
+    if can_view_metadata:
+        expected += " Available columns: ds, region."
+    assert data["error"] == expected
 
 
 @pytest.mark.asyncio
@@ -2328,3 +2727,869 @@ def test_select_data_mask_invalid_target(target: object) -> None:
     existing["targets"] = [target]
     with pytest.raises(_FilterValidationError, match="has no target column"):
         _select_data_mask(existing, ["EMEA"])
+
+
+@pytest.mark.parametrize("can_view_metadata", [True, False])
+@pytest.mark.parametrize("require_numeric", [True, False])
+def test_invalid_column_error_respects_metadata_permission(
+    can_view_metadata: bool, require_numeric: bool
+) -> None:
+    """Select/range target validation only suggests columns with metadata access."""
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _FilterValidationError,
+        _validate_dataset_column,
+    )
+
+    dataset = Mock()
+    column = Mock()
+    column.column_name = "ship_date"
+    dataset.columns = [column]
+    with (
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=can_view_metadata,
+        ),
+        pytest.raises(_FilterValidationError) as exc,
+    ):
+        _validate_dataset_column(5, "missing", require_numeric=require_numeric)
+
+    expected = "Column 'missing' not found in dataset 5."
+    if can_view_metadata:
+        expected += " Available columns: ship_date."
+    assert str(exc.value) == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("dataset_id", [5, 7])
+@pytest.mark.parametrize(
+    "template",
+    [
+        EXISTING_SELECT_FILTER,
+        EXISTING_RANGE_FILTER,
+        EXISTING_TIMEGRAIN_FILTER,
+        EXISTING_TIMECOLUMN_FILTER,
+    ],
+)
+async def test_update_dataset_id_drops_semantic_view_binding(
+    mcp_server: object, template: dict[str, Any], dataset_id: int
+) -> None:
+    """An explicit SQL dataset replaces the semantic binding, even at the same ID."""
+    existing = copy.deepcopy(template)
+    existing["targets"][0].update(
+        datasourceType="semantic_view", semantic_selection_version="v1"
+    )
+    captured: dict[str, Any] = {"current_config": [existing]}
+    dataset = _mock_dataset(["region", "cost", "price", "ds"])
+    dataset.id = dataset_id
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[existing])),
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": existing["id"], "dataset_id": dataset_id}],
+            },
+        )
+    assert data["error"] is None
+    expected = {"datasetId": dataset_id}
+    if "column" in existing["targets"][0]:
+        expected["column"] = existing["targets"][0]["column"]
+    assert captured["payload"]["modified"][0]["targets"] == [expected]
+    assert existing["targets"][0]["datasourceType"] == "semantic_view"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("dataset_id", [5, 7])
+@pytest.mark.parametrize("stored_value", [None, "supported"])
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
+@pytest.mark.parametrize(
+    "template",
+    [
+        EXISTING_SELECT_FILTER,
+        EXISTING_RANGE_FILTER,
+        EXISTING_TIMEGRAIN_FILTER,
+        EXISTING_TIMECOLUMN_FILTER,
+    ],
+)
+async def test_update_dataset_id_clears_semantic_view_default(
+    mcp_server: object,
+    template: dict[str, Any],
+    dataset_id: int,
+    stored_value: str | None,
+    enable_empty_filter: bool,
+) -> None:
+    """A semantic selection cannot be revalidated as a SQL dataset selection."""
+    existing = copy.deepcopy(template)
+    existing["targets"][0].update(
+        datasourceType="semantic_view", semantic_selection_version="v1"
+    )
+    existing["defaultDataMask"] = {
+        "filterState": {"value": [stored_value] if stored_value else None},
+        "extraFormData": {
+            "semantic_selection_sources": [{"datasource": "5__semantic_view"}]
+        },
+    }
+    existing["controlValues"]["enableEmptyFilter"] = enable_empty_filter
+    captured: dict[str, Any] = {"current_config": [existing]}
+    dataset = _mock_dataset(["supported", "region", "cost"])
+    dataset.id = dataset_id
+    dataset.columns[0].is_temporal = True
+    dataset.time_grain_sqla = [("supported", "Supported")]
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[existing])),
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": existing["id"], "dataset_id": dataset_id}],
+            },
+        )
+    assert data["error"] is None
+    expected = (
+        {
+            "filterState": {"value": []},
+            "extraFormData": {
+                "adhoc_filters": [
+                    {
+                        "expressionType": "SQL",
+                        "clause": "WHERE",
+                        "sqlExpression": "1 = 0",
+                    }
+                ]
+            },
+        }
+        if template["filterType"] == "filter_select" and enable_empty_filter
+        else _CLEARED_MASK
+    )
+    assert captured["payload"]["modified"][0]["defaultDataMask"] == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("filter_type", ["filter_timegrain", "filter_timecolumn"])
+@pytest.mark.parametrize("value", [[], ["ship_date"]])
+async def test_add_dataset_only_filter_rejects_default_value(
+    mcp_server: object, filter_type: str, value: list[str]
+) -> None:
+    """Explicit defaults must not be accepted and silently discarded on add."""
+    from fastmcp.exceptions import ToolError
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH) as command,
+        pytest.raises(
+            ToolError,
+            match=f"type '{filter_type}'; fields .*default_value.*only apply to",
+        ),
+    ):
+        await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": filter_type,
+                        "name": "Date",
+                        "dataset_id": 5,
+                        "default_value": value,
+                    }
+                ],
+            },
+        )
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "template", [EXISTING_TIMEGRAIN_FILTER, EXISTING_TIMECOLUMN_FILTER]
+)
+async def test_update_dataset_only_filter_rejects_default_value(
+    mcp_server: object, template: dict[str, Any]
+) -> None:
+    """Updates already reject select defaults on dataset-only temporal filters."""
+    with patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[template])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": template["id"], "default_value": ["ship_date"]}],
+            },
+        )
+    assert "default_value" in data["error"]
+    assert "only apply to filter_select filters" in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("filter_type", ["filter_time", "filter_range"])
+@pytest.mark.parametrize("value", [[], ["ship_date"]])
+async def test_add_time_and_range_reject_default_value(
+    mcp_server: object, filter_type: str, value: list[str]
+) -> None:
+    """Non-select defaults must fail validation before a filter is stored."""
+    from fastmcp.exceptions import ToolError
+
+    spec: dict[str, Any] = {"filter_type": filter_type, "name": "Date"}
+    if filter_type == "filter_range":
+        spec.update(dataset_id=5, column="amount")
+    spec["default_value"] = value
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset(["amount"])),
+        patch(COMMAND_PATH) as command,
+        pytest.raises(ToolError, match="default_value.*only apply to filter_select"),
+    ):
+        await _call(mcp_server, {"dashboard_id": 1, "add": [spec]})
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("filter_type", ["filter_timegrain", "filter_timecolumn"])
+@pytest.mark.parametrize(
+    "field",
+    ["multi_select", "default_to_first_item", "sort_ascending", "search_all_options"],
+)
+@pytest.mark.parametrize("value", [False, True])
+async def test_add_dataset_only_filter_rejects_select_flags(
+    mcp_server: object, filter_type: str, field: str, value: bool
+) -> None:
+    """Even false select-only flags must not be silently dropped on add."""
+    from fastmcp.exceptions import ToolError
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH) as command,
+        pytest.raises(ToolError, match=f"{field}.*only apply to filter_select"),
+    ):
+        await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": filter_type,
+                        "name": "Date",
+                        "dataset_id": 5,
+                        field: value,
+                    }
+                ],
+            },
+        )
+    command.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Filter dependencies (cascade_parent_ids)
+# ---------------------------------------------------------------------------
+
+
+def _child_filter(
+    filter_id: str, parents: list[str], base: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Build an existing select filter that depends on ``parents``."""
+    conf = copy.deepcopy(base or EXISTING_SELECT_FILTER)
+    conf["id"] = filter_id
+    conf["cascadeParentIds"] = list(parents)
+    return conf
+
+
+async def _manage(
+    mcp_server: object,
+    filters: list[dict[str, Any]],
+    request: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Run the tool against ``filters`` and return (response, captured)."""
+    captured: dict[str, Any] = {"current_config": filters}
+    dashboard = _mock_dashboard(filters=filters)
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(mcp_server, {"dashboard_id": 1, **request})
+    return data, captured
+
+
+@pytest.mark.asyncio
+async def test_add_filter_with_cascade_parent(mcp_server: object) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_select",
+                    "name": "City",
+                    "dataset_id": 5,
+                    "column": "region",
+                    # Duplicates collapse, order is kept.
+                    "cascade_parent_ids": [
+                        "NATIVE_FILTER-existing1",
+                        "NATIVE_FILTER-existing1",
+                    ],
+                }
+            ]
+        },
+    )
+
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "NATIVE_FILTER-existing1"
+    ]
+    by_id = {f["id"]: f for f in data["filters"]}
+    new_id = data["added_filter_ids"][0]
+    assert by_id[new_id]["cascade_parent_ids"] == ["NATIVE_FILTER-existing1"]
+    assert by_id["NATIVE_FILTER-existing1"]["cascade_parent_ids"] == []
+
+
+@pytest.mark.asyncio
+async def test_add_filter_without_cascade_parent_keeps_empty_list(
+    mcp_server: object,
+) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_select",
+                    "name": "City",
+                    "dataset_id": 5,
+                    "column": "region",
+                }
+            ]
+        },
+    )
+
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == []
+
+
+@pytest.mark.asyncio
+async def test_update_sets_replaces_and_clears_cascade_parents(
+    mcp_server: object,
+) -> None:
+    filters = [
+        EXISTING_SELECT_FILTER,
+        EXISTING_RANGE_FILTER,
+        EXISTING_TIME_FILTER,
+        _child_filter("NATIVE_FILTER-child", []),
+    ]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {
+            "update": [
+                {
+                    "id": "NATIVE_FILTER-child",
+                    "cascade_parent_ids": [
+                        "NATIVE_FILTER-existing1",
+                        "NATIVE_FILTER-existing3",
+                        "NATIVE_FILTER-existing2",
+                    ],
+                }
+            ]
+        },
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "NATIVE_FILTER-existing1",
+        "NATIVE_FILTER-existing3",
+        "NATIVE_FILTER-existing2",
+    ]
+
+    # Omitting the field leaves the dependency alone.
+    filters[3] = _child_filter("NATIVE_FILTER-child", ["NATIVE_FILTER-existing1"])
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "NATIVE_FILTER-child", "name": "Renamed"}]},
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "NATIVE_FILTER-existing1"
+    ]
+
+    # An empty list clears it.
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "NATIVE_FILTER-child", "cascade_parent_ids": []}]},
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == []
+
+
+@pytest.mark.asyncio
+async def test_update_unknown_cascade_parent_rejected(mcp_server: object) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER, _child_filter("NATIVE_FILTER-child", [])],
+        {
+            "update": [
+                {"id": "NATIVE_FILTER-child", "cascade_parent_ids": ["no-such-filter"]}
+            ]
+        },
+    )
+
+    assert "no-such-filter" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_add_unknown_cascade_parent_rejected(mcp_server: object) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_select",
+                    "name": "City",
+                    "dataset_id": 5,
+                    "column": "region",
+                    "cascade_parent_ids": ["no-such-filter"],
+                }
+            ]
+        },
+    )
+
+    assert "no-such-filter" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_self_dependency_rejected(mcp_server: object) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER],
+        {
+            "update": [
+                {
+                    "id": "NATIVE_FILTER-existing1",
+                    "cascade_parent_ids": ["NATIVE_FILTER-existing1"],
+                }
+            ]
+        },
+    )
+
+    assert "cannot depend on itself" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_cascade_cycle_rejected(mcp_server: object) -> None:
+    """country <- city <- street; making country depend on street closes a loop."""
+    filters = [
+        _child_filter("country", []),
+        _child_filter("city", ["country"]),
+        _child_filter("street", ["city"]),
+    ]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "country", "cascade_parent_ids": ["street"]}]},
+    )
+
+    assert "cycle" in data["error"]
+    assert "country -> street -> city -> country" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_cascade_cycle_via_two_updates_in_one_request_rejected(
+    mcp_server: object,
+) -> None:
+    """Each update is acyclic alone; together they form a loop."""
+    filters = [_child_filter("a", []), _child_filter("b", [])]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {
+            "update": [
+                {"id": "a", "cascade_parent_ids": ["b"]},
+                {"id": "b", "cascade_parent_ids": ["a"]},
+            ]
+        },
+    )
+
+    assert "cycle" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_cascade_parent_must_support_dependencies(
+    mcp_server: object,
+) -> None:
+    filters: list[dict[str, Any]] = [
+        EXISTING_TIMEGRAIN_FILTER,
+        EXISTING_TIMECOLUMN_FILTER,
+        EXISTING_DIVIDER,
+        _child_filter("NATIVE_FILTER-child", []),
+    ]
+    for parent in (
+        "NATIVE_FILTER-existing4",
+        "NATIVE_FILTER-existing6",
+        "NATIVE_FILTER_DIVIDER-existing5",
+    ):
+        data, captured = await _manage(
+            mcp_server,
+            filters,
+            {"update": [{"id": "NATIVE_FILTER-child", "cascade_parent_ids": [parent]}]},
+        )
+        assert "cannot be parents" in data["error"]
+        assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_update_cascade_parent_removed_in_same_request_rejected(
+    mcp_server: object,
+) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER, _child_filter("NATIVE_FILTER-child", [])],
+        {
+            "remove": ["NATIVE_FILTER-existing1"],
+            "update": [
+                {
+                    "id": "NATIVE_FILTER-child",
+                    "cascade_parent_ids": ["NATIVE_FILTER-existing1"],
+                }
+            ],
+        },
+    )
+
+    assert "NATIVE_FILTER-existing1" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "existing,spec",
+    [
+        (EXISTING_TIMEGRAIN_FILTER, {"id": "NATIVE_FILTER-existing4"}),
+        (EXISTING_TIMECOLUMN_FILTER, {"id": "NATIVE_FILTER-existing6"}),
+        (EXISTING_DIVIDER, {"id": "NATIVE_FILTER_DIVIDER-existing5"}),
+    ],
+)
+async def test_update_cascade_parents_rejected_on_unsupported_type(
+    mcp_server: object, existing: dict[str, Any], spec: dict[str, Any]
+) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER, existing],
+        {
+            "update": [
+                {**spec, "cascade_parent_ids": ["NATIVE_FILTER-existing1"]},
+            ]
+        },
+    )
+
+    assert "cascade_parent_ids" in data["error"]
+    assert "only apply to" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "spec",
+    [
+        {"filter_type": "divider", "name": "Sep"},
+        {"filter_type": "filter_timegrain", "name": "Grain", "dataset_id": 5},
+        {"filter_type": "filter_timecolumn", "name": "Col", "dataset_id": 5},
+    ],
+)
+async def test_add_cascade_parents_rejected_on_unsupported_type(
+    mcp_server: object, spec: dict[str, Any]
+) -> None:
+    from fastmcp.exceptions import ToolError
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH) as command,
+        pytest.raises(ToolError, match="cascade_parent_ids.*only apply to"),
+    ):
+        await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [{**spec, "cascade_parent_ids": ["NATIVE_FILTER-existing1"]}],
+            },
+        )
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_remove_parent_strips_it_from_dependent_filters(
+    mcp_server: object,
+) -> None:
+    """Deleting a parent must not leave dangling IDs on filters that used it."""
+    filters = [
+        _child_filter("country", []),
+        _child_filter("region", []),
+        _child_filter("city", ["country", "region"]),
+        _child_filter("unrelated", ["region"]),
+    ]
+
+    data, captured = await _manage(mcp_server, filters, {"remove": ["country"]})
+
+    assert data["error"] is None
+    assert captured["payload"]["deleted"] == ["country"]
+    # Only the dependent filter is rewritten; untouched ones are not.
+    assert [m["id"] for m in captured["payload"]["modified"]] == ["city"]
+    by_id = {f["id"]: f for f in data["filters"]}
+    assert by_id["city"]["cascade_parent_ids"] == ["region"]
+    assert by_id["unrelated"]["cascade_parent_ids"] == ["region"]
+    assert data["updated_filter_ids"] == ["city"]
+    # The stored config of the dependent filter is otherwise unchanged.
+    expected = _child_filter("city", ["region"])
+    assert captured["payload"]["modified"][0] == expected
+
+
+@pytest.mark.asyncio
+async def test_remove_parent_strips_it_from_filter_updated_in_same_request(
+    mcp_server: object,
+) -> None:
+    filters = [
+        _child_filter("country", []),
+        _child_filter("city", ["country"]),
+    ]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"remove": ["country"], "update": [{"id": "city", "name": "City"}]},
+    )
+
+    assert data["error"] is None
+    assert [m["id"] for m in captured["payload"]["modified"]] == ["city"]
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == []
+    assert captured["payload"]["modified"][0]["name"] == "City"
+    assert data["updated_filter_ids"] == ["city"]
+
+
+@pytest.mark.asyncio
+async def test_remove_filter_without_dependents_does_not_rewrite_others(
+    mcp_server: object,
+) -> None:
+    data, captured = await _manage(
+        mcp_server,
+        [EXISTING_SELECT_FILTER, EXISTING_TIME_FILTER],
+        {"remove": ["NATIVE_FILTER-existing1"]},
+    )
+
+    assert data["error"] is None
+    assert captured["payload"] == {"deleted": ["NATIVE_FILTER-existing1"]}
+
+
+@pytest.mark.asyncio
+async def test_existing_dangling_parent_does_not_block_unrelated_update(
+    mcp_server: object,
+) -> None:
+    """Legacy dangling parents on untouched filters are not this request's job."""
+    filters = [
+        EXISTING_SELECT_FILTER,
+        _child_filter("legacy", ["long-gone"]),
+    ]
+
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {
+            "update": [
+                {
+                    "id": "NATIVE_FILTER-existing1",
+                    "cascade_parent_ids": [],
+                }
+            ]
+        },
+    )
+
+    assert data["error"] is None
+    assert [m["id"] for m in captured["payload"]["modified"]] == [
+        "NATIVE_FILTER-existing1"
+    ]
+
+
+def test_cascade_parent_ids_field_is_documented_in_schemas() -> None:
+    from superset.mcp_service.dashboard.schemas import (
+        BaseNewFilterSpec,
+        NativeFilterUpdateSpec,
+    )
+
+    assert "cascade_parent_ids" in BaseNewFilterSpec.model_fields
+    assert "cascade_parent_ids" in NativeFilterUpdateSpec.model_fields
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("rename", [False, True])
+@pytest.mark.parametrize("malformed_first", [False, True])
+async def test_remove_parent_preserves_malformed_dependency_entries(
+    mcp_server: object, rename: bool, malformed_first: bool
+) -> None:
+    """Removal tolerates unhashable legacy entries, including on updated children."""
+    child = _child_filter("city", ["country", "region"])
+    malformed = [{"legacy": "value"}, ["legacy"], None]
+    child["cascadeParentIds"] = (
+        malformed + ["country", "region"]
+        if malformed_first
+        else ["country", "region"] + malformed
+    )
+    filters = [_child_filter("country", []), _child_filter("region", []), child]
+    request: dict[str, Any] = {"remove": ["country"]}
+    if rename:
+        request["update"] = [{"id": "city", "name": "Renamed"}]
+
+    data, captured = await _manage(mcp_server, filters, request)
+
+    assert data["error"] is None
+    modified = captured["payload"]["modified"]
+    assert len(modified) == 1
+    assert modified[0]["cascadeParentIds"] == (
+        malformed + ["region"] if malformed_first else ["region"] + malformed
+    )
+    assert "country" in child["cascadeParentIds"]
+    assert next(f for f in data["filters"] if f["id"] == "city")[
+        "cascade_parent_ids"
+    ] == ["region"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("echo_dead_parent", [False, True])
+async def test_dead_parent_read_modify_write(
+    mcp_server: object, echo_dead_parent: bool
+) -> None:
+    """Hidden legacy parents do not prevent editing the visible dependencies."""
+    from superset.mcp_service.dashboard.schemas import _extract_native_filters
+
+    filters = [
+        _child_filter("country", []),
+        _child_filter("region", []),
+        _child_filter("city", ["deleted", "region"]),
+    ]
+    summaries = _extract_native_filters(
+        json.dumps({"native_filter_configuration": filters})
+    )
+    assert summaries[2].cascade_parent_ids == ["region"]
+    # Also exercise the manage response's separate summary path.
+    data, _ = await _manage(
+        mcp_server, filters, {"update": [{"id": "city", "name": "City"}]}
+    )
+    assert data["filters"][2]["cascade_parent_ids"] == ["region"]
+    parents = [*summaries[2].cascade_parent_ids, "country"]
+    if echo_dead_parent:
+        parents.append("deleted")
+    data, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "city", "cascade_parent_ids": parents}]},
+    )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == [
+        "region",
+        "country",
+    ]
+    assert filters[2]["cascadeParentIds"] == ["deleted", "region"]
+
+
+@pytest.mark.asyncio
+async def test_stale_parent_on_another_filter_is_still_unknown(
+    mcp_server: object,
+) -> None:
+    """Only dead parents already stored on this filter may be silently dropped."""
+    data, captured = await _manage(
+        mcp_server,
+        [_child_filter("city", ["deleted"]), _child_filter("region", [])],
+        {"update": [{"id": "region", "cascade_parent_ids": ["deleted"]}]},
+    )
+    assert "not on the dashboard" in data["error"]
+    assert "payload" not in captured
+
+
+@pytest.mark.asyncio
+async def test_remove_reports_all_trimmed_children_once(mcp_server: object) -> None:
+    """Implicit and explicit child updates are reported without duplicates."""
+    data, captured = await _manage(
+        mcp_server,
+        [
+            _child_filter("country", []),
+            _child_filter("region", ["country"]),
+            _child_filter("city", ["country", "region"]),
+            _child_filter("unrelated", []),
+        ],
+        {"remove": ["country"], "update": [{"id": "region", "name": "Region"}]},
+    )
+    assert data["error"] is None
+    assert data["updated_filter_ids"] == ["region", "city"]
+    assert [f["id"] for f in captured["payload"]["modified"]] == ["region", "city"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("custom_side", ["parent", "child"])
+async def test_existing_plugin_filter_supports_cascade_dependencies(
+    mcp_server: object, custom_side: str
+) -> None:
+    """Stored native plugins can participate on either side of a cascade."""
+    parent = _child_filter("parent", [])
+    child = _child_filter("child", [])
+    (parent if custom_side == "parent" else child)["filterType"] = (
+        "custom_native_filter"
+    )
+    data, captured = await _manage(
+        mcp_server,
+        [parent, child],
+        {"update": [{"id": "child", "cascade_parent_ids": ["parent"]}]},
+    )
+    assert "error" not in data or data["error"] is None
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == ["parent"]
+
+
+@pytest.mark.asyncio
+async def test_native_filter_write_uses_validated_metadata_snapshot(
+    mcp_server: object,
+) -> None:
+    """The command's compare-and-write guard must cover the validated snapshot."""
+    filters = [EXISTING_SELECT_FILTER]
+    _, captured = await _manage(
+        mcp_server,
+        filters,
+        {"update": [{"id": "NATIVE_FILTER-existing1", "name": "Renamed"}]},
+    )
+    assert (
+        captured["expected_metadata"] == _mock_dashboard(filters=filters).json_metadata
+    )
+
+
+@pytest.mark.asyncio
+async def test_add_filter_with_existing_plugin_cascade_parent(
+    mcp_server: object,
+) -> None:
+    """Adding a built-in child must accept a stored plugin parent too."""
+    parent = _child_filter("parent", [])
+    parent["filterType"] = "custom_native_filter"
+    data, captured = await _manage(
+        mcp_server,
+        [parent],
+        {
+            "add": [
+                {
+                    "filter_type": "filter_time",
+                    "name": "Time",
+                    "cascade_parent_ids": ["parent"],
+                }
+            ]
+        },
+    )
+    assert not data.get("error")
+    assert captured["payload"]["modified"][0]["cascadeParentIds"] == ["parent"]

@@ -1182,6 +1182,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             "form_data",
             "id",
             "slice_name",
+            "localized_name",
             "slice_url",
         }
         assert result["id"] == dashboard.slices[0].id
@@ -1339,7 +1340,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         self.login(GAMMA_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
-        assert response.status_code == 404
+        assert response.status_code == 403
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_gamma_dashboard_charts(self):
@@ -1414,6 +1415,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "uuid": str(dashboard.uuid),
                 "css": "",
                 "dashboard_title": "title",
+                "localized_title": "title",
                 "datasources": [],
                 "json_metadata": "",
                 "editors": [
@@ -1666,7 +1668,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         self.login(GAMMA_USERNAME)
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
-        assert rv.status_code == 404
+        assert rv.status_code == 403
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -4818,7 +4820,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response == {
             "errors": [
                 {
-                    "message": "Could not find a valid command to import file",
+                    "message": (
+                        "This file is not a supported dashboard export. "
+                        "Re-export the dashboard from a compatible Superset version, "
+                        "then retry with the new ZIP file."
+                    ),
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {

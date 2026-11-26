@@ -20,7 +20,7 @@ import rison from 'rison';
 import { waitFor } from '@testing-library/react';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { SupersetClient } from '@superset-ui/core';
-import Chart from 'src/types/Chart';
+import { Chart } from 'src/types/Chart';
 import {
   checkUploadExtensions,
   handleChartDelete,
@@ -807,3 +807,7 @@ test.each([true, false])(
     }
   },
 );
+
+test('treats import errors without extra metadata as terminal', () => {
+  expect(hasTerminalValidation([{ message: 'Import failed' }])).toBe(true);
+});

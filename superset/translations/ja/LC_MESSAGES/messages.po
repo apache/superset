@@ -125,9 +125,6 @@ msgstr "新規作成"
 msgid " at line %(line)d"
 msgstr "%(line)d 行目"
 
-msgid " expression which needs to adhere to the "
-msgstr "準拠すべき式"
-
 msgid " for details."
 msgstr "をご覧ください。"
 
@@ -135,45 +132,17 @@ msgstr "をご覧ください。"
 msgid " near '%(highlight)s'"
 msgstr "「%(highlight)s」付近"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" 標準に従うことで、辞書順が時系列順と一致するようにします。\n"
-"                      タイムスタンプの形式が ISO 8601 標準に準拠していない場合は、\n"
-"                      文字列を日付またはタイムスタンプに変換するための\n"
-"                      式と型を定義する必要があります。なお、\n"
-"                      現在タイムゾーンはサポートされていません。時刻がエポック形式で\n"
-"                      保存されている場合は、`epoch_s`、`epoch_ms`、または `epoch_us` "
-"を指定してください。パターンが\n"
-"                      指定されていない場合は、extra パラメータを介して、\n"
-"                      データベース/列名ごとに設定された任意のデフォルト値を使用します。"
-
 msgid " to add calculated columns"
 msgstr "計算列を追加する"
 
 msgid " to add metrics"
-msgstr "メトリックを追加する"
+msgstr "メトリクスを追加する"
 
 msgid " to check for details."
 msgstr " 詳細を確認してください。"
 
 msgid " to edit or add columns and metrics."
-msgstr " 列やメトリックを編集または追加してください。"
+msgstr " 列やメトリクスを編集または追加してください。"
 
 msgid " to mark a column as a time column"
 msgstr " 列を時間列として設定してください"
@@ -266,6 +235,14 @@ msgstr[0] "依存アセット %(count)s 件がアーカイブされています�
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s は、セキュリティ上の理由からデータソースとして使用できません。"
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s ファイル"
@@ -356,12 +333,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d 行が返されました"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "「%(undefinedParameter)s」の代わりに「%(suggestion)s」を使用しますか？"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "「%(undefinedParameter)s」の代わりに「%(suggestion)s」を使用しますか？"
 
 #, python-format
 msgid ""
@@ -559,7 +534,7 @@ msgstr[0] "キー %s 件"
 #, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "%s件のメトリック"
+msgstr[0] "%s件のメトリクス"
 
 #, python-format
 msgid "%s min ago"
@@ -597,7 +572,7 @@ msgstr[0] "%s / %s 列"
 #, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "%s / %s メトリック"
+msgstr[0] "%s / %s メトリクス"
 
 #, python-format
 msgid "%s out of %s selected"
@@ -624,7 +599,7 @@ msgstr[0] "%s 秒前"
 
 #, python-format
 msgid "%s saved metric(s)"
-msgstr "%s 個の保存済みメトリック"
+msgstr "%s 個の保存済みメトリクス"
 
 #, python-format
 msgid "%s second"
@@ -1028,7 +1003,7 @@ msgid "<new column>"
 msgstr "<新しい列>"
 
 msgid "<new metric>"
-msgstr "<新しいメトリック>"
+msgstr "<新しいメトリクス>"
 
 msgid "<new spatial>"
 msgstr "<新しい空間列>"
@@ -1227,7 +1202,7 @@ msgid ""
 msgstr "緯度・経度座標上に、可変半径の円を描画する地図です。"
 
 msgid "A metric to use for color"
-msgstr "色付けに使用するメトリック"
+msgstr "色付けに使用するメトリクス"
 
 msgid ""
 "A multiplier applied to the point radius. Use this to uniformly scale all"
@@ -1705,10 +1680,10 @@ msgid "Add item"
 msgstr "項目を追加"
 
 msgid "Add metric"
-msgstr "メトリックを追加"
+msgstr "メトリクスを追加"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
-msgstr "「データソースの編集」モーダルでメトリックをデータセットに追加"
+msgstr "「データソースの編集」モーダルでメトリクスをデータセットに追加"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -1844,10 +1819,10 @@ msgid ""
 msgstr "比較値からの増減(正負の変化)に基づいて、チャートのシンボルに色を付けます。"
 
 msgid "Adhoc metric SQL expression is invalid"
-msgstr "アドホックなメトリックのSQL式が無効です"
+msgstr "アドホックなメトリクスのSQL式が無効です"
 
 msgid "Adhoc metric aggregate is invalid"
-msgstr "アドホックなメトリックの集計が無効です"
+msgstr "アドホックなメトリクスの集計が無効です"
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "このデータベースとSQL Labとの連携設定を調整します。"
@@ -1952,6 +1927,10 @@ msgstr "サマリー行に使用する集計方法です。デフォルトでは
 
 msgid "Alert"
 msgstr "アラート"
+
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "アラート「%(alertName)s」が正常に実行されました"
 
 msgid "Alert Triggered, In Grace Period"
 msgstr "アラート発生(猶予期間中)"
@@ -2198,7 +2177,7 @@ msgid ""
 "distributions of a related metric across multiple groups. The box in the "
 "middle emphasizes the mean, median, and inner 2 quartiles. The whiskers "
 "around each box visualize the min, max, range, and outer 2 quartiles."
-msgstr "箱ひげ図としても知られるこの視覚化は、関連するメトリックの分布を複数のグループ間で比較します。中央のボックスは平均値、中央値、および内側2つの四分位数を強調します。ボックス周囲の「ひげ」は最小値、最大値、範囲、および外側2つの四分位数を視覚化します。"
+msgstr "箱ひげ図としても知られるこの視覚化は、関連するメトリクスの分布を複数のグループ間で比較します。中央のボックスは平均値、中央値、および内側2つの四分位数を強調します。ボックス周囲の「ひげ」は最小値、最大値、範囲、および外側2つの四分位数を視覚化します。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -2711,12 +2690,12 @@ msgstr "アプリケーションのデフォルト"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Applied '%s' metric"
-msgstr "メトリック「%s」を適用しました"
+msgstr "メトリクス「%s」を適用しました"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Applied a metric"
-msgstr "メトリックを適用しました"
+msgstr "メトリクスを適用しました"
 
 #, python-format
 msgid "Applied cross-filters (%d)"
@@ -2750,10 +2729,10 @@ msgid "Apply another dashboard filter"
 msgstr "別のダッシュボードフィルターを適用"
 
 msgid "Apply conditional color formatting to metric"
-msgstr "メトリックに条件付き書式(色)を適用"
+msgstr "メトリクスに条件付き書式(色)を適用"
 
 msgid "Apply conditional color formatting to metrics"
-msgstr "メトリックに条件付き書式(色)を適用"
+msgstr "メトリクスに条件付き書式(色)を適用"
 
 msgid "Apply conditional color formatting to numeric columns"
 msgstr "数値列に条件付き書式(色)を適用"
@@ -2767,7 +2746,7 @@ msgid "Apply filters"
 msgstr "フィルターを適用"
 
 msgid "Apply metrics on"
-msgstr "メトリックの適用対象"
+msgstr "メトリクスの適用対象"
 
 msgid "April"
 msgstr "4月"
@@ -2939,7 +2918,7 @@ msgid ""
 "Area charts are similar to line charts in that they represent variables "
 "with the same scale, but area charts stack the metrics on top of each "
 "other."
-msgstr "面グラフは、変数を同じスケールで表すという点で折れ線グラフに似ていますが、面グラフはメトリックを互いに積み上げていきます。"
+msgstr "面グラフは、変数を同じスケールで表すという点で折れ線グラフに似ていますが、面グラフはメトリクスを互いに積み上げていきます。"
 
 msgid "Arrow"
 msgstr "矢印"
@@ -3100,7 +3079,7 @@ msgid "Bar Chart"
 msgstr "棒グラフ"
 
 msgid "Bar Charts are used to show metrics as a series of bars."
-msgstr "棒グラフは、一連の棒としてメトリックを表示するために使用されます。"
+msgstr "棒グラフは、一連の棒としてメトリクスを表示するために使用されます。"
 
 msgid "Bar orientation"
 msgstr "棒の向き"
@@ -3131,7 +3110,7 @@ msgid "Base width"
 msgstr "基本の幅"
 
 msgid "Based on a metric"
-msgstr "メトリックに基づく"
+msgstr "メトリクスに基づく"
 
 msgid "Based on granularity, number of time periods to compare against"
 msgstr "粒度に基づいた比較対象の期間数"
@@ -3262,7 +3241,7 @@ msgid "Breakdowns"
 msgstr "内訳"
 
 msgid "Breakpoint Metric"
-msgstr "ブレークポイントのメトリック"
+msgstr "ブレークポイントのメトリクス"
 
 msgid ""
 "Breaks down the series by the category specified in this control.\n"
@@ -3291,7 +3270,7 @@ msgstr "バブルサイズの数値形式"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Bubble-size metric must be nonnegative"
-msgstr "バブルサイズのメトリックは非負である必要があります"
+msgstr "バブルサイズのメトリクスは非負である必要があります"
 
 msgid "Bucket break points"
 msgstr "バケットの境界点"
@@ -3327,7 +3306,7 @@ msgid "By key: use row names as sorting key"
 msgstr "キー指定: 行名を並べ替えキーとして使用"
 
 msgid "By value: use metric values as sorting key"
-msgstr "値指定: メトリック値を並べ替えキーとして使用"
+msgstr "値指定: メトリクス値を並べ替えキーとして使用"
 
 msgid "CC recipients"
 msgstr "CC受信者"
@@ -4037,7 +4016,7 @@ msgid "Choose a delimiter"
 msgstr "区切り文字を選択"
 
 msgid "Choose a metric for right axis"
-msgstr "右軸に使用するメトリックを選択"
+msgstr "右軸に使用するメトリクスを選択"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4132,7 +4111,7 @@ msgstr "バーに対して値を表示する位置を選択してください"
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
 "color based on a categorical color palette"
-msgstr "国をメトリック値に基づいた濃淡で表示するか、カテゴリパレットに基づいた色を割り当てるかを選択します"
+msgstr "国をメトリクス値に基づいた濃淡で表示するか、カテゴリパレットに基づいた色を割り当てるかを選択します"
 
 msgid "Choose..."
 msgstr "選択してください..."
@@ -4161,7 +4140,7 @@ msgstr "円形 (Circular)"
 msgid ""
 "Classic row-by-column spreadsheet like view of a dataset. Use tables to "
 "showcase a view into the underlying data or to show aggregated metrics."
-msgstr "データセットをスプレッドシート形式で表示します。表を使用して基データを確認したり、集計されたメトリックを表示したりするのに適しています。"
+msgstr "データセットをスプレッドシート形式で表示します。表を使用して基データを確認したり、集計されたメトリクスを表示したりするのに適しています。"
 
 msgid "Clause"
 msgstr "条件"
@@ -4379,7 +4358,7 @@ msgid "Color By Y-Axis"
 msgstr "Y軸で色分け"
 
 msgid "Color Metric"
-msgstr "色のメトリック"
+msgstr "色のメトリクス"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -4440,7 +4419,7 @@ msgid "Color for breakpoint"
 msgstr "境界点の色"
 
 msgid "Color metric"
-msgstr "色のメトリック"
+msgstr "色のメトリクス"
 
 msgid "Color of the source location"
 msgstr "ソース地点の色"
@@ -4578,10 +4557,10 @@ msgid "Columns (horizontal layout)"
 msgstr "列 (水平レイアウト)"
 
 msgid "Columns and metrics"
-msgstr "列とメトリック"
+msgstr "列とメトリクス"
 
 msgid "Columns and metrics should be inside folders"
-msgstr "列とメトリックはフォルダー内に配置する必要があります"
+msgstr "列とメトリクスはフォルダー内に配置する必要があります"
 
 msgid "Columns folder can only contain column items"
 msgstr "列フォルダーには列項目のみを含めることができます"
@@ -4626,7 +4605,7 @@ msgid "Columns viewers can choose to group charts by."
 msgstr "閲覧者がグラフのグループ化に選択できる列。"
 
 msgid "Combine metrics"
-msgstr "メトリックを結合"
+msgstr "メトリクスを結合"
 
 msgid ""
 "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
@@ -4682,19 +4661,19 @@ msgstr "比較オプション"
 msgid ""
 "Compare multiple time series charts (as sparklines) and related metrics "
 "quickly."
-msgstr "複数の時系列チャート(スパークライン)と関連メトリックを素早く比較します。"
+msgstr "複数の時系列チャート(スパークライン)と関連メトリクスを素早く比較します。"
 
 msgid "Compare results with other time periods."
 msgstr "他の期間の結果と比較します。"
 
 msgid "Compare the same summarized metric across multiple groups."
-msgstr "複数のグループ間で、同じ集計メトリックを比較します。"
+msgstr "複数のグループ間で、同じ集計メトリクスを比較します。"
 
 msgid ""
 "Compares how a metric changes over time between different groups. Each "
 "group is mapped to a row and change over time is visualized bar lengths "
 "and color."
-msgstr "異なるグループ間で、メトリックが時間の経過とともにどのように変化するかを比較します。各グループは行に割り当てられ、時間的変化はバーの長さと色で視覚化されます。"
+msgstr "異なるグループ間で、メトリクスが時間の経過とともにどのように変化するかを比較します。各グループは行に割り当てられ、時間的変化はバーの長さと色で視覚化されます。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -5335,7 +5314,7 @@ msgid "Custom SQL"
 msgstr "カスタムSQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
-msgstr "このデータセットではカスタムSQLアドホックメトリックが有効になっていません"
+msgstr "このデータセットではカスタムSQLアドホックメトリクスが有効になっていません"
 
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "カスタムSQLフィールドは単一のSQLステートメントとして解析できません。"
@@ -5399,7 +5378,7 @@ msgid "Customize"
 msgstr "カスタマイズ"
 
 msgid "Customize Metrics"
-msgstr "メトリックのカスタマイズ"
+msgstr "メトリクスのカスタマイズ"
 
 msgid ""
 "Customize cell titles using Handlebars template syntax. Available "
@@ -5485,7 +5464,7 @@ msgstr "12月"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "削除"
+msgstr ""
 
 msgid "DML"
 msgstr "データ操作言語 (DML)"
@@ -5839,10 +5818,10 @@ msgid "Dataset is required"
 msgstr "データセットは必須です"
 
 msgid "Dataset metric delete failed."
-msgstr "データセットメトリックの削除に失敗しました。"
+msgstr "データセットメトリクスの削除に失敗しました。"
 
 msgid "Dataset metric not found."
-msgstr "データセットメトリックが見つかりません。"
+msgstr "データセットメトリクスが見つかりません。"
 
 msgid "Dataset name"
 msgstr "データセット名"
@@ -6642,7 +6621,7 @@ msgstr "マトリックスの左側に各行のラベルを表示"
 msgid ""
 "Display metrics side by side within each column, as opposed to each "
 "column being displayed side by side for each metric."
-msgstr "各列内でメトリックを並べて表示します(メトリックごとに列を分けるのではなく)。"
+msgstr "各列内でメトリクスを並べて表示します(メトリクスごとに列を分けるのではなく)。"
 
 msgid ""
 "Display percents in the label and tooltip as the percent of the total "
@@ -6755,7 +6734,7 @@ msgid ""
 "Drag columns and metrics here to customize tooltip content. Order matters"
 " - items will appear in the same order in tooltips. Click the button to "
 "manually select columns and metrics."
-msgstr "列やメトリックをここにドラッグして、ツールチップの内容をカスタマイズします。配置した順序でツールチップに表示されます。ボタンをクリックして手動で選択することも可能です。"
+msgstr "列やメトリクスをここにドラッグして、ツールチップの内容をカスタマイズします。配置した順序でツールチップに表示されます。ボタンをクリックして手動で選択することも可能です。"
 
 msgid "Drag to reorder"
 msgstr "ドラッグして並べ替え"
@@ -6827,13 +6806,13 @@ msgstr[0] "ここに列をドロップするかクリックしてください"
 
 msgid "Drop a column/metric here or click"
 msgid_plural "Drop columns/metrics here or click"
-msgstr[0] "ここに列またはメトリックをドロップするかクリックしてください"
+msgstr[0] "ここに列またはメトリクスをドロップするかクリックしてください"
 
 msgid "Drop a temporal column here or click"
 msgstr "ここに時間列をドロップするかクリックしてください"
 
 msgid "Drop columns/metrics here or click"
-msgstr "ここに列またはメトリックをドロップするかクリックしてください"
+msgstr "ここに列またはメトリクスをドロップするかクリックしてください"
 
 msgid "Dttm"
 msgstr "日時"
@@ -6849,7 +6828,7 @@ msgstr "列名の重複: %(columns)s"
 msgid ""
 "Duplicate column/metric labels: %(labels)s. Please make sure all columns "
 "and metrics have a unique label."
-msgstr "列またはメトリックラベルの重複: %(labels)s。すべての項目に一意のラベルを付けてください。"
+msgstr "列またはメトリクスラベルの重複: %(labels)s。すべての項目に一意のラベルを付けてください。"
 
 msgid "Duplicate dataset"
 msgstr "データセットを複製"
@@ -6923,6 +6902,9 @@ msgstr "動的セクションラベル"
 msgid "Dynamic group by"
 msgstr "動的グループ化"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "動的セクションの説明"
 
@@ -6941,7 +6923,7 @@ msgstr "ECharts オプション (JS オブジェクトリテラル)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "メールレポートのCTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "エラー"
@@ -7506,7 +7488,7 @@ msgstr "値取得述語内のJinja式エラー: %(msg)s"
 
 #, python-format
 msgid "Error in jinja expression in metric expression: %(msg)s"
-msgstr "メトリック式内のJinja式エラー: %(msg)s"
+msgstr "メトリクス式内のJinja式エラー: %(msg)s"
 
 msgid "Error loading chart datasources. Filters may not work correctly."
 msgstr "チャートのデータソース読み込みエラー。フィルターが正しく動作しない可能性があります。"
@@ -7940,7 +7922,7 @@ msgid "Factor"
 msgstr "係数"
 
 msgid "Factor to multiply the metric by"
-msgstr "メトリックに乗算する係数"
+msgstr "メトリクスに乗算する係数"
 
 msgid "Fail login count"
 msgstr "ログイン失敗回数"
@@ -8151,6 +8133,14 @@ msgstr "項目へのタグ付けに失敗しました"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s 「%(alertName)s」のトリガーに失敗しました：%(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "アラート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "レポート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
 msgid "Failed to update report"
 msgstr "レポートの更新に失敗しました"
 
@@ -8283,7 +8273,7 @@ msgstr "チャートをフィルター"
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
 "dimensions. Select a dimension or remove the filter."
-msgstr "フィルター列「%(column)s」はメトリックです。セマンティックビューではディメンションに対してのみフィルターできます。ディメンションを選択するか、フィルターを削除してください。"
+msgstr "フィルター列「%(column)s」はメトリクスです。セマンティックビューではディメンションに対してのみフィルターできます。ディメンションを選択するか、フィルターを削除してください。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -8355,7 +8345,7 @@ msgid "Filters by columns"
 msgstr "列によるフィルター"
 
 msgid "Filters by metrics"
-msgstr "メトリックによるフィルター"
+msgstr "メトリクスによるフィルター"
 
 msgid "Filters for comparison must have a value"
 msgstr "比較用のフィルターには値を指定してください"
@@ -8645,7 +8635,7 @@ msgid ""
 "Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
 " based on the dataset's currency code column. When multiple currencies "
 "are present, formatting falls back to neutral numbers."
-msgstr "メトリックや列を通貨記号の接頭辞・接尾辞付きで整形します。記号を手動で選択するか、「自動検出」を使用してデータセットの通貨コード列に基づいた記号を適用します。複数の通貨が混在する場合、通常の数値形式に戻ります。"
+msgstr "メトリクスや列を通貨記号の接頭辞・接尾辞付きで整形します。記号を手動で選択するか、「自動検出」を使用してデータセットの通貨コード列に基づいた記号を適用します。複数の通貨が混在する場合、通常の数値形式に戻ります。"
 
 msgid "Formatted CSV attached in email"
 msgstr "整形済みCSVをメールに添付"
@@ -8705,11 +8695,11 @@ msgid "Further customize how to display each column"
 msgstr "各列の表示方法をさらに詳細に設定"
 
 msgid "Further customize how to display each metric"
-msgstr "各メトリックの表示方法をさらに詳細に設定"
+msgstr "各メトリクスの表示方法をさらに詳細に設定"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "グループ化"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "ガントチャート"
@@ -8749,7 +8739,7 @@ msgstr "GeoJSON設定"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Geographic metric %s must be a finite number"
-msgstr "地理メトリック %s は有限の数値である必要があります"
+msgstr "地理メトリクス %s は有限の数値である必要があります"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -8844,7 +8834,7 @@ msgid "Group By"
 msgstr "グループ化"
 
 msgid "Group By, Metrics or Percentage Metrics must have a value"
-msgstr "グループ化、メトリック、または割合メトリックのいずれかに値を指定してください"
+msgstr "グループ化、メトリクス、または割合メトリクスのいずれかに値を指定してください"
 
 msgid "Group Key"
 msgstr "グループキー"
@@ -8893,6 +8883,7 @@ msgstr "ゲストユーザーはチャートのデータ(ペイロード)を変�
 msgid "HTTP Path"
 msgstr "HTTPパス"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -8938,6 +8929,14 @@ msgstr "線を非表示"
 msgid "Hide chart description"
 msgstr "チャートの説明を非表示"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "レイヤーを非表示"
 
@@ -8964,6 +8963,9 @@ msgstr "各期間の高値。"
 msgid "Histogram"
 msgstr "ヒストグラム"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "ホーム"
 
@@ -8982,7 +8984,7 @@ msgstr "水平方向の配置"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Horizontal alignment of the metric value and supporting text"
-msgstr "メトリック値と補足テキストの水平方向の配置"
+msgstr "メトリクス値と補足テキストの水平方向の配置"
 
 #. i18n: hostname of the database server, as it appears in the user's own
 #. database tooling
@@ -9031,9 +9033,6 @@ msgstr "ISO 3166-2"
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2コード"
 
-msgid "ISO 8601"
-msgstr "ISO 8601"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "ISO suffix / abbreviation"
@@ -9072,7 +9071,7 @@ msgstr ""
 " Sheetsで、データベースにOAuth認証が構成されている場合、クエリは現在ログインしているユーザー自身のOAuth資格情報で実行されます。"
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
-msgstr "メトリックを指定した場合、その値に基づいて並べ替えされます"
+msgstr "メトリクスを指定した場合、その値に基づいて並べ替えされます"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9095,7 +9094,7 @@ msgstr "有効にすると結果を降順で並べ替えし、無効にすると
 msgid ""
 "If it stays empty, it won't be saved and will be removed from the list. "
 "To remove folders, move metrics and columns to other folders."
-msgstr "空のままにすると保存されず、リストから削除されます。フォルダーを削除するには、中のメトリックや列を別のフォルダーへ移動してください。"
+msgstr "空のままにすると保存されず、リストから削除されます。フォルダーを削除するには、中のメトリクスや列を別のフォルダーへ移動してください。"
 
 msgid "If table already exists"
 msgstr "テーブルが既に存在する場合"
@@ -9213,6 +9212,9 @@ msgstr "このビューでは最初の25行をプレビューできます。"
 
 msgid "Inactive"
 msgstr "非アクティブ"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "系列を含める"
@@ -9407,7 +9409,7 @@ msgstr "無効なSQL: %(error)s"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
-msgstr "無効なアドホックメトリック %(label)s: `expressionType` がありません"
+msgstr "無効なアドホックメトリクス %(label)s: `expressionType` がありません"
 
 #, python-format
 msgid "Invalid advanced data type: %(advanced_data_type)s"
@@ -9448,7 +9450,7 @@ msgid "Invalid cumulative operator: %(operator)s"
 msgstr "無効な累積演算子: %(operator)s"
 
 msgid "Invalid currency code in saved metrics"
-msgstr "保存済みメトリックに無効な通貨コードが含まれています"
+msgstr "保存済みメトリクスに無効な通貨コードが含まれています"
 
 msgid "Invalid date/timestamp format"
 msgstr "日付/タイムスタンプ形式が無効です"
@@ -9493,7 +9495,7 @@ msgstr "緯度または経度が無効です"
 
 #, python-format
 msgid "Invalid metric object: %(metric)s"
-msgstr "無効なメトリックオブジェクト: %(metric)s"
+msgstr "無効なメトリクスオブジェクト: %(metric)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9542,9 +9544,10 @@ msgstr "無効な状態です。"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "無効なタブID: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "カラム %(column)s の時間フィルタの値が無効です"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -9969,7 +9972,7 @@ msgstr "左側のマージン(ピクセル単位)。軸ラベルの表示スペ�
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Left metric"
-msgstr "左のメトリック"
+msgstr "左のメトリクス"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10109,7 +10112,7 @@ msgid ""
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
 "present, since totals and subtotals are then computed via a database "
 "rollup query that must see every row to stay correct."
-msgstr "取得するセルの数を制限します。比率、COUNT_DISTINCT、AVG、パーセンタイルなどの非加法メトリックが存在する場合は適用されません。この場合、合計と小計はデータベースのロールアップクエリで計算され、正確性を保つためにすべての行を参照する必要があるためです。"
+msgstr "取得するセルの数を制限します。比率、COUNT_DISTINCT、AVG、パーセンタイルなどの非加法メトリクスが存在する場合は適用されません。この場合、合計と小計はデータベースのロールアップクエリで計算され、正確性を保つためにすべての行を参照する必要があるためです。"
 
 msgid "Limits the number of rows that get displayed."
 msgstr "表示する行数を制限します。"
@@ -10206,7 +10209,7 @@ msgid ""
 msgstr "すべての範囲、マーカー、マーカーラインを凡例に一覧表示します。項目をクリックすると、チャート上での表示/非表示が切り替わります"
 
 msgid "List of n+1 values for bucketing metric into n buckets."
-msgstr "メトリックをn個のバケットに分類するための n+1 個の値のリスト。"
+msgstr "メトリクスをn個のバケットに分類するための n+1 個の値のリスト。"
 
 msgid "List of the column names that should be read"
 msgstr "読み込む列名のリスト"
@@ -10699,117 +10702,117 @@ msgid ""
 "single metric across the entire filtered time period, ideal for non-"
 "additive metrics like ratios, averages, or distinct counts. Other methods"
 " operate over the time series data points."
-msgstr "表示値を計算する方法。「全体値」はフィルターされた全期間で単一の数値を計算し、比率、平均、ユニーク件数などの非加算メトリックに適しています。その他の方法は各データポイントに基づいて計算します。"
+msgstr "表示値を計算する方法。「全体値」はフィルターされた全期間で単一の数値を計算し、比率、平均、ユニーク件数などの非加算メトリクスに適しています。その他の方法は各データポイントに基づいて計算します。"
 
 msgid "Metric"
-msgstr "メトリック"
+msgstr "メトリクス"
 
 #, python-format
 msgid "Metric '%(metric)s' does not exist"
-msgstr "メトリック「%(metric)s」は存在しません"
+msgstr "メトリクス「%(metric)s」は存在しません"
 
 msgid "Metric Key"
-msgstr "メトリックキー"
+msgstr "メトリクスキー"
 
 #, python-format
 msgid "Metric ``%(metric_name)s`` not found in %(dataset_name)s."
-msgstr "メトリック「%(metric_name)s」がデータセット「%(dataset_name)s」内に見つかりません。"
+msgstr "メトリクス「%(metric_name)s」がデータセット「%(dataset_name)s」内に見つかりません。"
 
 msgid "Metric ascending"
-msgstr "メトリックを昇順に並べ替え"
+msgstr "メトリクスを昇順に並べ替え"
 
 msgid "Metric assigned to the [X] axis"
-msgstr "X軸に割り当てられたメトリック"
+msgstr "X軸に割り当てられたメトリクス"
 
 msgid "Metric assigned to the [Y] axis"
-msgstr "Y軸に割り当てられたメトリック"
+msgstr "Y軸に割り当てられたメトリクス"
 
 msgid "Metric change in value from `since` to `until`"
-msgstr "「開始」から「終了」までのメトリック値の変化量"
+msgstr "「開始」から「終了」までのメトリクス値の変化量"
 
 msgid "Metric currency"
-msgstr "メトリックの通貨"
+msgstr "メトリクスの通貨"
 
 msgid "Metric descending"
-msgstr "メトリックを降順に並べ替え"
+msgstr "メトリクスを降順に並べ替え"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Metric displayed on the left side of the butterfly chart"
-msgstr "バタフライチャートの左側に表示するメトリック"
+msgstr "バタフライチャートの左側に表示するメトリクス"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Metric displayed on the right side of the butterfly chart"
-msgstr "バタフライチャートの右側に表示するメトリック"
+msgstr "バタフライチャートの右側に表示するメトリクス"
 
 msgid "Metric factor change from `since` to `until`"
-msgstr "「開始」から「終了」までのメトリックの変化係数"
+msgstr "「開始」から「終了」までのメトリクスの変化係数"
 
 msgid "Metric for node values"
-msgstr "ノード値に使用するメトリック"
+msgstr "ノード値に使用するメトリクス"
 
 msgid "Metric for ordering"
-msgstr "並べ替えに使用するメトリック"
+msgstr "並べ替えに使用するメトリクス"
 
 msgid "Metric name"
-msgstr "メトリック名"
+msgstr "メトリクス名"
 
 #, python-format
 msgid "Metric name [%s] is duplicated"
-msgstr "メトリック名 [%s] が重複しています"
+msgstr "メトリクス名 [%s] が重複しています"
 
 msgid "Metric percent change in value from `since` to `until`"
-msgstr "「開始」から「終了」までのメトリックの変化率 (%)"
+msgstr "「開始」から「終了」までのメトリクスの変化率 (%)"
 
 msgid "Metric that defines the size of the bubble"
-msgstr "バブルのサイズを決定するメトリック"
+msgstr "バブルのサイズを決定するメトリクス"
 
 msgid "Metric to display bottom title"
-msgstr "下部タイトルとして表示するメトリック"
+msgstr "下部タイトルとして表示するメトリクス"
 
 msgid "Metric to use for ordering Top N values"
-msgstr "上位N件の並べ替えに使用するメトリック"
+msgstr "上位N件の並べ替えに使用するメトリクス"
 
 msgid "Metric used as a weight for the grid's coloring"
-msgstr "グリッドの色分けの重みとして使用するメトリック"
+msgstr "グリッドの色分けの重みとして使用するメトリクス"
 
 msgid "Metric used to calculate bubble size"
-msgstr "バブルサイズの計算に使用するメトリック"
+msgstr "バブルサイズの計算に使用するメトリクス"
 
 msgid "Metric used to control height"
-msgstr "高さを制御するために使用するメトリック"
+msgstr "高さを制御するために使用するメトリクス"
 
 msgid ""
 "Metric used to define how the top series are sorted if a series or cell "
 "limit is present. If undefined reverts to the first metric (where "
 "appropriate)."
-msgstr "系列またはセルの数に制限がある際、上位系列を並べ替えするために使用するメトリック。未設定の場合は最初のメトリックが使用されます。"
+msgstr "系列またはセルの数に制限がある際、上位系列を並べ替えするために使用するメトリクス。未設定の場合は最初のメトリクスが使用されます。"
 
 msgid ""
 "Metric used to define how the top series are sorted if a series or row "
 "limit is present. If undefined reverts to the first metric (where "
 "appropriate)."
-msgstr "系列または行の数に制限がある際、上位系列を並べ替えするために使用するメトリック。未設定の場合は最初のメトリックが使用されます。"
+msgstr "系列または行の数に制限がある際、上位系列を並べ替えするために使用するメトリクス。未設定の場合は最初のメトリクスが使用されます。"
 
 msgid "Metrics"
-msgstr "メトリック"
+msgstr "メトリクス"
 
 #, python-format
 msgid "Metrics (%s)"
-msgstr "メトリック (%s)"
+msgstr "メトリクス (%s)"
 
 msgid "Metrics can't be used for both rows and columns at the same time"
-msgstr "メトリックは行と列の両方に同時に使用することはできません"
+msgstr "メトリクスは行と列の両方に同時に使用することはできません"
 
 msgid "Metrics folder can only contain metric items"
-msgstr "メトリックフォルダーにはメトリック項目のみを含めることができます"
+msgstr "メトリクスフォルダーにはメトリクス項目のみを含めることができます"
 
 msgid "Metrics should be inside folders"
-msgstr "メトリックはフォルダー内に配置する必要があります"
+msgstr "メトリクスはフォルダー内に配置する必要があります"
 
 msgid "Metrics to show in the tooltip."
-msgstr "ツールチップに表示するメトリック"
+msgstr "ツールチップに表示するメトリクス"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10901,7 +10904,7 @@ msgstr "2つの軸目盛りの間の最小間隔。数値軸と時間軸にの�
 msgid ""
 "Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
 "integer metrics. Leave empty for automatic."
-msgstr "2つの軸目盛りの間の最小間隔。整数のメトリックで小数の目盛りが表示されるのを避けるのに便利です。自動にする場合は空のままにしてください。"
+msgstr "2つの軸目盛りの間の最小間隔。整数のメトリクスで小数の目盛りが表示されるのを避けるのに便利です。自動にする場合は空のままにしてください。"
 
 msgid "Minimum must be strictly less than maximum"
 msgstr "最小値は最大値より小さく設定してください"
@@ -11128,14 +11131,14 @@ msgid "My column"
 msgstr "マイ・カラム"
 
 msgid "My metric"
-msgstr "マイ・メトリック"
+msgstr "マイ・メトリクス"
 
 msgid "N/A"
 msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "グループ化なし"
+msgstr ""
 
 msgid "NOV"
 msgstr "11月"
@@ -11487,7 +11490,7 @@ msgid "No saved expressions found"
 msgstr "保存済み数式が見つかりません"
 
 msgid "No saved metrics found"
-msgstr "保存済みメトリックが見つかりません"
+msgstr "保存済みメトリクスが見つかりません"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11530,7 +11533,7 @@ msgid "No stored results found, you need to re-run your query"
 msgstr "保存された結果が見つかりません。クエリを再実行してください"
 
 msgid "No such column found. To filter on a metric, try the Custom SQL tab."
-msgstr "該当する列が見つかりません。メトリックでフィルターする場合は「カスタムSQL」タブを使用してください。"
+msgstr "該当する列が見つかりません。メトリクスでフィルターする場合は「カスタムSQL」タブを使用してください。"
 
 msgid "No table columns"
 msgstr "テーブル列がありません"
@@ -11851,7 +11854,7 @@ msgstr "または"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "上書き"
+msgstr ""
 
 msgid "October"
 msgstr "10月"
@@ -11890,7 +11893,7 @@ msgid "One or many controls to pivot as columns"
 msgstr "列としてピボット表示する1つまたは複数のコントロール"
 
 msgid "One or many metrics to display"
-msgstr "表示する1つまたは複数のメトリック"
+msgstr "表示する1つまたは複数のメトリクス"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11915,13 +11918,13 @@ msgid "One or more columns do not exist"
 msgstr "1つ以上の列が存在しません"
 
 msgid "One or more metrics already exist"
-msgstr "1つ以上のメトリックが既に存在します"
+msgstr "1つ以上のメトリクスが既に存在します"
 
 msgid "One or more metrics are duplicated"
-msgstr "1つ以上のメトリックが重複しています"
+msgstr "1つ以上のメトリクスが重複しています"
 
 msgid "One or more metrics do not exist"
-msgstr "1つ以上のメトリックが存在しません"
+msgstr "1つ以上のメトリクスが存在しません"
 
 #, python-format
 msgid "One or more parameters are missing: %(missing)s"
@@ -12097,13 +12100,13 @@ msgstr "チャートを複数のローソク足系列に分割する任意のデ
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
 "linearly between the minimum and maximum dot size."
-msgstr "各点のサイズを調整するために使用するオプションのメトリック。点の面積は、最小点サイズと最大点サイズの間で線形にスケーリングされます。"
+msgstr "各点のサイズを調整するために使用するオプションのメトリクス。点の面積は、最小点サイズと最大点サイズの間で線形にスケーリングされます。"
 
 msgid "Optional name of the data column."
 msgstr "データ列の任意の名称。"
 
 msgid "Optional warning about use of this metric"
-msgstr "このメトリックの使用に関する任意の警告メッセージ"
+msgstr "このメトリクスの使用に関する任意の警告メッセージ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12134,7 +12137,7 @@ msgid ""
 " a series or row limit is reached, this determines what data are "
 "truncated. If undefined, defaults to the first metric (where "
 "appropriate)."
-msgstr "このチャートの基データを生成するクエリ結果を並べ替えします。系列数や行数に制限がある際、どのデータが切り捨てられるかはこれで決まります。未指定の場合は(適切な場合)最初のメトリックが使用されます。"
+msgstr "このチャートの基データを生成するクエリ結果を並べ替えします。系列数や行数に制限がある際、どのデータが切り捨てられるかはこれで決まります。未指定の場合は(適切な場合)最初のメトリクスが使用されます。"
 
 msgid "Orientation"
 msgstr "向き"
@@ -12150,7 +12153,7 @@ msgstr "フィルターバーの向き"
 msgid ""
 "Orientation of the chart. Horizontal places the dimension on the y-axis "
 "and the metric on the x-axis."
-msgstr "チャートの向き。水平を選択すると、ディメンションが y 軸に、メトリックが x 軸に配置されます。"
+msgstr "チャートの向き。水平を選択すると、ディメンションが y 軸に、メトリクスが x 軸に配置されます。"
 
 msgid "Orientation of tree"
 msgstr "ツリーの向き"
@@ -12462,10 +12465,10 @@ msgid "Percentage difference between the time periods"
 msgstr "期間間の差異 (割合)"
 
 msgid "Percentage metric calculation"
-msgstr "割合メトリックの計算"
+msgstr "割合メトリクスの計算"
 
 msgid "Percentage metrics"
-msgstr "割合メトリック"
+msgstr "割合メトリクス"
 
 msgid "Percentage threshold"
 msgstr "しきい値 (%)"
@@ -12509,7 +12512,7 @@ msgid "Person or group that has certified this dataset"
 msgstr "このデータセットを認定した個人またはグループ"
 
 msgid "Person or group that has certified this metric"
-msgstr "このメトリックを認証した個人またはグループ"
+msgstr "このメトリクスを認証した個人またはグループ"
 
 msgid "Personal info"
 msgstr "個人情報"
@@ -12710,7 +12713,7 @@ msgstr "続行するには、%s とチャート種類の両方を選択してく
 msgid ""
 "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja "
 "macro."
-msgstr "Jinjaマクロの ``%(name)s`` メトリックのデータセットIDを指定してください。"
+msgstr "Jinjaマクロの ``%(name)s`` メトリクスのデータセットIDを指定してください。"
 
 msgid ""
 "Plot each time-shifted series across its full time range instead of "
@@ -12726,7 +12729,7 @@ msgid ""
 "Plots the individual metrics for each row in the data vertically and "
 "links them together as a line. This chart is useful for comparing "
 "multiple metrics across all of the samples or rows in the data."
-msgstr "データの各行の個々のメトリックを垂直にプロットし、折れ線でつなぎます。このチャートは、データ内のすべてのサンプルや行にわたる複数のメトリックを比較するのに役立ちます。"
+msgstr "データの各行の個々のメトリクスを垂直にプロットし、折れ線でつなぎます。このチャートは、データ内のすべてのサンプルや行にわたる複数のメトリクスを比較するのに役立ちます。"
 
 msgid "Plugins"
 msgstr "プラグイン"
@@ -12861,6 +12864,9 @@ msgstr "Explore で保存する際も、生成されたダッシュボード時�
 msgid "Preview"
 msgstr "プレビュー"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -12889,7 +12895,7 @@ msgid "Primary"
 msgstr "主要な"
 
 msgid "Primary Metric"
-msgstr "主要メトリック"
+msgstr "主要メトリクス"
 
 msgid "Primary key"
 msgstr "主キー"
@@ -12969,9 +12975,6 @@ msgstr "ラベルを円の外側に配置しますか？"
 
 msgid "Put your code here"
 msgstr "ここにコードを入力してください"
-
-msgid "Python datetime string pattern"
-msgstr "Python の日時文字列パターン"
 
 msgid "Quarter"
 msgstr "四半期"
@@ -13371,7 +13374,7 @@ msgstr "ディメンション '%s' を削除しました"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' metric"
-msgstr "メトリック '%s' を削除しました"
+msgstr "メトリクス '%s' を削除しました"
 
 #, fuzzy, python-format
 msgid "Removed 1 column from the dataset"
@@ -13436,6 +13439,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "レポート"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "レポート「%(alertName)s」が正常に実行されました"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -13833,13 +13840,13 @@ msgid "Right"
 msgstr "右"
 
 msgid "Right Axis Metric"
-msgstr "右軸のメトリック"
+msgstr "右軸のメトリクス"
 
 msgid "Right Panel"
 msgstr "右パネル"
 
 msgid "Right axis metric"
-msgstr "右軸のメトリック"
+msgstr "右軸のメトリクス"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14321,7 +14328,7 @@ msgid "Saved expressions"
 msgstr "保存済みの式"
 
 msgid "Saved metric"
-msgstr "保存済みのメトリック"
+msgstr "保存済みのメトリクス"
 
 msgid "Saved queries"
 msgstr "保存済みクエリ"
@@ -14352,7 +14359,7 @@ msgid "Scale and Move"
 msgstr "拡大縮小と移動"
 
 msgid "Scale factor applied to metric-driven line widths"
-msgstr "メトリックに基づく線幅に適用されるスケールファクター"
+msgstr "メトリクスに基づく線幅に適用されるスケールファクター"
 
 msgid "Scale only"
 msgstr "拡大縮小のみ"
@@ -14453,7 +14460,7 @@ msgid "Search Dashboards"
 msgstr "ダッシュボードを検索"
 
 msgid "Search Metrics & Columns"
-msgstr "メトリックと列を検索"
+msgstr "メトリクスと列を検索"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14472,7 +14479,7 @@ msgid "Search all charts"
 msgstr "すべてのチャートを検索"
 
 msgid "Search all metrics & columns"
-msgstr "すべてのメトリックと列を検索"
+msgstr "すべてのメトリクスと列を検索"
 
 msgid "Search box"
 msgstr "検索ボックス"
@@ -14510,7 +14517,7 @@ msgid "Search in filters"
 msgstr "フィルター内を検索"
 
 msgid "Search metrics by key or label"
-msgstr "メトリックをキーまたはラベルで検索"
+msgstr "メトリクスをキーまたはラベルで検索"
 
 msgid "Search tags"
 msgstr "タグを検索"
@@ -14531,7 +14538,7 @@ msgid "Secondary"
 msgstr "第2"
 
 msgid "Secondary Metric"
-msgstr "第2 メトリック"
+msgstr "第2 メトリクス"
 
 msgid "Secondary currency format"
 msgstr "第2 通貨形式"
@@ -14653,12 +14660,12 @@ msgid "Select a linear color scheme"
 msgstr "線形配色を選択"
 
 msgid "Select a metric to display on the right axis"
-msgstr "右軸に表示するメトリックを選択"
+msgstr "右軸に表示するメトリクスを選択"
 
 msgid ""
 "Select a metric to display. You can use an aggregation function on a "
 "column or write custom SQL to create a metric."
-msgstr "表示するメトリックを選択してください。列に対して集計関数を使用するか、カスタムSQLを記述してメトリックを作成できます。"
+msgstr "表示するメトリクスを選択してください。列に対して集計関数を使用するか、カスタムSQLを記述してメトリクスを作成できます。"
 
 msgid "Select a predefined CSS template to apply to your dashboard"
 msgstr "ダッシュボードに適用する定義済みCSSテンプレートを選択してください"
@@ -14827,12 +14834,12 @@ msgid ""
 "percentages of total. Percentage metrics will be calculated only from "
 "data within the row limit. You can use an aggregation function on a "
 "column or write custom SQL to create a percentage metric."
-msgstr "表示するメトリックを1つまたは複数選択してください。これらは合計に対するパーセンテージとして表示されます。パーセンテージメトリックは、行数制限内のデータからのみ計算されます。列に対して集計関数を使用するか、カスタムSQLを記述してパーセンテージメトリックを作成できます。"
+msgstr "表示するメトリクスを1つまたは複数選択してください。これらは合計に対するパーセンテージとして表示されます。パーセンテージメトリクスは、行数制限内のデータからのみ計算されます。列に対して集計関数を使用するか、カスタムSQLを記述してパーセンテージメトリクスを作成できます。"
 
 msgid ""
 "Select one or many metrics to display. You can use an aggregation "
 "function on a column or write custom SQL to create a metric."
-msgstr "表示する 1 つまたは複数のメトリックを選択してください。列に対して集計関数を使用するか、カスタムSQLを記述してメトリックを作成できます。"
+msgstr "表示する 1 つまたは複数のメトリクスを選択してください。列に対して集計関数を使用するか、カスタムSQLを記述してメトリクスを作成できます。"
 
 msgid "Select operator"
 msgstr "演算子を選択"
@@ -14870,7 +14877,7 @@ msgid "Select roles"
 msgstr "ロールを選択"
 
 msgid "Select saved metrics"
-msgstr "保存済みメトリックを選択"
+msgstr "保存済みメトリクスを選択"
 
 msgid "Select saved queries"
 msgstr "保存済みクエリを選択"
@@ -14949,7 +14956,7 @@ msgstr "マップタイルプロバイダーを選択してください。MapLib
 msgid ""
 "Select the metric used to determine which color breakpoint range each "
 "path falls into."
-msgstr "各パスがどのカラーブレークポイント範囲に属するかを決定するために使用するメトリックを選択してください。"
+msgstr "各パスがどのカラーブレークポイント範囲に属するかを決定するために使用するメトリクスを選択してください。"
 
 msgid "Select the type of color scheme to use."
 msgstr "使用する配色の種類を選択してください。"
@@ -15343,10 +15350,10 @@ msgid "Show Markers"
 msgstr "マーカーを表示"
 
 msgid "Show Metric Name"
-msgstr "メトリック名を表示"
+msgstr "メトリクス名を表示"
 
 msgid "Show Metric Names"
-msgstr "メトリック名を表示"
+msgstr "メトリクス名を表示"
 
 msgid "Show Null Values"
 msgstr "NULL値を表示する"
@@ -15559,7 +15566,7 @@ msgstr "合計を表示"
 msgid ""
 "Show total aggregations of selected metrics. Note that row limit does not"
 " apply to the result."
-msgstr "選択したメトリックの集計合計を表示します。この結果には行数制限は適用されないことに注意してください。"
+msgstr "選択したメトリクスの集計合計を表示します。この結果には行数制限は適用されないことに注意してください。"
 
 msgid "Show value"
 msgstr "値を表示"
@@ -15578,19 +15585,19 @@ msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
 "call attention to a KPI or the one thing you want your audience to focus "
 "on."
-msgstr "単一のメトリックを中央に大きく表示します。「ビッグナンバー」は、KPIや視聴者に注目してほしい1つの指標を強調するのに最適です。"
+msgstr "単一のメトリクスを中央に大きく表示します。「ビッグナンバー」は、KPIや視聴者に注目してほしい1つの指標を強調するのに最適です。"
 
 msgid ""
 "Showcases a single number accompanied by a simple line chart, to call "
 "attention to an important metric along with its change over time or other"
 " dimension."
-msgstr "単一の数値にシンプルな折れ線グラフを添えて、重要なメトリックと、その経時変化や他ディメンションでの推移を強調します。"
+msgstr "単一の数値にシンプルな折れ線グラフを添えて、重要なメトリクスと、その経時変化や他ディメンションでの推移を強調します。"
 
 msgid ""
 "Showcases how a metric changes as the funnel progresses. This classic "
 "chart is useful for visualizing drop-off between stages in a pipeline or "
 "lifecycle."
-msgstr "ファネルの進行に伴うメトリックの変化を示します。この古典的なチャートは、パイプラインやライフサイクルの各ステージ間での離脱を視覚化するのに役立ちます。"
+msgstr "ファネルの進行に伴うメトリクスの変化を示します。この古典的なチャートは、パイプラインやライフサイクルの各ステージ間での離脱を視覚化するのに役立ちます。"
 
 msgid ""
 "Showcases the flow or link between categories using thickness of chords. "
@@ -15600,7 +15607,7 @@ msgstr "コードの太さを用いて、カテゴリ間のフローやリンク
 msgid ""
 "Showcases the progress of a single metric against a given target. The "
 "higher the fill, the closer the metric is to the target."
-msgstr "特定の目標に対する単一メトリックの進捗状況を示します。充填率が高いほど、目標に近いことを意味します。"
+msgstr "特定の目標に対する単一メトリクスの進捗状況を示します。充填率が高いほど、目標に近いことを意味します。"
 
 #, python-format
 msgid "Showing %s of %s items"
@@ -15630,13 +15637,13 @@ msgid "Simple"
 msgstr "シンプル"
 
 msgid "Simple ad-hoc metrics are not enabled for this dataset"
-msgstr "このデータセットでは、シンプルなアドホックメトリックが有効になっていません"
+msgstr "このデータセットでは、シンプルなアドホックメトリクスが有効になっていません"
 
 msgid "Single"
 msgstr "単一"
 
 msgid "Single Metric"
-msgstr "単一メトリック"
+msgstr "単一メトリクス"
 
 msgid "Single Value"
 msgstr "単一値"
@@ -15659,12 +15666,12 @@ msgstr "マーカーのサイズ。予測値にも適用されます。"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "Size of the dot representing the largest value of the dot size metric."
-msgstr "ドットサイズメトリックの最大値を表すドットのサイズ。"
+msgstr "ドットサイズメトリクスの最大値を表すドットのサイズ。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "Size of the dot representing the smallest value of the dot size metric."
-msgstr "ドットサイズメトリックの最小値を表すドットのサイズ。"
+msgstr "ドットサイズメトリクスの最小値を表すドットのサイズ。"
 
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
 msgstr "空行を「数値ではない値」値として解釈せず、スキップします"
@@ -15856,7 +15863,7 @@ msgid "Sort Descending"
 msgstr "降順で並べ替え"
 
 msgid "Sort Metric"
-msgstr "メトリックで並べ替え"
+msgstr "メトリクスで並べ替え"
 
 msgid "Sort Series Ascending"
 msgstr "系列を昇順で並べ替える"
@@ -15884,7 +15891,7 @@ msgid "Sort by data"
 msgstr "データで並ベ替え"
 
 msgid "Sort by metric"
-msgstr "メトリックで並べ替える"
+msgstr "メトリクスで並べ替える"
 
 msgid "Sort by original table order"
 msgstr "元のテーブルの順序で並べ替える"
@@ -15911,7 +15918,7 @@ msgid "Sort legend"
 msgstr "凡例を並べ替え"
 
 msgid "Sort metric"
-msgstr "並べ替えメトリック"
+msgstr "並べ替えメトリクス"
 
 msgid "Sort query by"
 msgstr "クエリの並べ替え基準"
@@ -15920,7 +15927,7 @@ msgid ""
 "Sort results by series name in ascending order. When combined with \"Sort"
 " by metric\", this acts as a tiebreaker for equal metric values. Adding "
 "this sort may reduce query performance on some databases."
-msgstr "結果を系列名の昇順で並べ替えます。「メトリックで並べ替え」と組み合わせると、メトリック値が等しい場合のタイブレーカーとして機能します。この並べ替えを追加すると、一部のデータベースではクエリのパフォーマンスが低下する可能性があります。"
+msgstr "結果を系列名の昇順で並べ替えます。「メトリクスで並べ替え」と組み合わせると、メトリクス値が等しい場合のタイブレーカーとして機能します。この並べ替えを追加すると、一部のデータベースではクエリのパフォーマンスが低下する可能性があります。"
 
 msgid "Sort rows by"
 msgstr "行の並べ替え基準"
@@ -16382,7 +16389,7 @@ msgstr "テーブル"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "時間範囲"
+msgstr ""
 
 msgid "THU"
 msgstr "木"
@@ -16688,7 +16695,7 @@ msgid ""
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
 msgstr ""
-"カスタム SQL メトリック「%(metric)s」は集計ではないため、GROUP BY "
+"カスタム SQL メトリクス「%(metric)s」は集計ではないため、GROUP BY "
 "と組み合わせることはできません。集計関数でラップしてください(例: %(example)s)。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -16749,7 +16756,7 @@ msgid ""
 msgstr ""
 "サンキーチャートは、システムの各段階にわたる値の移動と変化を視覚的に追跡します。\n"
 "          ノードは段階を表し、値のフローを示すリンクで接続されます。\n"
-"          ノードの高さは視覚化されたメトリックに対応しており、値の分布と変化を明確に表現します。"
+"          ノードの高さは視覚化されたメトリクスに対応しており、値の分布と変化を明確に表現します。"
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "URL に dataset_id または slice_id パラメータがありません。"
@@ -16957,10 +16964,10 @@ msgid "The dataset associated with this chart no longer exists"
 msgstr "このチャートに関連付けられたデータセットはもう存在しません"
 
 msgid "The dataset column/metric that returns the values on your chart's x-axis."
-msgstr "チャートのX軸の値を返すデータセットの列またはメトリック。"
+msgstr "チャートのX軸の値を返すデータセットの列またはメトリクス。"
 
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
-msgstr "チャートのY軸の値を返すデータセットの列またはメトリック。"
+msgstr "チャートのY軸の値を返すデータセットの列またはメトリクス。"
 
 msgid ""
 "The dataset columns will be automatically synced\n"
@@ -17183,7 +17190,7 @@ msgid ""
 msgstr "各グループの最大分割数。小さい値から順に整理されます"
 
 msgid "The maximum value of metrics. It is an optional configuration"
-msgstr "メトリックの最大値。設定は任意です。"
+msgstr "メトリクスの最大値。設定は任意です。"
 
 msgid ""
 "The metadata_cache_timeout must be a mapping from string keys to non-"
@@ -17212,7 +17219,7 @@ msgstr "値を表示するために必要な最小ローリング期間。例え
 msgid ""
 "The minimum value of metrics. It is an optional configuration. If not "
 "set, it will be the minimum value of the data"
-msgstr "メトリックの最小値。設定は任意です。設定されていない場合は、データ内の最小値が使用されます。"
+msgstr "メトリクスの最小値。設定は任意です。設定されていない場合は、データ内の最小値が使用されます。"
 
 msgid "The name of the geometry column"
 msgstr "ジオメトリ列の名前"
@@ -17269,6 +17276,13 @@ msgstr[0] "クエリ内のパラメータ %(parameters)s が定義されてい�
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -17329,8 +17343,22 @@ msgstr "保存済みクエリと一緒にインポートするには、以下の
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "以下のデータベースをインポートするには、それぞれのパスワードが必要です。"
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "タイムスタンプ形式のパターン。文字列の場合は以下を使用してください "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -17375,13 +17403,11 @@ msgstr "ポートが閉じています。"
 msgid "The port number is invalid."
 msgstr "ポート番号が無効です。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "プレビューを読み込めませんでした。"
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
-msgstr "主要メトリックは、円セグメントのサイズを定義するために使用されます"
+msgstr "主要メトリクスは、円セグメントのサイズを定義するために使用されます"
 
 msgid "The provided table was not found in the provided database"
 msgstr "指定されたデータベース内にテーブルが見つかりませんでした"
@@ -17747,14 +17773,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "変換はデータセット全体ではなく、サンプリングされた行に一致しました。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"変換は %(column)s に対して %(returned)s を返しましたが、これは %(kind)s "
-"です。このマッピングでミラーリングされたフィルターは、データベースで失敗します。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -17765,6 +17786,9 @@ msgid ""
 msgstr ""
 "変換は %(column)s に対して %(returned)s を返しましたが、このデータベースでは、これを変更せずに %(type)s "
 "値としてクエリに書き込むことができません。このマッピングのフィルターはミラーリングされません。"
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "入力された2つのパスワードが一致しません！"
@@ -17849,19 +17873,12 @@ msgstr ""
 "値の変換は %(functions)s "
 "を呼び出しており、その結果は実行される時間と場所に依存します。変換は別セッションで評価され、結果はキャッシュされるため、出力される述語はその時点のスナップショットで固定されてしまいます。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr "値の変換を解析できませんでした。マッピングは保存されますが、解析できるようになるまで無効のままです。"
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr "値の変換を解析できませんでした: %(detail)s マッピングは保存されますが、解析できるようになるまで無効のままです。"
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -17914,7 +17931,7 @@ msgstr "線の太さ"
 msgid ""
 "The width of the lines as either a fixed value or variable width based on"
 " a metric."
-msgstr "固定値またはメトリックに基づく可変幅として指定する線の幅。"
+msgstr "固定値またはメトリクスに基づく可変幅として指定する線の幅。"
 
 msgid "Theme"
 msgstr "テーマ"
@@ -18619,7 +18636,7 @@ msgstr ""
 msgid ""
 "This field is used as a unique identifier to attach the metric to charts."
 " It is also used as the alias in the SQL query."
-msgstr "このフィールドは、メトリックをチャートに紐付ける一意の識別子として使用されます。また SQL クエリ内ではエイリアスとして使用されます。"
+msgstr "このフィールドは、メトリクスをチャートに紐付ける一意の識別子として使用されます。また SQL クエリ内ではエイリアスとして使用されます。"
 
 msgid "This filter already exist on the report"
 msgstr "このフィルターは既にレポート内に存在します"
@@ -18647,7 +18664,7 @@ msgid "This folder only supports columns"
 msgstr "このフォルダーは列のみをサポートしています"
 
 msgid "This folder only supports metrics"
-msgstr "このフォルダーはメトリックのみをサポートしています"
+msgstr "このフォルダーはメトリクスのみをサポートしています"
 
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
@@ -18657,7 +18674,7 @@ msgstr "これは既定の列用フォルダーです。名前の変更や削除
 msgid ""
 "This is a default metrics folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept metric items."
-msgstr "これは既定のメトリック用フォルダーです。名前の変更や削除はできません。空のままでも構いませんが、メトリック項目のみを格納できます。"
+msgstr "これは既定のメトリクス用フォルダーです。名前の変更や削除はできません。空のままでも構いませんが、メトリクス項目のみを格納できます。"
 
 msgid "This is custom error message for a"
 msgstr "これはa用のカスタムエラーメッセージです"
@@ -18744,7 +18761,7 @@ msgstr "このメトリクスは現在の選択と互換性がありません。
 
 #, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "このメトリックは現在の %s と互換性がない可能性があります"
+msgstr "このメトリクスは現在の %s と互換性がない可能性があります"
 
 msgid "This name is already taken. Please choose another one."
 msgstr "この名前は既に使われています。別のものを選択してください。"
@@ -18953,7 +18970,7 @@ msgstr "これにより現在の埋め込み設定が削除されます。"
 msgid ""
 "This will reorganize all metrics and columns into default folders. Any "
 "custom folders will be removed."
-msgstr "すべてのメトリックと列が既定のフォルダーに再編されます。作成済みのカスタムフォルダーはすべて削除されます。"
+msgstr "すべてのメトリクスと列が既定のフォルダーに再編されます。作成済みのカスタムフォルダーはすべて削除されます。"
 
 msgid "Threshold"
 msgstr "しきい値"
@@ -19171,7 +19188,7 @@ msgid ""
 msgstr "複数列による並べ替えを有効にするには、Shift キーを押しながら列ヘッダーをクリックしてください。"
 
 msgid "To filter on a metric, use Custom SQL tab."
-msgstr "メトリックでフィルタリングするには、「カスタムSQL」タブを使用してください。"
+msgstr "メトリクスでフィルタリングするには、「カスタムSQL」タブを使用してください。"
 
 msgid "To get a readable URL for your dashboard"
 msgstr "ダッシュボードのわかりやすい URL を取得するには"
@@ -19199,6 +19216,9 @@ msgstr "トークンリクエスト URI"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "このデータセットに対するプレビューリクエストが多すぎます。しばらく待ってからもう一度お試しください。"
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19228,7 +19248,7 @@ msgid "Tooltip (columns)"
 msgstr "ツールチップ (列)"
 
 msgid "Tooltip (metrics)"
-msgstr "ツールチップ (メトリック)"
+msgstr "ツールチップ (メトリクス)"
 
 msgid "Tooltip Contents"
 msgstr "ツールチップの内容"
@@ -19237,7 +19257,7 @@ msgid "Tooltip contents"
 msgstr "ツールチップの内容"
 
 msgid "Tooltip sort by metric"
-msgstr "ツールチップをメトリックで並べ替え"
+msgstr "ツールチップをメトリクスで並べ替え"
 
 msgid "Tooltip time format"
 msgstr "ツールチップの時間の形式"
@@ -19355,7 +19375,7 @@ msgid "Truncate Cells"
 msgstr "セルを切り詰め"
 
 msgid "Truncate Metric"
-msgstr "メトリックを切り捨て"
+msgstr "メトリクスを切り捨て"
 
 msgid "Truncate X Axis"
 msgstr "X軸を切り詰め"
@@ -19986,7 +20006,7 @@ msgid "Use current extent"
 msgstr "現在の表示範囲を使用"
 
 msgid "Use date formatting even when metric value is not a timestamp"
-msgstr "メトリック値がタイムスタンプでない場合も日付フォーマットを適用"
+msgstr "メトリクス値がタイムスタンプでない場合も日付フォーマットを適用"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20020,7 +20040,7 @@ msgid "Use metric definition"
 msgstr "メトリクスの定義を使用"
 
 msgid "Use metrics as a top level group for columns or for rows"
-msgstr "メトリックを列または行の最上位グループとして使用"
+msgstr "メトリクスを列または行の最上位グループとして使用"
 
 msgid "Use only a single value."
 msgstr "単一の値のみを使用してください。"
@@ -20110,7 +20130,7 @@ msgid ""
 "Uses a gauge to showcase progress of a metric towards a target. The "
 "position of the dial represents the progress and the terminal value in "
 "the gauge represents the target value."
-msgstr "ゲージを用いて目標に対するメトリックの進捗を示します。針の位置が進捗を表し、ゲージの最大値が目標値を表します。"
+msgstr "ゲージを用いて目標に対するメトリクスの進捗を示します。針の位置が進捗を表し、ゲージの最大値が目標値を表します。"
 
 msgid ""
 "Uses circles to visualize the flow of data through different stages of a "
@@ -20381,13 +20401,13 @@ msgid ""
 "Visualize a parallel set of metrics across multiple groups. Each group is"
 " visualized using its own line of points and each metric is represented "
 "as an edge in the chart."
-msgstr "複数グループにわたるメトリックのセットを並列に視覚化します。各グループは独自のポイントラインを持ち、各メトリックはエッジとして表現されます。"
+msgstr "複数グループにわたるメトリクスのセットを並列に視覚化します。各グループは独自のポイントラインを持ち、各メトリクスはエッジとして表現されます。"
 
 msgid ""
 "Visualize a related metric across pairs of groups. Heatmaps excel at "
 "showcasing the correlation or strength between two groups. Color is used "
 "to emphasize the strength of the link between each pair of groups."
-msgstr "2つのグループ間の関連メトリックを視覚化します。ヒートマップはグループ間の相関関係や強さを示すのに優れており、色の濃淡でリンクの強さを強調します。"
+msgstr "2つのグループ間の関連メトリクスを視覚化します。ヒートマップはグループ間の相関関係や強さを示すのに優れており、色の濃淡でリンクの強さを強調します。"
 
 msgid ""
 "Visualize geospatial data like 3D buildings, landscapes, or objects in "
@@ -20409,7 +20429,7 @@ msgid ""
 "Visualizes a metric across three dimensions of data in a single chart (X "
 "axis, Y axis, and bubble size). Bubbles from the same group can be "
 "showcased using bubble color."
-msgstr "X軸、Y軸、バブルサイズの3つの次元でメトリックを1つのチャートに視覚化します。バブルの色を使って同じグループを識別することも可能です。"
+msgstr "X軸、Y軸、バブルサイズの3つの次元でメトリクスを1つのチャートに視覚化します。バブルの色を使って同じグループを識別することも可能です。"
 
 msgid "Visualizes connected points, which form a path, on a map."
 msgstr "マップ上でポイントを繋ぎ、経路として視覚化します。"
@@ -20417,20 +20437,20 @@ msgstr "マップ上でポイントを繋ぎ、経路として視覚化します
 msgid ""
 "Visualizes geographic areas from your data as polygons on a Mapbox "
 "rendered map. Polygons can be colored using a metric."
-msgstr "Mapbox形式のマップ上で、データをポリゴン(多角形)として視覚化します。メトリックに基づいた色分けが可能です。"
+msgstr "Mapbox形式のマップ上で、データをポリゴン(多角形)として視覚化します。メトリクスに基づいた色分けが可能です。"
 
 msgid ""
 "Visualizes how a metric has changed over a time using a color scale and a"
 " calendar view. Gray values are used to indicate missing values and the "
 "linear color scheme is used to encode the magnitude of each day's value."
-msgstr "カレンダービューとカラースケールを用いて、メトリックの経時変化を視覚化します。グレーは欠損値を表し、各日の値の大きさは線形カラースケールで表現されます。"
+msgstr "カレンダービューとカラースケールを用いて、メトリクスの経時変化を視覚化します。グレーは欠損値を表し、各日の値の大きさは線形カラースケールで表現されます。"
 
 msgid ""
 "Visualizes how a single metric varies across a country's principal "
 "subdivisions (states, provinces, etc) on a choropleth map. Each "
 "subdivision's value is elevated when you hover over the corresponding "
 "geographic boundary."
-msgstr "各国の主要な行政区画(州や県など)における単一メトリックの分布を階級区分図(コロプレス・マップ)で視覚化します。境界線をホバーすると各区画の値が強調されます。"
+msgstr "各国の主要な行政区画(州や県など)における単一メトリクスの分布を階級区分図(コロプレス・マップ)で視覚化します。境界線をホバーすると各区画の値が強調されます。"
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -20611,7 +20631,7 @@ msgid ""
 msgstr "「計算種類」が「変化率」に設定されている場合、Y 軸の形式は強制的に「.1%」になります"
 
 msgid "When a secondary metric is provided, a linear color scale is used."
-msgstr "第2メトリックが提供されている場合、線形カラースケールが使用されます。"
+msgstr "第2メトリクスが提供されている場合、線形カラースケールが使用されます。"
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "有効にすると、クエリ実行のたびにデータがある範囲へマップがズームします"
@@ -20638,7 +20658,7 @@ msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr "有効にすると、SQL Lab の結果を「探索」画面で視覚化できるようになります。"
 
 msgid "When only a primary metric is provided, a categorical color scale is used."
-msgstr "プライマリメトリックのみが指定されている場合、カテゴリ別のカラースケールが使用されます。"
+msgstr "プライマリメトリクスのみが指定されている場合、カテゴリ別のカラースケールが使用されます。"
 
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
@@ -20688,7 +20708,7 @@ msgstr ""
 " 句を適用できます。通常は、パーティションやインデックス設定された時間列に相対時間フィルターを適用してスキャン範囲を制限するために使用します。"
 
 msgid "When using 'Group By' you are limited to use a single metric"
-msgstr "「グループ化」使用時は、選択できるメトリックは1つに制限されます"
+msgstr "「グループ化」使用時は、選択できるメトリクスは1つに制限されます"
 
 msgid "When using other than adaptive formatting, labels may overlap"
 msgstr "アダプティブ形式以外を使用する場合、ラベルが重なる可能性があります"
@@ -20768,10 +20788,10 @@ msgid "Whether to display the legend (toggles)"
 msgstr "凡例を表示するかどうか (切り替え)"
 
 msgid "Whether to display the metric name"
-msgstr "メトリック名を表示するかどうか"
+msgstr "メトリクス名を表示するかどうか"
 
 msgid "Whether to display the metric name as a title"
-msgstr "メトリック名をタイトルとして表示するかどうか"
+msgstr "メトリクス名をタイトルとして表示するかどうか"
 
 msgid "Whether to display the numbered column"
 msgstr "番号付き列を表示するかどうか"
@@ -20854,7 +20874,7 @@ msgid "Whether to sort descending or ascending"
 msgstr "降順または昇順のどちらで並べ替えするか"
 
 msgid "Whether to sort results by the selected metric in descending order."
-msgstr "選択したメトリックに基づいて結果を降順で並べ替えするかどうか。"
+msgstr "選択したメトリクスに基づいて結果を降順で並べ替えするかどうか。"
 
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
@@ -20862,7 +20882,7 @@ msgid ""
 msgstr "ツールチップを選択した指標に基づいて降順で並べ替えるかどうか。積み上げグラフでは、値は昇順で表示されます。"
 
 msgid "Whether to truncate metrics"
-msgstr "メトリックを切り詰めるかどうか"
+msgstr "メトリクスを切り詰めるかどうか"
 
 msgid "Which country to plot the map for?"
 msgstr "どの国の地図を描きますか？"
@@ -21431,9 +21451,12 @@ msgstr "あなたはこのタスクから削除されます。タスクは他の
 msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
 "match this new dataset have been retained."
-msgstr "データセットを変更しました。新しいデータセットと一致するデータ(列、メトリック)を持つコントロール設定のみ保持されました。"
+msgstr "データセットを変更しました。新しいデータセットと一致するデータ(列、メトリクス)を持つコントロール設定のみ保持されました。"
 
 msgid "Your account is activated. You can log in with your credentials."
+msgstr "アカウントが有効化されました。ログイン情報でログインできます。"
+
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "アカウントが有効化されました。ログイン情報でログインできます。"
 
 msgid "Your changes will be lost if you leave without saving."
@@ -21603,7 +21626,7 @@ msgid ""
 "based on labels"
 msgstr ""
 "[任意] "
-"この第2メトリックは、第1メトリックに対する比率として色を定義するために使用されます。省略した場合、色はラベルに基づくカテゴリ別設定になります"
+"この第2メトリクスは、第1メトリクスに対する比率として色を定義するために使用されます。省略した場合、色はラベルに基づくカテゴリ別設定になります"
 
 msgid "[untitled customization]"
 msgstr "[無題のカスタマイズ]"
@@ -21743,7 +21766,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "ボルト"
+msgstr ""
 
 msgid "boolean"
 msgstr "真偽値"
@@ -21899,7 +21922,7 @@ msgstr "deck.gl 等高線"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl グリッド"
@@ -22014,7 +22037,7 @@ msgstr "件"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "エラーメッセージ"
+msgstr ""
 
 msgid "every"
 msgstr "毎"
@@ -22221,10 +22244,10 @@ msgid "meters"
 msgstr "メートル"
 
 msgid "metric"
-msgstr "メトリック"
+msgstr "メトリクス"
 
 msgid "metric type icon"
-msgstr "メトリック型のアイコン"
+msgstr "メトリクス型のアイコン"
 
 msgid "min"
 msgstr "最小値"
@@ -22355,7 +22378,7 @@ msgstr "固定リンクの状態が見つかりません"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "ピボットエクセル"
+msgstr ""
 
 msgid "pixels"
 msgstr "ピクセル"
@@ -22455,7 +22478,7 @@ msgstr "スケジュール \"%s\" が最小間隔より高い頻度で実行さ�
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "スキーマ1、スキーマ2"
+msgstr ""
 
 msgid "seconds"
 msgstr "秒"
@@ -22500,7 +22523,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "sql"
-msgstr "SQL"
+msgstr ""
 
 msgid "square"
 msgstr "正方形"
@@ -22590,6 +22613,10 @@ msgstr "元に戻す"
 msgid "unknown type icon"
 msgstr "不明な種類のアイコン"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "未設定"
 
@@ -22600,6 +22627,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "上位パーセンタイルは 0 より大きく 100 未満であり、且つ下位パーセンタイルより大きい値である必要があります。"
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "latest_partition テンプレートを使用"

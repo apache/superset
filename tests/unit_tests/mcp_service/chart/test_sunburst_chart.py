@@ -84,6 +84,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    RadarChartConfig,
     SunburstChartConfig,
     SunburstNativeMetricColumn,
     TableChartConfig,
@@ -397,6 +398,7 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
         BubbleChartConfig(
             entity=ColumnRef(name="region"), x=metric, y=metric, size=metric
         ),
+        RadarChartConfig(metrics=[metric], groupby=[ColumnRef(name="region")]),
         *[
             XYChartConfig(
                 kind=kind,
@@ -4269,7 +4271,9 @@ def test_cached_update_preview_rebinds_datasource_and_stays_unsaved() -> None:
         _dataset: object,
         *,
         run_compile_check: bool,
+        temporal_form_data: dict[str, object] | None = None,
     ) -> Mock:
+        assert temporal_form_data is not None
         if run_compile_check:
             compile_calls.append(deepcopy(form_data))
         return Mock(success=True)

@@ -195,6 +195,13 @@ chart still renders, but the next load re-queries the datasource instead of gett
 `skip_cache_value_too_large` statsd metric is incremented each time this happens. Set to `None` (the
 default) to disable the check.
 
+## Warming the Data Cache
+
+Dataset cache-warming requests identify a dataset using both `db_name` and `table_name`.
+For the legacy `GET /warm_up_cache/` endpoint, pass these names as query parameters.
+The table must belong to the named database; if either name does not match, the endpoint
+returns HTTP 404. New integrations can use `PUT /api/v1/dataset/warm_up_cache`.
+
 ## SQL Lab Query Results
 
 Caching for SQL Lab query results is used when async queries are enabled and is configured using
@@ -310,6 +317,10 @@ then the first direct user editor, then a deterministic user from editor roles o
 
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
+
+Dashboard card previews use `changed_on_utc` from the dashboard list API to construct
+the thumbnail request URL. Custom clients that restrict `select_columns` must include
+this field; `changed_on` is not exposed by the list API.
 
 An example config where images are stored on S3 could be:
 

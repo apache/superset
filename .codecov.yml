@@ -4,6 +4,7 @@ codecov:
 ignore:
   - "superset/migrations/versions/*.py"
   - "**/*.stories.tsx"
+  - "examples/**/*"
 coverage:
   status:
     project:

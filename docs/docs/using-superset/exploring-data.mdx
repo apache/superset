@@ -60,7 +60,7 @@ promise that database changes were rolled back.
 
 ### Semantic Table time grains
 
-For a Table chart backed by a semantic view, Time Grain applies when grouping by
+For Table and Interactive Table charts backed by a semantic view, Time Grain applies when grouping by
 a temporal dimension. Removing the last temporal dimension leaves the saved
 choice intact, but the frontend omits a recognized dormant grain from aggregate
 requests whose selected columns are known to be non-temporal (including no
@@ -68,14 +68,20 @@ grouping columns). Adding the temporal dimension again reuses the saved choice.
 Unknown columns or grain values are not silently normalized. Ordinary dataset
 charts and raw-record queries are unchanged.
 
-This applies to requests rebuilt by the updated frontend in Explore and
-dashboards; it does not rewrite saved charts. Direct API requests and saved
-chart-data GET paths that bypass rebuilding remain subject to strict validation,
-so old stored query contexts can still fail. Updated frontend assets are required.
-Dashboards reuse each chart's saved `temporal_columns_lookup` rather than
-recomputing it. A grouped chart saved before this change may lack the
-non-temporal column metadata needed to omit a dormant grain, so its dashboard
-requests can keep sending that grain until the chart is re-saved in Explore.
+The semantic-view backend also ignores a grain on a known non-temporal field
+when that field has no advertised grain variants, including in direct API
+requests and stored query contexts. A chart-wide grain is ignored when no
+temporal field is grouped. A grain that the view does not support on a date or
+time field is still refused, and unknown fields or types retain validation.
+A legacy time column that points to a non-temporal field with no grain variants
+is still refused when a grain and time bounds would filter that field; Superset
+does not redirect those bounds to another column.
+
+Dashboards use current dataset metadata to classify selected columns. Semantic
+Table and Interactive Table charts with a saved or dashboard-supplied grain wait
+for pending metadata requests before querying, including when added in edit mode
+or after a dashboard save. If metadata cannot be loaded or does not classify a
+selected column, the request retains the grain for normal backend validation.
 
 ### Enabling Data Upload Functionality
 
@@ -147,12 +153,34 @@ chart requires access to its datasource; overwriting an existing chart also
 requires chart edit permission. SQL Lab queries must first be saved as datasets
 before they can be used as persistent chart datasources.
 
+Histogram, Calendar Heatmap, Time-series Table, Time-series Period Pivot,
+Nightingale Rose, Horizon, and Paired t-test are not supported on semantic views.
+These charts require raw observations or a time-series query shape that semantic
+views do not supply. Running one, including a saved chart on a dashboard, returns
+an explanatory message instead of chart data. Use a Line or Bar chart for time
+series, or a Table chart with an explicit time dimension. For frequency counts,
+use a Bar or Table chart with an explicit count metric defined by the semantic
+view. Cached chart images are also refused. Fresh dashboard images and PDFs can
+include the refusal message tile; dashboard images cached before this policy are
+allowed and may show the old tile until expiry or regeneration. These restrictions do not apply to ordinary
+datasets.
+
 For a semantic view, Pivot Table hides **Series limit** because it has no series
 columns to limit. Existing Pivot Table charts with a saved Series limit still
 run without applying that limit. Programmatic semantic-view queries with a
 positive `series_limit` and no series columns run without a series limit.
 Timeseries queries with metrics and at least one `columns` value infer series
 columns from `columns` and keep the limit.
+
+Pivot Table queries on semantic views use a bounded Cell limit and at most nine
+rollup levels. Two row dimensions and two column dimensions with totals and
+subtotals can need nine levels; requests needing more levels are refused. If a
+level reaches the limit, the chart refuses it even when that level may be
+complete, because it cannot confirm whether more rows exist. Add filters or
+remove dimensions.
+
+Date rows and columns can use a supported Time Grain. Custom SQL dimensions,
+saved row offsets, and result aggregation remain unsupported for semantic views.
 
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
@@ -220,6 +248,13 @@ see some data!
 You should see months in the rows and Department and Travel Class in the columns. Publish this chart
 to your existing Tutorial Dashboard you created earlier.
 
+To choose how much detail the chart shows when it opens, enable subtotals and set
+**Default row expansion depth** or **Default column expansion depth**. The controls appear on axes
+with at least two grouping fields and follow the displayed axes when you transpose the pivot.
+**Fully expanded** shows every level. Depth **1** shows the first grouping level, including when
+metrics are displayed before the groups. **Collapse rows by default** takes precedence over row depth.
+Combining metrics can omit the intermediate subtotals needed to collapse groups on the metric axis.
+
 :::note
 Row and column totals/subtotals for the Pivot Table are correct even for non-additive metrics,
 such as ratios (`SUM(a)/SUM(b)`), `COUNT_DISTINCT`, `AVG`, and percentiles, not just additive ones
@@ -233,6 +268,10 @@ definition. The Table chart's **Show summary** row is different: its **Summary a
 control can override a simple metric's own aggregation (to Sum or Average) for the summary row
 only — metrics built from custom SQL keep their own aggregation regardless.
 :::
+
+Pivot Table CSV and Excel exports, including tabular reports, include the enabled
+row and column totals. Totals are supported for temporal dimensions, such as a
+month grouped into columns, as well as text dimensions.
 
 In the **Options** panel, the **Show values as** control displays each cell as a percentage of its
 row total, column total, or grand total instead of its actual value:
@@ -287,6 +326,10 @@ Once you’re done, publish the chart in your Tutorial Dashboard.
 
 Graph charts display SQL `NULL` categories as `<NULL>` and the literal string `<NULL>` as
 `"<NULL>"`, with independently selectable legend entries.
+
+Treemap tooltips display SQL `NULL` dimensions as `<NULL>`, including in nested
+hierarchies. Dimension names containing angle brackets or ampersands are shown
+as literal text in the tooltip title.
 
 ### Markup
 
@@ -489,6 +532,19 @@ The **Custom** time range picker accepts natural language expressions alongside 
 
 These expressions are evaluated at query time, so saved charts always display data relative to the current date.
 
+Time ranges include the start timestamp and exclude the end timestamp. If both
+endpoints resolve to the same timestamp, the picker warns that the range is empty;
+you can still apply it. To include a full day, use midnight on that day as the
+start and midnight on the following day as the end.
+
+### Drill By Categories in Mixed Charts
+
+On a Mixed Timeseries chart with a categorical x-axis, **Drill by** keeps the
+clicked category for the selected query (A or B), for datasets and semantic views.
+If the point also belongs to a series group, both filters apply by default; the
+scope selector lets you choose the category or the series instead. The other
+query's controls and cross-filter behavior are unchanged.
+
 ### Drill By Time Buckets
 
 On time-series charts, **Drill by** from a grained temporal axis keeps the clicked
@@ -511,6 +567,20 @@ The Custom SQL tab is unavailable while a filter carries a bucket grain, since t
 bucket comparison has no portable raw SQL representation.
 For Custom SQL axes, invalid numeric bucket timestamps (non-finite or outside the
 supported datetime range) return a query validation error.
+
+### Categorical time-series axes
+
+For a time-series Bar, Line, or Area chart without Dimensions, clicking a category
+cross-filters on the underlying x-axis column, even when that column has a display
+label. Drill by and Drill to detail also retain the column identity. Display labels
+in axes and tooltips stay unchanged. This applies to both SQL datasets and semantic
+views; Mixed Time-series retains the column identity in Drill to detail as well.
+
+### Semantic-view dashboard cross-filtering
+
+On semantic-view dashboard charts, **Add cross-filter** in a category's context
+menu applies the same selection as clicking that category. **Remove cross-filter**
+in the context menu clears that selection.
 
 ### Sunburst cross-filtering
 
@@ -536,6 +606,12 @@ The **Drill to detail** and **Drill by** modals, available from a chart's contex
 data behind a chart (or behind a specific data point, when one is selected). Use the **Download** button in
 the modal's toolbar to export the underlying result set as CSV or Excel (XLSX) without leaving the modal —
 the export isn't limited to the page currently visible in the table.
+
+Drill by on a Sunburst child segment retains filters for its ancestors, including
+null-valued hierarchy levels defined by custom SQL expressions. Null levels use
+`IS NULL` rather than an equality comparison. Custom SQL string levels retain
+empty strings and leading zeros when drilling, and empty hierarchy labels keep
+their positions in the drill-by breadcrumb.
 
 For Sunburst charts, drilling into a time-grained temporal segment filters the entire
 bucket rather than a single timestamp. Drill to detail and Drill by compare the
@@ -591,3 +667,25 @@ separator, for example `2019-01-02T04:15:00`. Superset renders bounds in this
 format and preserves fractional seconds. Normalize space-separated timestamps
 before applying time ranges; mixing separators can shift even whole-day results.
 Use consistent timezone and precision conventions for stored timestamps and bounds.
+
+
+### Filters from other datasources on semantic-view charts
+
+On mixed dashboards, Value and Numerical range filters targeting ordinary datasets,
+and predicate-only cross-filters from ordinary dataset charts, are not applied to
+semantic-view charts that require versioned member identities. The chart's filter
+indicator lists these filters as incompatible, including when column names happen
+to match. This applies to embedded dashboards as well. An empty required Value
+filter on an ordinary dataset is also not applied: it does not hold a semantic-view
+chart empty until a value is chosen. The indicator still marks it as incompatible.
+
+Predicates from another semantic view are also not applied when the filter's
+configured source and all stamped selection sources agree on that foreign view
+and its version. They appear as incompatible, even if both views use the same
+member identifier. Cross-view member mapping is not inferred from equal names.
+
+Same-view filters with the current version still apply. Stale same-view versions,
+missing or conflicting provenance, Time column overrides and Dynamic group by
+retain their existing validation.
+Scope these controls away from incompatible charts. Dashboard filters do not replace
+server-side row-level security or guest access restrictions.

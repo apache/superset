@@ -37,7 +37,14 @@ import {
 import { Alert } from '@apache-superset/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms } from '@jsonforms/react';
-import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
+import {
+  Actions,
+  UPDATE_CORE,
+  UPDATE_DATA,
+  type JsonSchema,
+  type Middleware,
+  type UISchemaElement,
+} from '@jsonforms/core';
 import { cellRegistryEntries } from '@great-expectations/jsonforms-antd-renderers';
 import type { ErrorObject } from 'ajv';
 import {
@@ -56,6 +63,7 @@ import {
   areDependenciesSatisfied,
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
+  SCHEMA_BACKFILL,
 } from './jsonFormsHelpers';
 
 import { isRecord } from '../semanticViews/creationResult';
@@ -167,6 +175,11 @@ export default function SemanticLayerModal({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDepSnapshotRef = useRef<string>('');
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
+  const [formSnapshots] = useState(() => new WeakSet<object>());
+  const formSessionRef = useRef(0);
+  // Back and close must unmount JsonForms so queued notifications retain
+  // the old session's callback and are rejected after the reset.
+  const formSession = formSessionRef.current;
   const schemaRequestRef = useRef(0);
   // Tracks the most recent value we auto-populated into the Name field so we
   // can overwrite it when the user switches type — but leave alone anything
@@ -295,6 +308,7 @@ export default function SemanticLayerModal({
         fetchTypes();
       }
     } else {
+      formSessionRef.current += 1;
       typeRequestRef.current += 1;
       schemaRequestRef.current += 1;
       setStep('type');
@@ -372,6 +386,7 @@ export default function SemanticLayerModal({
   };
 
   const handleBack = () => {
+    formSessionRef.current += 1;
     schemaRequestRef.current += 1;
     setRefreshingSchema(false);
     setStep('type');
@@ -486,6 +501,55 @@ export default function SemanticLayerModal({
     [selectedType, fetchConfigSchema, configSchema],
   );
 
+  const formMiddleware = useCallback<Middleware>(
+    (state, action, reduce) => {
+      // JSON Forms debounces notifications. An already-seen data object is
+      // feedback, not an instruction to replace edits made since it was emitted.
+      const update =
+        action.type === UPDATE_CORE && formSnapshots.has(action.data)
+          ? { ...action, data: state.data }
+          : action;
+      let next = reduce(state, update);
+      // Schema backfills are not user edits and must preserve saved dependents.
+      if (action.type === UPDATE_DATA && action.context !== SCHEMA_BACKFILL) {
+        // Clear dependencies in the same reduction as the edit, before
+        // validation/notification; a delayed host snapshot can be older.
+        const cleared: Record<string, unknown> = {};
+        for (const [field, deps] of Object.entries(dynamicDepsRef.current)) {
+          // Self-deps don't count — a field shouldn't wipe its own value
+          // every time the user picks something in it.
+          const externalDeps = deps.filter(dep => dep !== field);
+          if (externalDeps.length === 0) continue;
+          const depsChanged = externalDeps.some(
+            dep =>
+              JSON.stringify(state.data?.[dep]) !==
+              JSON.stringify(next.data?.[dep]),
+          );
+          if (
+            depsChanged &&
+            next.data?.[field] !== undefined &&
+            next.data[field] !== ''
+          ) {
+            cleared[field] = undefined;
+          }
+        }
+        if (Object.keys(cleared).length > 0) {
+          const clearedData = { ...next.data, ...cleared };
+          const data = configSchema
+            ? initializeAnyOptions(configSchema, clearedData)
+            : clearedData;
+          next = reduce(
+            next,
+            Actions.update('', () => data),
+          );
+        }
+      }
+      if (isRecord(next.data)) formSnapshots.add(next.data);
+      return next;
+    },
+    [formSnapshots, configSchema],
+  );
+
   const handleFormChange = useCallback(
     ({
       data,
@@ -494,42 +558,18 @@ export default function SemanticLayerModal({
       data: Record<string, unknown>;
       errors?: ErrorObject[];
     }) => {
-      // When a dependency of a dynamic field changes, clear that field's
-      // value so we don't carry a stale selection across the refresh (e.g.
-      // ``schema=PUBLIC`` lingering after the user switches database).
-      const dynamicDeps = dynamicDepsRef.current;
-      let nextData =
+      // A notification queued by a dismissed form must not undo its reset.
+      if (formSession !== formSessionRef.current) return;
+      const nextData =
         !isEditMode && configSchema
           ? initializeAnyOptions(configSchema, data)
           : data;
-      if (Object.keys(dynamicDeps).length > 0) {
-        for (const [field, deps] of Object.entries(dynamicDeps)) {
-          // A field's own selection must not clear itself.
-          const depsChanged = deps
-            .filter(dep => dep !== field)
-            .some(
-              dep =>
-                JSON.stringify(formData[dep]) !== JSON.stringify(data[dep]),
-            );
-          if (
-            depsChanged &&
-            nextData[field] !== undefined &&
-            nextData[field] !== ''
-          ) {
-            nextData = { ...nextData, [field]: undefined };
-            // Clearing an opted-in field chooses Any and updates its policy flag.
-            if (configSchema)
-              nextData = initializeAnyOptions(configSchema, nextData);
-          }
-        }
-      }
-
       setFormData(nextData);
       errorsRef.current = errors ?? [];
       setHasErrors(errorsRef.current.length > 0);
       maybeRefreshSchema(nextData);
     },
-    [maybeRefreshSchema, formData, configSchema, isEditMode],
+    [maybeRefreshSchema, formSession, configSchema, isEditMode],
   );
 
   const selectedProvider = types.find(type => type.id === selectedType);
@@ -657,6 +697,7 @@ export default function SemanticLayerModal({
                   // autofill credential fields (service token, account, etc.).
                   <Form layout="vertical" autoComplete="off">
                     <JsonForms
+                      middleware={formMiddleware}
                       readonly={clearing}
                       schema={configSchema}
                       uischema={uiSchema}

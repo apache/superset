@@ -36,7 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
-  formatSpecifier,
+  isPercentD3Format,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -70,13 +70,14 @@ import {
   Input,
   Loading,
   Row,
+  SafeMarkdown,
   Select,
   Tooltip,
   Typography,
   Label,
   Modal,
 } from '@superset-ui/core/components';
-import { FilterableTable } from 'src/components';
+import { FilterableTable, ListViewFilterOperator } from 'src/components';
 import {
   executeQuery,
   formatQuery,
@@ -85,12 +86,12 @@ import {
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl, openInNewTab } from 'src/utils/navigationUtils';
-import Subject from 'src/types/Subject';
 import SubjectPicker, {
   normalizeSubjectsToPickerValues,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import { DatabaseSelector } from '../../../DatabaseSelector';
+import type { DatabaseObject } from '../../../DatabaseSelector/types';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -100,7 +101,7 @@ import {
   fetchSyncedColumns,
   updateColumns,
 } from '../../utils';
-import DatasetUsageTab from './components/DatasetUsageTab';
+import DatasetUsageTab, { type UsageChart } from './components/DatasetUsageTab';
 import {
   PartitionColumnFields,
   PartitionMappingSection,
@@ -113,6 +114,7 @@ import {
   defaultTransformFor,
   discardedMappedTransform,
   nextMappedColumnOverride,
+  partitionFilterMappingEnabled,
   partitionMappingErrors,
   resolveMappedColumn,
 } from './components/PartitionFilterMapping/utils';
@@ -224,6 +226,9 @@ interface DatasourceObject {
   partition_mapped_column?: string | null;
   // Engine-supplied pre-fill for a temporal column's value transform. Read-only.
   partition_value_transform_default?: string | null;
+  // Whether the engine's tables are partition-directory laid out. Gates whether
+  // the partition filter mapping UI is offered at all. Engine-supplied, read-only.
+  supports_partition_filter_mapping?: boolean;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -318,28 +323,6 @@ interface DatabaseState {
 
 interface RootState {
   database?: DatabaseState;
-}
-
-interface ChartUsageData {
-  id: number;
-  slice_name: string;
-  url: string;
-  certified_by?: string;
-  certification_details?: string;
-  description?: string;
-  editors?: Subject[];
-  changed_on_delta_humanized?: string;
-  changed_on?: string;
-  changed_by?: {
-    first_name?: string;
-    last_name?: string;
-    id?: number;
-  };
-  dashboards?: Array<{
-    id: number;
-    dashboard_title: string;
-    url: string;
-  }>;
 }
 
 interface AbortControllers {
@@ -478,9 +461,11 @@ const ColumnButtonWrapper = styled.div`
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
-  span {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
+  /* Space the row's items (certified badge, column-name control, PARTITION tag)
+     with a flex gap rather than a span margin: the name is rendered via
+     EditableTitle/TextControl, not a plain span, so the old span-only rule left
+     the tag touching the name. */
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 // The partition column is a technical key rather than something an analyst
@@ -580,6 +565,10 @@ const checkboxGenerator = (
     }}
   />
 );
+const PYTHON_DATETIME_FORMAT_URL =
+  'https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior';
+const ISO_8601_URL = 'https://en.wikipedia.org/wiki/ISO_8601';
+
 const DATA_TYPES = [
   { value: 'STRING', label: t('STRING') },
   { value: 'NUMERIC', label: t('NUMERIC') },
@@ -683,8 +672,7 @@ function ColumnCollectionTable({
     />
   );
 
-  const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && Boolean(datasource);
+  const partitionMappingEnabled = partitionFilterMappingEnabled(datasource);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;
@@ -827,26 +815,31 @@ function ColumnCollectionTable({
                 fieldKey="python_date_format"
                 label={t('Datetime format')}
                 description={
-                  /* Note the fragmented translations may not work. */
-                  <div>
-                    {t('The pattern of timestamp format. For strings use ')}
-                    <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
-                      {t('Python datetime string pattern')}
-                    </Typography.Link>
-                    {t(' expression which needs to adhere to the ')}
-                    <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
-                      {t('ISO 8601')}
-                    </Typography.Link>
-                    {t(` standard to ensure that the lexicographical ordering
-                      coincides with the chronological ordering. If the
-                      timestamp format does not adhere to the ISO 8601 standard
-                      you will need to define an expression and type for
-                      transforming the string into a date or timestamp. Note
-                      currently time zones are not supported. If time is stored
-                      in epoch format, put \`epoch_s\`, \`epoch_ms\` or \`epoch_us\`. If no pattern
-                      is specified we fall back to using the optional defaults on a per
-                      database/column name level via the extra parameter.`)}
-                  </div>
+                  <SafeMarkdown
+                    // i18n: translate the whole sentence, including the link
+                    // text; keep the [text](%(…)s) link syntax, the backticks
+                    // and both placeholders unchanged
+                    source={t(
+                      'The pattern of timestamp format. For strings use ' +
+                        '[Python datetime string pattern](%(python_url)s) ' +
+                        'expression which needs to adhere to the ' +
+                        '[ISO 8601](%(iso_url)s) standard to ensure that the ' +
+                        'lexicographical ordering coincides with the ' +
+                        'chronological ordering. If the timestamp format does ' +
+                        'not adhere to the ISO 8601 standard you will need to ' +
+                        'define an expression and type for transforming the ' +
+                        'string into a date or timestamp. Note currently time ' +
+                        'zones are not supported. If time is stored in epoch ' +
+                        'format, put `epoch_s`, `epoch_ms` or `epoch_us`. If ' +
+                        'no pattern is specified we fall back to using the ' +
+                        'optional defaults on a per database/column name ' +
+                        'level via the extra parameter.',
+                      {
+                        python_url: PYTHON_DATETIME_FORMAT_URL,
+                        iso_url: ISO_8601_URL,
+                      },
+                    )}
+                  />
                 }
                 control={
                   <TextControl
@@ -981,23 +974,6 @@ function EditorsSelector({
 }
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
-
-// D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
-// grammar so garbage like "foo%" is rejected rather than matched by suffix.
-// The stored value is trimmed before parsing because
-// NumberFormatterRegistry.get() trims it the same way before rendering, so
-// this check agrees with what the renderer actually sees.
-export const isPercentD3Format = (d3format?: string): boolean => {
-  if (!d3format) {
-    return false;
-  }
-  try {
-    const { type } = formatSpecifier(d3format.trim());
-    return type === '%' || type === 'p';
-  } catch {
-    return false;
-  }
-};
 
 // Matches the outermost COUNT(...) call's parens by depth, so a ratio like
 // `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
@@ -1166,7 +1142,7 @@ function DatasourceEditor({
       ? DATASOURCE_TYPES.virtual.key
       : DATASOURCE_TYPES.physical.key,
   );
-  const [usageCharts, setUsageCharts] = useState<ChartUsageData[]>([]);
+  const [usageCharts, setUsageCharts] = useState<UsageChart[]>([]);
   const [usageChartsCount, setUsageChartsCount] = useState(0);
   const [metricSearchTerm, setMetricSearchTerm] = useState('');
   const [columnSearchTerm, setColumnSearchTerm] = useState('');
@@ -1252,7 +1228,7 @@ function DatasourceEditor({
       // that is a blocking error with no way out -- the partition-column
       // dropdown is physical-only, so reopening such a dataset and changing
       // nothing but its description left Save permanently disabled.
-      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+      if (partitionFilterMappingEnabled(datasource)) {
         validationErrors = validationErrors.concat(
           partitionMappingErrors(datasource, [
             ...databaseColumns,
@@ -1330,6 +1306,24 @@ function DatasourceEditor({
       const newDatasource = { ...prev, [attr]: value };
       return newDatasource;
     });
+  }, []);
+
+  // The partition mapping capability and its transform pre-fill belong to the
+  // engine, and arrive on the dataset payload for the database it was loaded
+  // with. Pointing the dataset at another database has to re-derive both from
+  // the selected database's engine, or the editor keeps offering (or keeps
+  // hiding) partition mapping according to the engine it just left.
+  const onDatabaseChange = useCallback((db: DatabaseObject | undefined) => {
+    if (db === undefined) return;
+    setDatasource(prev => ({
+      ...prev,
+      database: db,
+      supports_partition_filter_mapping: Boolean(
+        db.supports_partition_filter_mapping,
+      ),
+      partition_value_transform_default:
+        db.partition_value_transform_default ?? null,
+    }));
   }, []);
 
   // Effect to trigger validation after datasource changes (skip initial mount)
@@ -1594,11 +1588,13 @@ function DatasourceEditor({
     // calculated column, so both lists are cleared.
     setDatabaseColumns(prev => clearMappingTransforms(prev));
     setCalculatedColumns(prev => clearMappingTransforms(prev));
-    // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- nothing mirrored onto it, and the panel's warning
-    // saying so. The column's own `filterable`/`groupby` flags are untouched:
-    // designating a partition column has never hidden it from Explore (see
-    // `handlePartitionColumnChange`).
+    // The partition column stays designated and the override is cleared. A null
+    // `partition_mapped_column` means "follow `main_dttm_col`", so when the
+    // dataset has a default datetime column the mapping returns to it rather
+    // than going away. Only without one does this reach the 1g state -- no
+    // mapped column, nothing mirrored onto the partition column. The column's
+    // own `filterable`/`groupby` flags are untouched: designating a partition
+    // column has never hidden it from Explore (see `handlePartitionColumnChange`).
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, []);
 
@@ -1635,11 +1631,16 @@ function DatasourceEditor({
       // writes whatever the flag says. The datetime column select itself is
       // not gated, since it predates this feature.
       //
+      // The engine gate applies for the same reason. On an engine without the
+      // capability the mapping is hidden and ignored but kept, so it comes
+      // back if the dataset is pointed at a supported engine; clearing it here
+      // would save the loss as explicit nulls behind a control nobody can see.
+      //
       // Changing the default datetime column is rarely meant as a change to
       // the mapping, so when it would cost the transform the mapping mirrors,
       // the owner confirms that first and cancelling keeps the old column.
       if (
-        !isFeatureEnabled(FeatureFlag.PartitionFilterMapping) ||
+        !partitionFilterMappingEnabled(datasource) ||
         !datasource.partition_column ||
         datasource.partition_mapped_column
       ) {
@@ -1674,6 +1675,7 @@ function DatasourceEditor({
       datasource.main_dttm_col,
       datasource.partition_column,
       datasource.partition_mapped_column,
+      datasource.supports_partition_filter_mapping,
     ],
   );
 
@@ -1978,7 +1980,6 @@ function DatasourceEditor({
             'changed_by.id',
             'dashboards.id',
             'dashboards.dashboard_title',
-            'dashboards.url',
           ],
           filters: [
             {
@@ -1986,7 +1987,24 @@ function DatasourceEditor({
               opr: 'eq',
               value: datasource.id,
             },
+            {
+              col: 'datasource_type',
+              opr: 'eq',
+              value: datasource.datasource_type || datasource.type,
+            },
+            ...(isFeatureEnabled(FeatureFlag.SoftDelete)
+              ? [
+                  {
+                    col: 'id',
+                    opr: ListViewFilterOperator.ChartDeletedState,
+                    value: 'include',
+                  },
+                ]
+              : []),
           ],
+          ...(isFeatureEnabled(FeatureFlag.SoftDelete) && {
+            include_archived_dashboards: true,
+          }),
           order_column: sortColumn,
           order_direction: sortDirection,
           page: page - 1,
@@ -2002,7 +2020,7 @@ function DatasourceEditor({
         const ids = json?.ids || [];
 
         const chartsWithIds = charts.map(
-          (chart: Omit<ChartUsageData, 'id'>, index: number) => ({
+          (chart: Omit<UsageChart, 'id'>, index: number) => ({
             ...chart,
             id: ids[index],
           }),
@@ -2042,7 +2060,12 @@ function DatasourceEditor({
         abortControllers.current.fetchUsageData = null;
       }
     },
-    [datasource.id, addDangerToast],
+    [
+      datasource.id,
+      datasource.datasource_type,
+      datasource.type,
+      addDangerToast,
+    ],
   );
 
   const handleTabSelect = useCallback((key: string) => {
@@ -2281,7 +2304,7 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
-          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+          {partitionFilterMappingEnabled(datasource) && (
             <PartitionColumnFields
               key={discardCancelCount}
               datasource={datasource}
@@ -2624,8 +2647,7 @@ function DatasourceEditor({
                               onDatasourcePropChange('schema', schema)
                             }
                             onDbChange={db =>
-                              isEditMode &&
-                              onDatasourcePropChange('database', db)
+                              isEditMode && onDatabaseChange(db)
                             }
                             formMode={false}
                             handleError={addDangerToast}
@@ -2823,11 +2845,7 @@ function DatasourceEditor({
                             ? schema => onDatasourcePropChange('schema', schema)
                             : undefined
                         }
-                        onDbChange={
-                          isEditMode
-                            ? db => onDatasourcePropChange('database', db)
-                            : undefined
-                        }
+                        onDbChange={isEditMode ? onDatabaseChange : undefined}
                         onTableSelectChange={
                           isEditMode
                             ? table =>
@@ -3200,6 +3218,20 @@ function DatasourceEditor({
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
+              columnLabelTooltips={{
+                is_dttm: t(
+                  'Marks the column as a time column for time range filters ' +
+                    'and time grains. If the column type in the database is ' +
+                    'not a date or timestamp, set a Datetime format below: ' +
+                    'for strings it sets how time range filter values are ' +
+                    'written, and for epoch numbers (epoch_s, epoch_ms, ' +
+                    'epoch_us) it converts them to timestamps. A Datetime ' +
+                    'format does not convert a string column, so on some ' +
+                    'databases a time grain on it can fail or return wrong ' +
+                    'results; a calculated column that casts the value to a ' +
+                    'timestamp avoids this.',
+                ),
+              }}
               datasource={datasource}
               onMoveMappingHere={handleMoveMappingHere}
               onRemoveMapping={handleRemoveMapping}
@@ -3272,11 +3304,7 @@ function DatasourceEditor({
           <StyledTableTabWrapper>
             <DatasetUsageTab
               datasourceId={datasource.id ?? 0}
-              charts={
-                usageCharts as React.ComponentProps<
-                  typeof DatasetUsageTab
-                >['charts']
-              }
+              charts={usageCharts}
               totalCount={usageChartsCount}
               onFetchCharts={fetchUsageData}
               addDangerToast={addDangerToast}

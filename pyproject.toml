@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.3.0, <8",
+    "cachetools>=8.0.0, <9",
     "celery>=5.7.0, <6.0.0",
     "click>=8.5.1",
     "click-option-group",
@@ -68,10 +68,10 @@ dependencies = [
     "flask-wtf>=1.3.0, <2.0",
     "geopy",
     "greenlet<=3.5.6, >=3.5.6",
-    "gunicorn>=26.0.0, <27; sys_platform != 'win32'",
+    "gunicorn>=27.0.0, <28; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
-    "holidays>=0.106, <1",
+    "holidays>=0.108, <1",
     "humanize",
     "isodate",
     "jsonpath-ng>=1.11.0, <2",
@@ -80,7 +80,7 @@ dependencies = [
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
     # https://github.com/apache/superset/issues/33162
-    "marshmallow>=3.0, <5",
+    "marshmallow>=4.4.0, <5",
     "marshmallow-union>=0.1.15.post1",
     "msgpack>=1.2.3, <1.3",
     "nh3>=0.3.7, <0.4",
@@ -103,13 +103,14 @@ dependencies = [
     "pyyaml>=6.0.3, <7.0.0",
     "PyJWT>=2.15.1, <3.0", # raise floor to match resolved pin; closes SCA false-positive on 2.4.x-range CVEs already fixed in 2.13.0
     "redis>=5.0.0, <9.0",
+    "rich>=13.9.4",
     "rison>=2.0.1, <3.0",
 
     "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.5.1, <0.6",
-    "simplejson>=4.2.0",
+    "simplejson>=4.3.0",
     "slack_sdk>=3.46.0, <4",
-    "sqlalchemy>=2.0.55, <2.1",
+    "sqlalchemy>=2.0.57, <2.1",
     "sqlalchemy-continuum>=2.0.0, <3.0.0",
     "sqlalchemy-utils>=0.43.0, <0.44", # expanding lowerbound to work with pydoris
     # Dialect-specific gaps/bugs against this pin are worked around in
@@ -177,7 +178,7 @@ dremio = ["sqlalchemy-dremio>=3.0.5, <4"]
 # 1.1.10 already supports SQLAlchemy 2.0 (added `import_dbapi` in 1.1.7).
 drill = ["sqlalchemy-drill>=1.1.10, <3"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.5.6,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.6,<3", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.8.2"]
 # Effectively unmaintained (only dependabot bumps since 2024); hard-pinned to
 # SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See
@@ -202,7 +203,7 @@ excel-export = ["boto3"]
 # >=1.37 for ``Blob.open``, which superset.utils.gcs streams downloads through.
 excel-export-gcs = ["google-cloud-storage>=3.17.1"]
 fastmcp = [
-    "fastmcp>=4.1.4,<5.0",
+    "fastmcp>=4.2.0,<5.0",
     # JWT verification uses httpx directly; fastmcp 4.x depends on httpx2.
     "httpx>=0.28.1,<1.0",
     # fastmcp 3.x requires mcp<2.0 and fastmcp 4.x (via fastmcp-slim[client])
@@ -216,7 +217,7 @@ fastmcp = [
     "tiktoken>=0.14.0,<1.0",
     # Security: CVE-2026-75509 - joserfc claim-validation bypass via
     # array-typed iss/sub claims (pulled in transitively via fastmcp-slim).
-    "joserfc>=1.7.3",
+    "joserfc>=1.8.0",
     # Security: CVE-2026-53537, CVE-2026-53538, CVE-2026-53539, CVE-2026-53540
     # - python-multipart (pulled in transitively via fastmcp-slim and mcp).
     "python-multipart>=0.0.33",
@@ -229,7 +230,7 @@ firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
 gevent = ["gevent>=26.9.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
-hana = ["hdbcli==2.30.27", "sqlalchemy_hana==5.0.0"]
+hana = ["hdbcli==2.30.32", "sqlalchemy_hana==5.0.0"]
 hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
@@ -248,9 +249,11 @@ mariadb = ["apache-superset[mysql]"]
 monetdb = ["sqlalchemy-monetdb>=2.1.0, <3", "pymonetdb>=1.9.1, <2"]
 mongodb = ["pymongosql>=0.7.4, <1"]
 mssql = ["pymssql>=2.4.5, <3"]
-# motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
-motherduck = ["apache-superset[duckdb]"]
-mysql = ["mysqlclient>=2.3.0, <3"]
+# motherduck is an alias for duckdb - MotherDuck works via the duckdb driver.
+# MotherDuck does not support DuckDB 2.x clients yet (max 1.5.6, see
+# https://motherduck.com/docs/duckdb-versions.json), so keep it on <2.
+motherduck = ["apache-superset[duckdb]", "duckdb<2"]
+mysql = ["mysqlclient>=2.3.1, <3"]
 ocient = [
     # Closed-source vendor package with no public changelog; permissive
     # unpinned sqlalchemy>=1.4 declared. Verified compatible with SQLAlchemy
@@ -264,12 +267,14 @@ ocient = [
     "shapely",
     "geojson",
 ]
+openobserve = ["sqlalchemy-openobserve>=0.1.1, <0.2"]
 oracle = ["oracledb>=26.0.0, <27"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb[sqlalchemy]>=9.2.2, <10.0.0"]
 playwright = ["playwright>=1.64.1, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
+teams = ["microsoft-teams-apps==2.1.1"]
 trino = ["trino>=0.340.0"]
 prophet = [
     "prophet>=1.5.0, <2",
@@ -290,7 +295,7 @@ redshift = ["sqlalchemy-redshift>=1.0.0"]
 risingwave = ["sqlalchemy-risingwave>=2.0.0"]
 shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
-snowflake = ["snowflake-sqlalchemy>=1.11.1, <2"]
+snowflake = ["snowflake-sqlalchemy>=1.11.1, <3"]
 sqlite = ["syntaqlite>=0.14.0,<0.15.0"]
 spark = [
     "pyhive[hive_pure_sasl]>=0.7",
@@ -299,9 +304,9 @@ spark = [
 ]
 tdengine = [
     "taospy>=2.8.10",
-    "taos-ws-py>=0.7.0"
+    "taos-ws-py>=0.7.1"
 ]
-teradata = ["teradatasql>=20.0.0.72"]
+teradata = ["teradatasql>=20.0.0.75"]
 # TimescaleDB is a genuine Postgres extension, not a fork - connects via the
 # plain postgresql dialect, same driver as postgres.
 timescaledb = ["apache-superset[postgres]"]
@@ -349,7 +354,7 @@ development = [
     # under 3.13 (pyfakefs #1101), and the `fs` tests in
     # tests/integration_tests/cli_tests.py -- the only consumers of that
     # fixture -- run alongside session- and module-scoped fixtures.
-    "pyfakefs>=5.7.4",
+    "pyfakefs>=6.3.2",
     "pyinstrument>=5.1.3,<6",
     "pylint",
     "pytest<10.0.0", # cap below the next major until validated; the earlier <8 pin (current_app proxy timing) no longer reproduces
@@ -434,6 +439,7 @@ warn_unused_ignores = false
 [[tool.mypy.overrides]]
 module = [
     "superset.mcp_service.dataset_scope",
+    "superset.mcp_service.dataset.discovery",
     "tests.unit_tests.mcp_service.dataset.tool.test_dataset_tools",
     "superset.commands.chart.importers.v1",
     "superset.daos.datasource",

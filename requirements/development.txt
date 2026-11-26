@@ -10,7 +10,7 @@
     # via
     #   -r requirements/development.in
     #   apache-superset
-aiofile==3.9.0
+aiofile==3.12.3
     # via py-key-value-aio
 aiohappyeyeballs==2.7.1
     # via aiohttp
@@ -27,6 +27,8 @@ amqp==5.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   kombu
+annotated-doc==0.0.5
+    # via fastapi
 annotated-types==0.7.0
     # via
     #   -c requirements/base-constraint.txt
@@ -65,7 +67,7 @@ attrs==25.3.0
     #   jsonschema
     #   referencing
     #   requests-cache
-authlib==1.6.12
+authlib==1.9.10
     # via fastmcp-slim
 babel==2.17.0
     # via
@@ -118,12 +120,12 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==7.3.1
+cachetools==8.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   py-key-value-aio
-caio==0.9.25
+caio==0.12.10
     # via aiofile
 cattrs==25.1.1
     # via
@@ -215,6 +217,8 @@ cryptography==50.0.2
     #   authlib
     #   google-auth
     #   joserfc
+    #   microsoft-teams-apps
+    #   msal
     #   oracledb
     #   paramiko
     #   pyjwt
@@ -235,6 +239,8 @@ defusedxml==0.7.1
     # via
     #   -c requirements/base-constraint.txt
     #   odfpy
+dependency-injector==4.49.1
+    # via microsoft-teams-apps
 deprecated==1.2.18
     # via
     #   -c requirements/base-constraint.txt
@@ -260,7 +266,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==1.5.6
+duckdb==2.0.0
     # via
     #   apache-superset
     #   duckdb-engine
@@ -285,9 +291,11 @@ exceptiongroup==1.3.0
     # via fastmcp-slim
 execnet==2.1.2
     # via pytest-xdist
-fastmcp==4.1.6
+fastapi==0.162.0
+    # via microsoft-teams-apps
+fastmcp==4.2.4
     # via apache-superset
-fastmcp-slim==4.1.6
+fastmcp-slim==4.2.4
     # via fastmcp
 filelock==3.20.3
     # via
@@ -452,7 +460,7 @@ grpcio==1.85.1
     #   ydb
 grpcio-status==1.60.1
     # via google-api-core
-gunicorn==26.2.0
+gunicorn==27.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -465,7 +473,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.107
+holidays==0.109
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -477,6 +485,7 @@ httpcore2==2.15.1
 httpx==0.28.1
     # via
     #   apache-superset
+    #   microsoft-teams-common
     #   testcontainers
 httpx2==2.15.1
     # via
@@ -499,8 +508,6 @@ idna==3.20
     #   snowflake-connector-python
     #   url-normalize
     #   yarl
-importlib-metadata==8.7.0
-    # via opentelemetry-api
 iniconfig==2.0.0
     # via pytest
 isodate==0.7.2
@@ -528,10 +535,11 @@ jmespath==1.1.0
     #   boto3
     #   botocore
     #   pymongosql
-joserfc==1.7.7
+joserfc==1.8.0
     # via
     #   -r requirements/development.in
     #   apache-superset
+    #   authlib
     #   fastmcp-slim
 jsonpath-ng==1.13.0
     # via
@@ -542,6 +550,7 @@ jsonref==1.1.0
 jsonschema==4.23.0
     # via
     #   -c requirements/base-constraint.txt
+    #   fastmcp-slim
     #   flask-appbuilder
     #   mcp
     #   openapi-schema-validator
@@ -594,7 +603,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==4.3.1
+marshmallow==4.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -625,6 +634,18 @@ mdurl==0.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   markdown-it-py
+microsoft-teams-api==2.1.1
+    # via microsoft-teams-apps
+microsoft-teams-apps==2.1.1
+    # via apache-superset
+microsoft-teams-cards==2.1.1
+    # via microsoft-teams-api
+microsoft-teams-common==2.1.1
+    # via
+    #   microsoft-teams-api
+    #   microsoft-teams-apps
+msal==1.39.0
+    # via microsoft-teams-apps
 msgpack==1.2.3
     # via
     #   -c requirements/base-constraint.txt
@@ -637,7 +658,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-mysqlclient==2.3.0
+mysqlclient==2.3.2
     # via apache-superset
 nh3==0.3.7
     # via
@@ -677,10 +698,13 @@ openpyxl==3.1.5
     #   pandas
 opensearch-py==2.8.0
     # via elasticsearch-dbapi
-opentelemetry-api==1.39.1
+opentelemetry-api==1.45.2
     # via
+    #   fastapi
     #   fastmcp-slim
     #   mcp
+    #   microsoft-teams-api
+    #   microsoft-teams-apps
 oracledb==26.0.0
     # via
     #   apache-superset
@@ -789,7 +813,7 @@ psutil==6.1.0
     #   pandas-gbq
 psycopg2-binary==2.9.13
     # via apache-superset
-py-key-value-aio==0.4.4
+py-key-value-aio==0.5.0
     # via fastmcp-slim
 pyarrow==26.0.1
     # via
@@ -817,22 +841,26 @@ pydantic==2.14.3
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apache-superset-core
+    #   fastapi
     #   fastmcp-slim
     #   mcp
     #   mcp-types
+    #   microsoft-teams-api
     #   openapi-pydantic
     #   pydantic-settings
 pydantic-core==2.50.4
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
-pydantic-settings==2.10.1
-    # via fastmcp-slim
+pydantic-settings==2.16.1
+    # via
+    #   fastmcp-slim
+    #   microsoft-teams-apps
 pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
     # via apache-superset
-pyfakefs==6.2.0
+pyfakefs==6.3.2
     # via apache-superset
 pygeohash==3.2.2
     # via
@@ -853,6 +881,9 @@ pyjwt==2.15.1
     #   flask-appbuilder
     #   flask-jwt-extended
     #   mcp
+    #   microsoft-teams-api
+    #   microsoft-teams-apps
+    #   msal
     #   snowflake-connector-python
 pylint==3.3.7
     # via apache-superset
@@ -938,6 +969,7 @@ python-dotenv==1.2.2
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   fastmcp-slim
+    #   microsoft-teams-apps
     #   pydantic-settings
     #   testcontainers
 python-ldap==3.4.8
@@ -985,6 +1017,7 @@ requests==2.33.0
     #   google-api-core
     #   google-cloud-bigquery
     #   jsonschema-path
+    #   msal
     #   opensearch-py
     #   pydruid
     #   pyhive
@@ -1039,7 +1072,7 @@ shillelagh==1.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-simplejson==4.2.0
+simplejson==4.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1060,7 +1093,7 @@ snowflake-sqlalchemy==1.11.1
     # via apache-superset
 sortedcontainers==2.4.0
     # via snowflake-connector-python
-sqlalchemy==2.0.55
+sqlalchemy==2.0.58
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
@@ -1125,6 +1158,7 @@ sshtunnel==0.5.1
     #   apache-superset
 starlette==1.3.1
     # via
+    #   fastapi
     #   fastmcp-slim
     #   mcp
 starrocks==1.3.4
@@ -1170,7 +1204,9 @@ typing-extensions==4.16.0
     #   apache-superset-core
     #   cattrs
     #   click-repl
+    #   dependency-injector
     #   exceptiongroup
+    #   fastapi
     #   fastmcp-slim
     #   grpcio
     #   httpx2
@@ -1182,6 +1218,7 @@ typing-extensions==4.16.0
     #   py-key-value-aio
     #   pydantic
     #   pydantic-core
+    #   pydantic-settings
     #   pyopenssl
     #   referencing
     #   shillelagh
@@ -1193,6 +1230,7 @@ typing-extensions==4.16.0
 typing-inspection==0.4.4
     # via
     #   -c requirements/base-constraint.txt
+    #   fastapi
     #   mcp
     #   pydantic
     #   pydantic-settings
@@ -1205,7 +1243,7 @@ tzlocal==5.4.4
     #   -c requirements/base-constraint.txt
     #   celery
     #   trino
-uncalled-for==0.4.0
+uncalled-for==0.6.2
     # via fastmcp-slim
 url-normalize==2.2.1
     # via
@@ -1227,6 +1265,7 @@ uvicorn==0.37.0
     # via
     #   fastmcp-slim
     #   mcp
+    #   microsoft-teams-apps
 verlib2==0.3.2
     # via
     #   crate
@@ -1297,8 +1336,6 @@ ydb-sqlalchemy==0.1.24
     # via apache-superset
 ydb-sqlglot-plugin==0.2.8
     # via apache-superset
-zipp==3.23.0
-    # via importlib-metadata
 zope-event==5.0
     # via gevent
 zope-interface==8.6

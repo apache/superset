@@ -55,10 +55,15 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
 from superset.errors import SupersetErrorType
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SemanticViewGuestRLSUnsupportedError,
+    SupersetSecurityException,
+)
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.chart_types import pin_saved_chart_type
 from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
@@ -73,6 +78,11 @@ from superset.utils.decorators import logs_context
 from superset.utils.error_sanitization import (
     redact_sensitive_query_fields,
     sanitize_error_message,
+)
+from superset.utils.timing_metrics import (
+    emit_pre_handler_timer,
+    start_pre_handler_timer,
+    timed,
 )
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
@@ -102,7 +112,9 @@ class ChartDataRestApi(ChartRestApi):
     )
 
     @expose("/<int:pk>/data/", methods=("GET",))
+    @start_pre_handler_timer
     @protect()
+    @emit_pre_handler_timer("chart_data.auth")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -180,7 +192,8 @@ class ChartDataRestApi(ChartRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        chart = self.datamodel.get(pk, self._base_filters)
+        with timed("chart_data.chart_lookup"):
+            chart = self.datamodel.get(pk, self._base_filters)
         if not chart:
             return self.response_404()
 
@@ -196,6 +209,9 @@ class ChartDataRestApi(ChartRestApi):
                 )
             )
 
+        # The saved chart's type is authoritative for a replayed context.
+        pin_saved_chart_type(json_body, chart.datasource_type, chart.viz_type)
+
         # override saved query context
         json_body["result_format"] = request.args.get(
             "format", ChartDataResultFormat.JSON
@@ -203,8 +219,20 @@ class ChartDataRestApi(ChartRestApi):
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
         json_body["force"] = request.args.get("force")
 
+        if chart.datasource_type == "semantic_view":
+            # Semantic views bind this chart as ``slice_`` below, and the guest
+            # payload check then requires ``form_data.slice_id`` to match it. A
+            # saved context is replayed verbatim, so it can lack the id or, after
+            # "Save as", carry the source chart's; stamp it as the browser does.
+            saved_form_data: object = json_body.get("form_data")
+            json_body["form_data"] = {
+                **(saved_form_data if isinstance(saved_form_data, dict) else {}),
+                "slice_id": chart.id,
+            }
+
         # Apply dashboard filter context when filters_dashboard_id is provided
         dashboard_filter_context: DashboardFilterContext | None = None
+        filters_dashboard_id: int | None
         if "filters_dashboard_id" in request.args:
             raw = request.args.get("filters_dashboard_id")
             try:
@@ -218,10 +246,11 @@ class ChartDataRestApi(ChartRestApi):
 
         if filters_dashboard_id is not None:
             try:
-                dashboard_filter_context = get_dashboard_filter_context(
-                    dashboard_id=filters_dashboard_id,
-                    chart_id=pk,
-                )
+                with timed("chart_data.dashboard_filters"):
+                    dashboard_filter_context = get_dashboard_filter_context(
+                        dashboard_id=filters_dashboard_id,
+                        chart_id=pk,
+                    )
             except ValueError as error:
                 return self.response_400(message=str(error))
             except SupersetSecurityException:
@@ -240,14 +269,20 @@ class ChartDataRestApi(ChartRestApi):
         set_form_data(json_body)
 
         try:
-            query_context = self._create_query_context_from_form(json_body)
+            with timed("chart_data.query_context.build"):
+                query_context = self._create_query_context_from_form(json_body)
+            if query_context.datasource.type == "semantic_view":
+                query_context.slice_ = chart
             command = ChartDataCommand(query_context)
-            command.validate()
+            with timed("chart_data.query_context.validate"):
+                command.validate()
         except SemanticLayersDisabledError as error:
             return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
         except SupersetSecurityException as ex:
+            if isinstance(ex, SemanticViewGuestRLSUnsupportedError):
+                return self.response(403, message=ex.error.message)
             if (
                 ex.error.error_type
                 == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
@@ -284,7 +319,9 @@ class ChartDataRestApi(ChartRestApi):
         )
 
     @expose("/data", methods=("POST",))
+    @start_pre_handler_timer
     @protect()
+    @emit_pre_handler_timer("chart_data.auth")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -345,14 +382,18 @@ class ChartDataRestApi(ChartRestApi):
             return self.response_400(message=_("Request is not JSON"))
 
         try:
-            query_context = self._create_query_context_from_form(json_body)
+            with timed("chart_data.query_context.build"):
+                query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
-            command.validate()
+            with timed("chart_data.query_context.validate"):
+                command.validate()
         except SemanticLayersDisabledError as error:
             return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
         except SupersetSecurityException as ex:
+            if isinstance(ex, SemanticViewGuestRLSUnsupportedError):
+                return self.response(403, message=ex.error.message)
             if (
                 ex.error.error_type
                 == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
@@ -489,6 +530,13 @@ class ChartDataRestApi(ChartRestApi):
             and is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
+            # Column and time grain options are read from datasource metadata;
+            # a task would run them down the data path instead.
+            and not any(
+                (query.result_type or query_context.result_type)
+                in ChartDataResultType.datasource_metadata()
+                for query in query_context.queries
+            )
             and query_context.get_cache_timeout() != CACHE_DISABLED_TIMEOUT
             and not isinstance(cache_manager.data_cache.cache, NullCache)
             and (
@@ -527,7 +575,8 @@ class ChartDataRestApi(ChartRestApi):
         # chart query. The client polls /api/v1/task/status_changes, aggregates the
         # tasks' statuses, and on success re-issues this same request — now served
         # synchronously from the per-query DATA cache the tasks populated.
-        job = submit_chart_data_query_tasks(command.query_context, get_user_id())
+        with timed("chart_data.async.submit"):
+            job = submit_chart_data_query_tasks(command.query_context, get_user_id())
         return self.response(202, **job)
 
     def _send_chart_response(  # noqa: C901
@@ -649,7 +698,12 @@ class ChartDataRestApi(ChartRestApi):
             if dashboard_filter_context is not None:
                 payload["dashboard_filters"] = dashboard_filter_context.to_dict()
 
-            with event_logger.log_context(f"{self.__class__.__name__}.json_dumps"):
+            # The timer is the inner context so ``serialize`` measures only
+            # json.dumps, not the event log write on ``log_context`` exit.
+            with (
+                event_logger.log_context(f"{self.__class__.__name__}.json_dumps"),
+                timed("chart_data.response.serialize"),
+            ):
                 response_data = json.dumps(
                     payload,
                     default=json.json_int_dttm_ser,
@@ -764,7 +818,8 @@ class ChartDataRestApi(ChartRestApi):
                     slice_=slice_ or query_context.slice_,
                 )
 
-            result = command.execute(force_cached=force_cached)
+            with timed("chart_data.command.execute"):
+                result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=sanitize_error_message(exc.message))
         except (
