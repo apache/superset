@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Provider tests inheriting `SemanticProviderConformance` must supply four
+  additional `semantic_query_cases`: `or_not_in`, `or_not_equals`, `or_not_like`,
+  and `or_not_ilike`. These check the existing normalized exclusion-filter
+  contract, including NULL retention and outer AND predicates. Update any
+  explicit conformance-case allowlist when adopting the kit; see the
+  [provider testing guide](docs/developer_docs/semantic-layer-provider-testing.md).
+
 - Dashboard history records related chart archives using the new
   `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
   new archive writes with versioning capture enabled. During a rollout, activity
