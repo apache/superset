@@ -108,6 +108,13 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   yAxisIndexB?: number;
   groupby: QueryFormColumn[];
   groupbyB: QueryFormColumn[];
+  /**
+   * Whether query A drops the metric name from its series names. The backend
+   * only applies it to a single-metric query with dimensions.
+   */
+  truncateMetric?: boolean;
+  /** The same, for query B. */
+  truncateMetricB?: boolean;
 } & LegendFormData &
   TitleFormData;
 
