@@ -29,6 +29,8 @@ from superset.daos.dataset import DatasetDAO
 from superset.sql.parse import Table
 from tests.unit_tests.conftest import with_feature_flags
 
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
 
 def test_validate_update_uniqueness(session: Session) -> None:
     """
@@ -1166,3 +1168,374 @@ def test_a_transform_on_a_column_added_in_the_same_request_is_cleared(
     }
     assert by_name["region_key"].partition_value_transform is None
     assert by_name["region_key"].partition_transform_is_monotonic is False
+
+
+def _renamable_mapping(session: Session, name: str) -> Any:
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name=f"{name}_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name=name, schema="main", database=database, main_dttm_col="event_time"
+    )
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_part"),
+        TableColumn(column_name="country", partition_value_transform="lower(:value)"),
+    ]
+    table.partition_column = "dt_part"
+    table.partition_mapped_column = "country"
+    db.session.add_all([database, table])
+    db.session.flush()
+    return table
+
+
+@pytest.mark.parametrize("echo", [False, True], ids=["omitted", "echoed"])
+@pytest.mark.parametrize("renamed", ["dt_part", "country"])
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_rename_in_place_carries_the_mapping_with_it(
+    session: Session, renamed: str, echo: bool
+) -> None:
+    """
+    The mapping stores column names; the upsert path identifies a column by id
+    and lets the same request rename it. Unfollowed, renaming the partition
+    column dropped the whole mapping, and renaming the mapped column dropped the
+    override -- re-pointing the mapping at `main_dttm_col` and deleting the
+    renamed column's transform.
+
+    Followed whether the request omits the reference or echoes the stored name
+    back, which is what the dataset editor sends on every save.
+    """
+    from superset import db
+
+    table = _renamable_mapping(session, f"rn_{renamed}_{echo}")
+    ids = {c.column_name: c.id for c in table.columns}
+    attributes: dict[str, Any] = {
+        "columns": [
+            {
+                "id": ids[name],
+                "column_name": f"{name}_v2" if name == renamed else name,
+                **(
+                    {"partition_value_transform": "lower(:value)"}
+                    if name == "country"
+                    else {}
+                ),
+            }
+            for name in ("event_time", "dt_part", "country")
+        ]
+    }
+    if echo:
+        attributes["partition_column"] = "dt_part"
+        attributes["partition_mapped_column"] = "country"
+
+    DatasetDAO.update(table, attributes)
+    db.session.flush()
+
+    assert table.partition_column == (
+        "dt_part_v2" if renamed == "dt_part" else "dt_part"
+    )
+    assert table.partition_mapped_column == (
+        "country_v2" if renamed == "country" else "country"
+    )
+    mapped = table.partition_mapped_column
+    assert {c.column_name: c.partition_value_transform for c in table.columns}[
+        mapped
+    ] == "lower(:value)"
+
+
+def test_a_rename_does_not_override_a_reference_the_request_sets(
+    session: Session,
+) -> None:
+    """A request that names a different column has said what it wants."""
+    from superset import db
+
+    table = _renamable_mapping(session, "rn_explicit")
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update(
+        table,
+        {
+            "partition_mapped_column": "event_time",
+            "columns": [
+                {"id": ids["event_time"], "column_name": "event_time"},
+                {"id": ids["dt_part"], "column_name": "dt_part"},
+                {"id": ids["country"], "column_name": "country_v2"},
+            ],
+        },
+    )
+    db.session.flush()
+
+    assert table.partition_mapped_column == "event_time"
+
+
+def test_follow_partition_column_renames_skips_override_columns(
+    session: Session,
+) -> None:
+    """`override_columns=true` matches by name, so a rename is another column."""
+    from superset.connectors.sqla.partition_mapping import (
+        follow_partition_column_renames,
+    )
+
+    table = _renamable_mapping(session, "rn_override")
+    ids = {c.column_name: c.id for c in table.columns}
+    attributes = {
+        "override_columns": True,
+        "columns": [{"id": ids["dt_part"], "column_name": "dt_part_v2"}],
+    }
+
+    assert follow_partition_column_renames(table, attributes) is attributes
+
+
+def test_related_objects_include_dashboards_filtering_on_the_dataset(
+    session: Session,
+) -> None:
+    """
+    A dashboard whose native filter targets a dataset depends on it even when no
+    chart on the dashboard (or anywhere) is built on that dataset, so both the
+    single and bulk related-objects lookups must list it.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from superset.utils import json
+
+    Dashboard.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    filter_only_dataset = SqlaTable(
+        table_name="filter_only", schema="main", database=database
+    )
+    unused_dataset = SqlaTable(table_name="unused", schema="main", database=database)
+    db.session.add_all([database, filter_only_dataset, unused_dataset])
+    db.session.flush()
+
+    dashboard = Dashboard(
+        dashboard_title="filtered_dashboard",
+        slug="filtered-dashboard",
+        json_metadata=json.dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER-1",
+                        "filterType": "filter_select",
+                        "targets": [
+                            {
+                                "datasetId": filter_only_dataset.id,
+                                "column": {"name": "category"},
+                            }
+                        ],
+                    }
+                ]
+            }
+        ),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+
+    single = DatasetDAO.get_related_objects(filter_only_dataset.id)
+    bulk = DatasetDAO.get_related_objects_for_datasets(
+        [filter_only_dataset.id, unused_dataset.id]
+    )
+
+    assert single["charts"] == []
+    assert [d.id for d in single["dashboards"]] == [dashboard.id]
+    assert [d.id for d in bulk["dashboards"]] == [dashboard.id]
+    assert DatasetDAO.get_related_objects(unused_dataset.id)["dashboards"] == []
+
+
+def _make_dashboard(
+    title: str,
+    json_metadata: str | None,
+    charts: list[Any] | None = None,
+) -> Any:
+    from superset.models.dashboard import Dashboard
+
+    return Dashboard(
+        dashboard_title=title,
+        slug=title,
+        json_metadata=json_metadata,
+        slices=charts or [],
+    )
+
+
+def _native_filter_metadata(dataset_id: Any) -> str:
+    from superset.utils import json
+
+    return json.dumps(
+        {
+            "native_filter_configuration": [
+                {"id": "NATIVE_FILTER-1", "targets": [{"datasetId": dataset_id}]}
+            ]
+        }
+    )
+
+
+def _related_dataset(session: Session) -> Any:
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+
+    Dashboard.metadata.create_all(session.get_bind())
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(table_name="related", schema="main", database=database)
+    db.session.add_all([database, dataset])
+    db.session.flush()
+    return dataset
+
+
+def test_related_objects_list_a_dashboard_once_when_charts_and_filters_match(
+    session: Session,
+) -> None:
+    from superset import db
+    from superset.models.slice import Slice
+
+    dataset = _related_dataset(session)
+    chart = Slice(
+        slice_name="chart",
+        datasource_id=dataset.id,
+        datasource_type="table",
+        viz_type="table",
+    )
+    db.session.add(chart)
+    db.session.flush()
+    both = _make_dashboard("both", _native_filter_metadata(dataset.id), [chart])
+    chart_only = _make_dashboard("chart_only", None, [chart])
+    db.session.add_all([both, chart_only])
+    db.session.flush()
+
+    related = DatasetDAO.get_related_objects(dataset.id)
+
+    assert [c.id for c in related["charts"]] == [chart.id]
+    assert sorted(d.id for d in related["dashboards"]) == sorted(
+        [both.id, chart_only.id]
+    )
+    assert len(related["dashboards"]) == 2
+
+
+def test_related_objects_ignore_missing_and_malformed_dashboard_metadata(
+    session: Session,
+) -> None:
+    from superset import db
+
+    dataset = _related_dataset(session)
+    # The ``"datasetId"`` token makes several of these pass the SQL prefilter.
+    db.session.add_all(
+        [
+            _make_dashboard("null_metadata", None),
+            _make_dashboard("empty_metadata", ""),
+            _make_dashboard("invalid_json", '{"datasetId": '),
+            _make_dashboard("list_metadata", '[{"datasetId": 1}]'),
+            _make_dashboard(
+                "bad_config",
+                '{"native_filter_configuration": "datasetId",'
+                ' "chart_customization_config": [{"targets": "datasetId"}]}',
+            ),
+            _make_dashboard("bool_target", _native_filter_metadata(True)),
+            _make_dashboard("other_dataset", _native_filter_metadata(dataset.id + 1)),
+        ]
+    )
+    db.session.flush()
+
+    related = DatasetDAO.get_related_objects(dataset.id)
+
+    assert related == {"charts": [], "dashboards": []}
+
+
+def test_related_objects_match_a_string_dataset_id(session: Session) -> None:
+    from superset import db
+
+    dataset = _related_dataset(session)
+    dashboard = _make_dashboard("string_id", _native_filter_metadata(str(dataset.id)))
+    db.session.add(dashboard)
+    db.session.flush()
+
+    related = DatasetDAO.get_related_objects(dataset.id)
+
+    assert [d.id for d in related["dashboards"]] == [dashboard.id]
+
+
+def test_related_objects_include_dashboards_with_display_controls_on_the_dataset(
+    session: Session,
+) -> None:
+    from superset import db
+    from superset.utils import json
+
+    dataset = _related_dataset(session)
+    dashboard = _make_dashboard(
+        "display_controls",
+        json.dumps(
+            {"chart_customization_config": [{"targets": [{"datasetId": dataset.id}]}]}
+        ),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+
+    related = DatasetDAO.get_related_objects(dataset.id)
+
+    assert [d.id for d in related["dashboards"]] == [dashboard.id]
+
+
+def test_related_objects_exclude_soft_deleted_dashboards(session: Session) -> None:
+    from superset import db
+
+    dataset = _related_dataset(session)
+    dashboard = _make_dashboard("trashed", _native_filter_metadata(dataset.id))
+    dashboard.deleted_at = datetime(2026, 1, 1)
+    db.session.add(dashboard)
+    db.session.flush()
+
+    related = DatasetDAO.get_related_objects(dataset.id)
+
+    assert related["dashboards"] == []
+
+
+def test_get_charts_for_datasets_returns_only_charts_on_the_datasets(
+    session: Session,
+) -> None:
+    from superset import db
+    from superset.models.slice import Slice
+
+    dataset = _related_dataset(session)
+    chart = Slice(
+        slice_name="on_dataset",
+        datasource_id=dataset.id,
+        datasource_type="table",
+        viz_type="table",
+    )
+    other_chart = Slice(
+        slice_name="elsewhere",
+        datasource_id=dataset.id + 1,
+        datasource_type="table",
+        viz_type="table",
+    )
+    db.session.add_all([chart, other_chart])
+    db.session.add(
+        _make_dashboard("filter_only", _native_filter_metadata(dataset.id)),
+    )
+    db.session.flush()
+
+    assert [c.id for c in DatasetDAO.get_charts_for_datasets([dataset.id])] == [
+        chart.id
+    ]
+    assert DatasetDAO.get_charts_for_datasets([]) == []
+
+
+def test_dashboard_ids_targeting_datasets_excludes_soft_deleted_dashboards(
+    session: Session,
+) -> None:
+    """The scan is a Core select the ORM soft-delete listener does not touch, so
+    it has to exclude trashed dashboards itself."""
+    from superset import db
+
+    dataset = _related_dataset(session)
+    live = _make_dashboard("live", _native_filter_metadata(dataset.id))
+    trashed = _make_dashboard("trashed", _native_filter_metadata(dataset.id))
+    trashed.deleted_at = datetime(2026, 1, 1)
+    db.session.add_all([live, trashed])
+    db.session.flush()
+
+    assert DatasetDAO._dashboard_ids_targeting_datasets([dataset.id]) == [live.id]

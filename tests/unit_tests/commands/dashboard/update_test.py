@@ -16,10 +16,13 @@
 # under the License.
 from __future__ import annotations
 
+from contextlib import nullcontext
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
 
 from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.commands.dashboard.update import UpdateDashboardCommand
@@ -299,3 +302,129 @@ def test_update_dashboard_skips_css_check_when_css_absent(
     _mock_dependencies(mocker, existing_css="@import url('https://evil.example.com');")
 
     UpdateDashboardCommand(1, {"dashboard_title": "Renamed"}).validate()
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "remove_parent",
+        "change_cycle",
+        "add_filter",
+        "unchanged",
+        "no_snapshot",
+        "null_metadata",
+        "empty_metadata",
+    ],
+)
+def test_native_filters_reject_concurrent_metadata_change(
+    app_context: None, change: str
+) -> None:
+    """A stale filter payload must not overwrite a concurrent committed edit."""
+    from superset.commands.dashboard.exceptions import (
+        DashboardNativeFiltersUpdateFailedError,
+    )
+    from superset.commands.dashboard.update import UpdateDashboardNativeFiltersCommand
+
+    class TestBase(DeclarativeBase):
+        """Isolated schema for exercising real SQL snapshot checks."""
+
+    class StoredDashboard(TestBase):
+        """Minimal persisted dashboard metadata, without application fixtures."""
+
+        __tablename__ = "dashboards"
+        id: Mapped[int] = mapped_column(primary_key=True)
+        json_metadata: Mapped[str | None] = mapped_column()
+
+    engine = create_engine("sqlite://")
+    TestBase.metadata.create_all(engine)
+    original: str | None = json.dumps(
+        {
+            "native_filter_configuration": [
+                {"id": "parent"},
+                {"id": "child", "cascadeParentIds": []},
+            ]
+        }
+    )
+    configs = {
+        "remove_parent": [{"id": "child", "cascadeParentIds": []}],
+        "change_cycle": [
+            {"id": "parent", "cascadeParentIds": ["child"]},
+            {"id": "child"},
+        ],
+        "add_filter": [{"id": "parent"}, {"id": "child"}, {"id": "new"}],
+    }
+    conflict = change in configs
+    if change == "null_metadata":
+        original = None
+    elif change == "empty_metadata":
+        original = ""
+    concurrent = (
+        json.dumps({"native_filter_configuration": configs[change]})
+        if conflict
+        else original
+    )
+    with Session(engine) as session:
+        stored = StoredDashboard(id=1, json_metadata=original)
+        session.add(stored)
+        session.commit()
+        # The tool has validated a request against `original`. Another writer
+        # commits before its command runs; the identity-map object stays stale.
+        session.refresh(stored)
+        session.query(StoredDashboard).filter_by(id=1).update(
+            {"json_metadata": concurrent}, synchronize_session=False
+        )
+        session.commit()
+        stored.json_metadata = original
+        command = UpdateDashboardNativeFiltersCommand(
+            1,
+            {"modified": [{"id": "child", "cascadeParentIds": ["parent"]}]},
+        )
+        command._expected_metadata = (  # noqa: SLF001
+            None if change == "no_snapshot" else original or ""
+        )
+        command._model = stored  # noqa: SLF001
+
+        def update_config(*args: object) -> list[dict[str, object]]:
+            """Stage the validated payload and trigger a possible autoflush."""
+            stored.json_metadata = json.dumps(
+                {
+                    "native_filter_configuration": [
+                        {"id": "parent"},
+                        {"id": "child", "cascadeParentIds": ["parent"]},
+                    ]
+                }
+            )
+            session.query(StoredDashboard).count()
+            return []
+
+        with (
+            patch("superset.commands.dashboard.update.db.session", session),
+            patch("superset.commands.dashboard.update.Dashboard", StoredDashboard),
+            patch.object(UpdateDashboardCommand, "validate"),
+            patch(
+                "superset.commands.dashboard.update.DashboardDAO.update_native_filters_config",
+                side_effect=update_config,
+            ),
+            pytest.raises(
+                DashboardNativeFiltersUpdateFailedError, match="changed.*retry"
+            )
+            if conflict
+            else nullcontext(),
+        ):
+            UpdateDashboardNativeFiltersCommand.run.__wrapped__(command)
+        if conflict:
+            session.rollback()
+        else:
+            session.commit()
+        session.expire_all()
+        reloaded = session.get(StoredDashboard, 1)
+        assert reloaded is not None
+        persisted = reloaded.json_metadata
+        if conflict:
+            assert persisted == concurrent
+        else:
+            assert persisted is not None
+            assert json.loads(persisted)["native_filter_configuration"][1][
+                "cascadeParentIds"
+            ] == ["parent"]
+    engine.dispose()

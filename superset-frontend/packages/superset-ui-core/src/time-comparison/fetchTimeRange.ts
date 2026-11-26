@@ -80,6 +80,14 @@ export const formatTimeRangeComparison = (
   )}`;
 };
 
+type EvaluatedTimeRange = { since?: string; until?: string };
+
+// True when an evaluated start and end are the same instant, which matches no
+// rows. The API returns ISO strings, so comparing them directly keeps
+// sub-millisecond precision; an empty string means an open endpoint.
+const hasEmptyTimeRange = (ranges: EvaluatedTimeRange[]): boolean =>
+  ranges.some(({ since, until }) => Boolean(since && until && since === until));
+
 export const fetchTimeRange = async (
   timeRange: string,
   columnPlaceholder = 'col',
@@ -102,12 +110,12 @@ export const fetchTimeRange = async (
   try {
     const response = await SupersetClient.get({ endpoint });
     if (isEmpty(shifts)) {
-      const timeRangeString = buildTimeRangeString(
-        response?.json?.result[0]?.since || '',
-        response?.json?.result[0]?.until || '',
-      );
+      const since = response?.json?.result[0]?.since || '';
+      const until = response?.json?.result[0]?.until || '';
+      const timeRangeString = buildTimeRangeString(since, until);
       return {
         value: formatTimeRange(timeRangeString, columnPlaceholder, dateFormat),
+        isEmpty: hasEmptyTimeRange([{ since, until }]),
       };
     }
     const timeRanges = response?.json?.result.map((result: any) =>
@@ -123,6 +131,7 @@ export const fetchTimeRange = async (
             columnPlaceholder,
           ),
         ),
+      isEmpty: hasEmptyTimeRange(ensureIsArray(response?.json?.result)),
     };
   } catch (caught) {
     // Forward-compat: TS 6.0 types caught values as `unknown`; cast to the

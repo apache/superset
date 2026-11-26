@@ -74,6 +74,20 @@ def _view_self() -> MagicMock:
     return self
 
 
+def _spec_view_self() -> MagicMock:
+    """Stand-in for a Datasource view instance restricted to its real attributes.
+
+    ``Datasource`` is a plain ``BaseView``, so FAB's ``BaseApi``-only helpers
+    (``response_404`` and friends) are absent; a bare ``MagicMock`` would mask
+    a call to one of them.
+    """
+    from superset.views.datasource.views import Datasource
+
+    self = MagicMock(spec=Datasource)
+    self.json_response = MagicMock(return_value="ok")
+    return self
+
+
 def _save_orm_dataset(**overrides: Any) -> MagicMock:
     """Stand-in for the dataset ``save`` loads, defaulting to a physical one.
 
@@ -1105,6 +1119,9 @@ def _save_with_mapping(
     partition_column: str,
     partition_mapped_column: str | None = None,
     main_dttm_col: str | None = "event_time",
+    columns: list[dict[str, Any]] | None = None,
+    stored_database: Any = None,
+    requested_database_id: int = 1,
 ) -> MagicMock:
     """
     `_save_with_transform` for the mapping's column *references* rather than
@@ -1119,7 +1136,9 @@ def _save_with_mapping(
 
     mock_orm = MagicMock()
     mock_orm.database_id = 1
-    mock_orm.database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    mock_orm.database = stored_database or Database(
+        database_name="probe_db", sqlalchemy_uri="sqlite://"
+    )
     mock_orm.table_name = "my_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
@@ -1140,11 +1159,13 @@ def _save_with_mapping(
                     {
                         "id": 1,
                         "type": "table",
-                        "database": {"id": 1},
+                        "database": {"id": requested_database_id},
                         "main_dttm_col": main_dttm_col,
                         "partition_column": partition_column,
                         "partition_mapped_column": partition_mapped_column,
-                        "columns": [{"column_name": "event_time"}],
+                        "columns": columns
+                        if columns is not None
+                        else [{"column_name": "event_time"}],
                     }
                 )
             },
@@ -1154,6 +1175,39 @@ def _save_with_mapping(
         app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
 
     return mock_orm
+
+
+@pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_refuses_a_templated_partition_column(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    The mirrored predicate is built outside the template processor, so a
+    Jinja-bearing partition key would reach every chart's SQL unrendered.
+    """
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="dt_calc",
+        columns=[
+            {"column_name": "event_time"},
+            {"column_name": "dt_calc", "expression": "{{ 'dt_' ~ 'epoch' }}"},
+        ],
+    )
+
+    mock_json_error_response.assert_called_once()
+    assert mock_json_error_response.call_args.kwargs["status"] == 422
+    mock_orm.update_from_object.assert_not_called()
 
 
 @patch("superset.views.datasource.views._", _identity_gettext)
@@ -1186,6 +1240,7 @@ def test_save_refuses_a_non_deterministic_value_transform(
     mock_orm.update_from_object.assert_not_called()
 
 
+@pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 @patch("superset.views.datasource.views._", _identity_gettext)
 @patch("superset.views.datasource.views.json_error_response")
 @patch("superset.views.datasource.views.db")
@@ -1222,6 +1277,91 @@ def test_save_refuses_a_partition_column_the_dataset_does_not_have(
     mock_orm.update_from_object.assert_not_called()
 
 
+def _database_with_engine_support(*, supported: bool) -> MagicMock:
+    """A database whose engine does, or does not, offer partition filter mapping."""
+    database = MagicMock()
+    database.backend = "hive" if supported else "postgresql"
+    database.db_engine_spec.supports_partition_filter_mapping = supported
+    return database
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_ignores_a_dangling_reference_on_an_unsupported_engine(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    The editor hides the mapping and the query path ignores it on an engine
+    without the capability, so a stored reference a sync left dangling is not
+    something the owner can see to repair. `UpdateDatasetCommand` skips the
+    reference checks there, and refusing here would make this route the one
+    that still answers 422.
+    """
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="no_such_column",
+    )
+
+    mock_json_error_response.assert_not_called()
+    mock_orm.update_from_object.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("stored_supported", "target_supported", "refused"),
+    [
+        pytest.param(False, True, True, id="into-a-supported-engine"),
+        pytest.param(True, False, False, id="out-of-a-supported-engine"),
+    ],
+)
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_judges_a_dangling_reference_by_the_destination_engine(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+    stored_supported: bool,
+    target_supported: bool,
+    refused: bool,
+) -> None:
+    """
+    A save that moves the dataset is judged by where the mapping will live, the
+    way `UpdateDatasetCommand` reads the requested database. `save` assigns only
+    `database_id`, so `orm_datasource.database` still answers for the source.
+    """
+    mock_get_database_by_id.return_value = _database_with_engine_support(
+        supported=target_supported
+    )
+
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="no_such_column",
+        stored_database=_database_with_engine_support(supported=stored_supported),
+        requested_database_id=2,
+    )
+
+    assert mock_json_error_response.called is refused
+    assert mock_orm.update_from_object.called is not refused
+
+
+@pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 @patch("superset.views.datasource.views._", _identity_gettext)
 @patch("superset.views.datasource.views.json_error_response")
 @patch("superset.views.datasource.views.db")
@@ -1653,8 +1793,8 @@ def test_samples_guest_with_dashboard_gets_404_for_non_dataset_type(
     unrelated table shares the integer id.
     """
     mock_security_manager.is_guest_user.return_value = True
+    mock_json_error_response.return_value = "not-found-response"
 
-    view = _view_self()
     app = Flask(__name__)
     with app.test_request_context(
         "/datasource/samples?datasource_type=semantic_view&datasource_id=1"
@@ -1662,12 +1802,79 @@ def test_samples_guest_with_dashboard_gets_404_for_non_dataset_type(
         method="POST",
         json={},
     ):
-        result = _get_view_func("samples")(view)
+        result = _get_view_func("samples")(_spec_view_self())
 
-    assert result == view.response_404.return_value
-    view.response_404.assert_called_once()
+    assert result == "not-found-response"
+    mock_json_error_response.assert_called_once_with("Not found", status=404)
     mock_dataset_dao.find_by_id.assert_not_called()
-    mock_json_error_response.assert_not_called()
+    mock_get_samples.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.DashboardDAO")
+@patch("superset.views.datasource.views.DatasetDAO")
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@pytest.mark.parametrize("missing", ["dataset", "dashboard"])
+def test_samples_guest_gets_404_when_dataset_or_dashboard_is_missing(
+    mock_security_manager: MagicMock,
+    mock_json_error_response: MagicMock,
+    mock_dataset_dao: MagicMock,
+    mock_dashboard_dao: MagicMock,
+    mock_get_samples: MagicMock,
+    missing: str,
+) -> None:
+    """A guest naming a nonexistent dataset or dashboard gets 404, not a 500."""
+    mock_security_manager.is_guest_user.return_value = True
+    mock_json_error_response.return_value = "not-found-response"
+    if missing == "dataset":
+        mock_dataset_dao.find_by_id.return_value = None
+    else:
+        mock_dashboard_dao.find_by_id.return_value = None
+
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=table&datasource_id=1&dashboard_id=5",
+        method="POST",
+        json={},
+    ):
+        result = _get_view_func("samples")(_spec_view_self())
+
+    assert result == "not-found-response"
+    mock_json_error_response.assert_called_once_with("Not found", status=404)
+    mock_security_manager.can_drill_dataset_via_dashboard_access.assert_not_called()
+    mock_get_samples.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_returns_404_when_dataset_is_not_found(
+    mock_security_manager: MagicMock,
+    mock_get_datasource: MagicMock,
+    mock_json_error_response: MagicMock,
+    mock_get_samples: MagicMock,
+) -> None:
+    """An authenticated user naming a nonexistent dataset gets 404, not a 500."""
+    from superset.daos.exceptions import DatasourceNotFound
+
+    mock_security_manager.is_guest_user.return_value = False
+    mock_get_datasource.side_effect = DatasourceNotFound()
+    mock_json_error_response.return_value = "not-found-response"
+
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=table&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        result = _get_view_func("samples")(_spec_view_self())
+
+    assert result == "not-found-response"
+    mock_json_error_response.assert_called_once_with("Not found", status=404)
     mock_get_samples.assert_not_called()
 
 
@@ -2016,3 +2223,105 @@ def test_save_keeps_an_echoed_transform_only_while_the_flag_is_off(
     )
     assert on[0]["partition_value_transform"] is None
     assert on[0]["partition_transform_is_monotonic"] is False
+
+
+def _legacy_mapping_orm(
+    partition_column: str | None, dt_epoch_expression: str | None = None
+) -> MagicMock:
+    columns = []
+    for name, expression in (
+        ("event_time", None),
+        ("dt_epoch", dt_epoch_expression),
+    ):
+        column = MagicMock()
+        column.column_name = name
+        column.expression = expression
+        columns.append(column)
+    orm = MagicMock()
+    orm.database.backend = "sqlite"
+    orm.columns = columns
+    orm.main_dttm_col = "event_time"
+    orm.partition_column = partition_column
+    orm.partition_mapped_column = None
+    return orm
+
+
+def _legacy_mapping_payload(partition_column: str) -> dict[str, Any]:
+    return {
+        "main_dttm_col": "event_time",
+        "partition_column": partition_column,
+        "partition_mapped_column": None,
+        "columns": [{"column_name": "event_time"}, {"column_name": "dt_epoch"}],
+    }
+
+
+@pytest.mark.parametrize("feature_enabled", [True, False])
+def test_legacy_save_refuses_a_reference_the_request_breaks(
+    app: Flask, feature_enabled: bool
+) -> None:
+    """Storing a mapping is not flag-gated: reading one is."""
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = feature_enabled
+    try:
+        error = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch"),
+            _legacy_mapping_payload("no_such_column"),
+            database_changed=False,
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert error is not None
+    assert "no_such_column" in error
+
+
+def test_legacy_save_survives_a_reference_already_broken_in_storage(
+    app: Flask,
+) -> None:
+    """
+    This endpoint's client does GET-then-POST, so it echoes a reference stored
+    broken. Refusing it meant the dataset could not be saved at all.
+    """
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    try:
+        error = _partition_mapping_reference_error(
+            _legacy_mapping_orm("no_such_column"),
+            _legacy_mapping_payload("no_such_column"),
+            database_changed=False,
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert error is None
+
+
+def test_legacy_save_survives_a_templated_key_already_stored(app: Flask) -> None:
+    """The same for a templated partition key the GET-then-POST client echoes."""
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    template = "{{ 'dt_' ~ 'epoch' }}"
+    payload = _legacy_mapping_payload("dt_epoch")
+    payload["columns"][1]["expression"] = template
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    try:
+        echoed = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch", dt_epoch_expression=template),
+            payload,
+            database_changed=False,
+        )
+        introduced = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch"), payload, database_changed=False
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert echoed is None
+    assert introduced is not None
+    assert "Jinja" in introduced

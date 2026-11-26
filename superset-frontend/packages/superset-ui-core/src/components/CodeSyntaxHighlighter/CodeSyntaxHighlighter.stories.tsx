@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Typography, Flex, Space } from '@superset-ui/core/components';
-import CodeSyntaxHighlighter from '.';
+import { CodeSyntaxHighlighter } from '.';
 import type { CodeSyntaxHighlighterProps, SupportedLanguage } from '.';
 
 const { Title, Text, Paragraph } = Typography;

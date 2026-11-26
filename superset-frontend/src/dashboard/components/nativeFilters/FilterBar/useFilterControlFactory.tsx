@@ -35,6 +35,8 @@ export const useFilterControlFactory = (
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void,
   clearAllTriggers?: Record<string, boolean>,
   onClearAllComplete?: (filterId: string) => void,
+  cascadeClearTriggers?: Record<string, boolean>,
+  onCascadeClearComplete?: (filterId: string) => void,
 ) => {
   const filters = useFilters();
   const filterValues = useMemo(
@@ -77,6 +79,8 @@ export const useFilterControlFactory = (
           overflow={overflow}
           clearAllTrigger={clearAllTriggers?.[filter.id]}
           onClearAllComplete={() => onClearAllComplete?.(filter.id)}
+          cascadeClearTrigger={cascadeClearTriggers?.[filter.id]}
+          onCascadeClearComplete={() => onCascadeClearComplete?.(filter.id)}
         />
       );
     },
@@ -86,6 +90,8 @@ export const useFilterControlFactory = (
       onFilterSelectionChange,
       clearAllTriggers,
       onClearAllComplete,
+      cascadeClearTriggers,
+      onCascadeClearComplete,
     ],
   );
 
