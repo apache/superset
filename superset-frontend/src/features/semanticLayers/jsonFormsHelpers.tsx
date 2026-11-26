@@ -21,19 +21,28 @@ import { isEqual } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { FormItem, Select } from '@superset-ui/core/components';
 import { Spin } from '@superset-ui/core/components/Spin';
-import { withJsonFormsControlProps } from '@jsonforms/react';
+import { useJsonForms, withJsonFormsControlProps } from '@jsonforms/react';
 import type {
   JsonSchema,
   UISchemaElement,
   ControlProps,
 } from '@jsonforms/core';
-import { rankWith, and, isStringControl, schemaMatches } from '@jsonforms/core';
+import {
+  Actions,
+  rankWith,
+  and,
+  isStringControl,
+  schemaMatches,
+} from '@jsonforms/core';
 import {
   rendererRegistryEntries,
   TextControl,
 } from '@great-expectations/jsonforms-antd-renderers';
 
 export const SCHEMA_REFRESH_DEBOUNCE_MS = 500;
+
+/** Mark schema-driven defaults separately from user edits of dependencies. */
+export const SCHEMA_BACKFILL = Object.freeze({ schemaBackfill: true });
 
 /** Check the envelope only; cryptographic validation belongs to the provider. */
 export function hasPemBoundaries(value: unknown): value is string {
@@ -149,13 +158,14 @@ function valuesEqual(a: unknown, b: unknown): boolean {
  * Renders nothing visually but ensures the const value is set in form data,
  * so discriminated unions resolve correctly on the backend.
  */
-function ConstControl({ data, handleChange, path, schema }: ControlProps) {
+function ConstControl({ data, path, schema }: ControlProps) {
+  const { dispatch } = useJsonForms();
   const constValue = (schema as Record<string, unknown>).const;
   useEffect(() => {
     if (constValue !== undefined && !valuesEqual(data, constValue)) {
-      handleChange(path, constValue);
+      dispatch?.(Actions.update(path, () => constValue, SCHEMA_BACKFILL));
     }
-  }, [constValue, data, handleChange, path]);
+  }, [constValue, data, dispatch, path]);
   return null;
 }
 const ConstRenderer = withJsonFormsControlProps(ConstControl);
@@ -184,14 +194,15 @@ function ReadOnlyControl({
   schema,
   ...rest
 }: ControlProps) {
+  const { dispatch } = useJsonForms();
   const defaultValue =
     (schema as Record<string, unknown>).const ??
     (schema as Record<string, unknown>).default;
   useEffect(() => {
     if (defaultValue !== undefined && !valuesEqual(data, defaultValue)) {
-      handleChange(path, defaultValue);
+      dispatch?.(Actions.update(path, () => defaultValue, SCHEMA_BACKFILL));
     }
-  }, [defaultValue, data, handleChange, path]);
+  }, [defaultValue, data, dispatch, path]);
 
   return TextControl({
     ...rest,

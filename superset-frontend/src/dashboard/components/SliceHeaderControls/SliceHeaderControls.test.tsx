@@ -1202,3 +1202,21 @@ test('A Big Number chart offers image exports only, without CSV, Excel or PDF', 
   expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
 });
+
+test('menu strings the viewer reads use the displayed name', async () => {
+  // The header can show a translation or a panel title override while
+  // slice_name stays canonical for edits and download filenames, so these two
+  // strings have to follow what is on screen rather than the stored name.
+  const props = createProps();
+  renderWrapper({
+    ...props,
+    slice: { ...props.slice, display_name: 'Ventes' },
+  } as SliceHeaderControlsProps);
+  await openMenu();
+
+  await userEvent.hover(screen.getByText('Edit chart'));
+  expect(await screen.findByText(/Click to edit Ventes/)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('View as table'));
+  expect(await screen.findByText('Chart Data: Ventes')).toBeInTheDocument();
+});

@@ -29,6 +29,7 @@ import { Button, Input, Checkbox, Modal } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { ImportErrorAlert } from './ImportErrorAlert';
 import type { ImportModelsModalProps } from './types';
+import isPrivateKeyField from './isPrivateKeyField';
 
 const HelperMessage = styled.div`
   display: block;
@@ -135,6 +136,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       encryptedExtraFieldsNeeded,
     },
     importResource,
+    resetImportState,
   } = useImportResource(resourceName, resourceLabel, handleErrorMsg);
 
   useEffect(() => {
@@ -191,6 +193,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       return;
     }
 
+    setErrorMessage('');
     setImportingModel(true);
     importResource(
       fileList[0].originFileObj,
@@ -202,6 +205,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       confirmedOverwrite,
       overwriteAll,
     ).then(result => {
+      setImportingModel(false);
       if (result) {
         clearModal();
         onModelImport();
@@ -210,6 +214,10 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
   };
 
   const changeFile = (info: UploadChangeParam) => {
+    if (info.file.uid !== fileList[0]?.uid) {
+      clearModal();
+      resetImportState();
+    }
     setFileList([
       {
         ...info.file,
@@ -218,8 +226,9 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
     ]);
   };
 
-  const removeFile = (removedFile: UploadFile) => {
-    setFileList(fileList.filter(file => file.uid !== removedFile.uid));
+  const removeFile = () => {
+    clearModal();
+    resetImportState();
     return false;
   };
 
@@ -262,7 +271,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                 </div>
                 <Input
                   name={`password-${fileName}`}
-                  autoComplete={`password-${fileName}`}
+                  autoComplete="off"
                   type="password"
                   value={passwords[fileName]}
                   onChange={event =>
@@ -282,7 +291,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                 </div>
                 <Input
                   name={`ssh_tunnel_password-${fileName}`}
-                  autoComplete={`ssh_tunnel_password-${fileName}`}
+                  autoComplete="off"
                   type="password"
                   value={sshTunnelPasswords[fileName]}
                   onChange={event =>
@@ -303,7 +312,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                 </div>
                 <Input.TextArea
                   name={`ssh_tunnel_private_key-${fileName}`}
-                  autoComplete={`ssh_tunnel_private_key-${fileName}`}
+                  autoComplete="off"
                   value={sshTunnelPrivateKeys[fileName]}
                   onChange={event =>
                     setSSHTunnelPrivateKeys({
@@ -325,7 +334,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                 </div>
                 <Input
                   name={`ssh_tunnel_private_key_password-${fileName}`}
-                  autoComplete={`ssh_tunnel_private_key_password-${fileName}`}
+                  autoComplete="off"
                   type="password"
                   value={sshTunnelPrivateKeyPasswords[fileName]}
                   onChange={event =>
@@ -351,20 +360,39 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                   {field.label}
                   <span className="required">*</span>
                 </div>
-                <Input.Password
-                  name={`encrypted-extra-${fileName}-${field.path}`}
-                  value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
-                  onChange={event =>
-                    setEncryptedExtraSecrets({
-                      ...encryptedExtraSecrets,
-                      [fileName]: {
-                        ...encryptedExtraSecrets[fileName],
-                        [field.path]: event.target.value,
-                      },
-                    })
-                  }
-                  data-test="encrypted_extra_secret"
-                />
+                {/* A PEM key is unusable without its newlines. */}
+                {isPrivateKeyField(field.path) ? (
+                  <Input.TextArea
+                    rows={4}
+                    name={`encrypted-extra-${fileName}-${field.path}`}
+                    value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
+                    onChange={event =>
+                      setEncryptedExtraSecrets({
+                        ...encryptedExtraSecrets,
+                        [fileName]: {
+                          ...encryptedExtraSecrets[fileName],
+                          [field.path]: event.target.value,
+                        },
+                      })
+                    }
+                    data-test="encrypted_extra_secret"
+                  />
+                ) : (
+                  <Input.Password
+                    name={`encrypted-extra-${fileName}-${field.path}`}
+                    value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
+                    onChange={event =>
+                      setEncryptedExtraSecrets({
+                        ...encryptedExtraSecrets,
+                        [fileName]: {
+                          ...encryptedExtraSecrets[fileName],
+                          [field.path]: event.target.value,
+                        },
+                      })
+                    }
+                    data-test="encrypted_extra_secret"
+                  />
+                )}
               </div>
             ))}
           </StyledContainer>
@@ -445,13 +473,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       {errorMessage && (
         <ImportErrorAlert
           errorMessage={errorMessage}
-          showDbInstallInstructions={
-            passwordFields.length > 0 ||
-            sshTunnelPasswordFields.length > 0 ||
-            sshTunnelPrivateKeyFields.length > 0 ||
-            sshTunnelPrivateKeyPasswordFields.length > 0 ||
-            encryptedExtraFields.length > 0
-          }
+          showDbInstallInstructions={false}
         />
       )}
       {renderPasswordFields()}

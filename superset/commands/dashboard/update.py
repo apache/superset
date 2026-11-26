@@ -126,7 +126,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             # (``data.get("positions") is not None``): a present-but-null
             # ``positions`` makes it skip the layout entirely, so the raw field
             # must still be reconciled here or a dangling layout would be
-            # written as-is.
+            # written as-is. A non-member chart the caller cannot read is
+            # repaired like a missing one, as ``set_dash_metadata`` does.
             metadata_carries_positions: bool = (
                 isinstance(metadata, dict) and metadata.get("positions") is not None
             )
@@ -134,7 +135,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             if position_json := self._properties.get("position_json"):
                 positions: object = json.loads(position_json)
                 if not metadata_carries_positions:
-                    reconcile_position_json(positions, self._model.id)
+                    reconcile_position_json(
+                        positions, self._model.id, hide_unreadable=True
+                    )
                 # The raw field is flushed before metadata replaces it, so
                 # escape it even when its layout will be superseded.
                 self._properties["position_json"] = json.dumps(positions)
@@ -210,11 +213,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 
-        self._validate_layout_chart_access()
+        self._validate_layout_chart_nodes()
 
-    def _validate_layout_chart_access(self) -> None:
-        """Refuse a layout chart the caller cannot read before ``run``
-        deactivates reports and emails their owners."""
+    def _validate_layout_chart_nodes(self) -> None:
+        """Refuse a malformed layout chart node or a new native-filter target
+        the caller cannot read before ``run`` deactivates reports and emails
+        their owners."""
         assert self._model is not None
         json_metadata: str | None
         positions: object
@@ -223,7 +227,11 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             if isinstance(metadata, dict) and isinstance(
                 positions := metadata.get("positions"), dict
             ):
-                DashboardDAO.validate_layout_chart_access(self._model, positions)
+                DashboardDAO.validate_layout_chart_nodes(positions)
+            if isinstance(metadata, dict) and "native_filter_configuration" in metadata:
+                DashboardDAO.validate_native_filter_targets(
+                    self._model, metadata["native_filter_configuration"]
+                )
 
     @staticmethod
     def _send_deactivated_report_email(
@@ -347,6 +355,17 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
 
 class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
+    def __init__(
+        self,
+        model_id: int,
+        data: dict[str, Any],
+        *,
+        expected_metadata: str | None = None,
+    ) -> None:
+        """Optionally reject writes built from a stale dashboard snapshot."""
+        super().__init__(model_id, data)
+        self._expected_metadata = expected_metadata
+
     @transaction(
         on_error=partial(on_error, reraise=DashboardNativeFiltersUpdateFailedError)
     )
@@ -354,10 +373,34 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         super().validate()
         assert self._model
 
-        configuration = DashboardDAO.update_native_filters_config(
-            self._model, self._properties
-        )
+        with db.session.no_autoflush:
+            configuration = DashboardDAO.update_native_filters_config(
+                self._model, self._properties
+            )
 
+            if self._expected_metadata is not None:
+                # Lock the row before comparing the snapshot. A no-op UPDATE
+                # also works on databases without SELECT FOR UPDATE, retaining
+                # the lock through the ORM flush and commit without bypassing
+                # metadata history/version hooks. Compare in Python so database
+                # collations cannot hide case-only changes in filter IDs.
+                query = db.session.query(Dashboard).filter(
+                    Dashboard.id == self._model_id
+                )
+                matched = query.update(
+                    {Dashboard.json_metadata: Dashboard.json_metadata},
+                    synchronize_session=False,
+                )
+                stored_metadata = (
+                    query.with_entities(Dashboard.json_metadata)
+                    .with_for_update()
+                    .scalar()
+                )
+                if matched != 1 or (stored_metadata or "") != self._expected_metadata:
+                    raise DashboardNativeFiltersUpdateFailedError(
+                        "Dashboard changed during native filter validation; "
+                        "re-read the dashboard and retry."
+                    )
         return configuration
 
 

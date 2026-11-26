@@ -31,6 +31,7 @@ import {
   SuperChart,
   Behavior,
   getChartMetadataRegistry,
+  getSemanticSelectionSources,
   VizType,
   isFeatureEnabled,
   FeatureFlag,
@@ -148,6 +149,8 @@ export interface ChartRendererProps {
   postTransformProps?: (props: JsonObject) => JsonObject;
   source?: ChartSource;
   emitCrossFilters?: boolean;
+  /** False when the chart's cross-filter scope reaches no other chart */
+  hasCrossFilterTargets?: boolean;
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
@@ -264,6 +267,7 @@ function ChartRendererComponent({
     postTransformProps,
     source,
     emitCrossFilters,
+    hasCrossFilterTargets = true,
     onChartStateChange,
     asyncModeOverride,
   } = restProps;
@@ -515,8 +519,23 @@ function ChartRendererComponent({
   // otherwise do under the spinner as soon as its query starts.
   const dataMaskSourceRef = useRef(latestQueryFormData ?? formData);
   dataMaskSourceRef.current = latestQueryFormData ?? formData;
+  const hasCrossFilterTargetsRef = useRef(hasCrossFilterTargets);
+  hasCrossFilterTargetsRef.current = hasCrossFilterTargets;
   const setDataMaskCallback = useCallback(
-    (dataMask: DataMask) => {
+    (incomingDataMask: DataMask) => {
+      let dataMask = incomingDataMask;
+      // A cross-filter from a chart whose scope reaches no other chart would
+      // filter nothing, so only clearing a cross-filter or own state goes through.
+      if (
+        !hasCrossFilterTargetsRef.current &&
+        incomingDataMask.filterState?.value !== null &&
+        incomingDataMask.filterState?.value !== undefined
+      ) {
+        if (incomingDataMask.ownState === undefined) {
+          return;
+        }
+        dataMask = { ownState: incomingDataMask.ownState };
+      }
       if (
         dataMask.filterState !== undefined ||
         dataMask.extraFormData !== undefined
@@ -526,7 +545,8 @@ function ChartRendererComponent({
       const sourceForm = dataMaskSourceRef.current;
       actions?.updateDataMask?.(
         chartId,
-        sourceForm.datasource?.endsWith('__semantic_view')
+        sourceForm.datasource?.endsWith('__semantic_view') &&
+          getSemanticSelectionSources(dataMask.extraFormData).length > 0
           ? {
               ...dataMask,
               extraFormData: {
@@ -679,6 +699,7 @@ function ChartRendererComponent({
           ref={contextMenuRef}
           id={chartId}
           formData={renderedFormData as QueryFormData}
+          setDataMask={setDataMaskCallback}
           onSelection={handleContextMenuSelected}
           onClose={handleContextMenuClosed}
         />

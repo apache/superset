@@ -37,11 +37,13 @@ from flask_appbuilder.const import (
     API_LIST_COLUMNS_RIS_KEY,
     API_LIST_TITLE_RIS_KEY,
     API_ORDER_COLUMNS_RIS_KEY,
+    API_SELECT_COLUMNS_RIS_KEY,
+    API_SELECT_SEL_COLUMNS_RIS_KEY,
 )
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
-from marshmallow import ValidationError
+from marshmallow import Schema, ValidationError
 from sqlalchemy import asc, case, desc
 from sqlalchemy.orm import Query
 from sqlalchemy.orm.util import AliasedClass
@@ -53,6 +55,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDatasourceFilter,
     ChartDeletedRecencyFilter,
     ChartDeletedStateFilter,
     ChartEditableFilter,
@@ -108,12 +111,18 @@ from superset.commands.importers.v1.utils import (
     open_import_bundle,
 )
 from superset.commands.purge import SoftDeleteBinding
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.constants import (
+    MODEL_API_RW_METHOD_PERMISSION_MAP,
+    RouteMethod,
+    SKIP_VISIBILITY_FILTER_CLASSES,
+)
 from superset.daos.chart import ChartDAO
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.exceptions import (
     ScreenshotImageNotAvailableException,
 )
-from superset.extensions import event_logger, security_manager
+from superset.extensions import db, event_logger, security_manager
+from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
 from superset.security.manager import (
     attach_extra_editors,
@@ -156,9 +165,11 @@ from superset.views.base_api import (
     statsd_metrics,
     validate_feature_flags,
 )
+from superset.views.error_handling import command_exception_response
 from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedUsers,
+    scope_query_to_restore_audience,
     SoftDeleteApiMixin,
 )
 
@@ -174,6 +185,14 @@ _CHART_PURGE_BINDING = SoftDeleteBinding(
 _viz_type_order: ContextVar[dict[str, int] | None] = ContextVar(
     "chart_viz_type_order", default=None
 )
+
+
+# Nested ``dashboards`` fields the caller requested when it opted into
+# archived dashboards; ``None`` when it did not opt in.
+_include_archived_dashboards: ContextVar[frozenset[str] | None] = ContextVar(
+    "chart_include_archived_dashboards", default=None
+)
+_ARCHIVED_DASHBOARD_FIELDS = ("id", "dashboard_title")
 
 
 class ChartSQLAInterface(SQLAInterface):
@@ -321,6 +340,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "dashboards.dashboard_title",
         "params",
         "slice_name",
+        "localized_name",
         "slice_url",
         "table.default_endpoint",
         "table.table_name",
@@ -381,6 +401,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
+        "datasource_id": [ChartDatasourceFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
         "tags": [ChartTagNameFilter, ChartTagIdFilter],
     }
@@ -394,7 +415,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
+    # Annotated as a variable-length tuple (matching the declaration in
+    # BaseSupersetApi) so subclasses can extend it with their own schemas
+    # without tripping mypy's override check on an inferred fixed-length type.
+    openapi_spec_component_schemas: tuple[type[Schema], ...] = CHART_SCHEMAS + (
+        VersionListItemSchema,
+    )
 
     apispec_parameter_schemas = {
         "chart_get_list_schema": chart_get_list_schema,
@@ -499,9 +525,95 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_404()
 
     def pre_get_list(self, data: dict[str, Any]) -> None:
-        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        """Attach extra editors and optionally accessible archived dashboards."""
         super().pre_get_list(data)
         attach_extra_editors_to_rows(data, Slice)
+        fields = _include_archived_dashboards.get()
+        if fields and is_feature_enabled("SOFT_DELETE"):
+            self._append_archived_dashboards(data, fields)
+
+    def _requested_dashboard_fields(self, args: dict[str, Any]) -> frozenset[str]:
+        """Nested ``dashboards`` fields FAB will serialize for this request.
+
+        Mirrors FAB's ``_handle_columns_args`` + ``get_list_headless``: the
+        explicit selection (``select_columns`` or ``columns``; both nonempty
+        is a 400 before this matters) is pruned to ``list_columns``, and an
+        empty pruned selection falls back to the default list schema.
+        """
+        requested = (
+            args.get(API_SELECT_SEL_COLUMNS_RIS_KEY)
+            or args.get(API_SELECT_COLUMNS_RIS_KEY)
+            or []
+        )
+        pruned = [column for column in requested if column in self.list_columns]
+        return frozenset(
+            column.split(".", 1)[1]
+            for column in pruned or self.list_columns
+            if column.startswith("dashboards.")
+        )
+
+    @staticmethod
+    def _append_archived_dashboards(
+        data: dict[str, Any], fields: frozenset[str]
+    ) -> None:
+        """Mark serialized dashboards live and append archived memberships.
+
+        Reads ``dashboard_slices`` directly (never ``Slice``, whose list-scoped
+        bypass is already released) in one projection over the page's chart
+        IDs. The Dashboard visibility skip is attached to this statement only,
+        so no session state changes and no Dashboard entity is loaded.
+        Archived dashboards must pass both normal dashboard read access and
+        the archive enumeration audience.
+        """
+        rows: list[dict[str, Any]] = data.get("result", [])
+        ids: list[int] = data.get("ids", [])
+        # Guests never enumerate archives (``is_editor`` denies them outright);
+        # deny explicitly rather than relying on a guest having no user id.
+        if security_manager.is_guest_user():
+            return
+        eligible_rows = [
+            (row, row_id)
+            for row, row_id in zip(rows, ids, strict=False)
+            if "dashboards" in row
+        ]
+        if not eligible_rows:
+            return
+        query = (
+            db.session.query(
+                dashboard_slices.c.slice_id,
+                Dashboard.id,
+                Dashboard.dashboard_title,
+            )
+            .select_from(dashboard_slices)
+            .join(Dashboard, Dashboard.id == dashboard_slices.c.dashboard_id)
+            .filter(
+                dashboard_slices.c.slice_id.in_([row_id for _, row_id in eligible_rows])
+            )
+            .filter(Dashboard.deleted_at.is_not(None))
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+        )
+        query = DashboardAccessFilter("id", SQLAInterface(Dashboard)).apply(query, None)
+        query = scope_query_to_restore_audience(query, Dashboard, "only")
+        query = query.order_by(
+            dashboard_slices.c.slice_id, Dashboard.dashboard_title, Dashboard.id
+        )
+        archived: dict[int, list[dict[str, Any]]] = {}
+        for slice_id, dashboard_id, title in query.all():
+            values = {"id": dashboard_id, "dashboard_title": title}
+            archived.setdefault(slice_id, []).append(
+                {
+                    **{
+                        field: values[field]
+                        for field in _ARCHIVED_DASHBOARD_FIELDS
+                        if field in fields
+                    },
+                    "archived": True,
+                }
+            )
+        for row, row_id in eligible_rows:
+            row["dashboards"] = [
+                {**dashboard, "archived": False} for dashboard in row["dashboards"]
+            ] + archived.get(row_id, [])
 
     @expose("/", methods=("GET",))
     @protect()
@@ -557,8 +669,22 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                       result:
                         type: array
                         items:
-                          $ref: >-
-                            #/components/schemas/{{self.__class__.__name__}}.get_list
+                          allOf:
+                          - $ref: >-
+                              #/components/schemas/{{self.__class__.__name__}}.get_list
+                          - type: object
+                            properties:
+                              dashboards:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    archived:
+                                      type: boolean
+                                      description: >-
+                                        Present when archived dashboard expansion
+                                        is enabled for the request. True for
+                                        archived dashboards; false for live ones.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -571,19 +697,27 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         return self.get_list_headless(**kwargs)
 
     def get_list_headless(self, **kwargs: Any) -> Response:
-        """Apply client display ordering before list pagination."""
+        """Scope dashboard expansion and display ordering to this list request."""
         args = kwargs.get("rison", {})
-        viz_types = args.get("viz_type_order")
-        if args.get("order_column") != "viz_type" or not viz_types:
-            return super().get_list_headless(**kwargs)
-
-        token = _viz_type_order.set(
-            {viz_type: index for index, viz_type in enumerate(viz_types)}
+        archived_token = _include_archived_dashboards.set(
+            self._requested_dashboard_fields(args)
+            if args.get("include_archived_dashboards", False)
+            else None
         )
         try:
-            return super().get_list_headless(**kwargs)
+            viz_types = args.get("viz_type_order")
+            if args.get("order_column") != "viz_type" or not viz_types:
+                return super().get_list_headless(**kwargs)
+
+            token = _viz_type_order.set(
+                {viz_type: index for index, viz_type in enumerate(viz_types)}
+            )
+            try:
+                return super().get_list_headless(**kwargs)
+            finally:
+                _viz_type_order.reset(token)
         finally:
-            _viz_type_order.reset(token)
+            _include_archived_dashboards.reset(archived_token)
 
     @expose("/<pk>/deck_layers/", methods=("GET",))
     @protect()
@@ -1684,6 +1818,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1746,6 +1882,13 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields
+                        of featured databases. Keys are file paths (e.g.,
+                        "databases/db.yaml") and values are JSON objects mapping
+                        JSONPath expressions to secrets.
+                      type: string
           responses:
             200:
               description: Chart import result
@@ -1783,6 +1926,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         ssh_tunnel_priv_key_passwords = parse_json_form_field(
             "ssh_tunnel_private_key_passwords"
         )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportChartsCommand(
             contents,
@@ -1791,8 +1935,14 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
-        command.run()
+        try:
+            command.run()
+        except CommandException as ex:
+            # Return the same well-formed error body as the global
+            # CommandException handler for expected, client-caused failures.
+            return command_exception_response(ex)
         return self.response(200, message="OK")
 
     @expose("/<uuid_str>/versions/", methods=("GET",))

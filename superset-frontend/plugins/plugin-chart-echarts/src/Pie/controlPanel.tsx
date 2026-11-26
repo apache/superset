@@ -30,7 +30,7 @@ import {
   sharedControls,
   DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA, EchartsPieLabelOverflow } from './types';
 import { legendSection } from '../controls';
 
 const {
@@ -39,6 +39,8 @@ const {
   labelsOutside,
   labelType,
   labelLine,
+  labelMaxWidth,
+  labelOverflow,
   outerRadius,
   numberFormat,
   showLabels,
@@ -233,6 +235,49 @@ const config: ControlPanelConfig = {
               ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.show_labels?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_max_width',
+            config: {
+              type: 'NumberControl',
+              label: t('Label Max Width'),
+              renderTrigger: true,
+              min: 0,
+              step: 10,
+              default: labelMaxWidth,
+              description: t(
+                'Maximum width (in pixels) of each line of a slice label. ' +
+                  'Set to 0 for no limit.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_labels?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_overflow',
+            config: {
+              type: 'SelectControl',
+              label: t('Label Overflow'),
+              renderTrigger: true,
+              default: labelOverflow,
+              clearable: false,
+              choices: [
+                [EchartsPieLabelOverflow.Truncate, t('Truncate')],
+                [EchartsPieLabelOverflow.Break, t('Break')],
+              ],
+              description: t(
+                'How labels wider than the max width are shortened. ' +
+                  '"Truncate" cuts the label and adds an ellipsis. ' +
+                  '"Break" wraps the label onto additional lines.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_labels?.value) &&
+                Number(controls?.label_max_width?.value) > 0,
             },
           },
         ],

@@ -41,7 +41,8 @@ import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { openInNewTab } from 'src/utils/navigationUtils';
-import CodeSyntaxHighlighter, {
+import {
+  CodeSyntaxHighlighter,
   SupportedLanguage,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
