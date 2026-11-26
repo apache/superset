@@ -26,7 +26,11 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
+import {
+  DeleteModal,
+  ConfirmStatusChange,
+  Tooltip,
+} from '@superset-ui/core/components';
 import {
   ModifiedInfo,
   ListView,
@@ -39,6 +43,7 @@ import {
 } from 'src/components';
 
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
+import CssTemplateImportModal from 'src/features/cssTemplates/CssTemplateImportModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -82,10 +87,20 @@ function CssTemplatesList({
   const [currentCssTemplate, setCurrentCssTemplate] =
     useState<TemplateObject | null>(null);
 
+  const [importingCssTemplates, setImportingCssTemplates] =
+    useState<boolean>(false);
+
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const canImport = hasPerm('can_write');
+
+  const handleCssTemplatesImport = (message: string) => {
+    setImportingCssTemplates(false);
+    refreshData();
+    addSuccessToast(message);
+  };
 
   const [templateCurrentlyDeleting, setTemplateCurrentlyDeleting] =
     useState<TemplateObject | null>(null);
@@ -230,6 +245,22 @@ function CssTemplatesList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
+  if (canImport) {
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import CSS templates')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: () => setImportingCssTemplates(true),
+    });
+  }
+
   if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk select'),
@@ -294,6 +325,11 @@ function CssTemplatesList({
         onCssTemplateAdd={() => refreshData()}
         onHide={() => setCssTemplateModalOpen(false)}
         show={cssTemplateModalOpen}
+      />
+      <CssTemplateImportModal
+        onCssTemplatesImport={handleCssTemplatesImport}
+        onHide={() => setImportingCssTemplates(false)}
+        show={importingCssTemplates}
       />
       {templateCurrentlyDeleting && (
         <DeleteModal

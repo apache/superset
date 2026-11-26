@@ -14,6 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from marshmallow import fields, Schema
+from marshmallow.validate import Length
+
+from superset.dashboards.schemas import validate_css
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a CSS template"}},
@@ -43,3 +47,20 @@ get_export_ids_schema = {
     "items": {"type": "integer"},
     "example": [1, 2, 3],
 }
+
+
+class ImportV1CssTemplateSchema(Schema):
+    """Validate a CSS template built from an imported CSS file."""
+
+    template_name = fields.String(
+        required=True,
+        validate=Length(
+            min=1,
+            max=250,
+            error="Template name must be between {min} and {max} characters.",
+        ),
+    )
+    css = fields.String(
+        required=True,
+        validate=[Length(min=1, error="CSS file is empty."), validate_css],
+    )

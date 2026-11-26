@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any
 from zipfile import ZipFile
 
-from flask import Response, send_file
+from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -32,6 +32,7 @@ from superset.commands.css.exceptions import (
     CssTemplateNotFoundError,
 )
 from superset.commands.css.export_css import ExportCssTemplatesCommand
+from superset.commands.css.importers.dispatcher import ImportCssTemplatesCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.css_templates.filters import CssTemplateAllTextFilter
 from superset.css_templates.schemas import (
@@ -39,6 +40,7 @@ from superset.css_templates.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
+from superset.css_templates.utils import read_css_file
 from superset.extensions import event_logger
 from superset.models.core import CssTemplate
 from superset.utils.core import send_export_zip, write_zip_entry
@@ -46,6 +48,7 @@ from superset.utils.file import get_filename
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
+    requires_form_data,
     statsd_metrics,
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
@@ -58,6 +61,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
+        RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
@@ -268,3 +272,77 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
         buf.seek(0)
 
         return send_export_zip(buf, filename)
+
+    @expose("/import/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
+    @requires_form_data
+    def import_(self) -> Response:
+        """Import CSS templates from CSS files.
+        ---
+        post:
+          summary: Import CSS templates from CSS files
+          description: >-
+            Creates one CSS template per uploaded `.css` file. Each template is
+            named after its file, without the `.css` extension, and its CSS is
+            the file's contents. Every file creates a new template, so files
+            sharing a name are all imported and existing templates are never
+            overwritten. If any file is invalid, no templates are created.
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  type: object
+                  properties:
+                    formData:
+                      description: One or more `.css` files to import
+                      type: array
+                      items:
+                        type: string
+                        format: binary
+                  required:
+                  - formData
+          responses:
+            200:
+              description: CSS templates imported
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        uploads = [
+            upload for upload in request.files.getlist("formData") if upload.filename
+        ]
+        if not uploads:
+            return self.response_400(message="At least one CSS file is required")
+
+        contents = [
+            (upload.filename or "", read_css_file(upload)) for upload in uploads
+        ]
+        templates = ImportCssTemplatesCommand(contents).run()
+        return self.response(
+            200,
+            message=ngettext(
+                "Imported %(num)d CSS template",
+                "Imported %(num)d CSS templates",
+                num=len(templates),
+            ),
+        )
