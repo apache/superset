@@ -96,77 +96,137 @@ const mockedGetChartBuildQueryRegistry =
     typeof getChartBuildQueryRegistry
   >;
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('chart actions', () => {
-  const MOCK_URL = '/mockURL';
-  let dispatch: jest.Mock;
-  let getExploreUrlStub: jest.SpyInstance;
-  let getChartDataUriStub: jest.SpyInstance;
-  let buildV1ChartDataPayloadStub: jest.SpyInstance;
-  let waitForAsyncDataStub: jest.SpyInstance;
-  let fakeMetadata: { viz_type?: string };
+const MOCK_URL = '/mockURL';
+let dispatch: jest.Mock;
+let getExploreUrlStub: jest.SpyInstance;
+let getChartDataUriStub: jest.SpyInstance;
+let buildV1ChartDataPayloadStub: jest.SpyInstance;
+let waitForAsyncDataStub: jest.SpyInstance;
+let fakeMetadata: { viz_type?: string };
 
-  beforeAll(() => {
-    fetchMock.get('glob:*api/v1/security/csrf_token/*', { result: '1234' });
-  });
+beforeAll(() => {
+  fetchMock.get('glob:*api/v1/security/csrf_token/*', { result: '1234' });
+});
 
-  const setupDefaultFetchMock = (): void => {
-    fetchMock.post(`glob:*${MOCK_URL}*`, { json: {} }, { name: MOCK_URL });
+const setupDefaultFetchMock = (): void => {
+  fetchMock.post(`glob:*${MOCK_URL}*`, { json: {} }, { name: MOCK_URL });
+};
+
+// These hooks used to live inside describe blocks. A file-level beforeEach
+// applies to every test, so the async 202 route and the v1 metadata must be
+// opted into by the tests that need them.
+const setupChartActionTest = (): void => {
+  setupDefaultFetchMock();
+  dispatch = jest.fn();
+  getExploreUrlStub = jest
+    .spyOn(exploreUtils, 'getExploreUrl')
+    .mockImplementation(() => MOCK_URL);
+  getChartDataUriStub = jest
+    .spyOn(exploreUtils, 'getChartDataUri')
+    .mockImplementation(({ qs }: { qs?: Record<string, unknown> }) =>
+      URI(MOCK_URL).query(qs || {}),
+    );
+  buildV1ChartDataPayloadStub = jest
+    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+    .mockResolvedValue({
+      some_param: 'fake query!',
+      result_type: 'full',
+      result_format: 'json',
+    } as unknown as Awaited<
+      ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+    >);
+  fakeMetadata = {};
+  mockedGetChartMetadataRegistry.mockImplementation(
+    () =>
+      ({
+        get: () => fakeMetadata,
+      }) as unknown as ReturnType<typeof getChartMetadataRegistry>,
+  );
+  mockedGetChartBuildQueryRegistry.mockImplementation(
+    () =>
+      ({
+        get: () => () => ({
+          some_param: 'fake query!',
+          result_type: 'full',
+          result_format: 'json',
+        }),
+      }) as unknown as ReturnType<typeof getChartBuildQueryRegistry>,
+  );
+  waitForAsyncDataStub = jest
+    .spyOn(asyncEvent, 'waitForAsyncData')
+    // New contract: resolve by invoking the caller-provided refetch thunk,
+    // forwarding the job's task_ids as the per-query forced-refresh nonces.
+    .mockImplementation(
+      (job: unknown, refetch: (nonces?: string[]) => Promise<unknown>) =>
+        refetch((job as asyncEvent.AsyncJob)?.task_ids),
+    );
+};
+
+const teardownChartActionTest = (): void => {
+  getExploreUrlStub.mockRestore();
+  getChartDataUriStub.mockRestore();
+  buildV1ChartDataPayloadStub.mockRestore();
+  fetchMock.clearHistory().removeRoutes();
+  waitForAsyncDataStub.mockRestore();
+
+  (
+    global as unknown as { featureFlags: Record<string, boolean> }
+  ).featureFlags = {
+    [FeatureFlag.GlobalAsyncQueries]: false,
   };
+};
 
-  beforeEach(() => {
-    setupDefaultFetchMock();
-  });
+const useV1ChartMetadata = (): void => {
+  fakeMetadata = { viz_type: 'my_viz' };
+};
 
-  afterEach(() => fetchMock.clearHistory().removeRoutes());
+const useAsyncChartDataRoute = (): void => {
+  (
+    global as unknown as { featureFlags: Record<string, boolean> }
+  ).featureFlags = {
+    [FeatureFlag.GlobalAsyncQueries]: true,
+  };
+  // Simulate the server dispatching the query asynchronously so
+  // handleChartDataResponse delegates to waitForAsyncData.
+  fetchMock.removeRoute(MOCK_URL);
+  fetchMock.post(
+    `glob:*${MOCK_URL}*`,
+    { status: 202, body: { task_ids: ['task-1'] } },
+    { name: MOCK_URL },
+  );
+};
 
-  beforeEach(() => {
-    dispatch = jest.fn();
-    getExploreUrlStub = jest
-      .spyOn(exploreUtils, 'getExploreUrl')
-      .mockImplementation(() => MOCK_URL);
-    getChartDataUriStub = jest
-      .spyOn(exploreUtils, 'getChartDataUri')
-      .mockImplementation(({ qs }: { qs?: Record<string, unknown> }) =>
-        URI(MOCK_URL).query(qs || {}),
-      );
-    buildV1ChartDataPayloadStub = jest
-      .spyOn(exploreUtils, 'buildV1ChartDataPayload')
-      .mockResolvedValue({
-        some_param: 'fake query!',
-        result_type: 'full',
-        result_format: 'json',
-      } as unknown as Awaited<
-        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
-      >);
-    fakeMetadata = {};
-    mockedGetChartMetadataRegistry.mockImplementation(
-      () =>
-        ({
-          get: () => fakeMetadata,
-        }) as unknown as ReturnType<typeof getChartMetadataRegistry>,
-    );
-    mockedGetChartBuildQueryRegistry.mockImplementation(
-      () =>
-        ({
-          get: () => () => ({
-            some_param: 'fake query!',
-            result_type: 'full',
-            result_format: 'json',
-          }),
-        }) as unknown as ReturnType<typeof getChartBuildQueryRegistry>,
-    );
-    waitForAsyncDataStub = jest
-      .spyOn(asyncEvent, 'waitForAsyncData')
-      // New contract: resolve by invoking the caller-provided refetch thunk,
-      // forwarding the job's task_ids as the per-query forced-refresh nonces.
-      .mockImplementation(
-        (job: unknown, refetch: (nonces?: string[]) => Promise<unknown>) =>
-          refetch((job as asyncEvent.AsyncJob)?.task_ids),
-      );
-  });
+const restoreDefaultChartDataRoute = (): void => {
+  fetchMock.removeRoute(MOCK_URL);
+  setupDefaultFetchMock();
+};
 
-  test('should drop stale success dispatches when a newer controller has replaced ours in state', async () => {
+const runChartActionTest = async (
+  fn: () => Promise<void>,
+  options?: { v1?: boolean; asyncQuery?: boolean; clearMocks?: boolean },
+): Promise<void> => {
+  setupChartActionTest();
+  if (options?.v1) {
+    useV1ChartMetadata();
+  }
+  if (options?.asyncQuery) {
+    useAsyncChartDataRoute();
+  }
+  if (options?.clearMocks) {
+    jest.clearAllMocks();
+  }
+  try {
+    await fn();
+  } finally {
+    if (options?.asyncQuery) {
+      restoreDefaultChartDataRoute();
+    }
+    teardownChartActionTest();
+  }
+};
+
+test('should drop stale success dispatches when a newer controller has replaced ours in state', async () => {
+  await runChartActionTest(async () => {
     const chartKey = 'stale_success_test';
     const formData: Partial<QueryFormData> = {
       slice_id: 456,
@@ -237,8 +297,10 @@ describe('chart actions', () => {
       getQuerySettingsStub.mockRestore();
     }
   });
+});
 
-  test('should defer abort of previous controller to avoid Redux state mutation', async () => {
+test('should defer abort of previous controller to avoid Redux state mutation', async () => {
+  await runChartActionTest(async () => {
     jest.useFakeTimers();
     const chartKey = 'defer_abort_test';
     const formData: Partial<QueryFormData> = {
@@ -313,28 +375,11 @@ describe('chart actions', () => {
       jest.useRealTimers();
     }
   });
+});
 
-  afterEach(() => {
-    getExploreUrlStub.mockRestore();
-    getChartDataUriStub.mockRestore();
-    buildV1ChartDataPayloadStub.mockRestore();
-    fetchMock.clearHistory();
-    waitForAsyncDataStub.mockRestore();
-
-    (
-      global as unknown as { featureFlags: Record<string, boolean> }
-    ).featureFlags = {
-      [FeatureFlag.GlobalAsyncQueries]: false,
-    };
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('v1 API', () => {
-    beforeEach(() => {
-      fakeMetadata = { viz_type: 'my_viz' };
-    });
-
-    test('should query with the built query', async () => {
+test('should query with the built query', async () => {
+  await runChartActionTest(
+    async () => {
       const actionThunk = actions.postChartFormData(
         {} as QueryFormData,
         false,
@@ -356,9 +401,14 @@ describe('chart actions', () => {
         }),
       );
       expect(dispatch.mock.calls[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
-    });
+    },
+    { v1: true },
+  );
+});
 
-    test('should handle the bigint without regression', async () => {
+test('should handle the bigint without regression', async () => {
+  await runChartActionTest(
+    async () => {
       getChartDataUriStub.mockRestore();
       const mockBigIntUrl = '/mock/chart/data/bigint';
       const expectedBigNumber = '9223372036854775807';
@@ -375,9 +425,14 @@ describe('chart actions', () => {
 
       expect(fetchMock.callHistory.calls(mockBigIntUrl)).toHaveLength(1);
       expect((json as JsonObject).value.toString()).toEqual(expectedBigNumber);
-    });
+    },
+    { v1: true },
+  );
+});
 
-    test('handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
+test('handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
+  await runChartActionTest(
+    async () => {
       const result = await handleChartDataResponse(
         { status: 200 } as Response,
         {
@@ -388,9 +443,14 @@ describe('chart actions', () => {
         neverRefetch,
       );
       expect(result).toEqual([1, 2, 3]);
-    });
+    },
+    { v1: true },
+  );
+});
 
-    test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
+test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
+  await runChartActionTest(
+    async () => {
       (
         global as unknown as { featureFlags: Record<string, boolean> }
       ).featureFlags = {
@@ -406,9 +466,14 @@ describe('chart actions', () => {
         neverRefetch,
       );
       expect(result).toEqual([1, 2, 3]);
-    });
+    },
+    { v1: true },
+  );
+});
 
-    test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
+test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
+  await runChartActionTest(
+    async () => {
       (
         global as unknown as { featureFlags: Record<string, boolean> }
       ).featureFlags = {
@@ -429,9 +494,14 @@ describe('chart actions', () => {
       );
       expect(refetch).toHaveBeenCalledTimes(1);
       expect(result).toEqual([1, 2, 3]);
-    });
+    },
+    { v1: true },
+  );
+});
 
-    test('dispatches addWarningToast when a query response includes a warning', async () => {
+test('dispatches addWarningToast when a query response includes a warning', async () => {
+  await runChartActionTest(
+    async () => {
       const warningMessage =
         'Results truncated to 1,000 rows due to memory constraints.';
       fetchMock.removeRoute(MOCK_URL);
@@ -460,9 +530,14 @@ describe('chart actions', () => {
       addWarningToastSpy.mockRestore();
       fetchMock.removeRoute(MOCK_URL);
       setupDefaultFetchMock();
-    });
+    },
+    { v1: true },
+  );
+});
 
-    test('does not dispatch addWarningToast when no query response has a warning', async () => {
+test('does not dispatch addWarningToast when no query response has a warning', async () => {
+  await runChartActionTest(
+    async () => {
       const addWarningToastSpy = jest.spyOn(toastActions, 'addWarningToast');
 
       const actionThunk = actions.postChartFormData(
@@ -479,256 +554,257 @@ describe('chart actions', () => {
 
       expect(addWarningToastSpy).not.toHaveBeenCalled();
       addWarningToastSpy.mockRestore();
-    });
+    },
+    { v1: true },
+  );
+});
 
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('GlobalAsyncQueries error handling', () => {
-      beforeEach(() => {
-        (
-          global as unknown as { featureFlags: Record<string, boolean> }
-        ).featureFlags = {
-          [FeatureFlag.GlobalAsyncQueries]: true,
-        };
-      });
+test('dispatches CHART_UPDATE_FAILED with the array as-is when waitForAsyncData rejects with an array of client error objects', async () => {
+  await runChartActionTest(
+    async () => {
+      const clientErrors = [{ error: 'cached-data fetch failed' }];
+      waitForAsyncDataStub.mockImplementation(() =>
+        Promise.reject(clientErrors),
+      );
 
-      beforeEach(() => {
-        // Simulate the server dispatching the query asynchronously so
-        // handleChartDataResponse delegates to waitForAsyncData.
-        fetchMock.removeRoute(MOCK_URL);
-        fetchMock.post(
-          `glob:*${MOCK_URL}*`,
-          { status: 202, body: { task_ids: ['task-1'] } },
-          { name: MOCK_URL },
-        );
-      });
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
 
-      afterEach(() => {
-        fetchMock.removeRoute(MOCK_URL);
-        setupDefaultFetchMock();
-      });
+      const updateFailedAction = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
+      )?.[0];
+      expect(updateFailedAction).toBeDefined();
+      expect(updateFailedAction.queriesResponse).toEqual(clientErrors);
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
 
-      test('dispatches CHART_UPDATE_FAILED with the array as-is when waitForAsyncData rejects with an array of client error objects', async () => {
-        const clientErrors = [{ error: 'cached-data fetch failed' }];
-        waitForAsyncDataStub.mockImplementation(() =>
-          Promise.reject(clientErrors),
-        );
+test('dispatches CHART_UPDATE_FAILED wrapping the error object when waitForAsyncData rejects with a normalized async-event error', async () => {
+  await runChartActionTest(
+    async () => {
+      const asyncEventError = { error: 'query failed', errors: [] };
+      waitForAsyncDataStub.mockImplementation(() =>
+        Promise.reject(asyncEventError),
+      );
 
-        const actionThunk = actions.postChartFormData(
-          { viz_type: 'my_viz' } as QueryFormData,
-          false,
-          undefined,
-          undefined,
-        );
-        await actionThunk(
-          dispatch as unknown as actions.ChartThunkDispatch,
-          mockGetState as unknown as () => actions.RootState,
-          undefined,
-        );
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
 
-        const updateFailedAction = dispatch.mock.calls.find(
-          ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
-        )?.[0];
-        expect(updateFailedAction).toBeDefined();
-        expect(updateFailedAction.queriesResponse).toEqual(clientErrors);
-      });
+      const updateFailedAction = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
+      )?.[0];
+      expect(updateFailedAction).toBeDefined();
+      expect(updateFailedAction.queriesResponse).toEqual([asyncEventError]);
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
 
-      test('dispatches CHART_UPDATE_FAILED wrapping the error object when waitForAsyncData rejects with a normalized async-event error', async () => {
-        const asyncEventError = { error: 'query failed', errors: [] };
-        waitForAsyncDataStub.mockImplementation(() =>
-          Promise.reject(asyncEventError),
-        );
+test('dispatches CHART_UPDATE_FAILED with a parsed error when the pre-cache probe rejects with a raw Response', async () => {
+  await runChartActionTest(
+    async () => {
+      const rawResponse = new Response(
+        JSON.stringify({ message: 'validation failed' }),
+        { status: 400, statusText: 'Bad Request' },
+      );
+      waitForAsyncDataStub.mockImplementation(() =>
+        Promise.reject(rawResponse),
+      );
 
-        const actionThunk = actions.postChartFormData(
-          { viz_type: 'my_viz' } as QueryFormData,
-          false,
-          undefined,
-          undefined,
-        );
-        await actionThunk(
-          dispatch as unknown as actions.ChartThunkDispatch,
-          mockGetState as unknown as () => actions.RootState,
-          undefined,
-        );
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
 
-        const updateFailedAction = dispatch.mock.calls.find(
-          ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
-        )?.[0];
-        expect(updateFailedAction).toBeDefined();
-        expect(updateFailedAction.queriesResponse).toEqual([asyncEventError]);
-      });
+      const updateFailedAction = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
+      )?.[0];
+      expect(updateFailedAction).toBeDefined();
+      expect(updateFailedAction.queriesResponse[0].error).toBe(
+        'validation failed',
+      );
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
 
-      test('dispatches CHART_UPDATE_FAILED with a parsed error when the pre-cache probe rejects with a raw Response', async () => {
-        const rawResponse = new Response(
-          JSON.stringify({ message: 'validation failed' }),
-          { status: 400, statusText: 'Bad Request' },
-        );
-        waitForAsyncDataStub.mockImplementation(() =>
-          Promise.reject(rawResponse),
-        );
+test('shows the time range limit error of the re-sent request after a task fails on the limits', async () => {
+  await runChartActionTest(
+    async () => {
+      const limitError = {
+        error_type: 'TIME_RANGE_LIMIT_ERROR',
+        message: "Range can't be longer than 7 days. This one is 30 days.",
+        level: 'error',
+        extra: { reason_code: 'MAX_SPAN_EXCEEDED', rule: 'max_span' },
+      };
+      fetchMock.removeRoute(MOCK_URL);
+      let calls = 0;
+      fetchMock.post(
+        `glob:*${MOCK_URL}*`,
+        () => {
+          calls += 1;
+          return calls === 1
+            ? { status: 202, body: { task_ids: ['task-1'] } }
+            : { status: 400, body: { errors: [limitError] } };
+        },
+        { name: MOCK_URL },
+      );
+      waitForAsyncDataStub.mockImplementation(
+        (_job: unknown, refetch: () => Promise<unknown>) => refetch(),
+      );
 
-        const actionThunk = actions.postChartFormData(
-          { viz_type: 'my_viz' } as QueryFormData,
-          false,
-          undefined,
-          undefined,
-        );
-        await actionThunk(
-          dispatch as unknown as actions.ChartThunkDispatch,
-          mockGetState as unknown as () => actions.RootState,
-          undefined,
-        );
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
 
-        const updateFailedAction = dispatch.mock.calls.find(
-          ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
-        )?.[0];
-        expect(updateFailedAction).toBeDefined();
-        expect(updateFailedAction.queriesResponse[0].error).toBe(
-          'validation failed',
-        );
-      });
+      expect(calls).toBe(2);
+      const updateFailedAction = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
+      )?.[0];
+      expect(updateFailedAction).toBeDefined();
+      expect(updateFailedAction.queriesResponse[0].errors).toEqual([
+        limitError,
+      ]);
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
 
-      test('shows the time range limit error of the re-sent request after a task fails on the limits', async () => {
-        const limitError = {
-          error_type: 'TIME_RANGE_LIMIT_ERROR',
-          message: "Range can't be longer than 7 days. This one is 30 days.",
-          level: 'error',
-          extra: { reason_code: 'MAX_SPAN_EXCEEDED', rule: 'max_span' },
-        };
-        fetchMock.removeRoute(MOCK_URL);
-        let calls = 0;
-        fetchMock.post(
-          `glob:*${MOCK_URL}*`,
-          () => {
-            calls += 1;
-            return calls === 1
-              ? { status: 202, body: { task_ids: ['task-1'] } }
-              : { status: 400, body: { errors: [limitError] } };
-          },
-          { name: MOCK_URL },
-        );
-        waitForAsyncDataStub.mockImplementation(
-          (_job: unknown, refetch: () => Promise<unknown>) => refetch(),
-        );
+test('rejects rather than treating a repeat 202 body as chart data', async () => {
+  await runChartActionTest(
+    async () => {
+      // Regression: the post-completion re-issue is always synchronous, so a
+      // 202 body ({task_ids}) can never reach a consumer as if it were rows.
+      // The route mocked above answers 202 for every POST.
+      await expect(
+        actions.requestChartDataResolved({
+          formData: { viz_type: 'my_viz' } as QueryFormData,
+        }),
+      ).rejects.toThrow('unexpected response status (202)');
 
-        const actionThunk = actions.postChartFormData(
-          { viz_type: 'my_viz' } as QueryFormData,
-          false,
-          undefined,
-          undefined,
-        );
-        await actionThunk(
-          dispatch as unknown as actions.ChartThunkDispatch,
-          mockGetState as unknown as () => actions.RootState,
-          undefined,
-        );
+      // The initial async submit plus exactly one synchronous re-issue.
+      const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+      expect(history).toHaveLength(2);
+      expect(String(history[1].options.body)).not.toContain('async_mode');
 
-        expect(calls).toBe(2);
-        const updateFailedAction = dispatch.mock.calls.find(
-          ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
-        )?.[0];
-        expect(updateFailedAction).toBeDefined();
-        expect(updateFailedAction.queriesResponse[0].errors).toEqual([
-          limitError,
-        ]);
-      });
+      // The initial async submit carries this tab's id, so the backend can
+      // ref-count the tab as a consumer of the (shared) chart-data task.
+      const initialBody = JSON.parse(String(history[0].options.body));
+      expect(initialBody.async_mode).toBe(true);
+      expect(typeof initialBody.tab_id).toBe('string');
+      expect(initialBody.tab_id.length).toBeGreaterThan(0);
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
 
-      test('rejects rather than treating a repeat 202 body as chart data', async () => {
-        // Regression: the post-completion re-issue is always synchronous, so a
-        // 202 body ({task_ids}) can never reach a consumer as if it were rows.
-        // The route mocked above answers 202 for every POST.
-        await expect(
-          actions.requestChartDataResolved({
-            formData: { viz_type: 'my_viz' } as QueryFormData,
-          }),
-        ).rejects.toThrow('unexpected response status (202)');
+test('re-issues synchronously after async completion, reading the warm cache', async () => {
+  await runChartActionTest(
+    async () => {
+      // 1: initial async request → 202; 2: the post-completion re-issue is
+      // synchronous and returns the payload inline (200). No third call and no
+      // second background task.
+      fetchMock.removeRoute(MOCK_URL);
+      let calls = 0;
+      fetchMock.post(
+        `glob:*${MOCK_URL}*`,
+        () => {
+          calls += 1;
+          return calls === 1
+            ? { status: 202, body: { task_ids: ['task-1'] } }
+            : { status: 200, body: { result: [{ data: [1, 2, 3] }] } };
+        },
+        { name: MOCK_URL },
+      );
 
-        // The initial async submit plus exactly one synchronous re-issue.
-        const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
-        expect(history).toHaveLength(2);
-        expect(String(history[1].options.body)).not.toContain('async_mode');
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        true, // force: the async task computes fresh, the re-issue reads its result
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
 
-        // The initial async submit carries this tab's id, so the backend can
-        // ref-count the tab as a consumer of the (shared) chart-data task.
-        const initialBody = JSON.parse(String(history[0].options.body));
-        expect(initialBody.async_mode).toBe(true);
-        expect(typeof initialBody.tab_id).toBe('string');
-        expect(initialBody.tab_id.length).toBeGreaterThan(0);
-      });
+      // Exactly two requests: the async submit, then one synchronous re-issue —
+      // no repeat-202 loop and no duplicate background task.
+      expect(calls).toBe(2);
+      const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+      expect(history).toHaveLength(2);
+      // Both requests keep force=true — server-side dedup (the force nonce), not
+      // a client-flipped force, is what prevents the re-issue from recomputing.
+      expect(history[0].url).toContain('force=true');
+      expect(history[1].url).toContain('force=true');
+      // The submit opts into async; the re-issue is synchronous (no new GTF task).
+      expect(String(history[0].options.body)).toContain('async_mode');
+      expect(String(history[1].options.body)).not.toContain('async_mode');
+      // The forced-refresh nonce IS the async task's UUID: the submit carries
+      // none (the worker stamps each query with its own task id and records the
+      // marker), and the synchronous re-issue carries the 202's task_ids as the
+      // per-query force nonces, so the server reads back instead of recomputing.
+      const forceCalls = buildV1ChartDataPayloadStub.mock.calls.filter(
+        ([arg]) => (arg as { force?: boolean }).force === true,
+      );
+      expect(forceCalls).toHaveLength(2);
+      const submitNonces = (forceCalls[0][0] as { queryForceNonces?: string[] })
+        .queryForceNonces;
+      const reissueNonces = (
+        forceCalls[1][0] as { queryForceNonces?: string[] }
+      ).queryForceNonces;
+      expect(submitNonces).toBeUndefined();
+      expect(reissueNonces).toEqual(['task-1']);
 
-      test('re-issues synchronously after async completion, reading the warm cache', async () => {
-        // 1: initial async request → 202; 2: the post-completion re-issue is
-        // synchronous and returns the payload inline (200). No third call and no
-        // second background task.
-        fetchMock.removeRoute(MOCK_URL);
-        let calls = 0;
-        fetchMock.post(
-          `glob:*${MOCK_URL}*`,
-          () => {
-            calls += 1;
-            return calls === 1
-              ? { status: 202, body: { task_ids: ['task-1'] } }
-              : { status: 200, body: { result: [{ data: [1, 2, 3] }] } };
-          },
-          { name: MOCK_URL },
-        );
+      const succeeded = dispatch.mock.calls.find(
+        ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
+      )?.[0];
+      expect(succeeded).toBeDefined();
+    },
+    { v1: true, asyncQuery: true },
+  );
+});
 
-        const actionThunk = actions.postChartFormData(
-          { viz_type: 'my_viz' } as QueryFormData,
-          true, // force: the async task computes fresh, the re-issue reads its result
-          undefined,
-          undefined,
-        );
-        await actionThunk(
-          dispatch as unknown as actions.ChartThunkDispatch,
-          mockGetState as unknown as () => actions.RootState,
-          undefined,
-        );
+const mockDispatch = jest.fn();
 
-        // Exactly two requests: the async submit, then one synchronous re-issue —
-        // no repeat-202 loop and no duplicate background task.
-        expect(calls).toBe(2);
-        const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
-        expect(history).toHaveLength(2);
-        // Both requests keep force=true — server-side dedup (the force nonce), not
-        // a client-flipped force, is what prevents the re-issue from recomputing.
-        expect(history[0].url).toContain('force=true');
-        expect(history[1].url).toContain('force=true');
-        // The submit opts into async; the re-issue is synchronous (no new GTF task).
-        expect(String(history[0].options.body)).toContain('async_mode');
-        expect(String(history[1].options.body)).not.toContain('async_mode');
-        // The forced-refresh nonce IS the async task's UUID: the submit carries
-        // none (the worker stamps each query with its own task id and records the
-        // marker), and the synchronous re-issue carries the 202's task_ids as the
-        // per-query force nonces, so the server reads back instead of recomputing.
-        const forceCalls = buildV1ChartDataPayloadStub.mock.calls.filter(
-          ([arg]) => (arg as { force?: boolean }).force === true,
-        );
-        expect(forceCalls).toHaveLength(2);
-        const submitNonces = (
-          forceCalls[0][0] as { queryForceNonces?: string[] }
-        ).queryForceNonces;
-        const reissueNonces = (
-          forceCalls[1][0] as { queryForceNonces?: string[] }
-        ).queryForceNonces;
-        expect(submitNonces).toBeUndefined();
-        expect(reissueNonces).toEqual(['task-1']);
-
-        const succeeded = dispatch.mock.calls.find(
-          ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
-        )?.[0];
-        expect(succeeded).toBeDefined();
-      });
-    });
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('runAnnotationQuery', () => {
-    const mockDispatch = jest.fn();
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
-    test('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
+test('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
+  await runChartActionTest(
+    async () => {
       const annotation = {
         name: 'Holidays',
         annotationType: AnnotationType.Event,
@@ -781,95 +857,91 @@ describe('chart actions', () => {
         resultFormat: 'json',
         resultType: 'full',
       });
-    });
-  });
+    },
+    { clearMocks: true },
+  );
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('chart actions timeout', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+test('should use the timeout from arguments when given', async () => {
+  jest.clearAllMocks();
+  const postSpy = jest.spyOn(SupersetClient, 'post');
+  postSpy.mockImplementation(
+    () =>
+      Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
+        typeof SupersetClient.post
+      >,
+  );
+  const timeout = 10; // Set the timeout value here
+  const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
+  const key = 'chartKey'; // Set the chart key here
 
-  test('should use the timeout from arguments when given', async () => {
-    const postSpy = jest.spyOn(SupersetClient, 'post');
-    postSpy.mockImplementation(
-      () =>
-        Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
-          typeof SupersetClient.post
-        >,
-    );
-    const timeout = 10; // Set the timeout value here
-    const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
-    const key = 'chartKey'; // Set the chart key here
+  const store = mockStore(initialState);
+  await store.dispatch(
+    actions.runAnnotationQuery({
+      annotation: {
+        value: 'annotationValue',
+        sourceType: AnnotationSourceType.Native,
+        overrides: {},
+      } as unknown as AnnotationLayer,
+      timeout,
+      formData: formData as QueryFormData,
+      key,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any,
+  );
 
-    const store = mockStore(initialState);
-    await store.dispatch(
-      actions.runAnnotationQuery({
-        annotation: {
-          value: 'annotationValue',
-          sourceType: AnnotationSourceType.Native,
-          overrides: {},
-        } as unknown as AnnotationLayer,
-        timeout,
-        formData: formData as QueryFormData,
-        key,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-    );
+  const expectedPayload = {
+    url: expect.any(String) as string,
+    signal: expect.any(AbortSignal) as AbortSignal,
+    timeout: timeout * 1000,
+    headers: { 'Content-Type': 'application/json' },
+    jsonPayload: expect.any(Object) as JsonObject,
+  };
 
-    const expectedPayload = {
-      url: expect.any(String) as string,
-      signal: expect.any(AbortSignal) as AbortSignal,
-      timeout: timeout * 1000,
-      headers: { 'Content-Type': 'application/json' },
-      jsonPayload: expect.any(Object) as JsonObject,
-    };
+  expect(postSpy).toHaveBeenCalledWith(expectedPayload);
+});
 
-    expect(postSpy).toHaveBeenCalledWith(expectedPayload);
-  });
+test('should use the timeout from common.conf when not passed as an argument', async () => {
+  jest.clearAllMocks();
+  const postSpy = jest.spyOn(SupersetClient, 'post');
+  postSpy.mockImplementation(
+    () =>
+      Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
+        typeof SupersetClient.post
+      >,
+  );
+  const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
+  const key = 'chartKey'; // Set the chart key here
 
-  test('should use the timeout from common.conf when not passed as an argument', async () => {
-    const postSpy = jest.spyOn(SupersetClient, 'post');
-    postSpy.mockImplementation(
-      () =>
-        Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
-          typeof SupersetClient.post
-        >,
-    );
-    const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
-    const key = 'chartKey'; // Set the chart key here
+  const store = mockStore(initialState);
+  await store.dispatch(
+    actions.runAnnotationQuery({
+      annotation: {
+        value: 'annotationValue',
+        sourceType: AnnotationSourceType.Native,
+        overrides: {},
+      } as unknown as AnnotationLayer,
+      timeout: undefined,
+      formData: formData as QueryFormData,
+      key,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any,
+  );
 
-    const store = mockStore(initialState);
-    await store.dispatch(
-      actions.runAnnotationQuery({
-        annotation: {
-          value: 'annotationValue',
-          sourceType: AnnotationSourceType.Native,
-          overrides: {},
-        } as unknown as AnnotationLayer,
-        timeout: undefined,
-        formData: formData as QueryFormData,
-        key,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-    );
+  const expectedPayload = {
+    url: expect.any(String) as string,
+    signal: expect.any(AbortSignal) as AbortSignal,
+    timeout:
+      (
+        initialState.common.conf as unknown as {
+          SUPERSET_WEBSERVER_TIMEOUT: number;
+        }
+      ).SUPERSET_WEBSERVER_TIMEOUT * 1000,
+    headers: { 'Content-Type': 'application/json' },
+    jsonPayload: expect.any(Object) as JsonObject,
+  };
 
-    const expectedPayload = {
-      url: expect.any(String) as string,
-      signal: expect.any(AbortSignal) as AbortSignal,
-      timeout:
-        (
-          initialState.common.conf as unknown as {
-            SUPERSET_WEBSERVER_TIMEOUT: number;
-          }
-        ).SUPERSET_WEBSERVER_TIMEOUT * 1000,
-      headers: { 'Content-Type': 'application/json' },
-      jsonPayload: expect.any(Object) as JsonObject,
-    };
-
-    expect(postSpy).toHaveBeenCalledWith(expectedPayload);
-  });
+  expect(postSpy).toHaveBeenCalledWith(expectedPayload);
 });
 
 // A chart whose form_data the API withheld (the viewer cannot read it) has no

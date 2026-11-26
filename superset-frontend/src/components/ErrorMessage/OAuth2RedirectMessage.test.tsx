@@ -147,323 +147,314 @@ const setup = (overrides = {}, store: Store = mockStore) => (
   </Provider>
 );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('OAuth2RedirectMessage Component', () => {
-  test('renders without crashing and displays the correct initial UI elements', () => {
-    const { getByText } = render(setup());
+test('renders without crashing and displays the correct initial UI elements', () => {
+  const { getByText } = render(setup());
 
-    expect(getByText(/Authorization needed/i)).toBeInTheDocument();
-    expect(getByText(/provide authorization/i)).toBeInTheDocument();
+  expect(getByText(/Authorization needed/i)).toBeInTheDocument();
+  expect(getByText(/provide authorization/i)).toBeInTheDocument();
+});
+
+test('renders the prose body without preformatted/monospace styling so it wraps within the popover', () => {
+  const { container } = render(setup());
+
+  // The OAuth2 body is prose, not a stack trace, so it must not be styled as
+  // preformatted (monospace + pre-wrap). Otherwise it renders as a single
+  // unwrapped line that balloons the SQL Lab popover width.
+  const description = container.querySelector('[data-testid="description"]');
+  expect(description).not.toBeNull();
+  expect(description).not.toHaveStyle({ whiteSpace: 'pre-wrap' });
+});
+
+test('renders the authorization link pointing at the OAuth2 URL', () => {
+  const { getByText } = render(setup());
+
+  const linkElement = getByText(/provide authorization/i).closest('a');
+  expect(linkElement).toHaveAttribute('href', 'https://example.com');
+  expect(linkElement).toHaveAttribute('target', '_blank');
+});
+
+test('closes the BroadcastChannel on unmount', () => {
+  const { unmount } = render(setup());
+
+  expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledWith(
+    'oauth',
+  );
+  unmount();
+  expect(channelCloseMock).toHaveBeenCalled();
+});
+
+test('dispatches reRunQuery action when a message with correct tab ID is received for SQL Lab', async () => {
+  render(setup());
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  simulateStorageMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
+  expect(reRunQuery).toHaveBeenCalledTimes(1);
+});
 
-  test('renders the prose body without preformatted/monospace styling so it wraps within the popover', () => {
-    const { container } = render(setup());
+test('dispatches reRunQuery action when storage event has matching tab ID', async () => {
+  render(setup());
 
-    // The OAuth2 body is prose, not a stack trace, so it must not be styled as
-    // preformatted (monospace + pre-wrap). Otherwise it renders as a single
-    // unwrapped line that balloons the SQL Lab popover width.
-    const description = container.querySelector('[data-testid="description"]');
-    expect(description).not.toBeNull();
-    expect(description).not.toHaveStyle({ whiteSpace: 'pre-wrap' });
+  simulateStorageMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
+});
 
-  test('renders the authorization link pointing at the OAuth2 URL', () => {
-    const { getByText } = render(setup());
-
-    const linkElement = getByText(/provide authorization/i).closest('a');
-    expect(linkElement).toHaveAttribute('href', 'https://example.com');
-    expect(linkElement).toHaveAttribute('target', '_blank');
-  });
-
-  test('closes the BroadcastChannel on unmount', () => {
-    const { unmount } = render(setup());
-
-    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledWith(
-      'oauth',
-    );
-    unmount();
-    expect(channelCloseMock).toHaveBeenCalled();
-  });
-
-  test('dispatches reRunQuery action when a message with correct tab ID is received for SQL Lab', async () => {
-    render(setup());
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-    simulateStorageMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
-    });
-    expect(reRunQuery).toHaveBeenCalledTimes(1);
-  });
-
-  test('dispatches reRunQuery action when storage event has matching tab ID', async () => {
-    render(setup());
-
-    simulateStorageMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
-    });
-  });
-
-  test('waits for the SQL Lab query before consuming the completion', async () => {
-    const initialState = {
-      sqlLab: {
-        queries: {},
-        queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
-        tabHistory: ['editor-id'],
-      },
-      explore: { slice: null },
-      charts: {},
-      dashboardInfo: {},
-    };
-    const delayedQueryStore = createStore(
-      (state: typeof initialState = initialState, action) =>
-        action.type === 'load-query'
-          ? {
-              ...state,
-              sqlLab: {
-                ...state.sqlLab,
-                queries: { 'query-id': { sql: 'SELECT * FROM table' } },
-              },
-            }
-          : state,
-    );
-    render(setup({}, delayedQueryStore));
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-    expect(reRunQuery).not.toHaveBeenCalled();
-
-    act(() => {
-      delayedQueryStore.dispatch({ type: 'load-query' });
-    });
-    simulateStorageMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
-    });
-  });
-
-  test('dispatches triggerQuery action for explore source upon receiving a correct message', async () => {
-    render(setup({ source: 'explore' }));
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(triggerQuery).toHaveBeenCalledWith(true, 123);
-    });
-  });
-
-  test('explore source with time range limits on: no triggerQuery until the check is valid', async () => {
-    const limitsStore = createStore(() => ({
-      ...mockStore.getState(),
-      explore: {
-        slice: { slice_id: 123 },
-        controls: { slice_id: { value: 123 } },
-        form_data: {},
-        timeRangeLimits: {
-          status: 'loaded',
-          levels: [
-            {
-              source: 'global',
-              policy: {
-                max_span: { quantity: 30, time_grain: 'P1D' },
-                max_look_back: null,
-                max_look_forward: null,
-              },
-            },
-          ],
-          datasetId: 1,
-        },
-      },
-    }));
-    const limitsDispatch = jest.fn((action: unknown): unknown =>
-      typeof action === 'function'
-        ? action(limitsDispatch, limitsStore.getState)
-        : action,
-    );
-    jest
-      .spyOn(reduxHooks, 'useDispatch')
-      .mockReturnValue(limitsDispatch as never);
-    (triggerQuery as jest.Mock).mockClear();
-    render(setup({ source: 'explore' }, limitsStore));
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(limitsDispatch).toHaveBeenCalledWith({
-        type: 'SET_TIME_RANGE_RUN_ON_VALID',
-        run: 'mount',
-      });
-    });
-    expect(triggerQuery).not.toHaveBeenCalled();
-    jest
-      .spyOn(reduxHooks, 'useDispatch')
-      .mockReturnValue(mockDispatch as never);
-  });
-
-  test('dispatches onRefresh action for dashboard source upon receiving a correct message', async () => {
-    render(setup({ source: 'dashboard' }));
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      // Chart IDs are converted to numbers by the component via chartList.map(Number)
-      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 0, 'dashboard-id');
-    });
-  });
-
-  test('ignores messages with a mismatched tab ID', () => {
-    render(setup());
-
-    simulateBroadcastMessage({ tabId: 'someOtherTab' });
-
-    expect(reRunQuery).not.toHaveBeenCalled();
-  });
-
-  test('dispatches triggerQuery with UNSAVED_CHART_ID for explore source when no saved chart exists', async () => {
-    render(setup({ source: 'explore' as ErrorSource }, mockStoreUnsavedChart));
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(triggerQuery).toHaveBeenCalledWith(true, UNSAVED_CHART_ID);
-    });
-  });
-
-  test('dispatches invalidateTags for Schemas when source is crud', async () => {
-    render(setup({ source: 'crud' as ErrorSource }));
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(api.util.invalidateTags).toHaveBeenCalledWith([
-        { type: 'Schemas', id: 'LIST' },
-        { type: 'Catalogs', id: 'LIST' },
-        'Tables',
-        'TableMetadatas',
-      ]);
-    });
-  });
-
-  test('runs scoped mitigation once instead of CRUD invalidation', async () => {
-    const errorMitigationFunction = jest.fn();
-    render(
-      setup({
-        source: 'crud' as ErrorSource,
-        errorMitigationFunction,
-      }),
-    );
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-    simulateStorageMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(errorMitigationFunction).toHaveBeenCalledTimes(1);
-    });
-    expect(api.util.invalidateTags).not.toHaveBeenCalled();
-  });
-
-  test('dispatches only once when both BroadcastChannel and storage signals arrive', async () => {
-    render(setup());
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-    simulateStorageMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(reRunQuery).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  test('falls back to storage events when BroadcastChannel construction throws', async () => {
-    globalWithBroadcastChannel.BroadcastChannel = jest
-      .fn()
-      .mockImplementation(() => {
-        throw new Error('blocked');
-      });
-
-    render(setup());
-
-    simulateStorageMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
-    });
-  });
-
-  test('re-processes a later signal when the first arrived before state was ready', async () => {
-    const initialState = {
-      sqlLab: {
-        queries: {},
-        queryEditors: [{ id: 'editor-id' }],
-        tabHistory: ['editor-id'],
-      },
-      explore: { slice: { slice_id: 123 } },
-      charts: { '1': {}, '2': {} },
-      dashboardInfo: { id: 'dashboard-id' },
-    };
-    type DynamicStoreState = typeof initialState;
-    type DynamicStoreAction = { type: string };
-    const dynamicStore = createStore(
-      (state: DynamicStoreState = initialState, action: DynamicStoreAction) => {
-        if (action.type === 'SET_READY') {
-          return {
+test('waits for the SQL Lab query before consuming the completion', async () => {
+  const initialState = {
+    sqlLab: {
+      queries: {},
+      queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+      tabHistory: ['editor-id'],
+    },
+    explore: { slice: null },
+    charts: {},
+    dashboardInfo: {},
+  };
+  const delayedQueryStore = createStore(
+    (state: typeof initialState = initialState, action) =>
+      action.type === 'load-query'
+        ? {
             ...state,
             sqlLab: {
               ...state.sqlLab,
               queries: { 'query-id': { sql: 'SELECT * FROM table' } },
-              queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
             },
-          };
-        }
-        return state;
-      },
-    );
+          }
+        : state,
+  );
+  render(setup({}, delayedQueryStore));
 
-    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  expect(reRunQuery).not.toHaveBeenCalled();
 
-    render(
-      <Provider store={dynamicStore}>
-        <OAuth2RedirectMessage {...defaultProps} />
-      </Provider>,
-    );
-
-    const storageListenerCalls = () =>
-      addEventListenerSpy.mock.calls.filter(([type]) => type === 'storage')
-        .length;
-
-    // First signal arrives before the SQL Lab query state is populated;
-    // nothing dispatches and `handled` must NOT be flipped.
-    simulateBroadcastMessage({ tabId: 'tabId' });
-    expect(reRunQuery).not.toHaveBeenCalled();
-    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(storageListenerCalls()).toBe(1);
-
-    // Query state becomes available, then the storage fallback signal fires.
-    act(() => {
-      dynamicStore.dispatch({ type: 'SET_READY' });
-    });
-
-    // The effect's deps are [extra.tab_id, dispatch], so this unrelated
-    // Redux update must not tear down and recreate the channel or its
-    // storage listener: a regression that restores the old (state-dependent)
-    // deps would still happen to pass this test's final assertion otherwise,
-    // since the mock always hands back the same captured channel either way.
-    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(channelCloseMock).not.toHaveBeenCalled();
-    expect(storageListenerCalls()).toBe(1);
-
-    simulateStorageMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
-    });
-
-    addEventListenerSpy.mockRestore();
+  act(() => {
+    delayedQueryStore.dispatch({ type: 'load-query' });
   });
+  simulateStorageMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+  });
+});
+
+test('dispatches triggerQuery action for explore source upon receiving a correct message', async () => {
+  render(setup({ source: 'explore' }));
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(triggerQuery).toHaveBeenCalledWith(true, 123);
+  });
+});
+
+test('explore source with time range limits on: no triggerQuery until the check is valid', async () => {
+  const limitsStore = createStore(() => ({
+    ...mockStore.getState(),
+    explore: {
+      slice: { slice_id: 123 },
+      controls: { slice_id: { value: 123 } },
+      form_data: {},
+      timeRangeLimits: {
+        status: 'loaded',
+        levels: [
+          {
+            source: 'global',
+            policy: {
+              max_span: { quantity: 30, time_grain: 'P1D' },
+              max_look_back: null,
+              max_look_forward: null,
+            },
+          },
+        ],
+        datasetId: 1,
+      },
+    },
+  }));
+  const limitsDispatch = jest.fn((action: unknown): unknown =>
+    typeof action === 'function'
+      ? action(limitsDispatch, limitsStore.getState)
+      : action,
+  );
+  jest
+    .spyOn(reduxHooks, 'useDispatch')
+    .mockReturnValue(limitsDispatch as never);
+  (triggerQuery as jest.Mock).mockClear();
+  render(setup({ source: 'explore' }, limitsStore));
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(limitsDispatch).toHaveBeenCalledWith({
+      type: 'SET_TIME_RANGE_RUN_ON_VALID',
+      run: 'mount',
+    });
+  });
+  expect(triggerQuery).not.toHaveBeenCalled();
+  jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch as never);
+});
+
+test('dispatches onRefresh action for dashboard source upon receiving a correct message', async () => {
+  render(setup({ source: 'dashboard' }));
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    // Chart IDs are converted to numbers by the component via chartList.map(Number)
+    expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 0, 'dashboard-id');
+  });
+});
+
+test('ignores messages with a mismatched tab ID', () => {
+  render(setup());
+
+  simulateBroadcastMessage({ tabId: 'someOtherTab' });
+
+  expect(reRunQuery).not.toHaveBeenCalled();
+});
+
+test('dispatches triggerQuery with UNSAVED_CHART_ID for explore source when no saved chart exists', async () => {
+  render(setup({ source: 'explore' as ErrorSource }, mockStoreUnsavedChart));
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(triggerQuery).toHaveBeenCalledWith(true, UNSAVED_CHART_ID);
+  });
+});
+
+test('dispatches invalidateTags for Schemas when source is crud', async () => {
+  render(setup({ source: 'crud' as ErrorSource }));
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(api.util.invalidateTags).toHaveBeenCalledWith([
+      { type: 'Schemas', id: 'LIST' },
+      { type: 'Catalogs', id: 'LIST' },
+      'Tables',
+      'TableMetadatas',
+    ]);
+  });
+});
+
+test('runs scoped mitigation once instead of CRUD invalidation', async () => {
+  const errorMitigationFunction = jest.fn();
+  render(
+    setup({
+      source: 'crud' as ErrorSource,
+      errorMitigationFunction,
+    }),
+  );
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  simulateStorageMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(errorMitigationFunction).toHaveBeenCalledTimes(1);
+  });
+  expect(api.util.invalidateTags).not.toHaveBeenCalled();
+});
+
+test('dispatches only once when both BroadcastChannel and storage signals arrive', async () => {
+  render(setup());
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  simulateStorageMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledTimes(1);
+  });
+});
+
+test('falls back to storage events when BroadcastChannel construction throws', async () => {
+  globalWithBroadcastChannel.BroadcastChannel = jest
+    .fn()
+    .mockImplementation(() => {
+      throw new Error('blocked');
+    });
+
+  render(setup());
+
+  simulateStorageMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+  });
+});
+
+test('re-processes a later signal when the first arrived before state was ready', async () => {
+  const initialState = {
+    sqlLab: {
+      queries: {},
+      queryEditors: [{ id: 'editor-id' }],
+      tabHistory: ['editor-id'],
+    },
+    explore: { slice: { slice_id: 123 } },
+    charts: { '1': {}, '2': {} },
+    dashboardInfo: { id: 'dashboard-id' },
+  };
+  type DynamicStoreState = typeof initialState;
+  type DynamicStoreAction = { type: string };
+  const dynamicStore = createStore(
+    (state: DynamicStoreState = initialState, action: DynamicStoreAction) => {
+      if (action.type === 'SET_READY') {
+        return {
+          ...state,
+          sqlLab: {
+            ...state.sqlLab,
+            queries: { 'query-id': { sql: 'SELECT * FROM table' } },
+            queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+          },
+        };
+      }
+      return state;
+    },
+  );
+
+  const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+
+  render(
+    <Provider store={dynamicStore}>
+      <OAuth2RedirectMessage {...defaultProps} />
+    </Provider>,
+  );
+
+  const storageListenerCalls = () =>
+    addEventListenerSpy.mock.calls.filter(([type]) => type === 'storage')
+      .length;
+
+  // First signal arrives before the SQL Lab query state is populated;
+  // nothing dispatches and `handled` must NOT be flipped.
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  expect(reRunQuery).not.toHaveBeenCalled();
+  expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(1);
+  expect(storageListenerCalls()).toBe(1);
+
+  // Query state becomes available, then the storage fallback signal fires.
+  act(() => {
+    dynamicStore.dispatch({ type: 'SET_READY' });
+  });
+
+  // The effect's deps are [extra.tab_id, dispatch], so this unrelated
+  // Redux update must not tear down and recreate the channel or its
+  // storage listener: a regression that restores the old (state-dependent)
+  // deps would still happen to pass this test's final assertion otherwise,
+  // since the mock always hands back the same captured channel either way.
+  expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(1);
+  expect(channelCloseMock).not.toHaveBeenCalled();
+  expect(storageListenerCalls()).toBe(1);
+
+  simulateStorageMessage({ tabId: 'tabId' });
+
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+  });
+
+  addEventListenerSpy.mockRestore();
 });

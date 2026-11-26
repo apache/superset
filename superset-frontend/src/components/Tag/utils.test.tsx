@@ -20,36 +20,39 @@ import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { tagToSelectOption, loadTags } from 'src/components/Tag/utils';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('tagToSelectOption', () => {
-  test('converts a Tag object with table_name to a SelectTagsValue', () => {
-    const tag = {
-      id: 1,
-      name: 'TagName',
-      table_name: 'Table1',
-    };
+test('converts a Tag object with table_name to a SelectTagsValue', () => {
+  const tag = {
+    id: 1,
+    name: 'TagName',
+    table_name: 'Table1',
+  };
 
-    const expectedSelectTagsValue = {
-      value: 1,
-      label: 'TagName',
-      key: 1,
-    };
+  const expectedSelectTagsValue = {
+    value: 1,
+    label: 'TagName',
+    key: 1,
+  };
 
-    expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
-  });
+  expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('loadTags', () => {
-  beforeEach(() => {
-    fetchMock.clearHistory().removeRoutes();
-  });
+const clearFetchMock = () => {
+  fetchMock.clearHistory().removeRoutes();
+};
 
-  afterEach(() => {
-    fetchMock.clearHistory().removeRoutes();
-  });
+// Same clear ran before and after each loadTags test. tagToSelectOption does
+// not use fetchMock, so the cleanup stays on the loadTags cases only.
+const runLoadTagsTest = async (fn: () => Promise<void>) => {
+  clearFetchMock();
+  try {
+    await fn();
+  } finally {
+    clearFetchMock();
+  }
+};
 
-  test('constructs correct API query with custom tag filter', async () => {
+test('constructs correct API query with custom tag filter', async () => {
+  await runLoadTagsTest(async () => {
     const mockTags = [
       { id: 1, name: 'analytics', type: 1 },
       { id: 2, name: 'finance', type: 1 },
@@ -87,8 +90,10 @@ describe('loadTags', () => {
       order_direction: 'asc',
     });
   });
+});
 
-  test('returns correctly transformed data', async () => {
+test('returns correctly transformed data', async () => {
+  await runLoadTagsTest(async () => {
     const mockTags = [
       { id: 1, name: 'analytics', type: 1 },
       { id: 2, name: 'finance', type: 1 },
@@ -109,8 +114,10 @@ describe('loadTags', () => {
       totalCount: 2,
     });
   });
+});
 
-  test('handles search parameter correctly', async () => {
+test('handles search parameter correctly', async () => {
+  await runLoadTagsTest(async () => {
     fetchMock.get('glob:*/api/v1/tag/*', {
       result: [],
       count: 0,
@@ -132,8 +139,10 @@ describe('loadTags', () => {
       value: 'financial-data',
     });
   });
+});
 
-  test('handles pagination parameters correctly', async () => {
+test('handles pagination parameters correctly', async () => {
+  await runLoadTagsTest(async () => {
     fetchMock.get('glob:*/api/v1/tag/*', {
       result: [],
       count: 0,
@@ -151,8 +160,10 @@ describe('loadTags', () => {
     expect(decodedQuery.page).toBe(2);
     expect(decodedQuery.page_size).toBe(10);
   });
+});
 
-  test('always includes custom tag filter regardless of other parameters', async () => {
+test('always includes custom tag filter regardless of other parameters', async () => {
+  await runLoadTagsTest(async () => {
     fetchMock.get('glob:*/api/v1/tag/*', {
       result: [],
       count: 0,
@@ -181,8 +192,10 @@ describe('loadTags', () => {
       });
     });
   });
+});
 
-  test('maintains correct order specification', async () => {
+test('maintains correct order specification', async () => {
+  await runLoadTagsTest(async () => {
     fetchMock.get('glob:*/api/v1/tag/*', {
       result: [],
       count: 0,
