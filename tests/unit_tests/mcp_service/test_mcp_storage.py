@@ -392,3 +392,35 @@ def test_create_redis_store_applies_configured_timeouts() -> None:
     connection = client.connection_pool.make_connection()
     assert connection.socket_timeout == 2.5
     assert connection.socket_connect_timeout == 1.5
+
+
+@pytest.mark.parametrize(
+    "cert_reqs",
+    [0, 1, 2, ssl.CERT_NONE, ssl.CERT_OPTIONAL, ssl.CERT_REQUIRED],
+    ids=[
+        "int-none",
+        "int-optional",
+        "int-required",
+        "enum-none",
+        "enum-optional",
+        "enum-required",
+    ],
+)
+def test_create_redis_store_accepts_numeric_cert_reqs(
+    cert_reqs: int,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Integer and VerifyMode settings retain redis-py's verification semantics."""
+    client = _build_real_client(
+        {
+            "CACHE_REDIS_URL": "rediss://redis.example.com:6380/0",
+            "CACHE_REDIS_SSL_CERT_REQS": cert_reqs,
+        }
+    )
+
+    context = _ssl_context(client)
+    assert context.verify_mode == cert_reqs
+    assert context.check_hostname is (cert_reqs != ssl.CERT_NONE)
+    assert ("MCP Redis TLS certificate verification is disabled" in caplog.text) is (
+        cert_reqs == ssl.CERT_NONE
+    )

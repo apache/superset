@@ -32,8 +32,8 @@ assists people when migrating to a new version.
   the old unverified behavior as an explicit opt-out. MCP Redis connections
   also gain bounded socket and connect timeouts (5 seconds each), configurable
   with `CACHE_REDIS_SOCKET_TIMEOUT` and `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`.
-  A Redis certificate that cannot be verified makes MCP Redis operations
-  (response cache, event store) fail with an SSL error, so check the CA setup
+  A Redis certificate that cannot be verified makes MCP response-cache Redis
+  operations fail with an SSL error, so check the CA setup
   before upgrading.
 
 - `superset.mcp_service.server.run_server()` no longer accepts

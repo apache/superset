@@ -25,6 +25,7 @@ Reusable across caching middleware, OAuth providers, EventStore, etc.
 """
 
 import logging
+import ssl
 from importlib import import_module
 from typing import Any, Callable, Dict
 from urllib.parse import urlparse
@@ -53,7 +54,16 @@ def _ssl_kwargs(store_config: Dict[str, Any]) -> dict[str, Any]:
     Raises:
         ValueError: If CACHE_REDIS_SSL_CERT_REQS is not a known value.
     """
-    cert_reqs = store_config.get("CACHE_REDIS_SSL_CERT_REQS") or "required"
+    cert_reqs = store_config.get("CACHE_REDIS_SSL_CERT_REQS")
+    if cert_reqs is None:
+        cert_reqs = "required"
+    elif isinstance(cert_reqs, int):
+        cert_reqs_names: dict[int, str] = {
+            ssl.CERT_NONE: "none",
+            ssl.CERT_OPTIONAL: "optional",
+            ssl.CERT_REQUIRED: "required",
+        }
+        cert_reqs = cert_reqs_names.get(cert_reqs, cert_reqs)
     if cert_reqs not in _VALID_SSL_CERT_REQS:
         raise ValueError(
             "Invalid MCP_STORE_CONFIG CACHE_REDIS_SSL_CERT_REQS "

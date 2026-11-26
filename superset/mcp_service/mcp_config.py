@@ -381,9 +381,9 @@ MCP_STORE_CONFIG: dict[str, Any] = {
     # TLS settings, applied to rediss:// URLs only. The server certificate and
     # hostname are verified by default. Point CACHE_REDIS_SSL_CA_CERTS at a CA
     # bundle (PEM) when Redis uses a certificate from a private CA.
-    # CACHE_REDIS_SSL_CERT_REQS accepts "required" (default), "optional" or
-    # "none"; "none" disables certificate verification and is an explicit
-    # opt-out.
+    # CACHE_REDIS_SSL_CERT_REQS accepts ssl.CERT_* constants (integers) or
+    # "required" (default), "optional" or "none". "none" / ssl.CERT_NONE
+    # disables certificate verification and is an explicit opt-out.
     "CACHE_REDIS_SSL_CERT_REQS": "required",
     "CACHE_REDIS_SSL_CA_CERTS": None,
     # Seconds before a Redis read/write or connection attempt is abandoned.
