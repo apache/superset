@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -30,6 +30,7 @@ from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.exceptions import CacheLoadError
+from superset.models.helpers import QueryResult
 
 
 def _query_timing() -> QueryTiming:
@@ -419,18 +420,21 @@ def test_dataframe_payload_result_emits_cache_outcome(
     assert ("chart_data.query.annotations" in timers) is (not is_loaded)
 
 
-def _picklable_query_result(status: QueryStatus) -> SimpleNamespace:
+def _picklable_query_result(status: QueryStatus) -> QueryResult:
     """A query result whose cached payload can be serialized for the size check."""
-    return SimpleNamespace(
-        status=status,
-        query="SELECT 1",
-        applied_template_filters=[],
-        applied_filter_columns=[],
-        rejected_filter_columns=[],
-        error_message=None,
-        df=pd.DataFrame({"col1": [1]}),
-        sql_rowcount=1,
-        semantic_cache_status=None,
+    return cast(
+        QueryResult,
+        SimpleNamespace(
+            status=status,
+            query="SELECT 1",
+            applied_template_filters=[],
+            applied_filter_columns=[],
+            rejected_filter_columns=[],
+            error_message=None,
+            df=pd.DataFrame({"col1": [1]}),
+            sql_rowcount=1,
+            semantic_cache_status=None,
+        ),
     )
 
 
