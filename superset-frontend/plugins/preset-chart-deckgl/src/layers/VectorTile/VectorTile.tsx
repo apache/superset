@@ -66,6 +66,17 @@ function renderDefaultTooltip(o: JsonObject) {
 }
 
 /**
+ * Copies tile properties to the top level of the hovered object so templates
+ * can use {{ name }}, matching what Explore inserts for Tooltip contents.
+ * `properties` is kept, so {{ properties.name }} also works. Properties take
+ * precedence over feature fields with the same name, such as `type`.
+ */
+const withFlatProperties = (o: JsonObject): JsonObject =>
+  o.object?.properties
+    ? { ...o, object: { ...o.object, ...o.object.properties } }
+    : o;
+
+/**
  * Builds the MVTLayer from form data. Exported separately because the deck.gl
  * Multiple Layers chart calls it directly. Returns null without a valid tile URL.
  */
@@ -103,7 +114,8 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({
     ...commonLayerProps({
       formData,
       setTooltip,
-      setTooltipContent: tooltipContent,
+      setTooltipContent: (o: JsonObject) =>
+        tooltipContent(withFlatProperties(o)),
     }),
   });
 };
