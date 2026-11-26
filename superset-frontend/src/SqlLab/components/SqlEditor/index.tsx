@@ -56,6 +56,7 @@ import {
   Button,
   Divider,
   EmptyState,
+  Flex,
   Input,
   Modal,
   Splitter,
@@ -123,6 +124,8 @@ import KeyboardShortcutButton, {
 } from '../KeyboardShortcutButton';
 import SqlEditorTopBar from '../SqlEditorTopBar';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
+import { resolveView } from 'src/core/views';
+import useNorthPaneView from './useNorthPaneView';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -275,6 +278,16 @@ const SqlEditor: FC<Props> = ({
 
   const logAction = useLogAction({ queryEditorId: queryEditor.id });
   const isActive = currentQueryEditorId === queryEditor.id;
+
+  // ID of the northPane view active for this tab, or null for the default
+  // SQL editor layout, kept in sync with localStorage across reloads and
+  // other tabs.
+  const { northPaneViewId, northPaneViews } = useNorthPaneView(queryEditor);
+
+  const hasExtensionEditor =
+    !!northPaneViewId &&
+    northPaneViews.some(view => view.id === northPaneViewId);
+
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');
   const [northPercent, setNorthPercent] = useState(
@@ -351,9 +364,9 @@ const SqlEditor: FC<Props> = ({
     if (autorun) {
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
-      startQuery();
+      if (!northPaneViewId) startQuery();
     }
-  }, [autorun, dispatch, queryEditor, startQuery]);
+  }, [autorun, dispatch, northPaneViewId, queryEditor, startQuery]);
 
   const getHotkeyConfig = useCallback(() => {
     // Get the user's OS
@@ -634,16 +647,17 @@ const SqlEditor: FC<Props> = ({
   }, [onBeforeUnload, loadQueryEditor, isActive]);
 
   useEffect(() => {
-    // setup hotkeys
-    const hotkeys = getHotkeyConfig();
-    if (isActive) {
-      // MouseTrap always override the same key
-      // Unbind (reset) will be called when App component unmount
-      hotkeys.forEach(keyConfig => {
-        Mousetrap.bind([keyConfig.key], keyConfig.func);
-      });
-    }
-  }, [getHotkeyConfig, latestQuery, isActive]);
+    if (!isActive) return undefined;
+    const bindings = getHotkeyConfig().filter(
+      ({ name }) =>
+        !hasExtensionEditor ||
+        ['newTab', 'switchTabToLeft', 'switchTabToRight'].includes(name),
+    );
+    bindings.forEach(({ key, func }) => Mousetrap.bind(key, func));
+    return () => {
+      bindings.forEach(({ key }) => Mousetrap.unbind(key));
+    };
+  }, [getHotkeyConfig, hasExtensionEditor, isActive]);
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
@@ -1048,6 +1062,28 @@ const SqlEditor: FC<Props> = ({
         >
           <Skeleton active />
         </div>
+      ) : northPaneViewId && hasExtensionEditor ? (
+        <Flex
+          vertical
+          css={css`
+            height: 100%;
+          `}
+        >
+          <div
+            css={css`
+              flex: 1;
+              overflow: auto;
+              padding: 0 ${theme.sizeUnit * 4}px;
+            `}
+          >
+            {resolveView(northPaneViewId)}
+          </div>
+        </Flex>
+      ) : northPaneViewId ? (
+        // The extension providing this view hasn't registered it yet (views
+        // load asynchronously after mount); fall back to the query pane
+        // instead of an empty state so the pane isn't blank while it loads.
+        queryPane()
       ) : showEmptyState && !hasSqlStatement ? (
         <EmptyState
           image="vector.svg"

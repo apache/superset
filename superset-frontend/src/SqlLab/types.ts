@@ -73,6 +73,12 @@ export interface QueryEditor {
   cursorPosition?: CursorPosition;
   isDataset?: boolean;
   tabViewId?: string;
+  /**
+   * ID of the extension-registered `sqllab.northPane` view this tab opens
+   * with, when it was created through the extension API with one. Held in
+   * client state only; SqlEditor persists it per tab so it survives reloads.
+   */
+  northPaneViewId?: string;
 }
 
 export type toastState = {
