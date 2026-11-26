@@ -201,7 +201,7 @@ async def test_restore_chart_restore_failed(
     )
 
     with patch(
-        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        "superset.utils.error_sanitization.is_sanitization_required",
         return_value=guest,
     ):
         content, notifications = await _call_restore_capturing_logs(mcp_server, 10)

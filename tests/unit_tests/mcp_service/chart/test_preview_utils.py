@@ -679,7 +679,7 @@ def _preview_raising(exc: Exception, *, guest: bool = False) -> ChartError | Any
         ) as command,
         patch("superset.common.query_context_factory.QueryContextFactory") as factory,
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ),
     ):

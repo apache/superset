@@ -510,7 +510,7 @@ class TestSaveSqlQueryToolLogic:
                 patch("flask.g", mock_g),
                 patch.object(mod, "event_logger", mock_event_logger),
                 patch(
-                    "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+                    "superset.utils.error_sanitization.is_sanitization_required",
                     return_value=False,
                 ),
             ):

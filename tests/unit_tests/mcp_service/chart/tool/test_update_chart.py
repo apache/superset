@@ -2230,7 +2230,7 @@ class TestUpdateChartErrorPaths:
             notifications.append(str(message.data))
 
         with patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ):
             async with Client(mcp, log_handler=log_handler) as client:

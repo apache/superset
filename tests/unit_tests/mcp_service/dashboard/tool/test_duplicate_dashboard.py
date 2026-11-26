@@ -990,7 +990,7 @@ async def test_copy_failure_error_text(
     )
 
     with patch(
-        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        "superset.utils.error_sanitization.is_sanitization_required",
         return_value=guest,
     ):
         content, notifications = await _duplicate_with_notifications(mcp_server)

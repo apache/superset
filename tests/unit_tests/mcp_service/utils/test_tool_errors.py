@@ -72,17 +72,9 @@ class _HostileError(Exception):
 
 
 def _principal(guest: bool) -> Iterator[None]:
-    # The general rule reads it through this module; the query rule through
-    # sanitize_error_message.
-    with (
-        patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
-            return_value=guest,
-        ),
-        patch(
-            "superset.utils.error_sanitization.is_sanitization_required",
-            return_value=guest,
-        ),
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=guest,
     ):
         yield
 

@@ -36,9 +36,7 @@ from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 _FIND = "superset.daos.dataset.DatasetDAO.find_by_id_or_uuid"
 _COMMAND = "superset.commands.dataset.restore.RestoreDatasetCommand"
-_SANITIZATION_REQUIRED = (
-    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
-)
+_SANITIZATION_REQUIRED = "superset.utils.error_sanitization.is_sanitization_required"
 
 _UUID = UUID("11111111-2222-3333-4444-555555555555")
 

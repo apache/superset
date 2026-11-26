@@ -1188,7 +1188,7 @@ def test_compile_chart_query_error_is_redacted_for_guests(
     dataset.database.db_engine_spec = BaseEngineSpec
     mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
     mocker.patch(
-        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        "superset.utils.error_sanitization.is_sanitization_required",
         return_value=guest,
     )
 

@@ -1720,7 +1720,7 @@ class TestDestructiveDDLBlocking:
         ddl_mocks.execute.side_effect = SupersetGenericDBErrorException(engine_error)
         notifications, log_handler = self._notification_collector()
         with patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ):
             async with Client(mcp_server, log_handler=log_handler) as client:

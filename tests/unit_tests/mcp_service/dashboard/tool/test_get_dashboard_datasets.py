@@ -980,7 +980,7 @@ async def test_get_dashboard_datasets_superset_error_reaches_signed_in_users_onl
         notifications.append(str(getattr(message, "data", message)))
 
     with patch(
-        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        "superset.utils.error_sanitization.is_sanitization_required",
         return_value=guest,
     ):
         async with Client(mcp_server, log_handler=log_handler) as client:

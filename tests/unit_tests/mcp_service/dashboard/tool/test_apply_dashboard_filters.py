@@ -4673,7 +4673,7 @@ async def test_permalink_create_failure_error_text(
         patch(DAO_GET, return_value=_mock_dashboard([TIME_FILTER])),
         patch(CREATE_PERMALINK) as create,
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ),
     ):

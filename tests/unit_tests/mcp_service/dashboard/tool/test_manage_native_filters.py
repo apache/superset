@@ -3629,7 +3629,7 @@ async def test_update_failure_error_text(
         patch(DAO_FIND_BY_ID, return_value=dashboard),
         patch(COMMAND_PATH, command),
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ),
     ):

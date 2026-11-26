@@ -38,9 +38,7 @@ _COUNT = "superset.mcp_service.dataset.tool.delete_dataset._count_affected_objec
 _RUN = "superset.commands.dataset.delete.DeleteDatasetCommand.run"
 _VALIDATE = "superset.commands.dataset.delete.DeleteDatasetCommand.validate"
 _FLAG = "superset.mcp_service.dataset.tool.delete_dataset.is_feature_enabled"
-_SANITIZATION_REQUIRED = (
-    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
-)
+_SANITIZATION_REQUIRED = "superset.utils.error_sanitization.is_sanitization_required"
 
 
 @pytest.fixture

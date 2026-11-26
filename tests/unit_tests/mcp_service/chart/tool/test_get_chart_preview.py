@@ -2910,7 +2910,7 @@ async def _call_preview_raising(
             return_value="http://localhost",
         ),
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ),
         patch("superset.mcp_service.auth.get_user_from_request") as mock_user,

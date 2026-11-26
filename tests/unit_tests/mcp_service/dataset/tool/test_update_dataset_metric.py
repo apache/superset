@@ -728,7 +728,7 @@ async def test_update_dataset_metric_update_failed(
             return_value=mock_command,
         ),
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ),
     ):

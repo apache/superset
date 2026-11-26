@@ -176,10 +176,8 @@ from superset.exceptions import (  # noqa: E402
 from superset.mcp_service.utils.error_sanitization import (  # noqa: E402
     sanitize_for_log,
 )
-from superset.utils.error_sanitization import (  # noqa: E402
-    is_sanitization_required,
-    sanitize_superset_error,
-)
+from superset.utils import error_sanitization  # noqa: E402
+from superset.utils.error_sanitization import sanitize_superset_error  # noqa: E402
 
 if TYPE_CHECKING:
     from fastmcp import Context
@@ -273,8 +271,10 @@ def safe_error(
     if query and isinstance(exc, Exception) and (semantic or _is_query_failure(exc)):
         code, message, _ = public_query_error(exc, semantic=semantic)
         return SafeError(code=code, message=_bounded(message))
+    # Read through the module, like sanitize_error_message, so both rules see
+    # the same principal.
     error = sanitize_superset_error(
-        _superset_error(exc), required=is_sanitization_required()
+        _superset_error(exc), required=error_sanitization.is_sanitization_required()
     )
     return SafeError(code=error.error_type.value, message=_bounded(str(error.message)))
 

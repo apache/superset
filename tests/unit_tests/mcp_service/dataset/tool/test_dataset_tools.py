@@ -2173,7 +2173,7 @@ async def _create_virtual_dataset_failing_with(
             return_value=mock_command,
         ),
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ),
     ):
@@ -3055,7 +3055,7 @@ async def test_tool_errors_report_superset_message_to_signed_in_users_only(
     with (
         patch(dao_target, side_effect=CommandException(_LEAK_MARKER)),
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ),
     ):

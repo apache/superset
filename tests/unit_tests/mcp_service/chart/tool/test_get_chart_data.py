@@ -4135,7 +4135,7 @@ async def test_saved_chart_data_error_text_for_signed_in_user(
 
     with (
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=False,
         ),
         caplog.at_level(
@@ -4309,17 +4309,9 @@ async def test_chart_data_engine_error_is_redacted_for_guests(
     async def log_handler(message: Any) -> None:
         notifications.append(str(message.data))
 
-    # The general rule and the query rule (sanitize_error_message) each read
-    # the principal through their own module.
-    with (
-        patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
-            return_value=guest,
-        ),
-        patch(
-            "superset.utils.error_sanitization.is_sanitization_required",
-            return_value=guest,
-        ),
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=guest,
     ):
         async with Client(mcp_server, log_handler=log_handler) as client:
             result: Any = await client.call_tool("get_chart_data", {"request": request})

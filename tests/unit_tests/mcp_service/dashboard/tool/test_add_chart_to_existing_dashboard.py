@@ -543,7 +543,7 @@ async def test_update_failure_error_text(
     }[raised]
 
     with patch(
-        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        "superset.utils.error_sanitization.is_sanitization_required",
         return_value=guest,
     ):
         async with Client(mcp_server) as client:

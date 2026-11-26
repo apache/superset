@@ -207,7 +207,7 @@ async def test_delete_chart_generic_command_error(
     mock_run.side_effect = CommandException("Delete failed for domain reasons")
 
     with patch(
-        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+        "superset.utils.error_sanitization.is_sanitization_required",
         return_value=guest,
     ):
         content, notifications = await _call_delete_capturing_logs(mcp_server, 10)

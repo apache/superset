@@ -1081,9 +1081,7 @@ async def test_dashboard_not_found_warning_has_no_exception_text(mock_dao, mcp_s
     )
 
 
-_SANITIZATION_REQUIRED = (
-    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
-)
+_SANITIZATION_REQUIRED = "superset.utils.error_sanitization.is_sanitization_required"
 
 
 @pytest.mark.parametrize("guest", [False, True])

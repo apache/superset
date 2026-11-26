@@ -34,9 +34,7 @@ from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 _FIND = "superset.daos.dataset.DatasetDAO.find_by_id"
 _UPDATE = "superset.commands.dataset.update.UpdateDatasetCommand"
 _REFRESH = "superset.commands.dataset.refresh.RefreshDatasetCommand"
-_SANITIZATION_REQUIRED = (
-    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
-)
+_SANITIZATION_REQUIRED = "superset.utils.error_sanitization.is_sanitization_required"
 
 
 @pytest.fixture

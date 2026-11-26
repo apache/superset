@@ -142,9 +142,7 @@ async def call(tool: str, request: dict[str, Any]) -> dict[str, Any]:
 
 
 LEAK_MARKER = "password=hunter2 host=db.internal"
-SANITIZATION_REQUIRED = (
-    "superset.mcp_service.utils.tool_errors.is_sanitization_required"
-)
+SANITIZATION_REQUIRED = "superset.utils.error_sanitization.is_sanitization_required"
 
 
 async def call_capturing_logs(

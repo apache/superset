@@ -2248,7 +2248,7 @@ async def test_unsaved_chart_sql_failure_text(
             return_value=nullcontext(),
         ),
         patch(
-            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            "superset.utils.error_sanitization.is_sanitization_required",
             return_value=guest,
         ),
     ):
