@@ -2405,6 +2405,40 @@ def test_get_time_filter(
         assert cache.applied_filters == applied_filters
 
 
+def test_get_time_filter_deeply_nested_default_raises_template_error() -> None:
+    """
+    A deeply nested date expression in the ``default`` must surface as a
+    handled ``SupersetTemplateException`` instead of a bare ``ValueError``
+    that escapes the template render as a 500.
+    """
+    columns = [
+        TableColumn(column_name="dt", is_dttm=1, type="DATE"),
+        TableColumn(column_name="dttm", is_dttm=1, type="TIMESTAMP"),
+    ]
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name="my_dataset",
+        columns=columns,
+        main_dttm_col="dt",
+        database=database,
+    )
+    # The grammar recurses once per nesting level; ~80 levels exhaust the
+    # interpreter stack (threshold measured between 60 and 80).
+    nested = "dateadd(" * 200 + "datetime('now')" + ", 1, day)" * 200 + " : "
+
+    with (
+        freeze_time("2024-09-03"),
+        current_app.test_request_context(json={"queries": None}),
+    ):
+        cache = ExtraCache(
+            database=database,
+            table=table,
+        )
+        with pytest.raises(SupersetTemplateException):
+            cache.get_time_filter(default=nested)
+
+
 def test_jinja2_template_syntax_error_handling(mocker: MockerFixture) -> None:
     """Test TemplateSyntaxError handling with proper error message and 422 status"""
     from superset.errors import SupersetErrorType
@@ -3922,3 +3956,62 @@ def test_render_for_discovery_custom_processors(mocker: MockerFixture) -> None:
     )
     with pytest.raises(OpaqueTemplateError):
         processor.render_for_discovery("{{ value.now() }}")
+
+
+def test_i18n_macro_adds_an_extra_cache_key(mocker: MockerFixture) -> None:
+    """A locale-dependent macro must vary the query cache key.
+
+    Without this, a viewer in one locale can populate a cached result holding
+    their translated SQL that a viewer in another locale then receives.
+    """
+    mocker.patch(
+        "superset.jinja_context.i18n_macro",
+        side_effect=lambda text: "Ventes" if text == "Sales" else text,
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    extra_cache_keys: list[Any] = []
+    processor = get_template_processor(
+        database=database, extra_cache_keys=extra_cache_keys
+    )
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "Ventes"
+    assert extra_cache_keys == ["Ventes"]
+
+
+def test_i18n_macro_is_detected_as_cache_relevant() -> None:
+    """``ExtraCache.regex`` gates whether a query collects extra cache keys."""
+    assert ExtraCache.regex.search("SELECT '{{ i18n('Sales') }}'")
+
+
+def test_jinja_context_addon_keeps_the_i18n_name(mocker: MockerFixture) -> None:
+    """A deployment that already bound ``i18n`` keeps its own function.
+
+    The macro is new, so an addon of the same name predates it and must not be
+    silently replaced on upgrade.
+    """
+    mocker.patch(
+        "superset.jinja_context.context_addons",
+        return_value={"i18n": lambda text: f"addon:{text}"},
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "addon:Sales"
+
+
+def test_template_param_does_not_unbind_the_i18n_macro(mocker: MockerFixture) -> None:
+    """A dataset template_param must not displace a core macro.
+
+    ``template_params`` are merged into the same context dict before the macros
+    are registered, so guarding on the whole context would leave a non-callable
+    bound to the name and break ``{{ i18n(...) }}`` for that query.
+    """
+    mocker.patch(
+        "superset.jinja_context.i18n_macro",
+        side_effect=lambda text: f"translated:{text}",
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+    processor.set_context(i18n="a template param, not a function")
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "translated:Sales"

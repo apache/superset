@@ -18,7 +18,7 @@
  */
 import { renderHook } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { createElement } from 'react';
 import type { ReactNode } from 'react';
 import type {
@@ -31,7 +31,7 @@ import {
 } from '../../dependencyGraph';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 
-const mockStore = configureStore([]);
+const mockStore = createMockStore([]);
 
 const buildWrapper = (filters: FilterConfigMap) => {
   const store = mockStore({ nativeFilters: { filters } });

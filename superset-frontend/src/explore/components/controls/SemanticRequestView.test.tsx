@@ -58,7 +58,7 @@ test('copies the complete raw provider request including headers and whitespace'
 test.each(['SQL', 'sql', 'json'])(
   'uses the known %s kind only as a highlight hint',
   async kind => {
-    const highlighter = jest.spyOn(syntaxHighlighter, 'default');
+    const highlighter = jest.spyOn(syntaxHighlighter, 'CodeSyntaxHighlighter');
     const requestText = `-- ${kind}\n{ "unformatted" : 1 }\n\n-- other\nprovider text`;
     const { container } = render(
       <SemanticRequestView requestText={requestText} />,
@@ -83,7 +83,7 @@ test.each(['SQL', 'sql', 'json'])(
 test.each(['snowflake-sql', 'graphql', 'constructor', 'unknown'])(
   'renders unknown kind %s as plain verbatim text',
   kind => {
-    const highlighter = jest.spyOn(syntaxHighlighter, 'default');
+    const highlighter = jest.spyOn(syntaxHighlighter, 'CodeSyntaxHighlighter');
     const requestText = `-- ${kind}\n  query { field }\n\n-- SQL\nSELECT 1;\n`;
     const { container } = render(
       <SemanticRequestView requestText={requestText} />,
@@ -98,7 +98,7 @@ test.each(['snowflake-sql', 'graphql', 'constructor', 'unknown'])(
 );
 
 test('does not interpret provider text without a first-line host header', () => {
-  const highlighter = jest.spyOn(syntaxHighlighter, 'default');
+  const highlighter = jest.spyOn(syntaxHighlighter, 'CodeSyntaxHighlighter');
   const requestText = 'SELECT  1;\n-- SQL\nSELECT 2;';
   const { container } = render(
     <SemanticRequestView requestText={requestText} />,

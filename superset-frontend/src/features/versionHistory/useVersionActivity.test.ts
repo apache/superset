@@ -422,3 +422,32 @@ test('clearing the uuid ignores an in-flight response', async () => {
   expect(result.current.records).toEqual([]);
   expect(result.current.count).toBe(0);
 });
+
+test('repeated refreshes preserve the newest content-only self response', async () => {
+  mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => ({
+    count: options?.pageSize === 1 ? 1 : 2,
+    result:
+      options?.pageSize === 1
+        ? [record(20, 0)]
+        : [record(20, 0), record(10, 0)],
+  }));
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+  await waitFor(() =>
+    expect(result.current.currentVersionStatus).toBe('known'),
+  );
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    await act(async () => result.current.refresh());
+    await waitFor(() =>
+      expect(result.current.currentVersionStatus).toBe('known'),
+    );
+    expect(result.current.newestGroup?.transactionId).toBe(20);
+    expect(result.current.timeline).toHaveLength(2);
+  }
+  expect(mockedFetchActivity).toHaveBeenCalledWith('chart', 'uuid-1', {
+    include: 'self',
+    page: 0,
+    pageSize: 1,
+  });
+});

@@ -211,6 +211,29 @@ npm run playwright:debug tests/auth/login.spec.ts
 npm run playwright:report
 ```
 
+### Testing Microsoft Teams notifications
+
+For deployment setup, see the [Microsoft Teams configuration guide](/admin-docs/configuration/alerts-reports#microsoft-teams-configuration).
+
+Backend tests under `tests/unit_tests/integrations/teams/` exercise the real SDK
+with fake HTTP transports. Install the `teams` extra to run authentication and
+transport tests rather than skipping them. Notification contract tests at
+`tests/unit_tests/reports/notifications/teams_tests.py` run without the SDK.
+
+The browser regression at `playwright/tests/reports/teams-alerts.spec.ts` requires a
+running Superset instance, an admin test user, Reports and Teams enabled, at least
+one configured destination, and a selectable test database. An unconfigured
+integration skips this optional browser test. Use an isolated test deployment
+with placeholder UUIDs and a dummy secret; no Microsoft app or installation is
+needed for this test. It mocks destination availability, creates only inactive
+alerts, blocks execution requests, verifies saved recipient keys, and deletes its
+schedule afterward. It never clicks **Trigger now**. Run it from
+`superset-frontend`:
+
+```bash
+npx playwright test playwright/tests/reports/teams-alerts.spec.ts --project=chromium
+```
+
 ### Debugging Server App
 
 For debugging the Flask backend:
@@ -315,6 +338,37 @@ and stamps do-not-translate markers. A bare
 `pybabel extract` does none of these. CI's template drift check
 (`scripts/translations/check_pot_drift.py`) fails when the template's strings
 differ from what the script's extraction finds.
+
+### Keeping a sentence in one string
+
+Keep each sentence in one `t()` call. A sentence split into several calls
+around a link has a fixed word order. Translators then cannot write a
+grammatical sentence in their language.
+
+For a link inside help text or a tooltip, one way to keep the sentence whole
+is a markdown link with a named placeholder for the URL, rendered with
+`SafeMarkdown` from `@superset-ui/core/components`. The dataset editor's
+"Datetime format" help works this way:
+
+```tsx
+<SafeMarkdown
+  // i18n: translate the whole sentence, including the link text; keep the
+  // [text](%(…)s) link syntax and the placeholder unchanged
+  source={t('Read the [ISO 8601](%(iso_url)s) article.', {
+    iso_url: 'https://en.wikipedia.org/wiki/ISO_8601',
+  })}
+/>
+```
+
+The URL stays out of the translated string. `SafeMarkdown` blocks
+`javascript:` links, sanitizes or escapes HTML, and renders backticks as code.
+Check its limits before you use it:
+
+- It wraps the text in a paragraph, so it does not fit inside an inline label
+  or a button.
+- It renders nothing until its markdown libraries load.
+- Its links open in the same tab. A markdown link has no `target` attribute,
+  and the sanitizer removes one written in HTML.
 
 ### Adding context for translators
 
