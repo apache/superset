@@ -22,7 +22,7 @@ from marshmallow.validate import Length
 def validate_label(value: str | None) -> None:
     """Reject blank or whitespace-only saved query labels."""
     if value is None or not value.strip():
-        raise ValidationError(_("Label must not be empty."))
+        raise ValidationError([_("Label must not be empty.")])
 
 
 openapi_spec_methods_override = {
