@@ -106,6 +106,8 @@ test('keeps a valid extra payload', () => {
   });
 });
 
+// Shared across the former per-describe groups. Every case in those groups
+// must call its setup*() so state does not leak from a previous test.
 let newState: SqlLabState;
 let defaultQueryEditor: SqlLabState['queryEditors'][number];
 let qe: SqlLabState['queryEditors'][number] | undefined;

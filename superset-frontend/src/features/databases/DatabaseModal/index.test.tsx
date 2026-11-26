@@ -430,6 +430,13 @@ beforeEach(() => {
 });
 afterEach(() => fetchMock.clearHistory().removeRoutes());
 
+// Former outside-suite cases (secret fields, JWT expiry, unavailable-driver
+// edit) register their own routes. Clear the suite defaults first so
+// fetch-mock does not keep first-match winners from beforeEach.
+function clearDatabaseModalRoutes() {
+  fetchMock.clearHistory().removeRoutes();
+}
+
 const setup = (propsOverwrite: Partial<DatabaseModalProps> = {}) =>
   render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
     useRedux: true,
@@ -4095,6 +4102,7 @@ test('it will remove the SSH Tunnel config parameters', () => {
 test.each([true, false])(
   'editing an unavailable driver renders a usable form (saved schema: %s)',
   async hasSavedSchema => {
+    clearDatabaseModalRoutes();
     const resource: DatabaseObject = {
       ...databaseFixture,
       id: 10,
@@ -4211,6 +4219,7 @@ test.each(['postgresql', 'mysql', 'databricks', 'gsheets'])(
 
 // The plain GET carries the engine's patterns; only /connection lists the stored fields.
 test('editing reads the secret fields from the connection payload, not the plain GET', async () => {
+  clearDatabaseModalRoutes();
   const mask = 'XXXXXXXXXX';
   const saved = {
     id: 10,
@@ -4290,6 +4299,7 @@ test('a save that keeps the modal open drops revealed endings, so they are fetch
     }),
   };
   const hintsEndpoint = 'glob:*/api/v1/database/10/encrypted_extra_hints/';
+  clearDatabaseModalRoutes();
   fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
   fetchMock.get('glob:*/api/v1/database/10/connection', {
     result: {
@@ -4372,6 +4382,7 @@ test('a save that keeps the modal open reloads the stored secret fields', async 
   };
   const connectionEndpoint = 'glob:*/api/v1/database/10/connection';
   let connectionCalls = 0;
+  clearDatabaseModalRoutes();
   fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
   fetchMock.get(connectionEndpoint, () => {
     connectionCalls += 1;
@@ -4460,6 +4471,7 @@ const openEditModal = async (
       connect_args: { jwt: 'XXXXXXXXXX', password: 'XXXXXXXXXX' },
     }),
   };
+  clearDatabaseModalRoutes();
   fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
   fetchMock.get(HINTS_ENDPOINT, { result: [] });
   fetchMock.get('glob:*/api/v1/database/10/connection', {
@@ -4641,6 +4653,7 @@ test('closing the modal forgets a request to open Secure extra', async () => {
       },
     },
   });
+  clearDatabaseModalRoutes();
   fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
   fetchMock.get(HINTS_ENDPOINT, { result: [] });
   fetchMock.get(
@@ -4708,6 +4721,7 @@ test('the expiry warning link opens Secure extra again after the modal is closed
   const scrollIntoView = jest.fn();
   const originalScroll = Element.prototype.scrollIntoView;
   Element.prototype.scrollIntoView = scrollIntoView;
+  clearDatabaseModalRoutes();
   fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
   fetchMock.get(HINTS_ENDPOINT, { result: [] });
   fetchMock.get('glob:*/api/v1/database/10/connection', {

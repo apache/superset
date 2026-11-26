@@ -70,6 +70,8 @@ function setupCardView() {
   );
 }
 
+afterEach(() => fetchMock.clearHistory().removeRoutes());
+
 test('renders cards instead of table', async () => {
   setupCardView();
   renderDashboardList(mockUser);
@@ -417,8 +419,6 @@ test('card click behavior changes in bulk select mode', async () => {
     );
   });
 });
-
-afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 const enableCardViewWith = (...flags: FeatureFlag[]) =>
   (
