@@ -26,9 +26,10 @@ import {
   maplibreStyle,
   mapProvider,
   tooltipTemplate,
-  tooltipContents,
   viewport,
 } from '../../utilities/Shared_DeckGL';
+
+import { columnChoices } from '../../utilities/controls';
 
 import {
   DEFAULT_MAX_ZOOM,
@@ -135,7 +136,29 @@ const config: ControlPanelConfig = {
     {
       label: t('Tooltip'),
       expanded: true,
-      controlSetRows: [[tooltipContents], [tooltipTemplate]],
+      controlSetRows: [
+        [
+          {
+            name: 'tooltip_properties',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              freeForm: true,
+              clearable: true,
+              label: t('Tooltip properties'),
+              description: t(
+                'Tile properties to list in the tooltip, in this order. To place them yourself, write {{ name }} in the template below.',
+              ),
+              default: [],
+              renderTrigger: true,
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+        ],
+        [tooltipTemplate],
+      ],
     },
   ],
 };

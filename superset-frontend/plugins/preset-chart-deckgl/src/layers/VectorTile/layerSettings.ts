@@ -35,6 +35,7 @@ export interface VectorTileFormData extends QueryFormData {
   min_zoom?: number | string;
   max_zoom?: number | string;
   fill_color_picker?: ColorType;
+  tooltip_properties?: string[];
 }
 
 export interface VectorTileLayerSettings {

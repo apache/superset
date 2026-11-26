@@ -18,7 +18,6 @@
  */
 
 import { buildQueryContext, QueryFormData } from '@superset-ui/core';
-import { addTooltipColumnsToQuery } from '../buildQueryUtils';
 
 /**
  * Map data comes from the tile server, but Superset runs a query for every
@@ -29,11 +28,7 @@ export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      columns: addTooltipColumnsToQuery(
-        // Tooltip columns are listed so the backend doesn't append them itself.
-        [{ expressionType: 'SQL', sqlExpression: '1', label: 'one' }],
-        formData.tooltip_contents,
-      ),
+      columns: [{ expressionType: 'SQL', sqlExpression: '1', label: 'one' }],
       metrics: [],
       groupby: [],
       row_limit: 1,

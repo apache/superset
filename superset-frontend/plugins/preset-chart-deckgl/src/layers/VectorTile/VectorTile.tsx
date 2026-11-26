@@ -91,7 +91,15 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({
     return null;
   }
 
-  const tooltipContent = createTooltipContent(formData, renderDefaultTooltip);
+  const { tooltip_properties: tooltipProperties = [] } =
+    formData as VectorTileFormData;
+  // Tooltip fields have their own key so the backend never adds them to the
+  // SQL query. The shared tooltip code reads `tooltip_contents`, so they are
+  // handed over only here, in the browser.
+  const tooltipContent = createTooltipContent(
+    { ...formData, tooltip_contents: tooltipProperties },
+    renderDefaultTooltip,
+  );
 
   return new MVTLayer({
     id: `vector-tile-layer-${formData.slice_id}`,
