@@ -52,10 +52,10 @@ jest.mock('src/SqlLab/components/TableExploreTree', () => ({
   }: TableBrowserProps) => (
     <>
       <span>{`Browser ${dbId}:${catalog ?? ''}`}</span>
-      <span data-testid="selection-mode">
+      <span data-test="selection-mode">
         {onSelectionChange ? 'multi' : 'single'}
       </span>
-      <span data-testid="selected-count">{selectedTables?.length ?? 0}</span>
+      <span data-test="selected-count">{selectedTables?.length ?? 0}</span>
       <button
         type="button"
         onClick={() =>

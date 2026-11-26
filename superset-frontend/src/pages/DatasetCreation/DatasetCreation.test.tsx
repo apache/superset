@@ -295,32 +295,47 @@ test('keeps schema-qualified table selections and clears them when the connectio
 });
 
 test('shows per-table dataset status and disables bulk creation when all selected exist', async () => {
-  setItem(LocalStorageKeys.Database, { id: 1, database_name: 'examples' });
-  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
-    result: ['public', 'sales'],
+  setItem(LocalStorageKeys.Database, {
+    id: 1,
+    database_name: 'examples',
+    allow_multi_catalog: false,
   });
-  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
-    result: [{ label: 'orders', value: 'orders', type: 'table' }],
-    count: 1,
-  });
-  fetchMock.get('glob:*/api/v1/dataset/?*', {
-    count: 2,
-    result: [
-      { id: 10, schema: 'public', table_name: 'orders' },
-      { id: 11, schema: 'sales', table_name: 'orders' },
-    ],
-  });
+  fetchMock.get(
+    'glob:*/api/v1/database/1/schemas/?*',
+    { result: ['public', 'sales'] },
+    { overwriteRoutes: true },
+  );
+  fetchMock.get(
+    'glob:*/api/v1/database/1/tables/*',
+    {
+      result: [{ label: 'orders', value: 'orders', type: 'table' }],
+      count: 1,
+    },
+    { overwriteRoutes: true },
+  );
+  fetchMock.get(
+    'glob:*/api/v1/dataset/?q*',
+    {
+      count: 2,
+      result: [
+        { id: 10, schema: 'public', table_name: 'orders' },
+        { id: 11, schema: 'sales', table_name: 'orders' },
+      ],
+    },
+    { overwriteRoutes: true },
+  );
 
-  render(<AddDataset />, { useRedux: true });
+  render(<AddDataset />, { useRedux: true, useRouter: true });
 
   await userEvent.click(
     await screen.findByRole('checkbox', { name: 'Select multiple tables' }),
   );
-  await userEvent.click(await screen.findByText('public'));
+  const tree = await screen.findByRole('tree');
+  await userEvent.click(within(tree).getByText('public', { exact: true }));
   await userEvent.click(
     await screen.findByRole('checkbox', { name: 'Select table public.orders' }),
   );
-  await userEvent.click(screen.getByText('sales'));
+  await userEvent.click(within(tree).getByText('sales', { exact: true }));
   await userEvent.click(
     await screen.findByRole('checkbox', { name: 'Select table sales.orders' }),
   );
@@ -336,6 +351,4 @@ test('shows per-table dataset status and disables bulk creation when all selecte
   expect(
     screen.getByRole('button', { name: 'Create datasets' }),
   ).toBeDisabled();
-
-  fetchMock.removeRoutes().clearHistory();
 });
