@@ -697,7 +697,10 @@ test.each([
   'controls rebuilt for a late-loading plugin keep the time range %s opens with',
   (_, slice, range) => {
     const timeFilter = withControlPanels(() => {
-      const { explore } = hydrateNewChart({ slice });
+      const { explore } = hydrateNewChart({
+        slice,
+        formData: { time_range: NO_TIME_RANGE },
+      });
       const dispatch = jest.fn();
       dynamicPluginControlsReady()(
         dispatch,
