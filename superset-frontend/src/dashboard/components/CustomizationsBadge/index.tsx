@@ -93,7 +93,7 @@ const StyledTag = styled(Tag)`
       vertical-align: middle;
       color: ${theme.colorTextSecondary};
       margin-right: ${theme.sizeUnit * 0.5}px;
-      font-size: ${theme.fontSizeSM / theme.fontSize}em;
+      font-size: 1em;
       &:hover {
         color: ${theme.colorText};
       }
@@ -151,7 +151,6 @@ const GroupByInfo = styled.div`
 
 const GroupByItem = styled.div`
   ${({ theme }) => `
-    font-size: ${theme.fontSizeSM / theme.fontSize}em;
     margin-bottom: ${theme.sizeUnit}px;
 
     &:last-child {
