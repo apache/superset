@@ -20,7 +20,7 @@ import { handleKeyboardActivation } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
-import { Icons, Typography } from '@superset-ui/core/components';
+import { Icons, Tooltip, Typography } from '@superset-ui/core/components';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import copyTextToClipboard from 'src/utils/copy';
@@ -102,6 +102,7 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   sortedTables: Record<string, boolean>;
   toggleSortColumns: (tableId: string) => void;
   showTablePins?: boolean;
+  existingTableKeys?: Set<string>;
   onPreviewTable?: (table: TableReference) => void;
 }
 
@@ -123,6 +124,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   sortedTables,
   toggleSortColumns,
   showTablePins = true,
+  existingTableKeys,
   onPreviewTable,
 }) => {
   const theme = useTheme();
@@ -351,6 +353,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           const nodeDbId = Number(_dbId);
           const tableKey = getTableKey(nodeDbId, catalog, schema, tableName);
           const isPinned = pinnedTableKeys.has(tableKey);
+          const hasExistingDataset = existingTableKeys?.has(tableKey) ?? false;
           const selectStar = selectStarMap[tableKey];
           return (
             // Pure event-boundary wrapper: only stops the click/keydown from
@@ -361,6 +364,18 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
               onClick={e => e.stopPropagation()}
               onKeyDown={e => e.stopPropagation()}
             >
+              {hasExistingDataset && (
+                <Tooltip title={t('This table already has a dataset')}>
+                  <Icons.WarningOutlined
+                    iconSize="m"
+                    aria-label={t('This table already has a dataset')}
+                    css={css`
+                      color: ${theme.colorWarning};
+                      margin-right: ${theme.sizeUnit}px;
+                    `}
+                  />
+                </Tooltip>
+              )}
               {isPinned && (
                 <div className="action-static">
                   <ActionButton

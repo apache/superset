@@ -320,3 +320,42 @@ test('table nodes retain working pin controls when showTablePins is omitted', as
   );
   expect(handlePinTable).toHaveBeenCalledWith('orders', 'public', null);
 });
+
+test('marks tables that already have a dataset when existingTableKeys is provided', async () => {
+  const data: TreeNodeData[] = [
+    {
+      id: 'table:1:public:orders',
+      name: 'orders',
+      schema: 'public',
+      type: 'table',
+    },
+  ];
+  render(
+    <Tree<TreeNodeData> data={data} height={300} width={500}>
+      {nodeProps => (
+        <TreeNodeRenderer
+          {...nodeProps}
+          manuallyOpenedNodes={{}}
+          loadingNodes={{}}
+          searchTerm=""
+          catalog={null}
+          pinnedTableKeys={new Set()}
+          pinnedSchemas={new Set()}
+          selectStarMap={{}}
+          handleRefreshTables={jest.fn()}
+          handlePinTable={jest.fn()}
+          handleUnpinTable={jest.fn()}
+          handlePinSchema={jest.fn()}
+          handleUnpinSchema={jest.fn()}
+          refreshTableSchema={jest.fn()}
+          sortedTables={{}}
+          toggleSortColumns={jest.fn()}
+          existingTableKeys={new Set(['1::public:orders'])}
+        />
+      )}
+    </Tree>,
+  );
+  expect(
+    await screen.findByLabelText('This table already has a dataset'),
+  ).toBeVisible();
+});

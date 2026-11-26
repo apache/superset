@@ -77,9 +77,9 @@ export default function useDatabaseSelector(queryEditorId: string) {
   );
 
   const handleSchemaChange = useCallback(
-    (schema: string) => {
+    (schema?: string) => {
       if (queryEditor) {
-        dispatch(queryEditorSetSchema(queryEditor, schema));
+        dispatch(queryEditorSetSchema(queryEditor, schema ?? ''));
       }
     },
     [dispatch, queryEditor],

@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useCallback, type Dispatch } from 'react';
+import { useEffect, useCallback, useMemo, type Dispatch } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { Flex, EmptyState, Divider } from '@superset-ui/core/components';
 import { DatabaseSelectorPopover } from 'src/components/DatabaseSelector';
 import type { DatabaseObject } from 'src/components';
 import { TableBrowser } from 'src/SqlLab/components/TableExploreTree';
-import type { TableReference } from 'src/SqlLab/components/TableExploreTree/types';
+import {
+  getTableKey,
+  type TableReference,
+} from 'src/SqlLab/components/TableExploreTree/types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
 import {
@@ -35,16 +38,34 @@ import {
 interface LeftPanelProps {
   setDataset: Dispatch<DSReducerActionType>;
   dataset?: Partial<DatasetObject> | null;
+  datasetNames?: (string | null | undefined)[];
   onPreviewTable: (table: TableReference) => void;
 }
 
 export default function LeftPanel({
   setDataset,
   dataset,
+  datasetNames,
   onPreviewTable,
 }: LeftPanelProps) {
   const theme = useTheme();
   const { addDangerToast } = useToasts();
+  const existingTableKeys = useMemo(
+    () =>
+      new Set(
+        (datasetNames ?? [])
+          .filter((name): name is string => Boolean(name))
+          .map(name =>
+            getTableKey(
+              dataset?.db?.id,
+              dataset?.catalog,
+              dataset?.schema ?? '',
+              name,
+            ),
+          ),
+      ),
+    [dataset?.db?.id, dataset?.catalog, dataset?.schema, datasetNames],
+  );
   const setDatabase = useCallback(
     (db: DatabaseObject) => {
       setDataset({ type: DatasetActionType.SelectDatabase, payload: { db } });
@@ -99,6 +120,7 @@ export default function LeftPanel({
           supportsSchemas={dataset.db.supports_schemas}
           schema={dataset.schema ?? undefined}
           catalog={dataset.catalog}
+          existingTableKeys={existingTableKeys}
           onPreviewTable={onPreviewTable}
         />
       ) : (

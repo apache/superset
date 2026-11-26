@@ -111,6 +111,7 @@ export default function AddDataset() {
     <LeftPanel
       setDataset={setDataset}
       dataset={dataset}
+      datasetNames={datasetNames}
       onPreviewTable={handleTableSelection}
     />
   );

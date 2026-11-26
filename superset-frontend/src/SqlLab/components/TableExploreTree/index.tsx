@@ -71,6 +71,7 @@ export interface TableBrowserProps {
     catalog: string | null,
   ) => void;
   toolbarViewId?: string;
+  existingTableKeys?: Set<string>;
   onPreviewTable?: (table: TableReference) => void;
 }
 
@@ -194,6 +195,7 @@ export const TableBrowser = ({
   onPinTable: handlePinTable = ignorePin,
   onUnpinTable: handleUnpinTable = ignorePin,
   toolbarViewId,
+  existingTableKeys = EMPTY_PINNED_KEYS,
   onPreviewTable,
 }: TableBrowserProps) => {
   const theme = useTheme();
@@ -421,6 +423,7 @@ export const TableBrowser = ({
         sortedTables={sortedTables}
         toggleSortColumns={toggleSortColumns}
         showTablePins={Boolean(toolbarViewId)}
+        existingTableKeys={existingTableKeys}
         onPreviewTable={previewTableHandler}
       />
     ),
@@ -441,6 +444,7 @@ export const TableBrowser = ({
       manuallyOpenedNodes,
       deferredSearchTerm,
       toolbarViewId,
+      existingTableKeys,
       previewTableHandler,
     ],
   );
