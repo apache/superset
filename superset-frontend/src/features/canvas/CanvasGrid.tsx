@@ -25,7 +25,7 @@ import type {
   ScopeKind,
 } from 'src/core/canvas/types';
 import { t } from '@apache-superset/core/translation';
-import { css, styled } from '@apache-superset/core/theme';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
 import CanvasGridSurface from './CanvasGridSurface';
@@ -37,6 +37,7 @@ import { CanvasDragProvider } from './useCanvasDrag';
 import { useCanvasLogger } from './useCanvasLogger';
 import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import { fitPlacements } from './resolveGrid';
+import { CARD_PADDING_UNITS } from './widgetChrome';
 
 /** Current values set by nodes, per scope kind, by node id. */
 export type ScopeValues = Record<ScopeKind, Record<string, unknown>>;
@@ -58,6 +59,10 @@ const SCOPE_KINDS: ReadonlySet<string> = new Set<ScopeKind>([
 
 const NO_VALUES: FilterValue[] = [];
 const NO_EVENTS: CanvasEvent[] = [];
+const NO_MARKS: Record<string, DraftChange['kind']> = {};
+
+/** Leaf widgets that label themselves rather than take the card's title row. */
+const SELF_TITLED: ReadonlySet<string> = new Set(['filter.select']);
 
 /** The key the root grid's child order is reported under. */
 const ROOT_NODE_ID = 'root';
@@ -111,13 +116,38 @@ const Stack = styled.div`
   `}
 `;
 
-/** A widget's title row above its content. */
-const Titled = styled.div`
-  ${({ theme }) => css`
+type CardMark = Extract<DraftChange['kind'], 'new' | 'edited'>;
+
+const CARD_MARK_BORDER: Record<CardMark, (theme: SupersetTheme) => string> = {
+  new: theme => theme.colorSuccess,
+  edited: theme => theme.colorInfo,
+};
+
+/**
+ * The surface a leaf widget sits on, styled like a dashboard tile. Not
+ * positioned, so a widget's chrome anchors to the grid cell around it.
+ */
+const Card = styled.div<{ $mark?: CardMark }>`
+  ${({ theme, $mark }) => css`
     height: 100%;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: ${theme.sizeUnit}px;
+    gap: ${theme.marginXS}px;
+    padding: ${theme.sizeUnit * CARD_PADDING_UNITS}px;
+    background-color: ${theme.dashboardTileBg ?? theme.colorBgContainer};
+    border: ${
+      theme.dashboardTileBorder ??
+      `${theme.lineWidth}px ${theme.lineType} ${theme.colorBorder}`
+    };
+    border-radius: ${theme.dashboardTileBorderRadius ?? theme.borderRadius}px;
+    box-shadow: ${theme.dashboardTileBoxShadow ?? 'none'};
+    ${
+      $mark &&
+      css`
+        border-color: ${CARD_MARK_BORDER[$mark](theme)};
+      `
+    }
   `}
 `;
 
@@ -129,23 +159,19 @@ const ALIGNMENT = {
 } as const;
 
 /**
- * The title row: the widget's name, the height of the handle strip the
- * surface floats over it (`sizeUnit * 8`, see `Grip`), so the name and the
- * handles sit on one line. It reserves no room for them: the handles and the
- * change mark are the surface's, drawn over the widget on their own backdrop,
- * so a canvas at rest and a plan line their titles up the same way.
+ * The title row. It reserves no room for the handles and the change mark: the
+ * surface draws those over the row on their own backdrop, centred on it.
  *
  * The alignment is the row's rather than the text's, as `display.titleAlign`
  * asks.
  */
 const TitleRow = styled.div<{ $align: 'left' | 'center' | 'right' }>`
-  ${({ theme, $align }) => css`
+  ${({ $align }) => css`
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: ${ALIGNMENT[$align]};
-    gap: ${theme.sizeUnit * 2}px;
     min-width: 0;
-    min-height: ${theme.sizeUnit * 8}px;
   `}
 `;
 
@@ -163,9 +189,10 @@ const WidgetTitle = styled.div`
   `}
 `;
 
-const TitledBody = styled.div`
+const CardBody = styled.div`
   flex: 1;
   min-height: 0;
+  overflow: auto;
 `;
 
 const Placeholder = styled.div`
@@ -342,15 +369,24 @@ export default function CanvasGrid({
    * marking it "Moved" would hide that. Within a kind the newest wins, and
    * the list arrives newest first.
    */
-  const marks = useMemo(() => {
-    const found: Record<string, DraftChange['kind']> = {};
+  const found = useMemo(() => {
+    const byNode: Record<string, DraftChange['kind']> = {};
     (changes ?? []).forEach(({ nodeId, kind }) => {
-      const held = found[nodeId];
+      const held = byNode[nodeId];
       if (held && (CONTENT.has(held) || !CONTENT.has(kind))) return;
-      found[nodeId] = kind;
+      byNode[nodeId] = kind;
     });
-    return found;
+    return byNode;
   }, [changes]);
+  const rootChildren = orderOf(ROOT_NODE_ID, definition.root.children);
+  // Everything on a never-saved canvas is new, so marking it says nothing.
+  const neverSaved =
+    rootChildren.length > 0 && rootChildren.every(id => found[id] === 'new');
+  const marks = neverSaved ? NO_MARKS : found;
+  /** Whether a node holds no other widgets, and so sits on a card. */
+  const isLeaf = (nodeId: string) =>
+    definition.nodes[nodeId]?.children === undefined &&
+    gridColumns[nodeId] === undefined;
 
   const filtersByNode = useMemo(
     () => valuesByNode(filterScopes, values.filter),
@@ -391,6 +427,7 @@ export default function CanvasGrid({
       gap={gap}
       rowUnit={rowUnit}
       isContainer={nodeId => gridColumns[nodeId] !== undefined}
+      isCard={isLeaf}
       // What the widget is, rather than its id: the id is a slug nobody chose.
       labelOf={nodeId => widgetTypes[nodeId] ?? nodeId}
       placements={fitted}
@@ -522,18 +559,25 @@ export default function CanvasGrid({
         />
       </ErrorBoundary>
     );
-    // The change mark is the surface's, drawn over the widget beside its
+    if (!isLeaf(nodeId)) return widget;
+    // The change tag is the surface's, drawn over the title row beside the
     // handles; see `CanvasGridSurface`.
-    if (!title) return widget;
+    const mark = marks[nodeId];
     return (
-      <Titled>
-        <TitleRow $align={display.titleAlign ?? 'left'}>
-          <WidgetTitle title={title} data-test="canvas-widget-title">
-            {title}
-          </WidgetTitle>
-        </TitleRow>
-        <TitledBody>{widget}</TitledBody>
-      </Titled>
+      <Card
+        $mark={mark === 'new' || mark === 'edited' ? mark : undefined}
+        data-test="canvas-widget-card"
+        data-change={mark}
+      >
+        {title && !SELF_TITLED.has(widgetType) && (
+          <TitleRow $align={display.titleAlign ?? 'left'}>
+            <WidgetTitle title={title} data-test="canvas-widget-title">
+              {title}
+            </WidgetTitle>
+          </TitleRow>
+        )}
+        <CardBody data-test="canvas-widget-body">{widget}</CardBody>
+      </Card>
     );
   }
 
@@ -544,13 +588,7 @@ export default function CanvasGrid({
       <CanvasDragProvider>
         <CanvasVersionContext.Provider value={versionUuid}>
           <GridRoot data-test="canvas-grid">
-            {renderGrid(
-              ROOT_NODE_ID,
-              orderOf(ROOT_NODE_ID, definition.root.children),
-              columns,
-              renderNode,
-              0,
-            )}
+            {renderGrid(ROOT_NODE_ID, rootChildren, columns, renderNode, 0)}
           </GridRoot>
         </CanvasVersionContext.Provider>
       </CanvasDragProvider>

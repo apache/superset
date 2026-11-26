@@ -90,7 +90,7 @@ import {
 } from './dragStates';
 import type { LayoutGesture } from './useCanvasLayout';
 import { useCanvasDrag } from './useCanvasDrag';
-import { CanvasWidgetChromeContext } from './widgetChrome';
+import { CanvasWidgetChromeContext, CARD_PADDING_UNITS } from './widgetChrome';
 import { useCanvasSelection } from './useCanvasSelection';
 
 interface Gesture {
@@ -803,10 +803,20 @@ const pill = (theme: SupersetTheme) => css`
   box-shadow: ${theme.boxShadowTertiary};
 `;
 
-/** What the grip and the remove button share; `shift` is the step-aside. */
-const handle = (theme: SupersetTheme, depth: number, right: number) => css`
+/**
+ * What the grip and the remove button share; `shift` is the step-aside and
+ * `rowTop` where the title row the handles centre on starts.
+ */
+const handle = (
+  theme: SupersetTheme,
+  depth: number,
+  right: number,
+  rowTop: number,
+) => css`
   position: absolute;
-  top: ${(theme.sizeUnit * (HANDLE_ROW_UNITS - HANDLE_SIZE_UNITS)) / 2}px;
+  top: ${
+    rowTop + (theme.sizeUnit * (HANDLE_ROW_UNITS - HANDLE_SIZE_UNITS)) / 2
+  }px;
   right: ${right}px;
   /* Deeper handles above shallower ones: the innermost wins a shared spot. */
   z-index: ${3 + depth};
@@ -821,9 +831,11 @@ const handle = (theme: SupersetTheme, depth: number, right: number) => css`
   color: ${theme.colorTextSecondary};
 `;
 
-const Remove = styled.button<{ depth: number; shift: number }>`
-  ${({ theme, depth, shift }) => css`
-    ${handle(theme, depth, theme.sizeUnit * HANDLE_INSET_UNITS + shift)}
+type HandleProps = { depth: number; shift: number; rowTop: number };
+
+const Remove = styled.button<HandleProps>`
+  ${({ theme, depth, shift, rowTop }) => css`
+    ${handle(theme, depth, theme.sizeUnit * HANDLE_INSET_UNITS + shift, rowTop)}
     cursor: pointer;
 
     &:hover {
@@ -832,9 +844,9 @@ const Remove = styled.button<{ depth: number; shift: number }>`
   `}
 `;
 
-const Grip = styled.button<{ depth: number; shift: number }>`
-  ${({ theme, depth, shift }) => css`
-    ${handle(theme, depth, theme.sizeUnit * GRIP_RIGHT_UNITS + shift)}
+const Grip = styled.button<HandleProps>`
+  ${({ theme, depth, shift, rowTop }) => css`
+    ${handle(theme, depth, theme.sizeUnit * GRIP_RIGHT_UNITS + shift, rowTop)}
     cursor: grab;
     touch-action: none;
 
@@ -850,10 +862,10 @@ const Grip = styled.button<{ depth: number; shift: number }>`
  * marks are what a reader of a draft scans for. It takes no presses, so the
  * widget under it still does.
  */
-const Mark = styled.div<{ depth: number; shift: number }>`
-  ${({ theme, depth, shift }) => css`
+const Mark = styled.div<HandleProps>`
+  ${({ theme, depth, shift, rowTop }) => css`
     position: absolute;
-    top: 0;
+    top: ${rowTop}px;
     right: ${theme.sizeUnit * MARK_RIGHT_UNITS + shift}px;
     /* Under the handles: a hovered child's grip or remove button wins. */
     z-index: ${2 + depth};
@@ -865,6 +877,15 @@ const Mark = styled.div<{ depth: number; shift: number }>`
     .ant-tag {
       margin: 0;
       ${pill(theme)}
+    }
+
+    /* Status text dark enough to read on the pill. */
+    .ant-tag-success {
+      color: ${theme.colorSuccessTextActive};
+    }
+
+    .ant-tag-processing {
+      color: ${theme.colorInfoTextActive};
     }
   `}
 `;
@@ -977,6 +998,8 @@ export interface CanvasGridSurfaceProps {
   parentId: string;
   /** Whether a child holds a grid of its own, and so is bounded, not scrolled. */
   isContainer?: (nodeId: string) => boolean;
+  /** Whether a child sits on a padded card, whose title row the handles join. */
+  isCard?: (nodeId: string) => boolean;
   /** What to call a widget out loud, for the selection's accessible name. */
   labelOf?: (nodeId: string) => string;
   /** Each changed widget's change in the draft, for its mark. */
@@ -1027,6 +1050,7 @@ export default function CanvasGridSurface({
   chromeRows = 0,
   parentId,
   isContainer = () => false,
+  isCard = () => false,
   labelOf = nodeId => nodeId,
   onPlace,
   onSwap,
@@ -1860,7 +1884,10 @@ export default function CanvasGridSurface({
         // The handles stay in one row along the top. A child whose top-right
         // corner is its container's moves its cluster left of the container's
         // rather than sharing the spot.
-        const handlesTop = 0;
+        // On a card the row is the card's title row, inside its padding.
+        const handlesTop = isCard(childId)
+          ? theme.sizeUnit * (CARD_PADDING_UNITS - 1)
+          : 0;
         const handleShift = stepsAside(depth, placed, columns, chromeAbove)
           ? theme.sizeUnit * HANDLE_STEP_UNITS * depth
           : 0;
@@ -1915,7 +1942,7 @@ export default function CanvasGridSurface({
                 {rendered.get(childId)}
               </WidgetBody>
               {mark && mark !== 'removed' && (
-                <Mark depth={depth} shift={handleShift}>
+                <Mark depth={depth} shift={handleShift} rowTop={handlesTop}>
                   <Tag color={MARKS[mark].color} data-test="canvas-widget-mark">
                     {MARKS[mark].label()}
                   </Tag>
@@ -1927,6 +1954,7 @@ export default function CanvasGridSurface({
                     type="button"
                     depth={depth}
                     shift={handleShift}
+                    rowTop={handlesTop}
                     className="canvas-handle"
                     aria-label={t('Move widget')}
                     data-test="canvas-drag-handle"
@@ -1939,6 +1967,7 @@ export default function CanvasGridSurface({
                     type="button"
                     depth={depth}
                     shift={handleShift}
+                    rowTop={handlesTop}
                     className="canvas-handle"
                     aria-label={t('Remove widget')}
                     data-test="canvas-remove-handle"

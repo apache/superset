@@ -163,22 +163,25 @@ test('a long table keeps to its cell and scrolls inside it', async () => {
   // react-markdown is stubbed in tests (spec/helpers/shim.tsx) to echo its source.
   expect(await screen.findByText(/Below the table/)).toBeInTheDocument();
 
-  // The content box fills the cell and scrolls; nothing between it and the
-  // table claims the scrolling for itself.
+  // The content box fills the cell; the card's body under its title is what
+  // scrolls, and nothing between it and the table claims the scrolling.
   const contentStyle = getComputedStyle(content);
   expect(contentStyle.height).toBe('100%');
-  expect(contentStyle.overflow).toBe('auto');
   // Its own stacking context, so the sticky header cannot outbid the handles.
   expect(contentStyle.isolation).toBe('isolate');
+  const body = content.querySelector(
+    '[data-test="canvas-widget-body"]',
+  ) as HTMLElement;
+  expect(getComputedStyle(body).overflow).toBe('auto');
   let ancestor = table.parentElement;
-  while (ancestor && ancestor !== content) {
+  while (ancestor && ancestor !== body) {
     expect(['auto', 'scroll']).not.toContain(
       getComputedStyle(ancestor).overflowY ||
         getComputedStyle(ancestor).overflow,
     );
     ancestor = ancestor.parentElement;
   }
-  expect(ancestor).toBe(content);
+  expect(ancestor).toBe(body);
 });
 
 test("a long table's header stays put while its rows scroll", () => {
