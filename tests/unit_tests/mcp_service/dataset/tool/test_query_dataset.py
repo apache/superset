@@ -1495,6 +1495,11 @@ _QUERY_LEAK_MARKER = "password=hunter2 host=db.internal"
 _SANITIZATION_REQUIRED = (
     "superset.mcp_service.utils.tool_errors.is_sanitization_required"
 )
+# Query failures are classified through sanitize_error_message, which reads it
+# from its own module.
+_QUERY_SANITIZATION_REQUIRED = (
+    "superset.utils.error_sanitization.is_sanitization_required"
+)
 
 
 async def _query_failing_with(
@@ -1515,6 +1520,7 @@ async def _query_failing_with(
             query_dataset_module, "execute_tabular_query", side_effect=exception
         ),
         patch(_SANITIZATION_REQUIRED, return_value=guest),
+        patch(_QUERY_SANITIZATION_REQUIRED, return_value=guest),
     ):
         async with Client(mcp_server, log_handler=log_handler) as client:
             result = await client.call_tool(

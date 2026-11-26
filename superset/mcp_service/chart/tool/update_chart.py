@@ -1652,7 +1652,7 @@ async def update_chart(  # noqa: C901
             {
                 "chart": None,
                 "error": {
-                    "error_type": client_error.error_type.value,
+                    "error_type": client_error.code,
                     "message": tool_error_message("Chart update failed", e),
                     "details": client_error.message,
                 },

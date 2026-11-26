@@ -155,6 +155,8 @@ def _validation_error(
     exc: ChartDataQueryValidationError
     | QueryObjectValidationError
     | SemanticLayerQueryRejectedError,
+    *,
+    semantic: bool,
 ) -> ChartError:
     """Report an invalid query in the category of the chart-data API's 400.
 
@@ -169,7 +171,13 @@ def _validation_error(
         if isinstance(exc, ChartDataQueryValidationError) and exc.__cause__
         else exc
     )
-    return ChartError(error=safe_error(cause).message, error_type="ValidationError")
+    message = safe_error(cause, query=True, semantic=semantic).message
+    return ChartError(error=message, error_type="ValidationError")
+
+
+def _is_semantic_view(datasource_type: object) -> bool:
+    """Whether a chart-data query runs on a semantic view."""
+    return datasource_type == DatasourceType.SEMANTIC_VIEW.value
 
 
 _GENERIC_TYPE_MAP: dict[int, str] = {
@@ -725,6 +733,8 @@ async def _get_chart_data(  # noqa: C901
         # Track whether we're using unsaved state
         using_unsaved_state = False
         cached_form_data_dict = None
+        # Cached form_data may point the query at another datasource.
+        query_datasource_type = chart_datasource_type
 
         try:
             await ctx.report_progress(2, 4, "Preparing data query")
@@ -1305,16 +1315,23 @@ async def _get_chart_data(  # noqa: C901
             logger.warning(
                 "Chart data validation failed for chart %s: %s", chart_id, ex
             )
-            return _validation_error(ex)
+            return _validation_error(
+                ex, semantic=_is_semantic_view(query_datasource_type)
+            )
         except SupersetSecurityException as ex:
             # The chart-data API answers 403; keep refusals out of DataError.
             logger.warning("Chart data access refused for chart %s", chart_id)
             return _access_denied_error(ex)
         except (CommandException, SupersetException, ValueError) as data_error:
+            # Same rule as the chart-data API: engine text for a signed-in
+            # user, the generic message for an embedded guest.
+            semantic = _is_semantic_view(query_datasource_type)
             await report_tool_error(
                 ctx,
                 "Error retrieving chart data",
                 data_error,
+                query=True,
+                semantic=semantic,
                 chart_id=chart_id,
             )
             return internal_error_response(
@@ -1322,6 +1339,8 @@ async def _get_chart_data(  # noqa: C901
                 "Error retrieving chart data",
                 data_error,
                 log=False,
+                query=True,
+                semantic=semantic,
                 error_type="DataError",
             )
 
@@ -1563,7 +1582,7 @@ async def _query_from_form_data(  # noqa: C901
         raise
     except _VALIDATION_ERRORS as ex:
         logger.warning("Unsaved chart data validation failed: %s", ex)
-        return _validation_error(ex)
+        return _validation_error(ex, semantic=_is_semantic_view(datasource_type))
     except SupersetSecurityException as ex:
         logger.warning("Unsaved chart data access refused")
         return _access_denied_error(ex)
@@ -1572,6 +1591,8 @@ async def _query_from_form_data(  # noqa: C901
             ChartError,
             "Error querying unsaved chart data",
             e,
+            query=True,
+            semantic=_is_semantic_view(datasource_type),
             error_type="DataError",
         )
 

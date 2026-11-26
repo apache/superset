@@ -15,48 +15,168 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Client-safe errors for MCP tool failures.
-
-MCP tools follow the rule of the HTTP API's error handlers
-(``superset/views/error_handling.py`` and ``/api/v1/chart/data``):
-
-* An exception Superset raised (``SupersetException``, ``CommandException``)
-  is reported with its ``message``. For a query that failed in the warehouse
-  that is the engine's error text, which a signed-in user needs to fix the
-  query. Embedded guest viewers get the generic message from
-  ``sanitize_error_message`` instead, unless the ``SupersetErrorType`` is one
-  Superset writes itself (``SAFE_ERROR_TYPES``).
-* Any other exception (SQLAlchemy, a database driver, a semantic-layer provider,
-  a library) gets a fixed message. Its text can carry SQL, bound parameters,
-  connection strings or hostnames, so it only goes to the server log.
-
-This applies to tool responses and also to ``ctx.error``/``ctx.warning``/
-``ctx.info``/``ctx.debug``, which FastMCP sends to the client as log
-notifications.
-
-:func:`safe_error` is the single mapping. :func:`internal_error_response` and
-:func:`report_tool_error` build on it for tool responses and ctx notifications.
-``tests/unit_tests/mcp_service/test_tool_error_text.py`` scans the MCP service
-for exception text that bypasses it.
-"""
-
-from __future__ import annotations
-
-import logging
-from dataclasses import dataclass
-from typing import Any, Literal, Protocol, TYPE_CHECKING, TypeVar
+"""Public error classification shared by MCP query tools."""
 
 from sqlalchemy.exc import SQLAlchemyError
+from superset_core.semantic_layers.errors import (
+    SemanticBackendError,
+    SemanticQueryErrorCode,
+    SemanticQueryRejectedError,
+)
 
-from superset.commands.exceptions import CommandException
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    SupersetErrorException,
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
+from superset.errors import SupersetErrorType
+from superset.exceptions import QueryObjectValidationError, SupersetErrorException
+from superset.mcp_service.chart.response_preflight import bounded_exception_message
+from superset.semantic_layers.exceptions import (
+    is_provider_fault,
+    rejection_message,
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
+)
+from superset.utils.error_sanitization import (
+    GENERIC_ERROR_MESSAGE,
+    SAFE_ERROR_TYPES,
+    sanitize_error_message,
+)
+
+
+def _causal_chain(exc: Exception) -> list[BaseException]:
+    """Walk explicit causes without following implicit exception contexts."""
+    chain: list[BaseException] = []
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        chain.append(current)
+        current = current.__cause__
+    return chain
+
+
+def _superset_exception_error(
+    error: SupersetErrorException, *, semantic: bool
+) -> tuple[str, str, str]:
+    """Classify a Superset exception without trusting unsafe provider text."""
+    error_type: SupersetErrorType = error.error.error_type
+    if error_type in SAFE_ERROR_TYPES:
+        return error_type.value, bounded_exception_message(error), "QueryError"
+    if not semantic:
+        return (
+            error_type.value,
+            sanitize_error_message(bounded_exception_message(error)),
+            "QueryError",
+        )
+    return (
+        SupersetErrorType.GENERIC_BACKEND_ERROR.value,
+        str(GENERIC_ERROR_MESSAGE),
+        "QueryError",
+    )
+
+
+def public_query_error(
+    exc: Exception, *, semantic: bool = False
+) -> tuple[str, str, str]:
+    """Return a safe error code, message, and MCP type for a failed query.
+
+    A provider can raise a host exception class. Its provenance marker takes
+    priority over that class, so its text cannot become a host-owned message.
+    Dataset engine errors follow the same guest rule as the HTTP chart API.
+    """
+    chain: list[BaseException] = _causal_chain(exc)
+
+    if semantic and any(is_provider_fault(error) for error in chain):
+        return (
+            SupersetErrorType.GENERIC_BACKEND_ERROR.value,
+            str(GENERIC_ERROR_MESSAGE),
+            "QueryError",
+        )
+
+    for error in chain:
+        if isinstance(
+            error, (SemanticLayerQueryRejectedError, SemanticQueryRejectedError)
+        ):
+            code: SemanticQueryErrorCode = error.code
+            return code.value, rejection_message(code), "QueryRejected"
+        if isinstance(error, (SemanticLayerExecutionError, SemanticBackendError)):
+            return (
+                SupersetErrorType.GENERIC_BACKEND_ERROR.value,
+                str(GENERIC_ERROR_MESSAGE),
+                "QueryError",
+            )
+        if isinstance(error, QueryObjectValidationError):
+            return (
+                SemanticQueryErrorCode.INVALID_QUERY.value,
+                (
+                    bounded_exception_message(error)
+                    if semantic
+                    else sanitize_error_message(bounded_exception_message(error))
+                ),
+                "QueryError",
+            )
+        if isinstance(error, SupersetErrorException):
+            return _superset_exception_error(error, semantic=semantic)
+
+    if semantic:
+        return (
+            SupersetErrorType.GENERIC_BACKEND_ERROR.value,
+            str(GENERIC_ERROR_MESSAGE),
+            "QueryError",
+        )
+    if any(
+        isinstance(
+            error, (ChartDataQueryFailedError, SupersetDBAPIError, SQLAlchemyError)
+        )
+        for error in chain
+    ):
+        return (
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR.value,
+            sanitize_error_message(bounded_exception_message(exc)),
+            "QueryError",
+        )
+    return (
+        SupersetErrorType.GENERIC_BACKEND_ERROR.value,
+        str(GENERIC_ERROR_MESSAGE),
+        "QueryError",
+    )
+
+
+# Errors of any MCP tool.
+#
+# MCP tools follow the rule of the HTTP API's error handlers
+# (``superset/views/error_handling.py`` and ``/api/v1/chart/data``):
+#
+# * A query that failed in the warehouse is classified by
+#   :func:`public_query_error`: a signed-in user gets the engine's error text,
+#   which they need to fix the query, and an embedded guest gets the generic
+#   message from ``sanitize_error_message``.
+# * Any other exception Superset raised (``SupersetException``,
+#   ``CommandException``) is reported with its ``message``, which embedded
+#   guests only see when the ``SupersetErrorType`` is one Superset writes itself
+#   (``SAFE_ERROR_TYPES``).
+# * Any other exception (SQLAlchemy, a database driver, a library) gets a fixed
+#   message. Its text can carry SQL, bound parameters, connection strings or
+#   hostnames, so it only goes to the server log.
+#
+# This applies to tool responses and also to ``ctx.error``/``ctx.warning``,
+# which FastMCP sends to the client as log notifications.
+# ``tests/unit_tests/mcp_service/test_tool_error_text.py`` scans the MCP service
+# for exception text that bypasses these helpers.
+
+import logging  # noqa: E402
+from dataclasses import dataclass  # noqa: E402
+from typing import Any, Literal, Protocol, TYPE_CHECKING, TypeVar  # noqa: E402
+
+from superset.commands.exceptions import CommandException  # noqa: E402
+from superset.errors import ErrorLevel, SupersetError  # noqa: E402
+from superset.exceptions import (  # noqa: E402
     SupersetErrorsException,
     SupersetException,
 )
-from superset.mcp_service.utils.error_sanitization import sanitize_for_log
-from superset.utils.error_sanitization import (
+from superset.mcp_service.utils.error_sanitization import (  # noqa: E402
+    sanitize_for_log,
+)
+from superset.utils.error_sanitization import (  # noqa: E402
     is_sanitization_required,
     sanitize_superset_error,
 )
@@ -78,9 +198,13 @@ MAX_MESSAGE_BYTES = 512
 
 @dataclass(frozen=True)
 class SafeError:
-    """An error type and a message that may be sent to the current principal."""
+    """An error code and a message that may be sent to the current principal.
 
-    error_type: SupersetErrorType
+    ``code`` is a ``SupersetErrorType`` value, or a ``SemanticQueryErrorCode``
+    value for a query a semantic layer or Superset rejected as invalid.
+    """
+
+    code: str
     message: str
 
 
@@ -114,18 +238,45 @@ def _superset_error(exc: BaseException) -> SupersetError:
     )
 
 
-def safe_error(exc: BaseException) -> SafeError:
-    """Map an exception to a ``SupersetErrorType`` and a client-safe message.
+# Failures of the data query itself, which :func:`public_query_error` classifies.
+_QUERY_FAILURES: tuple[type[BaseException], ...] = (
+    ChartDataQueryFailedError,
+    SupersetDBAPIError,
+    QueryObjectValidationError,
+    SemanticLayerQueryRejectedError,
+    SemanticQueryRejectedError,
+    SemanticLayerExecutionError,
+    SemanticBackendError,
+)
 
-    Signed-in users get the message Superset attached to the exception, such as
-    the engine error of a failed query, cut to ``MAX_MESSAGE_BYTES``. Embedded
+
+def _is_query_failure(exc: Exception) -> bool:
+    return any(isinstance(error, _QUERY_FAILURES) for error in _causal_chain(exc))
+
+
+def safe_error(
+    exc: BaseException, *, query: bool = False, semantic: bool = False
+) -> SafeError:
+    """Map an exception to an error code and a client-safe message.
+
+    With ``query=True`` the exception was raised while running a data query.
+    A failure of the query itself, or any failure of a semantic-view query, is
+    classified by :func:`public_query_error` (``semantic`` is passed through):
+    engine text for a signed-in user, the generic message for an embedded
+    guest, as in the chart-data API.
+
+    Anything else follows the general rule: signed-in users get the message
+    Superset attached to the exception, cut to ``MAX_MESSAGE_BYTES``; embedded
     guests get a generic message unless the error type is one Superset writes
-    itself. Exceptions Superset did not raise always get a fixed message.
+    itself; exceptions Superset did not raise always get a fixed message.
     """
+    if query and isinstance(exc, Exception) and (semantic or _is_query_failure(exc)):
+        code, message, _ = public_query_error(exc, semantic=semantic)
+        return SafeError(code=code, message=_bounded(message))
     error = sanitize_superset_error(
         _superset_error(exc), required=is_sanitization_required()
     )
-    return SafeError(error_type=error.error_type, message=_bounded(str(error.message)))
+    return SafeError(code=error.error_type.value, message=_bounded(str(error.message)))
 
 
 def _bounded(text: str) -> str:
@@ -144,13 +295,17 @@ def _mcp_call_id() -> str | None:
     return _mcp_call_id_var.get(None)
 
 
-def tool_error_message(summary: str, exc: BaseException) -> str:
+def tool_error_message(
+    summary: str, exc: BaseException, *, query: bool = False, semantic: bool = False
+) -> str:
     """Return ``"<summary>: <safe message>"`` plus the MCP call id, if any.
 
     ``summary`` is a fixed, host-written description of the operation, such as
     ``"Failed to get dataset info"``. It must never contain exception text.
+    ``query`` and ``semantic`` are passed to :func:`safe_error`.
     """
-    message = f"{summary}: {safe_error(exc).message}"
+    safe = safe_error(exc, query=query, semantic=semantic)
+    message = f"{summary}: {safe.message}"
     if call_id := _mcp_call_id():
         message = f"{message} (Error ID: {call_id})"
     return message
@@ -206,42 +361,47 @@ def internal_error_response(
     exc: BaseException,
     *,
     log: bool = True,
+    query: bool = False,
+    semantic: bool = False,
     **fields: Any,
 ) -> ErrorModel:
     """Build a tool error model from :func:`safe_error`.
 
     ``factory`` is the error model class (or a ``create`` classmethod). The
-    model gets ``error`` and ``error_type`` (the ``SupersetErrorType`` value);
-    ``fields`` adds or overrides model fields, for example ``success=False`` or
-    a tool-specific ``error_type``. Pass ``log=False`` when
-    :func:`report_tool_error` already logged ``exc``.
+    model gets ``error`` and ``error_type`` (the error code); ``fields`` adds or
+    overrides model fields, for example ``success=False`` or a tool-specific
+    ``error_type``. Pass ``log=False`` when :func:`report_tool_error` already
+    logged ``exc``. ``query`` and ``semantic`` are passed to :func:`safe_error`.
     """
     if log:
         log_tool_exception(summary, exc)
     model_fields: dict[str, Any] = {
-        "error": tool_error_message(summary, exc),
-        "error_type": safe_error(exc).error_type.value,
+        "error": tool_error_message(summary, exc, query=query, semantic=semantic),
+        "error_type": safe_error(exc, query=query, semantic=semantic).code,
     }
     model_fields.update(fields)
     return factory(**model_fields)
 
 
 async def report_tool_error(
-    ctx: Context,
+    ctx: "Context",
     summary: str,
     exc: BaseException,
     *,
     level: Literal["error", "warning"] = "error",
+    query: bool = False,
+    semantic: bool = False,
     **context: Any,
 ) -> str:
     """Log ``exc`` server-side and send its client-safe message through ``ctx``.
 
     ``context`` holds request identifiers (never exception text). They go to
     the server log and, as ``key=value`` pairs, to the client notification.
-    Returns the client message so the caller can reuse it in its response.
+    ``query`` and ``semantic`` are passed to :func:`safe_error`. Returns the
+    client message so the caller can reuse it in its response.
     """
     log_tool_exception(summary, exc, **context)
-    message = tool_error_message(summary, exc)
+    message = tool_error_message(summary, exc, query=query, semantic=semantic)
     notification = message
     if context:
         fields = ", ".join(f"{key}={value}" for key, value in context.items())

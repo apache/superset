@@ -113,7 +113,7 @@ def _restore_error_type(ex: Exception) -> str:
     """
     if isinstance(ex, DashboardSlugConflictError):
         return "DashboardSlugConflictError"
-    return safe_error(ex).error_type.value
+    return safe_error(ex).code
 
 
 @tool(

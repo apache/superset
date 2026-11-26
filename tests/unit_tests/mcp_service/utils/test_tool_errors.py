@@ -26,12 +26,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import BaseModel
 from sqlalchemy.exc import OperationalError
+from superset_core.semantic_layers.errors import SemanticQueryErrorCode
 
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.commands.exceptions import CommandException
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
+    QueryObjectValidationError,
     SupersetErrorException,
     SupersetSecurityException,
 )
@@ -41,10 +43,16 @@ from superset.mcp_service.utils.tool_errors import (
     internal_error_response,
     log_tool_exception,
     MAX_MESSAGE_BYTES,
+    public_query_error,
     report_tool_error,
     safe_error,
     tool_error_message,
     UNEXPECTED_ERROR_MESSAGE,
+)
+from superset.semantic_layers.exceptions import (
+    _PROVIDER_FAULT,
+    rejection_message,
+    SemanticLayerQueryRejectedError,
 )
 from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
@@ -63,29 +71,37 @@ class _HostileError(Exception):
         raise RuntimeError("no text")
 
 
-@pytest.fixture
-def signed_in() -> Iterator[None]:
-    with patch(
-        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
-        return_value=False,
+def _principal(guest: bool) -> Iterator[None]:
+    # The general rule reads it through this module; the query rule through
+    # sanitize_error_message.
+    with (
+        patch(
+            "superset.mcp_service.utils.tool_errors.is_sanitization_required",
+            return_value=guest,
+        ),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
     ):
         yield
+
+
+@pytest.fixture
+def signed_in() -> Iterator[None]:
+    yield from _principal(guest=False)
 
 
 @pytest.fixture
 def guest() -> Iterator[None]:
-    with patch(
-        "superset.mcp_service.utils.tool_errors.is_sanitization_required",
-        return_value=True,
-    ):
-        yield
+    yield from _principal(guest=True)
 
 
 @pytest.mark.usefixtures("signed_in")
 def test_signed_in_user_gets_engine_text_of_a_failed_query() -> None:
     result = safe_error(ChartDataQueryFailedError(f"Error: {ENGINE_TEXT}"))
 
-    assert result.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+    assert result.code == SupersetErrorType.GENERIC_COMMAND_ERROR.value
     assert result.message == f"Error: {ENGINE_TEXT}"
 
 
@@ -101,7 +117,7 @@ def test_long_engine_text_is_bounded() -> None:
 def test_guest_gets_generic_text_for_a_failed_query() -> None:
     result = safe_error(ChartDataQueryFailedError(f"Error: {ENGINE_TEXT}"))
 
-    assert result.error_type == SupersetErrorType.GENERIC_BACKEND_ERROR
+    assert result.code == SupersetErrorType.GENERIC_BACKEND_ERROR.value
     assert result.message == str(GENERIC_ERROR_MESSAGE)
 
 
@@ -115,7 +131,7 @@ def test_guest_keeps_superset_written_security_text() -> None:
 
     result = safe_error(SupersetSecurityException(error))
 
-    assert result.error_type == SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR
+    assert result.code == SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR.value
     assert result.message == error.message
 
 
@@ -129,7 +145,7 @@ def test_superset_error_exception_keeps_its_error_type() -> None:
 
     result = safe_error(SupersetErrorException(error))
 
-    assert result.error_type == SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR
+    assert result.code == SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR.value
     assert result.message == ENGINE_TEXT
 
 
@@ -138,6 +154,76 @@ def test_oauth2_error_drops_the_provider_response() -> None:
     result = safe_error(OAuth2Error(DRIVER_TEXT))
 
     assert "hunter2" not in result.message
+
+
+@pytest.mark.parametrize("principal", ["signed_in", "guest"])
+def test_query_failure_follows_the_chart_data_api_rule(
+    request: pytest.FixtureRequest, principal: str
+) -> None:
+    request.getfixturevalue(principal)
+
+    result = safe_error(ChartDataQueryFailedError(f"Error: {ENGINE_TEXT}"), query=True)
+
+    assert result.code == SupersetErrorType.GENERIC_DB_ENGINE_ERROR.value
+    if principal == "signed_in":
+        assert result.message == f"Error: {ENGINE_TEXT}"
+    else:
+        assert result.message == str(GENERIC_ERROR_MESSAGE)
+
+
+@pytest.mark.parametrize("principal", ["signed_in", "guest"])
+def test_query_failure_without_a_superset_exception_gets_generic_text(
+    request: pytest.FixtureRequest, principal: str
+) -> None:
+    request.getfixturevalue(principal)
+
+    result = safe_error(RuntimeError(DRIVER_TEXT), query=True)
+
+    assert result.code == SupersetErrorType.GENERIC_BACKEND_ERROR.value
+    assert "hunter2" not in result.message
+    if principal == "signed_in":
+        assert result.message == UNEXPECTED_ERROR_MESSAGE
+    else:
+        assert result.message == str(GENERIC_ERROR_MESSAGE)
+
+
+@pytest.mark.usefixtures("signed_in")
+def test_query_rule_keeps_superset_text_it_does_not_classify() -> None:
+    result = safe_error(CommandException("Dataset could not be found"), query=True)
+
+    assert result.message == "Dataset could not be found"
+
+
+@pytest.mark.usefixtures("guest")
+def test_query_rejection_carries_host_guidance() -> None:
+    code = SemanticQueryErrorCode.UNSUPPORTED_QUERY
+
+    result = safe_error(SemanticLayerQueryRejectedError(code), query=True)
+
+    assert result.code == code.value
+    assert result.message == rejection_message(code)
+
+
+@pytest.mark.usefixtures("signed_in")
+def test_semantic_provider_fault_never_reaches_the_client() -> None:
+    exc = QueryObjectValidationError(DRIVER_TEXT)
+    setattr(exc, _PROVIDER_FAULT, True)
+
+    result = safe_error(exc, query=True, semantic=True)
+
+    assert "hunter2" not in result.message
+    assert result.message == str(GENERIC_ERROR_MESSAGE)
+
+
+@pytest.mark.usefixtures("signed_in")
+def test_query_message_matches_public_query_error() -> None:
+    exc = ChartDataQueryFailedError(f"Error: {ENGINE_TEXT}")
+    code, message, _ = public_query_error(exc)
+
+    assert tool_error_message("Query failed", exc, query=True) == (
+        f"Query failed: {message}"
+    )
+    assert safe_error(exc, query=True).code == code
 
 
 @pytest.mark.parametrize("principal", ["signed_in", "guest"])
@@ -174,7 +260,7 @@ def test_other_exceptions_never_reach_the_client(
 
     assert "hunter2" not in result.message
     if principal == "signed_in":
-        assert result.error_type == error_type
+        assert result.code == error_type.value
         assert result.message == message
     else:
         assert result.message == str(GENERIC_ERROR_MESSAGE)

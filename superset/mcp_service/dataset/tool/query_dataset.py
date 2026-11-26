@@ -460,12 +460,21 @@ async def _query_dataset(  # noqa: C901
 
     except (CommandException, SupersetException) as exc:
         return await _query_failure(
-            ctx, "Query execution failed", exc, "QueryError", request.dataset_id
+            ctx,
+            "Query execution failed",
+            exc,
+            "QueryError",
+            request.dataset_id,
+            query=True,
         )
 
     except SQLAlchemyError as exc:
         return await _query_failure(
-            ctx, "Database error", exc, "DatabaseError", request.dataset_id
+            ctx,
+            "Database error",
+            exc,
+            "DatabaseError",
+            request.dataset_id,
         )
 
     except ValueError as exc:
@@ -512,10 +521,17 @@ async def _query_failure(
     exc: Exception,
     error_type: str,
     dataset_id: int | str,
+    *,
+    query: bool = False,
 ) -> DatasetError:
-    """Log ``exc`` server-side and return a DatasetError with its safe message."""
+    """Log ``exc`` server-side and return a DatasetError with its safe message.
+
+    ``query=True`` marks a failed data query, which follows the chart-data
+    API's rule: engine text for a signed-in user, the generic message for an
+    embedded guest.
+    """
     log_tool_exception(summary, exc, dataset_id=dataset_id)
-    message = tool_error_message(summary, exc)
+    message = tool_error_message(summary, exc, query=query)
     await ctx.error("%s (dataset_id=%s)" % (message, dataset_id))
     return DatasetError.create(error=message, error_type=error_type)
 

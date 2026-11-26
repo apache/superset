@@ -88,6 +88,7 @@ SANITIZING_HELPERS = frozenset(
     {
         "internal_error_response",
         "log_tool_exception",
+        "public_query_error",
         "report_tool_error",
         "safe_error",
         "tool_error_message",
@@ -102,7 +103,8 @@ SERVER_SIDE_MODULES: dict[str, str] = {
         "failure reason; exception text only goes to the server log"
     ),
     "utils/tool_errors.py": (
-        "the helpers themselves: client text comes only from safe_error; "
+        "the helpers themselves: client text comes only from safe_error and "
+        "public_query_error; "
         "covered by utils/test_tool_errors.py"
     ),
     "middleware.py": (

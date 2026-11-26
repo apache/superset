@@ -376,6 +376,10 @@ notifications) get their error text from `safe_error` in
 - Any other exception (SQLAlchemy, drivers, providers, libraries) gets a fixed
   message. Its text can carry SQL, parameters or connection details, so it only
   goes to the server log.
+- A failed data query (`get_chart_data`, `query_dataset`, the chart compile
+  check) passes `query=True` (and `semantic=True` for a semantic view): the
+  failure is then classified by `public_query_error`, the rule of
+  `/api/v1/chart/data`, so the response carries the same error code and text.
 
 ```python
 from superset.commands.dataset.exceptions import DatasetInvalidError

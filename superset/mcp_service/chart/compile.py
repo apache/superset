@@ -232,14 +232,14 @@ def _compile_chart(  # noqa: C901
         )
         if database_failure is not None:
             log_tool_exception(_COMPILE_DATABASE_SUMMARY, exc, dataset_id=dataset_id)
-            message = tool_error_message(_COMPILE_DATABASE_SUMMARY, exc)
+            message = tool_error_message(_COMPILE_DATABASE_SUMMARY, exc, query=True)
             return CompileResult(
                 success=False,
                 error=message,
                 error_code="CHART_COMPILE_FAILED",
                 tier="compile",
                 error_obj=_build_database_error(
-                    safe_error(exc).message,
+                    safe_error(exc, query=True).message,
                     annotation=database_failure == "annotation",
                 ),
             )
