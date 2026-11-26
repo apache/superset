@@ -1432,3 +1432,42 @@ def test_copy_with_replaced_metadata_over_odd_stored_metadata(
     new = db.session.get(Dashboard, response.json["result"]["id"])
     assert new.params_dict["refresh_frequency"] == 60
     assert history() == []
+
+
+DEEP_LEGACY_METADATA = (
+    '{"auto_refresh_policy": {"legacy": ' + "[" * 550 + "0" + "]" * 550 + "}}"
+)
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_saves_and_copy_keep_a_deeply_nested_stored_policy(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    enabled: bool,
+) -> None:
+    """Unrelated saves and a copy work over a deeply nested stored policy."""
+    from superset.extensions import feature_flag_manager
+    from superset.models.dashboard import Dashboard
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": enabled}
+    )
+    dashboard = make_odd_dashboard(make_dashboard, DEEP_LEGACY_METADATA)
+    response = client.put(
+        f"/api/v1/dashboard/{dashboard.id}", json={"dashboard_title": "renamed"}
+    )
+    assert response.status_code == 200
+    assert put(client, dashboard, {"refresh_frequency": 0}).status_code == 200
+    expected = json.loads(DEEP_LEGACY_METADATA)["auto_refresh_policy"]
+    assert stored(dashboard)["auto_refresh_policy"] == expected
+
+    response = copy(client, dashboard, {})
+    if enabled:
+        assert response.status_code == 422
+        assert error_codes(response) == [(f"{POLICY}.legacy", "invalid_policy")]
+    else:
+        assert response.status_code == 200
+        new = db.session.get(Dashboard, response.json["result"]["id"])
+        assert new.params_dict["auto_refresh_policy"] == expected

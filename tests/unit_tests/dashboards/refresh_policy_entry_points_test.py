@@ -412,19 +412,37 @@ def test_mcp_title_update_preserves_removed_default(mocker: MockerFixture) -> No
     assert dashboard.params_dict == metadata
 
 
-def test_mcp_title_update_keeps_a_deeply_nested_stored_policy() -> None:
+@pytest.mark.parametrize("enabled", [True, False])
+def test_mcp_title_update_keeps_a_deeply_nested_stored_policy(
+    mocker: MockerFixture, enabled: bool
+) -> None:
     """An MCP title edit works over a stored policy with deeply nested JSON."""
     from superset.mcp_service.dashboard.schemas import UpdateDashboardRequest
     from superset.mcp_service.dashboard.tool.update_dashboard import (
+        _apply_field_updates,
         _validate_update_request,
     )
 
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": enabled}
+    )
+    add = mocker.patch("superset.extensions.db.session.add")
     metadata = (
         '{"auto_refresh_policy": {"legacy": ' + "[" * 550 + "0" + "]" * 550 + "}}"
     )
     dashboard = Dashboard(id=1, json_metadata=metadata)
     request = UpdateDashboardRequest(identifier=1, dashboard_title="Renamed")
     assert _validate_update_request(dashboard, request) is None
+    request = UpdateDashboardRequest(
+        identifier=1, json_metadata_overrides={"refresh_frequency": 0}
+    )
+    assert _validate_update_request(dashboard, request) is None
+    _apply_field_updates(dashboard, request)
+    assert (
+        dashboard.params_dict["auto_refresh_policy"]
+        == json.loads(metadata)["auto_refresh_policy"]
+    )
+    add.assert_not_called()
 
 
 def test_restore_layout_preserves_removed_default(mocker: MockerFixture) -> None:
@@ -492,6 +510,28 @@ def test_mcp_update_over_odd_stored_metadata_behaves_as_before(
     assert _apply_field_updates(dashboard, request) == [field]
     assert getattr(dashboard, field) == value
     assert dashboard.json_metadata == raw
+    add.assert_not_called()
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_restore_keeps_a_deeply_nested_stored_policy(
+    mocker: MockerFixture, enabled: bool
+) -> None:
+    """A restore that leaves a deeply nested stored policy alone works."""
+    from superset.versioning.restore import restore_version
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": enabled}
+    )
+    add = mocker.patch("superset.extensions.db.session.add")
+    metadata = (
+        '{"auto_refresh_policy": {"legacy": ' + "[" * 550 + "0" + "]" * 550 + "}}"
+    )
+    dashboard = Dashboard(id=1, uuid=uuid4(), json_metadata=metadata)
+    target = MagicMock(json_metadata=metadata)
+    _restore_mocks(mocker, dashboard, target)
+    assert restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
+    target.revert.assert_called_once()
     add.assert_not_called()
 
 

@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -123,42 +124,11 @@ def _is_finite_double(value: Any) -> bool:
         return False
 
 
-def same_json_value(incoming: Any, stored: Any) -> bool:
+def _nested_pairs(left: Any, right: Any) -> list[tuple[Any, Any]] | None:
     """
-    Compare an incoming JSON value with a stored one the way a browser round trip
-    leaves the stored one: booleans never equal numbers, numbers are equal when
-    they are equal as doubles, and a stored number that isn't a finite double
-    equals an incoming ``null``.
+    Pair the object values or array elements of two JSON values; ``None`` when
+    they aren't containers of the same kind with the same keys or length.
     """
-    if incoming is None and _is_number(stored):
-        return not _is_finite_double(stored)
-    if isinstance(incoming, bool) or isinstance(stored, bool):
-        return type(incoming) is type(stored) and incoming == stored
-    if _is_number(incoming) and _is_number(stored):
-        try:
-            return float(incoming) == float(stored)
-        except OverflowError:
-            return incoming == stored
-    if isinstance(incoming, dict) and isinstance(stored, dict):
-        return incoming.keys() == stored.keys() and all(
-            same_json_value(value, stored[key]) for key, value in incoming.items()
-        )
-    if isinstance(incoming, list) and isinstance(stored, list):
-        return len(incoming) == len(stored) and all(
-            same_json_value(a, b) for a, b in zip(incoming, stored, strict=True)
-        )
-    return type(incoming) is type(stored) and incoming == stored
-
-
-def _json_children(left: Any, right: Any) -> list[tuple[Any, Any]] | None:
-    """
-    Compare two JSON values one level deep: ``None`` when they differ, else the
-    paired object values or array elements still to compare.
-    """
-    if isinstance(left, bool) or isinstance(right, bool):
-        return [] if type(left) is type(right) and left == right else None
-    if _is_number(left) and _is_number(right):
-        return [] if left == right else None
     if isinstance(left, dict) and isinstance(right, dict):
         if left.keys() != right.keys():
             return None
@@ -167,6 +137,64 @@ def _json_children(left: Any, right: Any) -> list[tuple[Any, Any]] | None:
         if len(left) != len(right):
             return None
         return list(zip(left, right, strict=True))
+    return None
+
+
+def _walk_json(
+    left: Any,
+    right: Any,
+    children: Callable[[Any, Any], list[tuple[Any, Any]] | None],
+) -> bool:
+    """
+    Compare two JSON values one level at a time with ``children``, which returns
+    ``None`` when a level differs, else the nested pairs still to compare. Nested
+    values are walked with a stack, so deep nesting can't exhaust the recursion
+    limit.
+    """
+    pending = [(left, right)]
+    while pending:
+        nested = children(*pending.pop())
+        if nested is None:
+            return False
+        pending.extend(nested)
+    return True
+
+
+def _round_trip_children(incoming: Any, stored: Any) -> list[tuple[Any, Any]] | None:
+    """Compare one level for ``same_json_value``."""
+    if incoming is None and _is_number(stored):
+        return None if _is_finite_double(stored) else []
+    if isinstance(incoming, bool) or isinstance(stored, bool):
+        return [] if type(incoming) is type(stored) and incoming == stored else None
+    if _is_number(incoming) and _is_number(stored):
+        try:
+            equal = float(incoming) == float(stored)
+        except OverflowError:
+            equal = incoming == stored
+        return [] if equal else None
+    if isinstance(incoming, (dict, list)) or isinstance(stored, (dict, list)):
+        return _nested_pairs(incoming, stored)
+    return [] if type(incoming) is type(stored) and incoming == stored else None
+
+
+def same_json_value(incoming: Any, stored: Any) -> bool:
+    """
+    Compare an incoming JSON value with a stored one the way a browser round trip
+    leaves the stored one: booleans never equal numbers, numbers are equal when
+    they are equal as doubles, and a stored number that isn't a finite double
+    equals an incoming ``null``. Nested values are walked with a stack.
+    """
+    return _walk_json(incoming, stored, _round_trip_children)
+
+
+def _json_children(left: Any, right: Any) -> list[tuple[Any, Any]] | None:
+    """Compare one level for ``same_json_type_and_value``."""
+    if isinstance(left, bool) or isinstance(right, bool):
+        return [] if type(left) is type(right) and left == right else None
+    if _is_number(left) and _is_number(right):
+        return [] if left == right else None
+    if isinstance(left, (dict, list)) or isinstance(right, (dict, list)):
+        return _nested_pairs(left, right)
     return [] if type(left) is type(right) and left == right else None
 
 
@@ -174,15 +202,9 @@ def same_json_type_and_value(left: Any, right: Any) -> bool:
     """
     Compare two JSON values: booleans never equal numbers and numbers are equal
     when Python compares them equal, so ``1`` equals ``1.0``. Nested values are
-    walked with a stack, so deep nesting can't exhaust the recursion limit.
+    walked with a stack.
     """
-    pending = [(left, right)]
-    while pending:
-        children = _json_children(*pending.pop())
-        if children is None:
-            return False
-        pending.extend(children)
-    return True
+    return _walk_json(left, right, _json_children)
 
 
 def same_stored_policy(policy: Any, stored_policy: Any) -> bool:

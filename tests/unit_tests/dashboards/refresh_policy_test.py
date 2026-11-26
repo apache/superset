@@ -619,6 +619,35 @@ def test_flag_on_a_deeply_nested_unchanged_policy_is_unchanged() -> None:
     assert same_json_type_and_value({"a": [[[1]]]}, {"a": [[[1.0]]]})
 
 
+def test_flag_off_a_deeply_nested_unchanged_policy_is_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """With the flag off a deeply nested stored policy compares without recursion."""
+    from superset.dashboards.refresh_policy import (
+        keep_stored_policy,
+        refresh_settings_changed,
+        same_json_value,
+    )
+    from superset.extensions import feature_flag_manager
+    from superset.utils import json
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
+    )
+    stored, submitted = (json.loads(DEEP_LEGACY_METADATA) for _ in range(2))
+    assert not refresh_settings_changed(submitted, stored)
+    assert check_refresh_policy(submitted, stored[POLICY]) == []
+    assert keep_stored_policy(submitted, stored[POLICY])
+    assert submitted[POLICY] is stored[POLICY]
+
+    changed = json.loads(DEEP_LEGACY_METADATA.replace("0", "1"))
+    assert refresh_settings_changed(changed, stored)
+    assert not same_json_value({"a": [[[True]]]}, {"a": [[[1]]]})
+    assert same_json_value({"a": [[[2**53 + 1]]]}, {"a": [[[2**53]]]})
+    assert same_json_value({"a": [None]}, {"a": [10**400]})
+    assert not same_json_value({"a": [1]}, {"a": {"0": 1}})
+
+
 def test_a_numeric_bound_over_a_boolean_one_is_checked_against_the_list(
     mocker: MockerFixture,
 ) -> None:
