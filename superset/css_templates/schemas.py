@@ -37,3 +37,9 @@ get_delete_ids_schema = {
     "items": {"type": "integer"},
     "example": [1, 2, 3],
 }
+
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}

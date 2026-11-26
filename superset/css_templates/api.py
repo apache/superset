@@ -15,9 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections import defaultdict
+from datetime import datetime
+from io import BytesIO
 from typing import Any
+from zipfile import ZipFile
 
-from flask import Response
+from flask import Response, send_file
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -27,14 +31,18 @@ from superset.commands.css.exceptions import (
     CssTemplateDeleteFailedError,
     CssTemplateNotFoundError,
 )
+from superset.commands.css.export_css import ExportCssTemplatesCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.css_templates.filters import CssTemplateAllTextFilter
 from superset.css_templates.schemas import (
     get_delete_ids_schema,
+    get_export_ids_schema,
     openapi_spec_methods_override,
 )
 from superset.extensions import event_logger
 from superset.models.core import CssTemplate
+from superset.utils.core import send_export_zip, write_zip_entry
+from superset.utils.file import get_filename
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -49,6 +57,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(CssTemplate)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.EXPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
@@ -92,6 +101,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
+        "get_export_ids_schema": get_export_ids_schema,
     }
     openapi_spec_tag = "CSS Templates"
     openapi_spec_methods = openapi_spec_methods_override
@@ -158,3 +168,103 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except CssTemplateDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/export/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
+        log_to_statsd=False,
+    )
+    @parse_rison(get_export_ids_schema)
+    def export(self, **kwargs: Any) -> Response:
+        """Download CSS templates as raw CSS.
+        ---
+        get:
+          summary: Download CSS templates as raw CSS
+          description: >-
+            A single id returns one .css file; multiple ids return a ZIP
+            archive with one .css file per template.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_export_ids_schema'
+          responses:
+            200:
+              description: CSS template export
+              content:
+                text/css:
+                  schema:
+                    type: string
+                application/zip:
+                  schema:
+                    type: string
+                    format: binary
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        requested_ids = kwargs["rison"]
+        if not requested_ids:
+            return self.response_400(
+                message="At least one CSS template id must be provided"
+            )
+
+        try:
+            models = ExportCssTemplatesCommand(requested_ids).run()
+        except CssTemplateNotFoundError:
+            return self.response_404()
+
+        if len(models) == 1:
+            model = models[0]
+            file_name = (
+                get_filename(model.template_name or "", model.id, skip_id=True) + ".css"
+            )
+            response = send_file(
+                BytesIO((model.css or "").encode()),
+                mimetype="text/css",
+                as_attachment=True,
+                download_name=file_name,
+                max_age=0,
+            )
+            # Exports are generated per request and must never be cached.
+            response.cache_control.no_store = True
+            response.cache_control.no_cache = True
+            response.cache_control.must_revalidate = True
+            return response
+
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"css_template_export_{timestamp}"
+        filename = f"{root}.zip"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            # Duplicate names are numbered browser-style ("name (1).css"). Every
+            # assigned filename is tracked so a numbered name can't collide with
+            # another template's own name.
+            used_names: set[str] = set()
+            seen_counts: dict[str, int] = defaultdict(int)
+            for model in models:
+                base_name = get_filename(
+                    model.template_name or "", model.id, skip_id=True
+                )
+                candidate = f"{base_name}.css"
+                while candidate in used_names:
+                    seen_counts[base_name] += 1
+                    candidate = f"{base_name} ({seen_counts[base_name]}).css"
+                used_names.add(candidate)
+                write_zip_entry(
+                    bundle, f"{root}/{candidate}", (model.css or "").encode()
+                )
+        buf.seek(0)
+
+        return send_export_zip(buf, filename)

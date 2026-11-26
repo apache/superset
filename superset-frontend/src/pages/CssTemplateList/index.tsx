@@ -42,6 +42,7 @@ import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
+import handleResourceExport from 'src/utils/export';
 
 const PAGE_SIZE = 25;
 
@@ -84,6 +85,7 @@ function CssTemplatesList({
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_export');
 
   const [templateCurrentlyDeleting, setTemplateCurrentlyDeleting] =
     useState<TemplateObject | null>(null);
@@ -123,6 +125,15 @@ function CssTemplatesList({
     );
   };
 
+  const handleBulkExport = (templatesToExport: TemplateObject[]) =>
+    handleResourceExport(
+      'css_template',
+      templatesToExport.map(({ id }) => id),
+      () => {},
+    ).catch(() =>
+      addDangerToast(t('There was an issue exporting the selected templates')),
+    );
+
   function handleCssTemplateEdit(cssTemplate: TemplateObject) {
     setCurrentCssTemplate(cssTemplate);
     setCssTemplateModalOpen(true);
@@ -155,6 +166,13 @@ function CssTemplatesList({
       {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleCssTemplateEdit(original);
+          const handleExport = () =>
+            handleResourceExport('css_template', [original.id], () => {}).catch(
+              () =>
+                addDangerToast(
+                  t('There was an issue exporting the selected template'),
+                ),
+            );
           const handleDelete = () => setTemplateCurrentlyDeleting(original);
 
           const actions = [
@@ -165,6 +183,15 @@ function CssTemplatesList({
                   placement: 'bottom',
                   icon: 'EditOutlined',
                   onClick: handleEdit,
+                }
+              : null,
+            canExport
+              ? {
+                  label: 'export-action',
+                  tooltip: t('Export'),
+                  placement: 'bottom',
+                  icon: 'UploadOutlined',
+                  onClick: handleExport,
                 }
               : null,
             canDelete
@@ -185,7 +212,7 @@ function CssTemplatesList({
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
-        hidden: !canEdit && !canDelete,
+        hidden: !canEdit && !canDelete && !canExport,
         layout: 'actions',
       },
       {
@@ -194,7 +221,7 @@ function CssTemplatesList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canCreate],
+    [canDelete, canCreate, canExport, addDangerToast],
   );
 
   const menuData: SubMenuProps = {
@@ -203,7 +230,7 @@ function CssTemplatesList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
-  if (canDelete) {
+  if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
@@ -289,16 +316,23 @@ function CssTemplatesList({
         onConfirm={handleBulkTemplateDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = canDelete
-            ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
-            : [];
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              onSelect: confirmDelete,
+              type: 'danger',
+            });
+          }
+          if (canExport) {
+            bulkActions.push({
+              key: 'export',
+              name: t('Export'),
+              type: 'primary',
+              onSelect: handleBulkExport,
+            });
+          }
 
           return (
             <ListView<TemplateObject>
