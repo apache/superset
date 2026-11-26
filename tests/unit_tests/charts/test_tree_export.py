@@ -176,7 +176,9 @@ def test_swaps_the_queries_for_the_export_query(
     assert result["result_format"] == result_format
 
 
-@pytest.mark.parametrize(("result_format", "row_limit"), [("xlsx", 100), ("csv", 1000)])
+@pytest.mark.parametrize(
+    ("result_format", "row_limit"), [("xlsx", 100), ("csv", 100), ("csv", 1000)]
+)
 @pytest.mark.parametrize("saved_range", ["No filter", RANGE])
 def test_dashboard_defaults_filter_tree_export_rows(
     config: None, result_format: str, row_limit: int, saved_range: str
@@ -207,13 +209,14 @@ def test_dashboard_defaults_filter_tree_export_rows(
     assert step_filter in parents["filters"]
     assert step_filter not in export["filters"]
     assert parents["time_range"] == export["time_range"] == effective_range
-    root_range = effective_range if saved_range == "No filter" else saved_range
-    assert any(
-        flt["col"] == "session_started_at" and flt["val"] == root_range
-        for flt in parents["filters"]
-    )
+    for query in (parents, export):
+        assert [
+            flt["val"]
+            for flt in query["filters"]
+            if flt["col"] == "session_started_at" and flt["op"] == "TEMPORAL_RANGE"
+        ] == [effective_range]
     assert all(flt["col"] != "step_started_at" for flt in parents["filters"])
-    if result_format == "csv":
+    if result_format == "csv" and row_limit == 1000:
         assert {
             "col": "step_started_at",
             "op": "TEMPORAL_RANGE",

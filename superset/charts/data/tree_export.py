@@ -162,21 +162,21 @@ def _refresh_child_time_filters(
     if not isinstance(root_column, str) or not root_column:
         return child_filters
 
-    filters = [flt for flt in query.get("filters") or [] if flt not in child_filters]
+    filters = [
+        flt
+        for flt in query.get("filters") or []
+        if flt not in child_filters
+        and not (flt.get("op") == "TEMPORAL_RANGE" and flt.get("col") == root_column)
+    ]
     query["filters"] = filters
-    has_root_filter = any(
-        flt.get("op") == "TEMPORAL_RANGE" and flt.get("col") == root_column
-        for flt in filters
+    filters.append(
+        {
+            "col": root_column,
+            "op": "TEMPORAL_RANGE",
+            "val": dashboard_range,
+            "isExtra": True,
+        }
     )
-    if not has_root_filter:
-        filters.append(
-            {
-                "col": root_column,
-                "op": "TEMPORAL_RANGE",
-                "val": dashboard_range,
-                "isExtra": True,
-            }
-        )
 
     child_filters = []
     for step in query.get("post_processing") or []:
