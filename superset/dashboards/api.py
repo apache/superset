@@ -104,7 +104,7 @@ from superset.commands.database.exceptions import DatasetValidationError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.distributed_lock.acquire import AcquireDistributedLock
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
-from superset.commands.exceptions import TagForbiddenError
+from superset.commands.exceptions import CommandException, TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import (
     get_contents_from_bundle,
@@ -250,7 +250,10 @@ from superset.views.base_api import (
     validate_feature_flags,
 )
 from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
-from superset.views.error_handling import handle_api_exception
+from superset.views.error_handling import (
+    command_exception_response,
+    handle_api_exception,
+)
 from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedUsers,
@@ -3330,7 +3333,12 @@ class DashboardRestApi(
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
             encrypted_extra_secrets=encrypted_extra_secrets,
         )
-        command.run()
+        try:
+            command.run()
+        except CommandException as ex:
+            # Return the same well-formed error body as the global
+            # CommandException handler for expected, client-caused failures.
+            return command_exception_response(ex)
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/embedded", methods=("GET",))

@@ -19,7 +19,7 @@
 import { isValidElement } from 'react';
 import { AnyAction, combineReducers } from 'redux';
 import Mousetrap from 'mousetrap';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render } from 'spec/helpers/testing-library';
 
@@ -52,7 +52,7 @@ const mockAction = {} as AnyAction;
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SqlLab App', () => {
   const middlewares = [thunk];
-  const mockStore = configureStore(middlewares);
+  const mockStore = createMockStore(middlewares);
   const store = mockStore(sqlLabReducer(undefined, mockAction));
 
   beforeEach(() => {

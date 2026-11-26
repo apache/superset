@@ -21,7 +21,8 @@ import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, handleKeyboardActivation } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
-import CodeSyntaxHighlighter, {
+import {
+  CodeSyntaxHighlighter,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { LoadingCards } from 'src/pages/Home';

@@ -24312,9 +24312,8 @@ msgstr "해당 시점에 사용 가능한 모든 계열 목록을 표시합니�
 msgid "Shows or hides markers for the time series"
 msgstr "시계열의 마커를 표시하거나 숨깁니다"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "주석"
+msgstr "로그인"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, lv,
 # ro, ru, sr, sr_Latn, tr, uk]

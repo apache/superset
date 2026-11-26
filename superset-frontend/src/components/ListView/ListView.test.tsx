@@ -28,7 +28,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { MemoryRouter, useHistory } from 'react-router-dom';
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { ReactNode, useState } from 'react';
 import { ListView, type ListViewProps } from './ListView';
 import { ListViewFilterOperator, type ListViewFetchDataConfig } from './types';
@@ -57,7 +57,7 @@ type MockedListViewProps = Omit<
 };
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 const fetchSelectsMock = jest.fn(() =>
   Promise.resolve({ data: [], totalCount: 0 }),
@@ -266,12 +266,12 @@ describe('ListView', () => {
     const paginationList = screen.getByRole('list');
     expect(paginationList).toBeInTheDocument();
 
-    const pageOneItem = screen.getByRole('listitem', { name: '1' });
+    const pageOneItem = screen.getByRole('button', { name: 'Page 1' });
     expect(pageOneItem).toBeInTheDocument();
   });
 
   test('calls fetchData on page change', async () => {
-    const pageTwoItem = screen.getByRole('listitem', { name: '2' });
+    const pageTwoItem = screen.getByRole('button', { name: 'Page 2' });
     await userEvent.click(pageTwoItem);
 
     await waitFor(() => {

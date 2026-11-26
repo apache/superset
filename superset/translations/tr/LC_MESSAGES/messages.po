@@ -17533,7 +17533,7 @@ msgid "Shows or hides markers for the time series"
 msgstr "Gösteriler veya zaman serisi için işaretleyicileri gizler"
 
 msgid "Sign in"
-msgstr "Sign in Sign in"
+msgstr "Giriş"
 
 msgid "Sign in with"
 msgstr "Sign in with"
@@ -24467,6 +24467,9 @@ msgstr ""
 "herhangi bir kontrol (columns, metrics) korunmuştur."
 
 msgid "Your account is activated. You can log in with your credentials."
+msgstr "Hesabınız etkinleştirilir. Bilgilerinizle giriş yapabilirsiniz."
+
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "Hesabınız etkinleştirilir. Bilgilerinizle giriş yapabilirsiniz."
 
 msgid "Your changes will be lost if you leave without saving."

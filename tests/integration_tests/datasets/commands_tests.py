@@ -91,6 +91,9 @@ class TestExportDatasetsCommand(SupersetTestCase):
         metadata["columns"] = sorted(metadata["columns"], key=itemgetter("column_name"))
         metadata["metrics"] = sorted(metadata["metrics"], key=itemgetter("metric_name"))
 
+        # the partition mapping fields are absent: this dataset has no mapping, and
+        # they are only exported when set, so older Superset versions can import it
+
         # types are different depending on the backend
         type_map = {
             column.column_name: str(column.type) for column in example_dataset.columns
@@ -118,8 +121,6 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "groupby": True,
                     "is_active": True,
                     "is_dttm": False,
-                    "partition_transform_is_monotonic": False,
-                    "partition_value_transform": None,
                     "python_date_format": None,
                     "type": type_map["source"],
                     "advanced_data_type": None,
@@ -136,8 +137,6 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "groupby": True,
                     "is_active": True,
                     "is_dttm": False,
-                    "partition_transform_is_monotonic": False,
-                    "partition_value_transform": None,
                     "python_date_format": None,
                     "type": type_map["target"],
                     "uuid": column_uuid_map["target"],
@@ -154,8 +153,6 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "groupby": True,
                     "is_active": True,
                     "is_dttm": False,
-                    "partition_transform_is_monotonic": False,
-                    "partition_value_transform": None,
                     "python_date_format": None,
                     "type": type_map["value"],
                     "advanced_data_type": None,
@@ -200,8 +197,6 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "folders": None,
             "normalize_columns": False,
             "always_filter_main_dttm": False,
-            "partition_column": None,
-            "partition_mapped_column": None,
             "offset": 0,
             "params": None,
             "schema": get_example_default_schema(),
@@ -268,8 +263,6 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "normalize_columns",
             "always_filter_main_dttm",
             "folders",
-            "partition_column",
-            "partition_mapped_column",
             "uuid",
             "metrics",
             "columns",
