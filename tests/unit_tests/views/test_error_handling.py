@@ -363,6 +363,42 @@ class TestShowCommandErrors:
         assert response.status_code == 500
         assert response.content_type.startswith("application/json")
 
+    def test_4xx_command_error_does_not_attach_traceback(
+        self, caplog: pytest.LogCaptureFixture
+    ):
+        """
+        A 4xx command error (e.g. a dataset import validation failure) is an
+        expected, client-caused failure. Logging it with ``exc_info=True``
+        forwards a traceback to Sentry's logging integration regardless of
+        the 422 returned to the client, making routine validation failures
+        indistinguishable from real 500s.
+        """
+        client = self._build_app_with_handlers().test_client()
+
+        with caplog.at_level(logging.WARNING):
+            response = client.get("/invalid")
+
+        assert response.status_code == 422
+        records = [
+            r for r in caplog.records if r.name == "superset.views.error_handling"
+        ]
+        assert any(r.levelno == logging.WARNING for r in records)
+        assert not any(r.exc_info for r in records)
+
+    def test_5xx_command_error_still_attaches_traceback(
+        self, caplog: pytest.LogCaptureFixture
+    ):
+        client = self._build_app_with_handlers().test_client()
+
+        with caplog.at_level(logging.WARNING):
+            response = client.get("/failed", headers={"Accept": "application/json"})
+
+        assert response.status_code == 500
+        records = [
+            r for r in caplog.records if r.name == "superset.views.error_handling"
+        ]
+        assert any(r.levelno == logging.WARNING and r.exc_info for r in records)
+
 
 class TestShowHttpException:
     """
