@@ -536,7 +536,7 @@ const ResultSet = ({
       limitMessage =
         csv && canExportData
           ? t(
-              'The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads rerun read-only queries up to the query limit. Scripts that modify data or schema export only the stored rows.',
+              'The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts that modify data or schema and BigQuery scripts that cannot be fully parsed export only stored rows, which may remain memory-capped.',
               { rows },
             )
           : t(

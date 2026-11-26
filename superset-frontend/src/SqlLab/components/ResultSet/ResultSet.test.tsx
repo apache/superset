@@ -605,7 +605,7 @@ describe('ResultSet', () => {
       csv: true,
       canExport: true,
       message:
-        'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun read-only queries up to the query limit. Scripts that modify data or schema export only the stored rows.',
+        'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts that modify data or schema and BigQuery scripts that cannot be fully parsed export only stored rows, which may remain memory-capped.',
     },
     {
       csv: true,
@@ -646,38 +646,45 @@ describe('ResultSet', () => {
     },
   );
 
-  test('memory-capped mutating scripts warn that CSV downloads use stored rows', async () => {
-    setup(
-      mockedProps,
-      mockStore({
-        ...initialState,
-        user: { ...user, roles: { sql_lab: [['can_export_csv', 'SQLLab']] } },
-        sqlLab: {
-          ...initialState.sqlLab,
-          queries: {
-            [queries[0].id]: {
-              ...queries[0],
-              executedSql: 'INSERT INTO log VALUES (1); SELECT n FROM t',
-              limitingFactor: 'MEMORY',
+  test.each([
+    'INSERT INTO log VALUES (1); SELECT n FROM t',
+    'IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF',
+    'BEGIN SELECT 1; END',
+  ])(
+    'memory-capped scripts warn about stored-row CSV downloads: %s',
+    async sql => {
+      setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: { ...user, roles: { sql_lab: [['can_export_csv', 'SQLLab']] } },
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [queries[0].id]: {
+                ...queries[0],
+                executedSql: sql,
+                limitingFactor: 'MEMORY',
+              },
             },
           },
-        },
-      }),
-    );
+        }),
+      );
 
-    await userEvent.hover(await screen.findByText('42 rows'));
+      await userEvent.hover(await screen.findByText('42 rows'));
 
-    expect(
-      await screen.findByText(
-        '42 rows returned. The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun read-only queries up to the query limit. Scripts that modify data or schema export only the stored rows.',
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        /CSV downloads include all rows up to the query limit/,
-      ),
-    ).not.toBeInTheDocument();
-  });
+      expect(
+        await screen.findByText(
+          '42 rows returned. The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts that modify data or schema and BigQuery scripts that cannot be fully parsed export only stored rows, which may remain memory-capped.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          /CSV downloads include all rows up to the query limit/,
+        ),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   test.each([
     { limitingFactor: 'MEMORY', expectedRows: undefined },

@@ -25,9 +25,9 @@ assists people when migrating to a new version.
 ## Next
 
 - The BigQuery fetch memory cap (`BQ_FETCH_MAX_MB`) no longer applies to chart
-  CSV/XLSX/JSON exports or SQL Lab CSV exports: these return every row up to the
-  row limit, as before the cap was added. On-screen chart and SQL Lab results
-  keep the cap. SQL Lab reports a result cut by the cap with the new
+  CSV/XLSX/JSON exports or SQL Lab CSV exports of queries safe to re-execute:
+  these return every row up to the row limit, as before the cap was added.
+  On-screen chart and SQL Lab results keep the cap. SQL Lab reports a result cut by the cap with the new
   `MEMORY` limiting factor instead of `NOT_LIMITED`; before downgrading to a
   version without it, run
   `UPDATE query SET limiting_factor = 'NOT_LIMITED' WHERE limiting_factor = 'MEMORY'`
@@ -39,8 +39,10 @@ assists people when migrating to a new version.
   fail if those results are unavailable. Streaming downloads fall back to the
   buffered export for these scripts. BigQuery control-flow bodies that the
   parser cannot inspect are checked for mutation tokens; scripts with unsupported
-  BigQuery syntax use stored rows rather than risk repeating writes. Other
-  engines retain the export re-execution fallback for opaque statements unless
+  BigQuery syntax use only stored, potentially memory-capped rows even when
+  read-only (for example, `IF ... ELSE ... END IF` or `BEGIN ... END`).
+  Their exports fail if stored results are unavailable, rather than risk
+  repeating writes. Other engines retain the export re-execution fallback for opaque statements unless
   a mutation is detected.
 
 - Provider tests inheriting `SemanticProviderConformance` must supply four
