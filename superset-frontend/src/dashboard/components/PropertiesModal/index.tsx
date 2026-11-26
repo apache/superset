@@ -155,6 +155,7 @@ const PropertiesModal = ({
   const [asyncMode, setAsyncMode] = useState<AsyncModeOverride>('default');
   const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
   const [showChartTimestamps, setShowChartTimestamps] = useState(false);
+  const [showDataFreshness, setShowDataFreshness] = useState(false);
   const [themes, setThemes] = useState<
     Array<{
       id: number;
@@ -238,6 +239,7 @@ const PropertiesModal = ({
         'map_label_colors',
         'color_scheme_domain',
         'show_chart_timestamps',
+        'show_data_freshness',
         // Edited via the async-mode dropdown, not the raw JSON editor, so the
         // dropdown is the single source of truth (mirrors show_chart_timestamps).
         'async_mode',
@@ -249,6 +251,7 @@ const PropertiesModal = ({
         (metadata?.async_mode as AsyncModeOverride | undefined) || 'default',
       );
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
+      setShowDataFreshness(metadata?.show_data_freshness ?? false);
       originalDashboardMetadata.current = metadata;
     },
     [form],
@@ -398,12 +401,21 @@ const PropertiesModal = ({
       jsonMetadataObj.async_mode = asyncMode;
     }
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
+    // Only written once turned on, so dashboards that never use it don't
+    // record a default on their next save.
+    if (
+      showDataFreshness ||
+      originalDashboardMetadata.current?.show_data_freshness !== undefined
+    ) {
+      jsonMetadataObj.show_data_freshness = Boolean(showDataFreshness);
+    }
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
       label_colors: customLabelColors,
       color_scheme: updatedColorScheme,
       show_chart_timestamps: showChartTimestamps,
+      show_data_freshness: showDataFreshness,
     };
 
     originalDashboardMetadata.current = updatedDashboardMetadata;
@@ -845,6 +857,8 @@ const PropertiesModal = ({
                   onColorSchemeChange={onColorSchemeChange}
                   onCustomCssChange={handleCustomCssChange}
                   onShowChartTimestampsChange={setShowChartTimestamps}
+                  showDataFreshness={showDataFreshness}
+                  onShowDataFreshnessChange={setShowDataFreshness}
                   onJsonMetadataChange={setJsonMetadata}
                   addDangerToast={addDangerToast}
                 />

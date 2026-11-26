@@ -55,6 +55,8 @@ export type UiConfigType = {
     [key: string]: any;
   };
   showRowLimitWarning?: boolean;
+  /** Show the dashboard's "Data as of" source-data freshness label. */
+  showDataFreshness?: boolean;
 };
 
 /** Default per-call timeout (ms) applied to the host `fetchGuestToken` callback. */
@@ -254,6 +256,9 @@ export async function embedDashboard({
       }
       if (dashboardUiConfig.showRowLimitWarning) {
         configNumber += 32;
+      }
+      if (dashboardUiConfig.showDataFreshness) {
+        configNumber += 64;
       }
     }
     return configNumber;

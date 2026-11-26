@@ -1220,3 +1220,57 @@ test('menu strings the viewer reads use the displayed name', async () => {
   await userEvent.click(screen.getByText('View as table'));
   expect(await screen.findByText('Chart Data: Ventes')).toBeInTheDocument();
 });
+
+const renderWithFreshness = (showDataFreshness: boolean) =>
+  render(<SliceHeaderControls {...createProps()} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: {
+      ...mockState,
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        common: {
+          ...mockState.dashboardInfo.common,
+          conf: {
+            ...mockState.dashboardInfo.common?.conf,
+            DATA_FRESHNESS_ENABLED: true,
+            DATA_FRESHNESS_DISPLAY_TIMEZONE: 'UTC',
+          },
+        },
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          show_data_freshness: showDataFreshness,
+        },
+        dataFreshness: {
+          data_as_of: '2026-11-26T09:30:00+00:00',
+          stale: false,
+          datasets: [
+            {
+              id: 58,
+              name: 'vaccines',
+              data_as_of: '2026-11-26T09:30:00+00:00',
+              warn_after_minutes: null,
+              stale: false,
+            },
+          ],
+        },
+      },
+    },
+  });
+
+test('Shows when the chart dataset was last loaded', async () => {
+  renderWithFreshness(true);
+  await openMenu();
+  expect(
+    await screen.findByTestId('dashboard-slice-data-freshness'),
+  ).toHaveTextContent('Data as of Nov 26, 2026 9:30 AM');
+});
+
+test('Hides the data freshness line when the dashboard has it off', async () => {
+  renderWithFreshness(false);
+  await openMenu();
+  await screen.findByTestId('dashboard-slice-refresh-tooltip');
+  expect(
+    screen.queryByTestId('dashboard-slice-data-freshness'),
+  ).not.toBeInTheDocument();
+});

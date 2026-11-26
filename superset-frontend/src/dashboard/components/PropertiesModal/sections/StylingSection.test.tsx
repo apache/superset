@@ -24,6 +24,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import * as resolveCssImportsModule from 'src/dashboard/util/resolveCssImports';
+import * as bootstrapDataModule from 'src/utils/getBootstrapData';
 import StylingSection from './StylingSection';
 
 jest.mock('src/dashboard/util/resolveCssImports', () => ({
@@ -336,4 +337,47 @@ test('converting surfaces a warning instead of an unhandled rejection on parse f
     ).toHaveTextContent('Could not parse the CSS');
   });
   expect(onCustomCssChange).not.toHaveBeenCalled();
+});
+
+test('data freshness switch is hidden unless DATA_FRESHNESS_ENABLED', () => {
+  render(
+    <StylingSection {...defaultProps} onShowDataFreshnessChange={jest.fn()} />,
+  );
+  expect(
+    screen.queryByTestId('dashboard-show-data-freshness-switch'),
+  ).not.toBeInTheDocument();
+});
+
+test('data freshness switch reflects and updates showDataFreshness', async () => {
+  const actual = bootstrapDataModule.default();
+  const bootstrapSpy = jest
+    .spyOn(bootstrapDataModule, 'default')
+    .mockReturnValue({
+      ...actual,
+      common: {
+        ...actual.common,
+        conf: { ...actual.common.conf, DATA_FRESHNESS_ENABLED: true },
+      },
+    });
+  const onShowDataFreshnessChange = jest.fn();
+  try {
+    render(
+      <StylingSection
+        {...defaultProps}
+        showDataFreshness={false}
+        onShowDataFreshnessChange={onShowDataFreshnessChange}
+      />,
+    );
+    const freshnessSwitch = screen.getByTestId(
+      'dashboard-show-data-freshness-switch',
+    );
+    expect(freshnessSwitch).not.toBeChecked();
+    await userEvent.click(freshnessSwitch);
+    expect(onShowDataFreshnessChange).toHaveBeenCalledWith(
+      true,
+      expect.anything(),
+    );
+  } finally {
+    bootstrapSpy.mockRestore();
+  }
 });

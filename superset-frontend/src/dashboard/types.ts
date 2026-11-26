@@ -43,6 +43,7 @@ import Subject from 'src/types/Subject';
 import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
 import { AutoRefreshStatus } from './types/autoRefresh';
+import type { DashboardFreshness } from './components/DataFreshness/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
@@ -206,6 +207,8 @@ export type DashboardInfo = {
     positions?: JsonObject;
     filter_scopes?: JsonObject;
     async_mode?: AsyncModeOverride;
+    show_chart_timestamps?: boolean;
+    show_data_freshness?: boolean;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
@@ -214,6 +217,8 @@ export type DashboardInfo = {
   changed_by?: User;
   created_by?: User;
   editors: Subject[];
+  /** Loaded from `GET /api/v1/dashboard/<id>/freshness` when shown. */
+  dataFreshness?: DashboardFreshness;
   chartCustomizationData?: { [itemId: string]: ColumnOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomization>;

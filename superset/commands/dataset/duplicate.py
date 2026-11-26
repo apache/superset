@@ -37,6 +37,12 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.daos.dataset import DatasetDAO
+from superset.datasets.freshness import (
+    freshness_time_columns,
+    FreshnessValidationError,
+    parse_freshness_config,
+    validate_freshness_extra,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -161,6 +167,9 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             # caller's access to the base.
             if base_model.sql:
                 self._validate_copy_sql_access(base_model, exceptions)
+            # The copy also carries the base's ``extra``, and with it any
+            # freshness query, which the copy's new owner must be able to run.
+            self._validate_copy_freshness(base_model, exceptions)
 
         if self._base_model and self._base_model.kind != "virtual":
             exceptions.append(DatasourceTypeInvalidError())
@@ -194,6 +203,39 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
+
+    @staticmethod
+    def _validate_copy_freshness(
+        base_model: SqlaTable, exceptions: list[ValidationError]
+    ) -> None:
+        """Authorize the freshness setting the copy inherits from the base."""
+        try:
+            if parse_freshness_config(base_model.extra) is None:
+                return
+        except FreshnessValidationError as ex:
+            exceptions.append(ex)
+            return
+        try:
+            template_params: dict[str, Any] | None = parse_template_params(
+                base_model.template_params
+            )
+        except ValueError:
+            template_params = None
+        try:
+            validate_freshness_extra(
+                base_model.extra,
+                stored_extra=None,
+                columns=freshness_time_columns(base_model.columns),
+                database=base_model.database,
+                catalog=base_model.catalog,
+                schema=base_model.schema,
+                template_params=template_params,
+                binding_changed=True,
+            )
+        except FreshnessValidationError as ex:
+            exceptions.append(ex)
+        except SupersetSecurityException as ex:
+            raise DatasetAccessDeniedError() from ex
 
     @staticmethod
     def _validate_copy_sql_access(

@@ -72,7 +72,7 @@ export const EmbeddedContextProviders: React.FC<{
       <ReduxProvider store={store}>
         {/* @ts-expect-error react-dnd types not updated for React 18 */}
         <DndProvider backend={HTML5Backend}>
-          <EmbeddedUiConfigProvider>
+          <EmbeddedUiConfigProvider isEmbedded>
             <DynamicPluginProvider>
               <QueryParamProvider
                 adapter={ReactRouter5Adapter}

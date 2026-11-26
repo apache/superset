@@ -58,6 +58,11 @@ from superset.connectors.sqla.partition_mapping import (
 )
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
+from superset.datasets.freshness import (
+    freshness_time_columns,
+    FreshnessValidationError,
+    validate_freshness_extra,
+)
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.models.helpers import (
@@ -397,6 +402,64 @@ def _raise_for_import_binding_access(
             ),
             allow_editorship=False,
         )
+
+
+def _raise_for_import_freshness(
+    config: dict[str, Any], existing: SqlaTable | None
+) -> None:
+    """Validate the freshness setting a dataset import will store.
+
+    The import does not go through ``UpdateDatasetCommand``, so the setting is
+    held to the same bar here: a valid shape, a column the dataset has, and for
+    a freshness ``sql``, data access to what it reads. As with the binding check
+    above, the ``sql`` is re-authorized unless the upload echoes the stored
+    value against an unchanged connection, catalog, schema and params.
+    """
+    if config.get("extra") is None:
+        return
+    database = db.session.query(Database).filter_by(id=config["database_id"]).first()
+    if database is None:
+        return
+
+    catalog = config.get("catalog", existing.catalog if existing else None)
+    schema = config.get("schema", existing.schema if existing else None)
+    stored_params = (
+        _readable_template_params(existing.template_params) if existing else {}
+    )
+    template_params = (
+        _readable_template_params(config["template_params"])
+        if "template_params" in config
+        else stored_params
+    )
+    binding_changed = (
+        existing is None
+        or config["database_id"] != existing.database_id
+        or (catalog or None) != (existing.catalog or None)
+        or (schema or None) != (existing.schema or None)
+        or template_params != stored_params
+    )
+    stored_columns = existing.columns if existing else []
+    columns = freshness_time_columns(
+        config["columns"] if "columns" in config else stored_columns,
+        existing=stored_columns,
+    )
+    try:
+        validate_freshness_extra(
+            config["extra"],
+            stored_extra=existing.extra if existing else None,
+            columns=columns,
+            database=database,
+            catalog=catalog,
+            schema=schema,
+            template_params=template_params,
+            binding_changed=binding_changed,
+        )
+    except FreshnessValidationError as ex:
+        raise IncorrectFormatError(
+            f"Invalid freshness setting: {json.dumps(ex.messages)}"
+        ) from ex
+    except SupersetSecurityException as ex:
+        raise DatasetAccessDeniedError() from ex
 
 
 def _default_omitted_monotonic_declarations(columns: list[dict[str, Any]]) -> None:
@@ -755,6 +818,7 @@ def import_dataset(  # noqa: C901
             raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
         except TemplateError as ex:
             raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
+        _raise_for_import_freshness(config, existing)
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()

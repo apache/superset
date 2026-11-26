@@ -71,6 +71,13 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+import {
+  formatDataAsOf,
+  getChartDatasetFreshness,
+  useDataFreshness,
+  useDataFreshnessTimezone,
+  useShowDataFreshness,
+} from '../DataFreshness';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 import { Global } from '@emotion/react';
 import { fullscreenStyles } from './Styles';
@@ -501,6 +508,20 @@ const SliceHeaderControls = (
   const queriedLabel = queriedDttm
     ? extendedDayjs.utc(queriedDttm).local().format('L LTS')
     : null;
+  const showDataFreshness = useShowDataFreshness();
+  const dashboardFreshness = useDataFreshness();
+  const freshnessTimezone = useDataFreshnessTimezone();
+  const datasetFreshness = getChartDatasetFreshness(
+    dashboardFreshness,
+    slice.datasource,
+  );
+  const freshnessLabel =
+    showDataFreshness && datasetFreshness?.data_as_of
+      ? t(
+          'Data as of %s',
+          formatDataAsOf(datasetFreshness.data_as_of, freshnessTimezone),
+        )
+      : null;
   const fullscreenLabel = isFullSize
     ? t('Exit fullscreen')
     : t('Enter fullscreen');
@@ -524,6 +545,11 @@ const SliceHeaderControls = (
             <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
               {refreshTooltip}
             </RefreshTooltip>
+            {freshnessLabel && (
+              <RefreshTooltip data-test="dashboard-slice-data-freshness">
+                {freshnessLabel}
+              </RefreshTooltip>
+            )}
           </div>
         </Tooltip>
       ),

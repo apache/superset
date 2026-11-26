@@ -29,6 +29,7 @@ import { Button, Select, Switch } from '@superset-ui/core/components';
 import { EditorHost } from 'src/core/editors';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { ModalFormField } from 'src/components/Modal';
 import LabelColorMapping from './LabelColorMapping';
 import {
@@ -89,6 +90,7 @@ interface StylingSectionProps {
   customCss: string;
   hasCustomLabelsColor: boolean;
   showChartTimestamps: boolean;
+  showDataFreshness?: boolean;
   jsonMetadata: string;
   onThemeChange: (value: any) => void;
   onColorSchemeChange: (
@@ -97,6 +99,7 @@ interface StylingSectionProps {
   ) => void;
   onCustomCssChange: (css: string) => void;
   onShowChartTimestampsChange: (value: boolean) => void;
+  onShowDataFreshnessChange?: (value: boolean) => void;
   onJsonMetadataChange: (value: string) => void;
   addDangerToast?: (message: string) => void;
 }
@@ -108,14 +111,19 @@ const StylingSection = ({
   customCss,
   hasCustomLabelsColor,
   showChartTimestamps,
+  showDataFreshness = false,
   jsonMetadata,
   onThemeChange,
   onColorSchemeChange,
   onCustomCssChange,
   onShowChartTimestampsChange,
+  onShowDataFreshnessChange,
   onJsonMetadataChange,
   addDangerToast,
 }: StylingSectionProps) => {
+  const dataFreshnessEnabled = Boolean(
+    getBootstrapData().common?.conf?.DATA_FRESHNESS_ENABLED,
+  );
   const [cssTemplates, setCssTemplates] = useState<CssTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -283,6 +291,23 @@ const StylingSection = ({
           )}
         </span>
       </StyledSwitchContainer>
+      {dataFreshnessEnabled && onShowDataFreshnessChange && (
+        <StyledSwitchContainer data-test="dashboard-show-data-freshness-field">
+          <div className="switch-row">
+            <Switch
+              data-test="dashboard-show-data-freshness-switch"
+              checked={showDataFreshness}
+              onChange={onShowDataFreshnessChange}
+            />
+            <span className="switch-label">{t('Show data freshness')}</span>
+          </div>
+          <span className="switch-helper">
+            {t(
+              'Display when the source data was last loaded ("Data as of") in the dashboard header and chart menus. Datasets set this up under Edit dataset > Settings.',
+            )}
+          </span>
+        </StyledSwitchContainer>
+      )}
       {isFeatureEnabled(FeatureFlag.CssTemplates) &&
         cssTemplates.length > 0 && (
           <ModalFormField

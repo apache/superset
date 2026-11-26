@@ -22,12 +22,12 @@ export type DatasetCertification = {
   certification_details?: string;
 };
 
-type JsonObject = Record<string, unknown>;
+export type JsonObject = Record<string, unknown>;
 
-const isJsonObject = (value: unknown): value is JsonObject =>
+export const isJsonObject = (value: unknown): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const parseExtra = (extra?: string): JsonObject | undefined => {
+export const parseExtra = (extra?: string): JsonObject | undefined => {
   if (!extra?.trim()) {
     return {};
   }

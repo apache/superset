@@ -135,6 +135,14 @@ import {
   getDatasetCertification,
   isDatasetExtraValid,
 } from './datasetCertification';
+import {
+  type DatasetFreshnessSetting,
+  type FreshnessMode,
+  getDatasetFreshness,
+  getFreshnessMode,
+  setDatasetFreshness,
+} from './datasetFreshness';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -2384,6 +2392,150 @@ function DatasourceEditor({
     ) : null;
   }, [datasource, isSqla]);
 
+  const dataFreshnessEnabled = Boolean(
+    getBootstrapData().common?.conf?.DATA_FRESHNESS_ENABLED,
+  );
+  // The mode is local state so choosing "SQL query" before typing one keeps
+  // the SQL field open; `extra` only carries a complete setting.
+  const [freshnessMode, setFreshnessMode] = useState<FreshnessMode>(() =>
+    getFreshnessMode(getDatasetFreshness(propsDatasource.extra)),
+  );
+
+  const renderDataFreshnessFieldset = useCallback(() => {
+    if (!isSqla || !dataFreshnessEnabled) {
+      return null;
+    }
+    const extraError = !isDatasetExtraValid(datasource.extra)
+      ? t('Fix the Extra JSON to edit data freshness')
+      : undefined;
+    const setting = getDatasetFreshness(datasource.extra);
+    const item = {
+      freshness_mode: freshnessMode,
+      freshness_column: setting.column,
+      freshness_sql: setting.sql,
+      freshness_warn_after_minutes: setting.warn_after_minutes,
+    };
+    const writeSetting = (next: DatasetFreshnessSetting) => {
+      setDatasource(previousDatasource => ({
+        ...previousDatasource,
+        extra: setDatasetFreshness(previousDatasource.extra, next),
+      }));
+    };
+
+    return (
+      <Fieldset
+        title={t('Data freshness')}
+        item={item}
+        onFieldChange={(fieldKey, value) => {
+          const warn = setting.warn_after_minutes;
+          if (fieldKey === 'freshness_mode') {
+            const mode = value as FreshnessMode;
+            setFreshnessMode(mode);
+            writeSetting(mode === 'none' ? {} : { warn_after_minutes: warn });
+          } else if (fieldKey === 'freshness_column') {
+            writeSetting({
+              column: typeof value === 'string' ? value : undefined,
+              warn_after_minutes: warn,
+            });
+          } else if (fieldKey === 'freshness_sql') {
+            writeSetting({
+              sql: typeof value === 'string' ? value : undefined,
+              warn_after_minutes: warn,
+            });
+          } else if (fieldKey === 'freshness_warn_after_minutes') {
+            const minutes = Number(value);
+            writeSetting({
+              column: setting.column,
+              sql: setting.sql,
+              warn_after_minutes:
+                Number.isInteger(minutes) && minutes > 0 ? minutes : undefined,
+            });
+          }
+        }}
+      >
+        <Field
+          fieldKey="freshness_mode"
+          label={t('Data as of')}
+          description={t(
+            'Where the time this data was last loaded comes from. Dashboards that turn on "Show data freshness" display it.',
+          )}
+          errorMessage={extraError}
+          control={
+            <Select
+              ariaLabel={t('Data freshness source')}
+              header={<FormLabel>{t('Data as of')}</FormLabel>}
+              disabled={Boolean(extraError)}
+              options={[
+                { value: 'none', label: t('Not set') },
+                { value: 'column', label: t('Latest value of a column') },
+                { value: 'sql', label: t('SQL query') },
+              ]}
+            />
+          }
+        />
+        {freshnessMode === 'column' && (
+          <Field
+            fieldKey="freshness_column"
+            label={t('Load timestamp column')}
+            description={t(
+              "Superset runs MAX(column) over this dataset, with the viewer's row level security. Only time columns are listed: mark a column as temporal or set its datetime format in the Columns tab. On large tables pick a partitioned or indexed column: the result is cached, but a cold query scans the column.",
+            )}
+            control={
+              <Select
+                ariaLabel={t('Load timestamp column')}
+                header={<FormLabel>{t('Load timestamp column')}</FormLabel>}
+                disabled={Boolean(extraError)}
+                options={datasource.columns
+                  .filter(
+                    column =>
+                      column.is_dttm || Boolean(column.python_date_format),
+                  )
+                  .map(column => ({
+                    value: column.column_name,
+                    label: column.verbose_name || column.column_name,
+                  }))}
+              />
+            }
+          />
+        )}
+        {freshnessMode === 'sql' && (
+          <Field
+            fieldKey="freshness_sql"
+            label={t('Freshness query')}
+            description={t(
+              "A single read-only SELECT returning one timestamp, e.g. from a pipeline run log. It runs on this dataset's database with the viewer's row level security. Saving it requires access to every table it reads.",
+            )}
+            control={
+              <TextAreaControl
+                language="sql"
+                controlId="freshness_sql"
+                minLines={3}
+                resize="vertical"
+                readOnly={Boolean(extraError)}
+              />
+            }
+          />
+        )}
+        {freshnessMode !== 'none' && (
+          <Field
+            fieldKey="freshness_warn_after_minutes"
+            label={t('Warn after (minutes)')}
+            description={t(
+              'Show the label as a warning once the data is older than this. Leave empty to never warn.',
+            )}
+            control={
+              <TextControl
+                controlId="freshness_warn_after_minutes"
+                isInt
+                disabled={Boolean(extraError)}
+              />
+            }
+          />
+        )}
+      </Fieldset>
+    );
+  }, [dataFreshnessEnabled, datasource, freshnessMode, isSqla]);
+
   const renderSettingsFieldset = useCallback(
     () => (
       <Fieldset
@@ -3342,6 +3494,7 @@ function DatasourceEditor({
               <FormContainer>
                 {renderSettingsFieldset()}
                 {renderCertificationFieldset()}
+                {renderDataFreshnessFieldset()}
               </FormContainer>
             </Col>
             <Col xs={24} md={12}>
@@ -3373,6 +3526,7 @@ function DatasourceEditor({
       folderCount,
       handleFoldersChange,
       renderCertificationFieldset,
+      renderDataFreshnessFieldset,
       handleMoveMappingHere,
       handleRemoveMapping,
       handleMonotonicChange,
