@@ -775,3 +775,31 @@ def test_send_mime_email_server_auth_disabled_skips_context(
 
     assert not create_default_context.called
     smtp_ssl.assert_called_once_with("localhost", 25, context=None, timeout=30)
+
+
+def _relative_luminance(hex_color: str) -> float:
+    channels = [int(hex_color.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+    r, g, b = (
+        c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels
+    )
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _contrast_ratio(foreground: str, background: str) -> float:
+    lighter, darker = sorted(
+        (_relative_luminance(foreground), _relative_luminance(background)),
+        reverse=True,
+    )
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def test_default_theme_link_color_meets_wcag_contrast() -> None:
+    """
+    WCAG 1.4.3: the stock light theme sets colorLink explicitly, so the
+    frontend's automatic link-contrast adjustment never runs for it. The
+    configured value itself must reach 4.5:1 against the white background.
+    """
+    from superset.config import _THEME_DEFAULT_BASE
+
+    link = _THEME_DEFAULT_BASE["token"]["colorLink"]
+    assert _contrast_ratio(link, "#ffffff") >= 4.5
