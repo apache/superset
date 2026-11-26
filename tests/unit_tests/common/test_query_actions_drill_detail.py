@@ -123,6 +123,8 @@ def _prepare_for_columns(columns: list[Any]) -> "QueryObject":
         "MAP<string,int>",
         "map(varchar, integer)",
         "xml",
+        "XMLTYPE",
+        "xmltype",
     ],
 )
 def test_prepare_drill_detail_query_skips_unorderable_first_column(
