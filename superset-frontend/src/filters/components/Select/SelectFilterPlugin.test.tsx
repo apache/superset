@@ -2000,12 +2000,7 @@ test('cascade clear cancels a pending LIKE debounce so stale text is not re-appl
 
   // A parent filter change cascades a clear into this dependent filter while
   // the LIKE debounce is still pending.
-  rerender(
-    <SelectFilterPlugin
-      {...likeProps}
-      cascadeClearTrigger={{ 'test-filter': true }}
-    />,
-  );
+  rerender(<SelectFilterPlugin {...likeProps} cascadeClearTrigger />);
 
   await waitFor(() => {
     expect(input).toHaveValue('');
@@ -2062,12 +2057,7 @@ test('cascade clear re-seeds a defaultToFirstItem filter from the re-scoped opti
   // The parent changed: the cascade stages an undefined value and clears this
   // filter. The options on hand still belong to the old parent selection.
   const clearedProps = { ...props, filterState: { value: undefined } };
-  rerender(
-    <SelectFilterPlugin
-      {...clearedProps}
-      cascadeClearTrigger={{ 'test-filter': true }}
-    />,
-  );
+  rerender(<SelectFilterPlugin {...clearedProps} cascadeClearTrigger />);
   await act(async () => {});
 
   // The filter bar consumes the trigger and starts loading the re-scoped
@@ -2139,12 +2129,7 @@ test('cascade clear publishes an empty server search after a settled search', as
 
   // A parent filter change cascades a clear into this dependent filter: the
   // stale server-side search term must not keep scoping the refetched options.
-  rerender(
-    <SelectFilterPlugin
-      {...props}
-      cascadeClearTrigger={{ 'test-filter': true }}
-    />,
-  );
+  rerender(<SelectFilterPlugin {...props} cascadeClearTrigger />);
   await act(async () => {});
   act(() => {
     jest.advanceTimersByTime(1000);
@@ -2180,12 +2165,7 @@ test('cascade clear cancels a pending search-all debounce', async () => {
   // Typed but not yet settled: the server search is still pending.
   await userEvent.type(combobox, 'ab');
 
-  rerender(
-    <SelectFilterPlugin
-      {...props}
-      cascadeClearTrigger={{ 'test-filter': true }}
-    />,
-  );
+  rerender(<SelectFilterPlugin {...props} cascadeClearTrigger />);
   await act(async () => {});
   act(() => {
     jest.advanceTimersByTime(1000);
