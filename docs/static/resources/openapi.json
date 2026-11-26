@@ -9591,7 +9591,8 @@
               "Email",
               "Slack",
               "SlackV2",
-              "Webhook"
+              "Webhook",
+              "Teams"
             ],
             "type": "string"
           }
@@ -27108,7 +27109,25 @@
             "$ref": "#/components/responses/404"
           },
           "500": {
-            "$ref": "#/components/responses/500"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "errors": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Unexpected error, or the analytics database refused or dropped the connection (the response then carries a typed `errors` list). Deliberately not 502/503/504, which SupersetClient retries."
           }
         },
         "security": [
@@ -29665,6 +29684,59 @@
           }
         ],
         "summary": "Subscribe to a chart or dashboard report",
+        "tags": [
+          "Report Schedules"
+        ]
+      }
+    },
+    "/api/v1/report/teams_destinations/": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "properties": {
+                          "available": {
+                            "type": "boolean"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Approved destinations and installation availability"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List approved Teams alert destinations",
         "tags": [
           "Report Schedules"
         ]

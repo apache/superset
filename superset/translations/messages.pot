@@ -1664,6 +1664,9 @@ msgstr ""
 msgid "Alert ended grace period."
 msgstr ""
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr ""
 
@@ -5258,6 +5261,9 @@ msgstr ""
 msgid "Default color"
 msgstr ""
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr ""
 
@@ -5274,6 +5280,9 @@ msgid "Default message"
 msgstr ""
 
 msgid "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space"
+msgstr ""
+
+msgid "Default row expansion depth"
 msgstr ""
 
 msgid "Default schema (database) to connect to"
@@ -6770,6 +6779,10 @@ msgstr ""
 msgid "Expand %s"
 msgstr ""
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr ""
 
@@ -7631,6 +7644,9 @@ msgstr ""
 msgid "Fullscreen is not supported in this browser."
 msgstr ""
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr ""
 
@@ -7944,7 +7960,13 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr ""
 
+msgid "How many column group levels to show expanded on initial load. Select \"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
+msgstr ""
+
+msgid "How many row group levels to show expanded on initial load. Select \"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-level rows (children collapsed)."
 msgstr ""
 
 msgid "How many top values to select"
@@ -10576,6 +10598,9 @@ msgid "Open filters"
 msgstr ""
 
 msgid "Open in SQL Lab"
+msgstr ""
+
+msgid "Open in Superset"
 msgstr ""
 
 msgid "Open in SQL lab"
@@ -19571,4 +19596,66 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+#, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
+msgstr ""
+
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
+msgid "Select an approved Teams channel"
+msgstr ""
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
+msgid "A configured Teams destination key is required"
+msgstr ""
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
 msgstr ""
