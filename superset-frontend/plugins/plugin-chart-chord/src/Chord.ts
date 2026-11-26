@@ -41,6 +41,25 @@ interface ChordProps {
   sliceId: number;
 }
 
+/** Keep literal and already quoted spellings distinct from the SQL NULL label. */
+function formatNodeLabel(node: DataRecordValue | undefined): string {
+  if (node == null) {
+    return NULL_LABEL;
+  }
+
+  const label = String(node);
+  let unquotedLabel = label.trim();
+  while (unquotedLabel.startsWith('"')) {
+    try {
+      unquotedLabel = (JSON.parse(unquotedLabel) as string).trim();
+    } catch {
+      return label;
+    }
+  }
+
+  return unquotedLabel === NULL_LABEL ? JSON.stringify(label) : label;
+}
+
 function Chord(element: HTMLElement, props: ChordProps) {
   const { data, width, height, numberFormat, colorScheme, sliceId } = props;
 
@@ -49,12 +68,7 @@ function Chord(element: HTMLElement, props: ChordProps) {
   const div = d3.select(element);
   div.classed('superset-legacy-chart-chord', true);
   const { nodes, matrix } = data;
-  const labels = nodes.map(node => {
-    if (node == null) {
-      return NULL_LABEL;
-    }
-    return node === NULL_LABEL ? `"${node}"` : String(node);
-  });
+  const labels = nodes.map(formatNodeLabel);
   const f = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 

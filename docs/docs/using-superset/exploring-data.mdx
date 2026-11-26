@@ -328,7 +328,8 @@ Graph charts display SQL `NULL` categories as `<NULL>` and the literal string `<
 `"<NULL>"`, with independently selectable legend entries.
 
 Chord diagrams display SQL `NULL` as `<NULL>` in node labels and tooltips. The
-literal string `<NULL>` appears in quotes.
+literal string `<NULL>` appears in quotes. If the value already contains quotes
+around `<NULL>`, the chart escapes those quotes to keep the labels distinct.
 
 Treemap tooltips display SQL `NULL` dimensions as `<NULL>`, including in nested
 hierarchies. Dimension names containing angle brackets or ampersands are shown

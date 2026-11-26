@@ -26,13 +26,18 @@ test('renders SQL NULL distinctly in chord labels and tooltips', () => {
   });
 
   const element = document.createElement('div');
+  const quotedNull = '"<NULL>"';
+  const nestedQuotedNull = JSON.stringify(quotedNull);
+  const escapedNestedNull = JSON.stringify(nestedQuotedNull);
   const data = {
-    nodes: [null, 'North', '<NULL>', 0],
+    nodes: [null, 'North', '<NULL>', quotedNull, nestedQuotedNull, 0],
     matrix: [
-      [0, 4, 0, 0],
-      [3, 0, 2, 0],
-      [0, 1, 0, 1],
-      [0, 0, 1, 0],
+      [0, 4, 0, 0, 0, 0],
+      [3, 0, 2, 1, 1, 0],
+      [0, 1, 0, 0, 0, 1],
+      [0, 1, 0, 0, 0, 0],
+      [0, 1, 0, 0, 0, 0],
+      [0, 0, 1, 0, 0, 0],
     ],
   };
 
@@ -53,15 +58,33 @@ test('renders SQL NULL distinctly in chord labels and tooltips', () => {
   const text = (selector: string) =>
     Array.from(element.querySelectorAll(selector), node => node.textContent);
 
-  expect(text('.group textPath')).toEqual(['<NULL>', 'North', '"<NULL>"', '0']);
+  expect(text('.group textPath')).toEqual([
+    '<NULL>',
+    'North',
+    quotedNull,
+    nestedQuotedNull,
+    escapedNestedNull,
+    '0',
+  ]);
   expect(text('.group title')).toEqual([
     '<NULL>: 4',
-    'North: 5',
-    '"<NULL>": 2',
+    'North: 7',
+    `${quotedNull}: 2`,
+    `${nestedQuotedNull}: 1`,
+    `${escapedNestedNull}: 1`,
     '0: 1',
   ]);
-  expect(text('.chord title')).toContain(
-    '<NULL> → North: 3\nNorth → <NULL>: 4',
+  const connectionTitles = text('.chord title');
+  expect(connectionTitles).toContain('<NULL> → North: 3\nNorth → <NULL>: 4');
+  expect(connectionTitles).toContain(
+    `North → ${nestedQuotedNull}: 1\n${nestedQuotedNull} → North: 1`,
   );
-  expect(data.nodes).toEqual([null, 'North', '<NULL>', 0]);
+  expect(data.nodes).toEqual([
+    null,
+    'North',
+    '<NULL>',
+    quotedNull,
+    nestedQuotedNull,
+    0,
+  ]);
 });
