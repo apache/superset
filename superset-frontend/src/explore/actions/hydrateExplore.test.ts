@@ -624,16 +624,40 @@ test.each([
   },
 );
 
-test.each([VizType.Table, 'cal_heatmap'])(
-  'a range supplied to a new %s chart wins over the dataset default',
-  vizType => {
+test('a new cal_heatmap chart keeps the time range supplied in its form data', () => {
+  const query = hydrateNewChartQuery({
+    vizType: 'cal_heatmap',
+    formData: { time_range: NO_TIME_RANGE },
+  });
+  expect(getTimeFilter(query)).toEqual(['created_at', NO_TIME_RANGE]);
+});
+
+// SQL Lab opens new charts with `time_range: 'No filter'`
+// (EXPLORE_CHART_DEFAULT), which must not override either default.
+test.each([
+  ['the dataset default', datasetExtra, datasetRange],
+  ['the instance default', '{}', instanceRange],
+])(
+  "a new Table chart opened with time_range 'No filter' starts with %s",
+  (_, extra, range) => {
     const query = hydrateNewChartQuery({
-      vizType,
+      extra,
       formData: { time_range: NO_TIME_RANGE },
     });
-    expect(getTimeFilter(query)).toEqual(['created_at', NO_TIME_RANGE]);
+    expect(getTimeFilter(query)).toEqual(['created_at', range]);
   },
 );
+
+test('a saved Table chart with its own time_range and no time filter opens with the instance default', () => {
+  const query = hydrateNewChartQuery({
+    slice: exploreInitialData.slice,
+    formData: { time_range: 'Last week' },
+  });
+  expect(getTimeFilter({ ...query, time_range: undefined })).toEqual([
+    'created_at',
+    instanceRange,
+  ]);
+});
 
 test('an ad hoc time filter supplied to a new chart is its only time filter', () => {
   const filter = {

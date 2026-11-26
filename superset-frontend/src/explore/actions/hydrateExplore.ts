@@ -26,7 +26,7 @@ import {
   ExplorePageInitialData,
   ExplorePageState,
 } from 'src/explore/types';
-import { getChartKey, getInitialTimeRange } from 'src/explore/exploreUtils';
+import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
@@ -133,11 +133,12 @@ export const hydrateExplore =
       initialFormData.viz_type =
         getUrlParam(URL_PARAMS.vizType) || defaultVizType;
     }
+    const initialTimeRange =
+      (isNewChart && getDatasetDefaultTimeFilter(dataset)) ||
+      common?.conf?.DEFAULT_TIME_FILTER ||
+      NO_TIME_RANGE;
     if (!initialFormData.time_range) {
-      initialFormData.time_range =
-        (isNewChart && getDatasetDefaultTimeFilter(dataset)) ||
-        common?.conf?.DEFAULT_TIME_FILTER ||
-        NO_TIME_RANGE;
+      initialFormData.time_range = initialTimeRange;
     }
     if (
       initialFormData.include_time &&
@@ -253,14 +254,7 @@ export const hydrateExplore =
     // apply initial mapStateToProps for all controls, must execute AFTER
     // bootstrapState has initialized `controls`. Order of execution is not
     // guaranteed, so controls shouldn't rely on each other's mapped state.
-    const controlPanelState = {
-      ...exploreState,
-      initialTimeRange: getInitialTimeRange(
-        isNewChart,
-        initialFormData,
-        common?.conf?.DEFAULT_TIME_FILTER,
-      ),
-    };
+    const controlPanelState = { ...exploreState, initialTimeRange };
     Object.entries(exploreState.controls).forEach(([key, controlState]) => {
       exploreState.controls[key] = applyMapStateToPropsToControl(
         controlState,

@@ -428,7 +428,7 @@ export const dynamicPluginControlsReady =
       datasource: state.explore.datasource || { type: 'table' },
       initialTimeRange: getInitialTimeRange(
         !state.explore.slice,
-        state.explore.form_data,
+        state.explore.datasource as { extra?: string } | undefined,
         state.common?.conf?.DEFAULT_TIME_FILTER as string | undefined,
       ),
     };
