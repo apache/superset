@@ -81,7 +81,7 @@ jobs:
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: "temurin"
-          java-version: "21"
+          java-version: "8"
 
       - name: Check Apache license header's presence
         run: ./scripts/check_license_header.sh
