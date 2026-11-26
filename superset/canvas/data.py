@@ -28,10 +28,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-# Values a select filter publishes.
-FilterScalar = str | int | float | bool
+from superset.exceptions import QueryObjectValidationError
+from superset.widgets.controls import ColumnFilter, FilterScalar, parse_binding_filters
+
+# The query object spells equality differently from the binding.
+QUERY_OPERATOR = {"=": "=="}
 
 
 class RuntimeFilter(BaseModel):
@@ -79,22 +82,24 @@ def query_context_payload(
     filters: list[dict[str, Any]] = []
     where: list[str] = []
     having: list[str] = []
-    for adhoc in binding.get("filters") or []:
-        on_aggregates = adhoc.get("clause") == "HAVING"
-        if adhoc.get("expressionType") == "SQL":
-            if adhoc.get("sqlExpression"):
-                clauses = having if on_aggregates else where
-                clauses.append(f"({adhoc['sqlExpression']})")
-        elif adhoc.get("subject") and not on_aggregates:
-            # A simple HAVING filter has no query-object form; the chart
-            # pipeline (``processFilters``) drops it the same way.
+    # A filter the binding's schema doesn't accept is refused, never skipped:
+    # skipping it would show unfiltered data under a filtered title.
+    try:
+        fixed = parse_binding_filters(binding.get("filters") or [])
+    except ValidationError as ex:
+        raise QueryObjectValidationError(_filter_error(ex)) from ex
+    for fixed_filter in fixed:
+        if isinstance(fixed_filter, ColumnFilter):
             filters.append(
                 {
-                    "col": adhoc["subject"],
-                    "op": adhoc.get("operator"),
-                    "val": adhoc.get("comparator"),
+                    "col": fixed_filter.column,
+                    "op": QUERY_OPERATOR.get(fixed_filter.op, fixed_filter.op),
+                    "val": fixed_filter.value,
                 }
             )
+        else:
+            clauses = having if fixed_filter.clause == "HAVING" else where
+            clauses.append(f"({fixed_filter.sql})")
     for runtime in runtime_filters or []:
         if runtime.dataset_id == binding["datasetId"] and runtime.values:
             filters.append({"col": runtime.column, "op": "IN", "val": runtime.values})
@@ -130,6 +135,16 @@ def query_context_payload(
     }
 
 
+def _filter_error(ex: ValidationError) -> str:
+    first = ex.errors()[0]
+    loc = first["loc"]
+    if not loc or not isinstance(loc[0], int):
+        return f"The chart's filters are not valid: {first['msg']}"
+    field_path = ".".join(str(part) for part in loc[1:])
+    where = f"filter {loc[0]}" + (f" ({field_path})" if field_path else "")
+    return f"The chart's {where} is not valid: {first['msg']}"
+
+
 def run_binding(
     binding: dict[str, Any],
     runtime_filters: list[RuntimeFilter] | None = None,
@@ -151,6 +166,16 @@ def run_binding(
     command = ChartDataCommand(query_context)
     command.validate()
     result = command.run()["queries"][0]
+    # The query pipeline drops a filter on a column the dataset doesn't have
+    # and reports it; the rows would otherwise pass for filtered ones.
+    if rejected := [
+        str(rejected["column"]) for rejected in result.get("rejected_filters") or []
+    ]:
+        raise QueryObjectValidationError(
+            "The dataset has no column "
+            + ", ".join(sorted(set(rejected)))
+            + ", which the chart filters on"
+        )
     return PlacementData(
         rows=result.get("data") or [],
         query=result.get("query") or None,

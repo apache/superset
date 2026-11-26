@@ -132,3 +132,16 @@ def test_get_subtrees_expands_several_paths_in_one_call() -> None:
 def test_get_subtrees_raises_on_any_bad_path() -> None:
     with pytest.raises(SchemaPathError):
         get_subtrees(_series_schema(), ["dataBinding", "customize/nope"])
+
+
+def test_an_array_whose_items_take_several_object_shapes_is_collapsed() -> None:
+    """`dataBinding.filters` items are a `ColumnFilter` or a `SqlFilter`;
+    inlining both would double the minimal view of every querying widget."""
+    widget = registry.get("ag-grid-table")
+    assert widget is not None
+
+    minimal = prune_to_minimal_viable(widget.get_control_schema(None, None))
+
+    filters = minimal["properties"]["dataBinding"]["properties"]["filters"]
+    assert filters["x-collapsed"] is True
+    assert filters["x-path"] == "dataBinding/filters"

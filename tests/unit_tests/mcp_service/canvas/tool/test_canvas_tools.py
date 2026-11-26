@@ -220,8 +220,8 @@ def test_preview_query_matches_the_canvas_request() -> None:
             "metrics": [REVENUE],
             "dimensions": ["country"],
             "filters": [
-                {"expressionType": "SQL", "sqlExpression": "territory IS NOT NULL"},
-                {"subject": "deal_size", "operator": "IN", "comparator": ["Large"]},
+                {"sql": "territory IS NOT NULL"},
+                {"column": "deal_size", "op": "IN", "value": ["Large"]},
             ],
             "orderBy": [{"field": "revenue", "descending": True}],
             "rowLimit": 5,

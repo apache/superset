@@ -28,7 +28,7 @@ import logging
 from copy import deepcopy
 from typing import Any, ClassVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from superset_core.widgets import (
     EnricherFn,
     Widget,
@@ -39,8 +39,10 @@ from superset_core.widgets import (
 
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
+from superset.utils.core import FilterOperator
 from superset.widgets.controls import (
     AgGridTableControls,
+    BindingFilter,
     EchartsControls,
     FilterBarControls,
     FilterSelectControls,
@@ -79,6 +81,67 @@ def _metric_key(metric: Any) -> str:
     return str(metric)
 
 
+_binding_filter = TypeAdapter(BindingFilter)
+
+
+def _binding_filter_from_adhoc(stored: Any) -> dict[str, Any] | None:
+    """A ``dataBinding`` filter as version 1 stored it, in the current shape;
+    ``None`` when it has no equivalent.
+
+    Version 1 took any dict and applied only Explore's adhoc shape: a
+    ``SIMPLE`` filter became a query-object filter, a ``SQL`` one a WHERE or
+    HAVING clause, and anything else was skipped. Here each becomes the
+    filter it was applied as, and a filter never applied is left out, so the
+    rows a widget shows don't change with the upgrade.
+    """
+    if not isinstance(stored, dict):
+        return None
+    if stored.get("expressionType") == "SQL":
+        candidate: dict[str, Any] = {
+            "sql": stored.get("sqlExpression"),
+            "clause": stored.get("clause") or "WHERE",
+        }
+    elif stored.get("expressionType") == "SIMPLE":
+        if stored.get("clause") == "HAVING":
+            return None
+        operator = stored.get("operator")
+        if operator is None and stored.get("operatorId") in FilterOperator.__members__:
+            operator = FilterOperator[stored["operatorId"]].value
+        candidate = {
+            "column": stored.get("subject"),
+            "op": "=" if operator == FilterOperator.EQUALS else operator,
+        }
+        if stored.get("comparator") is not None:
+            candidate["value"] = stored["comparator"]
+    else:
+        candidate = stored
+    try:
+        return _binding_filter.validate_python(candidate).model_dump(
+            exclude_defaults=True
+        )
+    except ValidationError:
+        return None
+
+
+def _upgrade_binding_filters(props: dict[str, Any]) -> dict[str, Any]:
+    """Props migrator from schema version 1: typed ``dataBinding.filters``."""
+    binding = props.get("dataBinding")
+    if not isinstance(binding, dict) or "filters" not in binding:
+        return props
+    filters = binding.get("filters")
+    upgraded = [
+        converted
+        for stored in (filters if isinstance(filters, list) else [])
+        if (converted := _binding_filter_from_adhoc(stored)) is not None
+    ]
+    return {**props, "dataBinding": {**binding, "filters": upgraded}}
+
+
+# ``dataBinding.filters`` took any dict at version 1.
+BINDING_SCHEMA_VERSION = 2
+BINDING_MIGRATORS = {1: _upgrade_binding_filters}
+
+
 @widget(
     widget_type="markdown",
     name="Markdown",
@@ -105,6 +168,8 @@ class Echarts(Widget):
 
     controls_class = EchartsControls
     behavior = QUERYING
+    schema_version = BINDING_SCHEMA_VERSION
+    migrators = BINDING_MIGRATORS
     ui = WidgetUi(default_size=(12, 8))
 
     # Upper bound on distinct series inlined into the schema.
@@ -161,6 +226,8 @@ class Echarts(Widget):
 class MetricTile(Widget):
     controls_class = MetricTileControls
     behavior = QUERYING
+    schema_version = BINDING_SCHEMA_VERSION
+    migrators = BINDING_MIGRATORS
     ui = WidgetUi(default_size=(6, 4))
 
 
@@ -172,6 +239,8 @@ class MetricTile(Widget):
 class AgGridTable(Widget):
     controls_class = AgGridTableControls
     behavior = QUERYING
+    schema_version = BINDING_SCHEMA_VERSION
+    migrators = BINDING_MIGRATORS
     ui = WidgetUi(default_size=(12, 8))
 
 

@@ -29,11 +29,135 @@ mandatory leaves, leaving optional/styling fields behind a drill-in.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.json_schema import SkipJsonSchema
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Discriminator,
+    Field,
+    field_validator,
+    model_validator,
+    Tag,
+    TypeAdapter,
+    ValidationError,
+    ValidatorFunctionWrapHandler,
+)
 from superset_core.widgets import MetricControl
+
+FilterScalar = str | int | float | bool
+
+ColumnOperator = Literal[
+    "=",
+    "!=",
+    ">",
+    ">=",
+    "<",
+    "<=",
+    "LIKE",
+    "NOT LIKE",
+    "ILIKE",
+    "NOT ILIKE",
+    "IN",
+    "NOT IN",
+    "IS NULL",
+    "IS NOT NULL",
+    "IS TRUE",
+    "IS FALSE",
+    "TEMPORAL_RANGE",
+]
+NO_VALUE_OPERATORS = frozenset({"IS NULL", "IS NOT NULL", "IS TRUE", "IS FALSE"})
+LIST_OPERATORS = frozenset({"IN", "NOT IN"})
+
+
+class ColumnFilter(BaseModel):
+    """A fixed filter on one column of the binding's dataset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    column: str = Field(min_length=1, description="A column of the dataset.")
+    op: ColumnOperator = Field(
+        description=(
+            "LIKE / NOT LIKE / ILIKE / NOT ILIKE take % wildcards; IN / NOT IN "
+            "take a list; IS NULL / IS NOT NULL / IS TRUE / IS FALSE take no "
+            "value; TEMPORAL_RANGE takes a time range on a temporal column, "
+            "such as `Last month` or `2024-01-01 : 2024-07-01`."
+        ),
+    )
+    value: FilterScalar | list[FilterScalar] | None = Field(
+        default=None,
+        description=(
+            "The value compared against: one scalar, a list for IN / NOT IN, "
+            "omitted for IS NULL / IS NOT NULL / IS TRUE / IS FALSE."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _value_fits_operator(self) -> ColumnFilter:
+        if self.op in NO_VALUE_OPERATORS:
+            if self.value is not None:
+                raise ValueError(f"{self.op} takes no value")
+        elif self.op in LIST_OPERATORS:
+            if not isinstance(self.value, list) or not self.value:
+                raise ValueError(f"{self.op} takes a non-empty list of values")
+        elif self.op == "TEMPORAL_RANGE":
+            if not isinstance(self.value, str) or not self.value:
+                raise ValueError("TEMPORAL_RANGE takes a time range string")
+        elif self.value is None or isinstance(self.value, list):
+            raise ValueError(f"{self.op} takes a single value")
+        return self
+
+
+class SqlFilter(BaseModel):
+    """A free SQL predicate, on rows (``WHERE``) or on aggregates
+    (``HAVING``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sql: str = Field(
+        min_length=1,
+        description=(
+            "A boolean SQL expression in the dataset's dialect, e.g. "
+            "`order_date >= '2024-01-01'` or `SUM(sales) > 1000` with "
+            '`"clause": "HAVING"`.'
+        ),
+    )
+    clause: Literal["WHERE", "HAVING"] = Field(
+        default="WHERE",
+        description="WHERE filters rows before aggregation, HAVING after it.",
+    )
+
+
+def _filter_kind(value: Any) -> str:
+    """Which filter a stored value means, by the key only one of them has, so
+    a bad value is reported against that filter's fields."""
+    if isinstance(value, SqlFilter) or (isinstance(value, dict) and "sql" in value):
+        return "sql"
+    return "column"
+
+
+BindingFilter = Annotated[
+    Annotated[ColumnFilter, Tag("column")] | Annotated[SqlFilter, Tag("sql")],
+    Discriminator(_filter_kind),
+]
+
+_binding_filters = TypeAdapter(list[BindingFilter])
+
+
+def parse_binding_filters(value: Any) -> list[ColumnFilter | SqlFilter]:
+    """``value`` as a binding's filters, or ``ValidationError`` whose locations
+    are ``(index, field)``: the union tag pydantic puts between them is not a
+    level of the stored value."""
+    try:
+        return _binding_filters.validate_python(value)
+    except ValidationError as ex:
+        errors = []
+        for error in ex.errors(include_url=False):
+            loc = error["loc"]
+            if len(loc) >= 2 and loc[1] in ("column", "sql"):
+                loc = (loc[0], *loc[2:])
+            errors.append({**error, "loc": loc})
+        raise ValidationError.from_exception_data(ex.title, errors) from None
 
 
 class SortKey(BaseModel):
@@ -61,6 +185,7 @@ class DataBinding(MetricControl):
         "datasetId",
         "metrics",
         "dimensions",
+        "filters",
         "orderBy",
         "rowLimit",
     ]
@@ -76,15 +201,17 @@ class DataBinding(MetricControl):
         description="Columns to group by (the categories / series).",
         json_schema_extra={"x-control": "column-multi"},
     )
-    # No `x-control` yet authors it through the control panel or MCP — it's
-    # populated by other means (e.g. a dashboard filter binding a chart).
-    # `SkipJsonSchema` keeps it out of the control schema (so `field_order`
-    # doesn't need it) while still round-tripping through `model_dump`;
-    # without it, committing the backend-normalized dump (see
-    # `commitWidgetProps`) would silently discard any authored filters, since
-    # Pydantic's default `extra="ignore"` drops fields the model doesn't
-    # declare.
-    filters: SkipJsonSchema[list[dict[str, Any]]] = Field(default_factory=list)
+    filters: list[BindingFilter] = Field(
+        default_factory=list,
+        title="Filters",
+        description=(
+            "The chart's own fixed filters, all applied (AND), on top of what "
+            "the canvas's filter widgets add at view time. "
+            '`{"column": "country", "op": "=", "value": "FR"}` filters one '
+            'column; `{"sql": "<predicate>"}` is a free SQL predicate, with '
+            '`"clause": "HAVING"` to filter aggregates.'
+        ),
+    )
     row_limit: int = Field(
         default=1000,
         ge=1,
@@ -101,6 +228,24 @@ class DataBinding(MetricControl):
             '`[{"field": "revenue", "descending": true}]` for a top N.'
         ),
     )
+
+    @field_validator("filters", mode="wrap")
+    @classmethod
+    def _filters_without_union_tags(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler
+    ) -> Any:
+        try:
+            return handler(value)
+        except ValidationError as ex:
+            raise ValidationError.from_exception_data(
+                ex.title,
+                [
+                    {**error, "loc": (error["loc"][0], *error["loc"][2:])}
+                    if len(error["loc"]) >= 2 and error["loc"][1] in ("column", "sql")
+                    else error
+                    for error in ex.errors(include_url=False)
+                ],
+            ) from None
 
 
 class MetricTileControls(BaseModel):

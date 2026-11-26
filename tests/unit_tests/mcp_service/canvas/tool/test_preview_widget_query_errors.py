@@ -68,12 +68,7 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
         "dimensions": ["category"],
     }
     if case == "subquery":
-        binding["filters"] = [
-            {
-                "expressionType": "SQL",
-                "sqlExpression": "amount > (SELECT AVG(amount) FROM amounts)",
-            }
-        ]
+        binding["filters"] = [{"sql": "amount > (SELECT AVG(amount) FROM amounts)"}]
     definition: dict[str, Any] = {
         "root": {"layout": {"columns": 24}, "children": ["chart"]},
         "nodes": {
@@ -402,12 +397,7 @@ def test_widget_query_input_can_be_repaired_in_a_draft(
     }
     bad_binding = deepcopy(good_binding)
     if case == "subquery":
-        bad_binding["filters"] = [
-            {
-                "expressionType": "SQL",
-                "sqlExpression": "amount > (SELECT AVG(amount) FROM amounts)",
-            }
-        ]
+        bad_binding["filters"] = [{"sql": "amount > (SELECT AVG(amount) FROM amounts)"}]
         diagnostic = "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR"
     elif case == "column":
         bad_binding["dimensions"] = ["missing_column"]
