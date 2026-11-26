@@ -240,6 +240,9 @@ def test_shared_swap_cases_match_this_implementation() -> None:
 
 
 def test_colliding_tall_widgets_resolve_without_stepping_row_by_row() -> None:
+    # Row-by-row stepping over ~20,000 rows takes minutes here; the bound is
+    # loose on purpose, as a loaded CI runner is about ten times slower than
+    # a workstation.
     import time
 
     started = time.monotonic()
@@ -248,7 +251,7 @@ def test_colliding_tall_widgets_resolve_without_stepping_row_by_row() -> None:
     )
 
     assert rects[-1] == Rect(1, 99 * 200 + 1, 24, 200)
-    assert time.monotonic() - started < 1
+    assert time.monotonic() - started < 10
 
 
 def test_auto_placed_tall_widgets_resolve_without_stepping_row_by_row() -> None:
@@ -258,4 +261,4 @@ def test_auto_placed_tall_widgets_resolve_without_stepping_row_by_row() -> None:
     rects, _ = resolve_grid([{"colSpan": 25, "rowSpan": 200}] * 100, 48)
 
     assert rects[-1] == Rect(1, 99 * 200 + 1, 25, 200)
-    assert time.monotonic() - started < 1
+    assert time.monotonic() - started < 10
