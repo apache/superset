@@ -678,7 +678,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
-            logger.error(
+            logger.warning(
                 "Error creating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
@@ -1206,7 +1206,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 )
             )
         except DatasetCreateFailedError as ex:
-            logger.error(
+            logger.warning(
                 "Error creating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
@@ -2002,7 +2002,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
-            logger.error(
+            logger.warning(
                 "Error creating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
