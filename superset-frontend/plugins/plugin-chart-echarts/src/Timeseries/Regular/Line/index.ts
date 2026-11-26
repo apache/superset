@@ -32,6 +32,8 @@ import example1 from './images/Line1.png';
 import example1Dark from './images/Line1-dark.png';
 import example2 from './images/Line2.png';
 import example2Dark from './images/Line2-dark.png';
+import example3 from './images/Line3.png';
+import example3Dark from './images/Line3-dark.png';
 import { EchartsChartPlugin } from '../../../types';
 
 const lineTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
@@ -66,6 +68,7 @@ export default class EchartsTimeseriesLineChartPlugin extends EchartsChartPlugin
         exampleGallery: [
           { url: example1, urlDark: example1Dark },
           { url: example2, urlDark: example2Dark },
+          { url: example3, urlDark: example3Dark },
         ],
         canBeAnnotationTypes: [AnnotationType.Timeseries],
         supportedAnnotationTypes: [
