@@ -175,6 +175,7 @@ plugins: [
       'react-dom': { singleton: true, import: false },
       antd: { singleton: true, import: false },
       '@apache-superset/core': { singleton: true, import: false },
+      '@apache-superset/core/components': { singleton: true, import: false },
     },
   }),
 ];
@@ -185,6 +186,8 @@ This configuration does several important things:
 **`exposes`** - Declares which modules are available to the host application. Superset always loads extensions by requesting the `./index` module from the remote container — this is a fixed convention, not a configurable value. Extensions must expose exactly `'./index': './src/index.tsx'` and place all API registrations (views, commands, menus, editors, event listeners) in that file. The module is executed as a side effect when the extension loads, so any call to `views.registerView`, `commands.registerCommand`, etc. made at the top level of `index.tsx` will run automatically.
 
 **`shared`** - Prevents duplication of common libraries like React and Ant Design, and, for `@apache-superset/core`, is the mechanism that gives each extension an isolated context (see below). The `singleton: true` setting ensures only one _logical_ instance of each library exists — for `react`/`react-dom`/`antd` that means the host's actual instance is reused; for `@apache-superset/core` it means the extension's container defers to whatever module the host's loader supplies for it at init time, which is not the same object for every extension (see [Runtime Resolution](#runtime-resolution)).
+
+Module Federation matches a share key against the exact request, so `@apache-superset/core/components` needs a key of its own — the entry above does not cover it. Left out, an extension that imports a component bundles its own copy of the package and of the `@emotion/react` behind it, and a component that reads the theme finds no `ThemeContext` in that second copy and throws on first render. Only the subpaths listed here are shared: the host provides a shared module for a subpath it imports itself, and an import of any other subpath is bundled into the extension as before.
 
 ### Runtime Resolution
 

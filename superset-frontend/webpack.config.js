@@ -207,6 +207,24 @@ const plugins = [
         singleton: true,
         eager: true,
       },
+      // A subpath is a share key of its own: the key above matches only the
+      // exact `'@apache-superset/core'` request, so without this one an
+      // extension importing `@apache-superset/core/components` -- which is
+      // what the component docs tell it to import -- gets no shared module
+      // and bundles its own copy of this package, and of the
+      // `@emotion/react` behind it. A component that reads the theme then
+      // looks for the host's ThemeContext in that second copy of emotion
+      // and throws.
+      //
+      // Named rather than shared by `'@apache-superset/core/'` prefix: a
+      // prefix key also covers the subpaths the host does not itself import
+      // and so cannot provide, and for those an extension's `import: false`
+      // has no local copy to fall back on -- a silently disconnected module
+      // would become a hard "doesn't exist in shared scope" at load time.
+      '@apache-superset/core/components': {
+        singleton: true,
+        eager: true,
+      },
     },
   }),
 ];

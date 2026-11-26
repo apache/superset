@@ -258,6 +258,31 @@ def test_frontend_package_json_content_is_correct(
 
 
 @pytest.mark.cli
+def test_frontend_webpack_shares_the_components_subpath(
+    cli_runner, isolated_filesystem, cli_input_both
+):
+    """The generated webpack config must share the components subpath too.
+
+    Module Federation treats every subpath as a share key of its own, so
+    `"@apache-superset/core"` alone does not cover
+    `@apache-superset/core/components` -- which is what the component docs
+    tell extension authors to import. Without its own key the extension
+    bundles its own copy of the package, and of the `@emotion/react` the
+    themed components among them read the theme through, so a component
+    such as `Button` finds no `ThemeContext` and throws on first render.
+    """
+    result = cli_runner.invoke(app, ["init"], input=cli_input_both)
+    assert result.exit_code == 0
+
+    webpack_config = (
+        isolated_filesystem / "test-extension" / "frontend" / "webpack.config.js"
+    ).read_text()
+
+    assert '"@apache-superset/core": {' in webpack_config
+    assert '"@apache-superset/core/components": {' in webpack_config
+
+
+@pytest.mark.cli
 def test_backend_pyproject_toml_is_created(
     cli_runner, isolated_filesystem, cli_input_both
 ):
