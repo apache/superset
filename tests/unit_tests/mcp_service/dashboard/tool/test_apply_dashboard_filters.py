@@ -1822,8 +1822,14 @@ async def test_timecolumn_filter_created_by_manage_native_filters_accepts_a_colu
     """A filter_timecolumn filter manage_native_filters creates is usable here."""
     create_payload: dict[str, Any] = {}
 
-    def create_command_factory(dashboard_id: int, payload: dict[str, Any]) -> Mock:
-        """Capture the manage_native_filters write payload."""
+    def create_command_factory(
+        dashboard_id: int,
+        payload: dict[str, Any],
+        *,
+        expected_metadata: str | None = None,
+    ) -> Mock:
+        """Capture the write payload and verify its concurrency snapshot."""
+        assert expected_metadata == create_dashboard.json_metadata
         create_payload["payload"] = payload
         command = Mock()
         command.run = lambda: [payload["modified"][0]]
@@ -1893,8 +1899,14 @@ async def test_timegrain_filter_created_by_manage_native_filters_accepts_a_grain
     """
     create_payload: dict[str, Any] = {}
 
-    def create_command_factory(dashboard_id: int, payload: dict[str, Any]) -> Mock:
-        """Capture the manage_native_filters write payload."""
+    def create_command_factory(
+        dashboard_id: int,
+        payload: dict[str, Any],
+        *,
+        expected_metadata: str | None = None,
+    ) -> Mock:
+        """Capture the write payload and verify its concurrency snapshot."""
+        assert expected_metadata == create_dashboard.json_metadata
         create_payload["payload"] = payload
         command = Mock()
         command.run = lambda: [payload["modified"][0]]

@@ -32,7 +32,6 @@ from superset.connectors.sqla.partition_mapping import (
     resolve_partition_mapping,
 )
 from superset.connectors.sqla.partition_validation import validate_partition_data
-from superset.db_engine_specs.ascend import AscendEngineSpec
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.databricks import (
     DatabricksHiveEngineSpec,
@@ -54,7 +53,6 @@ from tests.unit_tests.models.partition_mirroring_test import _table
         ImpalaEngineSpec,
         SparkEngineSpec,
         DatabricksHiveEngineSpec,
-        AscendEngineSpec,
     ],
 )
 @pytest.mark.parametrize(

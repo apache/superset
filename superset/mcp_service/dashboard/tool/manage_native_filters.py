@@ -46,6 +46,8 @@ from superset.mcp_service.dashboard.schemas import (
     FilterTimeSpec,
     ManageNativeFiltersRequest,
     ManageNativeFiltersResponse,
+    native_filter_cascade_parent_ids,
+    native_filter_supports_cascade,
     NativeFilterSummary,
     NativeFilterUpdateSpec,
     validate_native_filter_type_fields,
@@ -298,7 +300,7 @@ def _build_new_filter_config(
         "name": spec.name,
         "description": spec.description,
         "scope": _build_scope(spec.scope_chart_ids, dashboard_chart_ids),
-        "cascadeParentIds": [],
+        "cascadeParentIds": list(dict.fromkeys(spec.cascade_parent_ids or [])),
     }
 
     if isinstance(spec, FilterSelectSpec):
@@ -527,7 +529,7 @@ def _merge_default_data_mask(
         )
 
 
-def _merge_filter_update(
+def _merge_filter_update(  # noqa: C901
     spec: NativeFilterUpdateSpec,
     existing: dict[str, Any],
     dashboard_chart_ids: list[int],
@@ -553,6 +555,8 @@ def _merge_filter_update(
         merged["description"] = spec.description
     if spec.scope_chart_ids is not None:
         merged["scope"] = _build_scope(spec.scope_chart_ids, dashboard_chart_ids)
+    if spec.cascade_parent_ids is not None:
+        merged["cascadeParentIds"] = list(dict.fromkeys(spec.cascade_parent_ids))
     target_changed = False
     if spec.dataset_id is not None or spec.column is not None:
         previous_target = dict((existing.get("targets") or [{}])[0] or {})
@@ -581,13 +585,16 @@ def _merge_filter_update(
     return merged
 
 
-def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
+def _filter_summary(
+    conf: dict[str, Any], existing_ids: set[str] | None = None
+) -> NativeFilterSummary:
     """Summarize a filter (or divider) config for the response.
 
-    Returns the id, name, filterType, and non-empty targets; empty target
-    entries (e.g. for time filters) are dropped so the summary only lists
+    Returns the id, name, filterType, parent filter IDs, and non-empty targets;
+    empty target entries (e.g. for time filters) are dropped so the summary only lists
     real dataset/column targets. All user-controlled and operational fields
     preserve their application values so clients can pass them back verbatim.
+    Parent IDs absent from the dashboard are omitted when ``existing_ids`` is given.
 
     Dividers store their display text under "title" and have no
     "filterType"; both are normalized here so a divider shows up with a
@@ -602,6 +609,7 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
         name=name,
         filter_type=filter_type,
         targets=targets,
+        cascade_parent_ids=native_filter_cascade_parent_ids(conf, existing_ids),
     )
 
 
@@ -624,6 +632,125 @@ def current_native_filter_config(dashboard: Any) -> list[dict[str, Any]]:
     # Drop malformed (non-dict) entries so downstream conf["id"] / conf.get(...)
     # cannot raise on corrupt metadata.
     return [item for item in config if isinstance(item, dict)]
+
+
+def _cascade_cycle(
+    filter_id: str, parent_id: str, by_id: dict[str, dict[str, Any]]
+) -> list[str] | None:
+    """Return the path ``parent_id -> ... -> filter_id`` if one exists.
+
+    A path from the proposed parent up to the filter itself means the new
+    dependency would close a loop. Missing and malformed parent entries are
+    ignored; they cannot form a cycle.
+    """
+    stack: list[tuple[str, list[str]]] = [(parent_id, [parent_id])]
+    visited: set[str] = set()
+    while stack:
+        current, path = stack.pop()
+        if current == filter_id:
+            return path
+        if current in visited or current not in by_id:
+            continue
+        visited.add(current)
+        for ancestor in native_filter_cascade_parent_ids(by_id[current]):
+            stack.append((ancestor, [*path, ancestor]))
+    return None
+
+
+def _validate_cascade_parents(
+    filter_id: str, final_by_id: dict[str, dict[str, Any]]
+) -> None:
+    """Check a filter's requested parents against the post-request dashboard.
+
+    Each parent must be a different, existing filter that supports
+    dependencies, and the dependency graph must stay acyclic.
+    """
+    conf = final_by_id[filter_id]
+    parents = native_filter_cascade_parent_ids(conf)
+    if filter_id in parents:
+        raise _FilterValidationError(
+            f"Filter '{filter_id}' cannot depend on itself; remove it from "
+            "cascade_parent_ids."
+        )
+    unknown = [parent for parent in parents if parent not in final_by_id]
+    if unknown:
+        raise _FilterValidationError(
+            f"Filter '{filter_id}': cascade_parent_ids contains filter IDs not "
+            f"on the dashboard (or removed in this request): {unknown}. "
+            f"Existing filter IDs: {sorted(final_by_id)}."
+        )
+    unsupported = [
+        parent
+        for parent in parents
+        if _is_divider(final_by_id[parent])
+        or not native_filter_supports_cascade(final_by_id[parent].get("filterType"))
+    ]
+    if unsupported:
+        raise _FilterValidationError(
+            f"Filter '{filter_id}': cascade_parent_ids {unsupported} cannot be "
+            "parents; time-grain filters, time-column filters and dividers "
+            "do not support dependencies."
+        )
+    for parent in parents:
+        if cycle := _cascade_cycle(filter_id, parent, final_by_id):
+            raise _FilterValidationError(
+                f"Filter '{filter_id}' cannot depend on '{parent}': that would "
+                f"create a dependency cycle ({' -> '.join([filter_id, *cycle])})."
+            )
+
+
+def _apply_cascade_changes(
+    current_by_id: dict[str, dict[str, Any]],
+    removed_ids: set[str],
+    modified: list[dict[str, Any]],
+    requested_ids: set[str],
+) -> None:
+    """Validate requested dependencies and drop ones that point at removed filters.
+
+    ``requested_ids`` are the filters whose parents the request set explicitly;
+    they are validated against the dashboard as it will be after the request.
+    Already-stored parents absent from the original dashboard are dropped from
+    explicit updates, but new unknown IDs are rejected. Every other surviving
+    filter silently loses parents that this request removes. This cleanup is
+    performed here rather than relying on the frontend to persist it.
+    Such filters are appended to ``modified`` when they were not already.
+    """
+    final_by_id = {
+        fid: conf for fid, conf in current_by_id.items() if fid not in removed_ids
+    }
+    modified_by_id = {conf["id"]: conf for conf in modified}
+    final_by_id.update(modified_by_id)
+
+    if removed_ids:
+        for fid, conf in list(final_by_id.items()):
+            if fid in requested_ids:
+                continue
+            parents = conf.get("cascadeParentIds")
+            if not isinstance(parents, list) or not any(
+                isinstance(parent, str) and parent in removed_ids for parent in parents
+            ):
+                continue
+            if fid not in modified_by_id:
+                conf = copy.deepcopy(conf)
+                modified.append(conf)
+                final_by_id[fid] = conf
+            conf["cascadeParentIds"] = [
+                p for p in parents if not isinstance(p, str) or p not in removed_ids
+            ]
+
+    for fid in sorted(requested_ids):
+        stale_parents = {
+            parent
+            for parent in native_filter_cascade_parent_ids(current_by_id.get(fid, {}))
+            if parent not in current_by_id
+        }
+        if stale_parents:
+            final_by_id[fid]["cascadeParentIds"] = [
+                parent
+                for parent in native_filter_cascade_parent_ids(final_by_id[fid])
+                if parent not in stale_parents
+            ]
+        _validate_cascade_parents(fid, final_by_id)
 
 
 def _build_native_filters_payload(  # noqa: C901
@@ -650,6 +777,7 @@ def _build_native_filters_payload(  # noqa: C901
     removed_ids = set(request.remove)
     modified: list[dict[str, Any]] = []
     updated_filter_ids: list[str] = []
+    cascade_requested_ids: set[str] = set()
 
     update_ids = [update_spec.id for update_spec in request.update]
     duplicate_updates = sorted({fid for fid in update_ids if update_ids.count(fid) > 1})
@@ -674,12 +802,23 @@ def _build_native_filters_payload(  # noqa: C901
             _merge_filter_update(update_spec, existing, dashboard_chart_ids)
         )
         updated_filter_ids.append(update_spec.id)
+        if update_spec.cascade_parent_ids is not None:
+            cascade_requested_ids.add(update_spec.id)
 
     added_filter_ids: list[str] = []
     for new_spec in request.add:
         config = _build_new_filter_config(new_spec, dashboard_chart_ids)
         modified.append(config)
         added_filter_ids.append(config["id"])
+        if config.get("cascadeParentIds"):
+            cascade_requested_ids.add(config["id"])
+
+    _apply_cascade_changes(current_by_id, removed_ids, modified, cascade_requested_ids)
+    updated_filter_ids.extend(
+        conf["id"]
+        for conf in modified
+        if conf["id"] in current_by_id and conf["id"] not in updated_filter_ids
+    )
 
     payload: dict[str, Any] = {}
     if request.remove:
@@ -798,13 +937,13 @@ def manage_native_filters(
     alongside filter IDs. Non-null type-specific fields are rejected on both
     add and update when they do not apply to the filter type.
 
-    Concurrency note: the filter-list snapshot used for validation is read
-    outside the DAO write transaction.  A ``reorder`` that is valid against
-    the snapshot can silently drop a filter added by a concurrent writer
-    between the snapshot read and the write commit.  This mirrors existing
-    REST write behaviour; callers that expect concurrent edits should
-    re-read the filter list and retry if the returned filter set differs
-    from what was requested.
+    ``cascade_parent_ids`` makes a filter depend on existing native filters
+    (except time-grain filters, time-column filters and dividers). Only direct
+    parents are set; unknown parents and cycles are rejected. Removing a filter
+    also removes it from the parents of the filters that depended on it.
+
+    A concurrent metadata edit rejects the write instead of applying a payload
+    validated against a stale snapshot. Re-read the dashboard and retry.
     """
     from superset.commands.dashboard.exceptions import (
         DashboardForbiddenError,
@@ -829,6 +968,7 @@ def manage_native_filters(
                 return pre_filter_refusal
             assert dashboard is not None
 
+            expected_metadata = dashboard.json_metadata or ""
             current_config = current_native_filter_config(dashboard)
             dashboard_chart_ids = [slc.id for slc in dashboard.slices]
 
@@ -844,7 +984,7 @@ def manage_native_filters(
 
         with event_logger.log_context(action="mcp.manage_native_filters.db_write"):
             configuration = UpdateDashboardNativeFiltersCommand(
-                request.dashboard_id, payload
+                request.dashboard_id, payload, expected_metadata=expected_metadata
             ).run()
 
         dashboard_url = f"{get_superset_base_url()}/dashboard/{request.dashboard_id}/"
@@ -855,13 +995,14 @@ def manage_native_filters(
             len(updated_ids),
             len(request.remove),
         )
+        existing_ids = {f["id"] for f in configuration if isinstance(f.get("id"), str)}
         return ManageNativeFiltersResponse(
             dashboard_id=request.dashboard_id,
             dashboard_url=dashboard_url,
             added_filter_ids=added_ids,
             updated_filter_ids=updated_ids,
             removed_filter_ids=list(request.remove),
-            filters=[_filter_summary(conf) for conf in configuration],
+            filters=[_filter_summary(conf, existing_ids) for conf in configuration],
         )
 
     except DashboardNotFoundError:

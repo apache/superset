@@ -24,6 +24,7 @@ from unittest.mock import ANY, MagicMock, patch, PropertyMock
 
 import pytest
 from flask_appbuilder.security.sqla.models import PermissionView, Role
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
@@ -422,6 +423,62 @@ class TestDatasourceApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         for val in range(10):
             assert val in response["result"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_database_unavailable(self):
+        """A refused DB connection returns a typed, non-retried error response."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        error = OperationalError(
+            "SELECT 1", {}, Exception(1040, "Too many connections")
+        )
+        with patch.object(SqlaTable, "values_for_column", side_effect=error):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col1/values/?force=true"
+            )
+        # 502/503/504 are retried by SupersetClient, so a plain 500 is used.
+        assert rv.status_code == 500
+        response = json.loads(rv.data.decode("utf-8"))
+        assert "Too many connections" in response["message"]
+        assert response["errors"][0]["error_type"] == "GENERIC_DB_ENGINE_ERROR"
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_database_unavailable_guest_sanitized(self):
+        """Guests get generic errors, not the compiled query quoted by the engine."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        leaky = "Too many connections; SELECT DISTINCT col1 FROM (SELECT secret_sql)"
+        error = OperationalError("SELECT 1", {}, Exception(1040, leaky))
+        with (
+            patch.object(SqlaTable, "values_for_column", side_effect=error),
+            patch(
+                "superset.utils.error_sanitization.is_sanitization_required",
+                return_value=True,
+            ),
+        ):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col1/values/?force=true"
+            )
+        assert rv.status_code == 500
+        assert "secret_sql" not in rv.data.decode("utf-8")
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_query_error_not_treated_as_unavailable(self):
+        """Query-level OperationalErrors are not reported as a DB outage."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        error = OperationalError("SELECT 1", {}, Exception("no such column: nope"))
+        with (
+            patch.object(SqlaTable, "values_for_column", side_effect=error),
+            patch("superset.datasource.api.logger") as mock_logger,
+        ):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col1/values/?force=true"
+            )
+        assert rv.status_code == 500
+        response = json.loads(rv.data.decode("utf-8"))
+        assert "errors" not in response
+        mock_logger.warning.assert_not_called()
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_strs(self):

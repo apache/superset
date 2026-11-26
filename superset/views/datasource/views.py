@@ -198,20 +198,20 @@ def _partition_mapping_reference_error(
     design in `validate_partition_mapping`, and refusing it here would recreate
     exactly the unsaveable dataset this function exists to prevent.
 
-    Gated on the feature flag, like `UpdateDatasetCommand`'s own call: with the
-    flag off nothing mirrors, and a deployment that never turned the feature on
-    should not start failing saves over a reference nothing reads.
+    Not gated on the feature flag, and only for what this request breaks --
+    the bargain `UpdateDatasetCommand._validate_partition_mapping` strikes, and
+    for its reasons. Gated, a flag-off save stored any reference and the first
+    flag-on save refused it; refusing a reference that was already broken in
+    storage meant this endpoint's own GET-then-POST client could not save the
+    dataset at all, whatever it changed.
 
-    Gated on the engine too, for the same reason and again like
-    `UpdateDatasetCommand`: the editor hides the mapping and the query path
-    ignores it on an engine without the capability, so its owner could not see
-    or repair the reference this would refuse. That engine is the one the request
-    leaves the dataset on, and `save` assigns only `database_id`, so on a move
-    `orm_datasource.database` still answers for the database being left.
+    Gated on the engine, again like `UpdateDatasetCommand`: the editor hides the
+    mapping and the query path ignores it on an engine without the capability,
+    so its owner could not see or repair the reference this would refuse. That
+    engine is the one the request leaves the dataset on, and `save` assigns only
+    `database_id`, so on a move `orm_datasource.database` still answers for the
+    database being left.
     """
-    if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
-        return None
-
     partition_column = datasource_dict.get("partition_column")
     if not partition_column:
         return None
@@ -235,6 +235,31 @@ def _partition_mapping_reference_error(
         for column in datasource_dict.get("columns") or []
         if column.get("column_name")
     }
+    stored_columns = {
+        column.column_name: column
+        for column in getattr(orm_datasource, "columns", None) or []
+    }
+    stored_issues = (
+        {
+            (issue.field, str(issue.message))
+            for issue in validate_partition_mapping(
+                column_names=set(stored_columns),
+                partition_column=orm_datasource.partition_column,
+                partition_mapped_column=orm_datasource.partition_mapped_column,
+                main_dttm_col=orm_datasource.main_dttm_col,
+                transform=None,
+                engine=database.backend,
+                partition_expression=getattr(
+                    stored_columns.get(orm_datasource.partition_column),
+                    "expression",
+                    None,
+                ),
+            )
+            if issue.blocking
+        }
+        if getattr(orm_datasource, "partition_column", None)
+        else set()
+    )
     for issue in validate_partition_mapping(
         column_names=set(columns_by_name),
         partition_column=partition_column,
@@ -246,7 +271,7 @@ def _partition_mapping_reference_error(
             "expression"
         ),
     ):
-        if issue.blocking:
+        if issue.blocking and (issue.field, str(issue.message)) not in stored_issues:
             return str(issue.message)
     return None
 
