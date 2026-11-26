@@ -855,6 +855,71 @@ def test_put_filters_refuses_a_time_range_default_outside_the_limits(
     }
 
 
+def test_put_filters_removes_the_parent_of_a_stale_time_range_filter(
+    saved_dashboard: Any,
+    client: Any,
+    full_api_access: None,
+    limits_on: None,
+) -> None:
+    parent = time_range_filter("NATIVE_FILTER-parent", "Last week")
+    child = {
+        **time_range_filter("NATIVE_FILTER-child", "Last year"),
+        "cascadeParentIds": ["NATIVE_FILTER-parent"],
+    }
+    saved_dashboard.json_metadata = json.dumps(
+        {"native_filter_configuration": [parent, child]}
+    )
+    db.session.commit()
+
+    response = client.put(
+        f"/api/v1/dashboard/{saved_dashboard.id}/filters",
+        json={
+            "deleted": ["NATIVE_FILTER-parent"],
+            "modified": [{**child, "cascadeParentIds": []}],
+        },
+    )
+
+    assert response.status_code == 200
+    db.session.refresh(saved_dashboard)
+    assert json.loads(saved_dashboard.json_metadata)["native_filter_configuration"] == [
+        {**child, "cascadeParentIds": []}
+    ]
+
+
+def test_put_filters_checks_a_stale_default_edited_with_a_parent_removal(
+    saved_dashboard: Any,
+    client: Any,
+    full_api_access: None,
+    limits_on: None,
+) -> None:
+    parent = time_range_filter("NATIVE_FILTER-parent", "Last week")
+    child = {
+        **time_range_filter("NATIVE_FILTER-child", "Last year"),
+        "cascadeParentIds": ["NATIVE_FILTER-parent"],
+    }
+    saved_dashboard.json_metadata = json.dumps(
+        {"native_filter_configuration": [parent, child]}
+    )
+    db.session.commit()
+
+    response = client.put(
+        f"/api/v1/dashboard/{saved_dashboard.id}/filters",
+        json={
+            "deleted": ["NATIVE_FILTER-parent"],
+            "modified": [{**child, "name": "Renamed", "cascadeParentIds": []}],
+        },
+    )
+
+    assert response.status_code == 422
+    assert list(response.json["message"]) == [
+        "modified.NATIVE_FILTER-child.defaultDataMask"
+    ]
+    assert stored_filter_values(saved_dashboard) == {
+        "NATIVE_FILTER-parent": "Last week",
+        "NATIVE_FILTER-child": "Last year",
+    }
+
+
 @pytest.mark.parametrize("limits", [None, "flag_off"], ids=["no_limits", "flag_off"])
 def test_put_filters_stores_any_default_without_limits(
     saved_dashboard: Any,

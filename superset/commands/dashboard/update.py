@@ -436,12 +436,58 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         assert self._model
         if not feature_flag_manager.is_feature_enabled(TIME_RANGE_LIMITS_FLAG):
             return
-        if errors := filter_default_errors(
-            self._model, self._properties.get("modified") or [], datetime.now()
-        ):
+        stored = {
+            native_filter.get("id"): native_filter
+            for native_filter in self._model.params_dict.get(
+                "native_filter_configuration"
+            )
+            or []
+            if isinstance(native_filter, dict)
+        }
+        deleted = set(self._properties.get("deleted") or [])
+        edited = [
+            native_filter
+            for native_filter in self._properties.get("modified") or []
+            if not _only_drops_deleted_parents(
+                native_filter,
+                stored.get(native_filter.get("id"))
+                if isinstance(native_filter, dict)
+                else None,
+                deleted,
+            )
+        ]
+        if errors := filter_default_errors(self._model, edited, datetime.now()):
             raise DashboardInvalidError(
                 exceptions=[ValidationError(limits_errors("modified", errors))]
             )
+
+
+def _only_drops_deleted_parents(
+    native_filter: Any, stored: dict[str, Any] | None, deleted: set[str]
+) -> bool:
+    """
+    Whether ``native_filter`` is its stored copy with only parents removed, all of
+    them deleted in the same request: the cascade cleanup of a parent removal,
+    which leaves the filter's default as it was stored.
+    """
+    if not isinstance(native_filter, dict) or stored is None:
+        return False
+    parents = native_filter.get("cascadeParentIds") or []
+    stored_parents = stored.get("cascadeParentIds") or []
+    if not isinstance(parents, list) or not isinstance(stored_parents, list):
+        return False
+    rest = {k: v for k, v in native_filter.items() if k != "cascadeParentIds"}
+    stored_rest = {k: v for k, v in stored.items() if k != "cascadeParentIds"}
+    return (
+        rest == stored_rest
+        and parents != stored_parents
+        and parents
+        == [
+            parent
+            for parent in stored_parents
+            if not (isinstance(parent, str) and parent in deleted)
+        ]
+    )
 
 
 class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):
