@@ -766,9 +766,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
-    def _sanitize_page_args(
-        self, page: Optional[int], page_size: Optional[int]
-    ) -> tuple[Optional[int], Optional[int]]:
+    def _sanitize_page_args(self, page: int, page_size: int) -> tuple[int, int]:
         """
         Reject a negative ``page`` before it reaches
         ``DataModel.apply_pagination``, which computes a SQL ``OFFSET`` as
@@ -784,7 +782,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         (``get_list``, ``related``, ``distinct``) for all REST API
         subclasses, not just charts.
         """
-        if page is not None and page < 0:
+        if page < 0:
             raise BadRequest(f"Page number must not be negative, got page={page}")
         return super()._sanitize_page_args(page, page_size)
 
