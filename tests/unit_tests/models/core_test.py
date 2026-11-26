@@ -5034,7 +5034,7 @@ def test_default_schema_shared_cache_separates_engine_identity(
     wait_for_default_schema_cache_workers()
     write.assert_called_once()
     key = write.call_args.args[0]
-    assert cache.get(key) == "main"
+    assert cache.get(key)["schema"] == "main"
     assert write.call_args.kwargs["timeout"] > 0
     _retire_cached_engines(database.id)
     catalog = None
@@ -5065,7 +5065,7 @@ def test_default_schema_shared_cache_separates_engine_identity(
     with pytest.raises(ConnectionError) as raised:
         database.get_default_schema_from_engine(catalog)
     assert raised.value is error
-    assert cache.get(key) == "main"
+    assert cache.get(key)["schema"] == "main"
     assert write.call_count == 1
 
 
@@ -5135,7 +5135,7 @@ def test_default_schema_warm_engine_rate_limits_publication(
     write.assert_called_once()
     clock.return_value = 1800
     assert database.get_default_schema_from_engine(None) == "main"
-    assert cache.get(key) == "main"
+    assert cache.get(key)["schema"] == "main"
     assert write.call_count == 2
 
 
@@ -5168,26 +5168,30 @@ def test_default_schema_tunnel_does_not_publish_ephemeral_identity(
 
 @pytest.mark.parametrize("recycle_pool", [False, True])
 @pytest.mark.parametrize("elapsed", [1800, 3600, 3 * 24 * 3600])
-def test_default_schema_each_worker_publishes_its_live_discovery(
+def test_default_schema_each_worker_preserves_newer_discovery(
     shared_default_schema_cache: Cache,
     wait_for_default_schema_cache_workers: Callable[[], None],
     mocker: MockerFixture,
     elapsed: int,
     recycle_pool: bool,
 ) -> None:
-    """Each worker replaces contradictory discovery with its own live schema."""
+    """Old engines, including recycled pools, cannot replace newer discovery."""
     from superset.models.core import _retire_cached_engines
 
-    clock = mocker.patch("superset.models.core.monotonic", return_value=0, create=True)
+    wall_clock = mocker.patch("superset.models.core.time.time", return_value=1000)
     database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
     with database.get_sqla_engine() as old_engine:
+        mocker.patch.object(
+            old_engine.dialect, "_get_default_schema_name", return_value="old"
+        )
         sqlalchemy.inspect(old_engine)
-        old_engine.dialect.default_schema_name = "old"
     _retire_cached_engines(database.id)
-    clock.return_value = elapsed
+    wall_clock.return_value = 1000 + elapsed
     with database.get_sqla_engine() as new_engine:
+        mocker.patch.object(
+            new_engine.dialect, "_get_default_schema_name", return_value="new"
+        )
         sqlalchemy.inspect(new_engine)
-        new_engine.dialect.default_schema_name = "new"
     if recycle_pool:
         old_engine.dispose()
         sqlalchemy.inspect(old_engine)
@@ -5201,9 +5205,12 @@ def test_default_schema_each_worker_publishes_its_live_discovery(
     )
     assert database.get_default_schema_from_engine(None) == "old"
     wait_for_default_schema_cache_workers()
-    assert shared_default_schema_cache.get(key) == "old"
+    assert shared_default_schema_cache.get(key) == {
+        "schema": "new",
+        "discovered_at": 1000 + elapsed,
+    }
     assert write.call_count == 2
-    fallback_write.assert_called_once_with(key, "old", timeout=3600)
+    fallback_write.assert_not_called()
 
 
 @pytest.mark.parametrize("supports_add", [False, True])
@@ -5235,14 +5242,14 @@ def test_default_schema_existing_publication_is_not_retried(
         assert database.get_default_schema_from_engine(None) == "main"
     write.assert_called_once()
     key = write.call_args.args[0]
-    assert cache.get(key) == "main"
+    assert cache.get(key)["schema"] == "main"
     clock.return_value = 60
     assert database.get_default_schema_from_engine(None) == "main"
     assert write.call_count == 1
-    assert cache.get(key) == "main"
+    assert cache.get(key)["schema"] == "main"
     clock.return_value = 1800
     assert database.get_default_schema_from_engine(None) == "main"
-    assert cache.get(key) == "main"
+    assert cache.get(key)["schema"] == "main"
     assert write.call_count == 2
     cache.delete(key)
     assert database.get_default_schema_from_engine(None) == "main"
@@ -5571,10 +5578,119 @@ def test_default_schema_unsuccessful_publication_retries(
     write.assert_called_once()
     clock.return_value = 60
     assert database.get_default_schema_from_engine(None) == "main"
-    assert cache.get(key) == "main"
+    assert cache.get(key)["schema"] == "main"
     assert write.call_count == 2
     assert database.get_default_schema_from_engine(None) == "main"
     assert write.call_count == 2
+
+
+@pytest.mark.parametrize("supports_add", [False, True])
+@pytest.mark.parametrize("publish_old_first", [False, True])
+def test_default_schema_older_worker_cannot_replace_newer_discovery(
+    shared_default_schema_cache: Cache,
+    wait_for_default_schema_cache_workers: Callable[[], None],
+    mocker: MockerFixture,
+    supports_add: bool,
+    publish_old_first: bool,
+) -> None:
+    """Renewal must not resurrect discovery superseded by a restarted worker."""
+    from superset.models.core import _retire_cached_engines
+
+    cache = shared_default_schema_cache
+    wall_clock = mocker.patch("superset.models.core.time.time", return_value=1000)
+    clock = mocker.patch("superset.models.core.monotonic", return_value=0)
+    if not supports_add:
+        mocker.patch.object(cache, "add", side_effect=NotImplementedError)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as old_engine:
+        mocker.patch.object(
+            old_engine.dialect, "_get_default_schema_name", return_value="s_old"
+        )
+        assert sqlalchemy.inspect(old_engine).default_schema_name == "s_old"
+    if publish_old_first:
+        assert database.get_default_schema_from_engine(None) == "s_old"
+        wait_for_default_schema_cache_workers()
+
+    _retire_cached_engines(database.id)
+    wall_clock.return_value = 1010
+    with database.get_sqla_engine() as new_engine:
+        mocker.patch.object(
+            new_engine.dialect, "_get_default_schema_name", return_value="s_new"
+        )
+        assert sqlalchemy.inspect(new_engine).default_schema_name == "s_new"
+    assert database.get_default_schema_from_engine(None) == "s_new"
+    wait_for_default_schema_cache_workers()
+
+    # An old worker can first collect a cache key after the newer publication.
+    get_engine = mocker.patch.object(
+        database, "get_sqla_engine", return_value=nullcontext(old_engine)
+    )
+    for elapsed in (1800, 3600, 5400):
+        clock.return_value = elapsed
+        wall_clock.return_value = 1000 + elapsed
+        assert database.get_default_schema_from_engine(None) == "s_old"
+        wait_for_default_schema_cache_workers()
+    mocker.stop(get_engine)
+
+    _retire_cached_engines(database.id)
+    connect = mocker.patch(
+        "sqlalchemy.engine.Engine.raw_connection",
+        side_effect=ConnectionError("database unreachable"),
+    )
+    assert database.get_default_schema_from_engine(None) == "s_new"
+    connect.assert_not_called()
+
+
+@pytest.mark.parametrize("supports_add", [False, True])
+@pytest.mark.parametrize("shared_schema", ["main", "s_new"])
+def test_default_schema_renewal_preserves_newer_timestamp_and_retained_result(
+    shared_default_schema_cache: Cache,
+    wait_for_default_schema_cache_workers: Callable[[], None],
+    mocker: MockerFixture,
+    supports_add: bool,
+    shared_schema: str,
+) -> None:
+    """Old discovery cannot roll back timestamps or contradict newer retained reads."""
+    from superset.models.core import (
+        _DEFAULT_SCHEMA_CACHE_FLIGHTS,
+        _DefaultSchemaCacheFlight,
+        _read_default_schema,
+    )
+    from superset.utils import cache as cache_util
+
+    mocker.patch("superset.models.core.time.time", return_value=1000)
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    with database.get_sqla_engine() as engine:
+        sqlalchemy.inspect(engine)
+    key = cache_util.generate_cache_key(
+        {
+            "database_id": database.id,
+            "catalog": None,
+            "engine": engine.get_execution_options()["superset_engine_identity"],
+        },
+        key_prefix="database_default_schema:",
+    )
+    cache = shared_default_schema_cache
+    discovery = {"schema": shared_schema, "discovered_at": 1010}
+    cache.set(key, discovery)
+    write = mocker.spy(cache, "set")
+    if not supports_add:
+        mocker.patch.object(cache, "add", side_effect=NotImplementedError)
+    mocker.patch("superset.models.core.time.monotonic", return_value=1)
+    pending = _DefaultSchemaCacheFlight(key, 0.2, result="main", expires_at=60.25)
+    pending.completed.set()
+    _DEFAULT_SCHEMA_CACHE_FLIGHTS[key] = pending
+
+    assert _read_default_schema(key) == "main"
+    assert database.get_default_schema_from_engine(None) == "main"
+    wait_for_default_schema_cache_workers()
+    assert cache.get(key) == discovery
+    for _ in range(8):
+        assert _read_default_schema(key) == shared_schema
+    assert pending.expires_at == 60.25
+    if shared_schema != "main":
+        # Rejecting a contradictory renewal must not prolong the newer entry's TTL.
+        write.assert_not_called()
 
 
 @pytest.mark.parametrize("supports_add", [False, True])
@@ -5666,11 +5782,11 @@ def test_default_schema_renewal_replaces_a_differing_shared_value(
     for elapsed in (0, 1800):
         clock.return_value = cache_clock.return_value = 1000 + elapsed
         assert database.get_default_schema_from_engine(None) == "main"
-        assert cache.get(key) == "main"
+        assert cache.get(key)["schema"] == "main"
     # Subsequent renewals must continue publishing the live schema.
     clock.return_value = cache_clock.return_value = 1000 + 3600
     assert database.get_default_schema_from_engine(None) == "main"
-    assert cache.get(key) in (None, "main")
+    assert cache.get(key)["schema"] == "main"
 
 
 @pytest.mark.parametrize("operation", ["get", "add"])
@@ -6095,7 +6211,7 @@ def test_default_schema_live_publication_replaces_retained_late_read(
         )
     assert _read_default_schema(key) == "s_old"
     assert database.get_default_schema_from_engine(None) == "main"
-    assert shared_default_schema_cache.get(key) == "main"
+    assert shared_default_schema_cache.get(key)["schema"] == "main"
     for _ in range(8):
         assert _read_default_schema(key) == "main"
     assert pending.expires_at == 60.25

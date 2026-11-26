@@ -147,6 +147,11 @@ T = TypeVar("T")
 _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
 _DEFAULT_SCHEMA_CACHE_TIMEOUT = 3600
+# Wall-clock discovery times can be compared across workers. Renewals retain the
+# original time, including when discovery precedes the first cache-key lookup.
+_DEFAULT_SCHEMA_DISCOVERIES: weakref.WeakKeyDictionary[Engine, tuple[str, float]] = (
+    weakref.WeakKeyDictionary()
+)
 # Renew shared discovery without writing on every warm cache-key lookup. Holds the
 # monotonic time at which an engine may next attempt to publish.
 _DEFAULT_SCHEMA_NEXT_PUBLISH_AT: weakref.WeakKeyDictionary[Engine, float] = (
@@ -304,14 +309,39 @@ def _run_default_schema_cache_operation(
     return None
 
 
+def _decode_default_schema_discovery(value: Any) -> tuple[str, float] | None:
+    """Read timestamped discovery, accepting untimestamped legacy cache entries."""
+    if isinstance(value, str):
+        return value, float("-inf")
+    if (
+        isinstance(value, dict)
+        and isinstance(value.get("schema"), str)
+        and isinstance(value.get("discovered_at"), (int, float))
+    ):
+        return value["schema"], value["discovered_at"]
+    return None
+
+
+def _record_default_schema_discovery(engine: Engine, schema: str) -> float:
+    """Retain when the dialect discovered this schema, not when it is renewed."""
+    with _DEFAULT_SCHEMA_CACHE_LOCK:
+        discovery = _DEFAULT_SCHEMA_DISCOVERIES.get(engine)
+        if discovery is None or discovery[0] != schema:
+            discovery = (schema, time.time())
+            _DEFAULT_SCHEMA_DISCOVERIES[engine] = discovery
+        return discovery[1]
+
+
 def _read_default_schema(cache_key: str) -> str | None:
     """Read shared discovery without holding a request on an unresponsive cache."""
 
     def read() -> str | None:
         """Treat backend errors and invalid values as a cache miss."""
         try:
-            schema = cache_manager.cache.get(cache_key)
-            return schema if isinstance(schema, str) else None
+            discovery = _decode_default_schema_discovery(
+                cache_manager.cache.get(cache_key)
+            )
+            return discovery[0] if discovery is not None else None
         except Exception:  # pylint: disable=broad-except
             logger.debug("Unable to read the default schema cache")
             return None
@@ -319,16 +349,29 @@ def _read_default_schema(cache_key: str) -> str | None:
     return _run_default_schema_cache_operation(read, cache_key=cache_key)
 
 
-def _publish_default_schema(cache_key: str, schema: str, timeout: int) -> bool:
-    """Publish the live engine's discovery, replacing contradictory shared values."""
+def _publish_default_schema(
+    cache_key: str, schema: str, discovered_at: float, timeout: int
+) -> str | None:
+    """Publish discovery without renewing an older, contradictory schema."""
+    value = {"schema": schema, "discovered_at": discovered_at}
+    supports_add = True
     try:
-        if cache_manager.cache.add(cache_key, schema, timeout=timeout):
-            return True
+        if cache_manager.cache.add(cache_key, value, timeout=timeout):
+            return schema
     except (AttributeError, NotImplementedError):
-        return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
-    if cache_manager.cache.get(cache_key) is None:
-        return False
-    return bool(cache_manager.cache.set(cache_key, schema, timeout=timeout))
+        supports_add = False
+    shared_value = cache_manager.cache.get(cache_key)
+    if shared_value is None and supports_add:
+        return None
+    shared = _decode_default_schema_discovery(shared_value)
+    if shared is not None and shared[1] >= discovered_at:
+        if shared[0] != schema:
+            # A stale worker must neither replace nor extend newer discovery.
+            return shared[0]
+        value["discovered_at"] = shared[1]
+    return (
+        schema if cache_manager.cache.set(cache_key, value, timeout=timeout) else None
+    )
 
 
 def _publish_default_schema_if_due(engine: Engine, cache_key: str, schema: str) -> None:
@@ -338,6 +381,7 @@ def _publish_default_schema_if_due(engine: Engine, cache_key: str, schema: str) 
     A failed publication is retried after a short backoff. Cache I/O runs outside the
     process-wide lock; concurrent lookups skip it while one attempt is in flight.
     """
+    discovered_at = _record_default_schema_discovery(engine, schema)
     with _DEFAULT_SCHEMA_CACHE_LOCK:
         timestamp = monotonic()
         due_at = _DEFAULT_SCHEMA_NEXT_PUBLISH_AT.get(engine)
@@ -351,15 +395,16 @@ def _publish_default_schema_if_due(engine: Engine, cache_key: str, schema: str) 
         """Complete publication and backoff bookkeeping outside the request."""
         interval: float = _DEFAULT_SCHEMA_RETRY_INTERVAL
         try:
-            if _publish_default_schema(
-                cache_key, schema, _DEFAULT_SCHEMA_CACHE_TIMEOUT
-            ):
+            published_schema = _publish_default_schema(
+                cache_key, schema, discovered_at, _DEFAULT_SCHEMA_CACHE_TIMEOUT
+            )
+            if published_schema is not None:
                 interval = _DEFAULT_SCHEMA_CACHE_TIMEOUT / 2
                 with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
                     pending = _DEFAULT_SCHEMA_CACHE_FLIGHTS.get(cache_key)
                     if pending is not None and pending.completed.is_set():
                         # Do not let a retained late read contradict this publication.
-                        pending.result = schema
+                        pending.result = published_schema
         except Exception:  # pylint: disable=broad-except
             logger.debug("Unable to write the default schema cache")
         with _DEFAULT_SCHEMA_CACHE_LOCK:
@@ -1226,6 +1271,18 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     }
                 )
             )
+            engine_ref = weakref.ref(engine)
+
+            def record_schema_discovery(
+                dbapi_connection: Any, connection_record: Any
+            ) -> None:
+                """Record discovery even if execution precedes key collection."""
+                if (selected := engine_ref()) is not None:
+                    schema = selected.dialect.default_schema_name
+                    if schema is not None:
+                        _record_default_schema_discovery(selected, schema)
+
+            sqla.event.listen(engine, "connect", record_schema_discovery)
         sqla.event.listen(engine, "handle_error", mark_database_engine_error)
         if embedded_fallback:
             self._log_rejected_embedded_credential(engine)
@@ -1362,8 +1419,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         the engine spec's inspector policy. Shared discovery survives worker
         restarts for one hour, scoped to the database, catalog and effective
         engine identity. Cache failures leave local discovery available.
-        Warm lookups renew shared discovery at most once per half-hour per engine,
-        replacing a differing shared value with the engine's own discovery.
+        Warm lookups renew shared discovery at most once per half-hour per engine.
+        Only a newer discovery can replace a differing timestamped shared value;
+        discovery times use the workers' wall clocks, which must be synchronized.
         A failed publication is retried after a short backoff, outside
         the process-wide lock. Shared-cache reads have independent per-key flights,
         bounded waits and a process-wide slot limit. Late results survive until expiry;
