@@ -190,9 +190,13 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
     ``_validate_update_request``.
     """
     from superset import is_feature_enabled
-    from superset.dashboards.refresh_policy import log_refresh_policy_change, POLICY_KEY
+    from superset.dashboards.refresh_policy import (
+        log_refresh_policy_change,
+        POLICY_KEY,
+        stored_metadata,
+    )
 
-    old_policy = dashboard.params_dict.get(POLICY_KEY)
+    old_policy = stored_metadata(dashboard.json_metadata).get(POLICY_KEY)
     changed: list[str] = []
 
     if request.dashboard_title is not None:
@@ -247,7 +251,10 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         changed.append("tags")
 
     log_refresh_policy_change(
-        dashboard.id, old_policy, dashboard.params_dict.get(POLICY_KEY), "mcp_update"
+        dashboard.id,
+        old_policy,
+        stored_metadata(dashboard.json_metadata).get(POLICY_KEY),
+        "mcp_update",
     )
     return changed
 
@@ -304,13 +311,15 @@ def _validate_update_request(  # noqa: C901
         check_refresh_policy,
         POLICY_KEY,
         refresh_settings_changed,
+        stored_metadata,
     )
 
     metadata = json.loads(
         _merge_json_metadata(dashboard, _collect_metadata_overrides(request))
     )
-    if refresh_settings_changed(metadata, dashboard.params_dict) and (
-        errors := check_refresh_policy(metadata, dashboard.params_dict.get(POLICY_KEY))
+    stored = stored_metadata(dashboard.json_metadata)
+    if refresh_settings_changed(metadata, stored) and (
+        errors := check_refresh_policy(metadata, stored.get(POLICY_KEY))
     ):
         return DashboardError(
             error="; ".join(f"{error.field}: {error.message}" for error in errors),

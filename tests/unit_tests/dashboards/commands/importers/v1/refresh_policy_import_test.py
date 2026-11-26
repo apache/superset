@@ -343,3 +343,37 @@ def test_flag_off_assets_import_endpoint_rejects_a_malformed_policy(
         == BAD_POLICY
     )
     assert history() == []
+
+
+@pytest.mark.parametrize("raw", ["[]", "null", "{broken"])
+@pytest.mark.parametrize("enabled", [True, False])
+def test_import_over_odd_stored_metadata_behaves_as_before(
+    schema: Session, mocker: MockerFixture, raw: str, enabled: bool
+) -> None:
+    """Importing over a dashboard whose stored metadata isn't an object works."""
+    from superset.extensions import feature_flag_manager
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": enabled}
+    )
+    dashboard = import_dashboard(config(), ignore_permissions=True)
+    dashboard.json_metadata = raw
+    db.session.flush()
+
+    assert import_dashboard(config(), ignore_permissions=True) is dashboard
+    assert dashboard.json_metadata == raw
+
+    import_dashboard(config(POLICY, 60), overwrite=True, ignore_permissions=True)
+    assert dashboard.params_dict["auto_refresh_policy"] == POLICY
+    assert history() == (
+        [
+            {
+                "dashboard_id": dashboard.id,
+                "old": None,
+                "new": POLICY,
+                "source": "import_v1",
+            }
+        ]
+        if enabled
+        else []
+    )

@@ -1353,3 +1353,82 @@ def test_flag_on_a_boolean_number_swap_is_a_change(
         assert expected in [code for _, code in error_codes(response)]
         assert json.dumps(policy) == json.dumps(current["auto_refresh_policy"])
         assert history() == []
+
+
+ODD_STORED_METADATA = ["[]", "null", "{broken"]
+
+
+def make_odd_dashboard(make_dashboard: Callable[..., Any], raw: str) -> Any:
+    """Make a dashboard whose stored json_metadata isn't a JSON object."""
+    dashboard = make_dashboard()
+    dashboard.json_metadata = raw
+    db.session.commit()
+    return dashboard
+
+
+@pytest.mark.parametrize("raw", ODD_STORED_METADATA)
+@pytest.mark.parametrize("enabled", [True, False])
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"dashboard_title": "renamed"},
+        {"published": True},
+        {"position_json": json.dumps({"ROOT_ID": {"type": "ROOT"}})},
+    ],
+    ids=str,
+)
+def test_put_over_odd_stored_metadata_behaves_as_before(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    raw: str,
+    enabled: bool,
+    body: dict[str, Any],
+) -> None:
+    """A title or publish save keeps working over stored metadata of any shape."""
+    from superset.extensions import feature_flag_manager
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": enabled}
+    )
+    dashboard = make_odd_dashboard(make_dashboard, raw)
+    response = client.put(f"/api/v1/dashboard/{dashboard.id}", json=body)
+    assert response.status_code == 200
+    db.session.refresh(dashboard)
+    for key, value in body.items():
+        assert getattr(dashboard, key) == value
+    assert dashboard.json_metadata == raw
+    assert history() == []
+
+
+@pytest.mark.parametrize("raw", ODD_STORED_METADATA)
+@pytest.mark.parametrize("enabled", [True, False])
+def test_copy_with_replaced_metadata_over_odd_stored_metadata(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    raw: str,
+    enabled: bool,
+) -> None:
+    """A copy that replaces the metadata doesn't read the source's metadata."""
+    from superset.extensions import feature_flag_manager
+    from superset.models.dashboard import Dashboard
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": enabled}
+    )
+    dashboard = make_odd_dashboard(make_dashboard, raw)
+    response = client.post(
+        f"/api/v1/dashboard/{dashboard.id}/copy/",
+        json={
+            "dashboard_title": "copy",
+            "json_metadata": json.dumps({"refresh_frequency": 60}),
+            "replace_metadata": True,
+        },
+    )
+    assert response.status_code == 200
+    new = db.session.get(Dashboard, response.json["result"]["id"])
+    assert new.params_dict["refresh_frequency"] == 60
+    assert history() == []

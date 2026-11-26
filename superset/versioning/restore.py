@@ -682,12 +682,13 @@ def restore_version(  # noqa: C901
             log_refresh_policy_change,
             POLICY_KEY,
             refresh_settings_changed,
+            stored_metadata,
         )
-        from superset.utils import json
 
-        old_policy = entity.params_dict.get(POLICY_KEY)
-        target_metadata = json.loads(target_version.json_metadata or "{}")
-        if refresh_settings_changed(target_metadata, entity.params_dict):
+        current_metadata = stored_metadata(entity.json_metadata)
+        old_policy = current_metadata.get(POLICY_KEY)
+        target_metadata = stored_metadata(target_version.json_metadata)
+        if refresh_settings_changed(target_metadata, current_metadata):
             if errors := check_refresh_policy(target_metadata, old_policy):
                 raise DashboardRefreshPolicyInvalidError([], errors)
 
@@ -739,7 +740,7 @@ def restore_version(  # noqa: C901
                     log_refresh_policy_change(
                         entity.id,
                         old_policy,
-                        entity.params_dict.get(POLICY_KEY),
+                        stored_metadata(entity.json_metadata).get(POLICY_KEY),
                         "restore_version",
                     )
             _stamp_audit_fields_for_restore(entity)

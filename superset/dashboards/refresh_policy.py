@@ -58,6 +58,23 @@ class RefreshPolicyError:
     message: str
 
 
+def stored_metadata(json_metadata: str | None) -> dict[str, Any]:
+    """
+    Read stored dashboard ``json_metadata`` the way ``Dashboard.params_dict``
+    does, but read a value that isn't a JSON object (``null``, ``[]``, broken
+    JSON) as an empty object. The refresh checks then treat such a dashboard as
+    having no policy, so saves that leave its metadata alone behave as before.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.models.helpers import json_to_dict
+
+    try:
+        metadata = json_to_dict(json_metadata or "")
+    except (TypeError, ValueError):
+        return {}
+    return metadata if isinstance(metadata, dict) else {}
+
+
 def _to_seconds(value: Any) -> float | None:
     """Read finite, nonnegative numeric seconds from deployment configuration."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):

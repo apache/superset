@@ -55,6 +55,7 @@ from superset.dashboards.refresh_policy import (
     log_refresh_policy_change,
     POLICY_KEY,
     refresh_settings_changed,
+    stored_metadata,
 )
 from superset.dashboards.schemas import validate_css
 from superset.exceptions import SupersetSecurityException
@@ -100,7 +101,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model is not None
-        old_policy = self._model.params_dict.get(POLICY_KEY)
+        old_policy = stored_metadata(self._model.json_metadata).get(POLICY_KEY)
         # Suppress autoflush during the update body so that Continuum's
         # before_flush baseline listener does not fire mid-operation while
         # the session is only partially populated.
@@ -176,12 +177,15 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             if metadata is not None:
                 DashboardDAO.set_dash_metadata(dashboard, data=metadata)
         if is_feature_enabled("AUTO_REFRESH_POLICY"):
-            metadata = dashboard.params_dict
+            metadata = stored_metadata(dashboard.json_metadata)
             if POLICY_KEY in metadata and metadata[POLICY_KEY] is None:
                 metadata.pop(POLICY_KEY)
                 dashboard.json_metadata = json.dumps(metadata)
         log_refresh_policy_change(
-            dashboard.id, old_policy, dashboard.params_dict.get(POLICY_KEY), "put"
+            dashboard.id,
+            old_policy,
+            stored_metadata(dashboard.json_metadata).get(POLICY_KEY),
+            "put",
         )
         return dashboard
 
@@ -236,19 +240,15 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     # of what's set here.
                     exceptions.append(ValidationError(ex.messages, field_name="css"))
 
-        stored_metadata = self._model.params_dict
-        metadata = stored_metadata.copy()
+        stored = stored_metadata(self._model.json_metadata)
+        metadata = stored.copy()
         if incoming := self._properties.get("json_metadata"):
             submitted = json.loads(incoming)
             metadata.update(submitted)
         if (
             self._checks_refresh_policy
-            and refresh_settings_changed(metadata, stored_metadata)
-            and (
-                errors := check_refresh_policy(
-                    metadata, stored_metadata.get(POLICY_KEY)
-                )
-            )
+            and refresh_settings_changed(metadata, stored)
+            and (errors := check_refresh_policy(metadata, stored.get(POLICY_KEY)))
         ):
             raise DashboardRefreshPolicyInvalidError(exceptions, errors)
 

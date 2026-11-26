@@ -32,6 +32,7 @@ from superset.dashboards.refresh_policy import (
     keep_stored_policy,
     log_refresh_policy_change,
     POLICY_KEY,
+    stored_metadata,
 )
 from superset.models.dashboard import Dashboard
 from superset.utils import json
@@ -80,13 +81,10 @@ class CopyDashboardCommand(BaseCommand):
         if not security_manager.is_editor(self._original_dash):
             raise DashboardForbiddenError()
 
-        stored_policy = self._original_dash.params_dict.get(POLICY_KEY)
+        source_metadata = stored_metadata(self._original_dash.json_metadata)
+        stored_policy = source_metadata.get(POLICY_KEY)
         submitted = json.loads(self._properties["json_metadata"])
-        metadata = (
-            {}
-            if self._properties.get("replace_metadata")
-            else self._original_dash.params_dict.copy()
-        )
+        metadata = {} if self._properties.get("replace_metadata") else source_metadata
         metadata.update(submitted)
         if errors := check_refresh_policy(metadata, stored_policy):
             raise DashboardRefreshPolicyInvalidError([], errors)

@@ -462,3 +462,58 @@ def test_restore_layout_preserves_removed_default(mocker: MockerFixture) -> None
     assert dashboard.position_json == target.position_json
     target.revert.assert_called_once()
     assert dashboard.params_dict == metadata
+
+
+ODD_STORED_METADATA = ["[]", "null", "{broken"]
+
+
+@pytest.mark.parametrize("raw", ODD_STORED_METADATA)
+@pytest.mark.parametrize("enabled", [True, False])
+@pytest.mark.parametrize(
+    "field, value", [("dashboard_title", "Renamed"), ("published", True)]
+)
+def test_mcp_update_over_odd_stored_metadata_behaves_as_before(
+    mocker: MockerFixture, raw: str, enabled: bool, field: str, value: Any
+) -> None:
+    """An MCP title or publish update works over stored metadata of any shape."""
+    from superset.mcp_service.dashboard.schemas import UpdateDashboardRequest
+    from superset.mcp_service.dashboard.tool.update_dashboard import (
+        _apply_field_updates,
+        _validate_update_request,
+    )
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": enabled}
+    )
+    add = mocker.patch("superset.extensions.db.session.add")
+    dashboard = Dashboard(id=1, json_metadata=raw)
+    request = UpdateDashboardRequest(identifier=1, **{field: value})
+    assert _validate_update_request(dashboard, request) is None
+    assert _apply_field_updates(dashboard, request) == [field]
+    assert getattr(dashboard, field) == value
+    assert dashboard.json_metadata == raw
+    add.assert_not_called()
+
+
+@pytest.mark.parametrize("raw", ODD_STORED_METADATA)
+@pytest.mark.parametrize("enabled", [True, False])
+@pytest.mark.parametrize("odd_side", ["current", "target"])
+def test_restore_over_odd_stored_metadata_behaves_as_before(
+    mocker: MockerFixture, raw: str, enabled: bool, odd_side: str
+) -> None:
+    """A restore works when the current or restored metadata isn't an object."""
+    from superset.versioning.restore import restore_version
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": enabled}
+    )
+    add = mocker.patch("superset.extensions.db.session.add")
+    other = json.dumps({"color_scheme": "supersetColors"})
+    current, restored = (raw, other) if odd_side == "current" else (other, raw)
+    dashboard = Dashboard(id=1, uuid=uuid4(), json_metadata=current)
+    target = MagicMock(json_metadata=restored)
+    _restore_mocks(mocker, dashboard, target)
+    assert restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
+    target.revert.assert_called_once()
+    assert dashboard.json_metadata == restored
+    add.assert_not_called()

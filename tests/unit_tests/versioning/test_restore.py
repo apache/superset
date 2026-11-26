@@ -143,7 +143,7 @@ def test_restore_logs_original_error_after_failed_flush(
         id: int
         uuid: UUID = _UUID
         name: str | None
-        params_dict: dict[str, Any] = {}
+        json_metadata: str = "{}"
 
     table: sa.Table = sa.Table(
         "restore_log_entity",
