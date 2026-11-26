@@ -117,6 +117,8 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import EditorWrapper from '../EditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
+import TextSizeEditor from '../TextSizeEditor';
+import useEditorFontSize from '../TextSizeEditor/useEditorFontSize';
 import KeyboardShortcutButton, {
   KEY_MAP,
   KeyboardShortcut,
@@ -286,6 +288,12 @@ const SqlEditor: FC<Props> = ({
   const [renderHTMLEnabled, setRenderHTMLEnabled] = useState(
     getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, false),
   );
+  const {
+    fontSize: editorFontSize,
+    increase: increaseEditorFontSize,
+    decrease: decreaseEditorFontSize,
+    reset: resetEditorFontSize,
+  } = useEditorFontSize();
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
   const currentSQL = useRef<string>(queryEditor.sql);
@@ -870,6 +878,13 @@ const SqlEditor: FC<Props> = ({
           database={database}
         />
         <ShareSqlLabQuery queryEditorId={queryEditor.id} />
+        <Divider type="vertical" />
+        <TextSizeEditor
+          fontSize={editorFontSize}
+          onIncreaseFontSize={increaseEditorFontSize}
+          onDecreaseFontSize={decreaseEditorFontSize}
+          onResetFontSize={resetEditorFontSize}
+        />
       </>
     );
   };
@@ -1000,6 +1015,7 @@ const SqlEditor: FC<Props> = ({
                     queryEditorId={queryEditor.id}
                     onCursorPositionChange={handleCursorPositionChange}
                     height={`${height ?? 0}px`}
+                    fontSize={editorFontSize}
                     hotkeys={hotkeys}
                   />
                 )

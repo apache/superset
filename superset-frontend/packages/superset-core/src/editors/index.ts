@@ -361,6 +361,8 @@ export interface EditorProps {
   height?: string;
   /** CSS width value (e.g., "100%", "800px") */
   width?: string;
+  /** Editor font size in pixels. Defaults to the editor implementation's own size. */
+  fontSize?: number;
   /** Called when the editor is fully initialized, providing the imperative handle */
   onReady?: (handle: EditorHandle) => void;
   /** Contextual data passed to completion providers (e.g., database ID, schema) */
