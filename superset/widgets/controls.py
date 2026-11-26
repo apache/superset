@@ -29,6 +29,7 @@ mandatory leaves, leaving optional/styling fields behind a drill-in.
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Any, ClassVar, Literal
 
 from pydantic import (
@@ -46,6 +47,43 @@ from pydantic import (
 from superset_core.widgets import MetricControl
 
 FilterScalar = str | int | float | bool
+
+# A string that is JavaScript source rather than a value: `function (p) {...}`
+# or an arrow function. ECharts template strings (`{c} USD`) don't match.
+_JAVASCRIPT_FUNCTION = re.compile(
+    r"^\s*(?:async\s+)?(?:"
+    r"function\b\s*[\w$]*\s*\("  # function keyword, with its parameter list
+    r"|(?:\([^)]*\)|[\w$]+)\s*=>\s*(?:[{(\"'`]|[\w$]+\s*[.(\[])"  # arrow + body
+    r")"
+)
+FUNCTION_ALTERNATIVES = (
+    'use {"$template": "<Handlebars>"} where ECharts takes a formatter, or an '
+    "ECharts template string such as '{c} USD'"
+)
+
+
+def javascript_functions(value: Any, path: str = "") -> list[str]:
+    """Dotted paths of the strings in ``value`` that are JavaScript functions.
+
+    A JSON option can't carry a function: ECharts draws the source text as the
+    label or tooltip, so such a string is refused rather than stored.
+    """
+    if isinstance(value, str):
+        return [path] if _JAVASCRIPT_FUNCTION.match(value) else []
+    if isinstance(value, dict):
+        return [
+            found
+            for key, item in value.items()
+            for found in javascript_functions(item, f"{path}.{key}" if path else key)
+        ]
+    if isinstance(value, list):
+        return [
+            found
+            for index, item in enumerate(value)
+            for found in javascript_functions(item, f"{path}[{index}]")
+        ]
+    return []
+
 
 ColumnOperator = Literal[
     "=",
@@ -523,6 +561,16 @@ class EchartsControls(BaseModel):
     """
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("echarts_options")
+    @classmethod
+    def _no_javascript(cls, options: dict[str, Any]) -> dict[str, Any]:
+        if found := javascript_functions(options):
+            raise ValueError(
+                f"{found[0]} is a JavaScript function, which a JSON option "
+                f"cannot carry; {FUNCTION_ALTERNATIVES}"
+            )
+        return options
 
     data_binding: DataBinding = Field(
         alias="dataBinding",

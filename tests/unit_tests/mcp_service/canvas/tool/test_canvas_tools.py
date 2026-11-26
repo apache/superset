@@ -298,6 +298,36 @@ def test_preview_warns_about_an_option_with_nothing_to_draw() -> None:
     )
 
 
+def test_preview_refuses_an_option_holding_a_javascript_function() -> None:
+    """Stored before the check existed, it would be drawn as text on the page."""
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    node = {
+        "widgetType": "echarts",
+        "props": {
+            "dataBinding": {"datasetId": 13, "metrics": [REVENUE]},
+            "echartsOptions": {
+                "series": [{"type": "bar"}],
+                "tooltip": {"formatter": "function (p) { return p.value; }"},
+            },
+        },
+    }
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch(f"{PREVIEW}.run_binding") as run_binding,
+    ):
+        dao.load.return_value = _preview_canvas(node)
+        result, image = _preview_widget_impl(1, "chart", dark=False)
+
+    assert image is None
+    assert result["error_type"] == "WidgetContentError"
+    assert (
+        "echartsOptions.tooltip.formatter is a JavaScript function" in result["error"]
+    )
+    assert "$template" in result["error"]
+    run_binding.assert_not_called()
+
+
 def test_preview_reads_the_widget_a_placement_holds() -> None:
     from superset_core.canvas import StoredWidget
 
