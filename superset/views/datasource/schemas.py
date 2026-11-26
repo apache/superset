@@ -84,6 +84,15 @@ class SamplesPayloadSchema(Schema):
         metadata={"description": "Extra parameters to add to the query."},
         allow_none=True,
     )
+    url_params = fields.Dict(
+        metadata={
+            "description": "URL parameters of the dashboard or Explore view the "
+            "samples are requested from, read by the `url_param()` Jinja macro."
+        },
+        keys=fields.String(),
+        values=fields.String(),
+        allow_none=True,
+    )
 
     @pre_load
     # pylint: disable=unused-argument
