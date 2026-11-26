@@ -1032,6 +1032,8 @@ def test_streaming_non_finite_decimal_csv(decimal_separator: str | None) -> None
 @pytest.mark.parametrize(
     "sql, engine",
     [
+        ("BEGIN INSERT INTO log VALUES (1) END; SELECT n FROM t", "mssql"),
+        ("IF TRUE THEN INSERT INTO log VALUES (1); END IF; SELECT n FROM t", "mysql"),
         ("INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 4", "postgresql"),
         ("IF FALSE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;", "bigquery"),
         ("IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF;", "bigquery"),
@@ -1086,6 +1088,8 @@ def test_streaming_export_rejects_mutating_scripts(
 @pytest.mark.parametrize(
     "sql, engine",
     [
+        ("BEGIN INSERT INTO log VALUES (1) END; SELECT n FROM t", "mssql"),
+        ("IF TRUE THEN INSERT INTO log VALUES (1); END IF; SELECT n FROM t", "mysql"),
         ("INSERT INTO log VALUES (1); SELECT n FROM t LIMIT 100001", "postgresql"),
         ("BEGIN INSERT INTO log VALUES (1); SELECT n FROM t; END;", "bigquery"),
         ("IF FALSE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;", "bigquery"),

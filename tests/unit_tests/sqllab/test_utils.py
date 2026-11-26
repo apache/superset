@@ -83,3 +83,48 @@ def test_export_sql_parse_failure_policy_is_engine_scoped(engine: str) -> None:
     from superset.sqllab.utils import is_export_sql_read_only
 
     assert is_export_sql_read_only("SELECT (", engine) is (engine != "bigquery")
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        ("mssql", "BEGIN INSERT INTO log VALUES (1) END; SELECT n FROM t"),
+        ("mssql", "BEGIN SELECT 1 END; SELECT 2"),
+        ("mysql", "IF TRUE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;"),
+        ("postgresql", "IF TRUE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;"),
+        ("snowflake", "IF TRUE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;"),
+        ("oracle", "IF TRUE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;"),
+    ],
+)
+def test_export_sql_rejects_opaque_control_flow_on_every_engine(
+    engine: str, sql: str
+) -> None:
+    """A block that hides its body is unsafe even when no mutation is detected."""
+    from superset.sql.parse import SQLScript
+    from superset.sqllab.utils import is_export_sql_read_only
+
+    script = SQLScript(sql, engine)
+    assert script.has_unparseable_statement
+    assert not script.has_mutation()
+    assert not is_export_sql_read_only(sql, engine)
+
+
+@pytest.mark.parametrize(
+    "engine", ["mssql", "mysql", "postgresql", "snowflake", "oracle"]
+)
+def test_export_sql_allows_plain_read_only_scripts(engine: str) -> None:
+    """Scripting keywords inside values or comments must not reject normal reads."""
+    from superset.sqllab.utils import is_export_sql_read_only
+
+    assert is_export_sql_read_only(
+        "SELECT 'BEGIN INSERT INTO t VALUES (1) END' AS n; "
+        "SELECT 2 AS n -- IF TRUE THEN DELETE FROM t; END IF;",
+        engine,
+    )
+
+
+def test_export_sql_allows_fully_parsed_read_only_blocks() -> None:
+    """Control flow that is fully represented in the AST can be rerun safely."""
+    from superset.sqllab.utils import is_export_sql_read_only
+
+    assert is_export_sql_read_only("IF 1=1 SELECT 1 ELSE SELECT 2", "mssql")

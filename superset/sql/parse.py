@@ -2182,6 +2182,30 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         except SupersetParseError:
             return True
 
+    # Control-flow commands can carry an unparsed body that hides writes.
+    # Keep this separate from mutation detection: an opaque read-only block
+    # is not a detected mutation, but still cannot safely be rerun for export.
+    _SCRIPTING_COMMAND_NAMES: frozenset[str] = frozenset(
+        {
+            "BEGIN",
+            "IF",
+            "ELSEIF",
+            "ELSE",
+            "WHILE",
+            "LOOP",
+            "REPEAT",
+            "FOR",
+            "EXCEPTION",
+        }
+    )
+
+    def has_opaque_scripting_body(self) -> bool:
+        """Check for control-flow bodies the AST cannot fully represent."""
+        return any(
+            command.name.upper() in self._SCRIPTING_COMMAND_NAMES
+            for command in self._parsed.find_all(exp.Command)
+        )
+
     def _has_mutating_bigquery_script_body(self) -> bool:
         """Inspect opaque control-flow bodies without mistaking quoted text for SQL."""
         if self._dialect != Dialects.BIGQUERY:
@@ -2194,17 +2218,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "COMMIT",
         }
         for command in self._parsed.find_all(exp.Command):
-            if command.name.upper() not in {
-                "BEGIN",
-                "IF",
-                "ELSEIF",
-                "ELSE",
-                "WHILE",
-                "LOOP",
-                "REPEAT",
-                "FOR",
-                "EXCEPTION",
-            }:
+            if command.name.upper() not in self._SCRIPTING_COMMAND_NAMES:
                 continue
             body = command.expression
             text = body.name if isinstance(body, exp.Literal) else str(body or "")
@@ -3699,6 +3713,14 @@ class SQLScript:
             ):
                 return True
         return False
+
+    def has_opaque_scripting_body(self) -> bool:
+        """Check for opaque SQL control flow, excluding metadata and KQL reads."""
+        return any(
+            isinstance(statement, SQLStatement)
+            and statement.has_opaque_scripting_body()
+            for statement in self.statements
+        )
 
     def get_settings(self) -> dict[str, str | bool]:
         """

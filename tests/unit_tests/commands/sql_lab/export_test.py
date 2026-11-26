@@ -400,3 +400,66 @@ def test_csv_export_bigquery_unparseable_script_uses_stored_rows(
     assert command.run()["data"] == b"n\n1\n"
     backend.get.assert_called_once_with("key")
     query.database.get_df.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        ("mssql", "BEGIN INSERT INTO log VALUES (1) END; SELECT n FROM t"),
+        ("mysql", "IF TRUE THEN INSERT INTO log VALUES (1); END IF; SELECT n FROM t"),
+    ],
+)
+@pytest.mark.parametrize("use_select_sql", [False, True])
+@pytest.mark.parametrize("missing_results", ["backend", "key", "blob", None])
+@pytest.mark.parametrize(
+    "limiting_factor", [LimitingFactor.MEMORY, LimitingFactor.NOT_LIMITED]
+)
+def test_csv_export_never_reruns_opaque_blocks(
+    mocker: MockerFixture,
+    engine: str,
+    sql: str,
+    use_select_sql: bool,
+    missing_results: str | None,
+    limiting_factor: LimitingFactor,
+) -> None:
+    """Opaque blocks use stored rows or refuse export, regardless of engine."""
+    from superset.exceptions import SupersetErrorException
+    from superset.sql.parse import SQLScript
+
+    script = SQLScript(sql, engine)
+    assert script.has_unparseable_statement
+    assert not script.has_mutation()
+    backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
+    backend.get.return_value = None if missing_results else b"blob"
+    if missing_results == "backend":
+        mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    mocker.patch(
+        "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
+    )
+    mocker.patch(
+        "superset.commands.sql_lab.export._deserialize_results_payload",
+        return_value={"data": [{"n": 1}], "columns": [{"name": "n"}]},
+    )
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+    query = MagicMock()
+    query.results_key = None if missing_results == "key" else "key"
+    query.select_sql = sql if use_select_sql else None
+    query.executed_sql = "SELECT 1" if use_select_sql else sql
+    query.limiting_factor = limiting_factor
+    query.database.db_engine_spec.engine = engine
+    command = SqlResultExportCommand("client_id")
+    mocker.patch.object(command, "validate")
+    command._query = query
+
+    if missing_results:
+        with pytest.raises(
+            SupersetErrorException, match="modify data or schema"
+        ) as exc:
+            command.run()
+        assert exc.value.status == 400
+    else:
+        assert command.run()["data"] == b"n\n1\n"
+        backend.get.assert_called_once_with("key")
+    query.database.get_df.assert_not_called()

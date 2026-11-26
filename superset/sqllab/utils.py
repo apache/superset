@@ -124,14 +124,16 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
 
 
 def is_export_sql_read_only(sql: str, engine: str) -> bool:
-    """Reject detected writes and BigQuery scripts the parser cannot inspect."""
+    """Reject detected writes and opaque scripting bodies unsafe to rerun."""
     try:
         script = SQLScript(sql, engine)
-        # A successful parse can still contain opaque commands. In particular,
-        # BigQuery IF/ELSE parsing can omit branches and trailing statements,
-        # so absence of a mutation in the returned AST is not proof of safety.
+        # Opaque control flow can hide writes on any SQL engine. BigQuery
+        # parsing can also omit branches and trailing statements, so keep its
+        # stricter policy for every unparseable statement. Metadata and KQL
+        # reads on other engines do not become unsafe just for lacking an AST.
         return not (
             (engine == "bigquery" and script.has_unparseable_statement)
+            or script.has_opaque_scripting_body()
             or script.has_mutation()
         )
     except SupersetParseError:
