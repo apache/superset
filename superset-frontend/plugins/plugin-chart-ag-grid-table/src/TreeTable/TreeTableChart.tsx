@@ -669,7 +669,11 @@ function ConfiguredTreeTableChart({
         <div ref={barRef}>
           <ExpandAllControl
             levels={levels}
-            allOpen={expanded.size > 0 ? (expandAllIntent ?? allOpen) : false}
+            allOpen={
+              pageKeys.length > 0 &&
+              pageKeys.every(key => expanded.has(key)) &&
+              (expandAllIntent ?? allOpen)
+            }
             onChange={pickExpandAll}
             onCollapseAll={collapseAll}
           />

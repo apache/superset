@@ -318,6 +318,22 @@ test('new data keeps open rows open and sends one forced batch without looping',
   expect(onMask).not.toHaveBeenCalled();
 });
 
+test('Expand all is available when refreshed data adds a collapsed parent', async () => {
+  routeChildren();
+  const value = twoLevels({ data: [lastRowData[0]] });
+  const onMask = jest.fn();
+  const { rerender } = render(<Harness value={value} onMask={onMask} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Expand all' }));
+  await screen.findAllByText('Greeting');
+  expect(screen.getByRole('button', { name: 'Collapse all' })).toBeVisible();
+
+  rerender(<Harness value={{ ...value, data: lastRowData }} onMask={onMask} />);
+  const expandAll = await screen.findByRole('button', { name: 'Expand all' });
+  await userEvent.click(expandAll);
+  expect(screen.getByRole('button', { name: 'Collapse S1' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Collapse S2' })).toBeVisible();
+});
+
 const describeFocus = () => {
   const element = focusedStop();
   if (!element || element === document.body) return 'BODY';
