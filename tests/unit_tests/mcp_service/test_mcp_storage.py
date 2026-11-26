@@ -370,16 +370,11 @@ def test_create_redis_store_rejects_unknown_cert_reqs() -> None:
 @pytest.mark.parametrize("url", ["redis://localhost:6379/0", "rediss://h:6380/0"])
 def test_create_redis_store_applies_default_timeouts(url: str) -> None:
     """Socket and connect timeouts are bounded by default for both schemes."""
-    from superset.mcp_service.storage import (
-        DEFAULT_REDIS_SOCKET_CONNECT_TIMEOUT,
-        DEFAULT_REDIS_SOCKET_TIMEOUT,
-    )
-
     client = _build_real_client({"CACHE_REDIS_URL": url})
 
     connection = client.connection_pool.make_connection()
-    assert connection.socket_timeout == DEFAULT_REDIS_SOCKET_TIMEOUT
-    assert connection.socket_connect_timeout == DEFAULT_REDIS_SOCKET_CONNECT_TIMEOUT
+    assert connection.socket_timeout == 5.0
+    assert connection.socket_connect_timeout == 5.0
     assert connection.socket_timeout is not None
     assert connection.socket_connect_timeout is not None
 
