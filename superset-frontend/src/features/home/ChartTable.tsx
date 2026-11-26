@@ -40,7 +40,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { LoadingCards } from 'src/pages/Home';
 import ChartCard from 'src/features/charts/ChartCard';
-import Chart from 'src/types/Chart';
+import { Chart } from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import { Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';

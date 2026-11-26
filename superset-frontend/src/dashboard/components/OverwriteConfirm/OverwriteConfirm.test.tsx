@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import { overwriteConfirmMetadata } from 'spec/fixtures/mockDashboardState';
 
@@ -24,7 +24,7 @@ import OverwriteConfirm from '.';
 
 import './OverwriteConfirmModal';
 
-const mockStore = configureStore();
+const mockStore = createMockStore();
 
 test('renders nothing without overwriteConfirmMetadata', () => {
   const { queryByText } = render(<OverwriteConfirm />, {

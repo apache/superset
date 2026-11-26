@@ -39,6 +39,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
     ReportScheduleExecuteUnexpectedError,
+    ReportScheduleExecutorAccessDeniedError,
     ReportScheduleExecutorNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
@@ -84,7 +85,7 @@ from superset.reports.notifications.slack import SlackNotification
 from superset.reports.notifications.slack_channel_resolver import _match_slack_channel
 from superset.reports.notifications.slack_mixin import SlackMixin
 from superset.subjects.types import SubjectType
-from superset.utils.core import HeaderDataType
+from superset.utils.core import get_user, HeaderDataType, override_user
 from superset.utils.report_execution import (
     ReportArtifactKind,
     ReportExecutionBudgetExceededError,
@@ -414,6 +415,48 @@ def test_attachment_free_alert_skips_permalink_precommit(
     permalink.assert_not_called()
     claim.assert_called_once()
     machine.return_value.run.assert_called_once()
+
+
+def test_report_execution_runs_with_its_report_id(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    from flask import g
+
+    from superset.commands.report.execution_claim import ExecutionClaim
+
+    command = AsyncExecuteReportScheduleCommand(str(uuid4()), 11, datetime.utcnow())
+    command._model = ReportSchedule(
+        id=11,
+        name="alert",
+        type=ReportScheduleType.ALERT,
+        report_format=ReportDataFormat.NONE,
+        last_state=ReportState.NOOP,
+    )
+    mocker.patch.object(command, "validate")
+    mocker.patch(
+        "superset.commands.report.execute._should_build_execution_context",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    mocker.patch(
+        "superset.commands.report.execute.claim_execution",
+        return_value=ExecutionClaim(ReportState.NOOP),
+    )
+    machine = mocker.patch(
+        "superset.commands.report.execute.ReportScheduleStateMachine"
+    )
+    seen: list[dict[str, int] | None] = []
+    machine.return_value.run.side_effect = lambda: seen.append(
+        g.get("query_log_context")
+    )
+
+    command.run()
+
+    assert seen == [{"report_id": 11}]
+    assert g.get("query_log_context") is None
 
 
 @pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
@@ -1167,6 +1210,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_multiple_tabs(
     mock_run, mocker: MockerFixture, anchors, permalink_side_effect, expected_paths, app
 ) -> None:
@@ -1286,6 +1330,7 @@ def test_get_dashboard_urls_empty_dashboard_state_skips_permalink(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_url_params_only_creates_permalink(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1328,6 +1373,7 @@ def test_get_dashboard_urls_url_params_only_creates_permalink(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_filters_and_tabs(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1390,6 +1436,7 @@ def test_get_dashboard_urls_with_filters_and_tabs(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1443,6 +1490,7 @@ def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filters(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1491,6 +1539,7 @@ def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filt
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_filters_no_tabs(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1549,6 +1598,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_preserves_existing_url_params(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1603,6 +1653,7 @@ def test_get_dashboard_urls_preserves_existing_url_params(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_deduplicates_stale_native_filters(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1653,6 +1704,7 @@ def test_get_dashboard_urls_deduplicates_stale_native_filters(
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_urls(
     mock_run,
     mocker: MockerFixture,
@@ -1680,6 +1732,7 @@ def test_get_tab_urls(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_multitab_preserves_url_params(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1740,6 +1793,7 @@ def test_get_dashboard_urls_multitab_preserves_url_params(
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_url(
     mock_run,
     mocker: MockerFixture,
@@ -1770,6 +1824,7 @@ def test_get_tab_url(
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_url_propagates_force_screenshot(
     mock_run,
     mocker: MockerFixture,
@@ -1802,6 +1857,7 @@ def test_get_tab_url_propagates_force_screenshot(
 
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_url_strips_stale_force_urlparam(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1845,6 +1901,7 @@ def test_get_tab_url_strips_stale_force_urlparam(
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_url_commits_permalink_before_returning(
     mock_run,
     mock_session,
@@ -1885,6 +1942,7 @@ def test_get_tab_url_commits_permalink_before_returning(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
 @with_feature_flags(ALERT_REPORT_TABS=False)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_native_filters_without_tabs(
     mock_run,
     mocker: MockerFixture,
@@ -1932,6 +1990,7 @@ def test_get_dashboard_urls_native_filters_without_tabs(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=False)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_flag_off_preserves_url_params(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -2220,6 +2279,7 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
         "execution_id_example",
     )
     report_state._report_schedule.force_screenshot = False
+    report_state._report_schedule.chart_id = 1
     report_state._report_schedule.chart.query_context = json.dumps(
         {
             "datasource": {"id": 1, "type": "table"},
@@ -2274,7 +2334,9 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
 
     assert report_state._get_data(ChartDataResultFormat.CSV) == b"csv-data"
 
-    get_url_path.assert_called_once_with("ChartDataRestApi.data")
+    get_url_path.assert_called_once_with(
+        "ChartDataRestApi.data", form_data='{"slice_id": 1}'
+    )
     post_chart_data.assert_called_once()
     assert post_chart_data.call_args.kwargs["chart_url"] == "/api/v1/chart/data"
     assert post_chart_data.call_args.kwargs["auth_cookies"] == auth_cookies
@@ -6308,3 +6370,1027 @@ def test_embedded_data_keeps_get_fallback_without_saved_context(
     assert state._get_embedded_data() is expected
     get_frame.assert_called_once()
     post.assert_not_called()
+
+
+REALISTIC_NATIVE_FILTERS: list[dict[str, Any]] = [
+    {
+        "nativeFilterId": "NATIVE_FILTER-text",
+        "filterType": "filter_select",
+        "columnName": "region",
+        "filterValues": ["North America", "Smith, Jones & Co", 'O\'Brien "Ltd"'],
+    },
+    {
+        "nativeFilterId": "NATIVE_FILTER-range",
+        "filterType": "filter_range",
+        "columnName": "revenue",
+        "filterValues": [100, 2500],
+    },
+    {
+        "nativeFilterId": "NATIVE_FILTER-time",
+        "filterType": "filter_time",
+        "columnName": "",
+        "filterValues": ["2024-01-01 : 2024-06-30"],
+    },
+]
+
+
+def _dashboard_cta_state(
+    mocker: MockerFixture,
+    dashboard_extra: dict[str, Any] | None,
+    report_type: ReportScheduleType = ReportScheduleType.REPORT,
+) -> BaseReportState:
+    """Build a state around a real ReportSchedule so native filters are real."""
+    schedule = ReportSchedule()
+    schedule.type = report_type
+    schedule.name = "CTA report"
+    schedule.chart = None
+    schedule.chart_id = None
+    schedule.dashboard_id = 123
+    schedule.dashboard = mocker.MagicMock()
+    schedule.dashboard.id = 123
+    schedule.dashboard.uuid = UUID("11111111-1111-1111-1111-111111111111")
+    schedule.force_screenshot = False
+    schedule.report_format = ReportDataFormat.PNG
+    schedule.include_cta = True
+    schedule.extra = (
+        {"dashboard": dashboard_extra} if dashboard_extra else {}  # type: ignore[typeddict-item]
+    )
+    return BaseReportState(schedule, datetime(2021, 1, 1), uuid4())
+
+
+def _expected_native_filters(state: BaseReportState) -> str:
+    params, _ = state._report_schedule.get_native_filters_params()
+    return params
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_get_url_user_friendly_includes_native_filters(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker,
+        {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS},
+    )
+
+    url = state._get_url(user_friendly=True)
+
+    assert "dashboard/p/key1/" in url
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["anchor"] == "TAB-1"
+    assert permalink_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+    assert permalink_state["urlParams"][0][1] != "()"
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_get_url_user_friendly_json_list_anchor_uses_first_tab(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+    state = _dashboard_cta_state(
+        mocker,
+        {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "nativeFilters": REALISTIC_NATIVE_FILTERS,
+        },
+    )
+
+    url = state._get_url(user_friendly=True)
+
+    assert "dashboard/p/key1/" in url
+    first_state = mock_permalink_cls.call_args_list[0].kwargs["state"]
+    assert first_state["anchor"] == "TAB-1"
+    assert first_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+
+
+@pytest.fixture(name="resolvable_executor")
+def _resolvable_executor(mocker: MockerFixture) -> None:
+    """Resolve a valid executor so permalink-building tests need no user context."""
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(MagicMock(is_active=True, username="alice"), "alice"),
+    )
+
+
+def _make_tabbed_filter_schedule(mocker: MockerFixture) -> Any:
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.chart = False
+    schedule.chart_id = None
+    schedule.dashboard_id = 123
+    schedule.dashboard.uuid = UUID("12345678-1234-5678-1234-567812345678")
+    schedule.force_screenshot = False
+    schedule.type = "report_type"
+    schedule.report_format = "report_format"
+    schedule.editors = _make_mock_editors(mocker, [1, 2])
+    schedule.recipients = []
+    schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {
+                "NATIVE_FILTER-1": {
+                    "filterState": {"value": ["North America", 'Sales, "EMEA"']}
+                },
+                "NATIVE_FILTER-2": {"filterState": {"value": [10, 500]}},
+                "NATIVE_FILTER-3": {"filterState": {"value": "Last quarter"}},
+            },
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": None,
+        }
+    }
+    schedule.get_native_filters_params.return_value = (
+        "(NATIVE_FILTER-1:(filterType:filter_select))",
+        [],
+    )
+    return schedule
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_get_url_user_friendly_bare_anchor(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker,
+        {"anchor": "TAB-9", "nativeFilters": REALISTIC_NATIVE_FILTERS},
+    )
+
+    state._get_url(user_friendly=True)
+
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["anchor"] == "TAB-9"
+    assert permalink_state["urlParams"][-1][0] == "native_filters"
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_get_url_user_friendly_filters_without_anchor(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+
+    url = state._get_url(user_friendly=True)
+
+    assert "dashboard/p/key1/" in url
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_get_url_user_friendly_preserves_url_params(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker,
+        {
+            "anchor": "TAB-1",
+            "urlParams": [["standalone", "true"]],
+            "nativeFilters": REALISTIC_NATIVE_FILTERS,
+        },
+    )
+
+    state._get_url(user_friendly=True)
+
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["urlParams"] == [
+        ["standalone", "true"],
+        ["native_filters", _expected_native_filters(state)],
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=False)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_get_url_user_friendly_flag_off_includes_native_filters(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+
+    url = state._get_url(user_friendly=True)
+
+    assert "dashboard/p/key1/" in url
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_empty_state_returns_plain_url(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    state = _dashboard_cta_state(mocker, None)
+
+    url = state._get_url(user_friendly=True)
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+    mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_attachment_free_alert_keeps_bare_dashboard_link(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    state = _dashboard_cta_state(
+        mocker,
+        {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS},
+        report_type=ReportScheduleType.ALERT,
+    )
+    state._report_schedule.report_format = ReportDataFormat.NONE
+
+    url = state._get_url(user_friendly=True)
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+    mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_missing_executor_raises_not_found(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """A tab/filter report with no executor fails cleanly, not with AttributeError."""
+    schedule = _make_tabbed_filter_schedule(mocker)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+
+    with override_user(None):
+        with pytest.raises(ReportScheduleExecutorNotFoundError):
+            state.get_dashboard_urls()
+    mock_permalink_cls.assert_not_called()
+
+
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_missing_executor_without_tabs_or_filters_unchanged(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    schedule = _make_tabbed_filter_schedule(mocker)
+    schedule.extra = {}
+    schedule.get_native_filters_params.return_value = (None, [])
+    schedule.dashboard.id = 123
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+
+    with override_user(None):
+        urls = state.get_dashboard_urls()
+    assert len(urls) == 1
+    assert "dashboard" in urls[0]
+
+
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_failure_notification_url_missing_executor_falls_back_to_plain(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    schedule = _make_tabbed_filter_schedule(mocker)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+    plain = mocker.patch.object(
+        state, "_get_plain_dashboard_url", return_value="http://plain/dashboard/1/"
+    )
+
+    with override_user(None):
+        assert state._get_failure_notification_url() == "http://plain/dashboard/1/"
+    plain.assert_called_once_with(user_friendly=True)
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_notification_content_url_is_filtered_permalink(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+    state._report_schedule.report_format = ReportDataFormat.TEXT
+    state._report_schedule.type = ReportScheduleType.REPORT
+    mocker.patch.object(state, "_attachments_enabled", return_value=False)
+    mocker.patch.object(state, "_get_log_data", return_value={})
+    mocker.patch.object(state, "_get_screenshots", return_value=[])
+
+    content = state._get_notification_content()
+
+    assert content.url is not None
+    assert "dashboard/p/key1/" in content.url
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_get_url_and_get_dashboard_urls_do_not_duplicate_warnings(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker,
+        {
+            "anchor": "TAB-1",
+            "nativeFilters": [
+                *REALISTIC_NATIVE_FILTERS,
+                {"nativeFilterId": "NATIVE_FILTER-bad"},
+            ],
+        },
+    )
+
+    state._get_url(user_friendly=True)
+    state.get_dashboard_urls()
+
+    assert len(state._execution_warnings) == 1
+    assert "NATIVE_FILTER-bad" in state._execution_warnings[0]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_failure_notification_url_falls_back_when_dashboard_inaccessible(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    state = _dashboard_cta_state(mocker, None)
+    state._report_schedule.report_format = ReportDataFormat.PNG
+    mocker.patch.object(
+        state,
+        "_raise_for_executor_dashboard_access",
+        side_effect=ReportScheduleExecutorAccessDeniedError(
+            "dashboard", "someone", "denied"
+        ),
+    )
+
+    url = state._get_failure_notification_url()
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+    mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_empty_anchor_list_falls_back_to_plain_url(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    state = _dashboard_cta_state(
+        mocker,
+        {"anchor": "[]", "nativeFilters": REALISTIC_NATIVE_FILTERS},
+    )
+
+    url = state._get_url(user_friendly=True)
+    failure_url = state._get_failure_notification_url()
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in failure_url
+    mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
+def test_get_url_user_friendly_permalink_uses_user_friendly_host(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    mocker.patch.dict(
+        app.config,
+        {
+            "WEBDRIVER_BASEURL": "http://internal:8088/",
+            "WEBDRIVER_BASEURL_USER_FRIENDLY": "https://superset.example.com/",
+        },
+    )
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+
+    assert state._get_url(user_friendly=True).startswith(
+        "https://superset.example.com/dashboard/p/key1/"
+    )
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=False)
+def test_failure_notification_url_falls_back_when_permalink_fails(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    from superset.dashboards.permalink.exceptions import (
+        DashboardPermalinkCreateFailedError,
+    )
+
+    mock_permalink_cls.return_value.run.side_effect = (
+        DashboardPermalinkCreateFailedError()
+    )
+    state = _dashboard_cta_state(mocker, {"nativeFilters": REALISTIC_NATIVE_FILTERS})
+
+    url = state._get_failure_notification_url()
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_failure_notification_url_valid_executor_without_g_user(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """
+    The terminal-error fallback sends the failure outside ``override_user``;
+    a valid executor must not make that path crash on a missing ``g.user``.
+    """
+    schedule = _make_tabbed_filter_schedule(mocker)
+    executor = mocker.Mock(is_active=True, is_anonymous=False, username="alice")
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(executor, "alice"),
+    )
+    mocker.patch("superset.commands.report.execute.security_manager")
+    mocker.patch(
+        "superset.commands.report.execute.is_excluded_by_extra_access",
+        return_value=False,
+    )
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+
+    seen_users: list[Any] = []
+
+    def _run() -> str:
+        seen_users.append(get_user())
+        return "key1"
+
+    mock_permalink_cls.return_value.run.side_effect = _run
+
+    with override_user(None):
+        url = state._get_failure_notification_url()
+    assert "dashboard/p/key1" in url
+    assert seen_users
+    assert all(u is executor for u in seen_users)
+
+
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_raise_for_executor_dashboard_access_anonymous_returns_early(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    schedule = _make_tabbed_filter_schedule(mocker)
+    resolver = mocker.patch("superset.commands.report.execute.get_executor_user")
+    raise_for_access = mocker.patch(
+        "superset.commands.report.execute.security_manager.raise_for_access"
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+
+    with override_user(mocker.Mock(is_anonymous=True)):
+        state._raise_for_executor_dashboard_access()
+    resolver.assert_not_called()
+    raise_for_access.assert_not_called()
+
+
+def test_missing_executor_error_is_not_retried(mocker: MockerFixture) -> None:
+    state = _make_state_instance(mocker, BaseReportState)
+    state._report_schedule.retry_on_failure = True
+    state._report_schedule.retry_attempt = 0
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    retry = mocker.patch.object(state, "_schedule_retry")
+    assert not state._handle_retry_or_error(
+        "executor not found", ReportScheduleExecutorNotFoundError()
+    )
+    retry.assert_not_called()
+
+
+def _make_missing_executor_schedule(mocker: MockerFixture, target: str) -> Any:
+    """
+    Build a report whose executor cannot be resolved.
+
+    ``target`` is one of ``tab``, ``filters``, ``plain`` (dashboard reports) or
+    ``chart``.
+    """
+    schedule = _make_tabbed_filter_schedule(mocker)
+    schedule.id = 1
+    schedule.name = "Missing executor"
+    schedule.type = ReportScheduleType.REPORT
+    schedule.report_format = ReportDataFormat.PNG
+    schedule.last_state = ReportState.NOOP
+    schedule.grace_period = 3600
+    schedule.working_timeout = 3600
+    schedule.last_eval_dttm = datetime.utcnow()
+    schedule.include_cta = True
+    schedule.retry_on_failure = True
+    schedule.retry_max_attempts = 3
+    schedule.retry_attempt = 0
+    schedule.retry_scheduled_dttm = None
+    schedule.execution_owner = None
+    schedule.get_native_filters_params.return_value = (None, [])
+    editor = mocker.Mock()
+    editor.user.email = "owner@example.com"
+    schedule.editors = [editor]
+    if target == "tab":
+        schedule.extra["dashboard"]["dataMask"] = {}
+    elif target == "filters":
+        schedule.extra["dashboard"]["anchor"] = None
+        schedule.get_native_filters_params.return_value = (
+            "(NATIVE_FILTER-1:(filterType:filter_select))",
+            [],
+        )
+    elif target == "plain":
+        schedule.extra = {}
+    elif target == "chart":
+        schedule.extra = {}
+        schedule.chart = mocker.Mock()
+        schedule.chart_id = 7
+        schedule.dashboard = None
+        schedule.dashboard_id = None
+    return schedule
+
+
+@pytest.mark.parametrize(
+    "target, expects_plain_dashboard",
+    [
+        ("tab", True),
+        ("filters", True),
+        ("plain", True),
+        ("chart", False),
+    ],
+)
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_missing_executor_state_machine_sends_one_error_email(
+    target: str,
+    expects_plain_dashboard: bool,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """
+    A report without a valid executor fails cleanly: one ERROR log row, one
+    failure notification linking the target, and no retry.
+    """
+    schedule = _make_missing_executor_schedule(mocker, target)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    permalink = mocker.patch(
+        "superset.commands.report.execute.CreateDashboardPermalinkCommand"
+    )
+    state = ReportNotTriggeredErrorState(schedule, datetime.utcnow(), uuid4(), None)
+    mocker.patch.object(state, "_validate_recipients_policy")
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mocker.patch.object(state, "create_log")
+    log_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    retry = mocker.patch.object(state, "_schedule_retry")
+    send = mocker.patch.object(state, "_send")
+
+    with override_user(None):
+        with pytest.raises(ReportScheduleExecutorNotFoundError):
+            state.next()
+
+    assert log_update.call_args_list[-1].args[0] == ReportState.ERROR
+    retry.assert_not_called()
+    permalink.return_value.run.assert_not_called()
+    send.assert_called_once()
+    content = send.call_args.args[0]
+    assert content.is_editor_error
+    if expects_plain_dashboard:
+        expected = (
+            "dashboard/12345678-1234-5678-1234-567812345678/"
+            if target != "chart"
+            else ""
+        )
+        assert expected in content.url
+        assert "/dashboard/p/" not in content.url
+    else:
+        assert "explore" in content.url
+
+
+@pytest.mark.parametrize("target", ["chart", "plain"])
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_failure_notification_url_missing_executor_non_stateful_unchanged(
+    target: str,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Chart and plain dashboard reports never need an executor for their link."""
+    schedule = _make_missing_executor_schedule(mocker, target)
+    resolver = mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+    expected = state._get_url(user_friendly=True)
+
+    with override_user(None):
+        assert state._get_failure_notification_url() == expected
+    if target == "chart":
+        assert "explore" in expected
+        resolver.assert_not_called()
+
+
+@pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
+def test_report_preserves_saved_semantic_chart_type_for_validation(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Old report contexts still identify the semantic visualization being exported."""
+    report_state: BaseReportState = BaseReportState(
+        create_report_schedule(mocker), "January 1, 2021", "test-execution"
+    )
+    report_state._report_schedule.chart.datasource_type = datasource_type
+    report_state._report_schedule.chart.viz_type = "histogram_v2"
+    report_state._report_schedule.chart.query_context = json.dumps({"queries": [{}]})
+    payload: dict[str, Any] = report_state._get_chart_data_request_payload(
+        ChartDataResultFormat.CSV
+    )
+    if datasource_type == "semantic_view":
+        assert payload["form_data"]["viz_type"] == "histogram_v2"
+    else:
+        assert "form_data" not in payload
+
+
+def _multi_tab_position() -> dict[str, Any]:
+    """Root tabs: Sales (charts), Notes (markdown only), Regions (charts)."""
+
+    def node(
+        node_id: str, node_type: str, children: list[str], parents: list[str]
+    ) -> dict[str, Any]:
+        return {
+            "id": node_id,
+            "type": node_type,
+            "children": children,
+            "parents": parents,
+            "meta": (
+                {"text": node_id}
+                if node_type == "TAB"
+                else {"chartId": int(node_id.rsplit("-", 1)[1])}
+                if node_type == "CHART"
+                else {}
+            ),
+        }
+
+    root = ["ROOT_ID", "TABS-root"]
+    nodes = [
+        node("ROOT_ID", "ROOT", ["TABS-root"], []),
+        node(
+            "TABS-root", "TABS", ["TAB-sales", "TAB-notes", "TAB-regions"], ["ROOT_ID"]
+        ),
+        node("TAB-sales", "TAB", ["ROW-s"], root),
+        node("ROW-s", "ROW", ["CHART-1"], [*root, "TAB-sales"]),
+        node("CHART-1", "CHART", [], [*root, "TAB-sales", "ROW-s"]),
+        node("TAB-notes", "TAB", ["ROW-n"], root),
+        node("ROW-n", "ROW", ["MARKDOWN-1"], [*root, "TAB-notes"]),
+        node("MARKDOWN-1", "MARKDOWN", [], [*root, "TAB-notes", "ROW-n"]),
+        node("TAB-regions", "TAB", ["ROW-r"], root),
+        node("ROW-r", "ROW", ["CHART-2"], [*root, "TAB-regions"]),
+        node("CHART-2", "CHART", [], [*root, "TAB-regions", "ROW-r"]),
+    ]
+    position = {item["id"]: item for item in nodes}
+    position["TAB-notes"]["meta"]["text"] = "Notes"
+    return position
+
+
+def _dashboard_capture_state(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    *,
+    anchor: str | None,
+    active_tabs: list[str] | None = None,
+    position: Any = None,
+    urls: list[str] | None = None,
+    slice_ids: list[int] | None = None,
+) -> tuple[BaseReportState, MagicMock]:
+    """Build a dashboard report state; return it with the DashboardScreenshot mock."""
+    from superset.models.dashboard import Dashboard
+
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+        }
+    )
+    schedule = create_report_schedule(mocker)
+    schedule.chart = None
+    dashboard_state: dict[str, Any] = {}
+    if anchor is not None:
+        dashboard_state["anchor"] = anchor
+    if active_tabs is not None:
+        dashboard_state["activeTabs"] = active_tabs
+    schedule.extra_json = json.dumps({"dashboard": dashboard_state})
+    layout = _multi_tab_position() if position is None else position
+    real_dashboard = Dashboard(position_json=json.dumps(layout))
+    dashboard = MagicMock()
+    dashboard.digest = "dashboard-digest"
+    dashboard.tabs = real_dashboard.tabs
+    dashboard.slices = [MagicMock(id=slice_id) for slice_id in (slice_ids or [1, 2])]
+    if position == "malformed":
+        type(dashboard).position = mocker.PropertyMock(
+            side_effect=json.JSONDecodeError("bad", "{", 0)
+        )
+    else:
+        dashboard.position = real_dashboard.position
+    schedule.dashboard = dashboard
+    state = BaseReportState(schedule, datetime.now(), uuid4())
+    state._report_execution_context = _active_report_context()
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.MagicMock(), "executor"),
+    )
+    mocker.patch.object(
+        state,
+        "get_dashboard_urls",
+        return_value=urls or ["/superset/dashboard/p/abc/"],
+    )
+    screenshots = mocker.patch("superset.commands.report.execute.DashboardScreenshot")
+    return state, screenshots
+
+
+def _captured_suffixes(screenshots: MagicMock) -> list[str | None]:
+    return [
+        call.kwargs["report_execution_context"].empty_tab_pane_suffix
+        for call in screenshots.return_value.get_screenshot.call_args_list
+    ]
+
+
+def test_single_empty_tab_anchor_marks_capture_context(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == ["1"]
+
+
+def test_single_tab_with_charts_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_orphan_dashboard_slice_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A chart attached to the dashboard but missing from the layout is rendered
+    by the frontend in the first root tab, so no tab is treated as chart-free."""
+    position = _multi_tab_position()
+    position["ROW-s"]["children"] = ["MARKDOWN-2"]
+    position["MARKDOWN-2"] = {
+        **position["MARKDOWN-1"],
+        "id": "MARKDOWN-2",
+        "parents": position["CHART-1"]["parents"],
+    }
+    del position["CHART-1"]
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-sales", position=position, slice_ids=[2, 99]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_detached_chart_in_tab_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A detached CHART node whose stored parents name the selected tab is
+    reattached there by the frontend, so the tab is not chart-free."""
+    position = _multi_tab_position()
+    position["CHART-3"] = {
+        **position["CHART-2"],
+        "id": "CHART-3",
+        "meta": {"chartId": 3},
+        "parents": ["ROOT_ID", "TABS-root", "TAB-notes", "ROW-gone"],
+    }
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position=position, slice_ids=[1, 2, 3]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_unhashable_layout_chart_id_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    position = _multi_tab_position()
+    position["CHART-1"]["meta"] = {"chartId": [1]}
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position=position
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_unreadable_dashboard_slices_leave_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    type(state._report_schedule.dashboard).slices = mocker.PropertyMock(
+        side_effect=RuntimeError("detached")
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_all_tabs_anchor_list_maps_suffix_per_url(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A text-only middle tab is flagged; the other tabs are still captured."""
+    state, screenshots = _dashboard_capture_state(
+        mocker,
+        app,
+        anchor=json.dumps(["TAB-sales", "TAB-notes", "TAB-regions"]),
+        urls=["/p/1", "/p/2", "/p/3"],
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    images = state._get_screenshots()
+
+    assert len(images) == 3
+    assert _captured_suffixes(screenshots) == [None, "1", None]
+    contexts = [
+        call.kwargs["report_execution_context"]
+        for call in screenshots.return_value.get_screenshot.call_args_list
+    ]
+    assert len({id(c._capture_rejection_reasons) for c in contexts}) == 1
+
+
+def test_first_root_tab_without_charts_uses_grid_id_suffix(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    position = _multi_tab_position()
+    position["ROW-s"]["children"] = ["MARKDOWN-2"]
+    position["MARKDOWN-2"] = {
+        **position["MARKDOWN-1"],
+        "id": "MARKDOWN-2",
+        "parents": position["CHART-1"]["parents"],
+    }
+    del position["CHART-1"]
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-sales", position=position, slice_ids=[2]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == ["GRID_ID"]
+
+
+@pytest.mark.parametrize(
+    ("anchor", "active_tabs", "urls"),
+    [
+        ("TAB-notes", ["TAB-notes"], None),
+        (json.dumps(["TAB-sales", "TAB-notes"]), None, ["/p/1"]),
+        (json.dumps(["TAB-notes"]), None, ["/p/1", "/p/2"]),
+        (None, None, None),
+    ],
+)
+def test_untrusted_anchor_state_leaves_context_unmarked(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    anchor: str | None,
+    active_tabs: list[str] | None,
+    urls: list[str] | None,
+) -> None:
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor=anchor, active_tabs=active_tabs, urls=urls
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert set(_captured_suffixes(screenshots)) == {None}
+
+
+def test_malformed_position_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position="malformed"
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_render_timeout_on_empty_tab_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.webdriver import PlaywrightTimeout
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    screenshots.return_value.get_screenshot.side_effect = PlaywrightTimeout(
+        "Page.wait_for_function: Timeout 26000ms exceeded."
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    message = str(exc_info.value)
+    assert 'dashboard tab "Notes"' in message
+    assert "wait_for_function" not in message
+    assert "Playwright" not in message
+
+
+def test_timeout_without_empty_tab_keeps_playwright_detail(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.webdriver import PlaywrightTimeout
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = PlaywrightTimeout(
+        "Page.wait_for_function: Timeout 26000ms exceeded."
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "Failed taking a screenshot" in str(exc_info.value)
+    assert "wait_for_function" in str(exc_info.value)
+
+
+def test_never_mounted_timeout_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.screenshot_utils import ChartHoldersNeverMountedError
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = ChartHoldersNeverMountedError(
+        "No chart holder mounted within 60s"
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "Timed out waiting for dashboard tab" in str(exc_info.value)
+    assert "Failed taking a screenshot" not in str(exc_info.value)
+
+
+def test_crashed_dashboard_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.screenshot_utils import DashboardRenderCrashedError
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = DashboardRenderCrashedError(
+        "Dashboard render crashed"
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "unexpected error" in str(exc_info.value)
+    assert "Failed taking a screenshot" not in str(exc_info.value)

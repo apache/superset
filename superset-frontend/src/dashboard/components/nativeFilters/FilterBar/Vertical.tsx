@@ -49,7 +49,7 @@ import { VerticalBarProps } from './types';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
-import crossFiltersSelector from './CrossFilters/selectors';
+import { crossFiltersSelector } from './CrossFilters/selectors';
 import UrlFiltersVertical from './UrlFilters/Vertical';
 
 enum SectionType {

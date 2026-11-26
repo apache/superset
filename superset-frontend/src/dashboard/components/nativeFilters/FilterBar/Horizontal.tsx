@@ -43,7 +43,7 @@ import FilterControls from './FilterControls/FilterControls';
 import { useChartsVerboseMaps, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
 import FilterBarSettings from './FilterBarSettings';
-import crossFiltersSelector from './CrossFilters/selectors';
+import { crossFiltersSelector } from './CrossFilters/selectors';
 import {
   getUrlFilterIndicators,
   getUrlFilterIdentity,

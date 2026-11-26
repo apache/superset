@@ -174,8 +174,10 @@ const SelectorLabel = styled.button`
     position: relative;
     color: ${theme.colorText};
 
-    &:focus {
-      outline: initial;
+    /* Outset ring so it stays visible on the colorPrimary-filled selected label */
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: 2px;
     }
 
     &.selected {
@@ -277,7 +279,12 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   font: inherit;
   cursor: pointer;
   width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
-  outline: none; /* Remove focus outline to show only selected state */
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid ${theme.colorPrimary};
+    outline-offset: 2px;
+  }
 
   img {
     min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;

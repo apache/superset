@@ -584,13 +584,11 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
 def test_transaction_lookup_failure_does_not_break_the_commit(
     lifecycle_session: Session, mocker: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The module's invariant — a versioning bug must never break a user's
-    save — holds at ``_current_transaction_id`` too. With the lookup raising
-    (a dropped connection, a Continuum internal error), the commit still
-    succeeds and the user's row is persisted; the failure is counted, not
-    propagated (fitzee finding on #44009, confirmed by aminghadersohi's probe:
-    before this guard the RuntimeError unwound out of before_commit and 0 rows
-    persisted)."""
+    """A non-database internal lookup error skips optional capture.
+
+    The RuntimeError leaves the transaction usable, so user work persists and
+    capture loss is counted. Database errors in this unisolated lookup propagate.
+    """
     sa.event.listen(
         lifecycle_session, "before_commit", listener.finalize_change_records
     )

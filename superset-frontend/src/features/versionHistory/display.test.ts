@@ -521,3 +521,77 @@ test.each([
     ).toBe(expected);
   },
 );
+
+test.each(['soft_deleted', null])(
+  'archive headline remains historical after recovery (%s)',
+  entity_deletion_state => {
+    expect(
+      relatedHeadline(
+        record({
+          source: 'related',
+          kind: '__archive__',
+          operation: 'announce',
+          entity_deletion_state,
+          path: null,
+          to_value: null,
+          summary: '',
+        }),
+      ),
+    ).toBe('Chart archived: My chart');
+  },
+);
+
+test('archive headline uses the untitled fallback without inspecting its payload', () => {
+  expect(
+    relatedHeadline(
+      record({
+        kind: '__archive__',
+        entity_name: '',
+        path: null,
+        to_value: null,
+      }),
+    ),
+  ).toBe('Chart archived: Untitled chart');
+});
+
+test('deleted archive preserves the redacted summary', () => {
+  expect(
+    relatedHeadline(
+      record({
+        kind: '__archive__',
+        entity_deleted: true,
+        entity_name: '',
+        entity_uuid: null,
+        path: null,
+        to_value: null,
+        summary: 'Chart deleted',
+      }),
+    ),
+  ).toBe('Chart deleted');
+});
+
+test('redacted paths can be described without reconstructing their values', () => {
+  expect(
+    describeRecord(
+      record({ kind: 'field', operation: 'edit', path: null, to_value: null }),
+    ),
+  ).toBe("Changed 'setting'");
+});
+
+test('deleted dataset headline retains its affected-chart count without restoring its name', () => {
+  expect(
+    relatedHeadline(
+      record({
+        source: 'related',
+        entity_kind: 'dataset',
+        entity_deleted: true,
+        entity_uuid: null,
+        entity_name: '',
+        summary: '(deleted) Dataset',
+        impact: { charts: 3 },
+        path: null,
+        to_value: null,
+      }),
+    ),
+  ).toBe('Dataset used by 3 charts updated: Untitled dataset');
+});

@@ -50,6 +50,7 @@ import roseControlPanel from '../../../plugins/plugin-chart-echarts/src/Rose/con
 import timePivotControlPanel from '../../../plugins/plugin-chart-echarts/src/TimePivot/controlPanel';
 import pairedTTestControlPanel from '../../../plugins/plugin-chart-paired-t-test/src/controlPanel';
 import partitionControlPanel from '../../../plugins/plugin-chart-partition/src/controlPanel';
+import pivotControlPanel from '../../../plugins/plugin-chart-pivot-table/src/plugin/controlPanel';
 import tableControlPanel from '../../../plugins/plugin-chart-table/src/controlPanel';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import {
@@ -443,6 +444,59 @@ test('SET_FIELD_VALUE re-derives controls listed in `rerender` from the updated 
   // re-derived without the user touching it.
   expect(metricsOption(newState)?.disabled).toBe(true);
   expect(newState.controls.matrixify_mode_columns.value).toBe('disabled');
+});
+
+test('transposing a pivot refreshes both depth selectors and clears an invalid depth', () => {
+  const form_data = {
+    datasource: '1__table',
+    viz_type: VizType.PivotTable,
+    transposePivot: false,
+    defaultColExpansionDepth: 2,
+  } as QueryFormData;
+  const axes: Record<string, ControlState> = {
+    groupbyRows: { type: 'SelectControl', value: ['territory'] },
+    groupbyColumns: {
+      type: 'SelectControl',
+      value: ['year', 'quarter', 'month'],
+    },
+  };
+  const buildPivotControl = (name: string, value: unknown) => {
+    const item = findControlItem(pivotControlPanel.controlPanelSections, name);
+    if (!item || typeof item !== 'object' || !('config' in item)) {
+      throw new Error(`Control ${name} is missing`);
+    }
+    return buildControl(item.config, form_data, value, axes);
+  };
+  const initialState: ExploreState = {
+    form_data,
+    controls: {
+      ...axes,
+      transposePivot: buildPivotControl('transposePivot', false),
+      defaultRowExpansionDepth: buildPivotControl(
+        'defaultRowExpansionDepth',
+        0,
+      ),
+      defaultColExpansionDepth: buildPivotControl(
+        'defaultColExpansionDepth',
+        2,
+      ),
+    },
+  };
+
+  const state = exploreReducer(
+    initialState,
+    setControlValue('transposePivot', true) as ReducerAction,
+  );
+
+  expect(state.controls.defaultRowExpansionDepth.choices).toEqual([
+    [0, 'Fully expanded'],
+    [1, 'Expand 1 level(s)'],
+    [2, 'Expand 2 level(s)'],
+  ]);
+  expect(state.controls.defaultColExpansionDepth.choices).toEqual([
+    [0, 'Fully expanded'],
+  ]);
+  expect(state.form_data.defaultColExpansionDepth).toBeNull();
 });
 
 test('SET_FIELD_VALUE leaves controls that are not listed in `rerender` stale', () => {

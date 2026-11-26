@@ -2305,3 +2305,29 @@ test.each<Partial<TableChartFormData>>([
     expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
   },
 );
+
+test.each([
+  ['7__semantic_view', true],
+  ['11__table', false],
+])(
+  'marks the grained temporal column as a column reference only for semantic views: %s',
+  (datasource, isReference) => {
+    const [axis, ...rest] =
+      buildQueryUncached({
+        ...basicFormData,
+        datasource,
+        groupby: ['order_date', 'state'],
+        time_grain_sqla: TimeGranularity.MONTH,
+        temporal_columns_lookup: { order_date: true, state: false },
+      }).queries[0].columns ?? [];
+    expect(axis).toMatchObject({
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'order_date',
+      timeGrain: TimeGranularity.MONTH,
+    });
+    expect((axis as AdhocColumn).isColumnReference).toBe(
+      isReference ? true : undefined,
+    );
+    expect(rest).toEqual(['state']);
+  },
+);

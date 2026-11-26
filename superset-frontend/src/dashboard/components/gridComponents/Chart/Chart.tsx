@@ -57,6 +57,7 @@ import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import type { RootState, Datasource, Slice } from 'src/dashboard/types';
 import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
+import { selectHasCrossFilterTargets } from 'src/dashboard/util/crossFilters';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -243,6 +244,9 @@ const Chart = (props: ChartProps) => {
   );
   const emitCrossFilters = useSelector(
     (state: RootState) => !!state.dashboardInfo.crossFiltersEnabled,
+  );
+  const hasCrossFilterTargets = useSelector((state: RootState) =>
+    selectHasCrossFilterTargets(state, props.id),
   );
   const maxRows: number = useSelector(
     (state: RootState) => state.dashboardInfo.common.conf.SQL_MAX_ROW as number,
@@ -787,10 +791,19 @@ const Chart = (props: ChartProps) => {
     ) || [];
 
   // Build slice header shape matching SliceHeaderControlsProps
+  // A panel can override the chart's name for this dashboard, and the override
+  // has no translation of its own -- so the localized value only applies while
+  // the panel is showing the canonical name. Same rule as the header title.
+  const displayName =
+    props.sliceName === slice.slice_name
+      ? (slice.localized_name ?? slice.slice_name)
+      : props.sliceName;
+
   const sliceForHeader = {
     description: slice.description || '',
     viz_type: slice.viz_type,
     slice_name: slice.slice_name,
+    display_name: displayName,
     slice_id: slice.slice_id,
     slice_description: '',
     datasource: slice.form_data?.datasource || '',
@@ -827,6 +840,11 @@ const Chart = (props: ChartProps) => {
           props.updateSliceName(props.id, name)
         }
         sliceName={props.sliceName}
+        localizedName={
+          props.sliceName === slice.slice_name
+            ? slice.localized_name
+            : undefined
+        }
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanDownload={supersetCanDownload}
@@ -917,6 +935,7 @@ const Chart = (props: ChartProps) => {
           }
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
+          hasCrossFilterTargets={hasCrossFilterTargets}
           onChartStateChange={handleChartStateChange}
           suppressLoadingSpinner={suppressLoadingSpinner}
           filterState={dataMask[props.id]?.filterState}

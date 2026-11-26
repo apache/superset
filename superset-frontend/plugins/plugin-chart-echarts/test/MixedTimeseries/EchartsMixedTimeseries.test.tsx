@@ -241,6 +241,136 @@ test('EchartsMixedTimeseries hover focuses and unfocuses the series', () => {
   expect(onFocusedSeries).toHaveBeenLastCalledWith(null);
 });
 
+test.each(
+  ['7__table', '7__semantic_view'].flatMap(datasource =>
+    [0, 1].flatMap(seriesIndex =>
+      [false, true].map(grouped => ({ datasource, seriesIndex, grouped })),
+    ),
+  ),
+)(
+  'category Drill by scopes $datasource query $seriesIndex grouped=$grouped',
+  async ({ datasource, seriesIndex, grouped }) => {
+    const seriesName = grouped ? 'sum__num, boy' : 'sum__num';
+    const queryData: ChartDataResponseResult & {
+      label_map: Record<string, string[]>;
+    } = {
+      ...createQueryData(),
+      data: [
+        { ds: 'CORP', [seriesName]: 42 },
+        { ds: 'RETAIL', [seriesName]: 7 },
+      ],
+      colnames: ['ds', seriesName],
+      coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      label_map: {
+        ds: ['ds'],
+        [seriesName]: grouped ? ['sum__num', 'boy'] : ['sum__num'],
+      },
+    };
+    const { eventHandlers, onContextMenu } = setup(
+      {
+        datasource,
+        groupby: grouped ? ['gender'] : [],
+        groupbyB: grouped ? ['gender'] : [],
+      },
+      [queryData, queryData],
+      { ds: 'Segment' },
+    );
+    await eventHandlers.contextmenu({
+      data: ['CORP', 42],
+      seriesName,
+      seriesIndex,
+      name: 'CORP',
+      event: { stop: jest.fn(), event: { clientX: 0, clientY: 0 } },
+    });
+    const payload = onContextMenu.mock.lastCall[2];
+    expect(payload.drillBy.xAxisFilters).toEqual([
+      { col: 'ds', op: '==', val: 'CORP', formattedVal: 'CORP' },
+    ]);
+    expect(payload.drillBy.filters).toEqual(
+      grouped
+        ? [expect.objectContaining({ col: 'gender', op: '==', val: 'boy' })]
+        : [],
+    );
+    expect(payload.drillBy.groupbyFieldName).toBe(
+      seriesIndex === 0 ? 'groupby' : 'groupby_b',
+    );
+    expect(payload.drillBy.adhocFilterFieldName).toBe(
+      seriesIndex === 0 ? 'adhoc_filters' : 'adhoc_filters_b',
+    );
+    expect(Boolean(payload.crossFilter)).toBe(grouped);
+  },
+);
+
+test.each(
+  [false, true].flatMap(value =>
+    [false, true].map(markerless => ({ value, markerless })),
+  ),
+)(
+  'Boolean category Drill by preserves $value on markerless=$markerless clicks',
+  async ({ value, markerless }) => {
+    const query: ChartDataResponseResult = {
+      ...createQueryData(),
+      coltypes: [
+        GenericDataType.Boolean,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+      data: [false, true].map(ds => ({
+        ds,
+        'sum__num, boy': 1,
+        'sum__num, girl': 2,
+      })),
+    };
+    const { eventHandlers, onContextMenu } = setup({}, [query, query]);
+    mockMixedChart.getModel.mockReturnValue({
+      getComponent: () => ({ getCategories: () => [false, true] }),
+    });
+    mockMixedChart.convertFromPixel.mockReturnValue([Number(value), 1]);
+    await eventHandlers.contextmenu({
+      ...(markerless ? {} : { data: [value, 1], name: String(value) }),
+      seriesName: 'sum__num, boy',
+      seriesIndex: 0,
+      event: {
+        stop: jest.fn(),
+        offsetX: 20,
+        offsetY: 30,
+        event: { clientX: 11, clientY: 22 },
+      },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      { col: 'ds', op: '==', val: value, formattedVal: String(value) },
+    ]);
+  },
+);
+
+test.each(['', 0, null])(
+  'category Drill by preserves the typed value %s',
+  async value => {
+    const queryData: ChartDataResponseResult = {
+      ...createQueryData(),
+      coltypes: [
+        GenericDataType.String,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+    };
+    const { eventHandlers, onContextMenu } = setup(
+      { xAxisForceCategorical: true },
+      [queryData, queryData],
+    );
+    await eventHandlers.contextmenu({
+      data: [value, 1],
+      seriesName: 'sum__num, boy',
+      seriesIndex: 0,
+      name: 'display label',
+      event: { stop: jest.fn(), event: { clientX: 0, clientY: 0 } },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      expect.objectContaining({ col: 'ds', op: '==', val: value }),
+    ]);
+  },
+);
+
 test.each([0, 2])(
   'Mixed Timeseries Drill by carries the bucket for query series %s',
   async seriesIndex => {
@@ -430,3 +560,54 @@ test('Mixed categorical markerless Drill by uses shared axis categories for a sp
     }
   }
 });
+
+test.each([0, 1, 2])(
+  'Mixed text-axis markerless Drill by resolves shared category %s for sparse query B',
+  async categoryIndex => {
+    const query = {
+      ...createQueryData(),
+      coltypes: [
+        GenericDataType.String,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+      data: ['ABSENT', 'CORP', 'RETAIL'].map(ds => ({
+        ds,
+        'sum__num, boy': 1,
+        'sum__num, girl': 2,
+      })),
+    };
+    const { eventHandlers, onContextMenu } = setup({}, [
+      query,
+      { ...query, data: query.data.slice(1) },
+    ]);
+    mockMixedChart.getModel.mockReturnValue({
+      getComponent: () => ({
+        getCategories: () => ['ABSENT', 'CORP', 'RETAIL'],
+      }),
+    });
+    mockMixedChart.convertFromPixel.mockReturnValue([categoryIndex, 1]);
+    await eventHandlers.contextmenu({
+      seriesName: 'sum__num, boy',
+      seriesIndex: 2,
+      event: {
+        stop: jest.fn(),
+        offsetX: 20,
+        offsetY: 30,
+        event: { clientX: 11, clientY: 22 },
+      },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual(
+      categoryIndex === 0
+        ? undefined
+        : [
+            {
+              col: 'ds',
+              op: '==',
+              val: categoryIndex === 1 ? 'CORP' : 'RETAIL',
+              formattedVal: categoryIndex === 1 ? 'CORP' : 'RETAIL',
+            },
+          ],
+    );
+  },
+);
