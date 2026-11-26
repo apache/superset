@@ -85,7 +85,6 @@ const AdvancedSection = ({
         onChange={onCustomTimePresetsChange}
         options={[]}
         tokenSeparators={[',']}
-        status={customTimePresetsError ? 'error' : undefined}
       />
     </ModalFormField>
     <ModalFormField
