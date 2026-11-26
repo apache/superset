@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import copy
 import logging
 import uuid
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
@@ -28,6 +30,10 @@ from sqlalchemy.orm.session import Session
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import id_or_uuid_filter, set_related_perm, Slice
+
+APPLY_TIME_RANGE_OVERRIDE = (
+    "superset.charts.data.dashboard_filter_context.apply_time_range_override"
+)
 
 
 class TestSlice:
@@ -543,3 +549,87 @@ def test_get_query_context_calls_factory_with_empty_queries() -> None:
         queries=[],
         current_slice=slc,
     )
+
+
+def test_get_query_context_applies_time_range_override() -> None:
+    """A time range override is applied to the parsed payload before it reaches
+    the factory, and the chart's stored query_context is left unchanged."""
+    stored = (
+        '{"datasource": {"id": 1, "type": "table"}, '
+        '"queries": [{"time_range": "2000-01-01 : 2005-01-01"}]}'
+    )
+    slc = Slice(slice_name="override", query_context=stored)
+    mock_factory = MagicMock()
+    slc.query_context_factory = mock_factory
+    received: list[dict[str, Any]] = []
+
+    def apply_override(query_context: dict[str, Any], time_range: str) -> None:
+        received.append(copy.deepcopy(query_context))
+        query_context["queries"][0]["time_range"] = time_range
+
+    with patch(APPLY_TIME_RANGE_OVERRIDE, side_effect=apply_override):
+        result = slc.get_query_context(time_range_override="2005-01-01 : 2010-01-01")
+
+    assert result is mock_factory.create.return_value
+    # The helper receives the stored payload, still holding the chart's range.
+    assert received == [
+        {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [{"time_range": "2000-01-01 : 2005-01-01"}],
+        }
+    ]
+    mock_factory.create.assert_called_once_with(
+        datasource={"id": 1, "type": "table"},
+        queries=[{"time_range": "2005-01-01 : 2010-01-01"}],
+        current_slice=slc,
+    )
+    assert slc.query_context == stored
+
+
+@pytest.mark.parametrize("time_range_override", [None, ""])
+def test_get_query_context_skips_empty_time_range_override(
+    time_range_override: str | None,
+) -> None:
+    """Without a time range override, the stored payload reaches the factory
+    as saved."""
+    slc = Slice(
+        slice_name="no-override",
+        query_context=(
+            '{"datasource": {"id": 1, "type": "table"}, '
+            '"queries": [{"time_range": "2000-01-01 : 2005-01-01"}]}'
+        ),
+    )
+    mock_factory = MagicMock()
+    slc.query_context_factory = mock_factory
+
+    with patch(APPLY_TIME_RANGE_OVERRIDE) as mock_apply_override:
+        result = slc.get_query_context(time_range_override=time_range_override)
+
+    assert result is mock_factory.create.return_value
+    mock_apply_override.assert_not_called()
+    mock_factory.create.assert_called_once_with(
+        datasource={"id": 1, "type": "table"},
+        queries=[{"time_range": "2000-01-01 : 2005-01-01"}],
+        current_slice=slc,
+    )
+
+
+def test_get_query_context_skips_override_when_metadata_incomplete(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An incomplete stored query_context still returns None before the time
+    range override is applied."""
+    slc = Slice(slice_name="incomplete", query_context='{"queries": []}')
+    slc.id = 7
+    slc.query_context_factory = MagicMock()
+
+    with (
+        patch(APPLY_TIME_RANGE_OVERRIDE) as mock_apply_override,
+        caplog.at_level(logging.ERROR, logger="superset.models.slice"),
+    ):
+        result = slc.get_query_context(time_range_override="2005-01-01 : 2010-01-01")
+
+    assert result is None
+    mock_apply_override.assert_not_called()
+    slc.query_context_factory.create.assert_not_called()
+    assert "missing required" in caplog.text

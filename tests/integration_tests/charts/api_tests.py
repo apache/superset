@@ -2973,16 +2973,32 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
         ]
 
+    @parameterized.expand(
+        [
+            (None,),  # chart saved without a time range
+            ("2000-01-01 : 2005-01-01",),  # chart saved with a bounded range
+            ("No filter",),  # chart saved with an unbounded range
+        ]
+    )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_warm_up_cache_native_defaults_hit_browser_query_cache(self) -> None:
+    def test_warm_up_cache_native_defaults_hit_browser_query_cache(
+        self, chart_time_range: str | None
+    ) -> None:
         self.login(ADMIN_USERNAME)
         chart = self.get_slice("Pivot Table v2")
         dashboard = self.get_dash_by_slug("births")
 
         saved_query_context = json.loads(chart.query_context)
         chart_filter = {"col": "name", "op": "!=", "val": "__missing_name__"}
+        chart_filters = [chart_filter]
+        if chart_time_range is not None:
+            chart_filters.append(
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": chart_time_range}
+            )
         for query in saved_query_context["queries"]:
-            query["filters"] = [*(query.get("filters") or []), chart_filter]
+            query["filters"] = [*(query.get("filters") or []), *chart_filters]
+            if chart_time_range is not None:
+                query["time_range"] = chart_time_range
         chart.query_context = json.dumps(saved_query_context)
 
         metadata = json.loads(dashboard.json_metadata or "{}")
@@ -3036,7 +3052,116 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert browser_query_context["queries"][0]["filters"] == [
             legacy_filter,
             native_filter,
-            chart_filter,
+            *chart_filters,
+        ]
+
+        chart_data_response = self.client.post(
+            "/api/v1/chart/data",
+            json=browser_query_context,
+        )
+        assert chart_data_response.status_code == 200
+        assert chart_data_response.json["result"][0]["is_cached"] is True
+
+    @parameterized.expand(
+        [
+            (None,),  # chart saved without a time range
+            ("2000-01-01 : 2005-01-01",),  # chart saved with a bounded range
+            ("No filter",),  # chart saved with an unbounded range
+        ]
+    )
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache_native_time_range_default_hits_browser_query_cache(
+        self, chart_time_range: str | None
+    ) -> None:
+        self.login(ADMIN_USERNAME)
+        chart = self.get_slice("Pivot Table v2")
+        dashboard = self.get_dash_by_slug("births")
+        dashboard_time_range = "2005-01-01 : 2010-01-01"
+
+        saved_query_context = json.loads(chart.query_context)
+        chart_filter = {"col": "name", "op": "!=", "val": "__missing_name__"}
+        chart_filters = [chart_filter]
+        if chart_time_range is not None:
+            chart_filters.append(
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": chart_time_range}
+            )
+        for query in saved_query_context["queries"]:
+            query["filters"] = [*(query.get("filters") or []), *chart_filters]
+            if chart_time_range is not None:
+                query["time_range"] = chart_time_range
+        chart.query_context = json.dumps(saved_query_context)
+
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        legacy_filter = {"col": "name", "op": "in", "val": ["Alice"]}
+        metadata["default_filters"] = json.dumps(
+            {"-1": {legacy_filter["col"]: legacy_filter["val"]}}
+        )
+        metadata["filter_scopes"] = {}
+        native_filter = {"col": "gender", "op": "IN", "val": ["girl"]}
+        metadata["native_filter_configuration"] = [
+            {
+                "id": "NATIVE_FILTER-gender",
+                "name": "Gender",
+                "type": "NATIVE_FILTER",
+                "filterType": "filter_select",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                "targets": [
+                    {
+                        "datasetId": chart.datasource_id,
+                        "column": {"name": "gender"},
+                    }
+                ],
+                "defaultDataMask": {
+                    "extraFormData": {"filters": [native_filter]},
+                    "filterState": {"value": ["girl"]},
+                },
+                "controlValues": {},
+            },
+            {
+                "id": "NATIVE_FILTER-time",
+                "name": "Time range",
+                "type": "NATIVE_FILTER",
+                "filterType": "filter_time",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                "targets": [{}],
+                "defaultDataMask": {
+                    "extraFormData": {"time_range": dashboard_time_range},
+                    "filterState": {"value": dashboard_time_range},
+                },
+                "controlValues": {},
+            },
+        ]
+        dashboard.json_metadata = json.dumps(metadata)
+        db.session.commit()
+
+        warm_up_response = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"chart_id": chart.id, "dashboard_id": dashboard.id},
+        )
+        assert warm_up_response.status_code == 200
+        assert warm_up_response.json["result"] == [
+            {"chart_id": chart.id, "viz_error": None, "viz_status": "success"}
+        ]
+
+        # The dashboard's initial load sends its Time Range default per query,
+        # and the default in extra_form_data, ahead of the chart's saved filters.
+        browser_query_context = json.loads(chart.query_context)
+        browser_query_context["force"] = False
+        browser_query_context["form_data"] = {
+            "extra_form_data": {"time_range": dashboard_time_range}
+        }
+        for query in browser_query_context["queries"]:
+            query["time_range"] = dashboard_time_range
+            query["filters"] = [
+                legacy_filter,
+                native_filter,
+                *(query.get("filters") or []),
+            ]
+
+        assert browser_query_context["queries"][0]["filters"] == [
+            legacy_filter,
+            native_filter,
+            *chart_filters,
         ]
 
         chart_data_response = self.client.post(

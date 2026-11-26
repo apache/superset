@@ -35,7 +35,7 @@ from superset.semantic_layers.access import (
 )
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
-from superset.views.utils import get_dashboard_extra_filters
+from superset.views.utils import get_dashboard_extra_filters_and_time_range
 
 
 class ChartWarmUpCacheCommand(BaseCommand):
@@ -49,19 +49,27 @@ class ChartWarmUpCacheCommand(BaseCommand):
         self._dashboard_id = dashboard_id
         self._extra_filters = extra_filters
 
-    def _get_dashboard_filters(self, chart_id: int) -> list[dict[str, Any]]:
-        """Retrieve dashboard filters from extra_filters or dashboard metadata."""
+    def _get_dashboard_filters(
+        self, chart_id: int
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        """
+        Retrieve dashboard filters and the dashboard's native Time Range default.
+
+        Explicit ``extra_filters`` leave the chart's saved time range unchanged.
+        """
         if not self._dashboard_id:
-            return []
+            return [], None
 
         if self._extra_filters:
-            return json.loads(self._extra_filters)
+            return json.loads(self._extra_filters), None
 
-        return get_dashboard_extra_filters(chart_id, self._dashboard_id)
+        return get_dashboard_extra_filters_and_time_range(chart_id, self._dashboard_id)
 
     def _warm_up_non_legacy_cache(self, chart: Slice) -> tuple[Any, Any]:
         """Warm up cache for non-legacy visualizations."""
-        query_context = chart.get_query_context()
+        dashboard_filters, time_range_override = self._get_dashboard_filters(chart.id)
+        # Apply the Time Range default before the factory derives each query's bounds.
+        query_context = chart.get_query_context(time_range_override=time_range_override)
 
         if not query_context:
             raise ChartInvalidError(
@@ -70,7 +78,7 @@ class ChartWarmUpCacheCommand(BaseCommand):
             )
 
         # Apply dashboard filters if dashboard_id is provided
-        if dashboard_filters := self._get_dashboard_filters(chart.id):
+        if dashboard_filters:
             # These filters enter after QueryObjectFactory has stripped private
             # discovery flags from the saved chart query.
             if any(

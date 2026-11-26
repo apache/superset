@@ -22,6 +22,10 @@ from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.models.slice import Slice
 from superset.utils import json
 
+DASHBOARD_FILTERS = (
+    "superset.commands.chart.warm_up_cache.get_dashboard_extra_filters_and_time_range"
+)
+
 
 @pytest.fixture(autouse=True)
 def mock_security_manager():
@@ -42,10 +46,7 @@ def test_warmup_filters_cannot_reintroduce_private_literal_mode(
     chart = Slice(id=123, slice_name="Countries")
     with (
         patch.object(chart, "get_query_context", return_value=context),
-        patch(
-            "superset.commands.chart.warm_up_cache.get_dashboard_extra_filters",
-            return_value=[predicate, ordinary],
-        ),
+        patch(DASHBOARD_FILTERS, return_value=([predicate, ordinary], None)),
         patch("superset.commands.chart.warm_up_cache.ChartDataCommand") as command,
     ):
         command.return_value.run.return_value = {"queries": []}
@@ -65,7 +66,7 @@ def test_warmup_filters_cannot_reintroduce_private_literal_mode(
     command.return_value.run.assert_called_once()
 
 
-@patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
+@patch(DASHBOARD_FILTERS)
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
 def test_prepends_dashboard_filters_to_non_legacy_chart(
     mock_chart_data_command, mock_get_dashboard_filters
@@ -74,7 +75,7 @@ def test_prepends_dashboard_filters_to_non_legacy_chart(
     # Setup: Mock dashboard filters response
     legacy_filter = {"col": "region", "op": "in", "val": ["Americas"]}
     native_filter = {"col": "country", "op": "IN", "val": ["USA", "France"]}
-    mock_get_dashboard_filters.return_value = [legacy_filter, native_filter]
+    mock_get_dashboard_filters.return_value = ([legacy_filter, native_filter], None)
 
     # Create a chart with non-legacy viz type
     chart = Slice(
@@ -108,7 +109,7 @@ def test_prepends_dashboard_filters_to_non_legacy_chart(
         assert mock_query.filter[1] is native_filter
         assert mock_query.filter[2] is chart_filter
 
-        # VALIDATE: get_dashboard_extra_filters was called correctly
+        # VALIDATE: get_dashboard_extra_filters_and_time_range was called correctly
         mock_get_dashboard_filters.assert_called_once_with(123, 42)
 
         # VALIDATE: force flag was set
@@ -116,6 +117,53 @@ def test_prepends_dashboard_filters_to_non_legacy_chart(
 
         # VALIDATE: Result is correct
         assert result["chart_id"] == 123
+
+
+@patch(DASHBOARD_FILTERS)
+@patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
+def test_passes_dashboard_time_range_to_query_context(
+    mock_chart_data_command, mock_get_dashboard_filters
+):
+    """Verify the dashboard's Time Range default is used to build the query context"""
+    native_filter = {"col": "gender", "op": "IN", "val": ["girl"]}
+    mock_get_dashboard_filters.return_value = (
+        [native_filter],
+        "2021-01-01 : 2022-01-01",
+    )
+
+    chart = Slice(
+        id=134,
+        slice_name="Test Chart",
+        viz_type="echarts_timeseries_line",
+        datasource_id=1,
+        datasource_type="table",
+    )
+
+    mock_query = Mock()
+    mock_query.filter = []
+    mock_qc = Mock()
+    mock_qc.queries = [mock_query]
+
+    with patch.object(
+        chart, "get_query_context", return_value=mock_qc
+    ) as mock_get_query_context:
+        mock_chart_data_command.return_value.run.return_value = {
+            "queries": [{"error": None, "status": "success"}]
+        }
+
+        result = ChartWarmUpCacheCommand(chart, 42, None).run()
+
+        # VALIDATE: The Time Range default reaches the query context builder
+        mock_get_dashboard_filters.assert_called_once_with(134, 42)
+        mock_get_query_context.assert_called_once_with(
+            time_range_override="2021-01-01 : 2022-01-01"
+        )
+
+        # VALIDATE: Dashboard filter clauses are still applied
+        assert mock_query.filter == [native_filter]
+
+        # VALIDATE: Result is correct
+        assert result["viz_error"] is None
 
 
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
@@ -135,7 +183,9 @@ def test_no_filters_applied_without_dashboard_id(mock_chart_data_command):
     mock_qc = Mock()
     mock_qc.queries = [mock_query]
 
-    with patch.object(chart, "get_query_context", return_value=mock_qc):
+    with patch.object(
+        chart, "get_query_context", return_value=mock_qc
+    ) as mock_get_query_context:
         mock_chart_data_command.return_value.run.return_value = {
             "queries": [{"error": None, "status": "success"}]
         }
@@ -149,8 +199,11 @@ def test_no_filters_applied_without_dashboard_id(mock_chart_data_command):
             {"col": "existing", "op": "==", "val": "filter"}
         ], "Existing filters should be unchanged"
 
+        # VALIDATE: Without a dashboard, the chart's saved time range is kept
+        mock_get_query_context.assert_called_once_with(time_range_override=None)
 
-@patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
+
+@patch(DASHBOARD_FILTERS)
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
 def test_extra_filters_parameter_takes_precedence(
     mock_chart_data_command, mock_get_dashboard_filters
@@ -169,7 +222,9 @@ def test_extra_filters_parameter_takes_precedence(
     mock_qc = Mock()
     mock_qc.queries = [mock_query]
 
-    with patch.object(chart, "get_query_context", return_value=mock_qc):
+    with patch.object(
+        chart, "get_query_context", return_value=mock_qc
+    ) as mock_get_query_context:
         mock_chart_data_command.return_value.run.return_value = {
             "queries": [{"error": None, "status": "success"}]
         }
@@ -178,23 +233,27 @@ def test_extra_filters_parameter_takes_precedence(
         extra_filters_json = '[{"col": "state", "op": "==", "val": "CA"}]'
         ChartWarmUpCacheCommand(chart, 42, extra_filters_json).run()
 
-        # VALIDATE: get_dashboard_extra_filters should NOT be called
+        # VALIDATE: get_dashboard_extra_filters_and_time_range should NOT be called
         mock_get_dashboard_filters.assert_not_called()
 
         # VALIDATE: extra_filters were parsed and applied
         assert len(mock_query.filter) == 1
         assert mock_query.filter[0] == {"col": "state", "op": "==", "val": "CA"}
 
+        # VALIDATE: Explicit extra_filters keep the chart's saved time range
+        mock_get_query_context.assert_called_once_with(time_range_override=None)
 
-@patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
+
+@patch(DASHBOARD_FILTERS)
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
 def test_handles_multiple_queries_in_query_context(
     mock_chart_data_command, mock_get_dashboard_filters
 ):
     """Verify filters are added to ALL queries in the query context"""
-    mock_get_dashboard_filters.return_value = [
-        {"col": "country", "op": "==", "val": "USA"}
-    ]
+    mock_get_dashboard_filters.return_value = (
+        [{"col": "country", "op": "==", "val": "USA"}],
+        None,
+    )
 
     chart = Slice(
         id=126,
@@ -229,14 +288,14 @@ def test_handles_multiple_queries_in_query_context(
         assert mock_query2.filter[0]["col"] == "country"
 
 
-@patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
+@patch(DASHBOARD_FILTERS)
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
 def test_handles_empty_dashboard_filters(
     mock_chart_data_command, mock_get_dashboard_filters
 ):
     """Verify graceful handling when dashboard has no filters configured"""
-    # get_dashboard_extra_filters returns empty list
-    mock_get_dashboard_filters.return_value = []
+    # get_dashboard_extra_filters_and_time_range returns no filters or time range
+    mock_get_dashboard_filters.return_value = ([], None)
 
     chart = Slice(
         id=127,
@@ -263,7 +322,7 @@ def test_handles_empty_dashboard_filters(
             "No filters should be added when dashboard has no filters"
         )
         assert mock_get_dashboard_filters.called, (
-            "Should still call get_dashboard_extra_filters"
+            "Should still call get_dashboard_extra_filters_and_time_range"
         )
 
 

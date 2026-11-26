@@ -362,6 +362,32 @@ def mark_dashboard_time_range_filters(
             filter_["isExtra"] = True
 
 
+def apply_time_range_override(
+    query_context: dict[str, Any],
+    time_range: str,
+) -> None:
+    """
+    Apply a dashboard's native Time Range default to a raw query context.
+
+    Runs before ``QueryContextFactory`` derives each query's bounds. Saved
+    unbounded ``TEMPORAL_RANGE`` predicates are marked as dashboard-supplied, as
+    the query factory does for a dashboard request, so both build the same key.
+
+    :param query_context: The chart's raw query context (mutated in place)
+    :param time_range: The dashboard's in-scope native Time Range default
+    """
+    for query in query_context.get("queries") or []:
+        if not isinstance(query, dict):
+            continue  # Malformed saved queries are left to the query factory.
+        filters = query.get("filters") or []
+        # Marking reads the saved values, so it must precede the rewrite below.
+        mark_dashboard_time_range_filters(filters)
+        query["time_range"] = time_range
+        for filter_ in filters:
+            if isinstance(filter_, dict) and filter_.get("op") == "TEMPORAL_RANGE":
+                filter_["val"] = time_range
+
+
 def apply_dashboard_filter_context(  # noqa: C901
     query_context: dict[str, Any],
     extra_form_data: dict[str, Any],

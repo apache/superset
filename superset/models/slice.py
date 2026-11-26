@@ -500,7 +500,15 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
-    def get_query_context(self) -> QueryContext | None:
+    def get_query_context(
+        self, time_range_override: str | None = None
+    ) -> QueryContext | None:
+        """
+        Build the chart's QueryContext from its saved query context.
+
+        :param time_range_override: A dashboard's native Time Range default,
+            applied before the factory derives each query's time bounds
+        """
         if self.query_context:
             try:
                 query_context_payload = json.loads(self.query_context)
@@ -520,6 +528,16 @@ class Slice(  # pylint: disable=too-many-public-methods
                     self.id,
                 )
                 return None
+            if time_range_override:
+                # pylint: disable=import-outside-toplevel
+                # Deferred to avoid a circular import:
+                # superset.charts.data.dashboard_filter_context imports
+                # superset.models.dashboard, which imports this module.
+                from superset.charts.data.dashboard_filter_context import (
+                    apply_time_range_override,
+                )
+
+                apply_time_range_override(query_context_payload, time_range_override)
             return self.get_query_context_factory().create(
                 **{**query_context_payload, "current_slice": self}
             )

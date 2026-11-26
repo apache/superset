@@ -27,11 +27,15 @@ from superset.charts.data.dashboard_filter_context import (
     _is_filter_in_scope_for_chart,
     _merge_extra_form_data,
     _validate_chart_on_dashboard,
+    apply_time_range_override,
     DashboardFilterContext,
     DashboardFilterStatus,
     get_dashboard_filter_context,
 )
 from superset.utils import json
+
+CHART_TIME_RANGE = "2000-01-01 : 2005-01-01"
+DASHBOARD_TIME_RANGE = "2005-01-01 : 2010-01-01"
 
 SAMPLE_POSITION_JSON = {
     "ROOT_ID": {
@@ -782,3 +786,97 @@ def test_get_dashboard_filter_context_chart_not_in_layout_receives_root_filters(
     assert ctx.filters[0].id == "f1"
     assert ctx.filters[0].status == DashboardFilterStatus.APPLIED
     assert ctx.extra_form_data["filters"][0]["val"] == ["US"]
+
+
+# --- apply_time_range_override ---
+
+
+def test_apply_time_range_override_updates_bounded_range() -> None:
+    """A bounded saved range is replaced and stays the chart's own predicate."""
+    query_context: dict[str, Any] = {
+        "queries": [
+            {
+                "time_range": CHART_TIME_RANGE,
+                "filters": [
+                    {"col": "ds", "op": "TEMPORAL_RANGE", "val": CHART_TIME_RANGE},
+                    {"col": "gender", "op": "IN", "val": ["girl"]},
+                ],
+            }
+        ]
+    }
+
+    apply_time_range_override(query_context, DASHBOARD_TIME_RANGE)
+
+    assert query_context == {
+        "queries": [
+            {
+                "time_range": DASHBOARD_TIME_RANGE,
+                "filters": [
+                    {"col": "ds", "op": "TEMPORAL_RANGE", "val": DASHBOARD_TIME_RANGE},
+                    {"col": "gender", "op": "IN", "val": ["girl"]},
+                ],
+            }
+        ]
+    }
+
+
+def test_apply_time_range_override_marks_unbounded_range() -> None:
+    """A saved "No filter" predicate is marked as dashboard-supplied before its
+    value is replaced."""
+    query_context: dict[str, Any] = {
+        "queries": [
+            {
+                "time_range": "No filter",
+                "filters": [{"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}],
+            }
+        ]
+    }
+
+    apply_time_range_override(query_context, DASHBOARD_TIME_RANGE)
+
+    assert query_context == {
+        "queries": [
+            {
+                "time_range": DASHBOARD_TIME_RANGE,
+                "filters": [
+                    {
+                        "col": "ds",
+                        "op": "TEMPORAL_RANGE",
+                        "val": DASHBOARD_TIME_RANGE,
+                        "isExtra": True,
+                    }
+                ],
+            }
+        ]
+    }
+
+
+def test_apply_time_range_override_skips_malformed_entries() -> None:
+    """Non-dict queries and filters are skipped, and every other query still
+    receives the dashboard's range, with or without saved filters."""
+    query_context: dict[str, Any] = {
+        "queries": [
+            "not-a-query",
+            {"metrics": ["count"]},
+            {"filters": ["not-a-filter"]},
+        ]
+    }
+
+    apply_time_range_override(query_context, DASHBOARD_TIME_RANGE)
+
+    assert query_context == {
+        "queries": [
+            "not-a-query",
+            {"metrics": ["count"], "time_range": DASHBOARD_TIME_RANGE},
+            {"filters": ["not-a-filter"], "time_range": DASHBOARD_TIME_RANGE},
+        ]
+    }
+
+
+def test_apply_time_range_override_without_queries() -> None:
+    """A query context without queries is left unchanged."""
+    query_context: dict[str, Any] = {"datasource": {"id": 1, "type": "table"}}
+
+    apply_time_range_override(query_context, DASHBOARD_TIME_RANGE)
+
+    assert query_context == {"datasource": {"id": 1, "type": "table"}}
