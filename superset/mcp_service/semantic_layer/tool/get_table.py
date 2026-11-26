@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from flask_babel import gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.semantic_layers.errors import SemanticQueryErrorCode
@@ -63,12 +64,18 @@ from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.error_sanitization import sanitize_for_log
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
-from superset.mcp_service.utils.tool_errors import public_query_error
+from superset.mcp_service.utils.tool_errors import (
+    contains_provider_fault,
+    public_query_error,
+)
 from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
-from superset.semantic_layers.exceptions import normalize_provider_request_errors
+from superset.semantic_layers.exceptions import (
+    normalize_provider_request_errors,
+    provider_code,
+)
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -211,11 +218,14 @@ def _resolve_external_view(
             error_type="ConfigurationError",
         )
     try:
-        implementation.validate_selection_version(request.semantic_selection_version)
+        with provider_code():
+            implementation.validate_selection_version(
+                request.semantic_selection_version
+            )
     except ValueError:
         return SemanticLayerError.create(
-            error=(
-                "Saved semantic selections use an older identity format. "
+            error=_(
+                "Saved semantic selections use a different identity format. "
                 "Reset the chart selections, explicitly reselect its metrics "
                 "and dimensions, and save the chart. Display titles cannot be "
                 "automatically mapped to member IDs."
@@ -257,9 +267,10 @@ def _resolve_external_view_metadata(
             error_type="ValidationError",
         )
 
-    valid_grains: dict[str, dict[str, str]] = _grains_by_column(
-        view.implementation.get_dimensions()
-    )
+    implementation: SemanticViewABC = view.implementation
+    with provider_code():
+        dimensions: set[Dimension] = implementation.get_dimensions()
+    valid_grains: dict[str, dict[str, str]] = _grains_by_column(dimensions)
     grain_column: str | None = request.time_column
     if request.time_grain:
         selected: list[str] = sorted(set(request.dimensions) & valid_dttm_columns)
@@ -555,7 +566,12 @@ async def _run_get_table_query(
             error_code,
             type(error).__name__,
         )
-        logger.debug("get_table query detail: %s", sanitize_for_log(result_error.error))
+        if is_builtin:
+            logger.debug(
+                "get_table query detail: %s", sanitize_for_log(result_error.error)
+            )
+        else:
+            logger.debug("get_table semantic query detail: %s", type(error).__name__)
         return SemanticLayerError.create(
             error=public_message,
             error_type=error_type,
@@ -711,7 +727,9 @@ async def _get_table(
         )
 
     except OAuth2Error as exc:
-        error_code, error_text, _ = public_query_error(exc)
+        error_code, error_text, _error_type = public_query_error(
+            exc, semantic=not is_builtin
+        )
         logger.warning(
             "get_table query failed error_code=%s exc=%s",
             error_code,
@@ -734,10 +752,13 @@ async def _get_table(
             error_code,
             type(exc).__name__,
         )
-        logger.debug(
-            "get_table query detail: %s",
-            sanitize_for_log(bounded_exception_message(exc)),
-        )
+        if contains_provider_fault(exc):
+            logger.debug("get_table provider failure: %s", type(exc).__name__)
+        else:
+            logger.debug(
+                "get_table query detail: %s",
+                sanitize_for_log(bounded_exception_message(exc)),
+            )
         await ctx.error("Query failed: %s" % error_code)
         return SemanticLayerError.create(
             error=public_message,

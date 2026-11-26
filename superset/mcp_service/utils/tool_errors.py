@@ -23,10 +23,11 @@ from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
 )
+from superset_core.semantic_layers.transport import ProviderRequestError
 
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
-from superset.errors import SupersetErrorType
+from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetErrorException
 from superset.mcp_service.chart.response_preflight import bounded_exception_message
 from superset.semantic_layers.exceptions import (
@@ -39,6 +40,7 @@ from superset.utils.error_sanitization import (
     GENERIC_ERROR_MESSAGE,
     SAFE_ERROR_TYPES,
     sanitize_error_message,
+    sanitize_superset_error,
 )
 
 
@@ -54,6 +56,11 @@ def _causal_chain(exc: Exception) -> list[BaseException]:
     return chain
 
 
+def contains_provider_fault(exc: Exception) -> bool:
+    """Identify provider-origin text anywhere in an explicit error chain."""
+    return any(is_provider_fault(error) for error in _causal_chain(exc))
+
+
 def _superset_exception_error(
     error: SupersetErrorException, *, semantic: bool
 ) -> tuple[str, str, str]:
@@ -62,9 +69,11 @@ def _superset_exception_error(
     if error_type in SAFE_ERROR_TYPES:
         return error_type.value, bounded_exception_message(error), "QueryError"
     if not semantic:
+        sanitized: SupersetError = sanitize_superset_error(error.error)
+        # Keep the MCP response budget after applying HTTP's guest rule.
         return (
-            error_type.value,
-            sanitize_error_message(bounded_exception_message(error)),
+            sanitized.error_type.value,
+            bounded_exception_message(Exception(str(sanitized.message))),
             "QueryError",
         )
     return (
@@ -74,9 +83,7 @@ def _superset_exception_error(
     )
 
 
-def public_query_error(
-    exc: Exception, *, semantic: bool = False
-) -> tuple[str, str, str]:
+def public_query_error(exc: Exception, *, semantic: bool) -> tuple[str, str, str]:
     """Return a safe error code, message, and MCP type for a failed query.
 
     A provider can raise a host exception class. Its provenance marker takes
@@ -85,7 +92,7 @@ def public_query_error(
     """
     chain: list[BaseException] = _causal_chain(exc)
 
-    if semantic and any(is_provider_fault(error) for error in chain):
+    if semantic and contains_provider_fault(exc):
         return (
             SupersetErrorType.GENERIC_BACKEND_ERROR.value,
             str(GENERIC_ERROR_MESSAGE),
@@ -97,7 +104,7 @@ def public_query_error(
             error, (SemanticLayerQueryRejectedError, SemanticQueryRejectedError)
         ):
             code: SemanticQueryErrorCode = error.code
-            return code.value, rejection_message(code), "QueryRejected"
+            return code.value, rejection_message(code), "QueryValidationError"
         if isinstance(error, (SemanticLayerExecutionError, SemanticBackendError)):
             return (
                 SupersetErrorType.GENERIC_BACKEND_ERROR.value,
@@ -105,14 +112,23 @@ def public_query_error(
                 "QueryError",
             )
         if isinstance(error, QueryObjectValidationError):
+            # Transport normalization uses ``raise ... from None`` and keeps
+            # its typed transport exception as the implicit context.
+            transport_failure: bool = isinstance(
+                error.__context__, ProviderRequestError
+            )
             return (
-                SemanticQueryErrorCode.INVALID_QUERY.value,
+                (
+                    SupersetErrorType.GENERIC_BACKEND_ERROR.value
+                    if transport_failure
+                    else SemanticQueryErrorCode.INVALID_QUERY.value
+                ),
                 (
                     bounded_exception_message(error)
                     if semantic
                     else sanitize_error_message(bounded_exception_message(error))
                 ),
-                "QueryError",
+                "QueryError" if transport_failure else "ValidationError",
             )
         if isinstance(error, SupersetErrorException):
             return _superset_exception_error(error, semantic=semantic)

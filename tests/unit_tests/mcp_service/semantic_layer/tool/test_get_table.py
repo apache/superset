@@ -56,6 +56,7 @@ from superset.commands.chart.exceptions import (
 from superset.commands.exceptions import CommandException
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2Error,
     QueryObjectValidationError,
     SupersetErrorException,
     SupersetSecurityException,
@@ -70,6 +71,7 @@ from superset.mcp_service.semantic_layer.schemas import (
 from superset.security.guest_token import GuestToken, GuestTokenRlsRule, GuestUser
 from superset.semantic_layers.exceptions import (
     execute_semantic_query,
+    provider_code,
     rejection_message,
     SemanticLayerQueryRejectedError,
 )
@@ -254,21 +256,15 @@ async def test_get_table_dataset_error_uses_http_guest_rule_without_context_leak
             "An error occurred while fetching the data.",
         ),
         (
-            ChartDataQueryValidationError("Error: token=abc"),
-            "INVALID_FILTER",
-            "QueryRejected",
-            rejection_message(SemanticQueryErrorCode.INVALID_FILTER),
-        ),
-        (
             SemanticLayerQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER),
             "INVALID_FILTER",
-            "QueryRejected",
+            "QueryValidationError",
             rejection_message(SemanticQueryErrorCode.INVALID_FILTER),
         ),
         (
             QueryObjectValidationError("The selected column is invalid."),
             "INVALID_QUERY",
-            "QueryError",
+            "ValidationError",
             "The selected column is invalid.",
         ),
     ],
@@ -282,10 +278,6 @@ async def test_get_table_semantic_error_classifies_without_provider_text(
     expected_message: str,
 ) -> None:
     """Semantic rejections and faults have distinct, host-owned envelopes."""
-    if isinstance(failure, ChartDataQueryValidationError):
-        failure.__cause__ = SemanticLayerQueryRejectedError(
-            SemanticQueryErrorCode.INVALID_FILTER
-        )
     ctx: MagicMock = MagicMock()
     ctx.info = AsyncMock()
     ctx.error = AsyncMock()
@@ -310,9 +302,12 @@ async def test_get_table_semantic_error_classifies_without_provider_text(
 
 @pytest.mark.asyncio
 async def test_get_table_rewraps_host_signal_raised_inside_provider(
-    app_context: None, monkeypatch: pytest.MonkeyPatch
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A provider cannot smuggle its text through a host exception class."""
+    """A chart command wrapper cannot relay a provider host-signal cause."""
+    caplog.set_level("DEBUG")
     with pytest.raises(QueryObjectValidationError) as captured:
         execute_semantic_query(
             MagicMock(side_effect=QueryObjectValidationError("token=abc"))
@@ -339,6 +334,7 @@ async def test_get_table_rewraps_host_signal_raised_inside_provider(
     assert "token=abc" not in response.model_dump_json()
     assert "token=abc" not in str(ctx.info.await_args_list)
     assert "token=abc" not in str(ctx.error.await_args_list)
+    assert "token=abc" not in caplog.text
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
@@ -420,7 +416,7 @@ async def test_get_table_dataset_error_exception_uses_http_guest_rule(
     failure: SupersetErrorException = SupersetErrorException(
         SupersetError(
             message="secret_schema.payroll",
-            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            error_type=SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
             level=ErrorLevel.ERROR,
         )
     )
@@ -439,9 +435,132 @@ async def test_get_table_dataset_error_exception_uses_http_guest_rule(
         GetTableRequest(dataset_id=42, metrics=["revenue"]), ctx
     )
 
-    assert response.error_code == "GENERIC_DB_ENGINE_ERROR"
+    assert response.error_code == (
+        "GENERIC_BACKEND_ERROR" if guest else "CONNECTION_INVALID_PASSWORD_ERROR"
+    )
     assert ("secret_schema.payroll" in response.error) is not guest
     assert "secret_schema.payroll" not in str(ctx.error.await_args_list)
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_point", ["selection_version", "dimensions"])
+async def test_get_table_rewraps_provider_resolution_host_signals(
+    temporal_view: MagicMock,
+    failure_point: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Provider calls during view resolution cannot emit host-class secrets."""
+    caplog.set_level("DEBUG")
+    provider_error: QueryObjectValidationError = QueryObjectValidationError(
+        "password=hunter2"
+    )
+    if failure_point == "selection_version":
+        temporal_view.implementation.validate_selection_version.side_effect = (
+            provider_error
+        )
+    else:
+        temporal_view.implementation.get_dimensions.side_effect = provider_error
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(view_id=5, metrics=["bookings"]), ctx
+    )
+
+    assert response.error_code == "GENERIC_BACKEND_ERROR"
+    assert "hunter2" not in response.model_dump_json()
+    assert "hunter2" not in str(ctx.error.await_args_list)
+    assert "hunter2" not in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [True, False])
+async def test_get_table_protocol_dataset_error_respects_guest_rule(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    guest: bool,
+) -> None:
+    """The serialized MCP response keeps the same guest diagnostic boundary."""
+    monkeypatch.setattr(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        lambda: guest,
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "_run_get_table_query",
+        AsyncMock(side_effect=SQLAlchemyError("password=hunter2")),
+    )
+
+    async with Client(mcp_server) as client:
+        result: CallToolResult = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+    response: SemanticLayerError = SemanticLayerError.model_validate(
+        json.loads(result.content[0].text)
+    )
+
+    assert response.error_code == "GENERIC_DB_ENGINE_ERROR"
+    assert response.error_type == "QueryError"
+    assert ("hunter2" in response.error) is not guest
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_get_table_semantic_error_envelope_is_generic(
+    temporal_view: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A semantic failed-payload string cannot take the dataset text rule."""
+    caplog.set_level("DEBUG")
+    monkeypatch.setattr(
+        get_table_module,
+        "execute_tabular_query",
+        lambda *_args, **_kwargs: {"queries": [{"error": "token=abc"}]},
+    )
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+    ctx.debug = AsyncMock()
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(view_id=5, metrics=["bookings"]), ctx
+    )
+
+    assert response.error_code == "GENERIC_BACKEND_ERROR"
+    assert response.error_type == "QueryError"
+    assert "token=abc" not in response.model_dump_json()
+    assert "token=abc" not in caplog.text
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_get_table_provider_oauth_error_uses_semantic_fault_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A provider-raised OAuth host class keeps a generic semantic fault code."""
+    with pytest.raises(OAuth2Error) as captured:
+        with provider_code():
+            raise OAuth2Error("token=abc")
+    monkeypatch.setattr(
+        get_table_module,
+        "_run_get_table_query",
+        AsyncMock(side_effect=captured.value),
+    )
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(view_id=5, metrics=["bookings"]), ctx
+    )
+
+    assert response.error_code == "GENERIC_BACKEND_ERROR"
+    assert "token=abc" not in response.model_dump_json()
 
 
 def test_get_table_selection_validation_does_not_echo_provider_override() -> None:
@@ -3013,6 +3132,7 @@ async def test_transport_failure_during_mcp_preparation_is_query_error(
         json.loads(result.content[0].text)
     )
     assert returned.error_type == "QueryError"
+    assert returned.error_code == "GENERIC_BACKEND_ERROR"
     assert str(error) in returned.message
     assert "private-preparation" not in returned.message
     assert "private-preparation" not in caplog.text
@@ -3048,6 +3168,7 @@ async def test_transport_failure_during_mcp_compatibility_is_query_error(
         json.loads(result.content[0].text)
     )
     assert returned.error_type == "QueryError"
+    assert returned.error_code == "GENERIC_BACKEND_ERROR"
     assert str(error) in returned.message
     assert "private-compatibility" not in returned.message
     assert "private-compatibility" not in caplog.text
