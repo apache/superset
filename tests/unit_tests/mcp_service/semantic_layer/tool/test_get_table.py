@@ -38,16 +38,28 @@ from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
 from fastmcp.client.client import CallToolResult
 from flask import current_app
-from superset_core.semantic_layers.errors import SemanticBackendError
+from sqlalchemy.exc import SQLAlchemyError
+from superset_core.semantic_layers.errors import (
+    SemanticBackendError,
+    SemanticQueryErrorCode,
+)
 from superset_core.semantic_layers.transport import (
     ProviderRequestError,
     ProviderRequestFailure,
 )
 from superset_core.semantic_layers.types import Dimension, Grains
 
+from superset.commands.chart.exceptions import (
+    ChartDataQueryFailedError,
+    ChartDataQueryValidationError,
+)
 from superset.commands.exceptions import CommandException
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SupersetErrorException,
+    SupersetSecurityException,
+)
 from superset.extensions import security_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.semantic_layer.schemas import (
@@ -56,7 +68,11 @@ from superset.mcp_service.semantic_layer.schemas import (
     SemanticLayerError,
 )
 from superset.security.guest_token import GuestToken, GuestTokenRlsRule, GuestUser
-from superset.semantic_layers.exceptions import execute_semantic_query
+from superset.semantic_layers.exceptions import (
+    execute_semantic_query,
+    rejection_message,
+    SemanticLayerQueryRejectedError,
+)
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 from superset.utils.core import GenericDataType
@@ -178,6 +194,312 @@ async def test_get_table_mcp_entry_bounds_dynamic_command_error(
     returned = SemanticLayerError.model_validate(json.loads(result.content[0].text))
     assert returned.error_type == "QueryError"
     assert len(returned.model_dump_json().encode()) < 4_096
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure",
+    [
+        ChartDataQueryFailedError(
+            'Error: relation "secret_schema.payroll" does not exist; password=hunter2'
+        ),
+        SQLAlchemyError("SELECT ssn FROM users WHERE password=hunter2"),
+    ],
+)
+@pytest.mark.parametrize("guest", [True, False])
+async def test_get_table_dataset_error_uses_http_guest_rule_without_context_leak(
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: Exception,
+    guest: bool,
+) -> None:
+    """Dataset errors follow HTTP's principal rule; context stays diagnostic-only."""
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+    monkeypatch.setattr(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        lambda: guest,
+    )
+    monkeypatch.setattr(
+        get_table_module, "_run_get_table_query", AsyncMock(side_effect=failure)
+    )
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(dataset_id=42, metrics=["revenue"]), ctx
+    )
+    wire: str = response.model_dump_json()
+    context: str = str(ctx.info.await_args_list) + str(ctx.error.await_args_list)
+
+    assert response.error_code == "GENERIC_DB_ENGINE_ERROR"
+    if guest:
+        assert "secret_schema" not in wire
+        assert "hunter2" not in wire
+        assert "SELECT ssn" not in wire
+    else:
+        assert "hunter2" in wire
+    assert "secret_schema" not in context
+    assert "hunter2" not in context
+    assert "SELECT ssn" not in context
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure,expected_code,expected_type,expected_message",
+    [
+        (
+            ChartDataQueryFailedError("snowflake://user:token@acct"),
+            "GENERIC_BACKEND_ERROR",
+            "QueryError",
+            "An error occurred while fetching the data.",
+        ),
+        (
+            ChartDataQueryValidationError("Error: token=abc"),
+            "INVALID_FILTER",
+            "QueryRejected",
+            rejection_message(SemanticQueryErrorCode.INVALID_FILTER),
+        ),
+        (
+            SemanticLayerQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER),
+            "INVALID_FILTER",
+            "QueryRejected",
+            rejection_message(SemanticQueryErrorCode.INVALID_FILTER),
+        ),
+        (
+            QueryObjectValidationError("The selected column is invalid."),
+            "INVALID_QUERY",
+            "QueryError",
+            "The selected column is invalid.",
+        ),
+    ],
+)
+async def test_get_table_semantic_error_classifies_without_provider_text(
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: Exception,
+    expected_code: str,
+    expected_type: str,
+    expected_message: str,
+) -> None:
+    """Semantic rejections and faults have distinct, host-owned envelopes."""
+    if isinstance(failure, ChartDataQueryValidationError):
+        failure.__cause__ = SemanticLayerQueryRejectedError(
+            SemanticQueryErrorCode.INVALID_FILTER
+        )
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+    monkeypatch.setattr(get_table_module, "is_semantic_layers_enabled", lambda: True)
+    monkeypatch.setattr(
+        get_table_module, "_run_get_table_query", AsyncMock(side_effect=failure)
+    )
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(view_id=5, metrics=["bookings"]), ctx
+    )
+    context: str = str(ctx.info.await_args_list) + str(ctx.error.await_args_list)
+
+    assert response.error_code == expected_code
+    assert response.error_type == expected_type
+    assert response.error == expected_message
+    assert "token=abc" not in context
+    assert "snowflake://" not in context
+    assert "token=abc" not in response.model_dump_json()
+    assert "snowflake://" not in response.model_dump_json()
+
+
+@pytest.mark.asyncio
+async def test_get_table_rewraps_host_signal_raised_inside_provider(
+    app_context: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A provider cannot smuggle its text through a host exception class."""
+    with pytest.raises(QueryObjectValidationError) as captured:
+        execute_semantic_query(
+            MagicMock(side_effect=QueryObjectValidationError("token=abc"))
+        )
+    provider_error: QueryObjectValidationError = captured.value
+    failure: ChartDataQueryValidationError = ChartDataQueryValidationError(
+        "Error: token=abc"
+    )
+    failure.__cause__ = provider_error
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+    monkeypatch.setattr(get_table_module, "is_semantic_layers_enabled", lambda: True)
+    monkeypatch.setattr(
+        get_table_module, "_run_get_table_query", AsyncMock(side_effect=failure)
+    )
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(view_id=5, metrics=["bookings"]), ctx
+    )
+
+    assert response.error_code == "GENERIC_BACKEND_ERROR"
+    assert response.error_type == "QueryError"
+    assert "token=abc" not in response.model_dump_json()
+    assert "token=abc" not in str(ctx.info.await_args_list)
+    assert "token=abc" not in str(ctx.error.await_args_list)
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_get_table_rewraps_provider_compatibility_host_signal(
+    app_context: None,
+    temporal_view: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Compatibility discovery cannot pass a provider's host-class text through."""
+    temporal_view._compat_selection.return_value = (set(), set())
+    temporal_view.implementation.get_compatible_dimensions.side_effect = (
+        QueryObjectValidationError("password=hunter2")
+    )
+    temporal_view.get_compatible_dimensions.side_effect = lambda metrics, dimensions: (
+        SemanticView.get_compatible_dimensions(temporal_view, metrics, dimensions)
+    )
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+    monkeypatch.setattr(get_table_module, "execute_tabular_query", MagicMock())
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(
+            view_id=5,
+            metrics=["bookings"],
+            dimensions=["country_name"],
+        ),
+        ctx,
+    )
+
+    assert response.error_code == "GENERIC_BACKEND_ERROR"
+    assert "hunter2" not in response.model_dump_json()
+    assert "hunter2" not in str(ctx.error.await_args_list)
+    temporal_view.implementation.get_compatible_dimensions.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [True, False])
+async def test_get_table_dataset_validation_uses_http_guest_rule(
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+    guest: bool,
+) -> None:
+    """Dataset validation details follow the same principal rule as HTTP."""
+    failure: ChartDataQueryValidationError = ChartDataQueryValidationError(
+        "Error: secret_schema.payroll"
+    )
+    failure.__cause__ = QueryObjectValidationError("secret_schema.payroll")
+    monkeypatch.setattr(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        lambda: guest,
+    )
+    monkeypatch.setattr(
+        get_table_module, "_run_get_table_query", AsyncMock(side_effect=failure)
+    )
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(dataset_id=42, metrics=["revenue"]), ctx
+    )
+
+    assert response.error_code == "INVALID_QUERY"
+    assert ("secret_schema.payroll" in response.error) is not guest
+    assert "secret_schema.payroll" not in str(ctx.error.await_args_list)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [True, False])
+async def test_get_table_dataset_error_exception_uses_http_guest_rule(
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+    guest: bool,
+) -> None:
+    """Unsafe Superset error types retain diagnostics for signed-in users."""
+    failure: SupersetErrorException = SupersetErrorException(
+        SupersetError(
+            message="secret_schema.payroll",
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    monkeypatch.setattr(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        lambda: guest,
+    )
+    monkeypatch.setattr(
+        get_table_module, "_run_get_table_query", AsyncMock(side_effect=failure)
+    )
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(dataset_id=42, metrics=["revenue"]), ctx
+    )
+
+    assert response.error_code == "GENERIC_DB_ENGINE_ERROR"
+    assert ("secret_schema.payroll" in response.error) is not guest
+    assert "secret_schema.payroll" not in str(ctx.error.await_args_list)
+
+
+def test_get_table_selection_validation_does_not_echo_provider_override() -> None:
+    """Selection-version refusal is a host message even for overridden methods."""
+    view: MagicMock = _make_view()
+    view.implementation.validate_selection_version.side_effect = ValueError(
+        "password=hunter2"
+    )
+    with patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+    ):
+        response: SemanticLayerError = get_table_module._resolve_external_view(
+            GetTableRequest(view_id=5, metrics=["bookings"])
+        )
+
+    assert response.error_code == "INVALID_QUERY"
+    assert response.error_type == "ValidationError"
+    assert "hunter2" not in response.model_dump_json()
+
+
+@pytest.mark.asyncio
+async def test_get_table_failure_envelope_uses_public_error_contract(
+    app_context: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed payload cannot bypass the same guest-facing error contract."""
+    ctx: MagicMock = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+    ctx.debug = AsyncMock()
+    monkeypatch.setattr(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "_resolve_builtin_dataset",
+        lambda _request: get_table_module._ResolvedDatasource(
+            display_name="orders",
+            time_col=None,
+            valid_columns=set(),
+            valid_metrics={"revenue"},
+        ),
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "execute_tabular_query",
+        lambda *_args, **_kwargs: {"queries": [{"error": "password=hunter2"}]},
+    )
+
+    response: SemanticLayerError = await get_table_module._get_table(
+        GetTableRequest(dataset_id=42, metrics=["revenue"]), ctx
+    )
+
+    assert response.error_code == "GENERIC_DB_ENGINE_ERROR"
+    assert "hunter2" not in response.model_dump_json()
+    assert "hunter2" not in str(ctx.info.await_args_list)
+    assert "hunter2" not in str(ctx.error.await_args_list)
 
 
 @pytest.mark.asyncio
