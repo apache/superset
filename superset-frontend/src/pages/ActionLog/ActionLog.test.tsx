@@ -67,7 +67,7 @@ test('User column is not sortable and never sends order_column=user', async () =
   await screen.findByText('action 0');
 
   await userEvent.click(screen.getByRole('columnheader', { name: /user/i }));
-  await userEvent.click(screen.getByRole('listitem', { name: '2' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Page 2' }));
 
   await waitFor(() =>
     expect(requestedUrls().some(url => url.includes('page:1'))).toBe(true),

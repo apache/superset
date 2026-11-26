@@ -2459,6 +2459,22 @@ in the result or available-column lists in errors.
 `filter_range` filter or changing its dataset/column target. Select filters
 continue to accept nonnumeric columns.
 
+A native filter can depend on other filters so that its choices are narrowed by
+their values. `get_dashboard_info` lists each filter's direct parents in
+`cascade_parent_ids`. With `manage_native_filters`, pass `cascade_parent_ids` when
+adding or updating a `filter_select`, `filter_range`, or `filter_time` filter;
+on update it replaces the current parents and `[]` clears them. Each parent must
+be an existing native filter on the same dashboard (not a time-grain filter,
+time-column filter, or divider), and a filter cannot depend on itself or create a cycle. Removing a filter also removes
+it from the parents of any filter that depended on it, and reports those children
+in `updated_filter_ids`. Reads omit parent IDs absent from the dashboard. When
+updating dependencies, already-stored absent parent IDs are silently dropped;
+genuinely new unknown IDs are rejected. Existing custom native filters can also
+be updated and used as parents. The backend cannot inspect frontend plugin
+capability metadata, so custom types use the native-filter cascade default.
+If dashboard metadata changes between validation and persistence, the tool
+rejects the write; re-read the dashboard and retry.
+
 Dividers are visual separators and are always in scope. When adding or updating
 a `divider` with `manage_native_filters`, use `name` for its title and
 `description` for its description; type-specific fields and `scope_chart_ids`
