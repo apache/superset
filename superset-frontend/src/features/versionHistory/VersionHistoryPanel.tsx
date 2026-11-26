@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { type KeyboardEvent, useLayoutEffect, useMemo, useRef } from 'react';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -48,7 +48,10 @@ import RelatedUpdateRow from './RelatedUpdateRow';
 import CurrentVersionSection, {
   hasCurrentVersionContent,
 } from './CurrentVersionSection';
-import { VERSION_HISTORY_PANEL_WIDTH } from './constants';
+import {
+  VERSION_HISTORY_PANEL_WIDTH,
+  VERSION_HISTORY_TRIGGER_IDS,
+} from './constants';
 
 const Panel = styled.aside`
   ${({ theme }) => `
@@ -184,6 +187,34 @@ export default function VersionHistoryPanel({
   onOpenRelated,
   sessionEntries = [],
 }: VersionHistoryPanelProps) {
+  const closeButtonRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    closeButtonRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  const closePanel = () => {
+    onClose();
+    document
+      .getElementById(VERSION_HISTORY_TRIGGER_IDS[entityType])
+      ?.focus({ preventScroll: true });
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    // Portalled controls and open popups handle their own Escape first.
+    const { currentTarget, target } = event;
+    if (
+      event.key === 'Escape' &&
+      !event.defaultPrevented &&
+      target instanceof Element &&
+      currentTarget.contains(target) &&
+      !target.closest('[aria-haspopup][aria-expanded="true"]')
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      closePanel();
+    }
+  };
+
   const FooterExtension = getExtensionsRegistry().get(
     'versionHistory.panel.footer',
   );
@@ -240,14 +271,15 @@ export default function VersionHistoryPanel({
   const isInitialLoading = isLoading && timeline.length === 0;
 
   return (
-    <Panel aria-label={t('Version history')}>
+    <Panel aria-label={t('Version history')} onKeyDown={handleKeyDown}>
       <PanelHeader>
         <PanelTitle>{t('Version history')}</PanelTitle>
         <CloseButton
+          ref={closeButtonRef}
           buttonSize="xsmall"
           buttonStyle="link"
           aria-label={t('Close version history')}
-          onClick={onClose}
+          onClick={closePanel}
         >
           <Icons.CloseOutlined iconSize="xl" />
         </CloseButton>

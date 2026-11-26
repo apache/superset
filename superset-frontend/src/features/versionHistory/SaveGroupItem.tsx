@@ -179,6 +179,7 @@ function GroupKebab({
   | 'onOpenAsNew'
 >) {
   const theme = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
   if (group.versionUuid == null) {
     // Both actions name a specific version; a group the server returned
     // without one has nothing for them to act on, and the container
@@ -230,11 +231,19 @@ function GroupKebab({
   ];
   return (
     <KebabSlot>
-      <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+      <Dropdown
+        autoFocus
+        menu={{ items: menuItems }}
+        trigger={['click']}
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+      >
         <KebabButton
           buttonSize="xsmall"
           buttonStyle="link"
           aria-label={t('More actions')}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
           onClick={event => event.stopPropagation()}
         >
           <Icons.MoreOutlined iconSize="m" />
