@@ -17,9 +17,17 @@
 
 
 import os
+from typing import Any
+from unittest.mock import MagicMock
+from urllib.parse import parse_qs, urlsplit
 
 import jinja2
 import pytest
+from flask.testing import FlaskClient
+from flask_appbuilder.const import AUTH_OAUTH, FLAMSG_ERR_SEC_ACCESS_DENIED
+from pytest_mock import MockerFixture
+
+from superset.app import SupersetApp
 
 
 @pytest.fixture(autouse=True)
@@ -116,3 +124,154 @@ def test_log_beacon_without_permission_returns_403(client, mocker) -> None:
 
     assert response.status_code == 403
     assert "Location" not in response.headers
+
+
+def _oauth_provider(name: str) -> dict[str, Any]:
+    """Build a minimal ``OAUTH_PROVIDERS`` entry for an IdP that is never called."""
+    return {
+        "name": name,
+        "icon": f"fa-{name}",
+        "token_key": "access_token",
+        "remote_app": {
+            "client_id": "client-id",
+            "client_secret": "client-secret",
+            "api_base_url": f"https://{name}.example.com/",
+            "access_token_url": f"https://{name}.example.com/token",
+            "authorize_url": f"https://{name}.example.com/authorize",
+        },
+    }
+
+
+SINGLE_OAUTH_PROVIDER = {
+    "AUTH_TYPE": AUTH_OAUTH,
+    "OAUTH_PROVIDERS": [_oauth_provider("google")],
+}
+MULTIPLE_OAUTH_PROVIDERS = {
+    "AUTH_TYPE": AUTH_OAUTH,
+    "OAUTH_PROVIDERS": [_oauth_provider("google"), _oauth_provider("github")],
+}
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+def test_login_page_redirects_to_single_oauth_provider(client: FlaskClient) -> None:
+    """With one OAuth provider there is nothing to pick: go straight to it."""
+    response = client.get("/login/?next=/superset/welcome/")
+
+    assert response.status_code == 302
+    location = urlsplit(response.headers["Location"])
+    assert location.path == "/login/google"
+    assert parse_qs(location.query) == {"next": ["/superset/welcome/"]}
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+def test_login_page_redirect_forwards_only_next(client: FlaskClient) -> None:
+    """Other query arguments are not forwarded to the provider login."""
+    response = client.get("/login/?_scheme=https&provider=github")
+
+    assert response.status_code == 302
+    location = urlsplit(response.headers["Location"])
+    assert location.path == "/login/google"
+    assert location.query == ""
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+def test_login_page_redirect_honors_script_root(client: FlaskClient) -> None:
+    """The provider login URL is built with ``url_for``, so it keeps the prefix."""
+    response = client.get("/login/", base_url="http://example.com/superset")
+
+    assert response.status_code == 302
+    assert urlsplit(response.headers["Location"]).path == "/superset/login/google"
+
+
+@pytest.mark.parametrize("app", [MULTIPLE_OAUTH_PROVIDERS], indirect=True)
+def test_login_page_renders_for_multiple_oauth_providers(
+    client: FlaskClient,
+) -> None:
+    """With several OAuth providers the login page lets the user choose."""
+    response = client.get("/login/?next=/superset/welcome/")
+
+    assert response.status_code == 200
+    assert "Location" not in response.headers
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+@pytest.mark.parametrize(
+    "flashed",
+    [
+        ("error", "The request to sign in was denied."),
+        ("warning", "Invalid login. Please try again."),
+    ],
+)
+def test_login_page_renders_pending_flash_for_single_oauth_provider(
+    client: FlaskClient, flashed: tuple[str, str]
+) -> None:
+    """A failed OAuth sign-in returns to the login page instead of the IdP.
+
+    Flask-AppBuilder's OAuth failure paths flash a message and redirect to
+    ``/login/``; redirecting again would loop back to the provider and hide
+    the message.
+    """
+    with client.session_transaction() as session:
+        session["_flashes"] = [flashed]
+
+    response = client.get("/login/")
+
+    assert response.status_code == 200
+    assert flashed[1].encode() in response.data
+    with client.session_transaction() as session:
+        assert "_flashes" not in session
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+def test_login_page_redirects_logged_out_deep_link_to_single_oauth_provider(
+    client: FlaskClient,
+) -> None:
+    """A logged-out deep link still goes straight to the only provider.
+
+    ``@has_access`` flashes "Access is Denied" before redirecting an anonymous
+    user to ``/login/?next=...``; that message must not keep the login page.
+    """
+    response = client.get("/dashboard/list/")
+    assert response.status_code == 302
+
+    response = client.get(response.headers["Location"])
+
+    assert response.status_code == 302
+    location = urlsplit(response.headers["Location"])
+    assert location.path == "/login/google"
+    assert parse_qs(location.query) == {"next": ["http://example.com/dashboard/list/"]}
+    with client.session_transaction() as session:
+        assert "_flashes" not in session
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+def test_login_page_renders_access_denied_with_other_flash(
+    client: FlaskClient,
+) -> None:
+    """Any message besides "Access is Denied" keeps the page and shows them all."""
+    with client.session_transaction() as session:
+        session["_flashes"] = [
+            ("danger", str(FLAMSG_ERR_SEC_ACCESS_DENIED)),
+            ("warning", "Invalid login. Please try again."),
+        ]
+
+    response = client.get("/login/")
+
+    assert response.status_code == 200
+    assert str(FLAMSG_ERR_SEC_ACCESS_DENIED).encode() in response.data
+    assert b"Invalid login. Please try again." in response.data
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+def test_login_page_redirects_authenticated_user_to_index(
+    app: SupersetApp, client: FlaskClient, mocker: MockerFixture
+) -> None:
+    """An authenticated user goes to the index, not to the OAuth provider."""
+    mocker.patch("superset.views.auth.g", user=MagicMock(is_authenticated=True))
+
+    response = client.get("/login/")
+
+    assert response.status_code == 302
+    with app.test_request_context():
+        index_url = app.appbuilder.get_url_for_index
+    assert urlsplit(response.headers["Location"]).path == index_url

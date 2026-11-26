@@ -333,7 +333,9 @@ def test_create_redis_store_ssl_uses_configured_ca_bundle() -> None:
     assert redis_ssl_context.cert_reqs == ssl.CERT_REQUIRED
 
 
-def test_create_redis_store_ssl_verification_can_be_disabled() -> None:
+def test_create_redis_store_ssl_verification_can_be_disabled(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Operators can opt out of verification explicitly with "none"."""
     client = _build_real_client(
         {
@@ -345,6 +347,7 @@ def test_create_redis_store_ssl_verification_can_be_disabled() -> None:
     context = _ssl_context(client)
     assert context.verify_mode == ssl.CERT_NONE
     assert context.check_hostname is False
+    assert "MCP Redis TLS certificate verification is disabled" in caplog.text
 
 
 def test_create_redis_store_rejects_unknown_cert_reqs() -> None:

@@ -23,25 +23,21 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import DetailsPanel from '.';
 
-const mockPopoverContentRef = {
-  current: {
-    focus: jest.fn(),
-  },
-} as unknown as RefObject<HTMLDivElement>;
+const mockTriggerFocus = jest.fn();
 
 const mockPopoverTriggerRef = {
   current: {
-    focus: jest.fn(),
+    focus: mockTriggerFocus,
   },
 } as unknown as RefObject<HTMLButtonElement>;
 
 const createProps = () => ({
   popoverVisible: true,
-  popoverContentRef: mockPopoverContentRef,
   popoverTriggerRef: mockPopoverTriggerRef,
   setPopoverVisible: jest.fn(),
   appliedCrossFilterIndicators: [
@@ -236,23 +232,7 @@ test('Close popover with ESC or ENTER', async () => {
   expect(props.setPopoverVisible).toHaveBeenCalledWith(false);
 });
 
-test('Popover container suppresses default browser focus outline', () => {
-  const props = createProps();
-  render(
-    <DetailsPanel {...props}>
-      <div>Content</div>
-    </DetailsPanel>,
-    { useRedux: true },
-  );
-
-  const menu = screen.getByRole('menu');
-  expect(menu).toHaveStyleRule('outline', 'none', { target: ':focus' });
-  expect(menu).toHaveStyleRule('outline', 'none', {
-    target: ':focus-visible',
-  });
-});
-
-test('Arrow key navigation switches focus between indicators', () => {
+test('Arrow key navigation switches focus between indicators', async () => {
   // Prepare props with two indicators
   const props = createProps();
 
@@ -278,29 +258,147 @@ test('Arrow key navigation switches focus between indicators', () => {
     { useRedux: true },
   );
 
+  // jsdom has no layout, so rc-menu's visibility check would skip every item
+  // when moving focus.
+  const offsetParentSpy = jest
+    .spyOn(HTMLElement.prototype, 'offsetParent', 'get')
+    .mockReturnValue(document.body);
+
   // Query the indicators
-  const firstIndicator = screen.getByRole('button', {
-    name: 'search Clinical Stage',
-  });
-  const secondIndicator = screen.getByRole('button', {
-    name: 'search Age Group',
-  });
+  const firstMenuItem = screen.queryByText('Clinical Stage')?.closest('li')!;
+  const secondMenuItem = screen.queryByText('Age Group')?.closest('li')!;
 
-  // Focus the first indicator
-  firstIndicator.focus();
-  expect(firstIndicator).toHaveFocus();
+  expect(firstMenuItem).toBeInTheDocument();
+  expect(secondMenuItem).toBeInTheDocument();
 
-  // Simulate ArrowDown key press
-  fireEvent.keyDown(document.activeElement as Element, {
+  firstMenuItem.focus();
+  expect(firstMenuItem).toHaveFocus();
+
+  // ArrowDown should move focus from the first indicator to the next one
+  fireEvent.keyDown(firstMenuItem, {
     key: 'ArrowDown',
     code: 'ArrowDown',
+    keyCode: 40,
+    which: 40,
   });
-  expect(secondIndicator).toHaveFocus();
+  await waitFor(() => expect(secondMenuItem).toHaveFocus());
 
-  // Simulate ArrowUp key press
-  fireEvent.keyDown(document.activeElement as Element, {
+  // ArrowUp should move focus back to the previous indicator
+  fireEvent.keyDown(secondMenuItem, {
     key: 'ArrowUp',
     code: 'ArrowUp',
+    keyCode: 38,
+    which: 38,
   });
-  expect(firstIndicator).toHaveFocus();
+  await waitFor(() => expect(firstMenuItem).toHaveFocus());
+
+  offsetParentSpy.mockRestore();
+});
+
+const createKeyboardProps = () => {
+  const props = createProps();
+  props.appliedCrossFilterIndicators = [
+    {
+      column: 'clinical_stage',
+      name: 'Clinical Stage',
+      value: [],
+      path: ['PATH_TO_CLINICAL_STAGE'],
+    },
+  ];
+  props.appliedIndicators = [];
+  props.onHighlightFilterSource = jest.fn();
+  mockTriggerFocus.mockClear();
+  return props;
+};
+
+test('Moves focus into the menu when the popover opens', async () => {
+  const offsetParentSpy = jest
+    .spyOn(HTMLElement.prototype, 'offsetParent', 'get')
+    .mockReturnValue(document.body);
+  const props = createKeyboardProps();
+
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  const menuItem = screen.getByText('Clinical Stage').closest('li')!;
+  await waitFor(() => expect(menuItem).toHaveFocus());
+
+  offsetParentSpy.mockRestore();
+});
+
+test('Enter on a focused menu item highlights its filter and closes the popover', async () => {
+  const props = createKeyboardProps();
+
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  const menuItem = screen.getByText('Clinical Stage').closest('li')!;
+  menuItem.focus();
+  fireEvent.keyDown(menuItem, {
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+    which: 13,
+  });
+
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
+    'PATH_TO_CLINICAL_STAGE',
+    'LABEL-clinical_stage',
+  ]);
+  expect(mockTriggerFocus).toHaveBeenCalled();
+  expect(props.setPopoverVisible).toHaveBeenLastCalledWith(false);
+});
+
+test('Clicking a menu item highlights its filter once and closes the popover', async () => {
+  const props = createKeyboardProps();
+
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByText('Clinical Stage'));
+
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
+    'PATH_TO_CLINICAL_STAGE',
+    'LABEL-clinical_stage',
+  ]);
+  expect(mockTriggerFocus).toHaveBeenCalled();
+  expect(props.setPopoverVisible).toHaveBeenLastCalledWith(false);
+});
+
+test('Escape in the menu returns focus to the trigger and closes the popover', async () => {
+  const props = createKeyboardProps();
+
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  const menuItem = screen.getByText('Clinical Stage').closest('li')!;
+  menuItem.focus();
+  fireEvent.keyDown(menuItem, {
+    key: 'Escape',
+    code: 'Escape',
+    keyCode: 27,
+    which: 27,
+  });
+
+  expect(mockTriggerFocus).toHaveBeenCalled();
+  expect(props.setPopoverVisible).toHaveBeenLastCalledWith(false);
+  expect(props.onHighlightFilterSource).not.toHaveBeenCalled();
 });
