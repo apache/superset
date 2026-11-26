@@ -24,6 +24,68 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
+
+- Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
+  Period Pivot, Nightingale Rose, Horizon, and Paired t-test charts instead of
+  returning misleading or empty data. This includes saved charts and their cached
+  chart images. Fresh dashboard images/PDFs include the refusal tile; old cached
+  dashboard images may show the old tile until expiry or regeneration. Use Line/Bar
+  for time series or Table with an explicit time dimension;
+  use an explicit count metric in Bar/Table for frequencies. Ordinary datasets
+  are unaffected.
+
+- Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
+  the caller cannot view it, rather than treating an access-filtered dashboard
+  as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
+  dashboards withheld by an `EXTRA_ACCESS_QUERY_EXCLUSIONS` hook and dashboards
+  outside an embedded guest token's scope. The legacy dashboard HTML entry also
+  returns 403 for authenticated callers denied access. Clients should handle
+  these responses separately; list endpoints continue to omit dashboards the
+  caller cannot access.
+
+- **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
+  authenticates the socket with a short-lived ticket from
+  `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The
+  `WEBSOCKET_JWT_COOKIE_NAME`, `WEBSOCKET_JWT_COOKIE_SECURE`,
+  `WEBSOCKET_JWT_COOKIE_SAMESITE` and `WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings
+  are removed, as is the websocket server's `jwtCookieName` option
+  (`JWT_COOKIE_NAME` environment variable); delete them from `superset_config.py`,
+  the websocket `config.json`, and container environments (they are ignored
+  otherwise). Upgrade the web application and the `superset-websocket` server
+  together: the new server refuses the previous cookie-based client, and the
+  previous server refuses the new ticket-based client, so while the versions are
+  mixed realtime updates stop and async charts waiting on the socket fail with
+  "Realtime connection unavailable". Reload open browser tabs after the upgrade.
+  Unauthenticated sockets are unlimited by default; setting
+  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) is recommended, see the
+  [websocket server README](superset-websocket/README.md).
+
+- Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
+
+- Semantic-layer connection updates that reuse masked credentials require a
+  usable provider configuration schema. Non-secret settings must stay unchanged
+  at every nesting depth, including dictionary keys. While any mask is retained,
+  every declared secret must also be masked or explicitly null; non-null explicit
+  secrets are refused even if they match the stored value. To rotate a credential
+  or change other settings, re-enter all credentials, including top-level ones.
+  Unavailable, ambiguous, or unsupported schemas require explicit credentials.
+  Provider `x-` UI annotations remain supported. Other unmodelled keywords,
+  including `contentMediaType`, `contentSchema`, `$schema`, `$id`, and `$comment`,
+  require explicit credentials on updates. The schema depth bound also counts
+  reference-sibling expansion. GET masking is unchanged and does not interpret
+  conditional-only secret declarations.
+  Name-only updates can omit configuration entirely.
+
+- MCP `list_metrics` returns a partial catalog for unscoped semantic-view discovery
+  refusals, with `incomplete: true` and `refused_views` containing safe view IDs.
+  No metrics from a refused view are included; counts and pages cover only usable
+  metrics. Clients must check `incomplete` before treating the catalog as complete.
+  Scoped `view_id` requests whose view refuses while loading metrics, columns or
+  compatible dimensions now return `AccessDenied` instead of success with a warning.
+  Ordinary provider failures also mark the catalog incomplete, retaining safe
+  warnings without refusal markers.
+
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass
   containment reuse. Larger rolled-up results fall back to
@@ -48,6 +110,17 @@ assists people when migrating to a new version.
   impersonation or embedded guest credentials), independently of the catalog
   dropdown cache settings. Resolved defaults and other unambiguous selections
   do not require this additional listing.
+
+- New config `ENCRYPTED_EXTRA_HINT_CHARS` (default `0`, off): when set above
+  zero, users who can edit a database can reveal the last characters of each
+  stored secret in its Secure extra, at most 25% of a value, through
+  `GET /api/v1/database/<pk>/encrypted_extra_hints/`. See
+  [Configuring Superset](docs/admin_docs/configuration/configuring-superset.mdx).
+  Whatever the setting, `engine_information` on the database endpoints gains
+  `encrypted_extra_sensitive_fields`, the engine's declared sensitive paths
+  and labels, and `GET /api/v1/database/<pk>/connection` lists the fields
+  stored in that database instead, plus `encrypted_extra_expirations`, when
+  each stored JWT expires.
 
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
@@ -92,7 +165,8 @@ assists people when migrating to a new version.
   import (HTTP 400, naming the missing fields) rather than stored and ignored while
   both embedding flags are enabled. Import also refuses a credential on a
   connection whose file turns **Impersonate logged in user** off and, with either
-  flag off, a new or changed credential, as the API does. Validation
+  flag off, a new or changed credential, as the API does. Import also refuses a key
+  pair that doesn't decode with its passphrase, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
   ID or secret counts as no client, and an update that would turn impersonation off
@@ -406,8 +480,11 @@ assists people when migrating to a new version.
   semantic view. Interactive dashboards retain unavailable semantic charts and
   continue rendering ordinary datasets. Dual-source MCP tools retain dataset
   access; unscoped metric listings omit semantic views. Legacy batch warm-up
-  reports a per-chart error for a disabled semantic chart and continues. Existing
-  permissions remain required when enabled. Run `superset init` during upgrade
+  reports a per-chart error for a disabled semantic chart and continues. Endpoint
+  permissions are checked before the flag: callers without access receive 401 or
+  403 in either state, and permitted callers receive 404 while the feature is
+  disabled. Automatic OPTIONS responses report allowed methods in either state
+  without executing a semantic handler. Run `superset init` during upgrade
   to register the existing semantic permissions even when the feature is off.
   Runtime flag hooks can enable the feature without another restart or permission
   sync; provider extensions must already be loaded. Do not target runtime
@@ -469,7 +546,12 @@ assists people when migrating to a new version.
 - Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
   to choose the default exposed temporal dimension for new charts. The declaration
   is optional; absent, unknown or non-temporal names retain the existing fallback.
-  Saved chart selections are preserved.
+  Explicit saved time bindings are preserved. Saved charts with omitted bindings
+  may adopt a newly declared default and change results without saving. An
+  explicit temporal filter does not prevent an omitted granularity from adopting
+  the default for independently supplied time-range bounds. No chart migration
+  or compatibility shim is applied. The provider conformance kit validates the
+  optional declaration and its stability across equivalent catalog reloads.
 
 ### Dashboard layout chart access
 
@@ -516,7 +598,7 @@ reattached to a reachable container by layout repair.
   enforcing completeness should raise the public
   `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
   results are incomplete or cannot be verified (an additive `apache-superset-core`
-  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  API added after 0.2.0; import it from `superset_core.semantic_layers.errors`,
   not the same-named host class in `superset.exceptions`); the host converts it to
   its client error, and these
   failures do not publish a successful async result cache key. A provider raising
@@ -1437,7 +1519,9 @@ completion transport for async chart-data — see the note on the interval poll)
 > When it is **enabled**, completion is delivered over the socket and the
 > recurring interval poll does not run; a one-shot `status_changes` catch-up on
 > waiter registration and on socket reconnect reconciles anything missed while
-> disconnected. The socket accelerates delivery over the authoritative
+> disconnected. A principal the ticket endpoint refuses (for example an embedded
+> guest whose role lacks `can_read Realtime`) gets no socket and falls back to the
+> interval poll. The socket accelerates delivery over the authoritative
 > `status_changes` API rather than replacing it: Redis Pub/Sub is best-effort
 > (at-most-once, no replay), so a disconnect is reconciled by the catch-up on
 > reconnect/registration. In the rare case a `task.status` is missed while the
@@ -1455,14 +1539,26 @@ WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
 The built-in Gamma role receives `can_read Realtime`; grant that permission to
 custom roles that should receive websocket notifications.
 
-Run the `superset-websocket` Node server on the **same browser-visible host**
-(so its JWT channel cookie is shared) and point its `redis` config at the same
-instance as `DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` /
-`jwtCookieName` matching the Flask config (`WEBSOCKET_JWT_SECRET` /
-`WEBSOCKET_JWT_COOKIE_NAME`, default `superset-ws-token`). During websocket JWT
+Run the `superset-websocket` Node server where browsers can reach it and point
+its `redis` config at the same instance as `DISTRIBUTED_COORDINATION_CONFIG`,
+plus a `jwtSecret` matching the Flask config (`WEBSOCKET_JWT_SECRET`). The
+browser authenticates with a short-lived connection ticket fetched from
+`GET /api/v1/realtime/token/` and sent as the first frame of the socket, then
+refreshes it on the open socket before it expires, so the server no longer needs
+to share a host with the web application and no credential rides the handshake or
+the URL. Upgrade the web servers and the websocket servers together, and reload
+open browser tabs: a tab still running the previous cookie-based client is
+refused by the new server (it closes the socket after the 10 second auth
+timeout, repeatedly) until it is reloaded, and the same applies to replicas rolled
+at different times. The `WEBSOCKET_JWT_COOKIE_NAME`,
+`WEBSOCKET_JWT_COOKIE_SECURE`, `WEBSOCKET_JWT_COOKIE_SAMESITE` and
+`WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings and the websocket server's
+`jwtCookieName` / `JWT_COOKIE_NAME` option are removed. During websocket JWT
 secret rotation, set the websocket server's `previousJwtSecret` /
-`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting cookies with
-`WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
+`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting tickets with
+`WEBSOCKET_JWT_SECRET`. After a logout or session revocation, an open socket stays
+authenticated until its current ticket expires, because the next refresh fails.
+The server is bundled in the official Superset image
 and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
 opt-in `websocket` profile in `docker compose`). It **subscribes** to a single
@@ -1725,6 +1821,12 @@ unversioned external member overrides cannot borrow a chart's version. Recreate
 old dashboard permalink/filter state after reselection. Cross-view overlays are
 rejected unless their source identity matches the receiving semantic view;
 matching display titles are not proof of matching members.
+
+Time comparison is unsupported on semantic views, including relative shifts,
+inherited ranges and custom start dates. Remove the time shift from affected
+charts to query them. The host refuses these queries before reading cached
+results because comparisons could return incorrect values. Ordinary semantic
+queries and SQL-dataset time comparisons are unchanged.
 
 Dynamic group-by display controls are unsupported on versioned semantic views,
 including Cube. Remove those charts from the control's scope; resetting or
@@ -1991,7 +2093,9 @@ Behavior changes to be aware of:
   fail fast at the first phase check rather than erroring at setup.
 - Dashboard reports whose charts have not mounted are no longer captured
   blank: readiness is polled until the deadline, and the report fails loudly
-  if charts never mount. Large tiled reports also retry Chromium screenshot
+  if charts never mount. A dashboard whose layout never renders keeps the
+  whole report budget; once the layout has rendered with zero chart holders
+  mounted, the wait is bounded by `SCREENSHOT_LOAD_WAIT`. Large tiled reports also retry Chromium screenshot
   stalls and suspicious uniform tiles, while persistent screenshot timeouts
   fail loudly. Large tiled thumbnails use the same bounded retries, but retain
   their previous failure contract after a persistent timeout.

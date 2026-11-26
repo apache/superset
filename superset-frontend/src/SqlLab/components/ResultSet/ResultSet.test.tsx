@@ -1207,4 +1207,40 @@ describe('ResultSet', () => {
     });
     expect(queryByText('apple')).toBeInTheDocument();
   });
+
+  test('opens long text values in a modal from the results grid', async () => {
+    setupAGGridModules();
+    const longLog = `${'error detail '.repeat(15)}end`;
+    const longTextQuery = {
+      ...queries[0],
+      id: 'longTextQueryId',
+      cached: false,
+      results: {
+        columns: [{ is_dttm: false, column_name: 'log', type: 'STRING' }],
+        selected_columns: [
+          { is_dttm: false, column_name: 'log', type: 'STRING' },
+        ],
+        data: [{ log: longLog }],
+      },
+    };
+    const { findByTestId } = setup(
+      { ...mockedProps, cache: false, queryId: longTextQuery.id },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [longTextQuery.id]: longTextQuery,
+          },
+        },
+      }),
+    );
+
+    const trigger = await findByTestId('span-modal-trigger');
+    fireEvent.click(trigger);
+    expect(await findByTestId('text-modal-body')).toHaveTextContent(
+      longLog.trim(),
+    );
+  });
 });

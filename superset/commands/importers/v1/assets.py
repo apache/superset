@@ -34,7 +34,11 @@ from superset.commands.dashboard.importers.v1.utils import (
 )
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
-from superset.commands.exceptions import CommandInvalidError, ImportFailedError
+from superset.commands.exceptions import (
+    CommandInvalidError,
+    ForbiddenError,
+    ImportFailedError,
+)
 from superset.commands.importers.v1.utils import (
     get_resource_mappings_batched,
     import_tag,
@@ -73,7 +77,7 @@ def _on_import_error(ex: Exception) -> None:
     An ``ImportFailedError`` names what the bundle must change, e.g. a secret it
     must provide; re-raising it bare would leave only "unknown reason".
     """
-    if isinstance(ex, (SemanticReferenceError, ImportFailedError)):
+    if isinstance(ex, (SemanticReferenceError, ImportFailedError, ForbiddenError)):
         raise ex
     on_error(ex, catches=(Exception,), reraise=ImportFailedError)
 

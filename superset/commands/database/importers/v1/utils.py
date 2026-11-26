@@ -25,13 +25,19 @@ from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.utils import (
     add_permissions,
     import_connection_identity_changed,
+    rename_database_in_permissions,
     ssh_tunnel_rebind_unsafe,
 )
-from superset.commands.exceptions import ImportFailedError, ImportRefusedError
+from superset.commands.exceptions import (
+    ForbiddenError,
+    ImportFailedError,
+    ImportRefusedError,
+)
 from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.schemas import embedded_credentials_stranded
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import (
+    embedded_credentials_error,
     embedded_credentials_incomplete,
     embedded_credentials_missing_fields,
     embedded_credentials_present,
@@ -218,13 +224,37 @@ def _refuse_incomplete_embedded_credentials(
     )
 
 
+def _refuse_unreadable_embedded_key(
+    database_name: str,
+    encrypted_extra: dict[str, Any],
+    engine_spec: type[BaseEngineSpec],
+) -> None:
+    """
+    Refuse an imported embedded credential the engine can't use, as the API does.
+
+    ``encrypted_extra`` has its masked secrets already revealed, so a key pair is
+    decoded with the passphrase it will actually be stored with.
+    """
+    if not (
+        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+        and is_feature_enabled("EMBEDDED_SUPERSET")
+    ):
+        return
+    credentials = encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY)
+    if message := embedded_credentials_error(engine_spec, credentials, None):
+        raise ImportRefusedError(
+            f"Embedded guest credentials of database '{database_name}' "
+            f"can't be used. {message}"
+        )
+
+
 def _sync_permissions_best_effort(database: Database) -> None:
     """
     Sync catalog/schema permissions for ``database``, tolerating a transient
     or OAuth2 failure rather than letting it fail the import.
     """
     try:
-        add_permissions(database)
+        add_permissions(database, commit=False)
     except (SupersetDBAPIError, OAuth2RedirectError) as ex:
         # ``add_permissions()`` calls ``get_all_catalog_names()`` outside of
         # its own per-catalog error handling, so any DBAPI error mapped from
@@ -244,6 +274,7 @@ def import_database(  # noqa: C901
         "Database",
     )
     existing = db.session.query(Database).filter_by(uuid=config["uuid"]).first()
+    old_database_name = existing.database_name if existing else None
     if existing:
         if not overwrite or not can_write:
             if can_write:
@@ -263,7 +294,7 @@ def import_database(  # noqa: C901
         # new endpoint on the next connection.
         _refuse_stored_secret_reuse(existing, config)
     elif not can_write:
-        raise ImportFailedError(
+        raise ForbiddenError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
     # Check if this URI is allowed (skip for system imports like examples)
@@ -336,6 +367,9 @@ def import_database(  # noqa: C901
             _refuse_incomplete_embedded_credentials(
                 config["database_name"], payload, engine_spec
             )
+            _refuse_unreadable_embedded_key(
+                config["database_name"], payload, engine_spec
+            )
 
     _refuse_unusable_embedded_credentials(config, existing, engine_spec)
 
@@ -349,6 +383,12 @@ def import_database(  # noqa: C901
 
     if database.id is None:
         db.session.flush()
+
+    if old_database_name and old_database_name != database.database_name:
+        # The rename hook of the database model rewrites the database and dataset
+        # permissions on flush, but not the schema and catalog ones.
+        db.session.flush()
+        rename_database_in_permissions(database, old_database_name)
 
     if ssh_tunnel_config:
         ssh_tunnel_config["database_id"] = database.id

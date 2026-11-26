@@ -25,6 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+import re
 from collections.abc import Callable
 from decimal import Decimal
 from functools import partial
@@ -43,6 +44,7 @@ from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
     extract_dataframe_dtypes,
+    GenericDataType,
     get_column_names,
     get_metric_name,
     get_metric_names,
@@ -77,6 +79,32 @@ EXCEL_PERCENT_FORMAT = "0.0%"
 # ``VizType.TableAgGrid``. The AG Grid table plugin reuses the Table plugin's
 # column meta and formatter selection, so it shares this post-processor.
 AG_GRID_TABLE = "ag-grid-table"
+
+# ``strftime`` copies a directive it does not recognize into its output
+# verbatim, so a d3-only one would reach the report as literal text: ``%L`` and
+# ``%q`` stay ``%L`` and ``%q`` rather than becoming milliseconds and a quarter.
+# These are the directives that carry the same meaning in d3-time-format and in
+# ``strftime``. Left out are:
+#
+# * the ones that name a weekday, a month or a period (``%a``, ``%A``, ``%b``,
+#   ``%B``, ``%p``). The browser reads those names from the d3 locale
+#   definition, which ``D3_TIME_FORMAT`` overrides key by key, while
+#   ``strftime`` reads them from the worker's ``LC_TIME``. The two agree only
+#   when nothing is configured and the worker runs in English.
+# * the locale-composite ones (``%c``, ``%x``, ``%X``), whose output follows
+#   the server's locale rather than the chart's.
+# * ``%f``. d3 derives it from ``getUTCMilliseconds() * 1000``, so the browser's
+#   microseconds always end in ``000``, while a warehouse column with sub-second
+#   precision reaches ``strftime`` with the real value.
+# * the platform-dependent or d3-only ones (``%e``, ``%g``, ``%L``, ``%q``,
+#   ``%Q``, ``%s``, ``%Z``, ``%z``).
+SHARED_TIME_DIRECTIVES = frozenset("dGHIjmMSuUVwWyY%")
+
+# ``time-format/TimeFormats.ts::LOCAL_PREFIX``. The browser's registry removes
+# this marker from the format and formats in the viewer's own time zone instead
+# of UTC, which the server has no way to reproduce: its own zone is not the
+# viewer's. A format carrying it is left to the browser.
+LOCAL_TIME_PREFIX = "local!"
 
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
@@ -662,6 +690,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             df.replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
         for level in range(df.columns.nlevels):
             subgroups = {group[:level] for group in groups}
+            subtotals: dict[tuple[Any, ...], pd.Series] = {}
+            positions: list[tuple[int, tuple[Any, ...]]] = []
             for subgroup in subgroups:
                 slice_ = df.columns.get_loc(subgroup)
                 block = df.iloc[:, slice_]
@@ -684,14 +714,37 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 depth = df.columns.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
-                # insert column after subgroup
-                df.insert(int(slice_.stop), subtotal_name, subtotal)
+                subtotals[subtotal_name] = subtotal
+                positions.append((int(slice_.stop), subtotal_name))
                 inserted_columns.append(subtotal_name)
                 if mixed_metrics:
                     mixed_metric_totals.append(subtotal_name)
                 column_prefix_depth[subtotal_name] = (
                     level if combine_metrics else max(0, level - 1)
                 )
+
+            if not subtotals:
+                continue
+            # Batch each level so adding many subtotals does not fragment the
+            # frame. Deeper levels still see the preceding levels' totals.
+            # Preserve level ordering: rebuilding from tuples can make this
+            # unsorted and trigger lexsort PerformanceWarnings on prefix lookup.
+            # Place values by position: Index.insert can coerce the empty
+            # padding of a temporal label to NaT, which label lookup would miss.
+            width = df.shape[1]
+            column_order = df.columns
+            take = list(range(width))
+            for offset, (position, name) in sorted(
+                enumerate(positions), key=lambda item: item[1][0], reverse=True
+            ):
+                if name in df.columns:
+                    raise ValueError(f"cannot insert {name}, already exists")
+                column_order = column_order.insert(position, name)
+                take.insert(position, width + offset)
+            subtotal_frame = pd.DataFrame(subtotals, index=df.index)
+            df = pd.concat([df, subtotal_frame], axis=1, ignore_index=True)
+            df = df.iloc[:, take]
+            df.columns = column_order
 
     if rows and show_columns_total:
         # add subtotal for each group and overall total; we start from the
@@ -952,6 +1005,61 @@ def is_small_number(value: Any) -> bool:
     if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
         return False
     return abs(float(value)) < 1
+
+
+def is_strftime_expressible(d3_time_format: str) -> bool:
+    """Whether ``strftime`` renders a d3 time format the way the browser does."""
+    if LOCAL_TIME_PREFIX in d3_time_format:
+        # ``TimeFormatterRegistry.get`` strips the marker before building the
+        # formatter, so leaving it in would render it as literal text.
+        return False
+    directives = re.findall(r"%(.)", d3_time_format)
+    if not directives:
+        # Nothing for ``strftime`` to substitute, so it hands the string back
+        # unchanged and every cell would read the format itself. This is also
+        # what rejects the aliases the time format controls offer, which the
+        # browser resolves to a formatter that picks a representation per value
+        # rather than to a format string: ``smart_date`` ("Adaptive
+        # formatting", ``SMART_DATE_ID`` in ``superset-ui-core/time-format``)
+        # among them.
+        return False
+    if "%" in re.sub(r"%.", "", d3_time_format):
+        # A ``%`` no directive consumed, as the trailing one in ``%Y%``. d3
+        # drops it (``2021``) and ``strftime`` copies it (``2021%``), so the
+        # two disagree even where every directive is shared. ``%%`` is not
+        # this case: both read it as one escaped ``%``.
+        return False
+    return all(directive in SHARED_TIME_DIRECTIVES for directive in directives)
+
+
+def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> None:
+    """Format a temporal column in place with an explicit d3 time format.
+
+    The caller gates this on ``is_strftime_expressible``, so every directive in
+    ``d3_time_format`` means the same thing here as it does in the browser, and
+    strips the format first, because ``TimeFormatterRegistry.get`` trims before
+    it builds the formatter. ``str.strip`` is not character-for-character
+    ``String.prototype.trim``: a leading ``U+FEFF`` is trimmed in the browser
+    and kept here, and ``U+001C``-``U+001F`` and ``U+0085`` the other way
+    round. None of them is a directive, so a format carrying one renders apart
+    from the chart by that character alone.
+
+    A null is left as it is. Without the ``pd.notna`` guard it would not come
+    out as the string ``"NaT"``: ``pd.NaT.strftime`` raises ``ValueError:
+    NaTType does not support strftime``, so a single missing timestamp would
+    fail the whole report.
+
+    An aware value is read in UTC. ``createD3TimeFormatter`` builds the
+    formatter with ``utcFormat`` unless the format asks for local time, which
+    ``is_strftime_expressible`` rejects, whereas ``strftime`` would use the
+    value's own offset and put a different instant in the report.
+    """
+    values = df[column]
+    if isinstance(values.dtype, pd.DatetimeTZDtype):
+        values = values.dt.tz_convert("UTC")
+    df[column] = values.apply(
+        lambda value: value.strftime(d3_time_format) if pd.notna(value) else value
+    )
 
 
 def format_column(
@@ -1399,6 +1507,282 @@ def apply_pivot_number_formats(
     return df.T if metrics_on_rows else df
 
 
+def time_comparison_shifts(form_data: dict[str, Any]) -> list[Any]:
+    """The saved time shifts, as ``ensureIsArray`` reads them."""
+    shifts = form_data.get("time_compare")
+    if shifts is None:
+        return []
+    if isinstance(shifts, (list, tuple)):
+        return list(shifts)
+    return [shifts]
+
+
+def is_using_time_comparison(form_data: dict[str, Any]) -> bool:
+    """
+    Whether the Table plugins derive time-comparison columns.
+
+    Mirrors ``isUsingTimeComparison`` in
+    ``plugin-chart-table/src/transformProps.ts``, which the AG Grid plugin
+    repeats verbatim. Both conditions after the shift are read straight off the
+    form data: ``transformProps`` does not infer ``query_mode`` the way
+    ``buildQuery`` does, and ``comparison_type``'s ``values`` default lives in
+    the control rather than in the chart code, so a chart that saved neither
+    derives nothing in the browser either.
+    """
+    return bool(
+        time_comparison_shifts(form_data)
+        and form_data.get("query_mode") == "aggregate"
+        and form_data.get("comparison_type") == "values"
+    )
+
+
+def comparison_suffix(form_data: dict[str, Any]) -> Optional[str]:
+    """
+    The offset whose columns the derivation reads, or ``None`` for no shift.
+
+    Mirrors ``timeOffsets[0]``: the shifts naming a period come first in the
+    order they were saved, a ``custom`` shift contributes its start date and an
+    ``inherit`` shift the literal ``inherit``, and only the first entry is read.
+    """
+    shifts = time_comparison_shifts(form_data)
+    offsets: list[Any] = [
+        shift for shift in shifts if shift not in ("custom", "inherit")
+    ]
+    if "custom" in shifts:
+        offsets.append(form_data.get("start_date_offset"))
+    if "inherit" in shifts:
+        offsets.append("inherit")
+    if not offsets:
+        return None
+    # The offset is interpolated into a template string before
+    # ``String.prototype.includes`` ever sees it, so a ``custom`` shift saved
+    # without a start date is compared as the text ``undefined`` rather than
+    # suppressing the derivation. It matches no column, every comparison value
+    # reads as zero, and that is what the browser shows.
+    return "undefined" if offsets[0] is None else str(offsets[0])
+
+
+def comparison_value(value: Any) -> Any:
+    """
+    A comparison operand with the browser's ``|| 0`` applied.
+
+    Every read in ``processComparisonDataRecords`` is ``|| 0``, so a null, a
+    missing column and a NaN are all zero before any branch inspects the
+    operand. ``bool(float("nan"))`` is ``True`` in Python while ``NaN`` is
+    falsy in JavaScript, which is why the coercion cannot be left to ``or``.
+    """
+    return 0 if value is None or pd.isna(value) else value
+
+
+def percent_difference(original: Any, comparison: Any) -> float:
+    """
+    ``calculateDifferences``' percent difference, which is a ratio not a percent.
+
+    A zero operand short-circuits to a whole step in one direction rather than
+    dividing, and the denominator is an absolute value, so a positive metric
+    against a negative comparison grows the ratio instead of flipping its sign.
+    """
+    if not original and not comparison:
+        return 0
+    if not original or not comparison:
+        return 1 if original else -1
+    return (original - comparison) / abs(comparison)
+
+
+def holds_only_numbers(series: pd.Series) -> bool:
+    """
+    Whether every value is a number or null, as ``isNumeric`` decides it.
+
+    ``transformProps`` treats a column as a metric only when ``typeof`` says
+    each of its values is a number, nulls apart, so a metric returning strings
+    is presented as a plain column instead. ``is_numeric_dtype`` answers a
+    different question and disagrees in both directions: it is true of a
+    boolean column, which ``typeof`` calls a boolean, and false of an all-null
+    object column, which has no value to disqualify it.
+    """
+    for value in series:
+        if value is None:
+            continue
+        # A list or an array is ruled out before ``pd.isna`` is asked about it,
+        # because the answer comes back elementwise and more than one element
+        # has no single truth value. ``typeof`` calls such a cell an object,
+        # which is not a number either way.
+        if pd.api.types.is_list_like(value):
+            return False
+        if pd.isna(value):
+            continue
+        if isinstance(value, bool) or isinstance(value, np.bool_):
+            return False
+        if not isinstance(value, (int, float, Decimal, np.integer, np.floating)):
+            return False
+    return True
+
+
+def comparison_column_config(
+    label: str,
+    parent: str,
+    column_config: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    The per-column overrides saved against a derived column.
+
+    Mirrors ``getComparisonColConfig``. The Main column is looked up three ways
+    because its label is translated: a config saved while the browser ran in
+    another locale is keyed by that locale's word, and the untranslated ``Main``
+    is tried as well.
+    """
+    keys = [f"{label} {parent}"]
+    if label in ("Main", __("Main")):
+        keys += [f"Main {parent}", f"{__('Main')} {parent}"]
+    for key in keys:
+        if column_config.get(key):
+            return column_config[key]
+    return {}
+
+
+def comparison_column_format(
+    label: str,
+    name: Any,
+    column_config: dict[str, Any],
+    parent_config: dict[str, Any],
+    parent_saved_format: Optional[str],
+    parent_saved_currency: dict[str, Any],
+    parent_is_percent_metric: bool,
+) -> tuple[Optional[str], dict[str, Any]]:
+    """
+    The number format and currency a derived column is rendered with.
+
+    Mirrors ``getComparisonColFormatter``, which resolves each of the four
+    separately: a format or currency saved against one of them applies to that
+    one alone, and the others fall back to the parent metric's own formatter.
+
+    A format configured anywhere above the ``%`` column is applied to it as it
+    stands, because that column holds a ratio rather than a percentage, and
+    only its default scales one. The fallback to the parent reaches the
+    parent's ``column_config`` but not its saved datasource format, so the two
+    ways of formatting a metric do not agree on what the percent column shows.
+    """
+    own_config = comparison_column_config(label, name, column_config)
+    own_currency = own_config.get("currencyFormat") or {}
+    number_format = own_config.get("d3NumberFormat") or parent_config.get(
+        "d3NumberFormat"
+    )
+
+    if label == "%":
+        return number_format or PERCENT_3_POINT, {}
+
+    if number_format or own_currency.get("symbol"):
+        return (
+            number_format or parent_saved_format,
+            own_config.get("currencyFormat") or parent_saved_currency,
+        )
+
+    parent_format = parent_config.get("d3NumberFormat") or parent_saved_format
+    if parent_is_percent_metric:
+        # A percent metric's formatter carries no currency, and everything
+        # derived from it inherits that.
+        return parent_format or PERCENT_3_POINT, {}
+
+    parent_currency = (
+        parent_config["currencyFormat"]
+        if (parent_config.get("currencyFormat") or {}).get("symbol")
+        else parent_saved_currency
+    )
+    if not parent_format and not parent_currency.get("symbol"):
+        # Only a metric gets a default formatter, and SMART_NUMBER is what
+        # ``getNumberFormatter`` answers an unset format with.
+        parent_format = SMART_NUMBER
+    return parent_format, parent_currency
+
+
+def derive_comparison_columns(
+    df: pd.DataFrame,
+    suffix: str,
+    metric_labels: set[str],
+    percent_metric_labels: set[str],
+    raw_by_label: dict[Any, Any],
+    numeric_coltypes: set[Any],
+) -> tuple[pd.DataFrame, dict[Any, tuple[str, Any, Any]]]:
+    """
+    Replace each comparison metric with the four columns the chart shows.
+
+    Mirrors ``processComparisonColumns`` and ``processComparisonDataRecords``
+    taken together, which agree on what survives:
+
+    * a column whose name contains the offset is dropped. That is a substring
+      test rather than a suffix one, and it is applied to dimensions as well,
+      so a column whose own name happens to contain the offset's text goes
+      with the offset's columns.
+    * a metric or percent metric the offset does not name, holding numbers, is
+      replaced in place by ``Main``, ``#``, ``△`` and ``%``.
+    * a metric whose values are not numbers is not treated as a metric at all
+      and survives as a plain column, while a percent metric that is not
+      numeric is dropped, having no such branch to fall into.
+    * everything else keeps the position it arrived in.
+
+    Columns belonging to a second or later shift are left exactly as they came,
+    because only the first offset is ever read.
+
+    The returned mapping says, for each derived column, which of the four it is
+    and which column it came from, since both decide how it is formatted.
+    """
+    main = __("Main")
+    order: list[Any] = []
+    columns: dict[Any, Any] = {}
+    derived: dict[Any, tuple[str, Any, Any]] = {}
+
+    for column in df.columns:
+        name = raw_by_label.get(column, column)
+        if suffix in str(name):
+            continue
+
+        is_metric = column in metric_labels and holds_only_numbers(df[column])
+        is_percent_metric = column in percent_metric_labels
+
+        if (is_metric or is_percent_metric) and column in numeric_coltypes:
+            original = df[column].map(comparison_value)
+            # A percent metric is emitted under a ``%``-prefixed label and its
+            # offset column carries that prefix too, so appending the offset to
+            # the name already in the frame finds either kind.
+            companion = f"{name}__{suffix}"
+            # An offset column holding anything but numbers cannot be
+            # subtracted from the metric, so it is read as absent, which is
+            # the zero the browser's ``|| 0`` already gives a comparison value
+            # that is not there. The two columns are one metric over two
+            # windows, so a query cannot really return them with different
+            # types, but the arithmetic below raises rather than coerces the
+            # way JavaScript would, and a report must not fail over it.
+            comparison = (
+                df[companion].map(comparison_value)
+                if companion in df.columns and holds_only_numbers(df[companion])
+                else pd.Series(0, index=df.index)
+            )
+            ratios = pd.Series(
+                [
+                    percent_difference(left, right)
+                    for left, right in zip(original, comparison, strict=True)
+                ],
+                index=df.index,
+            )
+            for label, series in (
+                (main, original),
+                ("#", comparison),
+                ("△", original - comparison),
+                ("%", ratios),
+            ):
+                derived_name = f"{label} {column}"
+                order.append(derived_name)
+                columns[derived_name] = series
+                derived[derived_name] = (label, name, column)
+            continue
+
+        if not is_metric and not is_percent_metric:
+            order.append(column)
+            columns[column] = df[column]
+
+    return pd.DataFrame(columns, columns=order, index=df.index), derived
+
+
 def table(
     df: pd.DataFrame,
     form_data: dict[str, Any],
@@ -1450,6 +1834,53 @@ def table(
         if f"%{name}" in df.columns
     }
 
+    # The chart does not render a comparison query's metric and offset columns.
+    # It replaces each metric with the four columns the derivation produces, so
+    # a report that leaves the frame as the query returned it shows neither the
+    # same columns nor the same numbers.
+    derived_columns: dict[Any, tuple[str, Any, Any]] = {}
+    if is_using_time_comparison(form_data) and (suffix := comparison_suffix(form_data)):
+        # The derivation reads the offset off the column names, which are the
+        # query's own labels, while the frame has been renamed to the verbose
+        # ones. Only a rename that happened is inverted: a verbose label that
+        # is also some other column's query label is left alone, the same
+        # hazard ``apply_client_processing`` avoids when it renames.
+        raw_by_label = {
+            label: name
+            for name, label in verbose_map.items()
+            if label in df.columns and name not in df.columns
+        }
+        # ``isNumeric`` on a column is the generic type the backend sent with
+        # the results, and ``query_actions`` builds that from
+        # ``extract_dataframe_dtypes``, so asking the same function the same
+        # question answers it the way the browser was answered. It reads the
+        # datasource's own column and metric types for a column it can name,
+        # which is why it is asked about the query's labels rather than the
+        # verbose ones the frame carries.
+        numeric_coltypes = {
+            column
+            for column, coltype in zip(
+                df.columns,
+                extract_dataframe_dtypes(
+                    df.set_axis(
+                        [raw_by_label.get(column, column) for column in df.columns],
+                        axis=1,
+                    ),
+                    datasource,
+                ),
+                strict=True,
+            )
+            if coltype == GenericDataType.NUMERIC
+        }
+        df, derived_columns = derive_comparison_columns(
+            df,
+            suffix,
+            metric_labels,
+            percent_metric_labels,
+            raw_by_label,
+            numeric_coltypes,
+        )
+
     # Mirror the Table plugin's per-column formatter selection in
     # ``plugin-chart-table/src/transformProps.ts``: percent metrics default to
     # PERCENT_3_POINT, every (numeric) metric gets a formatter that defaults to
@@ -1457,7 +1888,52 @@ def table(
     # format or currency is configured. Dimension and non-numeric columns are
     # left untouched, matching the browser.
     for column in df.columns:
+        if column in derived_columns:
+            label, name, parent = derived_columns[column]
+            format_column(
+                df,
+                column,
+                *comparison_column_format(
+                    label,
+                    name,
+                    column_config,
+                    config_by_label.get(parent) or {},
+                    number_format_by_label.get(parent),
+                    currency_by_label.get(parent) or {},
+                    parent in percent_metric_labels,
+                ),
+                detected_currency,
+                row_currency_context,
+                fallback_to_detected=False,
+            )
+            continue
+
         config = config_by_label.get(column) or {}
+
+        # Mirror the Table plugin's first formatter branch
+        # (``if (isTime || config.d3TimeFormat)`` in ``transformProps.ts``):
+        # an explicit per-column ``d3TimeFormat`` formats a temporal column and
+        # takes precedence over number formatting. Scoped to a datetime column
+        # carrying a format every directive of which ``strftime`` reads the same
+        # way. A column of another dtype has no ``strftime`` to call, and the
+        # bare ``isTime`` fallback, the ``tableTimestampFormat`` default,
+        # adaptive granularity and string temporal columns are left to a
+        # follow-up: they need a full server-side d3-time-format port rather
+        # than ``strftime``.
+        # ``TimeFormatterRegistry.get`` trims the format before building the
+        # formatter while d3 itself does not, so ``utcFormat(" %Y ")`` returns
+        # ``" 2024 "`` and without the strip the report keeps padding the chart
+        # dropped. One that is only whitespace strips to empty and falls
+        # through unformatted, like one whose directives cannot be reproduced.
+        time_format = (config.get("d3TimeFormat") or "").strip()
+        if (
+            time_format
+            and is_strftime_expressible(time_format)
+            and pd.api.types.is_datetime64_any_dtype(df[column])
+        ):
+            format_time_column(df, column, time_format)
+            continue
+
         configured_currency = config.get("currencyFormat") or {}
         # The small-number formatter is built from this object whether or not a
         # symbol survived in it, so an absent one has to stay distinguishable
@@ -1529,6 +2005,16 @@ def table(
 post_processors = {
     "pivot_table_v2": pivot_table_v2,
     "table": table,
+    # The AG Grid table plugin picks each column's formatter with the Table
+    # plugin's ``transformProps`` logic and the same ``column_config`` keys:
+    # ``d3NumberFormat``, then the saved format, then the currency, then
+    # PERCENT_3_POINT or SMART_NUMBER. That selection is what the two plugins
+    # share, so a report on one is formatted by the same post-processor. The
+    # cells themselves are painted by the AG Grid ``valueFormatter``, which
+    # calls the column's own formatter; ``formatColumnValue`` only labels
+    # drill-to-detail. The query-building side pairs the two viz types the same
+    # way.
+    AG_GRID_TABLE: table,
 }
 
 
@@ -1570,6 +2056,44 @@ def _read_excel_for_client_processing(
     return df.set_index(first_column)
 
 
+def payload_coltypes(
+    df: pd.DataFrame,
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> list[GenericDataType]:
+    """The payload's column types, reporting a text-rendered column as text.
+
+    ``extract_dataframe_dtypes`` lets the dataset's ``is_dttm`` flag decide the
+    type, so a temporal column a post-processor has rendered as text is still
+    reported as ``TEMPORAL``. ``chart_data_to_dataframe`` casts every
+    ``TEMPORAL`` column back to ``datetime64[ms]`` to build the notification
+    table, which would re-parse those strings and lose the configured format,
+    and would read ``02/01/2024`` month-first while reading ``15/01/2024``
+    day-first.
+
+    Only a column whose values really are strings is reported differently. The
+    XLSX path hands these types to ``apply_column_types`` to get date cells out
+    of a frame whose dates are still dates, and that frame is untouched here.
+
+    Nulls are dropped before the values are read. ``format_time_column`` leaves
+    them in place, and ``infer_dtype`` counts a ``NaT`` as a value of its own
+    type rather than one ``skipna`` drops, so it calls a formatted column
+    holding one ``"mixed"``. A column of nothing but nulls reads as neither
+    text nor mixed and keeps whatever type the dataset gives it.
+
+    The index is positional because ``extract_dataframe_dtypes`` walks the
+    frame the same way, so the two line up even where a label repeats.
+    """
+    coltypes = extract_dataframe_dtypes(df, datasource)
+    return [
+        GenericDataType.STRING
+        if coltype == GenericDataType.TEMPORAL
+        and pd.api.types.infer_dtype(df.iloc[:, index].dropna(), skipna=False)
+        == "string"
+        else coltype
+        for index, coltype in enumerate(coltypes)
+    ]
+
+
 @event_logger.log_this
 def apply_client_processing(  # noqa: C901
     result: dict[Any, Any],
@@ -1589,6 +2113,30 @@ def apply_client_processing(  # noqa: C901
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Result format {query['result_format']} not supported"
             )
+
+        if (
+            viz_type == AG_GRID_TABLE
+            and query["result_format"] != ChartDataResultFormat.JSON
+        ):
+            # Only a JSON result is rewritten for this viz type, so for CSV and
+            # XLSX everything below is work whose output nothing reads.
+            # ``query["data"]`` goes back out as it came in, and the
+            # ``colnames``/``coltypes``/``rowcount`` the parse would set have no
+            # reader for these formats: ``apply_column_types`` is in the XLSX
+            # branch this viz type never reaches, and the notification table
+            # fetches its own JSON result rather than reading them off an
+            # attachment.
+            #
+            # Parsing anyway can only lose. ``read_csv`` below is handed ``sep``
+            # and ``decimal`` but not the ``quotechar``, ``quoting``,
+            # ``escapechar`` or ``lineterminator`` the writer took from
+            # ``CSV_EXPORT``, so under a custom quote a cell holding the
+            # separator splits: it raises ``ParserError`` and fails the report
+            # where the row is not the first, and where it is, the extra field
+            # is read as an index and the value lands in the wrong column. A
+            # large workbook also spends seconds in ``read_excel`` for a frame
+            # that is thrown away.
+            continue
 
         data = query["data"]
 
@@ -1636,6 +2184,12 @@ def apply_client_processing(  # noqa: C901
                 data, form_data, datasource.data["verbose_map"] if datasource else None
             )
 
+        if len(df.index) == 0:
+            # An export with headers but no rows is passed through unprocessed:
+            # the pivot post-processor assumes at least one row (pivoting drops
+            # the metric columns of an empty frame and then fails to select them).
+            continue
+
         # Serialized exports already carry labels from QueryContextProcessor.get_data.
         # Remapping those labels can mistake them for another column's raw name.
         if datasource and query["result_format"] == ChartDataResultFormat.JSON:
@@ -1652,7 +2206,7 @@ def apply_client_processing(  # noqa: C901
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)
-        query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
+        query["coltypes"] = payload_coltypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
 
         # Check if the DataFrame has a default RangeIndex, which should not be shown
