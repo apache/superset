@@ -10216,6 +10216,9 @@ msgstr ""
 msgid "Not a valid ZIP file"
 msgstr ""
 
+msgid "Not a valid mapping type."
+msgstr ""
+
 msgid "Not added to any dashboard"
 msgstr ""
 
