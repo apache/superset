@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -262,6 +262,12 @@ msgstr ""
 "razlogov."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -407,7 +413,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1299,6 +1313,9 @@ msgstr "Seznam stolpcev, ločenih z vejico, ki jih je treba razčleniti kot datu
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Z vejicami ločen seznam shem, kjer je dovoljeno nalaganje datotek."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2286,6 +2303,9 @@ msgstr "Vsebina opozorila"
 msgid "Alert ended grace period."
 msgstr "Opozorilo je končalo obdobje mirovanja."
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "Opozorilo ni uspelo"
 
@@ -3218,6 +3238,12 @@ msgstr "Arhiviranih elementov: %s; trajno izbrisanih semantičnih pogledov: %s"
 msgid "Archived by"
 msgstr "Arhiviral(a)"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3366,6 +3392,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Puščica"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Določi nabor parametrov kot"
@@ -4391,6 +4421,10 @@ msgstr "Grafikon [%s] je bil shranjen"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Grafikon [%s] je bil dodan na nadzorno ploščo [%s]"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "Trajanje predpomnilnika grafikona"
@@ -6787,6 +6821,9 @@ msgstr "Privzeta vrednost"
 msgid "Default color"
 msgstr "Privzeta barva"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "Privzeti stolpec datuma in časa"
 
@@ -6808,6 +6845,9 @@ msgid ""
 msgstr ""
 "Privzeta min. širina stolpca v pikslih. Dejanska širina bo lahko večja, "
 "če drugi stolpci ne potrebujejo veliko prostora"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7341,6 +7381,9 @@ msgstr "Besedilo, ki se prikaže pod veliko številko"
 
 msgid "Deselect all"
 msgstr "Počisti izbor"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 msgid "Design with"
 msgstr "Oblikovanje z"
@@ -8744,6 +8787,10 @@ msgstr "Razširi"
 msgid "Expand %s"
 msgstr "Razširi %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Razširi vse"
 
@@ -9889,6 +9936,9 @@ msgstr "Celotno ime"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Celozaslonski način ni podprt v tem brskalniku."
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Lijakasti grafikon"
 
@@ -10256,8 +10306,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "V koliko razdelkov bodo razvrščeni podatki."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Za koliko period v prihodnosti želite napoved"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10618,6 +10680,11 @@ msgstr "Zgoraj levo znotraj"
 msgid "Inside top right"
 msgstr "Zgoraj desno znotraj"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intenzivnost"
 
@@ -10681,6 +10748,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Neveljaven SQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11673,9 +11746,6 @@ msgstr "Logaritemska x-os"
 
 msgid "Logarithmic y-axis"
 msgstr "Logaritemska y-os"
-
-msgid "Login"
-msgstr "Prijava"
 
 msgid "Login count"
 msgstr "Število prijav"
@@ -12811,6 +12881,9 @@ msgstr "Oznak še ni"
 msgid "No applied filters"
 msgstr "Ni uporabljenih filtrov"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -12887,6 +12960,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "Noben element trenutno nima te oznake"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Brez filtra"
@@ -13194,6 +13270,9 @@ msgstr "Ni dodano na nobeno nadzorno ploščo"
 
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "Vsa zahtevana polja niso izpolnjena. Dopolnite naslednje:"
+
+msgid "Not authorized"
+msgstr ""
 
 msgid "Not available"
 msgstr "Ni razpoložljivo"
@@ -13507,12 +13586,6 @@ msgstr "Samo vsota"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Dovoljeni so le `SELECT` stavki"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -13642,6 +13715,12 @@ msgstr "Odpri v SQL laboratoriju"
 msgid "Open in SQL lab"
 msgstr "Odpri v SQL Labu"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -13652,6 +13731,9 @@ msgstr "Odpri poizvedbo v SQL laboratoriju"
 
 msgid "Opening value for each period."
 msgstr "Vrednost odprtja za vsako obdobje."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -15505,6 +15587,9 @@ msgstr "Ponastavi geslo"
 msgid "Reset state"
 msgstr "Ponastavi stanje"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Ponastaviti na privzete mape?"
 
@@ -16597,6 +16682,9 @@ msgstr "Izberite vse podatke"
 
 msgid "Select all items"
 msgstr "Izberite vse elemente"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "Izberite katalog ali poiščite kataloge z vnosom"
@@ -18701,6 +18789,32 @@ msgstr "Naloge"
 msgid "Tasks will appear here as background operations are executed."
 msgstr "Naloge se bodo pojavile tukaj, ko se bodo izvajale operacije v ozadju."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr "Predloga"
 
@@ -19358,6 +19472,11 @@ msgstr "Eksponent za izračun vseh velikosti. Samo \"EXP"
 msgid "The extension %(id)s could not be loaded."
 msgstr "Razširitve %(id)s ni bilo mogoče naložiti."
 
+msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -19395,6 +19514,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "Naslednji grafikoni so bili izpuščeni, ker je pri izvozu prišlo do napake:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19539,6 +19664,10 @@ msgstr "Povezava je bila ustvarjena, vendar je ni bilo mogoče kopirati: %s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Spodnji prag za površinske plastnice"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -19654,6 +19783,13 @@ msgstr[3] "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -21541,6 +21677,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22538,6 +22679,9 @@ msgid ""
 msgstr ""
 "Časovnega zamika %(offset)s ni mogoče razložiti. Uporabite relativni čas,"
 " na primer »pred 1 mesecem«."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24406,6 +24550,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 msgid "You do not have permission to perform this operation"
 msgstr "Nimate dovoljenja za izvedbo te operacije"
 
@@ -24670,9 +24820,7 @@ msgstr ""
 "Spremenili ste podatkovne sete. Vsi kontrolniki nad podatki (stolpci, "
 "mere), ki se ujemajo z novim podatkovnim setom, se bodo ohranili."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "Vaš račun je aktiviran. Lahko se prijavite s svojimi poverilnicami."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
@@ -24819,6 +24967,9 @@ msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP-datoteka vsebuje več tipov datotek"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy

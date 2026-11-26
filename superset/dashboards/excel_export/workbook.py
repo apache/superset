@@ -39,6 +39,7 @@ from superset.common.form_data_query_context import (
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
+from superset.semantic_layers.chart_types import semantic_chart_refusal
 from superset.utils import json
 from superset.utils.excel_streaming import StreamingXlsxWriter
 
@@ -244,6 +245,16 @@ def _write_chart_sheets(
         )
 
 
+def _skip_reason(chart: Any, skipped: dict[int, str]) -> str | None:
+    """Return why a chart is left out without running, or ``None``."""
+    if (reason := skipped.get(chart.id)) is not None:
+        return reason
+    if semantic_chart_refusal(chart.datasource_type, chart.viz_type):
+        # An expected policy outcome, not a server error to log.
+        return email.ERROR_UNSUPPORTED_CHART_TYPE
+    return None
+
+
 def build_workbook(  # pylint: disable=too-many-arguments
     path: str,
     dashboard: Any,
@@ -275,7 +286,7 @@ def build_workbook(  # pylint: disable=too-many-arguments
     try:
         for chart in get_charts_in_layout_order(dashboard):
             label = chart_label(chart)
-            if (reason := skipped.get(chart.id)) is not None:
+            if (reason := _skip_reason(chart, skipped)) is not None:
                 errored.setdefault(reason, []).append(label)
                 continue
             try:

@@ -106,21 +106,19 @@ const sortTypes = {
   alphanumeric: sortAlphanumericCaseInsensitive,
 };
 
-// Prefer a stable identifier from original row data; otherwise use a deterministic
-// concatenation of visible values (keys sorted so the result does not depend on
-// column order).
+// Build a deterministic key from the row's visible values (keys sorted so the
+// result does not depend on column order), prefixed with a stable identifier
+// from the original row data when one exists.
 function stableRowKey<D extends object>(r: Row<D>): string {
-  const orig = r.original as Record<string, unknown> | undefined;
-  if (orig) {
-    const idLike = orig.id ?? orig.ID ?? orig.key ?? orig.uuid;
-    if (idLike != null) return String(idLike);
-  }
-
-  // Fallback: derive from row.values, sorting the keys so that reordering the
-  // columns does not change the key.
   const v = r.values as Record<string, unknown>;
   const keys = Object.keys(v).sort();
-  return keys.map(k => String(v[k] ?? '')).join('|');
+  const valuesKey = keys.map(k => String(v[k] ?? '')).join('|');
+
+  // Prefix the identifier so a value change on a row with a stable id still
+  // changes the key.
+  const orig = r.original as Record<string, unknown> | undefined;
+  const idLike = orig ? (orig.id ?? orig.ID ?? orig.key ?? orig.uuid) : null;
+  return idLike != null ? `${String(idLike)}|${valuesKey}` : valuesKey;
 }
 
 // Very small, fast hash for strings (no crypto dependency).
@@ -376,7 +374,12 @@ export default typedMemo(function DataTable<D extends object>({
   const lastSigRef = useRef<string>('');
 
   useEffect(() => {
-    if (serverPagination || typeof onFilteredRowsChange !== 'function') {
+    if (
+      serverPagination ||
+      typeof onFilteredRowsChange !== 'function' ||
+      !columns ||
+      columns.length === 0
+    ) {
       return;
     }
 
@@ -401,7 +404,7 @@ export default typedMemo(function DataTable<D extends object>({
         rafRef.current = null;
       }
     };
-  }, [rows, serverPagination, onFilteredRowsChange]);
+  }, [rows, serverPagination, onFilteredRowsChange, columns]);
 
   const handleSearchChange = useCallback(
     (query: string) => {

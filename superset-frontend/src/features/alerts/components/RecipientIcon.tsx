@@ -52,6 +52,12 @@ export default function RecipientIcon({ type }: { type: string }) {
       );
       recipientIconConfig.label = NotificationMethodOption.Slack;
       break;
+    case NotificationMethodOption.Teams:
+      recipientIconConfig.icon = (
+        <Icons.UsergroupAddOutlined css={notificationStyledIcon} iconSize="l" />
+      );
+      recipientIconConfig.label = NotificationMethodOption.Teams;
+      break;
     case NotificationMethodOption.Webhook:
       recipientIconConfig.icon = (
         <Icons.ApiOutlined css={notificationStyledIcon} iconSize="l" />

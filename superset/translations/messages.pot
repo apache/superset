@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -186,6 +186,10 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
 #, python-format
+msgid "%(engine)s doesn't support partition filter mapping, so charts won't mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -286,7 +290,15 @@ msgid "%s %s"
 msgstr ""
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 #, python-format
@@ -971,6 +983,9 @@ msgstr ""
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 
+msgid "A configured Teams destination key is required"
+msgstr ""
+
 msgid "A dashboard filter or display control has incompatible semantic selections. Dynamic group-by is unsupported on versioned semantic views; remove this chart from that control's scope. For other filters or controls, reset and reselect fields or saved values. If it targets another semantic view, remove this chart from its scope."
 msgstr ""
 
@@ -1651,6 +1666,9 @@ msgid "Alert contents"
 msgstr ""
 
 msgid "Alert ended grace period."
+msgstr ""
+
+msgid "Alert execution failed. Contact the alert owner for details."
 msgstr ""
 
 msgid "Alert failed"
@@ -2398,6 +2416,9 @@ msgstr ""
 msgid "Archived by"
 msgstr ""
 
+msgid "Archived charts and dashboards may still depend on this dataset, including assets you cannot view. Archiving or permanently deleting this dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 msgid "Archived items must be recovered before they can be opened."
 msgstr ""
 
@@ -2500,6 +2521,10 @@ msgid "Area charts are similar to line charts in that they represent variables w
 msgstr ""
 
 msgid "Arrow"
+msgstr ""
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
 msgstr ""
 
 msgid "Assign a set of parameters as"
@@ -3321,6 +3346,10 @@ msgstr ""
 
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
+msgstr ""
+
+#, python-format
+msgid "Chart archived: %s"
 msgstr ""
 
 msgid "Chart cache timeout"
@@ -5236,6 +5265,9 @@ msgstr ""
 msgid "Default color"
 msgstr ""
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr ""
 
@@ -5252,6 +5284,9 @@ msgid "Default message"
 msgstr ""
 
 msgid "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space"
+msgstr ""
+
+msgid "Default row expansion depth"
 msgstr ""
 
 msgid "Default schema (database) to connect to"
@@ -5615,6 +5650,9 @@ msgid "Description text that shows up below your Big Number"
 msgstr ""
 
 msgid "Deselect all"
+msgstr ""
+
+msgid "Deselect the items you cannot modify and try again."
 msgstr ""
 
 msgid "Design with"
@@ -6742,6 +6780,10 @@ msgstr ""
 msgid "Expand %s"
 msgstr ""
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr ""
 
@@ -7606,6 +7648,9 @@ msgstr ""
 msgid "Fullscreen is not supported in this browser."
 msgstr ""
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr ""
 
@@ -7916,7 +7961,13 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr ""
 
+msgid "How many column group levels to show expanded on initial load. Select \"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
+msgstr ""
+
+msgid "How many row group levels to show expanded on initial load. Select \"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-level rows (children collapsed)."
 msgstr ""
 
 msgid "How many top values to select"
@@ -8187,6 +8238,9 @@ msgstr ""
 msgid "Inside top right"
 msgstr ""
 
+msgid "Install the notification bot in the approved team before delivery. You can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr ""
 
@@ -8237,6 +8291,12 @@ msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
+msgstr ""
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
 msgstr ""
 
 #, python-format
@@ -9036,9 +9096,6 @@ msgid "Logarithmic x-axis"
 msgstr ""
 
 msgid "Logarithmic y-axis"
-msgstr ""
-
-msgid "Login"
 msgstr ""
 
 msgid "Login count"
@@ -9932,6 +9989,9 @@ msgstr ""
 msgid "No applied filters"
 msgstr ""
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 msgid "No archived items"
 msgstr ""
 
@@ -9993,6 +10053,9 @@ msgid "No ending is available for this secret."
 msgstr ""
 
 msgid "No entities have this tag currently assigned"
+msgstr ""
+
+msgid "No extension provides a page with this name."
 msgstr ""
 
 msgid "No filter"
@@ -10213,6 +10276,9 @@ msgid "Not added to any dashboard"
 msgstr ""
 
 msgid "Not all required fields are complete. Please provide the following:"
+msgstr ""
+
+msgid "Not authorized"
 msgstr ""
 
 msgid "Not available"
@@ -10468,12 +10534,6 @@ msgstr ""
 msgid "Only `SELECT` statements are allowed"
 msgstr ""
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 msgid "Only admins can set this field to a user other than themselves"
 msgstr ""
 
@@ -10568,6 +10628,12 @@ msgstr ""
 msgid "Open in SQL lab"
 msgstr ""
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 msgid "Open price"
 msgstr ""
 
@@ -10575,6 +10641,9 @@ msgid "Open query in SQL Lab"
 msgstr ""
 
 msgid "Opening value for each period."
+msgstr ""
+
+msgid "Opens a page contributed by an extension."
 msgstr ""
 
 msgid "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information."
@@ -12027,6 +12096,9 @@ msgstr ""
 msgid "Reset state"
 msgstr ""
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr ""
 
@@ -12916,6 +12988,9 @@ msgid "Select all data"
 msgstr ""
 
 msgid "Select all items"
+msgstr ""
+
+msgid "Select an approved Teams channel"
 msgstr ""
 
 msgid "Select catalog or type to search catalogs"
@@ -14528,6 +14603,30 @@ msgstr ""
 msgid "Tasks will appear here as background operations are executed."
 msgstr ""
 
+msgid "Teams delivery is unavailable. Contact your administrator to check the integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr ""
 
@@ -14916,6 +15015,9 @@ msgstr ""
 msgid "The extension %(id)s could not be loaded."
 msgstr ""
 
+msgid "The extension may not be installed, may be switched off, or may have failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
 msgid "The extent of the map on application start. FIT DATA automatically sets the extent so that all data points are included in the viewport. CUSTOM allows users to define the extent manually."
 msgstr ""
 
@@ -14932,6 +15034,9 @@ msgid "The following charts could not be exported:"
 msgstr ""
 
 msgid "The following charts were omitted because an error occurred while exporting them:"
+msgstr ""
+
+msgid "The following charts were omitted because their chart type is not yet supported on semantic views. To include them, switch each chart to a supported type such as Table, Bar or Line."
 msgstr ""
 
 msgid "The following charts were omitted because their size cannot be determined before they run. Ask an administrator to enable background exports to include them."
@@ -15017,6 +15122,10 @@ msgstr ""
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr ""
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid "The maximum number of subdivisions of each group; lower values are pruned first"
 msgstr ""
 
@@ -15088,6 +15197,10 @@ msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
 msgstr[0] ""
 msgstr[1] ""
+
+#, python-format
+msgid "The partition column cannot be a calculated column whose expression uses Jinja templating. %(name)s is templated, so the predicate mirrored onto it could not be rendered."
+msgstr ""
 
 #, python-format
 msgid "The partition column cannot be mapped onto itself. %(name)s is both the partition column and the mapped column."
@@ -16210,6 +16323,9 @@ msgstr ""
 msgid "This report runs as %(username)s, who cannot access this %(kind)s. Choose a %(kind)s that user can access, or ask an administrator to update the execution account's access."
 msgstr ""
 
+msgid "This saved Teams destination is unavailable. Ask your administrator to restore it or choose another destination."
+msgstr ""
+
 msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."
 msgstr ""
 
@@ -16885,6 +17001,9 @@ msgstr ""
 
 #, python-format
 msgid "Unable to interpret the time offset: %(offset)s. Use a relative time such as \"1 month ago\"."
+msgstr ""
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
 msgstr ""
 
 msgid "Unable to load columns for the selected table."
@@ -18221,6 +18340,12 @@ msgstr ""
 msgid "You do not have permission to import this asset. Ask its owner or an administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 msgid "You do not have permission to perform this operation"
 msgstr ""
 
@@ -18387,7 +18512,7 @@ msgstr ""
 msgid "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained."
 msgstr ""
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr ""
 
 msgid "Your changes will be lost if you leave without saving."
@@ -18488,6 +18613,9 @@ msgid "Z-A"
 msgstr ""
 
 msgid "ZIP file contains multiple file types"
+msgstr ""
+
+msgid "ZIP file contains no data files"
 msgstr ""
 
 msgid "Zebra striping"

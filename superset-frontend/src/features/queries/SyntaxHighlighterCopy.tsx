@@ -19,7 +19,8 @@
 import { useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import CodeSyntaxHighlighter, {
+import {
+  CodeSyntaxHighlighter,
   SupportedLanguage,
   CodeSyntaxHighlighterProps,
   preloadLanguages,

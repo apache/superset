@@ -99,16 +99,16 @@ def semantic_query_cases(
     start: Filter = Filter(
         PredicateType.WHERE, occurred, Operator.GREATER_THAN_OR_EQUAL, date(2026, 2, 1)
     )
-    return {
+    cases: dict[str, tuple[SemanticQuery, pa.Table]] = {
         "identity": (
             SemanticQuery(
                 [total, count], [category], order=[(total, OrderDirection.ASC)]
             ),
             pa.table(
                 {
-                    "category": pa.array([None, "C", "A", "B"], type=pa.string()),
-                    "total": [4, 6, 7, 8],
-                    "row_count": [2, 1, 2, 1],
+                    "category": pa.array([None, "A", "B", "C"], type=pa.string()),
+                    "total": [4, 7, 8, 10],
+                    "row_count": [2, 2, 1, 2],
                 }
             ),
         ),
@@ -119,7 +119,7 @@ def semantic_query_cases(
                     "occurred": pa.array(
                         [date(2026, 1, 1), date(2026, 2, 1)], type=pa.date32()
                     ),
-                    "total": [5, 20],
+                    "total": [9, 20],
                 }
             ),
         ),
@@ -136,7 +136,7 @@ def semantic_query_cases(
                 },
                 order=[(total, OrderDirection.ASC)],
             ),
-            pa.table({"category": ["C", "A", "B"], "total": [6, 7, 8]}),
+            pa.table({"category": ["A", "B", "C"], "total": [7, 8, 10]}),
         ),
         "or": (
             SemanticQuery(
@@ -156,9 +156,101 @@ def semantic_query_cases(
             SemanticQuery(
                 [total], [category], order=[(total, OrderDirection.DESC)], limit=1
             ),
-            pa.table({"category": ["B"], "total": [8]}),
+            pa.table({"category": ["C"], "total": [10]}),
         ),
     }
+    case: str
+    operator: Operator
+    value: str | frozenset[str]
+    categories: list[str | None]
+    totals: list[int]
+    for case, operator, value, categories, totals in (
+        ("or_not_in", Operator.NOT_IN, frozenset({"A", "B"}), [None, "C"], [1, 6]),
+        ("or_not_equals", Operator.NOT_EQUALS, "A", [None, "C", "B"], [1, 6, 8]),
+        ("or_not_like", Operator.NOT_LIKE, "B%", [None, "A", "C"], [1, 5, 6]),
+        ("or_not_ilike", Operator.NOT_ILIKE, "b%", [None, "A", "C"], [1, 5, 6]),
+    ):
+        cases[case] = (
+            SemanticQuery(
+                [total],
+                [category],
+                filters={
+                    OrFilter(
+                        frozenset(
+                            {
+                                null,
+                                Filter(PredicateType.WHERE, category, operator, value),
+                            }
+                        )
+                    ),
+                    start,
+                },
+                order=[(total, OrderDirection.ASC)],
+            ),
+            pa.table(
+                {"category": pa.array(categories, type=pa.string()), "total": totals}
+            ),
+        )
+    return cases
+
+
+@pytest.mark.parametrize(
+    "case", ["or_not_in", "or_not_equals", "or_not_like", "or_not_ilike"]
+)
+def test_exclusion_or_results(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    case: str,
+) -> None:
+    """Exclusion groups retain NULLs while honoring the outer date constraint."""
+    SemanticProviderConformance().test_query_outputs(
+        case, semantic_view, semantic_query_cases
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["empty_membership", "wrong_operator", "missing_outer", "missing_null_result"],
+)
+def test_exclusion_witness_rejects_weak_fixtures(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    """A weaker fixture must fail validation before the provider is called."""
+    query: SemanticQuery
+    expected: pa.Table
+    query, expected = semantic_query_cases["or_not_in"]
+    group: OrFilter = next(
+        item for item in query.filters or set() if isinstance(item, OrFilter)
+    )
+    outer: set[FilterExpression] = set(query.filters or set()) - {group}
+    selected: Filter = next(
+        leaf for leaf in group.filters if leaf.operator == Operator.NOT_IN
+    )
+    if mutation == "empty_membership":
+        group = OrFilter(
+            (group.filters - {selected}) | {replace(selected, value=frozenset())}
+        )
+    elif mutation == "wrong_operator":
+        group = OrFilter(
+            (group.filters - {selected}) | {replace(selected, operator=Operator.IN)}
+        )
+    elif mutation == "missing_outer":
+        outer = set()
+    else:
+        expected = expected.slice(1)
+    query = replace(query, filters={group, *outer})
+
+    def must_not_execute(query: SemanticQuery) -> SemanticResult:
+        pytest.fail("invalid fixture reached provider execution")
+
+    monkeypatch.setattr(semantic_view, "get_table", must_not_execute)
+    with pytest.raises(AssertionError):
+        SemanticProviderConformance().test_query_outputs(
+            "or_not_in", semantic_view, {"or_not_in": (query, expected)}
+        )
 
 
 @pytest.fixture
@@ -179,7 +271,7 @@ def semantic_capability_cases(
                 limit=1,
                 offset=1,
             ),
-            pa.table({"category": ["A"], "total": [7]}),
+            pa.table({"category": ["B"], "total": [8]}),
         )
     }
 
@@ -450,16 +542,36 @@ def test_query_comparison_preserves_typed_ordered_values(
 
 @pytest.mark.parametrize("group_first", [False, True])
 @pytest.mark.parametrize(
-    "mutation", ["drop_parentheses", "drop_comparisons", "one_in_value", "drop_group"]
+    ("case", "mutation"),
+    [
+        ("or", mutation)
+        for mutation in (
+            "drop_parentheses",
+            "drop_comparisons",
+            "one_in_value",
+            "drop_group",
+        )
+    ]
+    + [
+        (case, mutation)
+        for case in ("or_not_in", "or_not_equals", "or_not_like", "or_not_ilike")
+        for mutation in (
+            "drop_parentheses",
+            "drop_comparisons",
+            "drop_null",
+            "drop_group",
+        )
+    ],
 )
 def test_or_witness_rejects_provider_mutations(
     semantic_view: "QueryView",
     semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
     monkeypatch: pytest.MonkeyPatch,
+    case: str,
     mutation: str,
     group_first: bool,
 ) -> None:
-    """Real SQLite results must expose lost grouping, predicates and IN values."""
+    """Real SQLite results expose lost grouping, exclusions, NULLs and IN values."""
     import conformance_provider
 
     predicate: Callable[[FilterExpression, list[object]], str] = (
@@ -470,6 +582,15 @@ def test_or_witness_rejects_provider_mutations(
     def mutated_predicate(
         expression: FilterExpression, parameters: list[object]
     ) -> str:
+        if mutation == "drop_null" and isinstance(expression, OrFilter):
+            return predicate(
+                next(
+                    leaf
+                    for leaf in expression.filters
+                    if leaf.operator != Operator.IS_NULL
+                ),
+                parameters,
+            )
         if (
             mutation == "one_in_value"
             and isinstance(expression, Filter)
@@ -523,7 +644,7 @@ def test_or_witness_rejects_provider_mutations(
     monkeypatch.setattr(semantic_view, "get_table", mutated_table)
     with pytest.raises(AssertionError, match="expected"):
         SemanticProviderConformance().test_query_outputs(
-            "or", semantic_view, semantic_query_cases
+            case, semantic_view, semantic_query_cases
         )
 
 

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -258,6 +258,12 @@ msgstr ""
 "міркувань."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -408,7 +414,15 @@ msgid "%s %s"
 msgstr "%s%s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1326,6 +1340,9 @@ msgstr "Перелік стовпців, розділених комами, як
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Перелік схем (через кому), у які можна вивантажувати файли."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2327,6 +2344,9 @@ msgstr "Вміст оповіщення"
 msgid "Alert ended grace period."
 msgstr "У оповіщення вичерпався період очікування."
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "Оповіщення не спрацювало"
 
@@ -3268,6 +3288,12 @@ msgstr "Архівовано елементів: %s; остаточно вида
 msgid "Archived by"
 msgstr "Архівував(-ла)"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3409,6 +3435,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Стрілка"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Задайте набір параметрів як"
@@ -4420,6 +4450,10 @@ msgstr "Діаграму [%s] збережено"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Діаграму [%s] додано до звіту [%s]"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "Тривалість кешу діаграми"
@@ -6823,6 +6857,9 @@ msgstr "Типове значення"
 msgid "Default color"
 msgstr "Типовий колір"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "Типовий стовпець часу"
 
@@ -6844,6 +6881,9 @@ msgid ""
 msgstr ""
 "Типова мінімальна ширина стовпця у пікселях. Фактична ширина може бути "
 "більшою, якщо інші стовпці не потребують багато простору"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7381,6 +7421,9 @@ msgstr "Опис, який показується під лічильником"
 
 msgid "Deselect all"
 msgstr "Скасувати вибір"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 msgid "Design with"
 msgstr "Створити дизайн у"
@@ -8775,6 +8818,10 @@ msgstr "Розгорнути"
 msgid "Expand %s"
 msgstr "Розгорнути %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Розгорнути все"
 
@@ -9932,6 +9979,9 @@ msgstr "Повне ім'я"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Деталізація поки що не підтримується для цього типу діаграми"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Воронка"
 
@@ -10291,8 +10341,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "Кількість інтервалів для групування даних."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Кількість періодів, що потрібно спрогнозувати"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "Скільки перших значень вибрати"
@@ -10640,6 +10702,11 @@ msgstr "Всередині зверху зліва"
 msgid "Inside top right"
 msgstr "Всередині зверху справа"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Насиченість"
 
@@ -10704,6 +10771,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Неправильний SQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11701,9 +11774,6 @@ msgstr "Логарифмічна вісь X"
 
 msgid "Logarithmic y-axis"
 msgstr "Логарифмічна вісь Y"
-
-msgid "Login"
-msgstr "Увійти"
 
 msgid "Login count"
 msgstr "Кількість входів"
@@ -12827,6 +12897,9 @@ msgstr "Ще немає анотації"
 msgid "No applied filters"
 msgstr "Жоден фільтр не застосовано"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -12906,6 +12979,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "Немає жодного об’єкту з цією міткою"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Без фільтра"
@@ -13227,6 +13303,9 @@ msgstr "Не додано до жодного звіту"
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "Не всі обовʼязкові поля заповнено. Будь ласка, вкажіть таке:"
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "Недоступно"
 
@@ -13538,12 +13617,6 @@ msgstr "Тільки підсумки"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Дозволено лише запити на читання"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -13679,6 +13752,12 @@ msgstr "Відкрити в майстерні запитів"
 msgid "Open in SQL lab"
 msgstr "Відкрити в майстерні запитів"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -13689,6 +13768,9 @@ msgstr "Відкрити запит у майстерні"
 
 msgid "Opening value for each period."
 msgstr "Значення відкриття за кожен період."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -15562,6 +15644,9 @@ msgstr "Скинути пароль"
 msgid "Reset state"
 msgstr "Скинути стан"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Скинути типові теки?"
 
@@ -16682,6 +16767,9 @@ msgstr "Вибрати всі дані"
 
 msgid "Select all items"
 msgstr "Вибрати всі елементи"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "Виберіть або введіть назву каталогу для пошуку"
@@ -18848,6 +18936,32 @@ msgstr "мітки"
 msgid "Tasks will appear here as background operations are executed."
 msgstr "Завдання з'являться тут у міру виконання фонових операцій."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr "Шаблон"
 
@@ -19507,6 +19621,11 @@ msgid "The extension %(id)s could not be loaded."
 msgstr "Розширення %(id)s неможливо завантажити."
 
 msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
@@ -19539,6 +19658,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "Такі діаграми було пропущено через помилку під час експорту:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19680,6 +19805,10 @@ msgstr "Посилання створено, але його не вдалося
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Нижня межа діапазону для смуги рівня"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -19796,6 +19925,13 @@ msgstr[3] "Параметр %(parameters)s у вашому запиті не в�
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -21706,6 +21842,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22711,6 +22852,9 @@ msgid ""
 msgstr ""
 "Не вдалося інтерпретувати часовий зсув: %(offset)s. Використовуйте "
 "відносний час, наприклад \"1 month ago\"."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24586,6 +24730,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "Ви не маєте прав для редагування цієї діаграми"
@@ -24868,7 +25018,7 @@ msgstr ""
 "Ви змінили набір даних. Збережено всі елементи з даними (стовпці, "
 "показники), які підходять до нового набору даних."
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "Ваш обліковий запис увімкнено. Можете заходити."
 
 msgid "Your changes will be lost if you leave without saving."
@@ -25015,6 +25165,9 @@ msgstr "абетка я-а"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Файл ZIP містить кілька типів файлів"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy

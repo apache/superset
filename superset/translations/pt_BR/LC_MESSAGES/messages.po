@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -262,6 +262,12 @@ msgstr ""
 "segurança."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -404,7 +410,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1258,6 +1272,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Uma lista separada por vírgulas de esquemas para os quais os arquivos têm"
 " permissão para fazer upload."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2310,6 +2327,9 @@ msgstr "Conteúdo do alerta"
 msgid "Alert ended grace period."
 msgstr "O alerta terminou o período de carência."
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "Falha no alerta"
 
@@ -3294,6 +3314,12 @@ msgstr ""
 msgid "Archived by"
 msgstr "Arquivado por"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3442,6 +3468,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Seta"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Atribuir um conjunto de parâmetros como"
@@ -4556,6 +4586,10 @@ msgstr "O gráfico [%s] foi salvo"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "O gráfico [%s] foi adicionado ao painel [%s]"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "Tempo limite da cache do gráfico"
@@ -7167,6 +7201,9 @@ msgstr "Valor padrão"
 msgid "Default color"
 msgstr "Cor padrão"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 #, fuzzy
 msgid "Default datetime column"
 msgstr "Coluna de data e hora padrão"
@@ -7191,6 +7228,9 @@ msgid ""
 msgstr ""
 "Largura mínima predefinida da coluna em pixels; a largura real pode ser "
 "superior a esta se as outras colunas não necessitarem de muito espaço"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7708,6 +7748,9 @@ msgstr "Texto descritivo que aparece abaixo do seu Número Grande"
 
 msgid "Deselect all"
 msgstr "Desmarcar tudo"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 #, fuzzy
 msgid "Design with"
@@ -9213,6 +9256,10 @@ msgstr "Expandir"
 msgid "Expand %s"
 msgstr "Expandir %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Expandir tudo"
@@ -10463,6 +10510,9 @@ msgstr "Nome completo"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Tela cheia não é compatível com este navegador."
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Gráfico de funil"
 
@@ -10860,8 +10910,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "Em quantos compartimentos devem ser agrupados os dados."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Quantos períodos no futuro queremos prever"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11269,6 +11331,11 @@ msgstr "Dentro superior esquerdo"
 msgid "Inside top right"
 msgstr "Dentro canto superior direito"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intensidade"
 
@@ -11343,6 +11410,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "SQL inválido:%(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12424,9 +12497,6 @@ msgstr "Eixo x logarítmico"
 
 msgid "Logarithmic y-axis"
 msgstr "Eixo y logarítmico"
-
-msgid "Login"
-msgstr "Entrar"
 
 #, fuzzy
 msgid "Login count"
@@ -13606,6 +13676,9 @@ msgstr "Sem anotação ainda"
 msgid "No applied filters"
 msgstr "Nenhum filtro aplicado"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -13689,6 +13762,9 @@ msgstr ""
 #, fuzzy
 msgid "No entities have this tag currently assigned"
 msgstr "Nenhuma entidade tem esta tag atribuída atualmente"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Sem filtro"
@@ -14020,6 +14096,9 @@ msgstr "Não adicionado a nenhum painel"
 #, fuzzy
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "Nem todos os campos obrigatórios estão preenchidos. Forneça o seguinte:"
+
+msgid "Not authorized"
+msgstr ""
 
 msgid "Not available"
 msgstr "Não disponível"
@@ -14357,12 +14436,6 @@ msgstr "Apenas Total"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Apenas instruções `SELECT` são permitidas"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -14512,6 +14585,12 @@ msgstr "Abrir no SQL Lab"
 msgid "Open in SQL lab"
 msgstr "Abrir no laboratório SQL"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -14522,6 +14601,9 @@ msgstr "Abrir consulta no SQL Lab"
 
 msgid "Opening value for each period."
 msgstr "Valor de abertura de cada período."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -16511,6 +16593,9 @@ msgstr "Redefinir senha"
 msgid "Reset state"
 msgstr "Redefinir estado"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Redefinir para as pastas padrão?"
@@ -17679,6 +17764,9 @@ msgstr "Selecione todos os dados"
 #, fuzzy
 msgid "Select all items"
 msgstr "Selecione todos os itens"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 #, fuzzy
 msgid "Select catalog or type to search catalogs"
@@ -19972,6 +20060,32 @@ msgstr ""
 "As tarefas aparecerão aqui à medida que as operações em segundo plano são"
 " executadas."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 #, fuzzy
 msgid "Template"
 msgstr "Modelo"
@@ -20673,6 +20787,11 @@ msgstr "O expoente a partir do qual calcular todos os tamanhos. Somente \"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr "A extensão%(id)snão pôde ser carregada."
 
+msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20715,6 +20834,12 @@ msgid ""
 msgstr ""
 "Os seguintes gráficos foram omitidos porque ocorreu um erro ao "
 "exportá-los:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20878,6 +21003,10 @@ msgstr "O link foi gerado, mas não pôde ser copiado: %s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "O limite inferior da faixa de limite da Isoband"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -20997,6 +21126,13 @@ msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -22989,6 +23125,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24021,6 +24162,9 @@ msgid ""
 msgstr ""
 "Não é possível interpretar o deslocamento de horário:%(offset)s. Use um "
 "horário relativo como \"1 mês atrás\"."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26020,6 +26164,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "Você não tem permissão para realizar esta operação"
@@ -26297,11 +26447,8 @@ msgstr ""
 "(colunas, métricas) que correspondem a esse novo conjunto de dados foram "
 "mantidos."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Your account is activated. You can log in with your credentials."
-msgstr "Sua conta está ativada. Você pode fazer login com suas credenciais."
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -26456,6 +26603,9 @@ msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Arquivo ZIP contém múltiplos tipos de arquivo"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy

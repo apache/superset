@@ -7178,6 +7178,9 @@ class ChartPreview(BaseModel):
     """Enhanced chart preview with discriminated union content."""
 
     chart_id: int
+    form_data_key: str | None = Field(
+        None, description="Cached chart state used to render this preview"
+    )
     chart_name: str
     chart_type: str = Field(description="Type of chart visualization")
     explore_url: str = Field(description="URL to open chart in Superset for editing")

@@ -248,11 +248,11 @@ def test_selected_month_reaches_aggregation_with_independent_raw_bound(
     )
     assert grouped.results.to_pydict() == {
         "occurred": [date(2026, 1, 1), date(2026, 2, 1)],
-        "average": [2.5, 5.0],
+        "average": [3.0, 5.0],
     }
     ungrouped: types.SemanticResult = view.get_table(types.SemanticQuery([average], []))
-    assert ungrouped.results.column("average").to_pylist() == [25 / 6]
-    assert 25 / 6 != (2.5 + 5) / 2
+    assert ungrouped.results.column("average").to_pylist() == [29 / 7]
+    assert 29 / 7 != (3 + 5) / 2
     bound: types.Filter = types.Filter(
         types.PredicateType.WHERE,
         types.DimensionSelection(occurred),

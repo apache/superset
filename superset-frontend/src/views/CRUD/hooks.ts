@@ -40,7 +40,7 @@ import type {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilterValue as FilterValue,
 } from 'src/components';
-import Chart, { Slice } from 'src/types/Chart';
+import { Chart, Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getShareableUrl } from 'src/utils/navigationUtils';
 import SupersetText from 'src/utils/textUtils';
@@ -906,6 +906,8 @@ export const useChartEditModal = (
 
   function handleChartUpdated(edits: Chart) {
     // update the chart in our state with the edited info
+    // ``edits`` is the chart re-fetched after the save, so it already carries
+    // localized_name resolved for the new canonical name; the spread keeps it.
     const newCharts = charts.map((chart: Chart) =>
       chart.id === edits.id ? { ...chart, ...edits } : chart,
     );

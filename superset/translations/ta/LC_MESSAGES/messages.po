@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -260,6 +260,12 @@ msgstr ""
 "முடியாது."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -406,7 +412,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1277,6 +1291,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "கோப்புகளைப் பதிவேற்ற அனுமதிக்கப்படும் ஸ்கீமாக்களின் (schemas) கமாவால் "
 "பிரிக்கப்பட்ட பட்டியல்."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2308,6 +2325,9 @@ msgstr "எச்சரிக்கை உள்ளடக்கங்கள்"
 msgid "Alert ended grace period."
 msgstr "எச்சரிக்கையின் கருணைக் காலம் முடிந்தது."
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "எச்சரிக்கை தோல்வியடைந்தது"
 
@@ -3274,6 +3294,12 @@ msgstr ""
 msgid "Archived by"
 msgstr "காப்பகப்படுத்தியவர்"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3415,6 +3441,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "அம்பு (Arrow)"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "அளவுருக்களின் தொகுப்பை இவ்வாறு ஒதுக்கவும்"
@@ -4433,6 +4463,10 @@ msgstr "சார்ட் [%s] சேமிக்கப்பட்டது"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "சார்ட் [%s], [%s] என்ற டேஷ்போர்டில் சேர்க்கப்பட்டது"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "சார்ட் கேச் (cache) காலாவதி நேரம்"
@@ -6875,6 +6909,9 @@ msgstr "இயல்புநிலை மதிப்பு"
 msgid "Default color"
 msgstr "இயல்புநிலை நிறம்"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "இயல்புநிலை தேதி-நேர நெடுவரிசை"
 
@@ -6897,6 +6934,9 @@ msgstr ""
 "பிக்சல்களில் இயல்புநிலை குறைந்தபட்ச நெடுவரிசை அகலம்; மற்ற "
 "நெடுவரிசைகளுக்கு அதிக இடம் தேவைப்படவில்லை எனில், உண்மையான அகலம் இதைவிட "
 "அதிகமாக இருக்கலாம்"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7404,6 +7444,9 @@ msgstr "உங்கள் பெரிய எண்ணிற்கு (Big Numb
 
 msgid "Deselect all"
 msgstr "அனைத்தையும் தேர்வு நீக்கு"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 msgid "Design with"
 msgstr "வடிவமைப்பாளர் (Design with)"
@@ -8814,6 +8857,10 @@ msgstr "விரிவாக்கு"
 msgid "Expand %s"
 msgstr "%s ஐ விரி"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "அனைத்தையும் விரிவாக்கு"
 
@@ -9962,6 +10009,9 @@ msgstr "முழு பெயர்"
 msgid "Fullscreen is not supported in this browser."
 msgstr "இந்தச் சார்ட் வகைக்கு டிரில் பை இன்னும் ஆதரிக்கப்படவில்லை"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "புனல் சார்ட் (Funnel Chart)"
 
@@ -10326,8 +10376,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "தரவு எத்தனை தொகுதிகளாக (buckets) குழுவாக்கப்பட வேண்டும்."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "எதிர்காலத்தில் எத்தனை காலங்களை நாம் கணிக்க விரும்புகிறோம்"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "எத்தனை முதன்மை மதிப்புகளைத் தேர்ந்தெடுக்க வேண்டும்"
@@ -10676,6 +10738,11 @@ msgstr "உள்ளே மேலே இடதுபுறம்"
 msgid "Inside top right"
 msgstr "உள்ளே மேலே வலதுபுறம்"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "தீவிரம் (Intensity)"
 
@@ -10743,6 +10810,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "தவறான SQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11724,9 +11797,6 @@ msgstr "மடக்கை x-அச்சு"
 
 msgid "Logarithmic y-axis"
 msgstr "மடக்கை y-அச்சு"
-
-msgid "Login"
-msgstr "உள்நுழைவு"
 
 msgid "Login count"
 msgstr "உள்நுழைவு எண்ணிக்கை"
@@ -12859,6 +12929,9 @@ msgstr "இன்னும் குறிப்புகள் இல்லை"
 msgid "No applied filters"
 msgstr "பயன்படுத்தப்பட்ட வடிகட்டிகள் இல்லை"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -12942,6 +13015,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "தற்போது எந்தவொரு உருப்படியும் இந்த குறிச்சொல்லைக் கொண்டிருக்கவில்லை"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "வடிகட்டி இல்லை"
@@ -13264,6 +13340,9 @@ msgstr ""
 "தேவையான அனைத்து புலங்களும் பூர்த்தி செய்யப்படவில்லை. பின்வருவனவற்றை "
 "வழங்கவும்:"
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "கிடைக்கவில்லை"
 
@@ -13566,12 +13645,6 @@ msgstr "மொத்தம் மட்டும்"
 msgid "Only `SELECT` statements are allowed"
 msgstr "`SELECT` கூற்றுகள் மட்டுமே அனுமதிக்கப்படுகின்றன"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -13705,6 +13778,12 @@ msgstr "SQL லேப்பில் திற"
 msgid "Open in SQL lab"
 msgstr "SQL லேப்பில் திற"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -13715,6 +13794,9 @@ msgstr "வினவலை SQL லேப்பில் திற"
 
 msgid "Opening value for each period."
 msgstr "ஒவ்வொரு காலகட்டத்திற்கும் திறப்பு மதிப்பு."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -15554,6 +15636,9 @@ msgstr "கடவுச்சொல்லை மீட்டமை"
 msgid "Reset state"
 msgstr "நிலையை மீட்டமை"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "இயல்புநிலைக் கோப்புறைகளுக்கு மீட்டமைக்கவா?"
 
@@ -16683,6 +16768,9 @@ msgstr "அனைத்து தரவையும் தேர்ந்தெ�
 
 msgid "Select all items"
 msgstr "அனைத்து உருப்படிகளையும் தேர்ந்தெடு"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "கேட்டலாக்கைத் தேர்ந்தெடு அல்லது தேட தட்டச்சு செய்க"
@@ -18804,6 +18892,32 @@ msgstr "பணிகள்"
 msgid "Tasks will appear here as background operations are executed."
 msgstr "பின்னணி செயல்பாடுகள் இயக்கப்படும்போது பணிகள் இங்கே தோன்றும்."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr "டெம்ப்ளேட்"
 
@@ -19445,6 +19559,11 @@ msgid "The extension %(id)s could not be loaded."
 msgstr "நீட்டிப்பு %(id)s ஐ ஏற்ற முடியவில்லை."
 
 msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
@@ -19476,6 +19595,12 @@ msgid ""
 msgstr ""
 "பின்வரும் விளக்கப்படங்களை ஏற்றுமதி செய்யும்போது பிழை ஏற்பட்டதால் அவை "
 "தவிர்க்கப்பட்டன:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19610,6 +19735,10 @@ msgstr "இணைப்பு உருவாக்கப்பட்டது, 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "ஐசோபேண்டின் (Isoband) வரம்பு வரம்பின் கீழ் எல்லை"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -19724,6 +19853,13 @@ msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -21599,6 +21735,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22576,6 +22717,9 @@ msgid ""
 msgstr ""
 "நேர ஆஃப்செட்டை விளக்க முடியவில்லை: %(offset)s. \"1 month ago\" போன்ற "
 "ஒப்பீட்டு நேரத்தைப் பயன்படுத்தவும்."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24450,6 +24594,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "இந்தச் சார்ட்டை எடிட் செய்ய உங்களுக்கு அனுமதி இல்லை"
@@ -24726,7 +24876,7 @@ msgid ""
 "match this new dataset have been retained."
 msgstr "நீங்கள் தரவுத்தொகுப்புகளை மாற்றிவிட்டீர்கள்."
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr ""
 "உங்கள் கணக்கு செயல்படுத்தப்பட்டது. உங்கள் அங்கீகாரத் தகவல்களுடன் "
 "உள்நுழையலாம்."
@@ -24882,6 +25032,9 @@ msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP கோப்பில் பல கோப்பு வகைகள் உள்ளன"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy

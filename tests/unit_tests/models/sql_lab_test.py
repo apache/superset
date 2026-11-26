@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -33,7 +34,7 @@ from superset.exceptions import (
 from superset.models import sql_lab as sql_lab_module
 from superset.models.core import Database
 from superset.models.sql_lab import Query, SavedQuery
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, QueryObjectDict
 
 
 @pytest.mark.parametrize(
@@ -757,3 +758,94 @@ def test_adhoc_column_to_sqla_skips_time_grain_for_non_temporal_column() -> None
     result, _ = query.adhoc_column_to_sqla(col)
 
     assert "start of day" not in _compile(result)
+
+
+@pytest.fixture
+def snowflake_query() -> Query:
+    """Expose exact lowercase result names without a SqlaTable relationship."""
+    query = Query(
+        database=Database(
+            database_name="snowflake",
+            sqlalchemy_uri="snowflake://user:password@account/database/schema",
+        ),
+        sql='SELECT ts AS "ts", name AS "name" FROM events',
+    )
+    query.extra = {
+        "columns": [
+            {"column_name": "ts", "is_dttm": True, "type": "TIMESTAMP"},
+            {"column_name": "name", "is_dttm": False, "type": "VARCHAR"},
+        ],
+    }
+    return query
+
+
+@pytest.mark.parametrize("use_temporal_filter", [True, False])
+def test_snowflake_query_quotes_grained_timestamp(
+    snowflake_query: Query, use_temporal_filter: bool
+) -> None:
+    """Both temporal filters and the x-axis must preserve result-set casing."""
+    query_object: QueryObjectDict = {
+        "columns": ["name"] if use_temporal_filter else ["ts", "name"],
+        "metrics": [],
+        "is_timeseries": False,
+        "granularity": "ts",
+        "filter": [
+            {
+                "col": "ts",
+                "op": "TEMPORAL_RANGE",
+                "val": "2020-01-01 : 2021-01-01",
+                "grain": "P1M",
+            },
+        ]
+        if use_temporal_filter
+        else [],
+        "extras": {} if use_temporal_filter else {"time_grain_sqla": "P1M"},
+        "orderby": [],
+        "row_limit": 10,
+    }
+    sql = snowflake_query.get_query_str_extended(query_object).sql
+
+    outer_sql = (
+        sql.split("WHERE", 1)[1] if use_temporal_filter else sql.split("FROM", 1)[0]
+    )
+    assert "DATE_TRUNC('MONTH', \"ts\")" in outer_sql
+    assert "DATE_TRUNC('MONTH', ts)" not in sql
+
+
+def test_snowflake_query_quotes_legacy_timeseries(snowflake_query: Query) -> None:
+    """The ungrained timestamp and GROUP BY retain exact lowercase names."""
+    sql = snowflake_query.get_query_str_extended(
+        {
+            "columns": ["name"],
+            "metrics": [
+                {"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "cnt"},
+            ],
+            "granularity": "ts",
+            "is_timeseries": True,
+            "extras": {},
+            "from_dttm": datetime(2020, 1, 1),
+            "to_dttm": datetime(2021, 1, 1),
+            "filter": [],
+            "orderby": [],
+            "row_limit": 10,
+        },
+    ).sql
+
+    assert '"ts" AS "__timestamp"' in sql
+    assert 'GROUP BY "name", "ts"' in sql
+    assert 'WHERE "ts" >=' in sql
+    assert 'AND "ts" <' in sql
+
+
+def test_snowflake_query_column_quotes_exact_name(snowflake_query: Query) -> None:
+    """Direct TableColumn compilation also preserves SQL Lab result names."""
+    from snowflake.sqlalchemy import snowdialect
+
+    name_column = snowflake_query.get_column("name")
+    assert name_column is not None
+    assert name_column.table is None
+    sql = str(
+        name_column.get_sqla_col().compile(dialect=snowdialect.SnowflakeDialect())
+    )
+
+    assert sql == '"name"'

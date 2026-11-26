@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -264,6 +264,12 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s no es pot usar com a font de dades per raons de seguretat."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -408,7 +414,15 @@ msgid "%s %s"
 msgstr "%s%s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1274,6 +1288,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Una llista separada per comes d'esquemes als quals els fitxers poden "
 "pujar."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2320,6 +2337,9 @@ msgstr "Contingut de l'alerta"
 msgid "Alert ended grace period."
 msgstr "L'alerta ha acabat el període de gràcia."
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "L'alerta ha fallat"
 
@@ -3322,6 +3342,12 @@ msgstr ""
 msgid "Archived by"
 msgstr "Arxivat per"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3477,6 +3503,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Fletxa"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Assignar un conjunt de paràmetres com"
@@ -4559,6 +4589,10 @@ msgstr "El gràfic [%s] ha estat desat"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "El gràfic [%s] va ser afegit al dashboard [%s]"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "Temps d'espera de la memòria cau del gràfic"
@@ -7101,6 +7135,9 @@ msgstr "Valor per Defecte"
 msgid "Default color"
 msgstr "Catàleg per Defecte"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 #, fuzzy
 msgid "Default datetime column"
 msgstr "Data/hora per defecte"
@@ -7129,6 +7166,9 @@ msgid ""
 msgstr ""
 "Amplada mínima predeterminada de la columna en píxels; l'amplada real pot"
 " ser major si les altres columnes no necessiten molt d'espai"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7653,6 +7693,9 @@ msgstr "Text de descripció que apareix sota el teu Número Gran"
 
 msgid "Deselect all"
 msgstr "Desseleccionar tot"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 #, fuzzy
 msgid "Design with"
@@ -9156,6 +9199,10 @@ msgstr "Expandir"
 msgid "Expand %s"
 msgstr "Desplega %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Expandir tot"
@@ -10398,6 +10445,9 @@ msgstr "Nom complet"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Perforar per encara no està suportat per a aquest tipus de gràfic"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Gràfic d'Embut"
 
@@ -10782,8 +10832,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "En quants grups s'han d'agrupar les dades."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Quants períodes en el futur volem predir"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11173,6 +11235,11 @@ msgstr "Superior esquerre"
 msgid "Inside top right"
 msgstr "Superior dret"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intensitat"
 
@@ -11240,6 +11307,12 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "SQL no vàlid: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12279,9 +12352,6 @@ msgstr "Eix x logarítmic"
 
 msgid "Logarithmic y-axis"
 msgstr "Eix y logarítmic"
-
-msgid "Login"
-msgstr "Iniciar sessió"
 
 msgid "Login count"
 msgstr "Recompte d'accessos"
@@ -13453,6 +13523,9 @@ msgstr "Cap anotació encara"
 msgid "No applied filters"
 msgstr "Cap filtre aplicat"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -13536,6 +13609,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "Cap entitat té aquesta etiqueta assignada actualment"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Cap filtre"
@@ -13867,6 +13943,9 @@ msgstr ""
 "No tots els camps obligatoris estan complets. Si us plau proporciona el "
 "següent:"
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "No disponible"
 
@@ -14191,12 +14270,6 @@ msgstr "Només Total"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Només es permeten sentències `SELECT`"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -14343,6 +14416,12 @@ msgstr "Obrir al SQL Lab"
 msgid "Open in SQL lab"
 msgstr "Obrir al SQL Lab"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -14353,6 +14432,9 @@ msgstr "Obrir consulta al SQL Lab"
 
 msgid "Opening value for each period."
 msgstr "Valor d'obertura de cada període."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -16298,6 +16380,9 @@ msgstr "Restableix la contrasenya"
 msgid "Reset state"
 msgstr "Restablir estat"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Actualitzar els valors per defecte"
@@ -17452,6 +17537,9 @@ msgstr "Seleccionar totes les dades"
 
 msgid "Select all items"
 msgstr "Seleccionar tots els elements"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "Seleccionar catàleg o escriure per cercar catàlegs"
@@ -18624,9 +18712,8 @@ msgstr ""
 msgid "Shows or hides markers for the time series"
 msgstr "Mostra o amaga marcadors per les sèries temporals"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "No en"
+msgstr "Iniciar sessió"
 
 #, fuzzy
 msgid "Sign in with"
@@ -19757,6 +19844,32 @@ msgstr ""
 "Les tasques apareixeran aquí a mesura que s'executin les operacions en "
 "segon pla."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr "Plantilla"
 
@@ -20456,6 +20569,11 @@ msgid "The extension %(id)s could not be loaded."
 msgstr "No s'ha pogut carregar l'extensió %(id)s."
 
 msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
@@ -20493,6 +20611,12 @@ msgid ""
 msgstr ""
 "Els gràfics següents s'han omès perquè s'ha produït un error en exportar-"
 "los:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20644,6 +20768,10 @@ msgstr "L'enllaç s'ha generat però no s'ha pogut copiar: %s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "El límit inferior del rang de llindar de l'Isobanda"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -20761,6 +20889,13 @@ msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -22777,6 +22912,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23824,6 +23964,9 @@ msgid ""
 msgstr ""
 "No es pot interpretar el desplaçament de temps: %(offset)s. Utilitzeu un "
 "temps relatiu com ara \"1 month ago\"."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25780,6 +25923,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "No tens permís per editar aquest gràfic"
@@ -26071,13 +26220,8 @@ msgstr ""
 "Has canviat de datasets. Qualsevol control amb dades (columnes, "
 "mètriques) que coincideixi amb aquest nou dataset s'ha mantingut."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr ""
-"El vostre compte ha estat activat. Podeu iniciar sessió amb les vostres "
-"credencials."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -26227,6 +26371,9 @@ msgstr "clau z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "L'arxiu ZIP conté múltiples tipus de fitxer"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy

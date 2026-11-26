@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -261,6 +261,12 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s به دلایل امنیتی نمی‌تواند به عنوان منبع داده استفاده شود."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -403,7 +409,15 @@ msgid "%s %s"
 msgstr "%s%s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1291,6 +1305,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "یک لیست جدا شده با کاما از طرح‌هایی که فایل‌ها مجاز به بارگذاری در آن "
 "هستند."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2327,6 +2344,9 @@ msgstr "محتوای هشدار"
 msgid "Alert ended grace period."
 msgstr "منبعد مهلت هشدار پایان یافت."
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "هشدار ناموفق بود"
 
@@ -3302,6 +3322,12 @@ msgstr "%s مورد بایگانی شد؛ %s نمای معنایی برای هم
 msgid "Archived by"
 msgstr "بایگانی‌شده توسط"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3456,6 +3482,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "فلش"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "یک مجموعه از پارامترها را به عنوان"
@@ -4539,6 +4569,10 @@ msgstr "چارت [%s] ذخیره شد"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "چارت [%s] به داشبورد [%s] اضافه شد"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "زمان انقضای کش نمودار"
@@ -7078,6 +7112,9 @@ msgstr "مقدار پیش‌فرض"
 msgid "Default color"
 msgstr "کاتالوگ پیش‌فرض"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 #, fuzzy
 msgid "Default datetime column"
 msgstr "تاریخ و زمان پیش‌فرض"
@@ -7102,6 +7139,9 @@ msgid ""
 msgstr ""
 "عرض حداقل پیش‌فرض ستون به پیکسل، عرض واقعی ممکن است هنوز بزرگتر از این "
 "باشد اگر ستون‌های دیگر به فضای زیادی نیاز نداشته باشند."
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7619,6 +7659,9 @@ msgstr "متن توضیحی که در زیر عدد بزرگ شما نمایش �
 
 msgid "Deselect all"
 msgstr "غیرفعال کردن همه"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 #, fuzzy
 msgid "Design with"
@@ -9139,6 +9182,10 @@ msgstr "گسترش دهید"
 msgid "Expand %s"
 msgstr "گسترش %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "همه را گسترش دهید"
@@ -10384,6 +10431,9 @@ msgstr "نام کامل"
 msgid "Fullscreen is not supported in this browser."
 msgstr "عملیات Drill by برای این نوع نمودار هنوز پشتیبانی نمی‌شود."
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "نمودار قیف"
 
@@ -10766,8 +10816,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "داده‌ها باید در چند سطل گروه‌بندی شوند؟"
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "چند دوره به آینده می‌خواهیم پیش‌بینی کنیم؟"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11160,6 +11222,11 @@ msgstr "بالای چپ"
 msgid "Inside top right"
 msgstr "بالا سمت راست"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "شدت"
 
@@ -11227,6 +11294,12 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "SQL نامعتبر: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12285,9 +12358,6 @@ msgstr "محور x لگاریتمی"
 
 msgid "Logarithmic y-axis"
 msgstr "محور y لگاریتمی"
-
-msgid "Login"
-msgstr "ورود"
 
 #, fuzzy
 msgid "Login count"
@@ -13469,6 +13539,9 @@ msgstr "هنوز هیچ نشانه‌گذاری وجود ندارد"
 msgid "No applied filters"
 msgstr "هیچ فیلتری اعمال نشده است"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -13551,6 +13624,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "هیچ موجودیتی در حال حاضر به این برچسب اختصاص داده نشده است."
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "بدون فیلتر"
@@ -13879,6 +13955,9 @@ msgstr "به هیچ داشبوردی اضافه نشده است"
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "تمام فیلدهای مورد نیاز پر نشده‌اند. لطفاً موارد زیر را ارائه دهید:"
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "در دسترس نیست"
 
@@ -14203,12 +14282,6 @@ msgstr "فقط مجموع"
 msgid "Only `SELECT` statements are allowed"
 msgstr "فقط عبارات `SELECT` مجاز هستند"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -14345,6 +14418,12 @@ msgstr "در SQL Lab باز کنید"
 msgid "Open in SQL lab"
 msgstr "در SQL Lab باز کنید"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -14355,6 +14434,9 @@ msgstr "باز کردن کوئری در آزمایشگاه SQL"
 
 msgid "Opening value for each period."
 msgstr "مقدار باز شدن برای هر دوره."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -16313,6 +16395,9 @@ msgstr "بازنشانی گذرواژه"
 msgid "Reset state"
 msgstr "تنظیم مجدد وضعیت"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "مقادیر پیش‌فرض را به‌روز کنيد"
@@ -17460,6 +17545,9 @@ msgstr "تمام داده‌ها را انتخاب کنید"
 
 msgid "Select all items"
 msgstr "همه اقلام را انتخاب کنید"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "فهرست یا نوع را برای جستجوی فهرست‌ها انتخاب کنید"
@@ -18618,9 +18706,8 @@ msgstr "فهرستی از تمام سری‌های موجود در آن زمان
 msgid "Shows or hides markers for the time series"
 msgstr "نشان دادن یا پنهان کردن نشانگرها برای سری‌های زمانی"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "نه در"
+msgstr "ورود"
 
 #, fuzzy
 msgid "Sign in with"
@@ -19754,6 +19841,32 @@ msgstr "برچسب‌ها"
 msgid "Tasks will appear here as background operations are executed."
 msgstr "وظایف با اجرای عملیات پس‌زمینه در اینجا نمایش داده می‌شوند."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr "قالب"
 
@@ -20438,6 +20551,11 @@ msgstr "توان برای محاسبه تمام اندازه‌ها. فقط \"EX
 msgid "The extension %(id)s could not be loaded."
 msgstr "افزونه %(id)s بارگذاری نشد."
 
+msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20477,6 +20595,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "نمودارهای زیر به دلیل بروز خطا هنگام صادر کردن حذف شدند:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20622,6 +20746,10 @@ msgstr "پیوند ایجاد شد اما کپی نشد: %s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "حد پایین دامنه آستانه ایزوبند"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -20739,6 +20867,13 @@ msgstr[1] "پارامترهای زیر در پرسش شما تعریف نشده�
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -22731,6 +22866,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23766,6 +23906,9 @@ msgid ""
 msgstr ""
 "تفسیر جابه‌جایی زمانی ممکن نیست: %(offset)s. از یک زمان نسبی مانند \"1 "
 "month ago\" استفاده کنید."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25706,6 +25849,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "شما اجازه ویرایش این چارت را ندارید"
@@ -25996,11 +26145,8 @@ msgstr ""
 "شما مجموعه داده‌ها را تغییر داده‌اید. هر کنترل با داده‌ها (ستون‌ها، "
 "معیارها) که با این مجموعه داده جدید مطابقت دارد، حفظ شده است."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Your account is activated. You can log in with your credentials."
-msgstr "حساب کاربری شما فعال شده است. می‌توانید با اطلاعات ورودی خود وارد شوید."
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -26153,6 +26299,9 @@ msgstr "کلید z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "فایل ZIP شامل انواع مختلف فایل است."
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy

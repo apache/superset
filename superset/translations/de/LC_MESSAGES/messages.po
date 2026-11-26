@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -239,6 +239,12 @@ msgstr ""
 "werden."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -372,7 +378,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 #, python-format
@@ -1168,6 +1182,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Eine durch Kommas getrennte Liste von Schemata, in die Dateien "
 "hochgeladen werden dürfen."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 msgid ""
 "A dashboard filter or display control has incompatible semantic "
@@ -2107,6 +2124,9 @@ msgstr "Inhalt des Alarms"
 msgid "Alert ended grace period."
 msgstr "Alarm beendet Karenzzeit."
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "Alarm fehlgeschlagen"
 
@@ -2990,6 +3010,12 @@ msgstr "%s Element(e) archiviert; %s semantische Ansicht(en) endgültig gelösch
 msgid "Archived by"
 msgstr "Archiviert von"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 msgid "Archived items must be recovered before they can be opened."
 msgstr ""
 "Archivierte Elemente müssen wiederhergestellt werden, bevor sie geöffnet "
@@ -3130,6 +3156,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Pfeil"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Eines Satz von Parametern zuweisen"
@@ -4096,6 +4126,10 @@ msgstr "Diagramm [%s] wurde gespeichert"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Diagramm [%s] wurde dem Dashboard hinzugefügt [%s]"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "Diagramm-Cache Timeout"
@@ -6329,6 +6363,9 @@ msgstr "Standardwert"
 msgid "Default color"
 msgstr "Standardfarbe"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "Standard-Datums-/Zeit-Spalte"
 
@@ -6350,6 +6387,9 @@ msgid ""
 msgstr ""
 "Standardmäßig minimale Spaltenbreite in Pixel, tatsächliche Breite kann "
 "immer noch größer sein, wenn andere Spalten nicht viel Platz benötigen"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -6827,6 +6867,9 @@ msgstr "Beschreibungstext, der unter Ihrer Großen Zahl angezeigt wird"
 
 msgid "Deselect all"
 msgstr "Alle abwählen"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 msgid "Design with"
 msgstr "Entwerfen Sie mit dem "
@@ -8155,6 +8198,10 @@ msgstr "Aufklappen"
 msgid "Expand %s"
 msgstr "%s aufklappen"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Alle aufklappen"
 
@@ -9198,6 +9245,9 @@ msgstr "Vollständiger Name"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Der Vollbildmodus wird in diesem Browser nicht unterstützt."
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Trichterdiagramm"
 
@@ -9546,8 +9596,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "Anzahl Buckets, in die Daten gruppiert werden sollen."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Wie viele Perioden in der Zukunft sollen prognostiziert werden"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "Wie viele Top-Werte ausgewählt werden sollen"
@@ -9868,6 +9930,11 @@ msgstr "Innerhalb oben links"
 msgid "Inside top right"
 msgstr "Innerhalb oben rechts"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intensität"
 
@@ -9929,6 +9996,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Ungültiges SQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 #, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
@@ -10830,9 +10903,6 @@ msgstr "Logarithmische x-Achse"
 
 msgid "Logarithmic y-axis"
 msgstr "Logarithmische y-Achse"
-
-msgid "Login"
-msgstr "Anmelden"
 
 msgid "Login count"
 msgstr "Anzahl Anmeldungen"
@@ -11850,6 +11920,9 @@ msgstr "Noch keinen Anmerkungen"
 msgid "No applied filters"
 msgstr "Keine angewendete Filter"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 msgid "No archived items"
 msgstr "Keine archivierten Elemente"
 
@@ -11924,6 +11997,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "Keine Entitäten haben dieses Schlagwort derzeit zugewiesen"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Kein Filter"
@@ -12214,6 +12290,9 @@ msgid "Not all required fields are complete. Please provide the following:"
 msgstr ""
 "Es sind nicht alle erforderlichen Felder ausgefüllt. Bitte machen Sie die"
 " folgenden Angaben:"
+
+msgid "Not authorized"
+msgstr ""
 
 msgid "Not available"
 msgstr "Nicht verfügbar"
@@ -12508,12 +12587,6 @@ msgstr "Nur Gesamtwert"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Nur 'SELECT'-Anweisungen sind zulässig"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 msgid "Only admins can set this field to a user other than themselves"
 msgstr ""
 "Nur Administratoren können dieses Feld auf einen anderen Benutzer als "
@@ -12632,6 +12705,12 @@ msgstr "In SQL-Lab öffnen"
 msgid "Open in SQL lab"
 msgstr "In SQL-Lab öffnen"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 msgid "Open price"
 msgstr "Eröffnungskurs"
 
@@ -12640,6 +12719,9 @@ msgstr "Abfrage in SQL-Lab öffnen"
 
 msgid "Opening value for each period."
 msgstr "Eröffnungswert für jeden Zeitraum."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -14367,6 +14449,9 @@ msgstr "Passwort zurücksetzen"
 msgid "Reset state"
 msgstr "Status zurücksetzen"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Auf Standardordner zurücksetzen?"
 
@@ -15388,6 +15473,9 @@ msgstr "Alle Daten auswählen"
 
 msgid "Select all items"
 msgstr "Alle Elemente auswählen"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "Katalog oder Typ auswählen, um Kataloge zu durchsuchen"
@@ -17355,6 +17443,32 @@ msgstr ""
 "Die Aufgaben werden hier angezeigt, sobald Hintergrundvorgänge ausgeführt"
 " werden."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr "Vorlage"
 
@@ -17998,6 +18112,11 @@ msgid "The extension %(id)s could not be loaded."
 msgstr "Die Erweiterung %(id)s konnte nicht geladen werden."
 
 msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
@@ -18029,6 +18148,12 @@ msgid ""
 msgstr ""
 "Die folgenden Diagramme wurden ausgelassen, da beim Exportieren ein "
 "Fehler aufgetreten ist:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 msgid ""
 "The following charts were omitted because their size cannot be determined"
@@ -18166,6 +18291,10 @@ msgstr "Der Link wurde erzeugt, konnte aber nicht kopiert werden: %s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Die untere Grenze des Schwellenbereichs der Isoband"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -18286,6 +18415,13 @@ msgstr[0] "Der Parameter %(parameters)s in ihrer Abfrage ist nicht definiert."
 msgstr[1] ""
 "Die folgenden Parameter in Ihrer Abfrage sind nicht definiert: "
 "%(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -20139,6 +20275,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
+msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
 msgstr ""
@@ -21045,6 +21186,9 @@ msgid ""
 msgstr ""
 "Der Zeitversatz %(offset)s kann nicht interpretiert werden. Verwenden Sie"
 " eine relative Zeitangabe wie \"1 month ago\"."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 msgid "Unable to load columns for the selected table."
 msgstr "Die Spalten der ausgewählten Tabelle konnten nicht geladen werden."
@@ -22860,6 +23004,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 msgid "You do not have permission to perform this operation"
 msgstr "Sie sind nicht berechtigt, diesen Vorgang auszuführen"
 
@@ -23108,7 +23258,7 @@ msgstr ""
 "Sie haben Datensätze geändert. Alle Steuerelemente mit Daten (Spalten, "
 "Metriken), die diesem neuen Datensatz entsprechen, wurden beibehalten."
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "Ihr Konto ist aktiviert. Sie können sich mit Ihren Zugangsdaten anmelden."
 
 msgid "Your changes will be lost if you leave without saving."
@@ -23236,6 +23386,9 @@ msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP-Datei enthält mehrere Dateitypen"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 msgid "Zebra striping"
 msgstr "Abwechselnde Zeilenfarben"

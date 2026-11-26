@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -248,6 +248,12 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "出於安全原因，%(dialect)s SQLite 資料庫不能用作數據源。"
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -384,7 +390,15 @@ msgid "%s %s"
 msgstr "%s%s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1246,6 +1260,9 @@ msgstr "應作為日期解析的列的逗號分隔列表。"
 #, fuzzy
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "允許以逗號分割的 CSV 文件上傳"
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2272,6 +2289,9 @@ msgstr "標籤内容"
 msgid "Alert ended grace period."
 msgstr "告警已结束寬限期。"
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "告警失敗"
 
@@ -3243,6 +3263,12 @@ msgstr "已封存 %s 個項目；已永久刪除 %s 個語意檢視"
 msgid "Archived by"
 msgstr "封存者"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3393,6 +3419,10 @@ msgstr "時間序列面積圖與折線圖相似，因為它們表示具有相同
 
 msgid "Arrow"
 msgstr "箭頭"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 #, fuzzy
 msgid "Assign a set of parameters as"
@@ -4511,6 +4541,10 @@ msgstr "圖表 [%s] 已經保存"
 #, fuzzy, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "圖表 [%s] 已經增加到看板 [%s]"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "圖表缓存超時"
@@ -7121,6 +7155,9 @@ msgstr "預設值"
 msgid "Default color"
 msgstr "預設值"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 #, fuzzy
 msgid "Default datetime column"
 msgstr "預設時間"
@@ -7143,6 +7180,9 @@ msgid ""
 "Default minimal column width in pixels, actual width may still be larger "
 "than this if other columns don't need much space"
 msgstr "預設最小列寬(以像素為單位)，如果其他列不需要太多空間，则實際寬度可能仍大於此值"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7614,6 +7654,9 @@ msgstr "在大數字下面顯示描述文本"
 
 msgid "Deselect all"
 msgstr "反選所有"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 #, fuzzy
 msgid "Design with"
@@ -9140,6 +9183,10 @@ msgstr "展開"
 msgid "Expand %s"
 msgstr "展開 %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "全部展開"
@@ -10398,6 +10445,9 @@ msgstr "完整名稱"
 msgid "Fullscreen is not supported in this browser."
 msgstr "此圖表類型還不支持鑽取"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "漏斗圖"
 
@@ -10813,8 +10863,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "資料應分為多少個區間。"
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "想要預测未來的多少個時期"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11204,6 +11266,11 @@ msgstr "上左"
 msgid "Inside top right"
 msgstr "上右"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "强度"
 
@@ -11273,6 +11340,12 @@ msgstr "JSON 中繼資料無效。請修正進階設定中的語法錯誤，以�
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "無效的 SQL：%(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12360,9 +12433,6 @@ msgstr "對數軸"
 
 msgid "Logarithmic y-axis"
 msgstr "對數軸"
-
-msgid "Login"
-msgstr "登入"
 
 #, fuzzy
 msgid "Login count"
@@ -13584,6 +13654,9 @@ msgstr "没有注释"
 msgid "No applied filters"
 msgstr "没有應用過濾器"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -13669,6 +13742,9 @@ msgstr ""
 #, fuzzy
 msgid "No entities have this tag currently assigned"
 msgstr "目前沒有任何實體被分配此標籤"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "無篩選"
@@ -13997,6 +14073,9 @@ msgstr "没有增加到任何看板"
 #, fuzzy
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "並非所有必填欄位都已填寫完整。請提供以下資訊："
+
+msgid "Not authorized"
+msgstr ""
 
 #, fuzzy
 msgid "Not available"
@@ -14331,12 +14410,6 @@ msgstr "僅總計"
 msgid "Only `SELECT` statements are allowed"
 msgstr "將 SELECT 語句複製到剪貼簿"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -14481,6 +14554,12 @@ msgstr "在 SQL 工具箱中打開"
 msgid "Open in SQL lab"
 msgstr "在 SQL 工具箱中打開"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -14491,6 +14570,9 @@ msgstr "在 SQL 工具箱中打開查詢"
 
 msgid "Opening value for each period."
 msgstr "每個週期的開盤值。"
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -16471,6 +16553,9 @@ msgstr "重設密碼"
 msgid "Reset state"
 msgstr "狀態重置"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "刷新預設值"
@@ -17659,6 +17744,9 @@ msgstr "選擇所有數據"
 msgid "Select all items"
 msgstr "選擇所有項"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 #, fuzzy
 msgid "Select catalog or type to search catalogs"
 msgstr "選擇表或输入表名來搜索"
@@ -18777,9 +18865,8 @@ msgstr "顯示那個時間點可用的所有系列的列表。"
 msgid "Shows or hides markers for the time series"
 msgstr "顯示或隐藏時間序列的標記點。"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "Not In"
+msgstr "登入"
 
 #, fuzzy
 msgid "Sign in with"
@@ -19937,6 +20024,32 @@ msgstr "標籤"
 msgid "Tasks will appear here as background operations are executed."
 msgstr "當背景操作執行時，任務將顯示在此處。"
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 #, fuzzy
 msgid "Template"
 msgstr "css 模板"
@@ -20601,6 +20714,11 @@ msgstr "用於計算所有大小的指數。僅適用於「EXP」"
 msgid "The extension %(id)s could not be loaded."
 msgstr "無法載入擴充功能 %(id)s。"
 
+msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20637,6 +20755,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "以下圖表因匯出時發生錯誤而被略過："
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20784,6 +20908,10 @@ msgstr "連結已產生，但無法複製：%s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "等值帶閾值範圍的下限"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -20888,6 +21016,13 @@ msgstr[0] "查詢中的以下参數未定義：%(parameters)s 。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -22748,6 +22883,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23763,6 +23903,9 @@ msgid ""
 "Unable to interpret the time offset: %(offset)s. Use a relative time such"
 " as \"1 month ago\"."
 msgstr "無法解讀時間偏移量：%(offset)s。請使用相對時間，例如「1 month ago」。"
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25670,6 +25813,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "您没有編輯此圖表的權限"
@@ -25951,11 +26100,8 @@ msgid ""
 "match this new dataset have been retained."
 msgstr "您已變更資料集。任何與此新資料集相符的資料控制項（欄位、指標）均已保留。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Your account is activated. You can log in with your credentials."
-msgstr "您的帳戶已啟用。您可以使用您的憑證登入。"
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -26105,6 +26251,9 @@ msgstr "z-a 鍵"
 #, fuzzy
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP 檔案包含多種檔案類型"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy

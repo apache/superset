@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 14:08-0700\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -261,6 +261,12 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nevar izmantot kā datu avotu drošības apsvērumu dēļ."
 
 #, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
 msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
@@ -406,7 +412,15 @@ msgid "%s %s"
 msgstr "%s%s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1298,6 +1312,9 @@ msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Ar komatu atdalīts shēmu saraksts, kurās atļauts augšupielādēt failus."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2301,6 +2318,9 @@ msgstr "Brīdinājuma saturs"
 msgid "Alert ended grace period."
 msgstr "Brīdinājuma labvēlības periods beidzies."
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr "Brīdinājums neizdevās"
 
@@ -3247,6 +3267,12 @@ msgstr "Arhivēti %s vienumi; neatgriezeniski izdzēsti %s semantiskie skati"
 msgid "Archived by"
 msgstr "Arhivēja"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3390,6 +3416,10 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Bulta"
+
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Piešķirt parametru kopu kā"
@@ -4405,6 +4435,10 @@ msgstr "Diagramma [%s] ir saglabāta"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Diagramma [%s] ir pievienota informācijas panelim [%s]"
+
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
 
 msgid "Chart cache timeout"
 msgstr "Diagrammas kešatmiņas noildze"
@@ -6816,6 +6850,9 @@ msgstr "Noklusējuma vērtība"
 msgid "Default color"
 msgstr "Noklusējuma krāsa"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "Noklusējuma datuma un laika kolonna"
 
@@ -6837,6 +6874,9 @@ msgid ""
 msgstr ""
 "Noklusējuma minimālais kolonnas platums pikseļos, faktiskais platums "
 "joprojām var būt lielāks, ja citām kolonnām nav nepieciešams daudz vietas"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7358,6 +7398,9 @@ msgstr "Apraksta teksts, kas parādās zem lielā skaitļa"
 
 msgid "Deselect all"
 msgstr "Noņemt atlasi visiem"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 msgid "Design with"
 msgstr "Dizainēt ar"
@@ -8753,6 +8796,10 @@ msgstr "Izvērst"
 msgid "Expand %s"
 msgstr "Izvērst %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Izvērst visu"
 
@@ -9912,6 +9959,9 @@ msgstr "Pilns vārds"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Iedziļināšanās pēc vēl nav atbalstīta šim diagrammas tipam"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Piltuves diagramma"
 
@@ -10275,8 +10325,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "Cik intervālos grupēt datus."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Cik periodus nākotnē mēs vēlamies prognozēt"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "Cik daudz augstāko vērtību izvēlēties"
@@ -10625,6 +10687,11 @@ msgstr "Augšējā kreisajā stūrī"
 msgid "Inside top right"
 msgstr "Labajā augšējā stūrī"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intensitāte"
 
@@ -10689,6 +10756,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Nepareizs SQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11688,9 +11761,6 @@ msgstr "Logaritmiskā x-ass"
 
 msgid "Logarithmic y-axis"
 msgstr "Logaritmiskā y-ass"
-
-msgid "Login"
-msgstr "Pieteikties"
 
 msgid "Login count"
 msgstr "Pieteikšanās reižu skaits"
@@ -12821,6 +12891,9 @@ msgstr "Pagaidām nav anotāciju"
 msgid "No applied filters"
 msgstr "Nav piemērotu filtru"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -12904,6 +12977,9 @@ msgstr ""
 
 msgid "No entities have this tag currently assigned"
 msgstr "Nevienai entītijai pašlaik nav piešķirta šī birka"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Nav filtru"
@@ -13222,6 +13298,9 @@ msgstr "Nav pievienots nevienam informācijas panelim"
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "Nav aizpildīti visi obligātie lauki. Lūdzu, norādiet šādu informāciju:"
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "Nav pieejams"
 
@@ -13532,12 +13611,6 @@ msgstr "Tikai kopsumma"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Atļauti tikai `SELECT` priekšraksti"
 
-msgid "Only admins can delete semantic views."
-msgstr ""
-
-msgid "Only admins can edit semantic views."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Only admins can set this field to a user other than themselves"
@@ -13675,6 +13748,12 @@ msgstr "Atvērt SQL laboratorijā"
 msgid "Open in SQL lab"
 msgstr "Atvērt SQL laboratorijā"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -13685,6 +13764,9 @@ msgstr "Atvērt vaicājumu SQL laboratorijā"
 
 msgid "Opening value for each period."
 msgstr "Katras perioda atvēršanas vērtība."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -15558,6 +15640,9 @@ msgstr "Atjaunot paroli"
 msgid "Reset state"
 msgstr "Atiestatīt stāvokli"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Atjaunot noklusējuma mapes?"
 
@@ -16672,6 +16757,9 @@ msgstr "Atlasīt visus datus"
 
 msgid "Select all items"
 msgstr "Atlasīt visus elementus"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "Atlasīt katalogu vai ierakstiet, lai meklētu katalogos"
@@ -18823,6 +18911,32 @@ msgstr "birkas"
 msgid "Tasks will appear here as background operations are executed."
 msgstr "Uzdevumi parādīsies šeit, kad tiks izpildītas fona operācijas."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr "Veidne"
 
@@ -19485,6 +19599,11 @@ msgid "The extension %(id)s could not be loaded."
 msgstr "Paplašinājumu %(id)s nevarēja ielādēt."
 
 msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
@@ -19517,6 +19636,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "Šīs diagrammas tika izlaistas, jo eksportēšanas laikā radās kļūda:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19657,6 +19782,10 @@ msgstr "Saite tika izveidota, bet to nevarēja nokopēt: %s"
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Izojoslas sliekšņa diapazona apakšējā robeža"
 
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
+
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
@@ -19774,6 +19903,13 @@ msgstr[2] "Sekojoši parametri jūsu vaicājumā nav definēti: %(parameters)s."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -21678,6 +21814,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22678,6 +22819,9 @@ msgid ""
 msgstr ""
 "Nevar interpretēt laika nobīdi: %(offset)s. Izmantojiet relatīvu laiku, "
 "piemēram, \"1 month ago\"."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24548,6 +24692,12 @@ msgid ""
 "administrator for the required access, then retry."
 msgstr ""
 
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "Jums nav atļaujas rediģēt šo diagrammu"
@@ -24835,7 +24985,7 @@ msgstr ""
 "Jūs mainījāt datu kopas. Visas vadīklas ar datiem (kolonnām, metrikām), "
 "kas atbilst šai jaunajai datu kopai, ir saglabātas."
 
-msgid "Your account is activated. You can log in with your credentials."
+msgid "Your account is activated. You can sign in with your credentials."
 msgstr "Jūsu konts ir aktivizēts. Jūs varat pieslēgties ar jūsu rekvizītiem."
 
 msgid "Your changes will be lost if you leave without saving."
@@ -24983,6 +25133,9 @@ msgstr "atslēga z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP fails satur vairākus failu veidus"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
