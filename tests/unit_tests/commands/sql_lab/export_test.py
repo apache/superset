@@ -111,3 +111,90 @@ def test_csv_export_mixed_frame_is_byte_identical(
     assert result["data"] == expected.encode()
     assert result["count"] == 5
     assert formatter.call_count == 5
+
+
+def test_csv_export_uses_full_sql_for_multi_statement_query(
+    mocker: MockerFixture,
+) -> None:
+    """CSV export must pass query.sql (the full original SQL) to get_df(),
+    not query.executed_sql.
+
+    query.executed_sql only holds the last statement executed because
+    sql_lab.py overwrites it on every loop iteration.  When a multi-statement
+    query uses session variables (e.g. ``SET @var = 'x'; SELECT … WHERE col =
+    @var``), those SET statements are absent from executed_sql.  Re-running
+    only the SELECT on a fresh connection leaves the variables undefined
+    (NULL), so the WHERE clause matches nothing → empty CSV.
+
+    This test would have failed before the fix: SQLScript and get_df would
+    each have been called with last_statement_only instead of full_sql.
+    """
+    mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+
+    full_sql = "SET @val = 'foo';\nSELECT col FROM tbl WHERE col = @val"
+    last_statement_only = "SELECT col FROM tbl WHERE col = @val"
+
+    query: MagicMock = MagicMock()
+    query.select_sql = None
+    query.sql = full_sql
+    query.executed_sql = last_statement_only  # only the SELECT — the bug value
+
+    # Mock SQLScript so we control the returned limit without needing a real
+    # DB-engine string; the key assertion is what SQL is passed to it.
+    mock_script: MagicMock = MagicMock()
+    mock_script.statements[-1].get_limit_value.return_value = None
+    mock_sql_script = mocker.patch(
+        "superset.commands.sql_lab.export.SQLScript", return_value=mock_script
+    )
+
+    query.database.get_df.return_value = pd.DataFrame({"col": ["foo"]})
+
+    mock_db: MagicMock = mocker.patch("superset.commands.sql_lab.export.db")
+    query_result: MagicMock = mock_db.session.query.return_value.filter_by.return_value
+    query_result.one_or_none.return_value = query
+
+    SqlResultExportCommand("client_id").run()
+
+    # Both SQLScript (limit extraction) and get_df (execution) must receive
+    # the full SQL including SET statements, not just the final SELECT.
+    mock_sql_script.assert_called_once_with(
+        full_sql, query.database.db_engine_spec.engine
+    )
+    query.database.get_df.assert_called_once_with(
+        full_sql, query.catalog, query.schema
+    )
+
+
+def test_csv_export_uses_full_sql_for_single_statement_query(
+    mocker: MockerFixture,
+) -> None:
+    """For single-statement queries query.sql equals query.executed_sql, so
+    switching to query.sql is transparent and existing behaviour is preserved."""
+    mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+
+    sql = "SELECT col FROM tbl"
+
+    query: MagicMock = MagicMock()
+    query.select_sql = None
+    query.sql = sql
+    query.executed_sql = sql  # identical — single statement, no rewrite
+
+    mock_script: MagicMock = MagicMock()
+    mock_script.statements[-1].get_limit_value.return_value = None
+    mocker.patch(
+        "superset.commands.sql_lab.export.SQLScript", return_value=mock_script
+    )
+
+    query.database.get_df.return_value = pd.DataFrame({"col": ["a", "b"]})
+
+    mock_db: MagicMock = mocker.patch("superset.commands.sql_lab.export.db")
+    query_result: MagicMock = mock_db.session.query.return_value.filter_by.return_value
+    query_result.one_or_none.return_value = query
+
+    result = SqlResultExportCommand("client_id").run()
+
+    # Single-statement: sql == executed_sql, so behaviour is unchanged.
+    query.database.get_df.assert_called_once_with(sql, query.catalog, query.schema)
+    assert result["count"] == 2
