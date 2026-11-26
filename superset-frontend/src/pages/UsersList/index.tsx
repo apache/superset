@@ -104,6 +104,7 @@ function UsersList({ user }: UsersListProps) {
     useState<UserObject | null>(null);
   const [userCurrentlyResetting, setUserCurrentlyResetting] =
     useState<UserObject | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const bootstrapData = getBootstrapData();
   const passwordRecoveryEnabled =
     bootstrapData.common.conf.AUTH_TYPE === AUTH_DB &&
@@ -177,6 +178,10 @@ function UsersList({ user }: UsersListProps) {
   };
 
   const handlePasswordReset = async ({ id, email }: UserObject) => {
+    if (isResettingPassword) {
+      return;
+    }
+    setIsResettingPassword(true);
     try {
       await requestAdminPasswordReset(id);
       setUserCurrentlyResetting(null);
@@ -194,6 +199,8 @@ function UsersList({ user }: UsersListProps) {
         }
       }
       addDangerToast(errorMessage);
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -630,6 +637,7 @@ function UsersList({ user }: UsersListProps) {
           }}
           primaryButtonName={t('Send email')}
           primaryButtonStyle="primary"
+          primaryButtonLoading={isResettingPassword}
           show
           title={t('Send password reset email?')}
           destroyOnHidden

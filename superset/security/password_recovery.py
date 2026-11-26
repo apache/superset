@@ -304,10 +304,17 @@ def build_email(
         "This link can be used once and expires in %(minutes)s minutes.",
         minutes=ttl_minutes,
     )
-    disclaimer = __(
-        "If you did not request a password reset, you can ignore this email; "
-        "your password will not change."
-    )
+    if requested_by_admin:
+        disclaimer = __(
+            "If you were not expecting this reset, contact your "
+            "administrator; your password will not change unless you use "
+            "the link above."
+        )
+    else:
+        disclaimer = __(
+            "If you did not request a password reset, you can ignore this email; "
+            "your password will not change."
+        )
     html = (
         '<html><body style="font-family:Arial,sans-serif;color:#333;">'
         f"<p>{greeting}</p>"

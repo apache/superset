@@ -308,6 +308,27 @@ describe('UsersList', () => {
     ).not.toBeInTheDocument();
   });
 
+  test('sends only one reset email when the send button is clicked twice', async () => {
+    enablePasswordRecovery();
+    await renderAndWait();
+
+    const table = screen.getByRole('table');
+    const [resetAction] = within(table).queryAllByTestId(
+      'user-list-reset-password-action',
+    );
+    fireEvent.click(resetAction);
+
+    const sendButton = screen.getByRole('button', { name: 'Send email' });
+    fireEvent.click(sendButton);
+    fireEvent.click(sendButton);
+
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory.calls(adminPasswordResetEndpoint),
+      ).toHaveLength(1);
+    });
+  });
+
   test('shows an error toast when the reset request fails', async () => {
     enablePasswordRecovery();
     mockAdminResetResponse({

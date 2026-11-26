@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import re
+import smtplib
 import threading
 import time
 from collections.abc import Iterator
@@ -1144,6 +1145,11 @@ def test_admin_request_sends_link_to_the_user(
     assert email["to"] == target.email
     assert target.username in email["html"]
     assert "An administrator requested a password reset" in email["html"]
+    assert (
+        "If you were not expecting this reset, contact your administrator"
+        in email["html"]
+    )
+    assert "If you did not request a password reset" not in email["html"]
     assert "https://superset.example.org/login/reset_password/#token=" in email["html"]
 
     entry = (
@@ -1219,6 +1225,41 @@ def test_admin_request_throttles_repeat_requests(
     second = _admin_request(client, users["target"].id)
     assert second.status_code == 429
     assert len(sent_emails) == 1
+
+
+def test_admin_request_reports_a_failed_send(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    admin = users["db"]
+    target = users["target"]
+    _login_as(client, admin)
+    mocker.patch.object(
+        password_recovery,
+        "send_email",
+        side_effect=smtplib.SMTPException("SMTP down"),
+    )
+
+    response = _admin_request(client, target.id)
+
+    assert response.status_code == 500
+    assert "could not be sent" in response.json["message"]
+    assert sent_emails == []
+
+    entry = (
+        db.session.query(Log)
+        .filter(Log.action == "PasswordRecoveryRequested")
+        .order_by(Log.id.desc())
+        .first()
+    )
+    assert entry is not None
+    payload = json.loads(entry.json)
+    assert payload["outcome"] == "failed"
+    assert payload["target_user_id"] == target.id
+    assert payload["requested_by_user_id"] == admin.id
 
 
 def test_admin_request_requires_sign_in(

@@ -303,7 +303,30 @@ class AdminRequestPasswordRecoveryCommand(RequestPasswordRecoveryCommand):
             raise PasswordRecoveryThrottledError()
         if token is not None:
             reset_url = password_recovery.build_reset_url(base_url, token)
-            self._send(self._user, reset_url)
+            try:
+                self._send(self._user, reset_url)
+            except Exception as ex:  # pylint: disable=broad-except
+                # The send runs inline for the admin endpoint, so a delivery
+                # failure is reported instead of being logged as "sent": the
+                # token and the resend cooldown are already committed, so the
+                # link stays usable and a retry is possible once the
+                # cooldown ends.
+                logger.warning(
+                    "Failed to send admin-requested password reset email to user %s",
+                    self._user.id,
+                    exc_info=True,
+                )
+                _log_event(
+                    "PasswordRecoveryRequested",
+                    {
+                        "outcome": "failed",
+                        "target_user_id": self._user.id,
+                        "requested_by_user_id": self._requested_by_user_id,
+                    },
+                )
+                raise PasswordRecoveryFailedError(
+                    _("The password reset email could not be sent. Please try again.")
+                ) from ex
         _log_event(
             "PasswordRecoveryRequested",
             {

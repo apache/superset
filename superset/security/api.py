@@ -54,6 +54,7 @@ from superset.commands.security.exceptions import (
     PasswordRecoveryUserNotFoundError,
 )
 from superset.commands.security.password_recovery import (
+    _send_now,
     AdminRequestPasswordRecoveryCommand,
     RequestPasswordRecoveryCommand,
     ResetPasswordWithTokenCommand,
@@ -801,7 +802,10 @@ class PasswordRecoveryRestApi(BaseSupersetApi):
             AdminRequestPasswordRecoveryCommand(
                 data["user_id"],
                 requested_by_user_id,
-                dispatch=_defer_until_response_closed,
+                # Unlike the self-service endpoints, the admin endpoint
+                # answers explicit 404s and 400s, so there is nothing to
+                # hide by deferring: send inline and report a failure.
+                dispatch=_send_now,
             ).run()
         except PasswordRecoveryUserNotFoundError as ex:
             return self.response(404, message=str(ex.message))
