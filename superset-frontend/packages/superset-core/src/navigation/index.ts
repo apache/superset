@@ -148,3 +148,27 @@ export declare function navigateTo(path: string): void;
  * rather than through the router, and would miss the prefix without it.
  */
 export declare function getApplicationRoot(): string;
+
+/**
+ * A path within this Superset, carrying the deployment's application root.
+ *
+ * An extension forms `href`s to host screens, and a bare path resolves
+ * against the wrong place wherever Superset is served under a subdirectory,
+ * or inside a host application's iframe. The root is deployment
+ * configuration the extension has no way to read, so the host answers.
+ *
+ * For `href`s, not for router pushes: a router already carries the root as
+ * its basename, and prefixing there would apply it twice. An absolute or
+ * protocol-relative URL is returned untouched, and a path already under the
+ * root is not rooted again.
+ *
+ * {@link getApplicationRoot} reports the prefix on its own, which is what a
+ * caller concatenating its own path wants. This takes the path instead and
+ * returns it rooted.
+ *
+ * @example
+ * navigation.appRoot('/explore/?slice_id=42')
+ * // '/explore/?slice_id=42', or '/analytics/explore/?slice_id=42'
+ * // where APPLICATION_ROOT is '/analytics'
+ */
+export declare function appRoot(path: string): string;
