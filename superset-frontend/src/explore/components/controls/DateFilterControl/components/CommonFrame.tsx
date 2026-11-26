@@ -31,7 +31,6 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export function CommonFrame(props: FrameComponentProps) {
-  
   const dashboardMetadata = useSelector(
     (state: RootState) => state.dashboardInfo?.metadata,
   );
@@ -45,8 +44,9 @@ export function CommonFrame(props: FrameComponentProps) {
   const activeOptions = [...COMMON_RANGE_OPTIONS, ...customOptions];
 
   let commonRange = 'Last week';
-  if (COMMON_RANGE_SET.has(props.value as CommonRangeType) || 
-      dashboardCustomPresets.includes(props.value)
+  if (
+    COMMON_RANGE_SET.has(props.value as CommonRangeType) ||
+    dashboardCustomPresets.includes(props.value)
   ) {
     commonRange = props.value;
   } else {

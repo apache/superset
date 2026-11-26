@@ -652,8 +652,13 @@ const PropertiesModal = ({
 
   // Regex check for custom time presets
   const invalidCustomPresets = useMemo(
-    () => customTimePresets.filter(
-      p => !/^Last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?$/.test(p)), 
+    () =>
+      customTimePresets.filter(
+        p =>
+          !/^Last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?$/.test(
+            p,
+          ),
+      ),
     [customTimePresets],
   );
 
@@ -730,7 +735,13 @@ const PropertiesModal = ({
         },
       },
     ],
-    [form, jsonAnnotations, invalidCustomPresets, refreshFrequency, dashboardInfo],
+    [
+      form,
+      jsonAnnotations,
+      invalidCustomPresets,
+      refreshFrequency,
+      dashboardInfo,
+    ],
   );
 
   const {

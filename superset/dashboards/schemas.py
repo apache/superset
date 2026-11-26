@@ -116,6 +116,7 @@ CUSTOM_TIME_PRESET_REGEX = re.compile(
     r"Last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?",
 )
 
+
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         json.validate_json(value)
@@ -241,6 +242,7 @@ class DashboardJSONMetadataSchema(Schema):
             "description": "List of custom time range presets for this dashboard."
         },
     )
+
     @validates("custom_time_presets")
     def validate_custom_time_presets(self, presets: list[str], **kwargs: Any) -> None:
         if not presets:
@@ -260,6 +262,7 @@ class DashboardJSONMetadataSchema(Schema):
                 raise ValidationError(
                     f"Invalid Time range preset '{preset}': {e}"
                 ) from e
+
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
