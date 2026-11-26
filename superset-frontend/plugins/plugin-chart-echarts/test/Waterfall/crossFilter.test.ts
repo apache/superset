@@ -291,6 +291,21 @@ test('a temporal X axis without a grain stays an exact match', () => {
   expect(mask.extraFormData.time_range).toBeUndefined();
 });
 
+test('a grain without frontend bucket bounds compares the truncated column', () => {
+  // The backend offers a 6 hour grain that has no frontend bucket range.
+  const sixHours = 'PT6H' as TimeGranularity;
+  const epoch = Date.parse('2021-01-01T06:00:00Z');
+  const mask = getWaterfallCrossFilterDataMask({
+    category: { ...yearBar, xColumn: 'order_date', xValue: epoch },
+    selectedKeys: [],
+    coltypeMapping: { order_date: GenericDataType.Temporal },
+    timeGrain: sixHours,
+  }).dataMask;
+  expect(mask.extraFormData).toEqual({
+    filters: [{ col: 'order_date', op: '==', val: epoch, grain: sixHours }],
+  });
+});
+
 test('an adhoc temporal X axis compares the truncated expression', () => {
   const orderDate = '2021-01-01T00:00:00';
   // Chart data serializes a temporal column as epoch milliseconds.

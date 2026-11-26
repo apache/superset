@@ -323,8 +323,9 @@ function crossFilterClause(
     if (range) {
       return filterForChartData(range);
     }
+    // Without frontend bucket bounds (e.g. a 6 hour grain), grained equality
+    // still matches the whole bucket. A bare IN would match its start only.
     if (
-      !isPhysicalColumn(dimension.col) &&
       dimension.value != null &&
       context.timeGrain &&
       isTemporalColumn(dimension.col, context.coltypeMapping)
