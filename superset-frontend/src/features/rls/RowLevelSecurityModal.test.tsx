@@ -135,7 +135,7 @@ const mockGetTablesResult = {
   ],
 };
 
-fetchMock.get(getRuleEndpoint, mockGetRuleResult);
+fetchMock.get(getRuleEndpoint, mockGetRuleResult, { name: 'getRule' });
 fetchMock.get(getRelatedSubjectsEndpoint, mockGetSubjectsResult);
 fetchMock.get(getRelatedTablesEndpoint, mockGetTablesResult);
 fetchMock.post(postRuleEndpoint, {}, { name: postRuleEndpoint });
@@ -355,6 +355,35 @@ describe('Rule modal', () => {
       });
 
       expect(await screen.findByText('form-1')).toBeInTheDocument();
+    });
+
+    test('hands a contributed view the rule id even if the rule cannot be fetched', async () => {
+      // The id comes from the row the list handed over, not from the fetched
+      // rule: until the fetch resolves -- and for good, if it never does --
+      // the form state is the empty default, and a view reading the id from
+      // there would take an edit for a creation.
+      fetchMock.modifyRoute('getRule', {
+        response: { status: 404, body: { message: 'Rule not found' } },
+      });
+      registerTestView(
+        ViewLocations.rls.ruleForm,
+        'test.rls.ruleForm.fetch-failed',
+        'Rule form',
+        ({ assetId }: any) => <span>{`form-${assetId}`}</span>,
+      );
+      await renderAndWait({
+        ...addNewRuleDefaultProps,
+        rule: {
+          id: 1,
+          name: 'test rule',
+          filter_type: FilterType.Base,
+          tables: [{ id: 1, table_name: 'birth_names' }],
+          subjects: [],
+        },
+      });
+
+      expect(await screen.findByText('form-1')).toBeInTheDocument();
+      fetchMock.modifyRoute('getRule', { response: mockGetRuleResult });
     });
 
     test('renders the form unchanged when nothing is registered', async () => {
