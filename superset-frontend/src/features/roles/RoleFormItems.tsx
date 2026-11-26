@@ -24,7 +24,11 @@ import {
   USER_OPTION_FILTER_PROPS,
   userOptionSortComparator,
 } from '../groups/utils';
-import { fetchGroupOptions, fetchPermissionOptions } from './utils';
+import {
+  comparePermissionOptions,
+  fetchGroupOptions,
+  fetchPermissionOptions,
+} from './utils';
 
 interface AsyncOptionsFieldProps {
   addDangerToast: (msg: string) => void;
@@ -88,6 +92,9 @@ export const PermissionsField = ({
         // to the point of being indistinguishable. Let the popup size to its content
         // instead. See #40430.
         popupMatchSelectWidth={false}
+        // Permission names often embed numbers (e.g. "[schema].[table10](id:10)");
+        // sort them naturally so "table2" precedes "table10".
+        sortComparator={comparePermissionOptions}
         getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
         data-test="permissions-select"
       />

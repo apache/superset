@@ -2281,7 +2281,6 @@ def test_custom_dialect(app: None) -> None:
 @pytest.mark.parametrize(
     "engine",
     [
-        "ascend",
         "awsathena",
         "base",
         "bigquery",
@@ -7007,6 +7006,57 @@ def test_extract_tables_from_jinja_sql_fails_closed(
             sql=f"'{{{{ {engine}.{macro} }}}}'",
             database=mocker.MagicMock(backend=engine),
         )
+
+
+def test_sqlscript_unmodeled_sqlglot_exception_raises_parse_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Dialect-specific sqlglot transforms can raise bare exceptions (e.g. an
+    ``AttributeError``) instead of a ``SqlglotError``; these must surface as a
+    ``SupersetParseError`` rather than an unhandled 500.
+    """
+    mocker.patch(
+        "superset.sql.parse.sqlglot.parse",
+        side_effect=AttributeError("'NoneType' object has no attribute 'is_type'"),
+    )
+    with pytest.raises(SupersetParseError, match="Unable to parse script"):
+        SQLScript("SELECT DATE_TRUNC('day', col) FROM t", "snowflake")
+
+
+def test_sqlscript_mysql_backtick_retry_unmodeled_exception_raises_parse_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The MySQL backtick retry runs inside the ``ParseError`` handler, so a bare
+    exception raised by the retry must still surface as a ``SupersetParseError``
+    (reporting the original parse failure) rather than an unhandled 500.
+    """
+    mocker.patch(
+        "superset.sql.parse.sqlglot.parse",
+        side_effect=[
+            sqlglot.errors.ParseError("base dialect failed"),
+            AttributeError("'NoneType' object has no attribute 'is_type'"),
+        ],
+    )
+    with pytest.raises(SupersetParseError):
+        SQLScript("SELECT `a` FROM t WHERE DATE_ADD(x) > 1", "base")
+
+
+def test_parse_predicate_unmodeled_sqlglot_exception_raises_parse_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``SQLStatement.parse_predicate`` must convert bare exceptions raised by
+    dialect-specific sqlglot transforms into a ``SupersetParseError``.
+    """
+    statement = SQLStatement("SELECT 1 FROM t", "snowflake")
+    mocker.patch(
+        "superset.sql.parse.sqlglot.parse_one",
+        side_effect=IndexError("list index out of range"),
+    )
+    with pytest.raises(SupersetParseError, match="Unable to parse predicate"):
+        statement.parse_predicate("OBJECT_CONSTRUCT(col) = 1")
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
