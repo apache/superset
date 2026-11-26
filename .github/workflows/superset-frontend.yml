@@ -258,7 +258,7 @@ jobs:
           bash -c "npm run build-storybook -- --webpack-stats-json"
       - name: Publish to Chromatic
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
-        uses: chromaui/action@6efa19d4a40404313897de5a6d516e0333a2a787 # v18.14.5
+        uses: chromaui/action@b46fae7df99a74cc2201b00cb59ec498c3346530 # v18.15.0
         with:
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
