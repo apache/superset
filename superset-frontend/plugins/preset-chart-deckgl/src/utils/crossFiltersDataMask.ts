@@ -20,6 +20,7 @@ import { PickingInfo, Viewport } from '@deck.gl/core';
 import {
   ContextMenuFilters,
   FilterState,
+  QueryFormColumn,
   QueryObjectFilterClause,
   SqlaFormData,
 } from '@superset-ui/core';
@@ -55,6 +56,7 @@ export interface LayerFormData extends SqlaFormData {
   line_column?: string;
   geojson?: string;
   cross_filter_column?: string | null;
+  h3_index?: QueryFormColumn | QueryFormColumn[];
 }
 
 export interface FilterResult {
@@ -530,6 +532,35 @@ const getGeojsonFilters = ({
   };
 };
 
+const getH3Filters = ({
+  formData,
+  data,
+}: {
+  formData: LayerFormData;
+  data: PickingInfo;
+}): FilterResult => {
+  const col = Array.isArray(formData.h3_index)
+    ? formData.h3_index[0]
+    : formData.h3_index;
+
+  if (!col) return { values: [], filters: [] };
+
+  const hexagon = data.object?.hexagon;
+
+  if (!hexagon) throw new Error('Position of picked data is required');
+
+  return {
+    values: [hexagon],
+    filters: [
+      {
+        col,
+        op: '==',
+        val: hexagon,
+      },
+    ],
+  };
+};
+
 export const getCrossFilterDataMask = ({
   data,
   filterState,
@@ -554,6 +585,9 @@ export const getCrossFilterDataMask = ({
     ({ values, filters, customColumnLabel } = result);
   } else if (formData.geojson) {
     const result = getGeojsonFilters({ formData, data });
+    ({ values, filters, customColumnLabel } = result);
+  } else if (formData.h3_index) {
+    const result = getH3Filters({ formData, data });
     ({ values, filters, customColumnLabel } = result);
   } else {
     throw new Error('No valid spatial configuration found in form data');

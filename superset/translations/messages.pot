@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Licensed to the Apache Software Foundation (ASF) under one
 
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
@@ -26,14 +25,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-23 15:13+0530\n"
+"POT-Creation-Date: 2026-11-23 12:31-0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -132,7 +131,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
@@ -152,7 +151,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
@@ -160,7 +159,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr ""
 
@@ -4491,6 +4490,9 @@ msgstr ""
 msgid "Country Map"
 msgstr ""
 
+msgid "Coverage"
+msgstr ""
+
 msgid "Create"
 msgstr ""
 
@@ -6251,6 +6253,9 @@ msgstr ""
 msgid "Elevation"
 msgstr ""
 
+msgid "Elevation Scale"
+msgstr ""
+
 msgid "Email"
 msgstr ""
 
@@ -6986,6 +6991,9 @@ msgid "Extra url parameters for use in Jinja templated queries"
 msgstr ""
 
 msgid "Extruded"
+msgstr ""
+
+msgid "Extruded (3D)"
 msgstr ""
 
 msgid "FEB"
@@ -7815,6 +7823,12 @@ msgstr ""
 msgid "Guest user cannot modify chart payload"
 msgstr ""
 
+msgid "H3"
+msgstr ""
+
+msgid "H3 Column"
+msgstr ""
+
 msgid "HTTP Path"
 msgstr ""
 
@@ -7853,6 +7867,12 @@ msgid "Height of each row in pixels"
 msgstr ""
 
 msgid "Height of the sparkline"
+msgstr ""
+
+msgid "Hexagon"
+msgstr ""
+
+msgid "Hexagon size multiplier (0-1)"
 msgstr ""
 
 msgid "Hidden"
@@ -9459,6 +9479,9 @@ msgstr ""
 msgid "Metric factor change from `since` to `until`"
 msgstr ""
 
+msgid "Metric for hexagon elevation/color"
+msgstr ""
+
 msgid "Metric for node values"
 msgstr ""
 
@@ -9754,6 +9777,9 @@ msgid "Multiple result rows resolve to %s; normalize source values before aggreg
 msgstr ""
 
 msgid "Multiplier"
+msgstr ""
+
+msgid "Multiplier for hexagon elevation"
 msgstr ""
 
 msgid "Must be a chart editor to overwrite this chart. Save as a new chart instead."
@@ -14001,6 +14027,9 @@ msgstr ""
 msgid "Spatial"
 msgstr ""
 
+msgid "Spatial Index"
+msgstr ""
+
 msgid "Specific Date/Time"
 msgstr ""
 
@@ -14762,6 +14791,9 @@ msgstr ""
 msgid ""
 "The colors of this chart might be overridden by custom label colors of the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
+msgstr ""
+
+msgid "The column containing H3 hexagon indices"
 msgstr ""
 
 msgid "The column header label"
@@ -17555,6 +17587,9 @@ msgstr ""
 msgid "Virtual dataset template error: %(msg)s"
 msgstr ""
 
+msgid "Visual"
+msgstr ""
+
 msgid "Visual Tweaks"
 msgstr ""
 
@@ -17571,6 +17606,9 @@ msgid "Visualize a related metric across pairs of groups. Heatmaps excel at show
 msgstr ""
 
 msgid "Visualize geospatial data like 3D buildings, landscapes, or objects in grid view."
+msgstr ""
+
+msgid "Visualize geospatial data using H3 hexagonal indexing system with optional elevation"
 msgstr ""
 
 msgid "Visualize multiple levels of hierarchy using a familiar tree-like structure."
@@ -17898,6 +17936,9 @@ msgid "Whether to enable changing graph position and scaling."
 msgstr ""
 
 msgid "Whether to enable node dragging in force layout mode."
+msgstr ""
+
+msgid "Whether to extrude hexagons in 3D"
 msgstr ""
 
 msgid "Whether to fill the objects"
@@ -18853,6 +18894,9 @@ msgid "deck.gl Geojson"
 msgstr ""
 
 msgid "deck.gl Grid"
+msgstr ""
+
+msgid "deck.gl H3 Hexagon"
 msgstr ""
 
 msgid "deck.gl Heatmap"

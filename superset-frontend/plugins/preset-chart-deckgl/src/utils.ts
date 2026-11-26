@@ -167,7 +167,7 @@ export function getBreakPointColorScaler(
     // Only mask values that are strictly outside the min/max bounds
     // Include values equal to the max breakpoint
     maskPoint = value =>
-      !!value && (value > points[points.length - 1] || value < points[0]);
+      value != null && (value > points[points.length - 1] || value < points[0]);
   } else {
     // interpolate colors linearly
     const linearScaleDomain = extent(features, accessor);
@@ -183,7 +183,8 @@ export function getBreakPointColorScaler(
 
   return (d: JsonObject): Color => {
     const v = accessor(d);
-    if (!v) {
+    // Only a missing value is transparent; 0 is a legitimate metric value.
+    if (v == null || Number.isNaN(v)) {
       return TRANSPARENT_COLOR_ARRAY;
     }
     const c = hexToRGB(scaler(v));

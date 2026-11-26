@@ -651,6 +651,151 @@ describe('getCrossFilterDataMask', () => {
     });
   });
 
+  test('handles h3_index as a string column', () => {
+    const h3FormData = {
+      ...formData,
+      h3_index: 'h3_col',
+    };
+
+    const h3PickingData = {
+      ...pickingData,
+      object: {
+        hexagon: '881f1d4a1bfffff',
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: h3FormData,
+      data: h3PickingData,
+      filterState: {},
+    });
+
+    expect(dataMask).toStrictEqual({
+      dataMask: {
+        extraFormData: {
+          filters: [
+            {
+              col: 'h3_col',
+              op: '==',
+              val: '881f1d4a1bfffff',
+            },
+          ],
+        },
+        filterState: {
+          value: ['881f1d4a1bfffff'],
+        },
+      },
+      isCurrentValueSelected: false,
+    });
+  });
+
+  test('handles h3_index as an array of columns, filtering on the first', () => {
+    const h3FormData = {
+      ...formData,
+      h3_index: ['h3_col'],
+    };
+
+    const h3PickingData = {
+      ...pickingData,
+      object: {
+        hexagon: '881f1d4a1bfffff',
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: h3FormData,
+      data: h3PickingData,
+      filterState: {},
+    });
+
+    expect(dataMask).toStrictEqual({
+      dataMask: {
+        extraFormData: {
+          filters: [
+            {
+              col: 'h3_col',
+              op: '==',
+              val: '881f1d4a1bfffff',
+            },
+          ],
+        },
+        filterState: {
+          value: ['881f1d4a1bfffff'],
+        },
+      },
+      isCurrentValueSelected: false,
+    });
+  });
+
+  test('toggles off h3_index filter when re-clicking the same hexagon', () => {
+    const h3FormData = {
+      ...formData,
+      h3_index: 'h3_col',
+    };
+
+    const h3PickingData = {
+      ...pickingData,
+      object: {
+        hexagon: '881f1d4a1bfffff',
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: h3FormData,
+      data: h3PickingData,
+      filterState: {
+        value: ['881f1d4a1bfffff'],
+      },
+    });
+
+    expect(dataMask).toStrictEqual({
+      dataMask: {
+        extraFormData: {
+          filters: [],
+        },
+        filterState: {
+          value: null,
+        },
+      },
+      isCurrentValueSelected: true,
+    });
+  });
+
+  test('throws when picked h3 object has no hexagon', () => {
+    const h3FormData = {
+      ...formData,
+      h3_index: 'h3_col',
+    };
+
+    const h3PickingData = {
+      ...pickingData,
+      object: {},
+    };
+
+    expect(() =>
+      getCrossFilterDataMask({
+        formData: h3FormData,
+        data: h3PickingData,
+        filterState: {},
+      }),
+    ).toThrow('Position of picked data is required');
+  });
+
+  test('throws when no valid spatial configuration is found and h3_index is absent', () => {
+    const emptyPickingData = {
+      ...pickingData,
+      object: {},
+    };
+
+    expect(() =>
+      getCrossFilterDataMask({
+        formData,
+        data: emptyPickingData,
+        filterState: {},
+      }),
+    ).toThrow('No valid spatial configuration found in form data');
+  });
+
   test('handles Charts with GPU aggregation', () => {
     const latlongGPUFormData = {
       ...formData,
