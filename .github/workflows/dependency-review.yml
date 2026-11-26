@@ -31,6 +31,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
       - name: "Dependency Review"
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
@@ -38,26 +39,9 @@ jobs:
           # compatible/incompatible licenses addressed here: https://www.apache.org/legal/resolved.html
           # find SPDX identifiers here: https://spdx.org/licenses/
           deny-licenses: MS-LPL, BUSL-1.1, QPL-1.0, Sleepycat, SSPL-1.0, CPOL-1.02, AGPL-3.0, GPL-1.0+, BSD-4-Clause-UC, NPL-1.0, NPL-1.1, JSON
-          # pkg:npm/store2@2.14.2
-          #   adding an exception for an ambigious license on store2, which has been resolved in
-          #   the latest version. It's MIT: https://github.com/nbubna/store/blob/master/LICENSE-MIT
-          # pkg:npm/node-forge@1.3.1
-          #   selecting BSD-3-Clause licensing terms for node-forge to ensure compatibility with Apache
+          # pkg:npm/rgb@*: exempted due to MIT license usage
+          # pkg:npm/jszip@3.10.1: exempted due to MIT license usage
           allow-dependencies-licenses: pkg:npm/rgbcolor, pkg:npm/jszip@3.10.1
-
-  python-dependency-liccheck:
-    # NOTE: Configuration for liccheck lives in our pyproject.yml.
-    # You cannot use a liccheck.ini file in this workflow.
-    runs-on: ubuntu-slim
-    steps:
-      - uses: Kesin11/actions-timeline@460b1f8a750077029ad3589824d371b200e91dcf # v3.2.1
-        with:
-          expand-composite-actions: true
-
-      - name: "Checkout Repository"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
 
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
