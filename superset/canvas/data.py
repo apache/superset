@@ -89,10 +89,7 @@ def query_context_payload(
     try:
         fixed = _binding_filters.validate_python(binding.get("filters") or [])
     except ValidationError as ex:
-        first = ex.errors()[0]
-        raise QueryObjectValidationError(
-            f"The chart's filter {first['loc'][0]} is not valid: {first['msg']}"
-        ) from ex
+        raise QueryObjectValidationError(_filter_error(ex)) from ex
     for fixed_filter in fixed:
         if isinstance(fixed_filter, ColumnFilter):
             filters.append(
@@ -140,6 +137,17 @@ def query_context_payload(
     }
 
 
+def _filter_error(ex: ValidationError) -> str:
+    first = ex.errors()[0]
+    loc = first["loc"]
+    if not loc or not isinstance(loc[0], int):
+        return f"The chart's filters are not valid: {first['msg']}"
+    # After the index comes the union tag, then the field.
+    field_path = ".".join(str(part) for part in loc[2:])
+    where = f"filter {loc[0]}" + (f" ({field_path})" if field_path else "")
+    return f"The chart's {where} is not valid: {first['msg']}"
+
+
 def run_binding(
     binding: dict[str, Any],
     runtime_filters: list[RuntimeFilter] | None = None,
@@ -161,6 +169,16 @@ def run_binding(
     command = ChartDataCommand(query_context)
     command.validate()
     result = command.run()["queries"][0]
+    # The query pipeline drops a filter on a column the dataset doesn't have
+    # and reports it; the rows would otherwise pass for filtered ones.
+    if rejected := [
+        str(rejected["column"]) for rejected in result.get("rejected_filters") or []
+    ]:
+        raise QueryObjectValidationError(
+            "The dataset has no column "
+            + ", ".join(sorted(set(rejected)))
+            + ", which the chart filters on"
+        )
     return PlacementData(
         rows=result.get("data") or [],
         query=result.get("query") or None,

@@ -29,12 +29,41 @@ mandatory leaves, leaving optional/styling fields behind a drill-in.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Discriminator,
+    Field,
+    model_validator,
+    Tag,
+)
 from superset_core.widgets import MetricControl
 
 FilterScalar = str | int | float | bool
+
+ColumnOperator = Literal[
+    "=",
+    "!=",
+    ">",
+    ">=",
+    "<",
+    "<=",
+    "LIKE",
+    "NOT LIKE",
+    "ILIKE",
+    "NOT ILIKE",
+    "IN",
+    "NOT IN",
+    "IS NULL",
+    "IS NOT NULL",
+    "IS TRUE",
+    "IS FALSE",
+    "TEMPORAL_RANGE",
+]
+NO_VALUE_OPERATORS = frozenset({"IS NULL", "IS NOT NULL", "IS TRUE", "IS FALSE"})
+LIST_OPERATORS = frozenset({"IN", "NOT IN"})
 
 
 class ColumnFilter(BaseModel):
@@ -43,42 +72,33 @@ class ColumnFilter(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     column: str = Field(min_length=1, description="A column of the dataset.")
-    op: Literal[
-        "=",
-        "!=",
-        ">",
-        ">=",
-        "<",
-        "<=",
-        "LIKE",
-        "ILIKE",
-        "NOT LIKE",
-        "IN",
-        "NOT IN",
-        "IS NULL",
-        "IS NOT NULL",
-    ] = Field(
+    op: ColumnOperator = Field(
         description=(
-            "LIKE / ILIKE / NOT LIKE take % wildcards; IN / NOT IN take a list; "
-            "IS NULL / IS NOT NULL take no value."
+            "LIKE / NOT LIKE / ILIKE / NOT ILIKE take % wildcards; IN / NOT IN "
+            "take a list; IS NULL / IS NOT NULL / IS TRUE / IS FALSE take no "
+            "value; TEMPORAL_RANGE takes a time range on a temporal column, "
+            "such as `Last month` or `2024-01-01 : 2024-07-01`."
         ),
     )
     value: FilterScalar | list[FilterScalar] | None = Field(
         default=None,
         description=(
             "The value compared against: one scalar, a list for IN / NOT IN, "
-            "omitted for IS NULL / IS NOT NULL."
+            "omitted for IS NULL / IS NOT NULL / IS TRUE / IS FALSE."
         ),
     )
 
     @model_validator(mode="after")
     def _value_fits_operator(self) -> ColumnFilter:
-        if self.op in ("IS NULL", "IS NOT NULL"):
+        if self.op in NO_VALUE_OPERATORS:
             if self.value is not None:
                 raise ValueError(f"{self.op} takes no value")
-        elif self.op in ("IN", "NOT IN"):
+        elif self.op in LIST_OPERATORS:
             if not isinstance(self.value, list) or not self.value:
                 raise ValueError(f"{self.op} takes a non-empty list of values")
+        elif self.op == "TEMPORAL_RANGE":
+            if not isinstance(self.value, str) or not self.value:
+                raise ValueError("TEMPORAL_RANGE takes a time range string")
         elif self.value is None or isinstance(self.value, list):
             raise ValueError(f"{self.op} takes a single value")
         return self
@@ -104,7 +124,18 @@ class SqlFilter(BaseModel):
     )
 
 
-BindingFilter = ColumnFilter | SqlFilter
+def _filter_kind(value: Any) -> str:
+    """Which filter a stored value means, by the key only one of them has, so
+    a bad value is reported against that filter's fields."""
+    if isinstance(value, SqlFilter) or (isinstance(value, dict) and "sql" in value):
+        return "sql"
+    return "column"
+
+
+BindingFilter = Annotated[
+    Annotated[ColumnFilter, Tag("column")] | Annotated[SqlFilter, Tag("sql")],
+    Discriminator(_filter_kind),
+]
 
 
 class SortKey(BaseModel):

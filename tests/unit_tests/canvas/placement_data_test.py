@@ -267,6 +267,8 @@ def test_fixed_filters_become_query_filters_and_sql_clauses() -> None:
                 {"column": "country", "op": "=", "value": "FR"},
                 {"column": "deal_size", "op": "IN", "value": ["Small", "Medium"]},
                 {"column": "status", "op": "IS NOT NULL"},
+                {"column": "active", "op": "IS TRUE"},
+                {"column": "order_date", "op": "TEMPORAL_RANGE", "value": "Last week"},
                 {"sql": "a > 1"},
                 {"sql": "SUM(revenue) > 100", "clause": "HAVING"},
             ],
@@ -278,6 +280,8 @@ def test_fixed_filters_become_query_filters_and_sql_clauses() -> None:
         {"col": "country", "op": "==", "val": "FR"},
         {"col": "deal_size", "op": "IN", "val": ["Small", "Medium"]},
         {"col": "status", "op": "IS NOT NULL", "val": None},
+        {"col": "active", "op": "IS TRUE", "val": None},
+        {"col": "order_date", "op": "TEMPORAL_RANGE", "val": "Last week"},
     ]
     assert query["extras"] == {
         "where": "(a > 1)",
@@ -286,28 +290,66 @@ def test_fixed_filters_become_query_filters_and_sql_clauses() -> None:
 
 
 @pytest.mark.parametrize(
-    "stored",
+    "stored, message",
     [
         # Explore's adhoc filter shape.
-        {
-            "expressionType": "SIMPLE",
-            "subject": "country",
-            "operator": "==",
-            "comparator": "Atlantis",
-        },
-        {"country": "Atlantis"},
-        {"column": "country", "op": "IN", "value": "Atlantis"},
-        {"column": "country", "op": "IS NULL", "value": "Atlantis"},
+        (
+            {
+                "expressionType": "SIMPLE",
+                "subject": "country",
+                "operator": "==",
+                "comparator": "Atlantis",
+            },
+            r"filter 0 \(column\) is not valid",
+        ),
+        ({"country": "Atlantis"}, r"filter 0 \(column\) is not valid"),
+        ({"column": "country", "op": "IN", "value": "Atlantis"}, "non-empty list"),
+        ({"column": "country", "op": "IS NULL", "value": "Atlantis"}, "no value"),
+        ({"column": "ds", "op": "TEMPORAL_RANGE", "value": 7}, "time range"),
+        # Reported against the SQL filter's field, not as a missing column.
+        ({"sql": "a > 1", "clause": "where"}, r"filter 0 \(clause\).*WHERE"),
     ],
 )
 def test_a_filter_of_an_unknown_shape_is_refused_not_skipped(
-    stored: dict[str, Any],
+    stored: dict[str, Any], message: str
 ) -> None:
     """Skipping it would show every row under a filtered title."""
     from superset.exceptions import QueryObjectValidationError
 
-    with pytest.raises(QueryObjectValidationError, match="filter 0 is not valid"):
+    with pytest.raises(QueryObjectValidationError, match=message):
         query_context_payload({**BINDING, "filters": [stored]})
+
+
+@pytest.mark.parametrize("stored", [{"column": "country"}, "country = 'FR'"])
+def test_filters_that_are_not_a_list_are_refused(stored: Any) -> None:
+    from superset.exceptions import QueryObjectValidationError
+
+    with pytest.raises(QueryObjectValidationError, match="filters are not valid"):
+        query_context_payload({**BINDING, "filters": stored})
+
+
+def test_a_filter_on_a_column_the_dataset_lacks_is_an_error_not_unfiltered_rows(
+    client: Any,
+    full_api_access: None,
+    aggregate_canvas: Canvas,
+    session: Session,
+    can_view_query: MagicMock,
+) -> None:
+    """The query pipeline drops such a filter and reports it as rejected."""
+    widget = session.query(Widget).one()
+    props = deepcopy(widget.props)
+    props["dataBinding"]["filters"] = [
+        {"column": "nonexistent", "op": "=", "value": "zzz"}
+    ]
+    widget.props = props
+    session.commit()
+
+    response = client.post(
+        f"/api/v1/canvas/{aggregate_canvas.id}/placement/amounts/data", json={}
+    )
+
+    assert response.status_code == 400
+    assert "nonexistent" in response.json["message"]
 
 
 def test_runtime_filters_narrow_only_the_bindings_dataset() -> None:
