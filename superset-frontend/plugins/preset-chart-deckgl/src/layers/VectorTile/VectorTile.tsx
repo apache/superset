@@ -17,11 +17,21 @@
  * under the License.
  */
 
-import { memo } from 'react';
+import { memo, useCallback, useRef } from 'react';
 import { MVTLayer } from '@deck.gl/geo-layers';
 import { MVTLoader } from '@loaders.gl/mvt';
-import { getMapProviderMapStyle, JsonValue } from '@superset-ui/core';
-import { DeckGLContainerStyledWrapper } from '../../DeckGLContainer';
+import {
+  getMapProviderMapStyle,
+  JsonObject,
+  JsonValue,
+} from '@superset-ui/core';
+import {
+  DeckGLContainerHandle,
+  DeckGLContainerStyledWrapper,
+} from '../../DeckGLContainer';
+import { commonLayerProps } from '../common';
+import TooltipRow from '../../TooltipRow';
+import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
 import { Viewport } from '../../utils/fitViewport';
 import { getMapboxApiKey } from '../../utils/mapbox';
@@ -31,11 +41,37 @@ import { getLayerSettings, VectorTileFormData } from './layerSettings';
 const POINT_RADIUS_PX = 4;
 const LINE_WIDTH_PX = 1;
 
+// Added by MVTLoader to every feature, not sent by the tile server.
+const LOADER_LAYER_NAME_KEY = 'layerName';
+
+function setTooltipContent(o: JsonObject) {
+  const properties = o.object?.properties;
+  if (!properties) {
+    return null;
+  }
+  return (
+    <div className="deckgl-tooltip">
+      {Object.keys(properties)
+        .filter(key => key !== LOADER_LAYER_NAME_KEY)
+        .map(key => (
+          <TooltipRow
+            key={key}
+            label={`${key}: `}
+            value={`${properties[key]}`}
+          />
+        ))}
+    </div>
+  );
+}
+
 /**
  * Builds the MVTLayer from form data. Exported separately because the deck.gl
  * Multiple Layers chart calls it directly. Returns null without a valid tile URL.
  */
-export const getLayer: GetLayerType<MVTLayer | null> = ({ formData }) => {
+export const getLayer: GetLayerType<MVTLayer | null> = ({
+  formData,
+  setTooltip,
+}) => {
   const { tileUrl, sourceLayer, minZoom, maxZoom, fillColor } =
     getLayerSettings(formData as VectorTileFormData);
 
@@ -61,6 +97,11 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({ formData }) => {
     pointRadiusUnits: 'pixels',
     getLineWidth: LINE_WIDTH_PX,
     lineWidthUnits: 'pixels',
+    ...commonLayerProps({
+      formData,
+      setTooltip,
+      setTooltipContent,
+    }),
   });
 };
 
@@ -79,7 +120,11 @@ function VectorTile({
   height,
   width,
 }: VectorTileProps) {
-  const layer = getLayer({ formData, payload: {}, setTooltip: () => {} });
+  const containerRef = useRef<DeckGLContainerHandle>();
+  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
+    containerRef.current?.setTooltip(tooltip);
+  }, []);
+  const layer = getLayer({ formData, payload: {}, setTooltip });
 
   const { mapProvider, mapStyle } = getMapProviderMapStyle({
     mapProvider: formData.map_renderer,
@@ -90,6 +135,7 @@ function VectorTile({
 
   return (
     <DeckGLContainerStyledWrapper
+      ref={containerRef}
       viewport={viewport}
       layers={layer ? [layer] : []}
       mapProvider={mapProvider}
