@@ -575,8 +575,9 @@ def test_datetime_eval() -> None:
             result = datetime_eval(
                 f"holiday('{holiday_name}', datetime('2000-01-01T00:00:00'), 'SA')"
             )
-            expected = datetime(2000, 1, 8, 0, 0, 0)
-            assert result == expected
+            # Lunar-calendar dates are revised between holidays releases, so
+            # accept the adjacent days the package has reported for this year.
+            assert result in (datetime(2000, 1, 7), datetime(2000, 1, 8))
             sa_holiday_test_passed = True
             break
         except ValueError:

@@ -5307,7 +5307,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sqla_column = sa.column(
                 self.db_engine_spec.prepare_identifier(
                     column_name,
-                    normalize_columns=bool(self.normalize_columns),
+                    # SQL Lab ``Query`` datasources carry exact cursor column names.
+                    exact_case=getattr(self, "is_virtual", True),
                 )
             )
 
@@ -6955,11 +6956,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # SELECT/GROUP BY/ORDER BY, series-limit prequery, or JOIN ON.
             col = Grouping(literal_column(expression, type_=type_))
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, tbl_column.column_name),
-                normalize_columns=bool(self.normalize_columns),
+            col = sa.column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, tbl_column.column_name),
+                    # SQL Lab ``Query`` datasources carry exact cursor column names.
+                    exact_case=getattr(self, "is_virtual", True),
+                ),
+                type_=type_,
             )
-            col = sa.column(identifier, type_=type_)
         col = self.make_sqla_column_compatible(col, label)
         return col
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { StoryFn, Meta } from '@storybook/react-webpack5';
-import ActionCell from './index';
+import { ActionCell } from './index';
 import { exampleMenuOptions, exampleRow } from './fixtures';
 
 export default {

@@ -64,6 +64,9 @@ from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
+
 PARTITION_MAPPING = "superset.connectors.sqla.partition_mapping"
 PROBE = f"{PARTITION_MAPPING}.evaluate_transform"
 
@@ -1828,7 +1831,7 @@ def _on_postgres(table: SqlaTable) -> SqlaTable:
 
 
 def test_a_value_the_engine_cannot_read_back_declines_rather_than_mirroring(
-    app: Flask,
+    app: Flask, every_engine_supports_partition_filter_mapping: None
 ) -> None:
     """
     The probe evaluates the transform at a literal, so a value the driver and
@@ -1846,18 +1849,21 @@ def test_a_value_the_engine_cannot_read_back_declines_rather_than_mirroring(
         )
     )
 
+    def query(value: str) -> str:
+        return _query(
+            table,
+            filter=[
+                {"col": "country", "op": FilterOperator.EQUALS.value, "val": value}
+            ],
+        )
+
     with app.app_context():
+        # The same filter without the backslash mirrors, so the decline below
+        # is the escaping check's and not the engine gate's.
+        with patch(PROBE, return_value=["ab"]):
+            assert "region_key" in query("ab")
         with patch(PROBE, return_value=["a\\b"]) as probe:
-            sql = _query(
-                table,
-                filter=[
-                    {
-                        "col": "country",
-                        "op": FilterOperator.EQUALS.value,
-                        "val": "a\\b",
-                    }
-                ],
-            )
+            sql = query("a\\b")
 
     probe.assert_not_called()
     assert "region_key" not in sql
@@ -1867,7 +1873,7 @@ def test_a_value_the_engine_cannot_read_back_declines_rather_than_mirroring(
 
 
 def test_a_member_the_dialect_cannot_write_faithfully_declines_the_whole_list(
-    app: Flask,
+    app: Flask, every_engine_supports_partition_filter_mapping: None
 ) -> None:
     """
     One member is the whole list's problem, exactly as one carrying a UTC
@@ -1884,18 +1890,19 @@ def test_a_member_the_dialect_cannot_write_faithfully_declines_the_whole_list(
         )
     )
 
+    def query(values: list[str]) -> str:
+        return _query(
+            table,
+            filter=[{"col": "country", "op": FilterOperator.IN.value, "val": values}],
+        )
+
     with app.app_context():
+        # Without the backslash member the list mirrors, so the decline below is
+        # the escaping check's and not the engine gate's.
+        with patch(PROBE, return_value=["us", "ab"]):
+            assert "region_key" in query(["US", "ab"])
         with patch(PROBE, return_value=["us", "a\\b"]) as probe:
-            sql = _query(
-                table,
-                filter=[
-                    {
-                        "col": "country",
-                        "op": FilterOperator.IN.value,
-                        "val": ["US", "a\\b"],
-                    }
-                ],
-            )
+            sql = query(["US", "a\\b"])
 
     probe.assert_not_called()
     assert "region_key" not in sql
@@ -3158,7 +3165,7 @@ def test_an_epoch_millisecond_in_filter_is_probed_element_wise(app: Flask) -> No
 
 
 def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     An array column's predicate is not built from the handled filter values at
@@ -3170,6 +3177,9 @@ def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
     ClickHouse is the only spec implementing `array_literal`, so it is the only
     engine this branch is reachable on.
     """
+    # ClickHouse stands in for its SQL dialect; it does not advertise partition
+    # mapping support, which the query path otherwise requires.
+    monkeypatch.setattr(ClickHouseEngineSpec, "supports_partition_filter_mapping", True)
     table = _table(
         transform="lower(:value)",
         monotonic=False,
@@ -3214,7 +3224,7 @@ def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
 
 
 def test_an_array_element_the_driver_cannot_write_declines_the_mirror(
-    app: Flask,
+    app: Flask, every_engine_supports_partition_filter_mapping: None
 ) -> None:
     """
     The element has to be checked before the engine spec renders it: once the
@@ -3236,23 +3246,26 @@ def test_an_array_element_the_driver_cannot_write_declines_the_mirror(
             column.partition_value_transform = "lower(:value)"
             column.partition_transform_is_monotonic = False
 
+    def query(value: str) -> str:
+        with patch.object(
+            type(table.database),
+            "db_engine_spec",
+            new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+        ):
+            return _query(
+                table,
+                filter=[
+                    {"col": "tags", "op": FilterOperator.EQUALS.value, "val": value}
+                ],
+            )
+
     with app.app_context():
+        # A plain element mirrors, so the decline below is the escaping check's
+        # and not the engine gate's.
+        with patch(PROBE, return_value=["us"]):
+            assert "region_key" in query("['ab']")
         with patch(PROBE, return_value=["us"]) as probe:
-            with patch.object(
-                type(table.database),
-                "db_engine_spec",
-                new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
-            ):
-                sql = _query(
-                    table,
-                    filter=[
-                        {
-                            "col": "tags",
-                            "op": FilterOperator.EQUALS.value,
-                            "val": "['a\\\\b']",
-                        }
-                    ],
-                )
+            sql = query("['a\\\\b']")
 
     probe.assert_not_called()
     assert "region_key" not in sql
@@ -3264,7 +3277,7 @@ def test_an_array_element_the_driver_cannot_write_declines_the_mirror(
 
 
 def test_no_inner_time_mirror_when_the_subquery_gets_no_time_filter(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     The ranking subquery's time predicate is skipped on a
@@ -3278,6 +3291,9 @@ def test_no_inner_time_mirror_when_the_subquery_gets_no_time_filter(
     The window-independent filter mirrors are a different matter and stay: they
     correspond to `where_clause_and`, which the subquery does receive.
     """
+    # ClickHouse stands in for its SQL dialect; it does not advertise partition
+    # mapping support, which the query path otherwise requires.
+    monkeypatch.setattr(ClickHouseEngineSpec, "supports_partition_filter_mapping", True)
     table = _table()
     epochs = {
         datetime(2025, 1, 1): 1735689600,

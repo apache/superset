@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { renderHook, act } from '@testing-library/react';
 import { createWrapper } from 'spec/helpers/testing-library';
@@ -26,7 +26,7 @@ import * as localStorageHelpers from 'src/utils/localStorageHelpers';
 import useDatabaseSelector from './useDatabaseSelector';
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 const mockDatabase = {
   id: 1,
