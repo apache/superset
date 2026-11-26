@@ -785,3 +785,24 @@ def test_get_chart_csv_data_closes_response(
             == b"csv"
         )
     response.close.assert_called_once()
+
+
+def test_df_to_escaped_csv_columns_sharing_a_name():
+    """
+    Two columns that share a name are escaped independently. A label-based
+    write would address both at once and copy one column's cell into the other.
+    """
+    df = pd.DataFrame(
+        [["=SUM(1+1)", "safe"], ["plain", "@cmd"]],
+        columns=["Total", "Total"],
+        index=["a", "b"],
+    )
+
+    escaped_csv_str = df_to_escaped_csv(df, encoding="utf8", index=False)
+
+    rows = [row.split(",") for row in escaped_csv_str.strip().splitlines()]
+    assert rows == [
+        ["Total", "Total"],
+        ["'=SUM(1+1)", "safe"],
+        ["plain", "'@cmd"],
+    ]

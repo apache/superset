@@ -30,7 +30,13 @@ from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
-from superset.common.chart_data import ChartDataResultFormat
+from superset import is_feature_enabled
+from superset.charts.client_processing import (
+    AG_GRID_TABLE,
+    apply_export_number_formats,
+    post_processors,
+)
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
@@ -106,8 +112,10 @@ from superset.utils.timing_metrics import (
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import BaseDatasource
     from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
 
@@ -893,20 +901,100 @@ class QueryContextProcessor:
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
 
+            # A POST_PROCESSED export for a chart whose viz_type has a
+            # post-processor (table / pivot_table_v2) is re-parsed and run
+            # through pivot/table arithmetic by apply_client_processing, which
+            # would coerce a formatted "1,000.00" into NaN. That path formats
+            # after the post-processing step instead, so skip formatting here
+            # for those viz types only. Every other viz type has no
+            # post-processor, so apply_client_processing returns it unchanged
+            # and it must still be formatted here (scheduled reports and alerts
+            # request POST_PROCESSED for e.g. an ag-grid-table too). The AG Grid
+            # table has a post-processor, but apply_client_processing passes its
+            # CSV and XLSX through as they are, so it is formatted here as well.
+            form_data = self._query_context.form_data or {}
+            viz_type = form_data.get("viz_type")
+            skip_for_post_processing = (
+                self._query_context.result_type == ChartDataResultType.POST_PROCESSED
+                and viz_type in post_processors
+                and viz_type != AG_GRID_TABLE
+            )
+            format_numeric_export = (
+                is_feature_enabled("EXPORT_FORMATTED_NUMBERS")
+                and not skip_for_post_processing
+            )
+            is_xlsx = self._query_context.result_format == ChartDataResultFormat.XLSX
+            # Positions of the numeric columns rendered to display text. XLSX
+            # keeps a numeric column with no configured format as numbers, so
+            # Excel can still sum and chart it; CSV is text either way and takes
+            # the fixed-point fallback for those columns.
+            formatted_positions: set[int] = set()
+            if format_numeric_export:
+                apply_export_number_formats(
+                    df,
+                    coltypes,
+                    form_data,
+                    cast("BaseDatasource | Query | None", self._qc_datasource),
+                    source_columns=[str(column) for column in columns],
+                    keep_unformatted_numeric=is_xlsx,
+                    formatted_positions=formatted_positions,
+                    decimal=current_app.config["CSV_EXPORT"].get("decimal", "."),
+                )
+
             result = None
             if self._query_context.result_format == ChartDataResultFormat.CSV:
+                # Formatted negatives in the number-formatted columns are signs,
+                # not formulas, so they are not quoted (see ``escape_value``).
+                csv_kwargs: dict[str, Any] = (
+                    {"formatted_numeric_positions": formatted_positions}
+                    if formatted_positions
+                    else {}
+                )
                 result = csv.df_to_escaped_csv(
-                    df, index=include_index, **current_app.config["CSV_EXPORT"]
+                    df,
+                    index=include_index,
+                    **csv_kwargs,
+                    **current_app.config["CSV_EXPORT"],
                 )
                 # Encode using the configured CSV_EXPORT encoding (default utf-8)
                 # so dashboard chart exports honor the same encoding as SQL Lab.
                 result = result.encode(
                     current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                 )
-            elif self._query_context.result_format == ChartDataResultFormat.XLSX:
-                excel.apply_column_types(df, coltypes)
+            elif is_xlsx:
+                export_coltypes = coltypes
+                formatted_numeric_positions: set[int] | None = None
+                if format_numeric_export:
+                    # The columns rendered to display text above are strings
+                    # now; otherwise apply_column_types would coerce e.g. "3.50"
+                    # back to the number 3.5 and drop the configured decimals.
+                    # Numeric columns left unformatted stay numeric.
+                    export_coltypes = [
+                        GenericDataType.STRING
+                        if idx in formatted_positions
+                        else coltype
+                        for idx, coltype in enumerate(coltypes)
+                    ]
+                    # Those columns hold text rendered from numbers, so a leading
+                    # ``-`` is a negative sign, not a formula: exempt them from
+                    # Excel formula quoting (matching the CSV writer) so a value
+                    # like "-3.50" is not escaped to the literal "'-3.50". Genuine
+                    # formula prefixes there, and every other column, still quote.
+                    formatted_numeric_positions = formatted_positions
+                excel.apply_column_types(df, export_coltypes)
+                # Copy the config so adding the key below never mutates the
+                # shared ``EXCEL_EXPORT`` dict, and only pass
+                # ``formatted_numeric_positions`` on the formatted-number path
+                # so the default export call stays identical to before.
+                excel_kwargs = dict(current_app.config["EXCEL_EXPORT"])
+                if formatted_numeric_positions is not None:
+                    excel_kwargs["formatted_numeric_positions"] = (
+                        formatted_numeric_positions
+                    )
                 result = excel.df_to_excel(
-                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                    df,
+                    index=include_index,
+                    **excel_kwargs,
                 )
             return result or ""
 
