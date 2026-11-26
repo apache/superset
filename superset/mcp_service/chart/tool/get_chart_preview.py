@@ -258,6 +258,20 @@ class PreviewFormatStrategy:
         """Generate preview in the specific format."""
         raise NotImplementedError
 
+    def _query_error(
+        self, summary: str, exc: BaseException, error_type: str
+    ) -> ChartError:
+        """Report a failed preview query with the chart-data API's rule."""
+        return internal_error_response(
+            ChartError,
+            summary,
+            exc,
+            query=True,
+            semantic=getattr(self.chart, "datasource_type", None)
+            == DatasourceType.SEMANTIC_VIEW.value,
+            error_type=error_type,
+        )
+
     def _authorize_guest_query(self, query_context: Any) -> None:
         """For a guest, attach the dashboard context so raise_for_access
         authorizes the preview query."""
@@ -419,11 +433,8 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             AttributeError,
             TypeError,
         ) as e:
-            return internal_error_response(
-                ChartError,
-                "Failed to generate ASCII preview",
-                e,
-                error_type="ASCIIError",
+            return self._query_error(
+                "Failed to generate ASCII preview", e, "ASCIIError"
             )
 
 
@@ -496,11 +507,8 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             AttributeError,
             TypeError,
         ) as e:
-            return internal_error_response(
-                ChartError,
-                "Failed to generate table preview",
-                e,
-                error_type="TableError",
+            return self._query_error(
+                "Failed to generate table preview", e, "TableError"
             )
 
 
@@ -650,11 +658,8 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             AttributeError,
             TypeError,
         ) as e:
-            return internal_error_response(
-                ChartError,
-                "Failed to generate Vega-Lite preview",
-                e,
-                error_type="VegaLiteGenerationError",
+            return self._query_error(
+                "Failed to generate Vega-Lite preview", e, "VegaLiteGenerationError"
             )
 
     def _create_vega_lite_spec(self, data: List[Any]) -> Dict[str, Any]:

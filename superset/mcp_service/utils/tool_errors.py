@@ -295,7 +295,9 @@ def safe_error(
     A failure of the query itself, or any failure of a semantic-view query, is
     classified by :func:`public_query_error` (``semantic`` is passed through):
     engine text for a signed-in user, the generic message for an embedded
-    guest, as in the chart-data API.
+    guest, as in the chart-data API. An exception raised inside a semantic
+    provider call is classified the same way with ``semantic=True`` whatever
+    ``query`` says, so provider text never reaches the client.
 
     Anything else follows the general rule: signed-in users get the message
     Superset attached to the exception, cut to ``MAX_MESSAGE_BYTES``; embedded
@@ -304,9 +306,13 @@ def safe_error(
     arguments (see :func:`raised_by_host_validation`). Other exceptions always
     get a fixed message.
     """
-    if query and isinstance(exc, Exception) and (semantic or _is_query_failure(exc)):
-        code, message, _ = public_query_error(exc, semantic=semantic)
-        return SafeError(code=code, message=_bounded(message))
+    if isinstance(exc, Exception) and not raised_by_host_validation(exc):
+        provider_fault = any(is_provider_fault(error) for error in _causal_chain(exc))
+        if provider_fault or (query and (semantic or _is_query_failure(exc))):
+            code, message, _ = public_query_error(
+                exc, semantic=semantic or provider_fault
+            )
+            return SafeError(code=code, message=_bounded(message))
     # Read through the module, like sanitize_error_message, so both rules see
     # the same principal.
     error = sanitize_superset_error(

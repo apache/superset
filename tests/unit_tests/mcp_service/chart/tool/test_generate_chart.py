@@ -644,6 +644,26 @@ class TestCompileChart:
 
     @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
     @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_hides_semantic_provider_text(
+        self, mock_factory_cls, mock_cmd_cls
+    ):
+        """Text a semantic provider raised never reaches the compile result."""
+        from superset.exceptions import QueryObjectValidationError
+        from superset.semantic_layers.exceptions import _PROVIDER_FAULT
+
+        exc = QueryObjectValidationError("password=hunter2 host=db.internal")
+        setattr(exc, _PROVIDER_FAULT, True)
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.side_effect = exc
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "hunter2" not in (result.error or "")
+        assert "An error occurred while fetching the data." in (result.error or "")
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_compile_chart_time_range_error_keeps_guidance(
         self, mock_factory_cls, mock_cmd_cls
     ):

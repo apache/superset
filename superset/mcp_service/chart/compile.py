@@ -243,14 +243,14 @@ def _compile_chart(  # noqa: C901
                     annotation=database_failure == "annotation",
                 ),
             )
-        return _compile_failure(exc, dataset_id)
+        return _compile_failure(exc, dataset_id, datasource_type)
     except (
         CommandException,
         QueryObjectValidationError,
         ValueError,
         KeyError,
     ) as exc:
-        return _compile_failure(exc, dataset_id)
+        return _compile_failure(exc, dataset_id, datasource_type)
     except SQLAlchemyError as exc:
         log_tool_exception(_COMPILE_DATABASE_SUMMARY, exc, dataset_id=dataset_id)
         message = tool_error_message(_COMPILE_DATABASE_SUMMARY, exc)
@@ -263,10 +263,16 @@ def _compile_chart(  # noqa: C901
         )
 
 
-def _compile_failure(exc: BaseException, dataset_id: int) -> CompileResult:
+def _compile_failure(
+    exc: BaseException, dataset_id: int, datasource_type: str
+) -> CompileResult:
     """Log a compile-check failure and return its client-safe message."""
     log_tool_exception(_COMPILE_FAILED_SUMMARY, exc, dataset_id=dataset_id)
-    message = safe_error(exc).message
+    message = safe_error(
+        exc,
+        query=True,
+        semantic=datasource_type == DatasourceType.SEMANTIC_VIEW.value,
+    ).message
     return CompileResult(
         success=False,
         error=message,

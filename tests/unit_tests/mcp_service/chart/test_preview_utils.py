@@ -759,3 +759,18 @@ def test_generate_preview_access_denied_text_survives_redaction(guest: bool) -> 
         "Failed to generate preview: "
         "You need access to the datasource to view this chart."
     )
+
+
+def test_generate_preview_hides_semantic_provider_text() -> None:
+    """Text a semantic provider raised never reaches the client."""
+    from superset.exceptions import QueryObjectValidationError
+    from superset.semantic_layers.exceptions import _PROVIDER_FAULT
+
+    exc = QueryObjectValidationError("password=hunter2 host=db.internal")
+    setattr(exc, _PROVIDER_FAULT, True)
+
+    result = _preview_raising(exc)
+
+    assert isinstance(result, ChartError)
+    assert "hunter2" not in result.error
+    assert "Failed to generate preview" in result.error

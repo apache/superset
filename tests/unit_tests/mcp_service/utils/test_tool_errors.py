@@ -208,6 +208,30 @@ def test_semantic_provider_fault_never_reaches_the_client() -> None:
     assert result.message == str(GENERIC_ERROR_MESSAGE)
 
 
+@pytest.mark.parametrize("query", [False, True])
+@pytest.mark.usefixtures("signed_in")
+def test_provider_fault_is_hidden_without_the_semantic_flag(query: bool) -> None:
+    exc = QueryObjectValidationError(DRIVER_TEXT)
+    setattr(exc, _PROVIDER_FAULT, True)
+
+    result = safe_error(exc, query=query)
+
+    assert "hunter2" not in result.message
+    assert result.message == str(GENERIC_ERROR_MESSAGE)
+
+
+@pytest.mark.usefixtures("signed_in")
+def test_date_parser_guidance_survives_a_semantic_query() -> None:
+    from superset.utils.date_parser import get_since_until
+
+    with pytest.raises(ValueError, match="From date") as excinfo:
+        get_since_until(time_range="2025-01-01 : 2024-01-01")
+
+    result = safe_error(excinfo.value, query=True, semantic=True)
+
+    assert result.message == "From date cannot be larger than to date"
+
+
 @pytest.mark.usefixtures("signed_in")
 def test_query_message_matches_public_query_error() -> None:
     exc = ChartDataQueryFailedError(f"Error: {ENGINE_TEXT}")

@@ -224,6 +224,8 @@ def generate_preview_from_form_data(
             ChartError,
             "Failed to generate preview",
             e,
+            query=True,
+            semantic=datasource_type == DatasourceType.SEMANTIC_VIEW.value,
             error_type="PreviewError",
         )
 
