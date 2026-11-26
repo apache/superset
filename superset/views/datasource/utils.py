@@ -23,6 +23,7 @@ import pandas as pd
 from flask import current_app as app
 
 from superset import is_feature_enabled
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -122,6 +123,25 @@ def skips_count_star(datasource: Datasource) -> bool:
     )
 
 
+def _split_samples_form_data(
+    payload: dict[str, Any] | None, dashboard_id: int | None
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """
+    Separate the payload keys that describe the request from the query object.
+
+    ``viz_type`` and ``url_params`` belong on the form data: the former drives
+    result handling, the latter is what the ``url_param()`` Jinja macro reads.
+    """
+    form_data: dict[str, Any] = {"dashboardId": dashboard_id} if dashboard_id else {}
+    if payload:
+        payload = dict(payload)
+        if "viz_type" in payload:
+            form_data["viz_type"] = payload.pop("viz_type")
+        if url_params := payload.pop("url_params", None):
+            form_data["url_params"] = url_params
+    return payload, form_data or None
+
+
 def get_samples(  # pylint: disable=too-many-arguments
     datasource_type: str,
     datasource_id: int,
@@ -138,11 +158,7 @@ def get_samples(  # pylint: disable=too-many-arguments
             database_id_or_uuid=str(datasource_id),
         )
 
-    form_data = {"dashboardId": dashboard_id} if dashboard_id else None
-    if payload and "viz_type" in payload:
-        payload = dict(payload)
-        viz_type = payload.pop("viz_type")
-        form_data = {**(form_data or {}), "viz_type": viz_type}
+    payload, form_data = _split_samples_form_data(payload, dashboard_id)
     limit_clause = get_limit_clause(page, per_page)
     skip_count = skips_count_star(datasource)
     # Without a count, one row past the page is what tells "there is another
@@ -193,6 +209,12 @@ def get_samples(  # pylint: disable=too-many-arguments
         if skip_count
         else _count_star_query_context(datasource, payload, form_data, force)
     )
+
+    # The samples request body is not shaped like a chart data request, so Jinja
+    # macros such as url_param() would otherwise see no form data and render
+    # their defaults, making drill to detail query something other than the
+    # chart it was opened from.
+    set_query_context_form_data(samples_instance, datasource.id, datasource.type)
 
     try:
         # Enforce access control before fetching data.

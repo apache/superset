@@ -15095,7 +15095,7 @@ msgstr "Nome facoltativo della colonna di dati."
 msgid "Optional warning about use of this metric"
 msgstr "Avviso facoltativo sull'uso di questa metrica"
 
-#, python-format
+#, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -25530,7 +25530,7 @@ msgstr "Il valore deve essere maggiore di 0"
 msgid "Value transform"
 msgstr "Trasformazione del valore"
 
-#, python-format
+#, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -25543,7 +25543,7 @@ msgstr ""
 "percentuali esistenti utilizzano l'intervallo automatico dei dati quando la "
 "paginazione lato server è abilitata."
 
-#, python-format
+#, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
