@@ -727,9 +727,24 @@ export default function useChildren({
     (path: string[]) => {
       const key = areaKey(path);
       epochs.current.set(key, epochOf(key) + 1);
+      const run = refreshRun.current;
+      const refreshLevel = run?.level;
+      if (refreshLevel !== undefined) {
+        setEntries(previous => {
+          const next = new Map(previous);
+          previous.forEach((_entry, candidate) => {
+            const candidatePath = pathOf(candidate);
+            if (
+              candidatePath.length > refreshLevel &&
+              path.every((part, index) => candidatePath[index] === part)
+            )
+              next.delete(candidate);
+          });
+          return next.size === previous.size ? previous : next;
+        });
+      }
       const single = singles.current.get(key);
       if (!single) return;
-      const run = refreshRun.current;
       singles.current.delete(key);
       single.controller.abort();
       controllers.current.delete(single.controller);

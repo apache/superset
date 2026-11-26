@@ -2571,6 +2571,31 @@ async function refreshing(
   return { replies, result, rerender, refreshed, openZ, loadZ };
 }
 
+test('reopening a child skipped during refresh fetches fresh rows', async () => {
+  const { replies, result, rerender, refreshed } = await refreshing();
+  const path = ['k', 'k1'];
+  const key = areaKey(path);
+  const childToggled = new Set(refreshed.childToggled);
+  childToggled.delete(key);
+  act(() => {
+    result.current.close(path);
+    rerender({ ...refreshed, childToggled });
+  });
+  await act(async () => replies[2].resolve(refreshSteps()));
+  expect(callsIn(replies[3].body)).toEqual([['k'], ['k3']]);
+  await act(async () => replies[3].resolve(refreshActions(['k3'], true)));
+  act(() => {
+    result.current.open(path);
+    rerender(refreshed);
+  });
+  expect(replies).toHaveLength(5);
+  expect(callsIn(replies[4].body)).toEqual([['k'], ['k1', 'k2', 'k4']]);
+  await act(async () =>
+    replies[4].resolve(refreshActions(['k1', 'k2', 'k4'], true)),
+  );
+  expect(result.current.areas.get(key)?.state).toBe('loaded');
+});
+
 const sortActions = (
   result: { current: ReturnType<typeof useChildren> },
   ascending = false,
