@@ -54,6 +54,14 @@ import {
   getTrailingBlockLength,
   resolveColumnWidths,
 } from './columnWidths';
+import { ColumnResizeHandle } from './ColumnResizeHandle';
+
+/** Props that resizable header cells receive through `onHeaderCell`. */
+interface ResizableHeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {
+  resizeWidth?: number;
+  onResizeColumn?: (width: number) => void;
+  onResetColumn?: () => void;
+}
 
 export type { ListViewColumn };
 export type { ColumnLayout, ColumnLayoutPreset } from './columnWidths';
@@ -381,17 +389,42 @@ function TableCollection<T extends object>({
 }: TableCollectionProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const containerWidth = useContainerWidth(containerRef, managedColumnWidths);
+  // Widths the user set by dragging a header edge, keyed by column id. They
+  // pin that column; the other flexible columns share what is left.
+  const [resizedWidths, setResizedWidths] = useState<Record<string, number>>(
+    {},
+  );
 
   const columnLayout = useMemo(() => {
     if (!managedColumnWidths) return undefined;
     const visibleColumns = columns.filter(column => !column.hidden);
     const utilityColumns = (bulkSelectEnabled ? 1 : 0) + (expandable ? 1 : 0);
     const layouts = visibleColumns.map(column => getColumnLayout(column));
+    const columnSpecs = layouts.map(getColumnSpec);
+    // Only flexible columns (titles, text, tags, …) can be resized; fixed
+    // presets are already sized to their content.
+    const resizableColumns = visibleColumns
+      .filter((_, index) => columnSpecs[index].weight > 0)
+      .map(column => getColumnId(column));
+    const allFlexibleResized =
+      resizableColumns.length > 0 &&
+      resizableColumns.every(id => resizedWidths[id]);
     const specs = [
       ...Array(utilityColumns).fill(
         getColumnSpec({ fixed: UTILITY_COLUMN_WIDTH }),
       ),
-      ...layouts.map(getColumnSpec),
+      ...columnSpecs.map((spec, index) => {
+        const resized = resizedWidths[getColumnId(visibleColumns[index])];
+        if (!resized || spec.weight === 0) return spec;
+        // Once every flexible column has a user width, they share any spare
+        // width so the table still fills its container instead of the
+        // browser stretching the fixed columns.
+        return {
+          min: resized,
+          max: resized,
+          weight: allFlexibleResized ? 1 : 0,
+        };
+      }),
     ];
     const { widths, totalWidth, scrolls } = resolveColumnWidths(
       specs,
@@ -444,6 +477,7 @@ function TableCollection<T extends object>({
         .slice(0, frozenCount)
         .reduce((total, width) => total + width, 0),
       pinnedEndWidth,
+      resizableColumns,
     };
   }, [
     managedColumnWidths,
@@ -451,6 +485,7 @@ function TableCollection<T extends object>({
     bulkSelectEnabled,
     expandable,
     containerWidth,
+    resizedWidths,
   ]);
 
   const frozenWidth = columnLayout?.frozenWidth ?? 0;
@@ -462,18 +497,36 @@ function TableCollection<T extends object>({
     columnLayout,
   );
 
-  const mappedColumns = useMemo(
-    () =>
-      mapColumns<T>(
-        columns,
-        headerGroups,
-        columnsForWrapText,
-        columnLayout?.widths,
-        columnLayout?.fixedColumns,
-        sortBy,
-      ),
-    [columns, headerGroups, columnsForWrapText, columnLayout, sortBy],
-  );
+  const mappedColumns = useMemo(() => {
+    const mapped = mapColumns<T>(
+      columns,
+      headerGroups,
+      columnsForWrapText,
+      columnLayout?.widths,
+      columnLayout?.fixedColumns,
+      sortBy,
+    );
+    if (!columnLayout) return mapped;
+    const resizable = new Set(columnLayout.resizableColumns);
+    return mapped.map(column =>
+      resizable.has(column.key)
+        ? {
+            ...column,
+            onHeaderCell: (): ResizableHeaderCellProps => ({
+              resizeWidth: columnLayout.widths[column.key],
+              onResizeColumn: (width: number) =>
+                setResizedWidths(prev =>
+                  prev[column.key] === width
+                    ? prev
+                    : { ...prev, [column.key]: width },
+                ),
+              onResetColumn: () =>
+                setResizedWidths(({ [column.key]: _reset, ...rest }) => rest),
+            }),
+          }
+        : column,
+    );
+  }, [columns, headerGroups, columnsForWrapText, columnLayout, sortBy]);
 
   const mappedRows = useMemo(
     () => mapRows(rows, prepareRow),
@@ -647,7 +700,13 @@ function TableCollection<T extends object>({
   const tableComponents = useMemo(
     () => ({
       header: {
-        cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
+        cell: ({
+          resizeWidth,
+          onResizeColumn,
+          onResetColumn,
+          children,
+          ...props
+        }: ResizableHeaderCellProps) => {
           const isSelectionColumn =
             props.className?.includes('ant-table-selection-column') ?? false;
           return (
@@ -656,7 +715,16 @@ function TableCollection<T extends object>({
               data-test={
                 isSelectionColumn ? 'header-toggle-all' : 'sort-header'
               }
-            />
+            >
+              {children}
+              {onResizeColumn && onResetColumn && resizeWidth ? (
+                <ColumnResizeHandle
+                  width={resizeWidth}
+                  onResize={onResizeColumn}
+                  onReset={onResetColumn}
+                />
+              ) : null}
+            </th>
           );
         },
       },

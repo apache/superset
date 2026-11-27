@@ -1108,3 +1108,128 @@ test('ends the right scroll fade before the pinned actions', () => {
   renderLayoutTable(1200, { managedColumnWidths: true }, scrollingColumns);
   expect(pinnedWidth()).toBe('0px');
 });
+
+// jsdom has no PointerEvent, so fireEvent.pointer* would drop clientX and
+// button; a MouseEvent subclass carries them.
+if (typeof window.PointerEvent === 'undefined') {
+  class TestPointerEvent extends MouseEvent {
+    pointerId: number;
+
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+      this.pointerId = init.pointerId ?? 0;
+    }
+  }
+  window.PointerEvent = TestPointerEvent as unknown as typeof PointerEvent;
+}
+
+const pxWidths = (table: HTMLTableElement) =>
+  Array.from(table.querySelectorAll('colgroup col')).map(col =>
+    parseInt((col as HTMLElement).style.width, 10),
+  );
+
+test('managed tables show a resize handle on flexible columns only', () => {
+  renderLayoutTable(1000, { managedColumnWidths: true });
+  const handles = screen.getAllByTestId('column-resize-handle');
+  // The title ("Name") and text ("Database") columns flex; the icon,
+  // legacy-size and actions columns are fixed.
+  expect(handles).toHaveLength(2);
+  expect(handles[0].closest('th')).toHaveTextContent('Name');
+  expect(handles[1].closest('th')).toHaveTextContent('Database');
+});
+
+test('unmanaged tables have no resize handles', () => {
+  render(<TableCollection {...defaultProps} />);
+  expect(screen.queryByTestId('column-resize-handle')).not.toBeInTheDocument();
+});
+
+test('arrow keys resize a column and Escape restores the automatic width', () => {
+  const { table } = renderLayoutTable(1000, { managedColumnWidths: true });
+  const before = pxWidths(table);
+  const handle = screen.getAllByTestId('column-resize-handle')[1];
+
+  fireEvent.keyDown(handle, { key: 'ArrowRight' });
+  fireEvent.keyDown(handle, { key: 'ArrowRight' });
+  const grown = pxWidths(table);
+  expect(grown[2]).toBe(before[2] + 32);
+  // Fixed columns keep their width and the table still fills the container.
+  expect([grown[0], grown[3], grown[4]]).toEqual([before[0], 100, 120]);
+  expect(grown.reduce((a, b) => a + b, 0)).toBe(1000);
+  expect(handle).toHaveAttribute('aria-valuenow', String(before[2] + 32));
+
+  fireEvent.keyDown(handle, { key: 'Escape' });
+  expect(pxWidths(table)).toEqual(before);
+});
+
+test('dragging a header edge resizes the column', () => {
+  const { table } = renderLayoutTable(1000, { managedColumnWidths: true });
+  const before = pxWidths(table);
+  const handle = screen.getAllByTestId('column-resize-handle')[1];
+
+  fireEvent.pointerDown(handle, { button: 0, clientX: 500, pointerId: 1 });
+  fireEvent.pointerMove(handle, { buttons: 1, clientX: 560, pointerId: 1 });
+  fireEvent.pointerUp(handle, { clientX: 560, pointerId: 1 });
+  expect(pxWidths(table)[2]).toBe(before[2] + 60);
+
+  // Moving after the pointer is released has no effect.
+  fireEvent.pointerMove(handle, { buttons: 1, clientX: 900, pointerId: 1 });
+  expect(pxWidths(table)[2]).toBe(before[2] + 60);
+});
+
+test('a column wider than the container makes the table scroll', () => {
+  const { table } = renderLayoutTable(1000, { managedColumnWidths: true });
+  const handle = screen.getAllByTestId('column-resize-handle')[1];
+
+  fireEvent.pointerDown(handle, { button: 0, clientX: 0, pointerId: 1 });
+  fireEvent.pointerMove(handle, { buttons: 1, clientX: 900, pointerId: 1 });
+  fireEvent.pointerUp(handle, { pointerId: 1 });
+  const widths = pxWidths(table);
+  // The other flexible column falls back to its minimum.
+  expect(widths[1]).toBe(getColumnSpec('title').min);
+  expect(widths.reduce((a, b) => a + b, 0)).toBeGreaterThan(1000);
+});
+
+test('double-clicking a resize handle restores the automatic width', () => {
+  const { table } = renderLayoutTable(1000, { managedColumnWidths: true });
+  const before = pxWidths(table);
+  const handle = screen.getAllByTestId('column-resize-handle')[0];
+
+  fireEvent.keyDown(handle, { key: 'ArrowLeft' });
+  expect(pxWidths(table)).not.toEqual(before);
+  fireEvent.doubleClick(handle);
+  expect(pxWidths(table)).toEqual(before);
+});
+
+test('using a resize handle does not sort the column', () => {
+  const setSortBy = jest.fn();
+  renderLayoutTable(1000, { managedColumnWidths: true, setSortBy });
+  const handle = screen.getAllByTestId('column-resize-handle')[0];
+
+  fireEvent.pointerDown(handle, { button: 0, clientX: 0, pointerId: 1 });
+  fireEvent.pointerUp(handle, { pointerId: 1 });
+  fireEvent.click(handle);
+  fireEvent.keyDown(handle, { key: 'Enter' });
+  expect(setSortBy).not.toHaveBeenCalled();
+});
+
+test('resizing every flexible column still fills the container', () => {
+  const { table } = renderLayoutTable(1000, { managedColumnWidths: true });
+  const [title, text] = screen.getAllByTestId('column-resize-handle');
+
+  fireEvent.keyDown(title, { key: 'ArrowLeft' });
+  fireEvent.keyDown(text, { key: 'ArrowLeft' });
+  const widths = pxWidths(table);
+  // Fixed columns keep their width; the resized ones absorb the spare room.
+  expect([widths[0], widths[3], widths[4]]).toEqual([48, 100, 120]);
+  expect(widths.reduce((a, b) => a + b, 0)).toBe(1000);
+});
+
+test('moving the pointer without a pressed button does not resize', () => {
+  const { table } = renderLayoutTable(1000, { managedColumnWidths: true });
+  const before = pxWidths(table);
+  const handle = screen.getAllByTestId('column-resize-handle')[1];
+
+  fireEvent.pointerDown(handle, { button: 0, clientX: 500, pointerId: 1 });
+  fireEvent.pointerMove(handle, { buttons: 0, clientX: 600, pointerId: 1 });
+  expect(pxWidths(table)).toEqual(before);
+});
