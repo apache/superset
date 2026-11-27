@@ -172,6 +172,9 @@ def test_metadata_and_slug(
     assert taken.json["message"] == {"slug": ["Must be unique"]}
     for slug in ("123", "list", "has space"):
         assert client.put(f"{BASE}/100", json={"slug": slug}).status_code == 400
+    flagged = client.put(f"{BASE}/100", json={"is_managed_externally": True})
+    assert flagged.status_code == 200
+    assert session.get(Canvas, 100).is_managed_externally is not True
     missing_theme = client.put(f"{BASE}/100", json={"theme_id": 999})
     assert missing_theme.json["message"] == {"theme_id": ["Theme does not exist"]}
 

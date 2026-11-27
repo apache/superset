@@ -19,6 +19,8 @@
 from marshmallow import fields, Schema
 from marshmallow.validate import Length, Regexp
 
+from superset.utils.schema import DiscardIsManagedExternallyMixin
+
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 title_description = "The canvas' title."
@@ -89,7 +91,7 @@ class CanvasPostSchema(Schema):
     )
 
 
-class CanvasPutSchema(Schema):
+class CanvasPutSchema(DiscardIsManagedExternallyMixin, Schema):
     title = fields.String(
         validate=Length(1, 500), metadata={"description": title_description}
     )
@@ -118,9 +120,6 @@ class CanvasPutSchema(Schema):
     )
     certification_details = fields.String(
         allow_none=True, metadata={"description": certification_details_description}
-    )
-    is_managed_externally = fields.Boolean(
-        allow_none=True, metadata={"description": is_managed_externally_description}
     )
     external_url = fields.String(
         allow_none=True, metadata={"description": external_url_description}
