@@ -35,22 +35,40 @@ sync does not rebuild.
 from types import SimpleNamespace
 
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
 from superset import db
 from superset.extensions import permissions
+from superset.key_value.shared_entries import get_shared_value, upsert_shared_value
 from superset.key_value.types import SharedKey
 from superset.security.manager import SupersetSecurityManager
 
 
 @pytest.fixture(autouse=True)
-def _clean_registry():
-    """Module state, so one test must not leak into the next."""
+def _clean_registry(app_context: None):
+    """Module state, so one test must not leak into the next.
+
+    The shared entry is restored as well as the in-process set. A test that
+    registers for real writes the name to `key_value`, where it outlives the
+    test and is read back by `_persisted()` -- so without this a test
+    asserting a name is *unrecorded* fails whenever it happens to run after
+    one that recorded it. That is ordering-dependent, which under `-p xdist`
+    or any reordering means a flake rather than an honest failure.
+    """
     before = set(permissions._extension_resources)  # noqa: SLF001
+    stored_before = get_shared_value(SharedKey.EXTENSION_RESOURCES)
     permissions.clear_extension_resources()
     yield
     permissions.clear_extension_resources()
     permissions._extension_resources.update(before)  # noqa: SLF001
+    # An absent entry is restored as an empty list rather than deleted:
+    # `_persisted` reads both as "no recorded resources", and there is no
+    # delete on the shared-entry helpers.
+    upsert_shared_value(
+        SharedKey.EXTENSION_RESOURCES,
+        stored_before if stored_before is not None else [],
+    )
 
 
 def _pvm(permission: str, resource: str) -> SimpleNamespace:
@@ -418,6 +436,11 @@ def test_a_failed_read_does_not_poison_the_enclosing_transaction(
     because that is the mechanism that keeps the enclosing transaction
     usable, and the abort it prevents is specific to PostgreSQL -- SQLite
     would let the unprotected read through and report nothing.
+
+    `g.in_transaction` is set because that is what role sync arriving from
+    `superset init` looks like, and it is the condition the savepoint is now
+    taken on. Without it this asserted the savepoint on a path that does not
+    need one and must not have one -- see the two tests below.
     """
     begin_nested = mocker.spy(db.session, "begin_nested")
     mocker.patch(
@@ -425,10 +448,65 @@ def test_a_failed_read_does_not_poison_the_enclosing_transaction(
         side_effect=RuntimeError('relation "key_value" does not exist'),
     )
 
-    assert permissions.is_extension_resource("AcmeThing") is False
+    g.in_transaction = True
+    try:
+        assert permissions.is_extension_resource("AcmeThing") is False
+    finally:
+        g.in_transaction = False
 
     assert begin_nested.called, "the read must be isolated by a savepoint"
     assert db.session.is_active
+
+
+def test_registering_outside_a_transaction_records_the_resource_durably() -> None:
+    """The savepoint must not be taken when nobody else owns the transaction.
+
+    Extensions register during `create_app`, which holds an app context but
+    opens no transaction, so `get_shared_value` and `upsert_shared_value`
+    each open one of their own and commit it. A savepoint wrapped around
+    that pair is closed by the first commit, and the next statement raises
+    `InvalidRequestError("Can't operate on closed transaction inside context
+    manager")`. `_persist` caught it, logged at debug and recorded nothing,
+    so `EXTENSION_RESOURCES` stayed empty -- and the `superset init` that
+    loads no extension, the one run this whole module exists for, handed
+    every extension permission back to stock Gamma and Alpha.
+
+    Deliberately end to end through the real shared-entry functions: the
+    other persistence tests mock both, which is why they passed throughout.
+    What is asserted is the durable record, not a call.
+    """
+    assert not getattr(g, "in_transaction", False), "arrives without a transaction"
+
+    permissions.register_extension_resource("AcmeThing")
+
+    # Read afresh, so this is the record a later process would find rather
+    # than anything this one is holding in memory.
+    permissions.clear_extension_resources()
+    stored = get_shared_value(SharedKey.EXTENSION_RESOURCES)
+
+    assert stored is not None, "nothing reached the durable record"
+    assert "AcmeThing" in stored
+    assert permissions.is_extension_resource("AcmeThing") is True
+
+
+def test_no_savepoint_is_taken_outside_a_transaction(
+    mocker: MockerFixture,
+) -> None:
+    """The mechanism behind the test above, pinned directly.
+
+    Stated as its own assertion because the end-to-end test would also pass
+    if the savepoint were reintroduced along with some other compensation,
+    and the condition -- somebody else owns the transaction -- is the part
+    worth keeping honest.
+    """
+    begin_nested = mocker.spy(db.session, "begin_nested")
+
+    assert not getattr(g, "in_transaction", False)
+    permissions.register_extension_resource("AcmeThing")
+
+    assert not begin_nested.called, (
+        "a savepoint here is closed by the inner commit and breaks the write"
+    )
 
 
 def test_a_failed_write_is_attempted_again_on_the_next_registration(

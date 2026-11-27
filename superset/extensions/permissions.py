@@ -74,27 +74,49 @@ _persisted_cache: set[str] | None = None
 def _isolated() -> Iterator[None]:
     """Run a metadata-database access so a failure cannot poison the caller.
 
-    Both accesses here are best effort, and both can run inside a
-    transaction somebody else owns: ``superset init`` is itself
-    ``@transaction()``, and role sync asks ``is_extension_resource`` about
-    every permission from inside it.
+    Both accesses here are best effort, and what each needs in order to
+    degrade depends on whether somebody else owns the transaction -- which
+    is why this is conditional rather than always taking a savepoint.
 
+    **Inside a transaction**, which is how role sync arrives: ``superset
+    init`` is itself ``@transaction()`` and asks ``is_extension_resource``
+    about every permission from inside it.
     ``superset.utils.decorators.transaction`` only rolls back a transaction
     it opened itself -- a nested call sees ``g.in_transaction`` and runs the
     body bare -- so catching a failed statement here is not enough to undo
     it. The session is left dirty, and on PostgreSQL the enclosing
     transaction is aborted: every later statement in the init run, its final
-    commit included, then fails with ``InFailedSqlTransaction``. Degrading
-    instead of raising is the property these reads exist to have, and
-    swallowing the exception alone did not deliver it.
+    commit included, then fails with ``InFailedSqlTransaction``. So the
+    statement runs inside a SAVEPOINT, and a failure rolls back to it and
+    leaves the enclosing transaction usable.
 
-    So the statement runs inside a SAVEPOINT, and a failure rolls back to it
-    and leaves the enclosing transaction usable. Note ``begin_nested``
-    flushes pending work before opening the savepoint, so a failure in the
-    caller's *own* pending writes still surfaces -- that is its transaction
-    failing, not this one.
+    **Outside one**, which is how registration arrives: extensions register
+    during ``create_app``, which holds an app context but opens no
+    transaction. Each function called below is itself ``@transaction()``, so
+    there it opens a transaction of its own and commits or rolls back on its
+    own -- there is nothing of anybody else's left dirty to protect.
+
+    A savepoint there is not merely unnecessary, it breaks the write: that
+    inner commit closes the savepoint this context manager is still holding,
+    and the next statement raises ``InvalidRequestError("Can't operate on
+    closed transaction inside context manager")``. Taking it unconditionally
+    meant every registration failed exactly that way, was swallowed by the
+    caller's ``except``, and recorded nothing durably -- so a later init
+    that loaded no extension did not recognise the resource and handed every
+    permission on it back to stock Gamma and Alpha, which is the widening
+    this module exists to prevent.
+
+    Note ``begin_nested`` flushes pending work before opening the savepoint,
+    so a failure in the caller's *own* pending writes still surfaces -- that
+    is its transaction failing, not this one.
     """
+    from flask import g  # noqa: PLC0415
+
     from superset import db  # noqa: PLC0415
+
+    if not getattr(g, "in_transaction", False):
+        yield
+        return
 
     with db.session.begin_nested():
         yield
@@ -146,11 +168,14 @@ def _persist(resources: set[str]) -> None:
     name and hand its permissions to the stock roles, which is the widening
     this module exists to prevent.
 
-    Narrowed to a single statement pair rather than closed: the read takes no
-    row lock, so two writers can still interleave inside the savepoint. What
-    makes that recoverable is that the write is retried on every
-    registration, so any later process that loads the extension puts a
-    dropped name back.
+    Narrowed to a single statement pair rather than closed: the read takes
+    no row lock, and on the registration path each of the two is its own
+    committed transaction (see ``_isolated``), so two writers can still
+    interleave between them. What makes that recoverable is that the write
+    is retried on every registration, so any later process that loads the
+    extension puts a dropped name back -- and the record is only consulted
+    by role sync, so a dropped name costs nothing until the next ``superset
+    init`` that loads no extension.
     """
     try:
         from superset.key_value.shared_entries import (  # noqa: PLC0415
