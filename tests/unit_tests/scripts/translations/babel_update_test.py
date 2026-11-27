@@ -101,10 +101,10 @@ def _stage_script(root: Path) -> Path:
     (root / "superset" / "translations").mkdir(parents=True, exist_ok=True)
     script = root / "scripts" / "translations" / "babel_update.sh"
     shutil.copy(_SCRIPT_PATH, script)
-    shutil.copy(
-        _SCRIPT_PATH.parent / "apply_do_not_translate.py",
-        root / "scripts" / "translations" / "apply_do_not_translate.py",
-    )
+    for helper in ("apply_do_not_translate.py", "literal_percent.py"):
+        shutil.copy(
+            _SCRIPT_PATH.parent / helper, root / "scripts" / "translations" / helper
+        )
     # The stamping step refuses to run without its registry; an empty one
     # stamps nothing, keeping the fixture's shape untouched.
     (root / "superset" / "translations" / "do-not-translate.txt").write_text(
@@ -205,6 +205,29 @@ def test_normalization_precedes_pybabel_update() -> None:
     assert msgcat_at < update_calls[0], (
         "the .pot must be normalized BEFORE `pybabel update` reads it — the "
         "update pass propagates the template into every language catalog"
+    )
+
+
+def test_literal_percent_flags_are_stripped_after_pybabel_update() -> None:
+    """Babel re-adds python-format on every write, so the strip must run last."""
+    commands = [line.strip() for line in _script_text().splitlines()]
+    strip_calls = [
+        i
+        for i, cmd in enumerate(commands)
+        if cmd.startswith("python scripts/translations/literal_percent.py")
+    ]
+    update_calls = [
+        i for i, cmd in enumerate(commands) if cmd.startswith("pybabel update")
+    ]
+    assert strip_calls, "babel_update.sh no longer runs literal_percent.py"
+    assert update_calls, "no `pybabel update` invocation found in babel_update.sh"
+    assert strip_calls[-1] > update_calls[-1], (
+        "literal_percent.py must run AFTER `pybabel update`, which flags labels "
+        "like `% of total` python-format again when it writes the catalogs"
+    )
+    assert re.search(r"\|\|\s*exit\s+1\s*$", commands[strip_calls[-1]]), (
+        "a failed strip must stop the script; otherwise catalogs msgfmt rejects "
+        "are published"
     )
 
 

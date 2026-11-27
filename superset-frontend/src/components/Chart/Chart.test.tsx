@@ -88,6 +88,58 @@ test('shows loading spinner for client-side errors without errors array when dat
   expect(screen.queryByText(/Some client-side error/)).not.toBeInTheDocument();
 });
 
+test('renders a failed query error as the only chart container', () => {
+  const { container } = render(
+    <Chart
+      {...baseProps}
+      chartStatus="failed"
+      queriesResponse={[{ message: 'Unknown identifier no_such_column' }]}
+    />,
+  );
+
+  const chartContainers = container.querySelectorAll('.chart-container');
+  expect(chartContainers).toHaveLength(1);
+  expect(chartContainers[0]).toHaveTextContent(
+    'Unknown identifier no_such_column',
+  );
+});
+
+test.each([
+  ['null', null],
+  ['empty', []],
+])('renders the alert of a failed chart with %s responses', (_, responses) => {
+  const { container } = render(
+    <Chart
+      {...baseProps}
+      chartStatus="failed"
+      chartAlert="An error occurred while rendering the visualization"
+      queriesResponse={responses}
+    />,
+  );
+
+  const chartContainers = container.querySelectorAll('.chart-container');
+  expect(chartContainers).toHaveLength(1);
+  expect(chartContainers[0]).toHaveTextContent(
+    'An error occurred while rendering the visualization',
+  );
+});
+
+test('keeps a single chart container while a failed chart waits for its datasource', () => {
+  const { container } = render(
+    <Chart
+      {...baseProps}
+      chartStatus="failed"
+      chartAlert="Some client-side error"
+      datasource={PLACEHOLDER_DATASOURCE}
+      datasetsStatus={ResourceStatus.Loading}
+      queriesResponse={[{}]}
+    />,
+  );
+
+  expect(screen.getByRole('status')).toBeInTheDocument();
+  expect(container.querySelectorAll('.chart-container')).toHaveLength(1);
+});
+
 test('shows the stop message and a re-run affordance when the query was stopped', () => {
   const onQuery = jest.fn();
   render(
@@ -180,6 +232,7 @@ test('shows a dataset metadata error and clears it after datasource replacement'
     />,
   );
   expect(screen.getByText(message)).toBeInTheDocument();
+  expect(screen.getByText(message).closest('.chart-container')).not.toBeNull();
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
   rerender(
     <Chart

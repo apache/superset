@@ -175,6 +175,18 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         response = self.client.post(self.uri)
         self.assert403(response)
 
+    def test_post_guest_token_wrong_content_type(self):
+        """
+        Security API: Posting a guest token request with a non-JSON
+        Content-Type (or no body) should return a clean 400, not an
+        unhandled 500.
+        """
+        self.login(ADMIN_USERNAME)
+        response = self.client.post(
+            self.uri, data="not-json", content_type="text/plain"
+        )
+        self.assert400(response)
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_authorized(self):
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
