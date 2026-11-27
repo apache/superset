@@ -294,6 +294,24 @@ def test_provider_provenance_precedes_host_validation(
     )
 
 
+@pytest.mark.parametrize("query", [False, True])
+@pytest.mark.usefixtures("signed_in")
+def test_resolved_guest_is_redacted_when_the_request_no_longer_holds_it(
+    query: bool,
+) -> None:
+    """A middleware renders the response after the tool's context is gone."""
+    exc = CommandException(ENGINE_TEXT)
+
+    assert safe_error(exc, query=query).message == ENGINE_TEXT
+    assert safe_error(exc, query=query, guest=True).message == str(
+        GENERIC_ERROR_MESSAGE
+    )
+    failed = ChartDataQueryFailedError(f"Error: {ENGINE_TEXT}")
+    assert safe_error(failed, query=True, guest=True).message == str(
+        GENERIC_ERROR_MESSAGE
+    )
+
+
 @pytest.mark.usefixtures("signed_in")
 def test_query_message_matches_public_query_error() -> None:
     exc = ChartDataQueryFailedError(f"Error: {ENGINE_TEXT}")

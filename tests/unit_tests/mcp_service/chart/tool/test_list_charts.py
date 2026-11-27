@@ -777,3 +777,52 @@ async def test_reraised_response_hides_exception_text(
         assert str(GENERIC_ERROR_MESSAGE) in response
     elif not keeps_text:
         assert UNEXPECTED_ERROR_MESSAGE in response
+
+
+@pytest.mark.parametrize(
+    "make_error",
+    [
+        pytest.param(lambda: CommandException(_LEAK_MARKER), id="command"),
+        pytest.param(lambda: ValueError(_LEAK_MARKER), id="value"),
+        pytest.param(lambda: ConnectionError(_LEAK_MARKER), id="connection"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_reraised_response_hides_text_from_a_resolved_guest(
+    production_middleware, mock_auth, make_error
+):
+    """The principal is the one the call resolved, not a mocked flag.
+
+    The tool runs under its own app context, so the response is rendered
+    outside the context that holds the resolved guest.
+    """
+    from superset.security.guest_token import GuestUser
+
+    mock_auth.return_value = GuestUser(
+        token={
+            "user": {"username": "guest"},
+            "resources": [],
+            "rls_rules": [],
+            "iat": 1,
+            "exp": 9_999_999_999,
+        },
+        roles=[],
+    )
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch("superset.daos.chart.ChartDAO.list", side_effect=make_error()),
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+        ),
+    ):
+        async with Client(mcp, log_handler=log_handler) as client:
+            result = await client.call_tool("list_charts", {}, raise_on_error=False)
+
+    assert result.is_error
+    assert not any(_LEAK_MARKER in text for text in notifications)
+    assert _LEAK_MARKER not in result.content[0].text

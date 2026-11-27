@@ -55,6 +55,7 @@ from superset.exceptions import (
 from superset.extensions import event_logger, stats_logger_manager
 from superset.mcp_service.auth import (
     _get_app_context_manager,
+    _mcp_guest_var,
     _mcp_user_id_var,
     get_user_from_request,
     is_tool_visible_to_current_user,
@@ -169,7 +170,9 @@ def _client_error_text(error: Exception) -> str:
     """
     if (generic := _generic_error_text(error)) is not None:
         return generic
-    return _redact_error_text(safe_error(error).message)
+    return _redact_error_text(
+        safe_error(error, guest=_mcp_guest_var.get(False)).message
+    )
 
 
 def _redact_error_text(error_str: str) -> str:
@@ -1005,6 +1008,7 @@ class LoggingMiddleware(Middleware):
             # never calls _setup_user_context()) doesn't inherit this call's
             # resolved user id.
             _mcp_user_id_var.set(None)
+            _mcp_guest_var.set(False)
             duration_ms = int((time.time() - start_time) * 1000)
             # The audit write needs a metadata connection. Tool workers can hold
             # every pooled connection while they wait on this loop, so the loop
@@ -1063,6 +1067,7 @@ class LoggingMiddleware(Middleware):
                 user_id = resolved_user_id
             # See the matching reset in on_call_tool.
             _mcp_user_id_var.set(None)
+            _mcp_guest_var.set(False)
             # See the matching audit write in on_call_tool.
             try:
                 await run_in_metadata_thread(

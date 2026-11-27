@@ -294,7 +294,11 @@ def _is_query_failure(exc: Exception) -> bool:
 
 
 def safe_error(
-    exc: BaseException, *, query: bool = False, semantic: bool = False
+    exc: BaseException,
+    *,
+    query: bool = False,
+    semantic: bool = False,
+    guest: bool = False,
 ) -> SafeError:
     """Map an exception to an error code and a client-safe message.
 
@@ -312,7 +316,14 @@ def safe_error(
     itself. That includes a ValueError Superset raised about the caller's
     arguments (see :func:`raised_by_host_validation`). Other exceptions always
     get a fixed message.
+
+    The principal is the current request's. ``guest=True`` marks a call that
+    resolved to an embedded guest although the request no longer holds it, as
+    when a middleware renders the response after the tool's context is gone.
     """
+    # Read through the module, like sanitize_error_message, so both rules see
+    # the same principal.
+    required = guest or error_sanitization.is_sanitization_required()
     if isinstance(exc, Exception):
         # Provenance comes first: a provider can call a host validator, and the
         # host-validation exemption must not turn its text into host guidance.
@@ -328,17 +339,10 @@ def safe_error(
             # Like /api/v1/chart/data, an embedded guest gets the generic
             # message unless Superset wrote the text itself, also for a
             # semantic query.
-            if (
-                code not in _SAFE_CODES
-                and error_sanitization.is_sanitization_required()
-            ):
+            if code not in _SAFE_CODES and required:
                 message = str(GENERIC_ERROR_MESSAGE)
             return SafeError(code=code, message=_bounded(message))
-    # Read through the module, like sanitize_error_message, so both rules see
-    # the same principal.
-    error = sanitize_superset_error(
-        _superset_error(exc), required=error_sanitization.is_sanitization_required()
-    )
+    error = sanitize_superset_error(_superset_error(exc), required=required)
     return SafeError(code=error.error_type.value, message=_bounded(str(error.message)))
 
 

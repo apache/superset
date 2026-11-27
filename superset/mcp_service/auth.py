@@ -104,6 +104,12 @@ logger = logging.getLogger(__name__)
 # audit logging can attribute the call to the right user.
 _mcp_user_id_var: ContextVar[int | None] = ContextVar("mcp_user_id", default=None)
 
+# Whether the call resolved to an embedded guest. The error middleware renders
+# the response outside the tool's app context, where ``g.user`` no longer
+# holds the guest, so this survives the pop like ``_mcp_user_id_var`` and lets
+# the response follow the same redaction rule as the tool's own messages.
+_mcp_guest_var: ContextVar[bool] = ContextVar("mcp_guest", default=False)
+
 # An MCP request resolves to a real DB ``User`` or, for embedded guests, a
 # ``GuestUser`` (an AnonymousUserMixin, not a ``User`` subclass). Both are valid
 # authenticated principals for tool execution.
@@ -1128,6 +1134,7 @@ def _setup_user_context() -> MCPUser | None:
     # (e.g. sequential calls sharing one asyncio task) so a failed/
     # unauthenticated lookup below doesn't inherit a stale value.
     _mcp_user_id_var.set(None)
+    _mcp_guest_var.set(False)
 
     user = _resolve_user_with_retry()
     if user is None:
@@ -1141,8 +1148,11 @@ def _setup_user_context() -> MCPUser | None:
         _mcp_user_id_var.set(user_id)
     from superset.mcp_service.worker import _active_call
 
+    is_guest = isinstance(user, GuestUser)
+    _mcp_guest_var.set(is_guest)
     if call := _active_call.get():
         call.user_id = _mcp_user_id_var.get()
+        call.is_guest = is_guest
     return user
 
 
