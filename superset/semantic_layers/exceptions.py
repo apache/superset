@@ -212,7 +212,8 @@ def provider_code() -> Iterator[None]:
         raise
 
 
-def _is_provider_fault(ex: BaseException) -> bool:
+def is_provider_fault(ex: BaseException) -> bool:
+    """Whether an exception originated inside a semantic provider call."""
     return getattr(ex, _PROVIDER_FAULT, False) is True
 
 
@@ -284,7 +285,7 @@ def _log_discovery_fault(
     )
     # The read's nearest callers, which the fault's own traceback does not include.
     caller: str = _frame_locations(traceback.extract_stack(limit=12)[:-2])
-    if _is_provider_fault(ex):
+    if is_provider_fault(ex):
         # The message may carry credentials or provider URLs, and source lines
         # may carry literals, so only each frame's location is logged.
         logger.error(
@@ -322,7 +323,8 @@ def execute_semantic_query(
     """Translate provider signals without changing host validation or retries."""
     try:
         with provider_completeness(), normalize_provider_request_errors():
-            return dispatcher(*args, **kwargs)
+            with provider_code():
+                return dispatcher(*args, **kwargs)
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from None
     except SemanticBackendError:

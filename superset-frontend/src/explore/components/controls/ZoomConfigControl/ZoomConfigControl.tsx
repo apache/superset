@@ -30,7 +30,7 @@ import {
   toLinearConfig,
   toExpConfig,
 } from './zoomUtil';
-import ZoomConfigsChart from './ZoomConfigsChart';
+import { ZoomConfigsChart } from './ZoomConfigsChart';
 import { ControlFormItem } from '../ColumnConfigControl/ControlForm';
 
 export const StyledControlFormItem = styled(ControlFormItem)`

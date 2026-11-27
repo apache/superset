@@ -241,6 +241,32 @@ interface _PostProcessingRank {
 }
 export type PostProcessingRank = _PostProcessingRank | DefaultPostProcessing;
 
+interface _PostProcessingFirstNPerGroup {
+  operation: 'first_n_per_group';
+  options: {
+    groupby: string[];
+    n: number;
+  };
+}
+export type PostProcessingFirstNPerGroup =
+  | _PostProcessingFirstNPerGroup
+  | DefaultPostProcessing;
+
+interface _PostProcessingTreeRows {
+  operation: 'tree_rows';
+  options: {
+    levels: {
+      id_column: string;
+      columns: string[];
+      time_column?: string;
+    }[];
+    bounds?: [string | null, string | null][];
+  };
+}
+export type PostProcessingTreeRows =
+  | _PostProcessingTreeRows
+  | DefaultPostProcessing;
+
 interface _PostProcessingHistogram {
   operation: 'histogram';
   options?: {
@@ -274,7 +300,9 @@ export type PostProcessingRule =
   | PostProcessingRename
   | PostProcessingFlatten
   | PostProcessingHistogram
-  | PostProcessingRank;
+  | PostProcessingRank
+  | PostProcessingFirstNPerGroup
+  | PostProcessingTreeRows;
 
 export function isPostProcessingAggregation(
   rule?: PostProcessingRule,

@@ -458,10 +458,12 @@ def _coerce_empty_result(
     )
 
 
-def _cast_resample_date_axes(table: pa.Table, query_object: QueryObject) -> pa.Table:
-    """Give resample's DatetimeIndex guard typed axes without changing DATE series."""
+def _cast_datetime_postprocessing_axes(
+    table: pa.Table, query_object: QueryObject
+) -> pa.Table:
+    """Give resample and Prophet datetime axes without changing DATE series."""
     if not any(
-        operation.get("operation") == "resample"
+        operation.get("operation") in {"resample", "prophet"}
         for operation in query_object.post_processing
     ):
         return table
@@ -523,7 +525,7 @@ def map_semantic_result_to_query_result(
     return QueryResult(
         # Core data
         df=stringify_extension_columns(
-            _cast_resample_date_axes(semantic_result.results, query_object)
+            _cast_datetime_postprocessing_axes(semantic_result.results, query_object)
         ).to_pandas(integer_object_nulls=True),
         query=query_str,
         duration=duration,

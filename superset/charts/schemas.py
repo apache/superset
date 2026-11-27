@@ -156,6 +156,15 @@ chart_get_list_schema = {
                 "order_column is viz_type."
             ),
         },
+        "include_archived_dashboards": {
+            "type": "boolean",
+            "default": False,
+            "description": (
+                "Append archived dashboards the caller may enumerate to each "
+                "returned chart's dashboards, marked archived. Ignored unless "
+                "soft delete is enabled."
+            ),
+        },
     },
 }
 
