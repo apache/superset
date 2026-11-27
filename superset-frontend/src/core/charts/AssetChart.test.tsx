@@ -97,9 +97,18 @@ test('draws the form data it is given, queried as an unsaved chart', async () =>
     );
   });
   expect(requestChartDataResolved).toHaveBeenCalledWith(
-    { formData: FORM_DATA },
+    {
+      formData: FORM_DATA,
+      requestParams: { signal: expect.any(AbortSignal) },
+    },
     expect.any(AbortSignal),
   );
+  // One signal, given in both places: `requestParams` cancels the request,
+  // the second argument cancels the wait for an async result. Asserting they
+  // are the same object is what catches a regression that drops either one.
+  const [params, pollSignal] = (requestChartDataResolved as jest.Mock).mock
+    .calls[0];
+  expect(params.requestParams.signal).toBe(pollSignal);
   // Looked up from the form data's own `datasource`, not from the dataset the
   // page happens to hold.
   expect(clientGet).toHaveBeenCalledWith({
@@ -255,8 +264,10 @@ test('queries again, and aborts the old query, when the form data changes', asyn
   await waitFor(() => {
     expect(screen.getByTestId('super-chart')).toBeInTheDocument();
   });
-  const firstSignal = (requestChartDataResolved as jest.Mock).mock
-    .calls[0][1] as AbortSignal;
+  // Read off `requestParams`: that is the signal the request itself is sent
+  // with, so this asserts the old POST is cancelled and not only the wait.
+  const firstSignal = (requestChartDataResolved as jest.Mock).mock.calls[0][0]
+    .requestParams.signal as AbortSignal;
 
   rerender(<AssetChart formData={{ ...FORM_DATA, row_limit: 10 }} />);
 
@@ -272,8 +283,8 @@ test('aborts its query when it unmounts', async () => {
   );
   const { unmount } = renderChart();
   await waitFor(() => expect(requestChartDataResolved).toHaveBeenCalled());
-  const signal = (requestChartDataResolved as jest.Mock).mock
-    .calls[0][1] as AbortSignal;
+  const signal = (requestChartDataResolved as jest.Mock).mock.calls[0][0]
+    .requestParams.signal as AbortSignal;
 
   unmount();
 

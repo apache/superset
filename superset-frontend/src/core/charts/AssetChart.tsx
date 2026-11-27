@@ -122,13 +122,22 @@ export default function AssetChart({
       const [meta, result] = await Promise.all([
         wantedMetadata(),
         requestChartDataResolved(
-          // `QueryFormData` requires `viz_type` and `datasource`; the
-          // published type leaves both optional because a caller may
-          // legitimately omit them. `viz_type` is established by the guard
-          // above, and the query is the right place for a missing
-          // `datasource` to be refused, so this is the one narrowing that
-          // stays.
-          { formData: formData as QueryFormData },
+          {
+            // `QueryFormData` requires `viz_type` and `datasource`; the
+            // published type leaves both optional because a caller may
+            // legitimately omit them. `viz_type` is established by the guard
+            // above, and the query is the right place for a missing
+            // `datasource` to be refused, so this is the one narrowing that
+            // stays.
+            formData: formData as QueryFormData,
+            // The same signal has to be given twice, as Explore's own
+            // `exploreJSON` gives it: `requestParams` is spread into the
+            // `SupersetClient.post` settings, so this is what cancels the
+            // request itself, while the second argument only cancels the
+            // wait for an async query's result. Passing one without the
+            // other leaves half the work running.
+            requestParams: { signal: controller.signal },
+          },
           controller.signal,
         ),
       ]);

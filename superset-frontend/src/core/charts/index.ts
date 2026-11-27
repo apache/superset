@@ -60,6 +60,26 @@ import AssetChart from './AssetChart';
  * Explore's datasource and viz type section is deliberately left out: those
  * keys identify the chart rather than configure it, and the contract these
  * two APIs publish says neither reports them.
+ *
+ * One thing this walk cannot reproduce: `getSectionsToRender` also drops
+ * time controls by datasource type, removing the string shorthand
+ * `granularity` for a query, table or semantic-view datasource and
+ * `granularity_sqla`/`time_grain_sqla` for any other. It is given a
+ * datasource type; these two APIs are given a viz type, and a chart's
+ * datasource is not something either can be asked about. So a control
+ * Explore drops for the chart at hand can still be reported here.
+ *
+ * Today none of the three reaches a caller as a default, for reasons that
+ * are worth naming because they are not design: `granularity` carries
+ * `default: 'one day'` but no bundled plugin declares it, so the walk never
+ * meets it; `granularity_sqla` declares its default as a function and
+ * `time_grain_sqla` declares none at all, and `controlDefaults` reports
+ * neither kind. A plugin adding `granularity`, or a `controlOverrides`
+ * giving either `_sqla` key a plain default, would put one phantom key in
+ * `controlDefaults` for exactly the datasource types Explore drops it for --
+ * a caller diffing a chart's `params` would read it as a value the form
+ * wrote. `controlLabels` is already affected and does not much mind: a
+ * label for a key the chart does not carry is unused, not wrong.
  */
 function* expandedControls(
   vizType: string,
