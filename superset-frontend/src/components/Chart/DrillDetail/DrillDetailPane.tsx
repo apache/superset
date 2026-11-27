@@ -45,7 +45,8 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
-import Table, {
+import {
+  Table,
   ColumnsType,
   TableSize,
 } from '@superset-ui/core/components/Table';

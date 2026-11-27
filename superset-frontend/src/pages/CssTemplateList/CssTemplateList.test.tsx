@@ -17,7 +17,7 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -37,7 +37,7 @@ const CssTemplatesList = CssTemplatesListComponent as unknown as React.FC<
   Record<string, any>
 >;
 
-const mockStore = configureStore([thunk]);
+const mockStore = createMockStore([thunk]);
 const store = mockStore({});
 
 const templatesInfoEndpoint = 'glob:*/api/v1/css_template/_info*';

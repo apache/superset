@@ -595,7 +595,8 @@ class SupersetUserApi(UserApi):
         here (to obtain its id) and syncing its ``Subject`` row alongside it
         means both writes ride the same transaction and commit together,
         instead of the subject sync needing a second, separate commit after
-        the fact.
+        the fact. The forced-password-change flag is raised the same way: the
+        new account starts on a password the administrator chose.
         """
         super().pre_add(item)
         from superset.daos.user import UserDAO
@@ -603,6 +604,7 @@ class SupersetUserApi(UserApi):
         self.datamodel.session.add(item)
         self.datamodel.session.flush()
         UserDAO._sync_subject(item)
+        self._require_password_change(item.id)
 
     def pre_update(self, item: Model, data: dict[str, Any]) -> None:
         """Same reasoning as ``pre_add``: ``UserApi.put`` calls ``pre_update``
@@ -618,14 +620,46 @@ class SupersetUserApi(UserApi):
             # An admin-initiated password change via this endpoint (the
             # Users list edit modal) must invalidate the target account's
             # other outstanding sessions, the same as the self-service
-            # ``/me/`` path. The forced-change flag is deliberately left
-            # alone: a temporary password set by an admin still has to be
-            # replaced by the user at next login.
+            # ``/me/`` path. The password is a temporary one the admin chose,
+            # so the target also has to replace it at next login -- unless the
+            # admin is editing their own account.
             from superset.security.session_invalidation import (
                 invalidate_sessions_for_user,
             )
 
             invalidate_sessions_for_user(item.id)
+            acting_user = getattr(self.appbuilder.sm, "current_user", None)
+            if getattr(acting_user, "id", None) != item.id:
+                self._require_password_change(item.id)
+            else:
+                # An admin replacing their own password has chosen it, the
+                # same as the self-service ``/me/`` path.
+                from superset.security.password_change import (
+                    clear_password_must_change,
+                )
+
+                clear_password_must_change(item.id)
+
+    @staticmethod
+    def _require_password_change(user_id: int) -> None:
+        """Flag ``user_id`` to change their password at next login.
+
+        Only when ``ENABLE_FORCE_PASSWORD_CHANGE`` is on, so turning the
+        setting on later does not retroactively lock out every account an
+        administrator ever set a password for, and only under ``AUTH_DB``:
+        with any other auth type the password set here is not the one users
+        sign in with. Writes without committing: FAB commits the user change
+        right after ``pre_add``/``pre_update``.
+        """
+        config = current_app.config
+        if (
+            not config.get("ENABLE_FORCE_PASSWORD_CHANGE")
+            or config.get("AUTH_TYPE", AUTH_DB) != AUTH_DB
+        ):
+            return
+        from superset.security.password_change import write_password_must_change
+
+        write_password_must_change(user_id)
 
     @expose("/", methods=["POST"])
     @protect()
@@ -4176,6 +4210,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database_id: int,
         database_name: str,
     ) -> None:
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+            Database,
+        )
+
         view_menu_name = self.get_database_perm(database_id, database_name)
         # Clean database access permission
         self._delete_pvm_on_sqla_event(
@@ -4192,10 +4230,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.permission_model.name == "catalog_access",
                 )
             )
-            .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
+            .filter(
+                self.viewmenu_model.name.startswith(
+                    f"[{database_name}].[", autoescape=True
+                )
+            )
             .all()
         )
+        # A different database can extend the same bracket-delimited prefix.
+        foreign_prefixes = [
+            f"[{name}]."
+            for (name,) in self.session.query(Database.database_name).filter(
+                Database.id != database_id,
+                Database.database_name.startswith(
+                    f"{database_name}].", autoescape=True
+                ),
+            )
+        ]
         for schema_pvm in schema_pvms:
+            if any(
+                schema_pvm.view_menu.name.startswith(prefix)
+                for prefix in foreign_prefixes
+            ):
+                continue
             self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
 
     def _update_vm_database_access(
@@ -4231,13 +4288,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         new_updated_pvm = self.find_permission_view_menu(
             "database_access", new_view_menu_name
         )
-        if new_updated_pvm:
+        if new_updated_pvm and new_updated_pvm.id != db_pvm.id:
             logger.info(
                 "New permission [%s] already exists, deleting the previous",
                 new_view_menu_name,
             )
-            self._delete_vm_database_access(
-                mapper, connection, target.id, old_database_name
+            # Mapper events cannot flush ORM relationship changes: merge grants
+            # through the event connection before deleting the source PVM.
+            source_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id == db_pvm.id
+                    )
+                ).scalars()
+            )
+            destination_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id
+                        == new_updated_pvm.id
+                    )
+                ).scalars()
+            )
+            for role_id in source_roles - destination_roles:
+                connection.execute(
+                    assoc_permissionview_role.insert().values(
+                        role_id=role_id, permission_view_id=new_updated_pvm.id
+                    )
+                )
+            # Leave schema/catalog grants for permission sync to migrate.
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "database_access", old_view_menu_name
             )
             return None
         connection.execute(

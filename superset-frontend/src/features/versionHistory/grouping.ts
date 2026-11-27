@@ -22,6 +22,7 @@ import type {
   SaveGroup,
   TimelineEntry,
 } from './types';
+import { isChartArchiveRecord } from './lifecycle';
 
 /**
  * Stable identity for one activity record, used to deduplicate rows
@@ -103,6 +104,8 @@ function mergeAdjacentRelatedEntries(
     if (
       entry.type === 'related' &&
       previous?.type === 'related' &&
+      !isChartArchiveRecord(entry.record) &&
+      !isChartArchiveRecord(previous.record) &&
       relatedEntityKey(previous.record) === relatedEntityKey(entry.record) &&
       Math.abs(
         Date.parse(previous.record.issued_at) -
@@ -133,7 +136,7 @@ function rollupSameTransactionRelated(
 ): TimelineEntry[] {
   const buckets = new Map<string, RelatedEntry[]>();
   entries.forEach(entry => {
-    if (entry.type !== 'related') {
+    if (entry.type !== 'related' || isChartArchiveRecord(entry.record)) {
       return;
     }
     const key = `${entry.record.transaction_id}|${entry.record.entity_kind}`;

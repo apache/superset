@@ -19,6 +19,7 @@
 
 import { styled, css } from '@apache-superset/core/theme';
 import { Card, Typography } from '@superset-ui/core/components';
+import { ensureStaticPrefix } from 'src/utils/assetUrl';
 
 // Shared by the sign-in page and the password recovery pages so every
 // signed-out auth screen renders the same card.
@@ -39,4 +40,57 @@ export const StyledLabel = styled(Typography.Text)`
   ${({ theme }) => css`
     font-size: ${theme.fontSizeSM}px;
   `}
+`;
+
+export const StyledBackground = styled.div`
+  ${({ theme }) => {
+    const bgImageUrl = ensureStaticPrefix(theme.loginPageBackgroundImageUrl);
+    const overlayColor =
+      theme.loginPageBackgroundOverlayColor || theme.colorBgMask;
+    const blurAmount = theme.loginPageBackgroundBlur || '0px';
+    return bgImageUrl
+      ? css`
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          z-index: 0;
+          pointer-events: none;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('${CSS.escape(bgImageUrl)}');
+            background-size: cover;
+            background-position: center;
+            filter: blur(${blurAmount});
+            z-index: -1;
+          }
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: ${overlayColor};
+            z-index: 1;
+          }
+        `
+      : '';
+  }}
+`;
+
+export const StyledBrandLogo = styled.img`
+  display: block;
+  max-width: 160px;
+  max-height: 64px;
+  margin: 0;
+  object-fit: contain;
 `;

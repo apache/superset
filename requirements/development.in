@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--e .[development,bigquery,clickhouse,cockroachdb,crate,databend,druid,duckdb,elasticsearch,fastmcp,firebird,gevent,gsheets,monetdb,mongodb,mssql,mysql,oracle,postgres,presto,prophet,risingwave,snowflake,starrocks,trino,thumbnails,ydb]
+-e .[development,bigquery,clickhouse,cockroachdb,crate,databend,druid,duckdb,elasticsearch,fastmcp,firebird,gevent,gsheets,monetdb,mongodb,mssql,mysql,oracle,postgres,presto,prophet,risingwave,snowflake,starrocks,trino,teams,thumbnails,ydb]
 -e ./superset-extensions-cli[test]
 # testcontainers-backed db_engine_specs tests (tests/testcontainers/) --
 # see .github/workflows/testcontainers.yml
@@ -73,7 +73,7 @@ fonttools>=4.67.0,<5.0.0
 
 # Security: CVE-2026-75509 - joserfc claim-validation bypass via array-typed
 # iss/sub claims (pulled in transitively via fastmcp-slim)
-joserfc>=1.7.3
+joserfc>=1.8.0
 
 # Security: CVE-2026-53537, CVE-2026-53538, CVE-2026-53539, CVE-2026-53540 -
 # python-multipart (pulled in transitively via fastmcp-slim and mcp)
