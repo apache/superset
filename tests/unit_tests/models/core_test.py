@@ -5585,6 +5585,157 @@ def test_default_schema_unsuccessful_publication_retries(
 
 
 @pytest.mark.parametrize("supports_add", [False, True])
+@pytest.mark.parametrize("new_schema", ["main", "s_new"])
+def test_default_schema_publication_cannot_overwrite_interleaved_discovery(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    supports_add: bool,
+    new_schema: str,
+) -> None:
+    """A newer publication between the old worker's read and write must win."""
+    from superset.models.core import _publish_default_schema
+
+    cache = shared_default_schema_cache
+    cache.set("interleaved", {"schema": "main", "discovered_at": 900})
+    read = cache.get
+    interleaved = False
+    if not supports_add:
+        mocker.patch.object(cache, "add", side_effect=NotImplementedError)
+
+    def publish_after_read(key: str) -> Any:
+        """Let another worker publish after the stale snapshot is captured."""
+        nonlocal interleaved
+        snapshot = read(key)
+        if not interleaved:
+            interleaved = True
+            assert _publish_default_schema(key, new_schema, 1010, 3600) == new_schema
+        return snapshot
+
+    mocker.patch.object(cache, "get", side_effect=publish_after_read)
+    result = _publish_default_schema("interleaved", "main", 1000, 3600)
+
+    assert read("interleaved") == {"schema": new_schema, "discovered_at": 1010}
+    assert result is None  # Failed CAS must not correct a retained read to old data.
+
+
+@pytest.mark.parametrize("outcome", ["success", "changed", "conflict"])
+def test_default_schema_redis_replacement_is_conditional(
+    app_context: None, mocker: MockerFixture, outcome: str
+) -> None:
+    """Redis replacement uses the primary and detects changes before EXEC."""
+    from flask_caching.backends.rediscache import RedisCache
+    from redis.exceptions import WatchError
+
+    from superset.extensions import cache_manager
+    from superset.models.core import _replace_default_schema
+
+    backend = RedisCache(key_prefix="prefix:")
+    mocker.patch.object(
+        type(cache_manager.cache),
+        "cache",
+        new_callable=mocker.PropertyMock,
+        return_value=backend,
+    )
+    client = mocker.patch.object(backend, "_write_client")
+    pipe = client.pipeline.return_value.__enter__.return_value
+    expected = {"schema": "main", "discovered_at": 1000}
+    value = {"schema": "s_new", "discovered_at": 1010}
+    pipe.get.return_value = backend.serializer.dumps(
+        value if outcome == "changed" else expected
+    )
+    if outcome == "conflict":
+        pipe.execute.side_effect = WatchError
+
+    assert _replace_default_schema("key", value, expected, 3600) is (
+        outcome == "success"
+    )
+    pipe.watch.assert_called_once_with("prefix:key")
+    pipe.get.assert_called_once_with("prefix:key")
+    if outcome == "changed":
+        pipe.multi.assert_not_called()
+        pipe.set.assert_not_called()
+    else:
+        pipe.multi.assert_called_once_with()
+        pipe.set.assert_called_once_with(
+            "prefix:key", backend.serializer.dumps(value), ex=3600
+        )
+        pipe.execute.assert_called_once_with()
+
+
+@pytest.mark.parametrize("expected", [None, {"schema": "main", "discovered_at": 1000}])
+@pytest.mark.parametrize("replaced", [False, True])
+def test_default_schema_backend_native_compare_and_set(
+    app_context: None, mocker: MockerFixture, expected: Any, replaced: bool
+) -> None:
+    """Backends exposing atomic replacement receive the exact observed value."""
+    from superset.extensions import cache_manager
+    from superset.models.core import _replace_default_schema
+
+    backend = mocker.Mock()
+    mocker.patch.object(
+        type(cache_manager.cache),
+        "cache",
+        new_callable=mocker.PropertyMock,
+        return_value=backend,
+    )
+    value = {"schema": "s_new", "discovered_at": 1010}
+    backend.compare_and_set.return_value = replaced
+    assert _replace_default_schema("key", value, expected, 3600) is replaced
+    backend.compare_and_set.assert_called_once_with(
+        "key", value, expected, timeout=3600
+    )
+
+
+@pytest.mark.parametrize("supports_add", [False, True])
+@pytest.mark.parametrize(
+    "shared_value", [None, {"schema": "main", "discovered_at": 1000}]
+)
+def test_default_schema_backend_without_atomic_replacement_skips_renewal(
+    app_context: None, mocker: MockerFixture, supports_add: bool, shared_value: Any
+) -> None:
+    """A backend lacking CAS must not silently fall back to an unconditional set."""
+    from superset.extensions import cache_manager
+    from superset.models.core import _publish_default_schema
+
+    backend = mocker.Mock(spec=["add", "get", "set"])
+    backend.add.return_value = False
+    backend.get.return_value = shared_value
+    if not supports_add:
+        backend.add.side_effect = NotImplementedError
+    mocker.patch.object(
+        type(cache_manager.cache),
+        "cache",
+        new_callable=mocker.PropertyMock,
+        return_value=backend,
+    )
+
+    assert _publish_default_schema("key", "s_new", 1010, 3600) is None
+    backend.set.assert_not_called()
+
+
+def test_default_schema_filesystem_cache_does_not_publish(
+    app_context: None, mocker: MockerFixture, tmp_path: Path
+) -> None:
+    """FileSystemCache's non-atomic add cannot publish a shared discovery."""
+    from flask_caching.backends.filesystemcache import FileSystemCache
+
+    from superset.extensions import cache_manager
+    from superset.models.core import _publish_default_schema
+
+    backend = FileSystemCache(str(tmp_path))
+    mocker.patch.object(
+        type(cache_manager.cache),
+        "cache",
+        new_callable=mocker.PropertyMock,
+        return_value=backend,
+    )
+    add = mocker.spy(backend, "add")
+    assert _publish_default_schema("key", "main", 1000, 3600) is None
+    add.assert_not_called()
+    assert backend.get("key") is None
+
+
+@pytest.mark.parametrize("supports_add", [False, True])
 @pytest.mark.parametrize("publish_old_first", [False, True])
 def test_default_schema_older_worker_cannot_replace_newer_discovery(
     shared_default_schema_cache: Cache,

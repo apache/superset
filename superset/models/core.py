@@ -58,10 +58,14 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
+from cachelib.file import FileSystemCache
+from cachelib.redis import RedisCache
+from cachelib.simple import SimpleCache
 from flask import current_app as app, g, has_app_context
 from flask_appbuilder import Model
 from flask_babel import gettext as __
 from marshmallow.exceptions import ValidationError
+from redis.exceptions import WatchError
 from sqlalchemy import (
     Boolean,
     Column,
@@ -349,10 +353,47 @@ def _read_default_schema(cache_key: str) -> str | None:
     return _run_default_schema_cache_operation(read, cache_key=cache_key)
 
 
+def _replace_default_schema(
+    cache_key: str, value: dict[str, Any], expected: Any, timeout: int
+) -> bool:
+    """Replace a discovery only if the observed shared value is still current."""
+    cache = cache_manager.cache
+    backend = cache.cache
+    if isinstance(backend, RedisCache):
+        # Read from the primary: replicas cannot participate in WATCH/MULTI.
+        key = f"{backend._get_prefix()}{cache_key}"  # pylint: disable=protected-access
+        with backend._write_client.pipeline() as pipe:  # pylint: disable=protected-access
+            try:
+                pipe.watch(key)
+                if backend.serializer.loads(pipe.get(key)) != expected:
+                    return False
+                pipe.multi()
+                pipe.set(key, backend.serializer.dumps(value), ex=timeout)
+                pipe.execute()
+                return True
+            except WatchError:
+                return False
+    if isinstance(backend, SimpleCache):
+        # SimpleCache is process-local; use its own reentrant operation lock.
+        with backend._lock:  # pylint: disable=protected-access
+            if cache.get(cache_key) != expected:
+                return False
+            return bool(cache.set(cache_key, value, timeout=timeout))
+    compare_and_set = getattr(backend, "compare_and_set", None)
+    if callable(compare_and_set):
+        return bool(compare_and_set(cache_key, value, expected, timeout=timeout))
+    # An unknown backend can add missing entries, but cannot safely renew them.
+    return False
+
+
 def _publish_default_schema(
     cache_key: str, schema: str, discovered_at: float, timeout: int
 ) -> str | None:
     """Publish discovery without renewing an older, contradictory schema."""
+    # FileSystemCache.add checks for existence before an unconditional set.
+    # It cannot safely create discoveries shared by multiple workers.
+    if isinstance(cache_manager.cache.cache, FileSystemCache):
+        return None
     value = {"schema": schema, "discovered_at": discovered_at}
     supports_add = True
     try:
@@ -370,7 +411,9 @@ def _publish_default_schema(
             return shared[0]
         value["discovered_at"] = shared[1]
     return (
-        schema if cache_manager.cache.set(cache_key, value, timeout=timeout) else None
+        schema
+        if _replace_default_schema(cache_key, value, shared_value, timeout)
+        else None
     )
 
 

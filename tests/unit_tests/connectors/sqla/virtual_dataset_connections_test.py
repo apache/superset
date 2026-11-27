@@ -1618,7 +1618,38 @@ def test_cache_key_with_database_outage_raises_original_error(
         virtual.get_extra_cache_keys(query.to_dict())
 
     assert raised.value is error
-    rollback.assert_called_once()
+    rollback.assert_not_called()
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("failure", ["validation", "template"])
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_construction_error_preserves_pending_changes(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    session: Session,
+    failure: str,
+) -> None:
+    """Pure query-construction errors must not roll back the caller's work."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = (
+        "SELECT col1 FROM physical WHERE '{{ current_username() }}' != ''"
+        if failure == "validation"
+        else "SELECT {{ current_username() + }} FROM physical"
+    )
+    pending = Database(database_name="pending", sqlalchemy_uri="sqlite://")
+    session.add(pending)
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=["missing"] if failure == "validation" else [],
+    )
+
+    with pytest.raises(QueryObjectValidationError):
+        virtual.get_extra_cache_keys(query.to_dict())
+
+    assert pending in session.new
+    assert session.is_active
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)

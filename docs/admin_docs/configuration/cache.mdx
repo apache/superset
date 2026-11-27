@@ -92,7 +92,13 @@ renewal time: an older engine cannot replace a differing, newer shared discovery
 Worker wall clocks must be synchronized for this comparison. If execution discovers a different schema than the
 shared value used to build a chart key, Superset recomputes the key before
 storing the result, including the live schema's RLS predicates. Backends supporting
-add-if-absent use it for missing entries; other backends write directly. Discovery is
+add-if-absent use it for missing entries. Renewals and replacements require an
+atomic conditional update: Redis (including Sentinel), process-local SimpleCache,
+and backends exposing `compare_and_set` support this. Other backends do not renew
+or replace existing discoveries; entries expire after one hour and must be
+rediscovered. Backends without add-if-absent or conditional updates do not publish
+shared discoveries. FileSystemCache does not publish discoveries because its
+add-if-absent implementation is not atomic across workers. Discovery is
 keyed by the database, catalog, and a hash of the effective connection URL and
 engine parameters. Engine parameters whose representations contain process-local
 memory addresses (such as creator callables or credential objects) do not provide
