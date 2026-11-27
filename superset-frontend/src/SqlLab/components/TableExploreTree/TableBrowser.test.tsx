@@ -29,7 +29,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { TableBrowser } from '.';
 import TreeNodeRenderer from './TreeNodeRenderer';
-import type { TreeNodeData } from './types';
+import type { TableReference, TreeNodeData } from './types';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import type { RootState } from 'src/views/store';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -430,15 +430,17 @@ test('clears highlighted and expanded table when selectedTable becomes null', as
   await userEvent.click(await screen.findByText('public'));
   await userEvent.click(await screen.findByText('orders'));
   expect(await screen.findByText('id')).toBeVisible();
-  expect(
-    screen.getByText('orders').closest('.tree-node'),
-  ).toHaveAttribute('data-selected', 'true');
+  expect(screen.getByText('orders').closest('.tree-node')).toHaveAttribute(
+    'data-selected',
+    'true',
+  );
 
   await userEvent.click(screen.getByRole('button', { name: 'Clear table' }));
   await waitFor(() =>
-    expect(
-      screen.getByText('orders').closest('.tree-node'),
-    ).toHaveAttribute('data-selected', 'false'),
+    expect(screen.getByText('orders').closest('.tree-node')).toHaveAttribute(
+      'data-selected',
+      'false',
+    ),
   );
   expect(screen.queryByText('id')).not.toBeInTheDocument();
 });
@@ -463,7 +465,8 @@ test('keeps the parent table selected when clicking a column in preview mode', a
   await userEvent.click(await screen.findByText('orders'));
   const column = await screen.findByText('id');
   await userEvent.click(column);
-  expect(
-    screen.getByText('orders').closest('.tree-node'),
-  ).toHaveAttribute('data-selected', 'true');
+  expect(screen.getByText('orders').closest('.tree-node')).toHaveAttribute(
+    'data-selected',
+    'true',
+  );
 });
