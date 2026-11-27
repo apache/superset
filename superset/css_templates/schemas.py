@@ -42,6 +42,12 @@ get_delete_ids_schema = {
     "example": [1, 2, 3],
 }
 
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+
 
 class ImportV1CssTemplateSchema(Schema):
     """Validate a CSS template built from an imported CSS file."""
