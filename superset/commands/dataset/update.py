@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
+from collections import Counter, deque
 from functools import partial
 from typing import Any, cast, Optional
 from uuid import UUID
@@ -952,11 +952,13 @@ def validate_folders(  # noqa: C901
     if not is_feature_enabled("DATASET_FOLDERS"):
         raise ValidationError("Dataset folders are not enabled")
 
-    queue: list[tuple[FolderSchema, list[UUID]]] = [(folder, []) for folder in folders]
-    seen_uuids = set()
-    seen_fqns = set()  # fully qualified folder names
+    queue: deque[tuple[FolderSchema, tuple[UUID, ...]]] = deque(
+        (folder, ()) for folder in folders
+    )
+    seen_uuids: set[UUID] = set()
+    seen_fqns: set[tuple[UUID | str, ...]] = set()  # fully qualified folder names
     while queue:
-        obj, path = queue.pop(0)
+        obj, path = queue.popleft()
         uuid, name = obj["uuid"], obj.get("name")
 
         if uuid in path:
@@ -968,8 +970,8 @@ def validate_folders(  # noqa: C901
 
         # folders can have duplicate name as long as they're not siblings
         if name:
-            fqn = tuple(path + [name])
-            if name and fqn in seen_fqns:
+            fqn = (*path, name)
+            if fqn in seen_fqns:
                 raise ValidationError(f"Duplicate folder name: {name}")
             seen_fqns.add(fqn)
 
@@ -990,5 +992,5 @@ def validate_folders(  # noqa: C901
 
         # traverse children
         if children := obj.get("children"):
-            path.append(uuid)
-            queue.extend((folder, path) for folder in children)
+            child_path = (*path, uuid)
+            queue.extend((folder, child_path) for folder in children)

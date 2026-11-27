@@ -1373,6 +1373,153 @@ def test_validate_folders_duplicate_name_siblings(mocker: MockerFixture) -> None
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_duplicate_name_nested_siblings() -> None:
+    """
+    Duplicate sibling folder names under a common parent are rejected even when
+    an earlier sibling has children.
+    """
+    from uuid import UUID
+
+    root_uuid = UUID("11111111-1111-1111-1111-111111111111")
+    sales_uuid1 = UUID("22222222-2222-2222-2222-222222222222")
+    sub_uuid = UUID("33333333-3333-3333-3333-333333333333")
+    sales_uuid2 = UUID("44444444-4444-4444-4444-444444444444")
+
+    folders = cast(
+        list[FolderSchema],
+        [
+            {
+                "uuid": str(root_uuid),
+                "type": "folder",
+                "name": "Root",
+                "children": [
+                    {
+                        "uuid": str(sales_uuid1),
+                        "type": "folder",
+                        "name": "Sales",
+                        "children": [
+                            {
+                                "uuid": str(sub_uuid),
+                                "type": "folder",
+                                "name": "Sub",
+                                "children": [],
+                            },
+                        ],
+                    },
+                    {
+                        "uuid": str(sales_uuid2),
+                        "type": "folder",
+                        "name": "Sales",
+                        "children": [],
+                    },
+                ],
+            },
+        ],
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        validate_folders(folders=folders, valid_uuids=set())
+    assert str(excinfo.value) == "Duplicate folder name: Sales"
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_duplicate_name_nested_non_siblings() -> None:
+    """
+    Non-sibling folders at different depths under the same ancestor may share a
+    folder name.
+    """
+    from uuid import UUID
+
+    root_uuid = UUID("11111111-1111-1111-1111-111111111111")
+    group_a_uuid = UUID("22222222-2222-2222-2222-222222222222")
+    nested_overview_uuid = UUID("33333333-3333-3333-3333-333333333333")
+    sibling_overview_uuid = UUID("44444444-4444-4444-4444-444444444444")
+
+    folders = cast(
+        list[FolderSchema],
+        [
+            {
+                "uuid": str(root_uuid),
+                "type": "folder",
+                "name": "Root",
+                "children": [
+                    {
+                        "uuid": str(group_a_uuid),
+                        "type": "folder",
+                        "name": "GroupA",
+                        "children": [
+                            {
+                                "uuid": str(nested_overview_uuid),
+                                "type": "folder",
+                                "name": "Overview",
+                                "children": [],
+                            },
+                        ],
+                    },
+                    {
+                        "uuid": str(sibling_overview_uuid),
+                        "type": "folder",
+                        "name": "Overview",
+                        "children": [],
+                    },
+                ],
+            },
+        ],
+    )
+
+    validate_folders(folders=folders, valid_uuids=set())
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_duplicate_uuid_nested_siblings() -> None:
+    """
+    A sibling reusing an earlier sibling's UUID is reported as a duplicate UUID,
+    not a cycle in its ancestry.
+    """
+    from uuid import UUID
+
+    root_uuid = UUID("11111111-1111-1111-1111-111111111111")
+    dup_uuid = UUID("22222222-2222-2222-2222-222222222222")
+    child_uuid = UUID("33333333-3333-3333-3333-333333333333")
+
+    folders = cast(
+        list[FolderSchema],
+        [
+            {
+                "uuid": str(root_uuid),
+                "type": "folder",
+                "name": "Root",
+                "children": [
+                    {
+                        "uuid": str(dup_uuid),
+                        "type": "folder",
+                        "name": "First",
+                        "children": [
+                            {
+                                "uuid": str(child_uuid),
+                                "type": "folder",
+                                "name": "Child",
+                                "children": [],
+                            },
+                        ],
+                    },
+                    {
+                        "uuid": str(dup_uuid),
+                        "type": "folder",
+                        "name": "Second",
+                        "children": [],
+                    },
+                ],
+            },
+        ],
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        validate_folders(folders=folders, valid_uuids=set())
+    assert str(excinfo.value) == f"Duplicate UUID in folder structure: {dup_uuid}"
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
 def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
     """
     Test that we can detect reserved folder names.
