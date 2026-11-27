@@ -86,6 +86,24 @@ def test_export_zip_numbers_duplicate_template_names(
     assert names == {"Dark.css", "Dark (1).css", "Dark (2).css"}
 
 
+def test_export_zip_numbers_names_that_differ_only_by_case(
+    client: Any, full_api_access: None, session: Session
+) -> None:
+    """Case-insensitive filesystems would extract these to the same path."""
+    CssTemplate.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    templates = [
+        CssTemplate(template_name="Theme", css=".upper {}"),
+        CssTemplate(template_name="theme", css=".lower {}"),
+    ]
+    session.add_all(templates)
+    session.flush()
+
+    names = _export_zip_names(client, [template.id for template in templates])
+
+    assert len({name.casefold() for name in names}) == 2
+    assert len(names) == 2
+
+
 def test_export_zip_keeps_all_entries_when_names_differ_only_by_sanitizing(
     client: Any, full_api_access: None, session: Session
 ) -> None:

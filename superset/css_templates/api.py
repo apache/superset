@@ -253,8 +253,9 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
             # Duplicate names are numbered browser-style ("name (1).css"). Every
-            # assigned filename is tracked so a numbered name can't collide with
-            # another template's own name.
+            # assigned filename is tracked, case-insensitively because
+            # Windows and macOS extract "Theme.css" and "theme.css" to the same
+            # path, so a numbered name can't collide with another template's own.
             used_names: set[str] = set()
             seen_counts: dict[str, int] = defaultdict(int)
             for model in models:
@@ -262,10 +263,10 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
                     model.template_name or "", model.id, skip_id=True
                 )
                 candidate = f"{base_name}.css"
-                while candidate in used_names:
+                while candidate.casefold() in used_names:
                     seen_counts[base_name] += 1
                     candidate = f"{base_name} ({seen_counts[base_name]}).css"
-                used_names.add(candidate)
+                used_names.add(candidate.casefold())
                 write_zip_entry(
                     bundle, f"{root}/{candidate}", (model.css or "").encode()
                 )
