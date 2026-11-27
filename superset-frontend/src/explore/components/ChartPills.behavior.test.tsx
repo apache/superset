@@ -52,12 +52,16 @@ const cachedResponse = (): QueryData => ({
   data: [],
 });
 
-test.each([VizType.Table, VizType.TableAgGrid])(
+test.each([
+  [VizType.Table, undefined],
+  [VizType.TableAgGrid, undefined],
+  [VizType.TableAgGrid, 'tree'],
+] as const)(
   'reads the row count of a %s from the second query',
-  vizType => {
+  (vizType, queryMode) => {
     renderPills({
       queriesResponse: paginatedTableResponses(25, 250),
-      formData: { viz_type: vizType },
+      formData: { viz_type: vizType, query_mode: queryMode },
     });
 
     expect(screen.getByText('250 rows')).toBeInTheDocument();

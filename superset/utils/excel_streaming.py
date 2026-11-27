@@ -38,7 +38,7 @@ from typing import Any
 
 import xlsxwriter
 
-from superset.utils.excel import FORMULA_PREFIXES, NEUTRAL_DOCUMENT_PROPERTIES
+from superset.utils.excel import looks_like_formula, NEUTRAL_DOCUMENT_PROPERTIES
 
 # Excel limits a sheet name to 31 characters and forbids these characters.
 MAX_SHEET_NAME_LEN = 31
@@ -59,9 +59,10 @@ def _quote_if_formula(text: str) -> str:
     literal text (defense against formula injection).
 
     Headers and rows go out through ``write_row``, which picks each cell's type
-    from its value, so a string whose first character is ``=`` is stored as a
-    formula cell unless it is quoted first. Preventing that is what the quote is
-    for, and dropping it would put a formula in the workbook.
+    from its value, so a string whose first character is ``=``, or one wrapped
+    in ``{=`` and ``}``, is stored as a formula cell unless it is quoted first.
+    Preventing that is what the quote is for, and dropping it would put a
+    formula in the workbook.
 
     Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
     quoted like ``"=cmd"``. Whitespace in front of the prefix stops XlsxWriter
@@ -72,8 +73,7 @@ def _quote_if_formula(text: str) -> str:
     records a case of that: Google Sheets ignored a leading space on import and
     evaluated the formula anyway.
     """
-    stripped = text.lstrip()
-    return f"'{text}" if stripped and stripped[0] in FORMULA_PREFIXES else text
+    return f"'{text}" if looks_like_formula(text) else text
 
 
 def _coerce_float_cell(value: Any) -> Any:

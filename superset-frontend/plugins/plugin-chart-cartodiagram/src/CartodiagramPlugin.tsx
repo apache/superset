@@ -24,7 +24,7 @@ import {
   CartodiagramPluginStylesProps,
 } from './types';
 
-import OlChartMap from './components/OlChartMap';
+import { OlChartMap } from './components/OlChartMap';
 
 import 'ol/ol.css';
 

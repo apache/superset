@@ -49,6 +49,7 @@ from superset_core.queries.types import (
 from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, SQLScript
+from tests.unit_tests.conftest import with_feature_flags
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
@@ -1156,6 +1157,42 @@ def test_execute_async_dml_without_permission_raises(
         database.execute_async("INSERT INTO users (name) VALUES ('test')")
 
 
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_execute_async_undefined_template_var_raises_superset_template_exception(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A Jinja template referencing an undefined variable (not called as a
+    function) must not leak a raw ``jinja2.exceptions.UndefinedError`` out of
+    ``execute_async`` - it should surface as ``SupersetTemplateException``."""
+    from superset.exceptions import SupersetTemplateException
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    options = QueryOptions(template_params={"foo": "bar"})
+
+    with pytest.raises(SupersetTemplateException):
+        database.execute_async("SELECT {{ missing_var[0] }}", options=options)
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_execute_sync_undefined_template_var_returns_failed_result(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """The sync ``execute`` path's broad ``except Exception`` still catches the
+    template rendering failure and returns a FAILED ``QueryResult``, unchanged
+    by the ``_render_sql_template`` fix."""
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    options = QueryOptions(template_params={"foo": "bar"})
+    result = database.execute("SELECT {{ missing_var[0] }}", options=options)
+
+    assert result.status == QueryStatus.FAILED
+
+
 def test_async_handle_get_status(
     mocker: MockerFixture,
     database: Database,
@@ -1294,8 +1331,11 @@ def test_execute_multi_statement_updates_query_progress(
     mock_db_session: MagicMock,
 ) -> None:
     """Test that multi-statement execution updates Query.progress."""
+    from sqlalchemy import inspect
+
     from superset.models.sql_lab import Query as QueryModel
     from superset.result_set import SupersetResultSet
+    from superset.sql.execution.executor import SQLExecutor
 
     # Mock raw connection for multi-statement execution
     mock_cursor = MagicMock()
@@ -1337,12 +1377,23 @@ def test_execute_multi_statement_updates_query_progress(
     mock_query = MagicMock(spec=QueryModel)
     mock_query.limit = None
     mock_query.id = 123
-    mocker.patch("superset.models.sql_lab.Query", return_value=mock_query)
+    # Replace only the tracking record, not the mapped schema-resolution probe.
+    create_record = mocker.patch.object(
+        SQLExecutor, "_create_query_record", return_value=mock_query
+    )
+    resolve_schema = mocker.spy(database, "get_default_schema_for_query")
 
     # Execute multiple statements
     result = database.execute("SELECT 1; SELECT 2;")
 
     assert result.status == QueryStatus.SUCCESS
+    create_record.assert_called_once()
+    resolve_schema.assert_called_once()
+    probe = resolve_schema.call_args.args[0]
+    assert isinstance(probe, QueryModel)
+    assert inspect(probe).transient
+    assert probe.database is database
+    assert result.query_id == mock_query.id
     # Query.progress should have been updated
     assert mock_query.progress == 100  # Final progress after completion
     # set_extra_json_key should have been called for progress messages

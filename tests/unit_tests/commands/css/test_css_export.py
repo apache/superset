@@ -14,66 +14,128 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from uuid import UUID
+from io import BytesIO
+from typing import Any
+from zipfile import ZipFile
 
 import pytest
-from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
 
 from superset.commands.css.exceptions import CssTemplateNotFoundError
 from superset.commands.css.export_css import ExportCssTemplatesCommand
-from superset.commands.export.models import METADATA_FILE_NAME
 from superset.models.core import CssTemplate
-from superset.utils.dict_import_export import EXPORT_VERSION
-
-TEMPLATE_UUID = UUID("2f8a1b6e-6d1c-4c3b-9b3e-0a8f6a3d2c11")
-CSS = ".dashboard-header {\n  color: red;\n}\n"
 
 
-def _template(template_name: str = "My Template") -> CssTemplate:
-    return CssTemplate(id=1, template_name=template_name, css=CSS, uuid=TEMPLATE_UUID)
+def _create_templates(session: Session) -> list[CssTemplate]:
+    CssTemplate.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    templates = [
+        CssTemplate(template_name="Light", css=".a { color: white; }"),
+        CssTemplate(template_name="Dark", css=".a { color: black; }"),
+        CssTemplate(template_name="Unused", css=""),
+    ]
+    session.add_all(templates)
+    session.flush()
+    return templates
 
 
-def _export_css_files(mocker: MockerFixture, template: CssTemplate) -> dict[str, str]:
-    mocker.patch(
-        "superset.commands.css.export_css.CssTemplateDAO.find_by_ids",
-        return_value=[template],
-    )
-    return {
-        name: content()
-        for name, content in ExportCssTemplatesCommand([template.id]).run()
-        if name != METADATA_FILE_NAME
-    }
+def test_export_css_templates_returns_requested_models(session: Session) -> None:
+    light, dark, _ = _create_templates(session)
+
+    models = ExportCssTemplatesCommand([light.id, dark.id]).run()
+
+    assert sorted(model.id for model in models) == sorted([light.id, dark.id])
+    assert {model.css for model in models} == {light.css, dark.css}
 
 
-def test_export_css_template_header_then_css(mocker: MockerFixture) -> None:
-    files = _export_css_files(mocker, _template())
+def test_export_css_templates_missing_id_raises(session: Session) -> None:
+    light, *_ = _create_templates(session)
 
-    assert list(files) == ["My_Template.css"]
-    expected_header = (
-        "/*\n"
-        " * template_name: My Template\n"
-        f" * uuid: {TEMPLATE_UUID}\n"
-        f" * version: {EXPORT_VERSION}\n"
-        " */\n"
-    )
-    assert files["My_Template.css"] == expected_header + CSS
-
-
-def test_export_css_template_name_cannot_close_header(
-    mocker: MockerFixture,
-) -> None:
-    files = _export_css_files(mocker, _template("evil */ body{display:none}"))
-
-    content = next(iter(files.values()))
-    header, css = content.split(" */\n", 1)
-    assert "*/" not in header
-    assert css == CSS
-
-
-def test_export_css_template_not_found(mocker: MockerFixture) -> None:
-    mocker.patch(
-        "superset.commands.css.export_css.CssTemplateDAO.find_by_ids",
-        return_value=[],
-    )
     with pytest.raises(CssTemplateNotFoundError):
-        list(ExportCssTemplatesCommand([1]).run())
+        ExportCssTemplatesCommand([light.id, 999_999]).run()
+
+
+def test_export_css_templates_ignores_duplicate_ids(session: Session) -> None:
+    light, *_ = _create_templates(session)
+
+    models = ExportCssTemplatesCommand([light.id, light.id]).run()
+
+    assert [model.id for model in models] == [light.id]
+
+
+def _export_zip_names(client: Any, ids: list[int]) -> set[str]:
+    """Call the export endpoint and return the file names inside the archive."""
+    rison_ids = ",".join(str(model_id) for model_id in ids)
+    response = client.get(f"/api/v1/css_template/export/?q=!({rison_ids})")
+    assert response.status_code == 200
+    assert response.mimetype == "application/zip"
+    with ZipFile(BytesIO(response.data)) as bundle:
+        # Entries live under a timestamped root directory.
+        return {name.split("/", 1)[1] for name in bundle.namelist()}
+
+
+def test_export_zip_numbers_duplicate_template_names(
+    client: Any, full_api_access: None, session: Session
+) -> None:
+    CssTemplate.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    templates = [CssTemplate(template_name="Dark", css=f".a{i} {{}}") for i in range(3)]
+    session.add_all(templates)
+    session.flush()
+
+    names = _export_zip_names(client, [template.id for template in templates])
+
+    assert names == {"Dark.css", "Dark (1).css", "Dark (2).css"}
+
+
+def test_export_zip_numbers_names_that_differ_only_by_case(
+    client: Any, full_api_access: None, session: Session
+) -> None:
+    """Case-insensitive filesystems would extract these to the same path."""
+    CssTemplate.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    templates = [
+        CssTemplate(template_name="Theme", css=".upper {}"),
+        CssTemplate(template_name="theme", css=".lower {}"),
+    ]
+    session.add_all(templates)
+    session.flush()
+
+    names = _export_zip_names(client, [template.id for template in templates])
+
+    assert len({name.casefold() for name in names}) == 2
+    assert len(names) == 2
+
+
+def test_export_zip_keeps_all_entries_when_names_differ_only_by_sanitizing(
+    client: Any, full_api_access: None, session: Session
+) -> None:
+    """Sanitized names must never overwrite another template's entry."""
+    CssTemplate.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    templates = [
+        CssTemplate(template_name="Dark", css=""),
+        CssTemplate(template_name="Dark", css=""),
+        CssTemplate(template_name="Dark (1)", css=""),
+    ]
+    session.add_all(templates)
+    session.flush()
+
+    names = _export_zip_names(client, [template.id for template in templates])
+
+    assert len(names) == 3
+    assert {"Dark.css", "Dark (1).css"} <= names
+
+
+def test_export_zip_numbered_name_does_not_collide_with_id_fallback(
+    client: Any, full_api_access: None, session: Session
+) -> None:
+    """A name with no usable characters falls back to its id, which can match
+    another template's name; the second one must be numbered, not overwritten."""
+    CssTemplate.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    unnamed = CssTemplate(template_name="日本", css=".unnamed {}")
+    session.add(unnamed)
+    session.flush()
+    clashing = CssTemplate(template_name=str(unnamed.id), css=".clashing {}")
+    session.add(clashing)
+    session.flush()
+
+    names = _export_zip_names(client, [unnamed.id, clashing.id])
+
+    assert names == {f"{unnamed.id}.css", f"{unnamed.id} (1).css"}

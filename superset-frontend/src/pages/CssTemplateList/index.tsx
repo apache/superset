@@ -26,7 +26,11 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
+import {
+  DeleteModal,
+  ConfirmStatusChange,
+  Tooltip,
+} from '@superset-ui/core/components';
 import {
   ModifiedInfo,
   ListView,
@@ -39,9 +43,11 @@ import {
 } from 'src/components';
 
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
+import CssTemplateImportModal from 'src/features/cssTemplates/CssTemplateImportModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
+import handleResourceExport from 'src/utils/export';
 
 const PAGE_SIZE = 25;
 
@@ -81,9 +87,20 @@ function CssTemplatesList({
   const [currentCssTemplate, setCurrentCssTemplate] =
     useState<TemplateObject | null>(null);
 
+  const [importingCssTemplates, setImportingCssTemplates] =
+    useState<boolean>(false);
+
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_export');
+  const canImport = hasPerm('can_write');
+
+  const handleCssTemplatesImport = (message: string) => {
+    setImportingCssTemplates(false);
+    refreshData();
+    addSuccessToast(message);
+  };
 
   const [templateCurrentlyDeleting, setTemplateCurrentlyDeleting] =
     useState<TemplateObject | null>(null);
@@ -123,6 +140,15 @@ function CssTemplatesList({
     );
   };
 
+  const handleBulkExport = (templatesToExport: TemplateObject[]) =>
+    handleResourceExport(
+      'css_template',
+      templatesToExport.map(({ id }) => id),
+      () => {},
+    ).catch(() =>
+      addDangerToast(t('There was an issue exporting the selected templates')),
+    );
+
   function handleCssTemplateEdit(cssTemplate: TemplateObject) {
     setCurrentCssTemplate(cssTemplate);
     setCssTemplateModalOpen(true);
@@ -155,6 +181,13 @@ function CssTemplatesList({
       {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleCssTemplateEdit(original);
+          const handleExport = () =>
+            handleResourceExport('css_template', [original.id], () => {}).catch(
+              () =>
+                addDangerToast(
+                  t('There was an issue exporting the selected template'),
+                ),
+            );
           const handleDelete = () => setTemplateCurrentlyDeleting(original);
 
           const actions = [
@@ -165,6 +198,15 @@ function CssTemplatesList({
                   placement: 'bottom',
                   icon: 'EditOutlined',
                   onClick: handleEdit,
+                }
+              : null,
+            canExport
+              ? {
+                  label: 'export-action',
+                  tooltip: t('Export'),
+                  placement: 'bottom',
+                  icon: 'UploadOutlined',
+                  onClick: handleExport,
                 }
               : null,
             canDelete
@@ -185,7 +227,7 @@ function CssTemplatesList({
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
-        hidden: !canEdit && !canDelete,
+        hidden: !canEdit && !canDelete && !canExport,
         layout: 'actions',
       },
       {
@@ -194,7 +236,7 @@ function CssTemplatesList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canCreate],
+    [canDelete, canCreate, canExport, addDangerToast],
   );
 
   const menuData: SubMenuProps = {
@@ -203,7 +245,23 @@ function CssTemplatesList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
-  if (canDelete) {
+  if (canImport) {
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import CSS templates')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: () => setImportingCssTemplates(true),
+    });
+  }
+
+  if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
@@ -268,6 +326,11 @@ function CssTemplatesList({
         onHide={() => setCssTemplateModalOpen(false)}
         show={cssTemplateModalOpen}
       />
+      <CssTemplateImportModal
+        onCssTemplatesImport={handleCssTemplatesImport}
+        onHide={() => setImportingCssTemplates(false)}
+        show={importingCssTemplates}
+      />
       {templateCurrentlyDeleting && (
         <DeleteModal
           description={t('This action will permanently delete the template.')}
@@ -289,16 +352,23 @@ function CssTemplatesList({
         onConfirm={handleBulkTemplateDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = canDelete
-            ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
-            : [];
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              onSelect: confirmDelete,
+              type: 'danger',
+            });
+          }
+          if (canExport) {
+            bulkActions.push({
+              key: 'export',
+              name: t('Export'),
+              type: 'primary',
+              onSelect: handleBulkExport,
+            });
+          }
 
           return (
             <ListView<TemplateObject>

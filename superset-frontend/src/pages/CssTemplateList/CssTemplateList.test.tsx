@@ -17,7 +17,7 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -37,7 +37,7 @@ const CssTemplatesList = CssTemplatesListComponent as unknown as React.FC<
   Record<string, any>
 >;
 
-const mockStore = configureStore([thunk]);
+const mockStore = createMockStore([thunk]);
 const store = mockStore({});
 
 const templatesInfoEndpoint = 'glob:*/api/v1/css_template/_info*';
@@ -61,9 +61,12 @@ const mockUser = {
   userId: 1,
 };
 
-fetchMock.get(templatesInfoEndpoint, {
-  permissions: ['can_write'],
-});
+const templatesInfoRouteName = 'css-template-info';
+fetchMock.get(
+  templatesInfoEndpoint,
+  { permissions: ['can_write'] },
+  { name: templatesInfoRouteName },
+);
 fetchMock.get(templatesEndpoint, {
   result: mocktemplates,
   templates_count: 3,
@@ -198,4 +201,35 @@ describe('CssTemplatesList', () => {
     // Wait for bulk select mode to be enabled
     expect(await screen.findByText('0 Selected')).toBeInTheDocument();
   }, 30000);
+});
+
+test('opens the import modal from the import button', async () => {
+  renderCssTemplatesList();
+
+  fireEvent.click(await screen.findByTestId('import-button'));
+
+  expect(await screen.findByText('Import CSS templates')).toBeInTheDocument();
+  expect(screen.getByTestId('css-template-file-input')).toBeInTheDocument();
+});
+
+test('hides the import button without write permission', async () => {
+  fetchMock.clearHistory();
+  fetchMock.modifyRoute(templatesInfoRouteName, {
+    response: { permissions: ['can_read'] },
+  });
+  try {
+    renderCssTemplatesList();
+
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(templatesInfoRouteName)).toHaveLength(
+        1,
+      ),
+    );
+    await screen.findByTestId('css-templates-list-view');
+    expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
+  } finally {
+    fetchMock.modifyRoute(templatesInfoRouteName, {
+      response: { permissions: ['can_write'] },
+    });
+  }
 });

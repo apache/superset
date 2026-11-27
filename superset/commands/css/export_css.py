@@ -14,49 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from collections.abc import Iterator
-from typing import Callable
-
+from superset.commands.base import BaseCommand
 from superset.commands.css.exceptions import CssTemplateNotFoundError
-from superset.commands.export.models import ExportModelsCommand
-from superset.css_templates.utils import comment_safe
 from superset.daos.css import CssTemplateDAO
 from superset.models.core import CssTemplate
-from superset.utils.dict_import_export import EXPORT_VERSION
-from superset.utils.file import get_filename
 
 
-class ExportCssTemplatesCommand(ExportModelsCommand):
-    """Export CSS templates as plain, directly usable ``.css`` files.
+class ExportCssTemplatesCommand(BaseCommand):
+    """Resolve the CSS templates to export.
 
-    Each file starts with a comment header carrying the template's name, UUID
-    and export version, followed by the template's CSS unchanged.
+    File naming and serialization are left to the caller, since the naming rule
+    differs between a single-file download and a ZIP bundle.
     """
 
-    dao = CssTemplateDAO
-    not_found = CssTemplateNotFoundError
+    def __init__(self, model_ids: list[int]) -> None:
+        self.model_ids = model_ids
+        self._models: list[CssTemplate] = []
 
-    @staticmethod
-    def _file_name(model: CssTemplate) -> str:
-        file_name = get_filename(model.template_name or "", model.id, skip_id=True)
-        return f"{file_name}.css"
+    def run(self) -> list[CssTemplate]:
+        self.validate()
+        return self._models
 
-    @staticmethod
-    def _file_content(model: CssTemplate) -> str:
-        header = (
-            "/*\n"
-            f" * template_name: {comment_safe(model.template_name or '')}\n"
-            f" * uuid: {model.uuid}\n"
-            f" * version: {EXPORT_VERSION}\n"
-            " */\n"
-        )
-        return header + (model.css or "")
-
-    @staticmethod
-    def _export(
-        model: CssTemplate, export_related: bool = True, seen: set[str] | None = None
-    ) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield (
-            ExportCssTemplatesCommand._file_name(model),
-            lambda: ExportCssTemplatesCommand._file_content(model),
-        )
+    def validate(self) -> None:
+        self._models = CssTemplateDAO.find_by_ids(self.model_ids)
+        if len(self._models) != len(set(self.model_ids)):
+            raise CssTemplateNotFoundError()
