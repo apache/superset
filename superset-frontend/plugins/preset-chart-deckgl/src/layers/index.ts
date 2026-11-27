@@ -27,6 +27,7 @@ import { getLayer as deck_arc } from './Arc/Arc';
 import { getLayer as deck_polygon } from './Polygon/Polygon';
 import { getLayer as deck_heatmap } from './Heatmap/Heatmap';
 import { getLayer as deck_contour } from './Contour/Contour';
+import { getLayer as deck_vector_tile } from './VectorTile/VectorTile';
 
 const layerGenerators = {
   deck_grid,
@@ -39,6 +40,7 @@ const layerGenerators = {
   deck_polygon,
   deck_heatmap,
   deck_contour,
+  deck_vector_tile,
 };
 
 export default layerGenerators;
