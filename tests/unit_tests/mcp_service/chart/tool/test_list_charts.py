@@ -45,6 +45,7 @@ from superset.mcp_service.privacy import (
     request_uses_chart_data_model_filter,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import UNEXPECTED_ERROR_MESSAGE
 from superset.utils import json
 from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
@@ -698,3 +699,81 @@ async def test_tool_errors_report_superset_message_to_signed_in_users_only(
         assert all(str(GENERIC_ERROR_MESSAGE) in text for text in reported)
     else:
         assert all(f"{summary}: {_LEAK_MARKER}" in text for text in reported)
+
+
+@pytest.fixture
+def production_middleware():
+    """Install the middleware stack the server runs, around the shared app."""
+    from superset.mcp_service.server import build_middleware_list
+
+    original_middleware = list(mcp.middleware)
+    for middleware in build_middleware_list():
+        mcp.add_middleware(middleware)
+    try:
+        yield
+    finally:
+        mcp.middleware[:] = original_middleware
+
+
+@pytest.mark.parametrize(
+    ("make_error", "guest", "keeps_text"),
+    [
+        pytest.param(
+            lambda: CommandException(_LEAK_MARKER), True, False, id="command-guest"
+        ),
+        pytest.param(
+            lambda: CommandException(_LEAK_MARKER),
+            False,
+            True,
+            id="command-signed-in",
+        ),
+        pytest.param(lambda: ValueError(_LEAK_MARKER), True, False, id="value-guest"),
+        pytest.param(
+            lambda: ValueError(_LEAK_MARKER), False, False, id="value-signed-in"
+        ),
+        pytest.param(
+            lambda: ConnectionError(_LEAK_MARKER), True, False, id="connection-guest"
+        ),
+        pytest.param(
+            lambda: ConnectionError(_LEAK_MARKER),
+            False,
+            False,
+            id="connection-signed-in",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_reraised_response_hides_exception_text(
+    production_middleware, make_error, guest, keeps_text
+):
+    """The response a re-raised exception produces follows the tool rule too.
+
+    The tool re-raises after reporting; the middleware renders the error the
+    client receives, so the response text is classified like the notification:
+    Superset's own message for a signed-in user, nothing but a fixed or generic
+    message for an embedded guest or for an exception Superset did not write.
+    """
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch("superset.daos.chart.ChartDAO.list", side_effect=make_error()),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        async with Client(mcp, log_handler=log_handler) as client:
+            result = await client.call_tool("list_charts", {}, raise_on_error=False)
+
+    assert result.is_error
+    response = result.content[0].text
+    assert "list_charts" in response
+    assert any(_LEAK_MARKER in text for text in notifications) is keeps_text
+    assert (_LEAK_MARKER in response) is keeps_text
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in response
+    elif not keeps_text:
+        assert UNEXPECTED_ERROR_MESSAGE in response

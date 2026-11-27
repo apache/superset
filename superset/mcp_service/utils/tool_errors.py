@@ -313,9 +313,15 @@ def safe_error(
     arguments (see :func:`raised_by_host_validation`). Other exceptions always
     get a fixed message.
     """
-    if isinstance(exc, Exception) and not raised_by_host_validation(exc):
+    if isinstance(exc, Exception):
+        # Provenance comes first: a provider can call a host validator, and the
+        # host-validation exemption must not turn its text into host guidance.
         provider_fault = any(is_provider_fault(error) for error in _causal_chain(exc))
-        if provider_fault or (query and (semantic or _is_query_failure(exc))):
+        if provider_fault or (
+            not raised_by_host_validation(exc)
+            and query
+            and (semantic or _is_query_failure(exc))
+        ):
             code, message, _ = public_query_error(
                 exc, semantic=semantic or provider_fault
             )

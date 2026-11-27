@@ -47,6 +47,7 @@ from superset.mcp_service.utils.tool_errors import (
     raised_by_host_validation,
     report_tool_error,
     safe_error,
+    SafeError,
     tool_error_message,
     UNEXPECTED_ERROR_MESSAGE,
 )
@@ -268,6 +269,29 @@ def test_date_parser_guidance_survives_a_semantic_query() -> None:
     result = safe_error(excinfo.value, query=True, semantic=True)
 
     assert result.message == "From date cannot be larger than to date"
+
+
+@pytest.mark.parametrize("query", [False, True])
+@pytest.mark.parametrize("principal", ["signed_in", "guest"])
+def test_provider_provenance_precedes_host_validation(
+    request: pytest.FixtureRequest, principal: str, query: bool
+) -> None:
+    from superset.semantic_layers.exceptions import provider_code
+    from superset.utils.date_parser import get_since_until
+
+    request.getfixturevalue(principal)
+    with pytest.raises(ValueError, match="From date") as excinfo:
+        with provider_code():
+            get_since_until(time_range="2025-01-01 : 2024-01-01")
+
+    assert raised_by_host_validation(excinfo.value)
+    result = safe_error(excinfo.value, query=query)
+
+    assert result.message == str(GENERIC_ERROR_MESSAGE)
+    assert result == SafeError(
+        code=public_query_error(excinfo.value, semantic=True)[0],
+        message=public_query_error(excinfo.value, semantic=True)[1],
+    )
 
 
 @pytest.mark.usefixtures("signed_in")
