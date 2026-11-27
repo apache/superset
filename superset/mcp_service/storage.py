@@ -57,7 +57,7 @@ def _ssl_kwargs(store_config: Dict[str, Any]) -> dict[str, Any]:
     cert_reqs = store_config.get("CACHE_REDIS_SSL_CERT_REQS")
     if cert_reqs is None:
         cert_reqs = "required"
-    elif isinstance(cert_reqs, int):
+    elif isinstance(cert_reqs, int) and not isinstance(cert_reqs, bool):
         cert_reqs_names: dict[int, str] = {
             ssl.CERT_NONE: "none",
             ssl.CERT_OPTIONAL: "optional",

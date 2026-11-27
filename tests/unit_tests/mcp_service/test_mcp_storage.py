@@ -424,3 +424,40 @@ def test_create_redis_store_accepts_numeric_cert_reqs(
     assert ("MCP Redis TLS certificate verification is disabled" in caplog.text) is (
         cert_reqs == ssl.CERT_NONE
     )
+
+
+@pytest.mark.parametrize("cert_reqs", [True, False])
+def test_ssl_kwargs_rejects_boolean_cert_reqs(cert_reqs: bool) -> None:
+    """Booleans are invalid TLS modes even though bool subclasses int."""
+    from superset.mcp_service.storage import _ssl_kwargs
+
+    with pytest.raises(ValueError, match="CACHE_REDIS_SSL_CERT_REQS"):
+        _ssl_kwargs({"CACHE_REDIS_SSL_CERT_REQS": cert_reqs})
+
+
+@pytest.mark.parametrize("cert_reqs", [True, False])
+@pytest.mark.parametrize("wrap", [True, False])
+def test_create_redis_store_rejects_boolean_cert_reqs(
+    cert_reqs: bool, wrap: bool, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Invalid boolean TLS modes prevent both raw and wrapped store creation."""
+    from superset.mcp_service.storage import _create_redis_store
+
+    with (
+        patch("superset.mcp_service.storage.Redis") as mock_client,
+        patch("key_value.aio.stores.redis.RedisStore") as mock_store,
+    ):
+        result = _create_redis_store(
+            {
+                "CACHE_REDIS_URL": "rediss://redis.example.com:6380/0",
+                "CACHE_REDIS_SSL_CERT_REQS": cert_reqs,
+                "WRAPPER_TYPE": "key_value.aio.wrappers.prefix.PrefixWrapper",
+            },
+            prefix="test_",
+            wrap=wrap,
+        )
+
+    assert result is None
+    mock_client.assert_not_called()
+    mock_store.assert_not_called()
+    assert "Invalid MCP_STORE_CONFIG CACHE_REDIS_SSL_CERT_REQS" in caplog.text
