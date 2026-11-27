@@ -166,7 +166,7 @@ d1 = ["sqlalchemy-d1>=0.2.2, <1"]
 # this dialect enables those functionalities by querying supported
 # tables in mz_catalog (Materialize's pg_catalog)
 materialize = [
-    "sqlalchemy-materialize>=0.1.4, <1",
+    "sqlalchemy-materialize>=0.1.6, <1",
     "psycopg2-binary==2.9.13",
 ]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
