@@ -290,6 +290,21 @@ def test_df_to_escaped_csv_string_column_dtypes(dtype: Any) -> None:
     )
 
 
+def test_df_to_escaped_csv_categorical_column() -> None:
+    """String categories are escaped like any other string cell."""
+    df = pd.DataFrame(
+        {
+            "category": pd.Categorical(["=cmd()", None, "safe", "=cmd()"]),
+            "collides": pd.Categorical(["=a", "'=a", "b", "=a"]),
+            "number": pd.Categorical([1, 2, 1, None]),
+        }
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=False) == (
+        "category,collides,number\n'=cmd(),'=a,1\n,'=a,2\nsafe,b,1\n'=cmd(),'=a,\n"
+    )
+
+
 def test_df_to_escaped_csv_object_columns_without_strings() -> None:
     """
     Object columns holding no strings are written exactly as before escaping.

@@ -137,7 +137,13 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     escape_column = np.frompyfunc(escape_values, 1, 1)
     for position in range(df.shape[1]):
         column = df.iloc[:, position]
-        if pd.api.types.is_string_dtype(column.dtype):
+        if isinstance(column.dtype, pd.CategoricalDtype):
+            # A categorical column is not a string dtype, but its categories can
+            # be strings. ``map`` escapes each category once and keeps the
+            # categorical dtype; if two categories escape to the same text it
+            # returns a plain column instead, which writes the same values.
+            df.isetitem(position, column.map(escape_values))
+        elif pd.api.types.is_string_dtype(column.dtype):
             df.isetitem(
                 position,
                 pd.Series(
