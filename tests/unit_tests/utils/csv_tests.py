@@ -16,6 +16,8 @@
 # under the License.
 
 
+from datetime import datetime
+from decimal import Decimal
 from typing import Any
 from unittest import mock
 
@@ -267,6 +269,74 @@ def test_df_to_escaped_csv_object_big_integers(scalar: type) -> None:
     assert df_to_escaped_csv(df, encoding="utf8", index=False) == (
         "value,label\n9007199254740993,a\n,b\n7,c\n,d\n-9223372036854775808,e\n"
     )
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [object, "str", "string[python]", "string[pyarrow]"],
+    ids=["object", "str", "string-python", "string-pyarrow"],
+)
+def test_df_to_escaped_csv_string_column_dtypes(dtype: Any) -> None:
+    """Every string dtype is escaped, and its missing values stay blank."""
+    df = pd.DataFrame(
+        {
+            "value": pd.Series(["=cmd()", None, "safe"], dtype=dtype),
+            "row": [1, 2, 3],
+        }
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=False) == (
+        "value,row\n'=cmd(),1\n,2\nsafe,3\n"
+    )
+
+
+def test_df_to_escaped_csv_object_columns_without_strings() -> None:
+    """
+    Object columns holding no strings are written exactly as before escaping.
+
+    Escaping must not re-infer a column's dtype: re-inferring would turn
+    nullable integers into floats (``1.0``) and pad datetimes with
+    microseconds (``.000000``).
+    """
+    df = pd.DataFrame(
+        {
+            "integer": pd.Series([1, None, 3], dtype=object),
+            "flag": pd.Series([True, None, False], dtype=object),
+            "moment": pd.Series(
+                [datetime(2024, 1, 2, 3, 4, 5), None, datetime(2024, 1, 3)],
+                dtype=object,
+            ),
+            "amount": pd.Series([Decimal("1.10"), None, Decimal("-2")], dtype=object),
+        }
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=False) == (
+        "integer,flag,moment,amount\n"
+        "1,True,2024-01-02 03:04:05,1.10\n"
+        ",,,\n"
+        "3,False,2024-01-03 00:00:00,-2\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("index", "columns"),
+    [
+        pytest.param([7, 7], ["left", "right"], id="repeated-row-labels"),
+        pytest.param([7, 8], ["value", "value"], id="repeated-column-labels"),
+        pytest.param([7, 7], ["value", "value"], id="both"),
+    ],
+)
+def test_df_to_escaped_csv_repeated_labels(
+    index: list[int], columns: list[str]
+) -> None:
+    """Repeated row or column labels never let one cell overwrite another."""
+    df = pd.DataFrame(
+        [["first", "=1+1"], ["=2+2", "second"]], index=index, columns=columns
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=False).splitlines()
+
+    assert rows[1:] == ["first,'=1+1", "'=2+2,second"]
 
 
 def test_df_to_escaped_csv_non_default_index():
