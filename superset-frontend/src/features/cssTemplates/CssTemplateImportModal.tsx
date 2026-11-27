@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
@@ -51,8 +51,12 @@ const CssTemplateImportModal: FunctionComponent<
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importing, setImporting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  // Identifies the in-flight import; changes on close so a late response from
+  // a previous session can't touch the reopened modal.
+  const importIdRef = useRef(0);
 
   const clearModal = () => {
+    importIdRef.current += 1;
     setFileList([]);
     setImporting(false);
     setErrorMessage('');
@@ -81,16 +85,24 @@ const CssTemplateImportModal: FunctionComponent<
 
     setErrorMessage('');
     setImporting(true);
+    importIdRef.current += 1;
+    const importId = importIdRef.current;
     SupersetClient.post({
       endpoint: CSS_TEMPLATE_IMPORT_ENDPOINT,
       body: formData,
       headers: { Accept: 'application/json' },
     }).then(
       ({ json = {} }) => {
+        if (importId !== importIdRef.current) {
+          return;
+        }
         clearModal();
         onCssTemplatesImport(json.message ?? t('CSS templates imported'));
       },
       createErrorHandler(errMsg => {
+        if (importId !== importIdRef.current) {
+          return;
+        }
         setImporting(false);
         setErrorMessage(
           t(

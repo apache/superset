@@ -145,3 +145,35 @@ test('clears the selection when the modal is closed', async () => {
     expect(screen.queryByText('theme.css')).not.toBeInTheDocument(),
   );
 });
+
+test('ignores the response of an import started before the modal was closed', async () => {
+  let respond: (response: object) => void = () => {};
+  fetchMock.post(
+    IMPORT_ENDPOINT,
+    new Promise(resolve => {
+      respond = resolve;
+    }),
+  );
+  const onCssTemplatesImport = jest.fn();
+  setup({ onCssTemplatesImport });
+
+  selectFiles([new File(['h1 { color: red; }'], 'old.css')]);
+  await waitFor(() => expect(importButton()).toBeEnabled());
+  fireEvent.click(importButton());
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(IMPORT_ENDPOINT)).toHaveLength(1),
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  selectFiles([new File(['h2 { color: blue; }'], 'new.css')]);
+  expect(await screen.findByText('new.css')).toBeInTheDocument();
+
+  respond({ status: 200, body: { message: 'Imported 1 CSS template' } });
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.done(IMPORT_ENDPOINT)).toBe(true),
+  );
+  expect(onCssTemplatesImport).not.toHaveBeenCalled();
+  expect(screen.getByText('new.css')).toBeInTheDocument();
+  expect(importButton()).toBeEnabled();
+});
