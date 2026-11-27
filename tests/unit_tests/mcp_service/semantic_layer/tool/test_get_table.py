@@ -446,8 +446,13 @@ async def test_get_table_rewraps_provider_compatibility_host_signal(
     temporal_view.implementation.get_compatible_dimensions.side_effect = (
         QueryObjectValidationError("password=hunter2")
     )
-    temporal_view.get_compatible_dimensions.side_effect = lambda metrics, dimensions: (
-        SemanticView.get_compatible_dimensions(temporal_view, metrics, dimensions)
+    temporal_view.get_compatible_dimensions.side_effect = (
+        lambda metrics, dimensions, grains=None: sorted(
+            dimension.name
+            for dimension in SemanticView.get_compatible_dimension_metadata(
+                temporal_view, metrics, dimensions, grains
+            )
+        )
     )
     ctx: MagicMock = MagicMock()
     ctx.info = AsyncMock()
@@ -960,9 +965,17 @@ def _make_dataset(dataset_id: int = 42) -> MagicMock:
 
 def _make_view(view_id: int = 5) -> MagicMock:
     view: MagicMock = MagicMock()
-    view.get_compatible_dimension_metadata.side_effect = (
-        lambda metrics, dimensions: view.implementation.get_dimensions()
-    )
+
+    def compatible_dimension_metadata(
+        metrics: list[str],
+        dimensions: list[str],
+        grains: dict[str, str | None] | None = None,
+    ) -> Any:
+        # The model attributes this provider call with provider_code.
+        with provider_code():
+            return view.implementation.get_dimensions()
+
+    view.get_compatible_dimension_metadata.side_effect = compatible_dimension_metadata
     view.id = view_id
     view.name = f"view_{view_id}"
     view.raise_for_access = MagicMock(return_value=None)
