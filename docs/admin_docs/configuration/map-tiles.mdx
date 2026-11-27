@@ -109,3 +109,32 @@ TALISMAN_CONFIG = {
         ...
 }
 ```
+
+## Vector tiles
+
+The deck.gl Vector Tiles chart draws data from a vector tile server, such as
+[Martin](https://maplibre.org/martin/), pg_tileserv or GeoServer, instead of from a
+Superset query. This is separate from DECKGL_BASE_MAP, which only sets the background map.
+
+To use the chart:
+
+1. Serve Mapbox Vector Tiles (MVT) at a URL containing `{z}`, `{x}` and `{y}`. Optionally,
+   also serve a TileJSON document, which the chart uses to list the properties in the tiles.
+2. Allow cross-origin requests from Superset on the tile server. Martin allows them by default.
+3. Add the tile server to `connect-src` in both `TALISMAN_CONFIG` and `TALISMAN_CONFIG_DEV`.
+   Otherwise, the browser blocks the requests and the chart shows an empty map.
+
+```python
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        ...
+        "connect-src": [
+            "'self'",
+            "https://api.mapbox.com",
+            "https://events.mapbox.com",
+            "https://tiles.example.com",
+        ],
+        ...
+    },
+}
+```
