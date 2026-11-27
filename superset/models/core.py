@@ -1080,13 +1080,49 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         self.db_engine_spec.prepare_connection(conn.dbapi_connection)
                         yield conn
 
-        with self._open_with_oauth2_retry(open_connection) as conn:
+        with self._open_with_oauth2_retry(
+            open_connection, rollback_failed_flush=True
+        ) as conn:
             yield conn
+
+    @staticmethod
+    @contextmanager
+    def _rolling_back_failed_flush() -> Iterator[None]:
+        """
+        Roll back a session deactivated by a failed flush before re-raising.
+
+        For callers that look up the engine outside ``get_raw_connection``, such
+        as chart data compiling its query: a refreshed OAuth2 token staged by an
+        earlier engine lookup is flushed by the next ORM read, wherever that is.
+        """
+        try:
+            yield
+        except Exception:
+            Database._rollback_deactivated_session()
+            raise
+
+    @staticmethod
+    def _rollback_deactivated_session() -> None:
+        """
+        Roll back the request-scoped session if a failed flush deactivated it.
+
+        Opening a connection can refresh and stage an OAuth2 token, and a failed
+        flush of it leaves the session unusable: later ORM access in the same
+        request would raise ``PendingRollbackError`` in place of the real error.
+        The rollback itself must not replace the error being raised.
+        """
+        if db.session.is_active:
+            return
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to roll back the session", exc_info=True)
 
     @contextmanager
     def _open_with_oauth2_retry(
         self,
         open_context: Callable[[], AbstractContextManager[T]],
+        rollback_failed_flush: bool = False,
     ) -> Iterator[T]:
         """
         Enter ``open_context()``, refreshing a rejected OAuth2 token once.
@@ -1097,6 +1133,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         again. Only entering the context is retried: the caller's block has not run,
         so nothing has been executed on the database. Errors raised by the caller's
         block are not retried here.
+
+        ``rollback_failed_flush`` rolls back a session deactivated by a failed
+        flush before the error propagates. Callers whose own error handling
+        reads the deactivated session (``get_inspector`` under the executor)
+        leave it off.
         """
         user_id = getattr(getattr(g, "user", None), "id", None)
         if user_id is None or not self.is_oauth2_enabled() or is_oauth2_retry_active():
@@ -1106,10 +1147,16 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return
 
         with ExitStack() as stack:
-            yield execute_with_oauth2_retry(
-                self,
-                lambda: stack.enter_context(open_context()),
-            )
+            try:
+                value = execute_with_oauth2_retry(
+                    self,
+                    lambda: stack.enter_context(open_context()),
+                )
+            except Exception:
+                if rollback_failed_flush:
+                    self._rollback_deactivated_session()
+                raise
+            yield value
 
     def get_default_catalog(self) -> str | None:
         """
@@ -1268,10 +1315,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         :return: Tuple of (cursor, rows, description) where rows and description
         are None if not fetching.
         """
-        script = SQLScript(sql, self.db_engine_spec.engine)
-
-        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
-            engine_url = engine.url
+        # With Redis locking, a refresh staged by an earlier engine call is
+        # flushed by the first ORM read here, outside ``get_raw_connection``'s
+        # own rollback.
+        with self._rolling_back_failed_flush():
+            script = SQLScript(sql, self.db_engine_spec.engine)
+            with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+                engine_url = engine.url
 
         log_query = app.config["QUERY_LOGGER"]
 
@@ -1426,7 +1476,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         schema: str | None = None,
         is_virtual: bool = False,
     ) -> str:
-        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+        # A refresh staged by get_sqla_query's engine lookup is flushed here.
+        with (
+            self._rolling_back_failed_flush(),
+            self.get_sqla_engine(catalog=catalog, schema=schema) as engine,
+        ):
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
 
             # pylint: disable=protected-access

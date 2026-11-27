@@ -636,6 +636,10 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     try:
         yield
     except Exception as ex:
+        # A failed flush deactivates the session, and the checks below read the
+        # database. Leave the original error, and the rollback, to the caller.
+        if not db.session.is_active:
+            raise
         if (
             not is_oauth2_retry_active()
             # The `OAuth2TokenRefreshError` arm below reaches the dance without

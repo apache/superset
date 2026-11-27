@@ -3270,6 +3270,165 @@ def test_get_raw_connection_leaves_recovery_to_an_outer_retry(
     refresh.assert_not_called()
 
 
+def test_get_raw_connection_rolls_back_a_session_deactivated_by_a_failed_flush(
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A failed flush while opening the connection (for example persisting a
+    refreshed OAuth2 token) must not leave the request's session unusable, or
+    the next ORM read raises ``PendingRollbackError`` in place of the real error.
+    """
+    Database.metadata.create_all(session.get_bind())
+
+    def failing_flush() -> None:
+        session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+        session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+        session.flush()
+
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = failing_flush
+    database = Database(database_name="login_db", sqlalchemy_uri="snowflake://")
+    database.id = 1
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(Database, "get_oauth2_config", return_value={"id": "client-id"})
+    mocker.patch.object(Database, "db_engine_spec").get_prequeries.return_value = []
+    g = mocker.MagicMock()
+    g.user.id = 2
+    mocker.patch("superset.models.core.g", g)
+    mocker.patch("superset.utils.oauth2.g", g)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        with database.get_raw_connection():
+            pass
+
+    assert session.is_active
+    assert session.query(Database).count() == 0
+
+
+def test_get_inspector_leaves_a_failed_flush_to_the_caller(
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_inspector`` must not roll back: the executor's prepare path reads
+    the deactivated session to keep the original error text.
+    """
+    Database.metadata.create_all(session.get_bind())
+
+    def failing_flush(*args: Any, **kwargs: Any) -> None:
+        session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+        session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+        session.flush()
+
+    database = Database(database_name="login_db", sqlalchemy_uri="snowflake://")
+    database.id = 1
+    mocker.patch.object(Database, "_get_sqla_engine", side_effect=failing_flush)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(Database, "get_oauth2_config", return_value={"id": "client-id"})
+    g = mocker.MagicMock()
+    g.user.id = 2
+    mocker.patch("superset.models.core.g", g)
+    mocker.patch("superset.utils.oauth2.g", g)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        with database.get_inspector():
+            pass
+
+    assert not session.is_active
+    session.rollback()
+
+
+def test_rollback_deactivated_session_does_not_mask_the_original_error(
+    mocker: MockerFixture,
+) -> None:
+    """A failing rollback is logged, not raised over the flush failure."""
+    db_mock = mocker.patch("superset.models.core.db")
+    db_mock.session.is_active = False
+    db_mock.session.rollback.side_effect = RuntimeError("connection lost")
+
+    Database._rollback_deactivated_session()
+
+    db_mock.session.rollback.assert_called_once_with()
+
+
+def _stage_failing_flush(session: Session) -> None:
+    """Stage two rows that violate a unique constraint on the next flush."""
+    session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+    session.add(Database(database_name="dup", sqlalchemy_uri="sqlite://"))
+
+
+@pytest.fixture
+def persisted_database(session: Session) -> Database:
+    Database.metadata.create_all(session.get_bind())
+    database = Database(database_name="login_db", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.commit()
+    return database
+
+
+def test_compile_sqla_query_rolls_back_a_session_deactivated_by_a_failed_flush(
+    persisted_database: Database,
+    session: Session,
+    app_context: None,
+) -> None:
+    """
+    Chart data compiles its query right after building it, and a refreshed
+    OAuth2 token staged by the earlier engine lookup is flushed here. The failed
+    flush must leave the session usable, or the caller's next ORM read raises
+    ``PendingRollbackError`` in place of the real error.
+    """
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_database.compile_sqla_query(select(1))
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
+
+
+def test_get_df_rolls_back_a_session_deactivated_by_a_failed_engine_flush(
+    persisted_database: Database,
+    session: Session,
+    app_context: None,
+) -> None:
+    """A staged refresh flushed by get_df's own engine lookup is rolled back."""
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_database.get_df("SELECT 1")
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
+
+
+def test_get_df_keeps_the_flush_error_when_oauth2_is_checked_on_a_dead_session(
+    persisted_database: Database,
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A flush that fails inside the engine's OAuth2 check must surface as itself:
+    the check reads the database, which a deactivated session cannot load.
+    """
+
+    def failing_engine(*args: Any, **kwargs: Any) -> None:
+        _stage_failing_flush(session)
+        session.flush()
+
+    mocker.patch.object(Database, "_get_sqla_engine", side_effect=failing_engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_database.get_df("SELECT 1")
+
+    assert session.is_active
+
+
 def test_get_raw_connection_without_oauth2_is_unchanged(
     app_context: None,
     mocker: MockerFixture,
@@ -4871,3 +5030,75 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
         f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
     )
+
+
+@pytest.fixture
+def persisted_table(persisted_database: Database, session: Session) -> SqlaTable:
+    table = SqlaTable(
+        table_name="t",
+        database=persisted_database,
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    session.add(table)
+    session.commit()
+    # Drop loaded state so columns and metrics lazy-load, as in a fresh request.
+    session.expire_all()
+    return table
+
+
+def test_get_sqla_query_rolls_back_a_failed_flush_at_the_engine_lookup(
+    persisted_table: SqlaTable,
+    session: Session,
+    app_context: None,
+) -> None:
+    """
+    Building a chart query looks up the engine first, and a refreshed OAuth2
+    token staged earlier is flushed by that lookup's ORM reads, before any
+    guard in ``compile_sqla_query`` or ``get_df``.
+    """
+    # Load columns and metrics first, so the staged flush cannot land at their
+    # lazy load and instead lands at the engine lookup.
+    _ = persisted_table.columns, persisted_table.metrics
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_table.get_sqla_query(columns=["a"])
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
+
+
+def test_get_sqla_query_rolls_back_a_failed_flush_at_a_lazy_load(
+    persisted_table: SqlaTable,
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """The flush can also land at the lazy load of unloaded columns/metrics."""
+    mocker.patch.object(Database, "get_sqla_engine", return_value=nullcontext())
+    mocker.patch(
+        "superset.models.helpers.ExploreMixin.get_template_processor",
+        return_value=mocker.MagicMock(),
+    )
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_table.get_sqla_query(columns=["a"])
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
+
+
+def test_datasource_query_rolls_back_a_failed_flush(
+    persisted_table: SqlaTable,
+    session: Session,
+    app_context: None,
+) -> None:
+    """The chart-data entry point, ``SqlaTable.query``, leaves a usable session."""
+    _stage_failing_flush(session)
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        persisted_table.query({"columns": ["a"], "metrics": [], "is_timeseries": False})
+
+    assert session.is_active
+    assert session.query(Database).count() == 1
