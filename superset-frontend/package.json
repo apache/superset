@@ -324,7 +324,7 @@
     "typescript": "7.0.2",
     "unzipper": "^0.12.5",
     "webpack": "^5.112.2",
-    "webpack-bundle-analyzer": "^5.4.0",
+    "webpack-bundle-analyzer": "^5.4.3",
     "webpack-cli": "^7.3.1",
     "webpack-dev-server": "^6.1.0",
     "webpack-manifest-plugin": "^6.0.1",
