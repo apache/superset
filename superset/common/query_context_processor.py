@@ -30,7 +30,7 @@ from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
-from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
@@ -45,7 +45,6 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.constants import (
     CACHE_DISABLED_TIMEOUT,
     CacheRegion,
-    SHOW_VALUES_AS_PERCENT_MODES,
 )
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
@@ -910,19 +909,32 @@ class QueryContextProcessor:
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
                 form_data = self._query_context.form_data
-                number_format = None
-                if (
-                    isinstance(form_data, dict)
-                    and form_data.get("viz_type") == "pivot_table_v2"
-                    and form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
-                ):
-                    # Keep fractions numeric; Excel percent format matches Explore.
-                    number_format = "0.0%"
-                # Explore Table / Pivot download uses this path (RESULTS + XLSX),
-                # not apply_client_processing. Formats and default bars are
-                # written with xlsxwriter; openpyxl runs only for custom rules
-                # on frames small enough to reload.
-                if isinstance(form_data, dict):
+                export_kwargs = {
+                    **current_app.config["EXCEL_EXPORT"],
+                    "index": include_index,
+                }
+                # Reports request a post-processed workbook. Table and Pivot
+                # XLSX are read back and written again in apply_client_processing,
+                # which is where fractions, formats, and conditional formatting
+                # belong. Decorating this copy only to throw it away wastes the
+                # openpyxl pass. An empty frame is returned unchanged, so it
+                # still needs the decorations here.
+                viz_type = (
+                    form_data.get("viz_type") if isinstance(form_data, dict) else None
+                )
+                client_rewrites_workbook = (
+                    self._query_context.result_type
+                    == ChartDataResultType.POST_PROCESSED
+                    and viz_type in {"table", "pivot_table_v2"}
+                    and len(df) > 0
+                )
+                # Explore and dashboard downloads (RESULTS / FULL) are this
+                # response. Formats and default bars are written with
+                # xlsxwriter; openpyxl runs only for custom rules on frames
+                # small enough to reload. Percent formats stay off this path:
+                # pivot percent fractions are produced later, during client
+                # processing.
+                if isinstance(form_data, dict) and not client_rewrites_workbook:
                     from superset.utils.excel_conditional import write_explore_xlsx
                     from superset.utils.excel_display import attach_datasource_formats
 
@@ -933,19 +945,14 @@ class QueryContextProcessor:
                         df,
                         attach_datasource_formats(form_data, self._qc_datasource.data),
                         include_index=include_index,
-                        number_format=number_format,
-                        export_kwargs={
-                            **current_app.config["EXCEL_EXPORT"],
-                            "index": include_index,
-                        },
+                        number_format=None,
+                        export_kwargs=export_kwargs,
                         verbose_map=resolved_verbose,
                     )
                 else:
                     result = excel.df_to_excel(
                         df,
-                        index=include_index,
-                        number_format=number_format,
-                        **current_app.config["EXCEL_EXPORT"],
+                        **export_kwargs,
                     )
             return result or ""
 
