@@ -102,6 +102,42 @@ terminal status arrives by polling or websocket. Embedded guest viewers receive
 the same redacted message as synchronous chart requests. If no detail is
 available, the chart displays a generic failure message.
 
+## Worker logging
+
+The worker entrypoint, `superset.tasks.celery_app`, calls `create_app()`, so Celery workers and
+`celery beat` apply the same `LOGGING_CONFIGURATOR` as the web server. Celery then runs its own
+logging setup when the process starts: by default it replaces the handlers of the root logger
+with its own text handler (`worker_hijack_root_logger`), and even with that setting disabled in
+`CELERY_CONFIG` it still adds a text handler to the `celery.task` logger, through which every
+logger created with `celery.utils.log.get_task_logger` writes, and resets the root log level to
+the worker's `--loglevel`. If your configurator sets up structured logging, for example JSON
+records for a log aggregator, the worker output ends up as a mix of both formats.
+
+Celery skips its logging setup entirely as soon as its `setup_logging` signal has a receiver.
+Connect the receiver shipped with Superset from your `superset_config.py`:
+
+```python
+from celery.signals import setup_logging
+
+from superset.utils.logging_configurator import keep_configured_logging
+
+setup_logging.connect(keep_configured_logging)
+```
+
+`superset_config.py` is imported while `create_app()` builds the application, which happens
+before the `worker` or `beat` command sends the signal, so the receiver is in place in time. A
+custom `LOGGING_CONFIGURATOR` can connect it from its `configure_logging()` instead.
+
+With the receiver connected, Celery ignores the `--loglevel` and `--logfile` options of
+`celery worker` and `celery beat` as well as the `worker_redirect_stdouts` setting: log levels and
+destinations come from your logging configuration alone (`LOG_LEVEL`, `ENABLE_TIME_ROTATE` and
+the related settings, or your own configurator), and plain `print()` output is written to the
+process' standard output instead of the log. Records from Celery task loggers are formatted by
+your handlers as well, so the task name and id that Celery's own task formatter adds are only
+included when your formatter provides them (for example `celery.app.log.TaskFormatter`). Newer
+Celery versions add a `worker_skip_logging_setup` setting with the same effect; once your Celery
+has it, set it in `CELERY_CONFIG` instead of connecting the receiver.
+
 ## Celery Flower
 
 Flower is a web based tool for monitoring the Celery cluster which you can install from pip:
