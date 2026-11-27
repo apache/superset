@@ -408,7 +408,7 @@ def test_related_visibility_includes_archived_rows_without_bypassing_access(
         self: Any, query: sa.orm.Query[Any], value: Any
     ) -> sa.orm.Query[Any]:
         """Model a read grant for one archived row and one active row."""
-        return query.filter(model.id.in_([901, 904]))
+        return query.filter(model.id.in_([901, 904]))  # type: ignore[union-attr,unused-ignore]
 
     monkeypatch.setattr(access_filter, "apply", apply_access)
     assert visibility._resolve_visibility(

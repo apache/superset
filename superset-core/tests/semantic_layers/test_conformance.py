@@ -243,7 +243,7 @@ def test_exclusion_witness_rejects_weak_fixtures(
         expected = expected.slice(1)
     query = replace(query, filters={group, *outer})
 
-    def must_not_execute(query: SemanticQuery) -> SemanticResult:
+    def must_not_execute(query: SemanticQuery) -> SemanticResult:  # type: ignore[return,unused-ignore]
         pytest.fail("invalid fixture reached provider execution")
 
     monkeypatch.setattr(semantic_view, "get_table", must_not_execute)

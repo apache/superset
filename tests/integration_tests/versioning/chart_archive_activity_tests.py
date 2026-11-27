@@ -101,7 +101,7 @@ class TestChartArchiveActivity(SupersetTestCase):
                 for entity in (
                     db.session.query(model)
                     .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model}})
-                    .filter(model.id.in_(ids))
+                    .filter(model.id.in_(ids))  # type: ignore[union-attr,unused-ignore]
                 ):
                     db.session.delete(entity)
             db.session.flush()

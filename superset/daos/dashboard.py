@@ -835,7 +835,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 # Select the ids through the association table instead of
                 # binding one parameter per dataset, for the same reason as
                 # prefetch_chart_access.
-                SqlaTable.id.in_(
+                SqlaTable.id.in_(  # type: ignore[attr-defined,unused-ignore]
                     select(Slice.datasource_id)
                     .join(dashboard_slices, dashboard_slices.c.slice_id == Slice.id)
                     .where(
