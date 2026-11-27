@@ -1767,6 +1767,12 @@ class TestRolePermission(SupersetTestCase):
             # reachable with no session at all, since it is clicked from a
             # plain email link.
             ["DashboardRestApi", "download_xlsx"],
+            # The same model, for the uncapped chart/SQL Lab export: the
+            # unguessable job_id in the path is the credential, access to the
+            # exported chart or query was checked once when the export was
+            # requested, and the link is clicked from a plain email with no
+            # session at all. The status endpoint beside it keeps @protect().
+            ["DataExportRestApi", "download"],
             # Self-service AUTH_DB password recovery: used by people who cannot
             # sign in, so it has to be anonymous. Answers 404 unless recovery
             # is enabled; the API is CSRF-protected and rate limited, and the

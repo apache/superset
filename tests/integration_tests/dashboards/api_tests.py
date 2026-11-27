@@ -6053,12 +6053,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """Dashboard API: link records written before the backend was tracked
         still resolve, streamed by the configured backend."""
         from superset.dashboards.excel_export.download_link import (
-            _sweep_and_upsert,
+            RESOURCE,
             STATUS_READY,
         )
+        from superset.utils.export_links import _sweep_and_upsert
 
         job_id = uuid.uuid4()
         _sweep_and_upsert(
+            RESOURCE,
             job_id,
             {
                 "status": STATUS_READY,
