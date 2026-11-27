@@ -64,7 +64,9 @@ beforeEach(() => {
     result: ['main', 'archive'],
     count: 2,
   });
-  fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: ['public'] });
+  fetchMock.get('glob:*/api/v1/database/*/schemas/?*', {
+    result: ['public', 'sales'],
+  });
   fetchMock.get('glob:*/api/v1/database/1/tables/*', call => {
     const query = new URL(call.url, 'http://localhost').searchParams.get('q');
     const { catalog_name: catalog } = rison.decode(query ?? '()') as {

@@ -386,12 +386,13 @@ test('keeps the search filter when clicking a table updates schema from the tree
 
   render(<PreviewWrapper />, { useRedux: true });
   await userEvent.click(await screen.findByText('sales'));
-  await screen.findByText('orders');
+  await screen.findAllByText('orders');
   const searchInput = screen.getByPlaceholderText(
     'Enter a part of the object name',
   );
   await userEvent.type(searchInput, 'orders');
-  await userEvent.click(screen.getAllByText('orders')[0]);
+  const matches = screen.getAllByText('orders');
+  await userEvent.click(matches[matches.length - 1]);
   expect(searchInput).toHaveValue('orders');
 });
 
