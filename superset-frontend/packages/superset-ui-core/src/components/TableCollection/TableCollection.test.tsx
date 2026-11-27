@@ -139,7 +139,7 @@ test('Pagination should call onPageChange when page is changed', async () => {
   const { rerender } = render(<TableCollection {...paginationProps} />);
 
   // Simulate pagination change
-  await screen.findByTitle('Next Page');
+  await screen.findByRole('button', { name: 'Next Page' });
 
   // Verify onPageChange would be called with correct arguments
   // The actual AntD pagination will handle the click internally

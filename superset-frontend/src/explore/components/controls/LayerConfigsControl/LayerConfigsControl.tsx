@@ -22,8 +22,8 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Popover } from '@superset-ui/core/components';
 import { FC, useState } from 'react';
 import { EditItem, LayerConf, LayerConfigsControlProps } from './types';
-import LayerConfigsPopoverContent from './LayerConfigsPopoverContent';
-import FlatLayerTree from './FlatLayerTree';
+import { LayerConfigsPopoverContent } from './LayerConfigsPopoverContent';
+import { FlatLayerTree } from './FlatLayerTree';
 
 export const StyledFlatLayerTree = styled(FlatLayerTree)`
   ${({ theme }) => css`

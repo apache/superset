@@ -16,18 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
-
+import { KeyboardEvent, RefObject, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
-import { List, Popover } from '@superset-ui/core/components';
-import {
-  FiltersContainer,
-  FiltersDetailsContainer,
-  Separator,
-  SectionName,
-} from 'src/dashboard/components/FiltersBadge/Styles';
+import { Menu, MenuProps } from '@superset-ui/core/components/Menu';
+import { NoAnimationDropdown } from '@superset-ui/core/components';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { RootState } from 'src/dashboard/types';
@@ -39,7 +32,6 @@ export interface DetailsPanelProps {
   onHighlightFilterSource: (path: string[]) => void;
   children: JSX.Element;
   popoverVisible: boolean;
-  popoverContentRef: RefObject<HTMLDivElement>;
   popoverTriggerRef: RefObject<HTMLButtonElement>;
   setPopoverVisible: (visible: boolean) => void;
 }
@@ -51,168 +43,120 @@ const DetailsPanelPopover = ({
   onHighlightFilterSource,
   children,
   popoverVisible,
-  popoverContentRef,
   popoverTriggerRef,
   setPopoverVisible,
 }: DetailsPanelProps) => {
   const activeTabs = useSelector<RootState>(
     state => state.dashboardState?.activeTabs,
   );
-  // Combined ref array for all filter indicator elements
-  const indicatorRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    switch (event.key) {
-      case 'Escape':
-      case 'Enter':
-        // timing out to allow for filter selection to happen first
-        setTimeout(() => {
-          // move back to the popover trigger element
-          popoverTriggerRef?.current?.focus();
-          // Close popover on ESC or ENTER
-          setPopoverVisible(false);
-        });
-        break;
-      case 'ArrowDown':
-      case 'ArrowUp': {
-        event.preventDefault(); // Prevent scrolling
-        // Navigate through filters with arrows up/down
-        const currentFocusIndex = indicatorRefs.current.findIndex(
-          ref => ref === document.activeElement,
-        );
-        const maxIndex = indicatorRefs.current.length - 1;
-        let nextFocusIndex = 0;
-
-        if (event.key === 'ArrowDown') {
-          nextFocusIndex =
-            currentFocusIndex >= maxIndex ? 0 : currentFocusIndex + 1;
-        } else if (event.key === 'ArrowUp') {
-          nextFocusIndex =
-            currentFocusIndex <= 0 ? maxIndex : currentFocusIndex - 1;
-        }
-        indicatorRefs.current[nextFocusIndex]?.focus();
-        break;
-      }
-      case 'Tab':
-        // forcing popover context until ESC or ENTER are pressed
-        event.preventDefault();
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleVisibility = (isOpen: boolean) => {
-    setPopoverVisible(isOpen);
-  };
-
-  // we don't need to clean up useEffect, setting { once: true } removes the event listener after handle function is called
-  useEffect(() => {
-    if (popoverVisible) {
-      window.addEventListener('resize', () => setPopoverVisible(false), {
-        once: true,
-      });
-    }
-  }, [popoverVisible]);
-
-  // if tabs change, popover doesn't close automatically
   useEffect(() => {
     setPopoverVisible(false);
-  }, [activeTabs]);
+  }, [activeTabs, setPopoverVisible]);
 
   const indicatorKey = (indicator: Indicator): string =>
-    `${indicator.column} - ${indicator.name}`;
-  const theme = useTheme();
-  const content = (
-    <FiltersDetailsContainer
-      ref={popoverContentRef}
-      tabIndex={-1}
-      onMouseLeave={() => setPopoverVisible(false)}
-      onKeyDown={handleKeyDown}
-      role="menu"
-    >
-      <div>
-        {appliedCrossFilterIndicators.length ? (
-          <div>
-            <SectionName>
-              {t(
-                'Applied cross-filters (%d)',
-                appliedCrossFilterIndicators.length,
-              )}
-            </SectionName>
-            <FiltersContainer>
-              {appliedCrossFilterIndicators.map(indicator => (
-                <FilterIndicator
-                  ref={el => indicatorRefs.current.push(el)}
-                  key={indicatorKey(indicator)}
-                  indicator={indicator}
-                  onClick={onHighlightFilterSource}
-                />
-              ))}
-            </FiltersContainer>
-          </div>
-        ) : null}
-        {appliedCrossFilterIndicators.length && appliedIndicators.length ? (
-          <Separator />
-        ) : null}
-        {appliedIndicators.length ? (
-          <div>
-            <SectionName>
-              {t('Applied filters (%d)', appliedIndicators.length)}
-            </SectionName>
-            <FiltersContainer>
-              <List
-                dataSource={appliedIndicators}
-                renderItem={indicator => (
-                  <List.Item>
-                    <FilterIndicator
-                      ref={el => indicatorRefs.current.push(el)}
-                      key={indicatorKey(indicator)}
-                      indicator={indicator}
-                      onClick={onHighlightFilterSource}
-                    />
-                  </List.Item>
-                )}
-              />
-            </FiltersContainer>
-          </div>
-        ) : null}
-        {incompatibleIndicators.length ? (
-          <div>
-            {appliedCrossFilterIndicators.length || appliedIndicators.length ? (
-              <Separator />
-            ) : null}
-            <SectionName>
-              {t('Incompatible filters (%d)', incompatibleIndicators.length)}
-            </SectionName>
-            <FiltersContainer>
-              {incompatibleIndicators.map(indicator => (
-                <FilterIndicator
-                  ref={el => indicatorRefs.current.push(el)}
-                  key={indicatorKey(indicator)}
-                  indicator={indicator}
-                  onClick={onHighlightFilterSource}
-                />
-              ))}
-            </FiltersContainer>
-          </div>
-        ) : null}
-      </div>
-    </FiltersDetailsContainer>
-  );
+    `${indicator.column} - ${indicator.name} - ${indicator.path?.join('>') ?? ''}`;
+
+  const indicatorsByItemKey = new Map<string, Indicator>();
+  const toMenuItem = (prefix: string, indicator: Indicator) => {
+    const key = `${prefix}-${indicatorKey(indicator)}`;
+    indicatorsByItemKey.set(key, indicator);
+    return {
+      key,
+      label: (
+        <FilterIndicator
+          indicator={indicator}
+          onClick={onHighlightFilterSource}
+        />
+      ),
+    };
+  };
+
+  const closeAndFocusTrigger = () => {
+    popoverTriggerRef?.current?.focus();
+    setPopoverVisible(false);
+  };
+
+  const menuItems: MenuProps['items'] = [];
+
+  if (appliedCrossFilterIndicators.length > 0) {
+    menuItems.push({
+      key: 'grp-cross',
+      type: 'group',
+      label: t(
+        'Applied cross-filters (%d)',
+        appliedCrossFilterIndicators.length,
+      ),
+      children: appliedCrossFilterIndicators.map(indicator =>
+        toMenuItem('cross', indicator),
+      ),
+    });
+  }
+
+  if (appliedIndicators.length > 0) {
+    if (appliedCrossFilterIndicators.length > 0) {
+      menuItems.push({ type: 'divider' });
+    }
+    menuItems.push({
+      key: 'grp-applied',
+      type: 'group',
+      label: t('Applied filters (%d)', appliedIndicators.length),
+      children: appliedIndicators.map(indicator =>
+        toMenuItem('applied', indicator),
+      ),
+    });
+  }
+
+  if (incompatibleIndicators.length > 0) {
+    if (
+      appliedCrossFilterIndicators.length > 0 ||
+      appliedIndicators.length > 0
+    ) {
+      menuItems.push({ type: 'divider' });
+    }
+    menuItems.push({
+      key: 'grp-incompatible',
+      type: 'group',
+      label: t('Incompatible filters (%d)', incompatibleIndicators.length),
+      children: incompatibleIndicators.map(indicator =>
+        toMenuItem('incompatible', indicator),
+      ),
+    });
+  }
 
   return (
-    <Popover
-      color={theme.colorBgElevated}
-      content={content}
-      open={popoverVisible}
-      onOpenChange={handleVisibility}
-      placement="bottomRight"
+    <NoAnimationDropdown
+      popupRender={() => (
+        <Menu
+          selectable={false}
+          items={menuItems}
+          onClick={({ key, domEvent }) => {
+            // Mouse clicks are handled by the FilterIndicator button itself;
+            // keyboard activation lands on the menu item instead.
+            const indicator = indicatorsByItemKey.get(key);
+            if (indicator && 'key' in domEvent) {
+              onHighlightFilterSource([
+                ...(indicator.path ?? []),
+                `LABEL-${indicator.column}`,
+              ]);
+            }
+            closeAndFocusTrigger();
+          }}
+          onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+            if (event.key === 'Escape') {
+              closeAndFocusTrigger();
+            }
+          }}
+        />
+      )}
+      overlayStyle={{ zIndex: 1001, animationDuration: '0s' }}
       trigger={['hover']}
-      data-test="filter-status-popover"
+      open={popoverVisible}
+      onOpenChange={visible => setPopoverVisible(visible)}
+      placement="bottomRight"
     >
-      {children}
-    </Popover>
+      <span>{children}</span>
+    </NoAnimationDropdown>
   );
 };
 

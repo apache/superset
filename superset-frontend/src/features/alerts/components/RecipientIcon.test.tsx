@@ -69,3 +69,12 @@ describe('RecipientIcon', () => {
     });
   });
 });
+
+test('renders Teams with an accessible icon', () => {
+  const { container } = render(
+    <RecipientIcon type={NotificationMethodOption.Teams} />,
+  );
+  expect(
+    container.querySelector('[data-icon="usergroup-add"]'),
+  ).toBeInTheDocument();
+});
