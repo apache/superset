@@ -605,7 +605,7 @@ describe('ResultSet', () => {
       csv: true,
       canExport: true,
       message:
-        'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts that modify data or schema and BigQuery scripts that cannot be fully parsed export only stored rows, which may remain memory-capped.',
+        'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts with writes, opaque control-flow blocks on any engine, and BigQuery statements that cannot be fully parsed export only stored rows, which may remain memory-capped. Without stored results, their downloads fail.',
     },
     {
       csv: true,
@@ -675,7 +675,7 @@ describe('ResultSet', () => {
 
       expect(
         await screen.findByText(
-          '42 rows returned. The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts that modify data or schema and BigQuery scripts that cannot be fully parsed export only stored rows, which may remain memory-capped.',
+          '42 rows returned. The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts with writes, opaque control-flow blocks on any engine, and BigQuery statements that cannot be fully parsed export only stored rows, which may remain memory-capped. Without stored results, their downloads fail.',
         ),
       ).toBeInTheDocument();
       expect(

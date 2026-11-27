@@ -113,23 +113,31 @@ Chart CSV/XLSX/JSON downloads bypass this memory budget, but retain their query
 row limits. SQL Lab CSV downloads also bypass the budget when the query is safe
 to re-execute. An eligible memory-truncated read-only query is rerun rather than
 using its incomplete stored result.
-Scripts containing mutating statements, including inside BigQuery scripting
-blocks, use only stored rows, so their downloads may remain memory-capped.
-Opaque control-flow blocks on other SQL engines (such as a SQL Server
-`BEGIN ... END` block) also use only stored rows: an unparsed body can hide
-writes that must not run again. If stored rows are unavailable, export is
-refused. This does not prevent ordinary read-only scripts, metadata commands
-such as `SHOW`, or KQL reads on other engines from being exported.
-Large downloads fall back from streaming to buffered export for these scripts.
-BigQuery scripts whose syntax cannot be fully parsed (including opaque
-`IF ... ELSE ... END IF` bodies and `BEGIN ... END` blocks) also use only
-stored, potentially memory-capped rows, even when the script is read-only,
-rather than risk repeating writes. `LOAD DATA INTO` and `LOAD DATA OVERWRITE`
-are writes too.
-If stored results are unavailable, the export fails without
-rerunning the script.
-On other engines, opaque statements such as metadata commands and Kusto KQL
-retain the export re-execution fallback unless a mutation is detected.
+SQL Lab uses only stored rows for the following scripts, so their downloads
+may remain memory-capped:
+
+- Scripts with detected data or schema mutations, on any engine (including
+  BigQuery `LOAD DATA INTO` and `LOAD DATA OVERWRITE`).
+- Opaque control-flow blocks on **any engine**, even when read-only. Examples
+  include SQL Server `BEGIN SELECT 1 END; SELECT 2` and
+  `BEGIN TRY SELECT 1 END TRY BEGIN CATCH SELECT 2 END CATCH`.
+  An unparsed body can hide writes that must not run again.
+- BigQuery statements that cannot be fully parsed, including opaque
+  `IF ... ELSE ... END IF` and `BEGIN ... END` blocks, even when read-only.
+
+Streaming downloads fall back to buffered export for these scripts. If the
+results backend is not configured, the query has no result key, or the stored
+results have expired, export returns HTTP 400 explaining that the script cannot
+be safely re-executed. Run a standalone read-only query to export the data.
+
+Eligible read-only queries re-run when stored results are unavailable (or
+memory-capped). On BigQuery, re-execution requires fully parsed statements with
+no detected mutations or opaque control-flow bodies. Other engines also allow
+metadata commands such as MySQL `SHOW TABLES` / `SHOW TABLES FROM some_schema`,
+PostgreSQL `SHOW server_version`, and Kusto KQL reads to re-run: lacking a full
+AST alone does not block them, but a detected mutation or opaque control-flow
+body does. SQL that raises a parse error still fails in the normal
+query-execution path before connecting.
 
 To disable the budget for on-screen results too, set `BQ_FETCH_MAX_MB = None`
 (or `0`) in `superset_config.py`. Downloads and uncapped on-screen results can

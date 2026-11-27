@@ -110,8 +110,9 @@ class SqlResultExportCommand(BaseCommand):
         Whether to rerun the query instead of exporting its stored rows.
 
         A result cut short by an engine fetch memory cap is incomplete, so the
-        export reruns it without the cap. Scripts with mutating statements are
-        never rerun; they export the stored rows.
+        export reruns it without the cap when safe. Scripts with mutations,
+        opaque control-flow bodies on any engine, and BigQuery statements that
+        cannot be fully parsed export only stored rows.
         """
         if self._query.limiting_factor != LimitingFactor.MEMORY:
             return False

@@ -1162,20 +1162,29 @@ def test_streaming_export_buffers_mutating_script_results(
     "engine, sql",
     [
         ("mysql", "SHOW TABLES FROM some_schema"),
+        ("mysql", "SHOW TABLES"),
         ("postgresql", "SHOW server_version"),
         ("kustokql", "print 1"),
     ],
 )
 @pytest.mark.parametrize("use_select_sql", [False, True])
-def test_streaming_export_reruns_non_bigquery_unparseable_reads_without_backend(
+@pytest.mark.parametrize("missing_results", ["backend", "key", "blob"])
+def test_streaming_export_reruns_non_bigquery_metadata_and_kql_reads(
     mocker: MockerFixture,
     mock_query: MagicMock,
     engine: str,
     sql: str,
     use_select_sql: bool,
+    missing_results: str,
 ) -> None:
     """Opaque reads reach the streaming connection, not the stored-row fallback."""
-    mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
+    backend.get.return_value = None
+    if missing_results == "backend":
+        mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    mock_query.results_key = None if missing_results == "key" else "key"
     mocker.patch.dict(
         "superset.commands.streaming_export.base.app.config", {"CSV_EXPORT": {}}
     )

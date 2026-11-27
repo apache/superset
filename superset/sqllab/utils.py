@@ -149,9 +149,11 @@ def validate_export_sql(sql: str, engine: str) -> None:
         raise SupersetErrorException(
             SupersetError(
                 message=__(
-                    "Scripts that modify data or schema cannot be re-executed "
-                    "for export. Export their stored results instead; if those "
-                    "results have expired, run a read-only query to export the data."
+                    "Export cannot re-execute scripts that modify data or schema, "
+                    "opaque control-flow blocks on any engine, or BigQuery statements "
+                    "that cannot be fully parsed. Export stored results instead; "
+                    "if unavailable, run a standalone read-only query to export "
+                    "the data."
                 ),
                 error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
                 level=ErrorLevel.ERROR,

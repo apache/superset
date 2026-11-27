@@ -35,15 +35,22 @@ assists people when migrating to a new version.
   turn the cap off. The fetch budget is part of BigQuery chart, SQL executor,
   and column-values cache keys, so existing entries miss once after upgrading
   and exports re-run queries rather than reuse pre-upgrade cached results.
-  SQL Lab exports of scripts that modify data or schema use only stored rows (which may be memory-capped) and
-  fail if those results are unavailable. Streaming downloads fall back to the
-  buffered export for these scripts. BigQuery control-flow bodies that the
-  parser cannot inspect are checked for mutation tokens; scripts with unsupported
-  BigQuery syntax use only stored, potentially memory-capped rows even when
-  read-only (for example, `IF ... ELSE ... END IF` or `BEGIN ... END`).
-  Their exports fail if stored results are unavailable, rather than risk
-  repeating writes. Other engines retain the export re-execution fallback for opaque statements unless
-  a mutation is detected.
+  SQL Lab CSV exports use only stored rows for scripts with detected data/schema
+  mutations or opaque control-flow bodies on **any engine**, even when the block
+  is read-only (for example, SQL Server `BEGIN SELECT 1 END; SELECT 2` or
+  `BEGIN TRY ... END TRY BEGIN CATCH ... END CATCH`). An unparsed body can hide
+  writes. BigQuery additionally requires stored rows for **every** statement
+  that cannot be fully parsed, including `IF ... ELSE ... END IF` and
+  `BEGIN ... END` blocks. These stored rows may remain memory-capped. Streaming
+  downloads fall back to buffered export for these scripts; if no results
+  backend, result key, or unexpired stored result is available, export returns
+  HTTP 400 with an explanation and asks for a standalone read-only query.
+  Eligible read-only queries re-run when stored results are unavailable (or
+  memory-capped). On non-BigQuery engines this includes metadata commands such
+  as MySQL `SHOW TABLES`, PostgreSQL `SHOW server_version`, and Kusto KQL reads:
+  lacking a full AST alone does not prevent their export re-execution, but
+  detected mutations and opaque control-flow bodies do. SQL that raises a parse
+  error still fails in the normal query-execution path before connecting.
 
 - Provider tests inheriting `SemanticProviderConformance` must supply four
   additional `semantic_query_cases`: `or_not_in`, `or_not_equals`, `or_not_like`,

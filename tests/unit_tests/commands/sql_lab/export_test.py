@@ -331,23 +331,35 @@ def test_csv_export_never_reruns_bigquery_script_blocks(
     "engine, sql",
     [
         ("mysql", "SHOW TABLES FROM some_schema"),
+        ("mysql", "SHOW TABLES"),
         ("postgresql", "SHOW server_version"),
         ("kustokql", "print 1"),
     ],
 )
 @pytest.mark.parametrize("use_select_sql", [False, True])
-def test_csv_export_reruns_non_bigquery_unparseable_reads_without_backend(
-    mocker: MockerFixture, engine: str, sql: str, use_select_sql: bool
+@pytest.mark.parametrize("missing_results", ["backend", "key", "blob"])
+def test_csv_export_reruns_non_bigquery_metadata_and_kql_reads(
+    mocker: MockerFixture,
+    engine: str,
+    sql: str,
+    use_select_sql: bool,
+    missing_results: str,
 ) -> None:
     """Opaque metadata reads and KQL retain the export fallback to get_df."""
     from superset.sql.parse import SQLScript
 
     script = SQLScript(sql, engine)
-    assert script.has_unparseable_statement
+    assert not script.has_opaque_scripting_body()
     assert not script.has_mutation()
-    mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
+    backend.get.return_value = None
+    if missing_results == "backend":
+        mocker.patch("superset.commands.sql_lab.export.results_backend", None)
     mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
     query = MagicMock()
+    query.results_key = None if missing_results == "key" else "key"
     query.select_sql = sql if use_select_sql else None
     query.executed_sql = "SELECT 1" if use_select_sql else sql
     query.limiting_factor = LimitingFactor.NOT_LIMITED
@@ -463,3 +475,88 @@ def test_csv_export_never_reruns_opaque_blocks(
         assert command.run()["data"] == b"n\n1\n"
         backend.get.assert_called_once_with("key")
     query.database.get_df.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "BEGIN SELECT 1 END; SELECT 2",
+        "BEGIN TRY SELECT 1 END TRY BEGIN CATCH SELECT 2 END CATCH",
+    ],
+)
+@pytest.mark.parametrize("use_select_sql", [False, True])
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("missing_results", ["backend", "key", "blob", None])
+@pytest.mark.parametrize(
+    "limiting_factor", [LimitingFactor.MEMORY, LimitingFactor.NOT_LIMITED]
+)
+def test_csv_export_read_only_opaque_blocks_require_stored_results(
+    mocker: MockerFixture,
+    sql: str,
+    use_select_sql: bool,
+    streaming: bool,
+    missing_results: str | None,
+    limiting_factor: LimitingFactor,
+) -> None:
+    """Read-only opaque SQL Server blocks need stored rows on both export paths."""
+    from superset.commands.sql_lab.streaming_export_command import (
+        StreamingSqlResultExportCommand,
+    )
+    from superset.exceptions import SupersetErrorException
+    from superset.sql.parse import SQLScript
+
+    script = SQLScript(sql, "mssql")
+    assert script.has_opaque_scripting_body()
+    assert not script.has_mutation()
+    backend = mocker.patch(
+        "superset.commands.sql_lab.export.results_backend", new_callable=MagicMock
+    )
+    backend.get.return_value = None if missing_results else b"blob"
+    if missing_results == "backend":
+        mocker.patch("superset.commands.sql_lab.export.results_backend", None)
+    mocker.patch(
+        "superset.commands.sql_lab.export.utils.zlib_decompress", return_value="{}"
+    )
+    mocker.patch(
+        "superset.commands.sql_lab.export._deserialize_results_payload",
+        return_value={"data": [{"n": 1}], "columns": [{"name": "n"}]},
+    )
+    mocker.patch.dict("superset.commands.sql_lab.export.app.config", {"CSV_EXPORT": {}})
+    query = MagicMock()
+    query.results_key = None if missing_results == "key" else "key"
+    query.select_sql = sql if use_select_sql else None
+    query.executed_sql = "SELECT 1" if use_select_sql else sql
+    query.limiting_factor = limiting_factor
+    query.database.db_engine_spec.engine = "mssql"
+    mock_db = mocker.patch("superset.commands.sql_lab.export.db")
+    query_result = mock_db.session.query.return_value.filter_by.return_value
+    query_result.one_or_none.return_value = query
+    command = (
+        StreamingSqlResultExportCommand("client_id")
+        if streaming
+        else SqlResultExportCommand("client_id")
+    )
+    command._query = query
+
+    if missing_results:
+        with pytest.raises(
+            SupersetErrorException, match="opaque control-flow blocks on any engine"
+        ) as exc:
+            command.run()
+        assert exc.value.status == 400
+        assert "stored results" in str(exc.value)
+        assert "standalone read-only query" in str(exc.value)
+    elif isinstance(command, StreamingSqlResultExportCommand):
+        assert "".join(command.run()()) == "n\n1\n"
+        backend.get.assert_called_once_with("key")
+    else:
+        assert command.run()["data"] == b"n\n1\n"
+        backend.get.assert_called_once_with("key")
+
+    if isinstance(command, StreamingSqlResultExportCommand):
+        with pytest.raises(
+            SupersetErrorException, match="opaque control-flow blocks on any engine"
+        ):
+            command._get_sql_and_database()
+    query.database.get_df.assert_not_called()
+    query.database.get_sqla_engine.assert_not_called()
