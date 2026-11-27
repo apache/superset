@@ -209,9 +209,10 @@ HOST_VALUE_ERROR_MODULES: tuple[str, ...] = (
 
 
 class MCPValidationError(ValueError):
-    """Intentional, host-written guidance about a caller's input or tool availability.
+    """Intentional, host-written guidance for the caller.
 
-    Only use for messages composed by Superset, never for text from a caught
+    It describes the caller's input, credentials or tool availability. Only
+    use it for messages composed by Superset, never for text from a caught
     exception, query engine, or provider. Signed-in callers may see this text;
     embedded guests still follow the shared sanitization policy.
     """

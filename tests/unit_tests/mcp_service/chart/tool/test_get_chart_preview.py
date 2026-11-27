@@ -570,6 +570,66 @@ def test_saved_gauge_vega_preview_surfaces_runtime_metric_error(
     assert preview.error_type == "NonNumericGaugeMetric"
 
 
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_late_plugin_preview_error_keeps_guidance_for_signed_in_user(
+    mock_build_query_context: MagicMock, mock_command: MagicMock, guest: bool
+) -> None:
+    """A plugin refusal found while building the spec keeps its text.
+
+    The spec builder re-resolves the plugin from the chart's own viz_type and
+    raises the plugin's message; the preview reports it like the direct path
+    does for a signed-in user, and gives an embedded guest the generic text.
+    """
+    from superset.mcp_service.chart.schemas import ChartError
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": 88}]}]
+    }
+    guidance = "Gauge metric 'saved_sla' must be numeric"
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "plugin_vega_lite_preview",
+            side_effect=[
+                None,
+                ChartError(error=guidance, error_type="NonNumericGaugeMetric"),
+            ],
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "fallback_vega_lite_preview",
+            return_value=None,
+        ),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        preview = VegaLitePreviewStrategy(
+            _gauge_chart(), GetChartPreviewRequest(identifier=104, format="vega_lite")
+        ).generate()
+
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "VegaLiteGenerationError"
+    if guest:
+        assert guidance not in preview.error
+        assert str(GENERIC_ERROR_MESSAGE) in preview.error
+    else:
+        assert preview.error.startswith(
+            f"Failed to generate Vega-Lite preview: {guidance}"
+        )
+
+
 class TestPreviewXAxisInQueryContext:
     """Tests for x_axis inclusion in preview query context columns.
 

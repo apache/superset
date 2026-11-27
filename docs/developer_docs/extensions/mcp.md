@@ -348,7 +348,7 @@ validation formatter does not reinterpret domain-error payloads.
 
 ### Tool-owned Validation Guidance
 
-For deliberate input or feature-availability refusals, raise
+For deliberate input, credential or feature-availability refusals, raise
 `MCPValidationError` from `superset.mcp_service.utils.tool_errors`. Its message
 must be written by Superset, not copied from a caught exception, query engine,
 or provider. Signed-in callers receive this guidance (for example, allowed sort

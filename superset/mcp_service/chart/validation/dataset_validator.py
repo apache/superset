@@ -46,6 +46,7 @@ from superset.mcp_service.utils.error_builder import (
     MAX_DID_YOU_MEAN_CANDIDATES,
     MAX_ERROR_SUGGESTIONS,
 )
+from superset.mcp_service.utils.tool_errors import MCPValidationError
 from superset.utils.core import format_list
 
 _C = TypeVar("_C", bound=ChartConfig)
@@ -239,7 +240,7 @@ NORMALIZATION_EXCEPTIONS = (
 )
 
 
-class AmbiguousDatasetReferenceError(ValueError):
+class AmbiguousDatasetReferenceError(MCPValidationError):
     """A non-exact reference matches multiple names that differ only by case."""
 
     def __init__(self, name: str, matches: list[str], reference_kind: str) -> None:

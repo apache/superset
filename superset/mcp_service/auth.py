@@ -78,6 +78,7 @@ from superset.mcp_service.session_scope import _mcp_session_token
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
 )
+from superset.mcp_service.utils.tool_errors import MCPValidationError
 from superset.security.api_key_scopes import (
     get_resource_scope,
     METHOD_PERMISSION_SCOPE_ACTION,
@@ -125,10 +126,11 @@ METHOD_PERMISSION_ATTR = "_method_permission_name"
 _warned_permissionless_tools: set[str] = set()
 
 
-class MCPNoAuthSourceError(ValueError):
+class MCPNoAuthSourceError(MCPValidationError):
     """Raised when no authentication source is configured for MCP.
 
-    Inherits from ``ValueError`` so callers can catch ``ValueError`` broadly
+    Inherits from ``ValueError`` (through ``MCPValidationError``, so a
+    signed-in caller sees its text) so callers can catch ``ValueError`` broadly
     and then use ``isinstance(exc, MCPNoAuthSourceError)`` to distinguish
     "no auth configured at all" (safe to fail open) from other value errors
     (fail closed).
@@ -642,7 +644,7 @@ def _reverify_guest_bearer(access_token: Any) -> dict[str, Any]:
         parsed = None
     if parsed is None:
         logger.warning("Guest-marked token is not a valid guest token; rejecting")
-        raise ValueError("Guest-marked token is not a valid guest token")
+        raise MCPValidationError("Guest-marked token is not a valid guest token")
     return parsed
 
 
@@ -717,7 +719,7 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
             # attempt, not an absent one. Returning None here would let the
             # request degrade to weaker auth sources (API key,
             # MCP_DEV_USERNAME, or a middleware-set g.user).
-            raise ValueError(
+            raise MCPValidationError(
                 "Guest-marked token presented but embedded guest auth is not enabled"
             )
         guest_claims = _reverify_guest_bearer(access_token)
@@ -764,7 +766,7 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     if not username:
         # Fail closed: JWT is present but identity cannot be determined.
         # Do NOT fall through to weaker auth sources.
-        raise ValueError(
+        raise MCPValidationError(
             "JWT context present but no username could be extracted from claims"
         )
 
@@ -778,7 +780,7 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
         # Avoid echoing the JWT-extracted username in the exception message
         # (CodeQL py/clear-text-logging-sensitive-data).
         logger.debug("JWT-authenticated user not found in database (identity from JWT)")
-        raise ValueError(
+        raise MCPValidationError(
             "JWT authenticated user not found in Superset database. "
             "Ensure the user exists before granting MCP access."
         )
@@ -933,7 +935,7 @@ def get_user_from_request() -> MCPUser:
     if username := current_app.config.get("MCP_DEV_USERNAME"):
         user = load_user_with_relationships(username)
         if not user:
-            raise ValueError(
+            raise MCPValidationError(
                 f"User '{username}' not found. "
                 f"Please create admin user with: superset fab create-admin"
             )
@@ -1047,7 +1049,7 @@ def _assert_user_active(user: MCPUser | None) -> None:
     if user is None:
         return
     if not getattr(user, "is_active", getattr(user, "active", True)):
-        raise ValueError(
+        raise MCPValidationError(
             f"Account for user '{getattr(user, 'username', user)}' is disabled."
         )
 

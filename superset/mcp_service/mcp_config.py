@@ -37,6 +37,7 @@ from superset.mcp_service.constants import (
 )
 from superset.mcp_service.guest_token_verifier import GuestTokenVerifier
 from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
+from superset.mcp_service.utils.tool_errors import MCPValidationError
 
 if TYPE_CHECKING:
     from superset.mcp_service.dataset_scope import DatasetScopeResolver
@@ -44,7 +45,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class MCPAuthConfigError(ValueError):
+class MCPAuthConfigError(MCPValidationError):
     """Raised when MCP auth is enabled but configured in an unusable state.
 
     Distinct from the generic build errors (e.g. malformed key material) that

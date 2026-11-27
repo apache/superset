@@ -1882,3 +1882,69 @@ def test_cached_sql_trendline_is_kept_by_an_update_that_omits_it(
     assert generated["x_axis"] == sql_time_column
     assert generated["metric"]["label"] == "COUNT(ds)"
     assert generated["compare_lag"] == 7
+
+
+def _case_collision_dataset(id: int = 3) -> Mock:
+    """A dataset whose physical columns differ only by case."""
+    dataset = _mock_dataset(id=id)
+    columns = []
+    for name in ("Sales", "SALES"):
+        column = Mock()
+        column.column_name = name
+        column.type = "VARCHAR"
+        column.is_temporal = False
+        column.is_numeric = False
+        columns.append(column)
+    dataset.columns = columns
+    dataset.database.db_engine_spec = None
+    return dataset
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@pytest.mark.asyncio
+async def test_ambiguous_column_guidance_reaches_signed_in_caller(
+    mcp_server: Any, mock_auth: Mock, guest: bool
+) -> None:
+    """An ambiguous column reference keeps its guidance for a signed-in user.
+
+    The reference is resolved by the real dataset validator and reported by
+    the tool's outer handler; an embedded guest gets the generic message.
+    """
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    request = UpdateChartPreviewRequest(
+        dataset_id="3",
+        config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="sales")]),
+    )
+    with (
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            return_value=_case_collision_dataset(),
+        ),
+        patch.object(
+            update_chart_preview_module, "has_dataset_access", return_value=True
+        ),
+        patch.object(update_chart_preview_module, "validate_and_compile") as compile_,
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_chart_preview", {"request": request.model_dump()}
+            )
+
+    compile_.assert_not_called()
+    content = result.structured_content
+    assert content["success"] is False
+    guidance = (
+        "Physical column reference 'sales' is ambiguous because the dataset "
+        "contains names that differ only by case: 'SALES', 'Sales'. Use the "
+        "exact physical column name."
+    )
+    if guest:
+        assert guidance not in content["error"]
+        assert str(GENERIC_ERROR_MESSAGE) in content["error"]
+    else:
+        assert content["error"].startswith(f"Chart preview update failed: {guidance}")

@@ -4023,3 +4023,143 @@ async def test_update_chart_literal_less_than_storage_round_trip(title: str) -> 
     assert chart.slice_name == title
     assert result.structured_content["success"] is True
     assert result.structured_content["chart"]["slice_name"] == title
+
+
+def _case_collision_columns() -> list[Mock]:
+    """Physical columns whose names differ only by case."""
+    columns = []
+    for name in ("Sales", "SALES"):
+        column = Mock(column_name=name, type="VARCHAR", is_temporal=False)
+        column.is_numeric = False
+        columns.append(column)
+    return columns
+
+
+_AMBIGUOUS_COLUMN_GUIDANCE = (
+    "reference 'sales' is ambiguous because the dataset contains names that "
+    "differ only by case: 'SALES', 'Sales'."
+)
+
+
+@pytest.mark.parametrize("generate_preview", [False, True])
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@pytest.mark.asyncio
+async def test_ambiguous_column_guidance_reaches_signed_in_caller(
+    guest: bool, generate_preview: bool
+) -> None:
+    """An ambiguous column in an update keeps its guidance for a signed-in user.
+
+    The dataset validator raises it while the Sunburst references of the
+    updated state are canonicalized; the tool's outer handler reports it, and
+    an embedded guest gets the generic message.
+    """
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    dataset = Mock(
+        id=10,
+        table_name="orders",
+        schema=None,
+        database=Mock(database_name="main", db_engine_spec=None),
+        columns=[
+            *_case_collision_columns(),
+            Mock(column_name="amount", type="BIGINT", is_temporal=False),
+        ],
+        metrics=[],
+    )
+    chart = Mock(
+        id=1,
+        uuid="abc-123",
+        slice_name="Orders",
+        viz_type="sunburst_v2",
+        datasource_id=10,
+        datasource_type="table",
+        datasource=dataset,
+        params=json.dumps({"viz_type": "sunburst_v2", "datasource": "10__table"}),
+    )
+    request = {
+        "identifier": 1,
+        "config": {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "sales"}],
+            "metric": {"name": "amount", "aggregate": "SUM"},
+        },
+        "generate_preview": generate_preview,
+    }
+    with (
+        patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=True, dataset_id=10, dataset_name="orders", warnings=[]
+            ),
+        ),
+        patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
+        patch("superset.commands.chart.update.UpdateChartCommand") as update_command,
+        patch.object(update_chart_module, "_create_preview_url") as preview_url,
+        patch("superset.db.session"),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+    update_command.assert_not_called()
+    preview_url.assert_not_called()
+    content = result.structured_content
+    assert content["success"] is False
+    error = content["error"]
+    if guest:
+        assert _AMBIGUOUS_COLUMN_GUIDANCE not in str(error)
+        assert error["details"] == str(GENERIC_ERROR_MESSAGE)
+    else:
+        assert error["message"].startswith("Chart update failed: ")
+        assert _AMBIGUOUS_COLUMN_GUIDANCE in error["message"]
+        assert _AMBIGUOUS_COLUMN_GUIDANCE in error["details"]
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@pytest.mark.asyncio
+async def test_unsupported_datasource_type_guidance_reaches_signed_in_caller(
+    guest: bool,
+) -> None:
+    """A chart on a source family update_chart cannot edit says so."""
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    chart = Mock(
+        id=1,
+        uuid="abc-123",
+        slice_name="Legacy",
+        viz_type="table",
+        datasource_id=10,
+        datasource_type="druid",
+        params=json.dumps({"viz_type": "table"}),
+    )
+    request = {
+        "identifier": 1,
+        "dataset_id": 11,
+        "config": {"chart_type": "table", "columns": [{"name": "region"}]},
+    }
+    with (
+        patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+        patch("superset.commands.chart.update.UpdateChartCommand") as update_command,
+        patch("superset.db.session"),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+    update_command.assert_not_called()
+    error = result.structured_content["error"]
+    guidance = "Unsupported chart datasource type: druid"
+    if guest:
+        assert guidance not in str(error)
+        assert error["details"] == str(GENERIC_ERROR_MESSAGE)
+    else:
+        assert error["message"].startswith(f"Chart update failed: {guidance}")
+        assert error["details"] == guidance

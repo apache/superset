@@ -101,6 +101,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.tool_errors import (
     log_tool_exception,
+    MCPValidationError,
     safe_error,
     tool_error_message,
 )
@@ -292,7 +293,7 @@ def _chart_datasource_type(chart: Slice) -> str:
         DatasourceType.QUERY.value,
         DatasourceType.SAVEDQUERY.value,
     ):
-        raise ValueError(f"Unsupported chart datasource type: {value}")
+        raise MCPValidationError(f"Unsupported chart datasource type: {value}")
     return value
 
 
@@ -909,7 +910,7 @@ def _validate_update_against_target(
             run_compile_check=run_compile_check,
         )
     if target_type != DatasourceType.TABLE.value:
-        raise ValueError(f"Unsupported chart datasource type: {target_type}")
+        raise MCPValidationError(f"Unsupported chart datasource type: {target_type}")
     if _chart_datasource_type(chart) == DatasourceType.SEMANTIC_VIEW.value:
         target_access: DatasetValidationResult = validate_chart_dataset(
             target_id, check_access=True

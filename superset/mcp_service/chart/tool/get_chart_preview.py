@@ -96,6 +96,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.tool_errors import (
     internal_error_response,
+    MCPValidationError,
     report_tool_error,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -674,7 +675,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             data, {**form_data, "viz_type": viz_type}
         )
         if isinstance(plugin_preview, ChartError):
-            raise ValueError(plugin_preview.error)
+            raise MCPValidationError(plugin_preview.error)
         if plugin_preview is not None:
             return plugin_preview.specification
 
