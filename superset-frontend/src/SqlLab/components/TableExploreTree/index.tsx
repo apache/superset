@@ -72,6 +72,7 @@ export interface TableBrowserProps {
   ) => void;
   toolbarViewId?: string;
   existingTableKeys?: Set<string>;
+  selectedTable?: TableReference | null;
   onPreviewTable?: (table: TableReference) => void;
 }
 
@@ -196,6 +197,7 @@ export const TableBrowser = ({
   onUnpinTable: handleUnpinTable = ignorePin,
   toolbarViewId,
   existingTableKeys = EMPTY_PINNED_KEYS,
+  selectedTable,
   onPreviewTable,
 }: TableBrowserProps) => {
   const theme = useTheme();
@@ -334,6 +336,25 @@ export const TableBrowser = ({
     [dbId, onPreviewTable],
   );
   const previewTableHandler = onPreviewTable ? handlePreviewTable : undefined;
+  const selectedTableId =
+    dbId && selectedTable
+      ? `table:${dbId}:${selectedTable.schema}:${selectedTable.table_name}`
+      : undefined;
+
+  useEffect(() => {
+    if (selectedTable === undefined) return;
+    const previousId = selectedTableIdRef.current;
+    if (previousId && previousId !== selectedTableId) {
+      treeRef.current?.close(previousId);
+      setManuallyOpenedNodes(prev =>
+        prev[previousId] ? { ...prev, [previousId]: false } : prev,
+      );
+    }
+    if (!selectedTableId) {
+      treeRef.current?.deselectAll();
+    }
+    selectedTableIdRef.current = selectedTableId ?? null;
+  }, [selectedTable, selectedTableId]);
 
   // When treeData changes (e.g., children arrive after an async fetch),
   // react-arborist may reset the open state of nodes that just received children.

@@ -121,6 +121,14 @@ export default function LeftPanel({
           schema={dataset.schema ?? undefined}
           catalog={dataset.catalog}
           existingTableKeys={existingTableKeys}
+          selectedTable={
+            dataset.table_name
+              ? {
+                  schema: dataset.schema ?? '',
+                  table_name: dataset.table_name,
+                }
+              : null
+          }
           onPreviewTable={onPreviewTable}
         />
       ) : (

@@ -394,3 +394,51 @@ test('keeps the search filter when clicking a table updates schema from the tree
   await userEvent.click(screen.getAllByText('orders')[0]);
   expect(searchInput).toHaveValue('orders');
 });
+
+test('clears highlighted and expanded table when selectedTable becomes null', async () => {
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    result: ['public'],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
+    result: [{ label: 'orders', value: 'orders', type: 'table' }],
+    count: 1,
+  });
+  fetchMock.get('glob:*/api/v1/database/1/table_metadata/*', {
+    columns: [{ name: 'id', type: 'INTEGER' }],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/table_metadata/extra/*', {});
+
+  function SyncWrapper() {
+    const [selectedTable, setSelectedTable] = useState<TableReference | null>(
+      null,
+    );
+    return (
+      <>
+        <button type="button" onClick={() => setSelectedTable(null)}>
+          Clear table
+        </button>
+        <TableBrowser
+          dbId={1}
+          selectedTable={selectedTable}
+          onPreviewTable={setSelectedTable}
+        />
+      </>
+    );
+  }
+
+  render(<SyncWrapper />, { useRedux: true });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(await screen.findByText('orders'));
+  expect(await screen.findByText('id')).toBeVisible();
+  expect(
+    screen.getByText('orders').closest('.tree-node'),
+  ).toHaveAttribute('data-selected', 'true');
+
+  await userEvent.click(screen.getByRole('button', { name: 'Clear table' }));
+  await waitFor(() =>
+    expect(
+      screen.getByText('orders').closest('.tree-node'),
+    ).toHaveAttribute('data-selected', 'false'),
+  );
+  expect(screen.queryByText('id')).not.toBeInTheDocument();
+});
