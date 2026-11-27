@@ -123,6 +123,12 @@
         "default": false,
         "lifecycle": "development",
         "description": "Enable Table V2 time comparison feature"
+      },
+      {
+        "name": "TABLE_V2_TREE_MODE_ENABLED",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Shows the Tree query mode in Table V2 (AG Grid table)"
       }
     ],
     "testing": [

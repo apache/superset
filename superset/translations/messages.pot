@@ -165,6 +165,14 @@ msgid "% of total"
 msgstr ""
 
 #, python-format
+msgid "%(children)s of %(parent)s %(id)s"
+msgstr ""
+
+#, python-format
+msgid "%(children)s shown per %(parent)s"
+msgstr ""
+
+#, python-format
 msgid "%(column)s is an array column, which cannot be compared against the single value a transform returns. Mirrored filters on this mapping would fail at the database. Map a scalar partition column instead."
 msgstr ""
 
@@ -202,6 +210,10 @@ msgstr ""
 
 #, python-format
 msgid "%(label)s file"
+msgstr ""
+
+#, python-format
+msgid "%(loaded)s of %(total)s %(children)s"
 msgstr ""
 
 #, python-format
@@ -251,6 +263,10 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%(number)s %(name)s"
+msgstr ""
+
+#, python-format
 msgid "%(object)s does not exist in this database."
 msgstr ""
 
@@ -274,9 +290,17 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr ""
 
+#, python-format
+msgid "%(start)s to %(end)s of %(total)s"
+msgstr ""
+
 #. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr ""
+
+#, python-format
+msgid "%(total)s %(children)s"
 msgstr ""
 
 #, python-format
@@ -437,6 +461,10 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s details"
+msgstr ""
+
+#, python-format
 msgid "%s field"
 msgid_plural "%s fields"
 msgstr[0] ""
@@ -450,6 +478,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s imported"
+msgstr ""
+
+#, python-format
+msgid "%s is required"
 msgstr ""
 
 #, python-format
@@ -570,6 +602,14 @@ msgstr ""
 
 #, python-format
 msgid "%s updated"
+msgstr ""
+
+#, python-format
+msgid "%s · ascending"
+msgstr ""
+
+#, python-format
+msgid "%s · descending"
 msgstr ""
 
 #, python-format
@@ -1357,6 +1397,9 @@ msgstr ""
 msgid "Add another notification method"
 msgstr ""
 
+msgid "Add at least one level."
+msgstr ""
+
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
 msgstr ""
 
@@ -1420,6 +1463,9 @@ msgid "Add interval bounds above to configure colors here."
 msgstr ""
 
 msgid "Add item"
+msgstr ""
+
+msgid "Add level"
 msgstr ""
 
 msgid "Add metric"
@@ -1777,6 +1823,9 @@ msgid "All filters"
 msgstr ""
 
 msgid "All groupable columns"
+msgstr ""
+
+msgid "All levels come from this dataset. Each child row is linked to its parent. Parent columns must be the same on every row. Child level columns must be the same on every dataset row for one child ID; otherwise the count and Load more can disagree."
 msgstr ""
 
 msgid "All panels"
@@ -2363,10 +2412,16 @@ msgstr ""
 msgid "Apply custom CSS to the dashboard. Use class names or element selectors to target specific components."
 msgstr ""
 
+msgid "Apply date filter to children"
+msgstr ""
+
 msgid "Apply filters"
 msgstr ""
 
 msgid "Apply metrics on"
+msgstr ""
+
+msgid "Apply the level 1 date range to this level's time column."
 msgstr ""
 
 msgid "April"
@@ -3547,6 +3602,9 @@ msgstr ""
 msgid "Choose how many X-Axis labels to show"
 msgstr ""
 
+msgid "Choose how many children to load at a time for each parent."
+msgstr ""
+
 msgid "Choose index column"
 msgstr ""
 
@@ -3572,7 +3630,28 @@ msgstr ""
 msgid "Choose the annotation layer type"
 msgstr ""
 
+msgid "Choose the column at this level that matches the parent level's ID."
+msgstr ""
+
+msgid "Choose the column that identifies an item at this level."
+msgstr ""
+
+msgid "Choose the columns shown in this level's table."
+msgstr ""
+
+msgid "Choose the date or time column that \"Apply date filter to children\" uses for this level."
+msgstr ""
+
+msgid "Choose the date or time column used to filter this level."
+msgstr ""
+
+msgid "Choose the fields shown when an item is expanded."
+msgstr ""
+
 msgid "Choose the format for legend values"
+msgstr ""
+
+msgid "Choose the initial row order for this level."
 msgstr ""
 
 msgid "Choose the position of the legend"
@@ -4454,6 +4533,10 @@ msgstr ""
 msgid "Could not verify which dimensions are compatible. All dimensions are shown."
 msgstr ""
 
+#, python-format
+msgid "Couldn't load %s —"
+msgstr ""
+
 msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
 msgstr ""
 
@@ -5282,6 +5365,9 @@ msgstr ""
 msgid "Default schema (database) to connect to"
 msgstr ""
 
+msgid "Default sort"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 
@@ -5649,6 +5735,9 @@ msgid "Design with"
 msgstr ""
 
 msgid "Detach or delete them first."
+msgstr ""
+
+msgid "Detail fields"
 msgstr ""
 
 msgid "Details"
@@ -6090,6 +6179,9 @@ msgstr ""
 
 #, python-format
 msgid "ERROR: %s"
+msgstr ""
+
+msgid "Each level needs an id_column"
 msgstr ""
 
 msgid "Each metric's own"
@@ -6783,6 +6875,9 @@ msgstr ""
 msgid "Expand all"
 msgstr ""
 
+msgid "Expand all to level"
+msgstr ""
+
 msgid "Expand data panel"
 msgstr ""
 
@@ -6793,6 +6888,10 @@ msgid "Expand row to edit"
 msgstr ""
 
 msgid "Expand settings"
+msgstr ""
+
+#, python-format
+msgid "Expand to %s"
 msgstr ""
 
 msgid "Expected geographic query data to be a list of records"
@@ -7969,6 +8068,9 @@ msgstr ""
 msgid "Huge"
 msgstr ""
 
+msgid "ID column"
+msgstr ""
+
 msgid "ISO 3166-2"
 msgstr ""
 
@@ -8278,6 +8380,9 @@ msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
+msgstr ""
+
+msgid "Invalid Tree export parent ID column"
 msgstr ""
 
 #, python-format
@@ -8863,6 +8968,25 @@ msgstr ""
 msgid "Less than (<)"
 msgstr ""
 
+#, python-format
+msgid "Level %(number)s"
+msgstr ""
+
+#, python-format
+msgid "Level %(number)s is missing: %(fields)s."
+msgstr ""
+
+#, python-format
+msgid "Level %(number)s: %(field)s can't be the level's own ID column."
+msgstr ""
+
+#, python-format
+msgid "Level %(number)s: with \"Apply date filter to children\" on, its time column must be one of its Columns or Detail fields."
+msgstr ""
+
+msgid "Levels"
+msgstr ""
+
 msgid "Liberty (OpenFreeMap)"
 msgstr ""
 
@@ -8959,6 +9083,13 @@ msgstr ""
 msgid "Link Copied!"
 msgstr ""
 
+#, python-format
+msgid "Linked to %(parent)s by"
+msgstr ""
+
+msgid "Linked to parent by"
+msgstr ""
+
 msgid "List"
 msgstr ""
 
@@ -9017,6 +9148,10 @@ msgid "Loaded from semantic cache"
 msgstr ""
 
 msgid "Loading"
+msgstr ""
+
+#, python-format
+msgid "Loading %s"
 msgstr ""
 
 msgid "Loading dependent semantic views"
@@ -9807,6 +9942,9 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
+msgid "Name a group of items at this level."
+msgstr ""
+
 msgid "Name is required"
 msgstr ""
 
@@ -9832,6 +9970,9 @@ msgid "Name of the target nodes"
 msgstr ""
 
 msgid "Name of your tag"
+msgstr ""
+
+msgid "Name one item at this level."
 msgstr ""
 
 msgid "Name used for the candlestick series in the legend and tooltip when no series dimension is set."
@@ -9919,6 +10060,14 @@ msgid "Nightingale Rose is not yet supported on semantic views. Use a Line or Ba
 msgstr ""
 
 msgid "No"
+msgstr ""
+
+#, python-format
+msgid "No %s"
+msgstr ""
+
+#, python-format
+msgid "No %s in the selected range"
 msgstr ""
 
 #, python-format
@@ -10277,6 +10426,10 @@ msgstr ""
 
 #, python-format
 msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
+
+#, python-format
+msgid "Not in this dataset: %s."
 msgstr ""
 
 msgid "Not null"
@@ -11200,6 +11353,9 @@ msgstr ""
 msgid "Plugins"
 msgstr ""
 
+msgid "Plural name"
+msgstr ""
+
 msgid "Point Cluster Map"
 msgstr ""
 
@@ -11764,6 +11920,13 @@ msgstr ""
 msgid "Remove item"
 msgstr ""
 
+msgid "Remove level"
+msgstr ""
+
+#, python-format
+msgid "Remove level %s"
+msgstr ""
+
 msgid "Remove mapping"
 msgstr ""
 
@@ -12305,6 +12468,12 @@ msgid "Rows (vertical layout)"
 msgstr ""
 
 msgid "Rows per page, 0 means no pagination"
+msgstr ""
+
+msgid "Rows per page. Viewers can change it under the table."
+msgstr ""
+
+msgid "Rows shown per parent"
 msgstr ""
 
 msgid "Rows subtotal position"
@@ -15998,6 +16167,9 @@ msgstr ""
 msgid "This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here."
 msgstr ""
 
+msgid "This chart uses the Tree query mode, which is not enabled on this Superset instance."
+msgstr ""
+
 msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
 msgstr ""
 
@@ -16701,10 +16873,19 @@ msgstr ""
 msgid "Treat values as categorical."
 msgstr ""
 
+msgid "Tree"
+msgstr ""
+
 msgid "Tree Chart"
 msgstr ""
 
+msgid "Tree export parent query failed"
+msgstr ""
+
 msgid "Tree layout"
+msgstr ""
+
+msgid "Tree mode is turned off"
 msgstr ""
 
 msgid "Tree orientation"
@@ -19071,6 +19252,9 @@ msgstr ""
 msgid "greeting"
 msgstr ""
 
+msgid "groupby must contain at least one column"
+msgstr ""
+
 msgid "header"
 msgstr ""
 
@@ -19205,6 +19389,9 @@ msgid "multi-value type icon"
 msgstr ""
 
 msgid "must have a value"
+msgstr ""
+
+msgid "n must be a positive integer"
 msgstr ""
 
 msgid "name"

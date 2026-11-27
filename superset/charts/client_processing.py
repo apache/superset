@@ -37,6 +37,7 @@ import pandas as pd
 from flask import current_app
 from flask_babel import gettext as __
 
+from superset.charts.query_mode import is_tree_query_mode
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.grouping_sets import GROUPING_MARKER_SUFFIX
 from superset.constants import SHOW_VALUES_AS_PERCENT_MODES, ShowValuesAs
@@ -2123,6 +2124,8 @@ def apply_client_processing(  # noqa: C901
     form_data = form_data or {}
 
     viz_type = form_data.get("viz_type")
+    if is_tree_query_mode(form_data):
+        return result
     if viz_type not in post_processors:
         return result
 
