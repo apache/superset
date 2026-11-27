@@ -169,22 +169,22 @@ msgid "% calculation"
 msgstr "% 計算"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% の"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "列に対する %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "列の合計に対する %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "総合計に対する %"
 
@@ -193,7 +193,7 @@ msgid "% of parent"
 msgstr "親に対する %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "行の合計に対する %"
 
@@ -12109,7 +12109,7 @@ msgid "Optional warning about use of this metric"
 msgstr "このメトリクスの使用に関する任意の警告メッセージ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -20235,7 +20235,7 @@ msgid "Value transform"
 msgstr "値の変換"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -20246,7 +20246,7 @@ msgstr ""
 " %」は使用できません。サーバーページネーションが有効な間、既存のパーセンテージルールは自動的なデータ範囲を使用します。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

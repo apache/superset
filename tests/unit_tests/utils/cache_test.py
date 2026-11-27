@@ -147,6 +147,49 @@ def test_memoized_func_skip_cache_pops_cache_timeout(mocker: MockerFixture) -> N
     mock_config.__getitem__.assert_not_called()
 
 
+def test_memoized_func_cache_set_backend_error(mocker: MockerFixture) -> None:
+    """
+    A cache backend failure (eg, a Redis timeout) on ``set`` must not surface to
+    the caller: the decorated function's result is still returned, uncached.
+    """
+    from superset.utils.cache import memoized_func
+
+    _patch_config(mocker)
+    cache = mocker.MagicMock()
+    cache.get.return_value = None
+    cache.set.side_effect = TimeoutError("Timeout reading from socket")
+
+    decorator = memoized_func("db:{self.id}:schema:{schema}:table_list", cache)
+    decorated = decorator(lambda self, schema: 42)
+
+    self = mocker.MagicMock()
+    self.id = 1
+
+    result = decorated(self, "public")
+    assert result == 42
+
+
+def test_memoized_func_cache_get_backend_error(mocker: MockerFixture) -> None:
+    """
+    A cache backend failure (eg, a Redis timeout) on ``get`` must not surface to
+    the caller: the decorator falls back to calling the decorated function.
+    """
+    from superset.utils.cache import memoized_func
+
+    _patch_config(mocker)
+    cache = mocker.MagicMock()
+    cache.get.side_effect = TimeoutError("Timeout reading from socket")
+
+    decorator = memoized_func("db:{self.id}:schema:{schema}:table_list", cache)
+    decorated = decorator(lambda self, schema: 42)
+
+    self = mocker.MagicMock()
+    self.id = 1
+
+    result = decorated(self, "public")
+    assert result == 42
+
+
 def _make_cache_instance(mocker: MockerFixture) -> MagicMock:
     """A cache instance whose ``.cache`` is not a ``NullCache``."""
     cache_instance = mocker.MagicMock()
