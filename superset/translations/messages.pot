@@ -14842,10 +14842,6 @@ msgstr ""
 msgid "The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again."
 msgstr ""
 
-#, python-format
-msgid "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be combined with a GROUP BY. Wrap it in an aggregate function, e.g. %(example)s."
-msgstr ""
-
 msgid "The ENABLE_EXTENSIONS feature flag must be on when the server starts. Enable it in the server configuration and restart."
 msgstr ""
 
