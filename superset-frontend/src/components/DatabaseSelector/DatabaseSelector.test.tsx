@@ -647,3 +647,18 @@ test('an empty selector opens from the keyboard and requires a connection before
     expect.objectContaining({ id: 2 }),
   );
 });
+
+test('trigger auto-selects a single schema without opening the popover', async () => {
+  fetchMock.removeRoute(schemaApiRoute);
+  fetchMock.get(schemaApiRoute, {
+    result: ['only_schema'],
+  });
+  const props = createProps();
+  render(<DatabaseSelectorPopover {...props} schema={undefined} />, {
+    useRedux: true,
+    store,
+  });
+  await waitFor(() =>
+    expect(props.onSchemaChange).toHaveBeenCalledWith('only_schema'),
+  );
+});

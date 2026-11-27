@@ -774,6 +774,9 @@ export function DatabaseSelectorPopover({
           db={db}
           catalog={catalog}
           schema={schema}
+          onDbChange={onDbChange}
+          onCatalogChange={onCatalogChange}
+          onSchemaChange={onSchemaChange}
           sqlLabMode
           compactMode={compactMode}
           onOpenModal={openSelector}
