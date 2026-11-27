@@ -8705,14 +8705,25 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
         ("a + c", ["a", "b"], "base", False),
         ("a * 2", ["a + 1"], "base", False),
         ("ts", ["DATE_TRUNC('day', ts)"], "postgresql", False),
-        (")(", ["a"], "base", True),
-        ("a", ["bin(ts,1h)"], "base", True),
     ],
 )
 def test_references_only_grouped_columns(
     expression: str, group_by: list[str], engine: str, expected: bool
 ) -> None:
     assert references_only_grouped_columns(expression, group_by, engine) is expected
+
+
+@pytest.mark.parametrize(
+    "expression,group_by",
+    [
+        (")(", ["a"]),
+        ("a", ["bin(ts,1h)"]),
+    ],
+)
+def test_references_only_grouped_columns_defaults_to_true_on_parse_error(
+    expression: str, group_by: list[str]
+) -> None:
+    assert references_only_grouped_columns(expression, group_by) is True
 
 
 @pytest.mark.parametrize(
