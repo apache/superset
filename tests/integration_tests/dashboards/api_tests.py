@@ -1081,7 +1081,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = self.get_assert_metric(uri, "get_datasets")
         assert response.status_code == 404
         logger_mock.warning.assert_called_once_with(
-            "Dashboard not found.", exc_info=True
+            "Dashboard not found.", exc_info=False
         )
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -1096,7 +1096,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = self.get_assert_metric(uri, "get_datasets")
         assert response.status_code == 422
         logger_mock.warning.assert_called_once_with(
-            "Dataset schema is invalid, caused by: Invalid schema", exc_info=True
+            "Dataset schema is invalid, caused by: Invalid schema", exc_info=False
         )
 
     @pytest.mark.usefixtures("create_dashboards")
