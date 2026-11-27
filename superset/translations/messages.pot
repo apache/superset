@@ -183,6 +183,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%(count)s row"
+msgid_plural "%(count)s rows"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
@@ -1007,6 +1013,15 @@ msgstr ""
 msgid "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)"
 msgstr ""
 
+msgid "A full export is not available for a query with multiple statements. Run the statement whose results you want to export on its own, then export it."
+msgstr ""
+
+msgid "A full export is not available for this query: its row limit cannot be removed. Re-run it with a higher limit, or export it without the full option."
+msgstr ""
+
+msgid "A full export of this data is already in progress."
+msgstr ""
+
 msgid "A handlebars template that is applied to the data"
 msgstr ""
 
@@ -1785,6 +1800,12 @@ msgstr ""
 msgid "All records"
 msgstr ""
 
+msgid "All rows as .CSV"
+msgstr ""
+
+msgid "All rows as Excel"
+msgstr ""
+
 msgid "All time"
 msgstr ""
 
@@ -2159,6 +2180,9 @@ msgid "An error occurred while upserting the value."
 msgstr ""
 
 msgid "An export for this dashboard is already in progress."
+msgstr ""
+
+msgid "An uncapped export returns the query's own rows, so it is not available for a post-processed result. Export the chart's raw data instead."
 msgstr ""
 
 msgid "An unexpected error occurred"
@@ -2925,6 +2949,9 @@ msgid "CSS templates"
 msgstr ""
 
 msgid "CSS templates could not be deleted."
+msgstr ""
+
+msgid "CSV"
 msgstr ""
 
 msgid "CSV Export"
@@ -5876,6 +5903,10 @@ msgstr ""
 msgid "Download"
 msgstr ""
 
+#, python-format
+msgid "Download %(format)s file"
+msgstr ""
+
 msgid "Download Excel file"
 msgstr ""
 
@@ -6711,6 +6742,9 @@ msgstr ""
 msgid "Examples"
 msgstr ""
 
+msgid "Excel"
+msgstr ""
+
 msgid "Excel Export"
 msgstr ""
 
@@ -6848,6 +6882,15 @@ msgstr ""
 msgid "Export YAML"
 msgstr ""
 
+msgid "Export all rows (emailed link)"
+msgstr ""
+
+msgid "Export all rows to .CSV (emailed link)"
+msgstr ""
+
+msgid "Export all rows to Excel (emailed link)"
+msgstr ""
+
 msgid "Export as Example"
 msgstr ""
 
@@ -6858,6 +6901,9 @@ msgid "Export cancelled"
 msgstr ""
 
 msgid "Export dashboards?"
+msgstr ""
+
+msgid "Export every row this query returns. It runs in the background and you get an email with a download link."
 msgstr ""
 
 msgid "Export failed"
@@ -11305,6 +11351,9 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid "Preparing your full export. You will receive an email with a download link when it is ready."
+msgstr ""
+
 msgid "Preserves the generated dashboard-time predicate subject through Explore saves."
 msgstr ""
 
@@ -12388,6 +12437,9 @@ msgid "SQL Lab cannot authorise a statement that could not be fully parsed. Qual
 msgstr ""
 
 msgid "SQL Lab queries"
+msgstr ""
+
+msgid "SQL Lab query"
 msgstr ""
 
 #, python-format
@@ -15979,6 +16031,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart runs more than one query; the file holds its main result set only."
+msgstr ""
+
 msgid "This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here."
 msgstr ""
 
@@ -16958,6 +17013,15 @@ msgid "Unable to retrieve dashboard colors"
 msgstr ""
 
 msgid "Unable to sync permissions for this database connection."
+msgstr ""
+
+msgid "Uncapped data exports are not enabled on this server."
+msgstr ""
+
+msgid "Uncapped data exports need background exports to be configured. Ask an administrator to set up export storage and a Celery worker."
+msgstr ""
+
+msgid "Uncapped data exports require a signed-in user."
 msgstr ""
 
 msgid "Undefined"
@@ -18452,6 +18516,14 @@ msgid "Your dashboard is too large to save: the serialized layout length is %s b
 msgstr ""
 
 #, python-format
+msgid "Your data export could not be completed: %(label)s"
+msgstr ""
+
+#, python-format
+msgid "Your data export is ready: %(label)s"
+msgstr ""
+
+#, python-format
 msgid "Your display control changes were not saved: %s"
 msgstr ""
 
@@ -18461,10 +18533,28 @@ msgstr ""
 msgid "Your export is being generated. Please, do not leave the page."
 msgstr ""
 
+#, python-format
+msgid "Your export is ready and downloading (%(rows)s rows)."
+msgstr ""
+
 msgid "Your export is ready and downloading."
 msgstr ""
 
+msgid "Your export is ready but could not be downloaded here. Use the link in the email instead."
+msgstr ""
+
+msgid "Your export is still running. You will receive an email with a download link when it is ready."
+msgstr ""
+
 msgid "Your export is taking longer than expected. Try again later."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(label)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(label)s\" is ready, with %(rows)s."
 msgstr ""
 
 #, python-format
