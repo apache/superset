@@ -451,7 +451,7 @@ def test_create_redis_store_rejects_boolean_cert_reqs(
             {
                 "CACHE_REDIS_URL": "rediss://redis.example.com:6380/0",
                 "CACHE_REDIS_SSL_CERT_REQS": cert_reqs,
-                "WRAPPER_TYPE": "key_value.aio.wrappers.prefix.PrefixWrapper",
+                "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
             },
             prefix="test_",
             wrap=wrap,
