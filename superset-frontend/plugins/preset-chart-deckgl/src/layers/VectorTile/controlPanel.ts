@@ -25,6 +25,8 @@ import {
 import { validateInteger } from '@superset-ui/core';
 import TilePropertyControl from './TilePropertyControl';
 import {
+  deckGLCategoricalColorSchemeSelect,
+  deckGLCategoricalColorSchemeTypeSelect,
   fillColorPicker,
   mapboxStyle,
   maplibreStyle,
@@ -41,9 +43,23 @@ import {
   isTileUrlTemplate,
 } from './layerSettings';
 
+import {
+  COLOR_SCHEME_TYPES,
+  isColorSchemeTypeVisible,
+} from '../../utilities/utils';
+
 /** Returns an error message unless the value is a URL template with {z}, {x} and {y}. */
 export const validateTileUrl = (value: unknown): string | false =>
   isTileUrlTemplate(value) ? false : t('must contain {z}, {x} and {y}');
+
+/** Gives a TilePropertyControl the TileJSON settings and dataset columns. */
+const tilePropertyControlState = (state: ControlPanelState) => ({
+  tileJsonUrl: (state.controls?.tile_json_url?.value ??
+    state.form_data?.tile_json_url) as string | undefined,
+  sourceLayer: (state.controls?.source_layer?.value ??
+    state.form_data?.source_layer) as string | undefined,
+  datasetChoices: columnChoices(state.datasource),
+});
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -77,7 +93,7 @@ const config: ControlPanelConfig = {
               ),
               default: '',
               renderTrigger: true,
-              rerender: ['tooltip_properties'],
+              rerender: ['tooltip_properties', 'color_property'],
             },
           },
         ],
@@ -92,7 +108,7 @@ const config: ControlPanelConfig = {
               ),
               default: '',
               renderTrigger: true,
-              rerender: ['tooltip_properties'],
+              rerender: ['tooltip_properties', 'color_property'],
             },
           },
         ],
@@ -144,6 +160,22 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            ...deckGLCategoricalColorSchemeTypeSelect,
+            config: {
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
+              choices: [
+                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+                [
+                  COLOR_SCHEME_TYPES.categorical_palette,
+                  t('Categorical palette'),
+                ],
+              ],
+              default: COLOR_SCHEME_TYPES.fixed_color,
+            },
+          },
+        ],
+        [
+          {
             ...fillColorPicker,
             config: {
               ...fillColorPicker.config,
@@ -151,6 +183,28 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'color_property',
+            config: {
+              type: TilePropertyControl,
+              multi: false,
+              label: t('Colour by'),
+              description: t(
+                "Tile property whose values decide each feature's colour.",
+              ),
+              default: null,
+              renderTrigger: true,
+              mapStateToProps: tilePropertyControlState,
+              visibility: ({ controls }) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.categorical_palette,
+                ),
+            },
+          },
+        ],
+        [deckGLCategoricalColorSchemeSelect],
       ],
     },
     {
@@ -168,13 +222,7 @@ const config: ControlPanelConfig = {
               ),
               default: [],
               renderTrigger: true,
-              mapStateToProps: (state: ControlPanelState) => ({
-                tileJsonUrl: (state.controls?.tile_json_url?.value ??
-                  state.form_data?.tile_json_url) as string | undefined,
-                sourceLayer: (state.controls?.source_layer?.value ??
-                  state.form_data?.source_layer) as string | undefined,
-                datasetChoices: columnChoices(state.datasource),
-              }),
+              mapStateToProps: tilePropertyControlState,
             },
           },
         ],

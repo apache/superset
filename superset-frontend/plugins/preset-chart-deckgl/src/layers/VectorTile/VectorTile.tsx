@@ -25,7 +25,7 @@ import {
   JsonObject,
   JsonValue,
 } from '@superset-ui/core';
-import { buildColorExpression, compileColorAccessor } from './styling';
+import { createColorAccessor } from './styling';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
@@ -85,15 +85,16 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({
   formData,
   setTooltip,
 }) => {
-  const { tileUrl, sourceLayer, minZoom, maxZoom, fillColor } =
-    getLayerSettings(formData as VectorTileFormData);
+  const settings = getLayerSettings(formData as VectorTileFormData);
+  const { tileUrl, sourceLayer, minZoom, maxZoom } = settings;
 
   if (!tileUrl) {
     return null;
   }
-
-  const colorExpression = buildColorExpression(fillColor);
-  const getColor = compileColorAccessor(colorExpression, fillColor);
+  const { getColor, updateTrigger } = createColorAccessor(
+    settings,
+    formData.slice_id,
+  );
 
   const { tooltip_properties: tooltipProperties = [] } =
     formData as VectorTileFormData;
@@ -120,8 +121,8 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({
     getFillColor: getColor,
     getLineColor: getColor,
     updateTriggers: {
-      getFillColor: JSON.stringify(colorExpression),
-      getLineColor: JSON.stringify(colorExpression),
+      getFillColor: updateTrigger,
+      getLineColor: updateTrigger,
     },
     getPointRadius: POINT_RADIUS_PX,
     pointRadiusUnits: 'pixels',

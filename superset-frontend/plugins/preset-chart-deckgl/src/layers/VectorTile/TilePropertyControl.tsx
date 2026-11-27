@@ -27,8 +27,9 @@ export interface TilePropertyControlProps {
   name: string;
   label?: string;
   description?: string;
-  value?: string[];
-  onChange: (value: string[]) => void;
+  value?: string | string[] | null;
+  multi?: boolean;
+  onChange: (value: string | string[] | undefined) => void;
   tileJsonUrl?: string;
   sourceLayer?: string;
   /** [column_name, display name] pairs from the dataset, the fallback list. */
@@ -43,7 +44,8 @@ export default function TilePropertyControl({
   name,
   label,
   description,
-  value = [],
+  value,
+  multi = true,
   onChange,
   tileJsonUrl,
   sourceLayer,
@@ -72,13 +74,13 @@ export default function TilePropertyControl({
   return (
     <Select
       ariaLabel={label ?? name}
-      mode="multiple"
-      allowNewOptions
       allowClear
+      allowNewOptions
       loading={loading}
       options={options}
-      value={value}
-      onChange={newValue => onChange(newValue as string[])}
+      mode={multi ? 'multiple' : 'single'}
+      value={value ?? (multi ? [] : undefined)}
+      onChange={newValue => onChange(newValue as string | string[] | undefined)}
       header={
         <ControlHeader
           name={name}

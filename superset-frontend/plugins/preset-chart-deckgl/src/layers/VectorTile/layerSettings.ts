@@ -20,6 +20,7 @@
 import { QueryFormData } from '@superset-ui/core';
 import { ColorType } from '../../types';
 import { PRIMARY_COLOR } from '../../utilities/controls';
+import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../../utilities/utils';
 
 export const TILE_URL_PLACEHOLDERS = ['{z}', '{x}', '{y}'];
 export const DEFAULT_MIN_ZOOM = 0;
@@ -36,6 +37,9 @@ export interface VectorTileFormData extends QueryFormData {
   max_zoom?: number | string;
   fill_color_picker?: ColorType;
   tooltip_properties?: string[];
+  color_scheme_type?: ColorSchemeType;
+  color_property?: string | null;
+  color_scheme?: string;
 }
 
 export interface VectorTileLayerSettings {
@@ -46,6 +50,11 @@ export interface VectorTileLayerSettings {
   minZoom: number;
   maxZoom: number;
   fillColor: RGBAColor;
+  colorSchemeType: ColorSchemeType;
+  /** Property that decides each feature's colour; undefined when none is chosen. */
+  colorProperty?: string;
+  /** Categorical palette name; undefined uses Superset's default palette. */
+  colorScheme?: string;
 }
 
 /** True when the value is a tile URL template containing {z}, {x} and {y}. */
@@ -89,5 +98,9 @@ export function getLayerSettings(
     minZoom: Math.min(minZoom, maxZoom),
     maxZoom: Math.max(minZoom, maxZoom),
     fillColor: toRGBA(formData.fill_color_picker ?? PRIMARY_COLOR),
+    colorSchemeType:
+      formData.color_scheme_type ?? COLOR_SCHEME_TYPES.fixed_color,
+    colorProperty: formData.color_property?.trim() || undefined,
+    colorScheme: formData.color_scheme,
   };
 }

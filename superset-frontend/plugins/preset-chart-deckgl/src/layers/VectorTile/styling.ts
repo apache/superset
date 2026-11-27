@@ -26,7 +26,11 @@ import {
 } from '@maplibre/maplibre-gl-style-spec';
 // eslint-disable-next-line import/no-unresolved
 import { Feature } from 'geojson';
-import { RGBAColor } from './layerSettings';
+import { CategoricalColorNamespace } from '@superset-ui/core';
+import { hexToRGB } from '../../utils/colors';
+import { NULL_CATEGORY_KEY } from '../../utils';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import { RGBAColor, VectorTileLayerSettings } from './layerSettings';
 
 /** Turns a deck.gl colour (0–255 channels) into a MapLibre `rgba` expression. */
 export const toRgbaExpression = ([
@@ -45,6 +49,13 @@ export function buildColorExpression(
 
 // Evaluated per feature, not per zoom level.
 const GLOBALS = { zoom: 0 };
+const FEATURE_EXPRESSION: {
+  interpolated: boolean;
+  parameters: Array<'feature'>;
+} = {
+  interpolated: false,
+  parameters: ['feature'],
+};
 
 const colorPropertySpec = ([
   r,
@@ -54,12 +65,33 @@ const colorPropertySpec = ([
 ]: RGBAColor): StylePropertySpecification => ({
   type: 'color',
   'property-type': 'data-driven',
-  expression: { interpolated: false, parameters: ['feature'] },
+  expression: FEATURE_EXPRESSION,
   transition: false,
   overridable: false,
   // Returned when the expression fails for a feature, e.g. text that is not a number.
   default: `rgba(${r}, ${g}, ${b}, ${a / 255})`,
 });
+
+/** The shape the style-spec evaluator expects for a deck.gl GeoJSON feature. */
+const toStyleFeature = (feature: Feature): StyleFeature => ({
+  type: (feature.geometry?.type ?? 'Unknown') as StyleFeature['type'],
+  properties: feature.properties ?? {},
+});
+
+/** Compiles an expression once and returns a per-feature evaluator. */
+function compileFeatureExpression<T>(
+  expression: ExpressionSpecification,
+  rootKey: string,
+  propertySpec: StylePropertySpecification,
+): (feature: Feature) => T {
+  const compiled = createExpression(expression, rootKey, propertySpec);
+  if (compiled.result === 'error') {
+    throw new Error(compiled.value.map(error => error.message).join('; '));
+  }
+  const styleExpression = compiled.value;
+  return feature =>
+    styleExpression.evaluate(GLOBALS, toStyleFeature(feature)) as T;
+}
 
 /**
  * Compiles a colour expression into a deck.gl accessor that returns
@@ -70,22 +102,96 @@ export function compileColorAccessor(
   expression: ExpressionSpecification,
   fallback: RGBAColor,
 ): (feature: Feature) => RGBAColor {
-  const compiled = createExpression(
+  const evaluate = compileFeatureExpression<Color>(
     expression,
     'vector-tile-color',
     colorPropertySpec(fallback),
   );
-  if (compiled.result === 'error') {
-    throw new Error(compiled.value.map(error => error.message).join('; '));
-  }
-  const styleExpression = compiled.value;
-
   return feature => {
-    const color = styleExpression.evaluate(GLOBALS, {
-      type: (feature.geometry?.type ?? 'Unknown') as StyleFeature['type'],
-      properties: feature.properties ?? {},
-    }) as Color;
-    const [r, g, b, a] = color.rgb;
+    const [r, g, b, a] = evaluate(feature).rgb;
     return [r * 255, g * 255, b * 255, a * 255];
+  };
+}
+
+/**
+ * Reads a property as category text, matching other deck.gl charts:
+ * values become strings and missing values become NULL_CATEGORY_KEY.
+ */
+export const buildCategoryExpression = (
+  property: string,
+): ExpressionSpecification => [
+  'case',
+  ['==', ['get', property], null],
+  NULL_CATEGORY_KEY,
+  ['to-string', ['get', property]],
+];
+
+const categoryPropertySpec: StylePropertySpecification = {
+  type: 'string',
+  'property-type': 'data-driven',
+  expression: FEATURE_EXPRESSION,
+  transition: false,
+  default: NULL_CATEGORY_KEY,
+};
+
+type CategoryScale = ReturnType<typeof CategoricalColorNamespace.getScale>;
+const categoryScales = new Map<string, CategoryScale>();
+
+/**
+ * Returns one colour scale per chart and palette. getScale() builds a new
+ * scale on every call, and a new scale forgets which colour each value has.
+ */
+function getCategoryScale(
+  colorScheme: string | undefined,
+  sliceId: number | undefined,
+): CategoryScale {
+  const key = `${sliceId ?? ''}:${colorScheme ?? ''}`;
+  let scale = categoryScales.get(key);
+  if (!scale) {
+    scale = CategoricalColorNamespace.getScale(colorScheme);
+    categoryScales.set(key, scale);
+  }
+  return scale;
+}
+
+export interface ColorAccessor {
+  getColor: (feature: Feature) => RGBAColor;
+  /** Changes whenever colours must be recomputed; used for updateTriggers. */
+  updateTrigger: string;
+}
+
+/** Builds the per-feature colour accessor for the chosen colour mode. */
+export function createColorAccessor(
+  {
+    colorSchemeType,
+    colorProperty,
+    colorScheme,
+    fillColor,
+  }: VectorTileLayerSettings,
+  sliceId?: number,
+): ColorAccessor {
+  if (
+    colorSchemeType === COLOR_SCHEME_TYPES.categorical_palette &&
+    colorProperty
+  ) {
+    const expression = buildCategoryExpression(colorProperty);
+    const readCategory = compileFeatureExpression<string>(
+      expression,
+      'vector-tile-category',
+      categoryPropertySpec,
+    );
+    const scale = getCategoryScale(colorScheme, sliceId);
+    return {
+      // Opacity follows the fixed colour, as in other categorical deck.gl charts.
+      getColor: feature =>
+        hexToRGB(scale(readCategory(feature), sliceId), fillColor[3]),
+      updateTrigger: JSON.stringify([expression, colorScheme, fillColor[3]]),
+    };
+  }
+
+  const expression = buildColorExpression(fillColor);
+  return {
+    getColor: compileColorAccessor(expression, fillColor),
+    updateTrigger: JSON.stringify(expression),
   };
 }

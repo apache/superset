@@ -17,14 +17,41 @@
  * under the License.
  */
 
-import { buildColorExpression, compileColorAccessor } from './styling';
+import {
+  buildColorExpression,
+  compileColorAccessor,
+  createColorAccessor,
+} from './styling';
 import { RGBAColor } from './layerSettings';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const TEAL: RGBAColor = [0, 122, 135, 255];
 const point = (properties: Record<string, unknown>) => ({
   type: 'Feature' as const,
   geometry: { type: 'Point' as const, coordinates: [0, 0] },
   properties,
+});
+
+const settings = {
+  tileUrl: 'http://tiles/{z}/{x}/{y}',
+  minZoom: 0,
+  maxZoom: 14,
+  fillColor: TEAL,
+  colorSchemeType: COLOR_SCHEME_TYPES.categorical_palette,
+  colorProperty: 'category',
+  colorScheme: 'supersetColors',
+};
+
+jest.mock('@superset-ui/core', () => {
+  const actual = jest.requireActual('@superset-ui/core');
+  return {
+    ...actual,
+    CategoricalColorNamespace: {
+      ...actual.CategoricalColorNamespace,
+      getScale: () => (value: string) =>
+        value === 'school' ? '#ff0000' : '#00ff00',
+    },
+  };
 });
 
 test('builds an rgba expression with alpha scaled to 0–1', () => {
@@ -54,4 +81,27 @@ test('throws when the expression does not compile', () => {
   expect(() =>
     compileColorAccessor(['not-an-operator'] as never, TEAL),
   ).toThrow();
+});
+
+test('categorical mode colours features by property value', () => {
+  const { getColor } = createColorAccessor(settings, 1);
+  expect(getColor(point({ category: 'school' }))).toEqual([255, 0, 0, 255]);
+  expect(getColor(point({ category: 'park' }))).toEqual([0, 255, 0, 255]);
+});
+
+test('categorical mode without a property falls back to the fixed colour', () => {
+  const { getColor } = createColorAccessor(
+    { ...settings, colorProperty: undefined },
+    1,
+  );
+  expect(getColor(point({ category: 'school' }))).toEqual(TEAL);
+});
+
+test('changing the palette changes the update trigger', () => {
+  const a = createColorAccessor(settings, 1).updateTrigger;
+  const b = createColorAccessor(
+    { ...settings, colorScheme: 'other' },
+    1,
+  ).updateTrigger;
+  expect(a).not.toEqual(b);
 });
