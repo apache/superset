@@ -203,6 +203,27 @@ test('checkIsMissingRequiredValue returns true for required filter with null val
   expect(checkIsMissingRequiredValue(filter, filterState)).toBe(true);
 });
 
+test('checkIsMissingRequiredValue returns true for required filter with [null, null] value', () => {
+  const filter = createFilter('test-filter', { enableEmptyFilter: true });
+  const filterState: FilterState = { value: [null, null] };
+
+  expect(checkIsMissingRequiredValue(filter, filterState)).toBe(true);
+});
+
+test('checkIsMissingRequiredValue returns true for required filter with empty array value', () => {
+  const filter = createFilter('test-filter', { enableEmptyFilter: true });
+  const filterState: FilterState = { value: [] };
+
+  expect(checkIsMissingRequiredValue(filter, filterState)).toBe(true);
+});
+
+test('checkIsMissingRequiredValue returns false for a partially filled range', () => {
+  const filter = createFilter('test-filter', { enableEmptyFilter: true });
+  const filterState: FilterState = { value: [null, 70] };
+
+  expect(checkIsMissingRequiredValue(filter, filterState)).toBe(false);
+});
+
 test('checkIsMissingRequiredValue returns false for required filter with valid value', () => {
   const filter = createFilter('test-filter', { enableEmptyFilter: true });
   const filterState: FilterState = { value: ['CA'] };
@@ -744,6 +765,29 @@ test('CRITICAL: getFiltersToApply includes in-scope filters regardless of value'
 
   expect(result).toContain('in-scope-with-value');
   expect(result).toContain('in-scope-empty');
+});
+
+test('getFiltersToApply includes forced out-of-scope filters even without a value', () => {
+  const dataMaskSelected: DataMaskStateWithId = {
+    'cascade-cleared': {
+      id: 'cascade-cleared',
+      filterState: { value: null },
+      extraFormData: {},
+    },
+    'untouched-empty': {
+      id: 'untouched-empty',
+      filterState: { value: undefined },
+      extraFormData: {},
+    },
+  };
+
+  const result = getFiltersToApply(
+    dataMaskSelected,
+    new Set(),
+    new Set(['cascade-cleared']),
+  );
+
+  expect(result).toEqual(['cascade-cleared']);
 });
 
 test('CRITICAL: getFiltersToApply includes out-of-scope filters ONLY if they have a value', () => {
