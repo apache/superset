@@ -306,6 +306,13 @@ assists people when migrating to a new version.
   non-empty viewers list restricts access regardless of the flag), and removing
   viewers remains possible so stale assignments can be cleared.
 
+- The `Week` time grain for Oracle (`TRUNC(..., 'IW')`) and Impala
+  (`TRUNC(..., 'D')`) now always truncates to Monday. Previously `'WW'`
+  aligned weeks to the weekday of January 1, so the week start changed every
+  year and each year ended with a 1–2 day stub week. Existing Week-grain charts
+  on these engines will regroup, and cached results may show the old buckets
+  until they expire.
+
 - [45929](https://github.com/apache/superset/pull/45929): Partition filter
   mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
   `supports_partition_filter_mapping = True`: Hive and Impala, plus the specs
@@ -1355,6 +1362,16 @@ on `/api/v1/me/`), so grant all three permissions to any custom role whose
 members may have `password_must_change` set on their account.
 `ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
 check on; `password_must_change` is the per-user flag it acts on.
+
+- **Administrator-set passwords now force a change at next login.** With
+  `ENABLE_FORCE_PASSWORD_CHANGE` on, creating a user with a password
+  (`POST /api/v1/security/users/`) or setting another user's password from the
+  Users list edit modal (`PUT /api/v1/security/users/<pk>`) sets
+  `password_must_change` on that account, so its owner is redirected to choose
+  their own password at next login. Previously nothing set the flag, so the
+  setting had no effect. An administrator changing their own password is not
+  flagged (and a pending change of theirs is cleared). The flag is only raised
+  under `AUTH_DB`, and not at all with the setting off.
 
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 

@@ -17,8 +17,11 @@
  * under the License.
  */
 import {
+  Behavior,
+  ChartMetadata,
   JsonResponse,
   SupersetClient,
+  getChartMetadataRegistry,
   isFeatureEnabled,
 } from '@superset-ui/core';
 import { waitFor } from 'spec/helpers/testing-library';
@@ -55,6 +58,7 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
+import { getCrossFiltersConfiguration } from 'src/dashboard/util/crossFilters';
 import type { RootState } from 'src/dashboard/types';
 import { navigateTo, navigateWithState } from 'src/utils/navigationUtils';
 
@@ -339,24 +343,22 @@ function restoreFeatureFlagMock() {
 test('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {
   enableConfirmDashboardDiff();
   try {
-    await (async () => {
-      const id = 192;
-      const { getState, dispatch } = setup();
-      const thunk = saveDashboardRequest(
-        newDashboardData,
-        id,
-        SAVE_TYPE_OVERWRITE,
-      );
-      thunk(dispatch, getState);
-      expect(getStub.mock.calls.length).toBe(1);
-      expect(postStub.mock.calls.length).toBe(0);
-      await waitFor(() =>
-        expect(dispatch.mock.calls[2][0].type).toBe(SET_OVERRIDE_CONFIRM),
-      );
-      expect(
-        dispatch.mock.calls[2][0].overwriteConfirmMetadata.dashboardId,
-      ).toBe(id);
-    })();
+    const id = 192;
+    const { getState, dispatch } = setup();
+    const thunk = saveDashboardRequest(
+      newDashboardData,
+      id,
+      SAVE_TYPE_OVERWRITE,
+    );
+    thunk(dispatch, getState);
+    expect(getStub.mock.calls.length).toBe(1);
+    expect(postStub.mock.calls.length).toBe(0);
+    await waitFor(() =>
+      expect(dispatch.mock.calls[2][0].type).toBe(SET_OVERRIDE_CONFIRM),
+    );
+    expect(dispatch.mock.calls[2][0].overwriteConfirmMetadata.dashboardId).toBe(
+      id,
+    );
   } finally {
     restoreFeatureFlagMock();
   }
@@ -365,25 +367,23 @@ test('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () 
 test('should post dashboard data with after confirm the overwrite values', async () => {
   enableConfirmDashboardDiff();
   try {
-    await (async () => {
-      const id = 192;
-      const { getState, dispatch } = setup();
-      const confirmedDashboardData = {
-        ...newDashboardData,
-        css: updatedCss,
-      };
-      const thunk = saveDashboardRequest(
-        confirmedDashboardData,
-        id,
-        SAVE_TYPE_OVERWRITE_CONFIRMED,
-      );
-      thunk(dispatch, getState);
-      expect(getStub.mock.calls.length).toBe(0);
-      expect(postStub.mock.calls.length).toBe(0);
-      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
-      const { body } = putStub.mock.calls[0][0];
-      expect(body).toBe(JSON.stringify(confirmedDashboardData));
-    })();
+    const id = 192;
+    const { getState, dispatch } = setup();
+    const confirmedDashboardData = {
+      ...newDashboardData,
+      css: updatedCss,
+    };
+    const thunk = saveDashboardRequest(
+      confirmedDashboardData,
+      id,
+      SAVE_TYPE_OVERWRITE_CONFIRMED,
+    );
+    thunk(dispatch, getState);
+    expect(getStub.mock.calls.length).toBe(0);
+    expect(postStub.mock.calls.length).toBe(0);
+    await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+    const { body } = putStub.mock.calls[0][0];
+    expect(body).toBe(JSON.stringify(confirmedDashboardData));
   } finally {
     restoreFeatureFlagMock();
   }
@@ -392,21 +392,19 @@ test('should post dashboard data with after confirm the overwrite values', async
 test('warns about the overwrite values when a diff is detected', async () => {
   enableConfirmDashboardDiff();
   try {
-    await (async () => {
-      const { getState, dispatch } = setup();
-      const thunk = saveDashboardRequest(
-        newDashboardData,
-        192,
-        SAVE_TYPE_OVERWRITE,
-      );
-      thunk(dispatch, getState);
-      await waitFor(() =>
-        expect(findDangerToast(dispatch)?.payload.text).toBe(
-          'Please confirm the overwrite values.',
-        ),
-      );
-      expect(putStub.mock.calls.length).toBe(0);
-    })();
+    const { getState, dispatch } = setup();
+    const thunk = saveDashboardRequest(
+      newDashboardData,
+      192,
+      SAVE_TYPE_OVERWRITE,
+    );
+    thunk(dispatch, getState);
+    await waitFor(() =>
+      expect(findDangerToast(dispatch)?.payload.text).toBe(
+        'Please confirm the overwrite values.',
+      ),
+    );
+    expect(putStub.mock.calls.length).toBe(0);
   } finally {
     restoreFeatureFlagMock();
   }
@@ -415,25 +413,23 @@ test('warns about the overwrite values when a diff is detected', async () => {
 test('reports the actual error when the overwrite precheck fails', async () => {
   enableConfirmDashboardDiff();
   try {
-    await (async () => {
-      getStub.mockRestore();
-      getStub = jest
-        .spyOn(SupersetClient, 'get')
-        .mockRejectedValue(new Error('precheck exploded'));
-      const { getState, dispatch } = setup();
-      const thunk = saveDashboardRequest(
-        newDashboardData,
-        192,
-        SAVE_TYPE_OVERWRITE,
-      );
-      thunk(dispatch, getState);
-      await waitFor(() =>
-        expect(findDangerToast(dispatch)?.payload.text).toContain(
-          'precheck exploded',
-        ),
-      );
-      expect(putStub.mock.calls.length).toBe(0);
-    })();
+    getStub.mockRestore();
+    getStub = jest
+      .spyOn(SupersetClient, 'get')
+      .mockRejectedValue(new Error('precheck exploded'));
+    const { getState, dispatch } = setup();
+    const thunk = saveDashboardRequest(
+      newDashboardData,
+      192,
+      SAVE_TYPE_OVERWRITE,
+    );
+    thunk(dispatch, getState);
+    await waitFor(() =>
+      expect(findDangerToast(dispatch)?.payload.text).toContain(
+        'precheck exploded',
+      ),
+    );
+    expect(putStub.mock.calls.length).toBe(0);
   } finally {
     restoreFeatureFlagMock();
   }
@@ -446,19 +442,17 @@ function disableConfirmDashboardDiff() {
 test('never runs the overwrite precheck', async () => {
   disableConfirmDashboardDiff();
   try {
-    await (async () => {
-      const { getState, dispatch } = setup();
-      const thunk = saveDashboardRequest(
-        newDashboardData,
-        192,
-        SAVE_TYPE_OVERWRITE,
-      );
-      thunk(dispatch, getState);
-      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
-      expect(getStub).not.toHaveBeenCalledWith(
-        expect.objectContaining({ endpoint: '/api/v1/dashboard/192' }),
-      );
-    })();
+    const { getState, dispatch } = setup();
+    const thunk = saveDashboardRequest(
+      newDashboardData,
+      192,
+      SAVE_TYPE_OVERWRITE,
+    );
+    thunk(dispatch, getState);
+    await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+    expect(getStub).not.toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/api/v1/dashboard/192' }),
+    );
   } finally {
     restoreFeatureFlagMock();
   }
@@ -470,24 +464,22 @@ test('never runs the overwrite precheck', async () => {
 test('reports the actual error when the update throws unexpectedly', async () => {
   disableConfirmDashboardDiff();
   try {
-    await (async () => {
-      putStub.mockRestore();
-      putStub = jest.spyOn(SupersetClient, 'put').mockImplementation(() => {
-        throw new Error('unexpected boom');
-      });
-      const { getState, dispatch } = setup();
-      const thunk = saveDashboardRequest(
-        newDashboardData,
-        192,
-        SAVE_TYPE_OVERWRITE,
-      );
-      thunk(dispatch, getState);
-      await waitFor(() =>
-        expect(findDangerToast(dispatch)?.payload.text).toContain(
-          'unexpected boom',
-        ),
-      );
-    })();
+    putStub.mockRestore();
+    putStub = jest.spyOn(SupersetClient, 'put').mockImplementation(() => {
+      throw new Error('unexpected boom');
+    });
+    const { getState, dispatch } = setup();
+    const thunk = saveDashboardRequest(
+      newDashboardData,
+      192,
+      SAVE_TYPE_OVERWRITE,
+    );
+    thunk(dispatch, getState);
+    await waitFor(() =>
+      expect(findDangerToast(dispatch)?.payload.text).toContain(
+        'unexpected boom',
+      ),
+    );
   } finally {
     restoreFeatureFlagMock();
   }
@@ -518,6 +510,122 @@ test('should navigate to the new dashboard after Save As', async () => {
 
   await waitFor(() => expect(postStub.mock.calls.length).toBe(1));
   expect(mockNavigateTo).toHaveBeenCalledWith(`/dashboard/${newDashboardId}/`);
+});
+
+test('Save As sends the cross-filter config with the copy and leaves the source dashboard alone', async () => {
+  const sourceDashboardId = 1;
+  const vizType = 'interactive_test_chart';
+  const chartLayoutItem = (chartId: number) => ({
+    children: [],
+    id: `CHART-${chartId}`,
+    meta: { chartId, width: 4, height: 50 },
+    parents: ['ROOT_ID', 'GRID_ID'],
+    type: 'CHART',
+  });
+  const chart = (id: number) => ({ id, form_data: { viz_type: vizType } });
+  // The stored chartsInScope values are stale on purpose, so the copy
+  // only matches if the configuration is recomputed for the current state.
+  const state = {
+    ...mockState,
+    dashboardInfo: {
+      id: sourceDashboardId,
+      metadata: {
+        color_scheme: 'supersetColors',
+        chart_configuration: {
+          '1': {
+            id: 1,
+            crossFilters: {
+              scope: { rootPath: ['ROOT_ID'], excluded: [2] },
+              chartsInScope: [2],
+            },
+          },
+          '2': {
+            id: 2,
+            crossFilters: { scope: 'global', chartsInScope: [] },
+          },
+        },
+        global_chart_configuration: {
+          scope: { rootPath: ['ROOT_ID'], excluded: [] },
+          chartsInScope: [],
+        },
+      },
+    },
+    dashboardLayout: {
+      past: [],
+      present: {
+        'CHART-1': chartLayoutItem(1),
+        'CHART-2': chartLayoutItem(2),
+      },
+      future: {},
+    },
+    charts: { 1: chart(1), 2: chart(2) },
+  };
+  const getState = jest.fn(() => state) as unknown as () => any;
+  const dispatch: jest.Mock = jest.fn(action =>
+    typeof action === 'function' ? action(dispatch, getState) : action,
+  );
+  getChartMetadataRegistry().registerValue(
+    vizType,
+    new ChartMetadata({
+      name: 'interactive test chart',
+      thumbnail: '.png',
+      behaviors: [Behavior.InteractiveChart],
+    }),
+  );
+  const requestStub = jest
+    .spyOn(SupersetClient, 'request')
+    .mockResolvedValue({ json: { result: {} } } as any);
+  try {
+    postStub.mockRestore();
+    postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+      json: { result: { id: 999, last_modified_time: 0 } },
+    } as any);
+
+    await saveDashboardRequest(
+      { ...newDashboardData, duplicate_slices: true },
+      sourceDashboardId,
+      SAVE_TYPE_NEWDASHBOARD,
+    )(dispatch, getState);
+
+    await waitFor(() => expect(mockNavigateTo).toHaveBeenCalled());
+    expect(
+      dispatch.mock.calls.some(
+        ([action]) => action?.type === 'SAVE_CHART_CONFIG_BEGIN',
+      ),
+    ).toBe(false);
+    expect(requestStub).not.toHaveBeenCalled();
+    expect(putStub).not.toHaveBeenCalled();
+    const { endpoint, jsonPayload } = postStub.mock.calls[0][0];
+    expect(endpoint).toBe(`/api/v1/dashboard/${sourceDashboardId}/copy/`);
+    const metadata = JSON.parse(jsonPayload.json_metadata);
+    const { chartConfiguration, globalChartConfiguration } =
+      getCrossFiltersConfiguration(
+        state.dashboardLayout.present as any,
+        state.dashboardInfo.metadata as any,
+        state.charts as any,
+      );
+    expect(metadata.chart_configuration).toEqual(chartConfiguration);
+    expect(metadata.global_chart_configuration).toEqual(
+      globalChartConfiguration,
+    );
+    expect(metadata.chart_configuration).toEqual({
+      '1': {
+        id: 1,
+        crossFilters: {
+          scope: { rootPath: ['ROOT_ID'], excluded: [2] },
+          chartsInScope: [],
+        },
+      },
+      '2': {
+        id: 2,
+        crossFilters: { scope: 'global', chartsInScope: [1] },
+      },
+    });
+    expect(metadata.global_chart_configuration.chartsInScope).toEqual([1, 2]);
+  } finally {
+    requestStub.mockRestore();
+    getChartMetadataRegistry().remove(vizType);
+  }
 });
 
 // `navigateWithState` regression for the
@@ -1039,29 +1147,27 @@ function restoreDeleteStub() {
 test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches (starring)', async () => {
   setupDeleteStub();
   try {
-    await (async () => {
-      const id = 123;
-      const { getState, dispatch } = setup({
-        dashboardInfo: {
-          id,
-          metadata: { color_scheme: 'supersetColors' },
-        },
-      });
+    const id = 123;
+    const { getState, dispatch } = setup({
+      dashboardInfo: {
+        id,
+        metadata: { color_scheme: 'supersetColors' },
+      },
+    });
 
-      postStub.mockRestore();
-      postStub = jest
-        .spyOn(SupersetClient, 'post')
-        .mockResolvedValue({} as unknown as JsonResponse);
+    postStub.mockRestore();
+    postStub = jest
+      .spyOn(SupersetClient, 'post')
+      .mockResolvedValue({} as unknown as JsonResponse);
 
-      await saveFaveStar(id, false)(dispatch, getState);
+    await saveFaveStar(id, false)(dispatch, getState);
 
-      expect(postStub).toHaveBeenCalledTimes(1);
-      expect(dispatch).toHaveBeenCalledTimes(1);
-      expect(dispatch).toHaveBeenCalledWith({
-        type: TOGGLE_FAVE_STAR,
-        isStarred: true,
-      });
-    })();
+    expect(postStub).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: TOGGLE_FAVE_STAR,
+      isStarred: true,
+    });
   } finally {
     restoreDeleteStub();
   }
@@ -1070,24 +1176,22 @@ test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches (starring)
 test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches (unstarring)', async () => {
   setupDeleteStub();
   try {
-    await (async () => {
-      const id = 123;
-      const { getState, dispatch } = setup({
-        dashboardInfo: {
-          id,
-          metadata: { color_scheme: 'supersetColors' },
-        },
-      });
+    const id = 123;
+    const { getState, dispatch } = setup({
+      dashboardInfo: {
+        id,
+        metadata: { color_scheme: 'supersetColors' },
+      },
+    });
 
-      await saveFaveStar(id, true)(dispatch, getState);
+    await saveFaveStar(id, true)(dispatch, getState);
 
-      expect(deleteStub).toHaveBeenCalledTimes(1);
-      expect(dispatch).toHaveBeenCalledTimes(1);
-      expect(dispatch).toHaveBeenCalledWith({
-        type: TOGGLE_FAVE_STAR,
-        isStarred: false,
-      });
-    })();
+    expect(deleteStub).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: TOGGLE_FAVE_STAR,
+      isStarred: false,
+    });
   } finally {
     restoreDeleteStub();
   }
@@ -1096,26 +1200,24 @@ test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches (unstarrin
 test('saveFaveStar: does NOT dispatch when the dashboard ID changed before the response resolved', async () => {
   setupDeleteStub();
   try {
-    await (async () => {
-      const requestedId = 123;
-      // User navigated to a different dashboard by the time the response comes back
-      const { getState, dispatch } = setup({
-        dashboardInfo: {
-          id: 456,
-          metadata: { color_scheme: 'supersetColors' },
-        },
-      });
+    const requestedId = 123;
+    // User navigated to a different dashboard by the time the response comes back
+    const { getState, dispatch } = setup({
+      dashboardInfo: {
+        id: 456,
+        metadata: { color_scheme: 'supersetColors' },
+      },
+    });
 
-      postStub.mockRestore();
-      postStub = jest
-        .spyOn(SupersetClient, 'post')
-        .mockResolvedValue({} as unknown as JsonResponse);
+    postStub.mockRestore();
+    postStub = jest
+      .spyOn(SupersetClient, 'post')
+      .mockResolvedValue({} as unknown as JsonResponse);
 
-      await saveFaveStar(requestedId, false)(dispatch, getState);
+    await saveFaveStar(requestedId, false)(dispatch, getState);
 
-      expect(postStub).toHaveBeenCalledTimes(1);
-      expect(dispatch).not.toHaveBeenCalled();
-    })();
+    expect(postStub).toHaveBeenCalledTimes(1);
+    expect(dispatch).not.toHaveBeenCalled();
   } finally {
     restoreDeleteStub();
   }
@@ -1124,32 +1226,30 @@ test('saveFaveStar: does NOT dispatch when the dashboard ID changed before the r
 test('saveFaveStar: dispatches a danger toast on error when the dashboard ID still matches', async () => {
   setupDeleteStub();
   try {
-    await (async () => {
-      const id = 123;
-      const { getState, dispatch } = setup({
-        dashboardInfo: {
-          id,
-          metadata: { color_scheme: 'supersetColors' },
-        },
-      });
+    const id = 123;
+    const { getState, dispatch } = setup({
+      dashboardInfo: {
+        id,
+        metadata: { color_scheme: 'supersetColors' },
+      },
+    });
 
-      postStub.mockRestore();
-      postStub = jest
-        .spyOn(SupersetClient, 'post')
-        .mockRejectedValue(new Error('network'));
+    postStub.mockRestore();
+    postStub = jest
+      .spyOn(SupersetClient, 'post')
+      .mockRejectedValue(new Error('network'));
 
-      await saveFaveStar(id, false)(dispatch, getState);
+    await saveFaveStar(id, false)(dispatch, getState);
 
-      expect(dispatch).toHaveBeenCalledTimes(1);
-      expect(dispatch.mock.calls[0][0]).toEqual(
-        expect.objectContaining({
-          type: ADD_TOAST,
-          payload: expect.objectContaining({
-            toastType: ToastType.Danger,
-          }),
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        type: ADD_TOAST,
+        payload: expect.objectContaining({
+          toastType: ToastType.Danger,
         }),
-      );
-    })();
+      }),
+    );
   } finally {
     restoreDeleteStub();
   }
@@ -1158,24 +1258,22 @@ test('saveFaveStar: dispatches a danger toast on error when the dashboard ID sti
 test('saveFaveStar: does NOT dispatch a danger toast on error when the dashboard ID changed', async () => {
   setupDeleteStub();
   try {
-    await (async () => {
-      const requestedId = 123;
-      const { getState, dispatch } = setup({
-        dashboardInfo: {
-          id: 456,
-          metadata: { color_scheme: 'supersetColors' },
-        },
-      });
+    const requestedId = 123;
+    const { getState, dispatch } = setup({
+      dashboardInfo: {
+        id: 456,
+        metadata: { color_scheme: 'supersetColors' },
+      },
+    });
 
-      postStub.mockRestore();
-      postStub = jest
-        .spyOn(SupersetClient, 'post')
-        .mockRejectedValue(new Error('network'));
+    postStub.mockRestore();
+    postStub = jest
+      .spyOn(SupersetClient, 'post')
+      .mockRejectedValue(new Error('network'));
 
-      await saveFaveStar(requestedId, false)(dispatch, getState);
+    await saveFaveStar(requestedId, false)(dispatch, getState);
 
-      expect(dispatch).not.toHaveBeenCalled();
-    })();
+    expect(dispatch).not.toHaveBeenCalled();
   } finally {
     restoreDeleteStub();
   }

@@ -2623,17 +2623,6 @@ test('if the SSH Tunneling toggle is not displayed, nothing should get displayed
   expect(SSHTunnelPasswordInput).not.toBeInTheDocument();
 });
 
-// Keep this call inside a function. A top-level jest.mock is hoisted above
-// imports and replaces useSingleViewResource before the real hook is captured.
-function mockCrudHooks() {
-  jest.mock('src/views/CRUD/hooks', () => ({
-    ...jest.requireActual('src/views/CRUD/hooks'),
-    useSingleViewResource: jest.fn(),
-  }));
-}
-
-mockCrudHooks();
-
 test('Error displays when it is an object', async () => {
   setup({ dbEngine: 'PostgreSQL' });
   const step2of3text = await screen.findByText(/step 2 of 3/i);
@@ -2642,7 +2631,6 @@ test('Error displays when it is an object', async () => {
   expect(errorSection).toBeInTheDocument();
 });
 
-mockCrudHooks();
 const useSingleViewResourceMock = jest.spyOn(hooks, 'useSingleViewResource');
 
 useSingleViewResourceMock.mockReturnValue({
