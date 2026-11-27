@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, fireEvent } from '../../spec';
-import CodeSyntaxHighlighter from './index';
+import { CodeSyntaxHighlighter } from './index';
 
 // Simple mock that just returns the content
 jest.mock(

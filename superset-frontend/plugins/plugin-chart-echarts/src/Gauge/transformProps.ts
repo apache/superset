@@ -49,6 +49,7 @@ import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getColtypesMapping } from '../utils/series';
+import { getMetricValue, resolveBound } from '../utils/metricBounds';
 
 export const getIntervalBoundsAndColors = (
   intervals: string,
@@ -57,6 +58,7 @@ export const getIntervalBoundsAndColors = (
   colorFn: CategoricalColorScale,
   min: number,
   max: number,
+  relative = false,
 ): Array<[number, string]> => {
   let intervalBoundsNonNormalized;
   try {
@@ -65,8 +67,10 @@ export const getIntervalBoundsAndColors = (
     intervalBoundsNonNormalized = [] as number[];
   }
 
-  const intervalBounds = intervalBoundsNonNormalized.map(
-    bound => (bound - min) / (max - min),
+  // ECharts expects bounds as fractions of the axis; relative bounds are
+  // already percentages of it
+  const intervalBounds = intervalBoundsNonNormalized.map(bound =>
+    relative ? bound / 100 : (bound - min) / (max - min),
   );
 
   // New-style: `interval_colors` holds real hex/rgb colors chosen through
@@ -153,6 +157,8 @@ export default function transformProps(
     metric,
     minVal,
     maxVal,
+    minMetric,
+    maxMetric,
     colorScheme,
     fontSize,
     numberFormat,
@@ -169,6 +175,7 @@ export default function transformProps(
     showPointer,
     intervals,
     intervalColorIndices,
+    intervalsRelative,
     intervalColors,
     valueFormatter,
     sliceId,
@@ -263,20 +270,32 @@ export default function transformProps(
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
-  const isValidNumber = (
-    val: number | null | undefined | string,
-  ): val is number => {
-    if (val == null || val === '') return false;
-    const num = typeof val === 'string' ? Number(val) : val;
-    return !Number.isNaN(num) && Number.isFinite(num);
+  // All gauges share one axis, so grouped rows collapse to the widest
+  // bounds: the smallest min and the largest max across groups.
+  const boundFromRows = (
+    boundMetric: EchartsGaugeFormData['maxMetric'],
+    pick: (...values: number[]) => number,
+  ) => {
+    const values = data
+      .map(row => getMetricValue(row, boundMetric))
+      .filter((value): value is number => value !== undefined);
+    return values.length ? pick(...values) : undefined;
   };
 
-  const min = isValidNumber(minVal)
-    ? Number(minVal)
-    : calculateMin(transformedData);
-  const max = isValidNumber(maxVal)
-    ? Number(maxVal)
-    : calculateMax(transformedData);
+  const min = resolveBound({
+    fromMetric: boundFromRows(minMetric, Math.min),
+    fixed: minVal,
+    fallback: () => calculateMin(transformedData),
+  });
+  let max = resolveBound({
+    fromMetric: boundFromRows(maxMetric, Math.max),
+    fixed: maxVal,
+    fallback: () => calculateMax(transformedData),
+  });
+  if ((minMetric || maxMetric) && max <= min) {
+    // e.g. a target metric of 0; keep a usable axis instead of a blank gauge
+    max = min + (Math.abs(min) || 1);
+  }
   const axisLabels = range(min, max, (max - min) / splitNumber);
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
@@ -288,6 +307,7 @@ export default function transformProps(
     colorFn,
     min,
     max,
+    intervalsRelative,
   );
   const splitLineDistance =
     axisLineWidth + splitLineLength + OFFSETS.ticksFromLine;

@@ -517,7 +517,7 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     ),
     "native_filters": ColumnMetadata(
         name="native_filters",
-        description="Native filter configuration (name, type, targets)",
+        description="Native filters (name, type, parent filter IDs, targets)",
         type="list",
         is_default=False,
     ),

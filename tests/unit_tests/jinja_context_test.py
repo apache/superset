@@ -51,6 +51,7 @@ from superset.jinja_context import (
     OpaqueTemplateError,
     PrestoTemplateProcessor,
     safe_proxy,
+    SQLSafeList,
     TimeFilter,
     to_datetime,
     TrinoTemplateProcessor,
@@ -552,6 +553,137 @@ def test_get_filters_no_escaped_val_without_dialect() -> None:
         result = cache.get_filters("name")
         assert result == [{"op": "LIKE", "col": "name", "val": "O'Brien"}]
         assert "escaped_val" not in result[0]
+
+
+def test_filter_values_raw_by_default() -> None:
+    """
+    ``filter_values`` returns the raw filter values unchanged by default, even
+    when a dialect is configured. The documented list-membership pattern pipes
+    the result through ``where_in`` (see
+    ``test_filter_values_where_in_not_double_escaped``), which does its own
+    dialect-safe quoting, so the macro must not pre-quote the values.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.filter_values("name")
+        # Raw value, no dialect quoting applied, and a plain list (not the
+        # whole-container SQLSafeList).
+        assert result == ["O'Brien"]
+        assert not isinstance(result, SQLSafeList)
+
+
+def test_filter_values_escape_result_opt_in_like_sibling_macros() -> None:
+    """
+    With ``escape_result=True`` ``filter_values`` renders its returned values
+    through the dialect's literal processor, keeping it consistent with the
+    sibling value macros (``current_username``, ``get_guest_user_attribute``,
+    ``get_filters``' ``escaped_val``) for template authors who interpolate the
+    values manually. A string carrying a single quote comes back with the quote
+    doubled, every list member is escaped, and the whole container renders
+    without re-introducing a raw delimiter.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["a') OR ('1'='1", "Smith"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.filter_values("name", escape_result=True)
+        # Each value is dialect-escaped (single quotes doubled).
+        assert result == ["a'') OR (''1''=''1", "Smith"]
+        # Return type stays a SQLSafeList so whole-container rendering does
+        # not wrap elements in fresh, unescaped delimiters.
+        assert isinstance(result, SQLSafeList)
+        rendered = str(result)
+        assert "'" not in rendered.replace("''", "")
+
+
+def test_filter_values_where_in_not_double_escaped() -> None:
+    """
+    Regression: the documented ``filter_values(...) | where_in`` pattern must
+    render each value quoted exactly once. ``where_in`` applies the dialect's
+    own quoting, so a raw ``O'Brien`` becomes ``'O''Brien'`` -- a single
+    doubled quote -- and never ``'O''''Brien'`` (double-escaped), which would
+    silently stop matching rows.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["O'Brien", "Smith"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        where_in = WhereInMacro(dialect())
+        rendered = where_in(cache.filter_values("name"))
+        assert rendered == "('O''Brien', 'Smith')"
+        # Guard against the double-escape regression explicitly.
+        assert "O''''Brien" not in rendered
+
+
+def test_filter_values_unchanged_without_dialect() -> None:
+    """
+    Without a dialect ``filter_values`` returns the raw values unchanged,
+    preserving backwards compatibility for callers that did not opt into a
+    dialect-aware processor.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.filter_values("name") == ["O'Brien"]
 
 
 def test_escape_value_nested_list_is_escaped() -> None:
@@ -3956,3 +4088,62 @@ def test_render_for_discovery_custom_processors(mocker: MockerFixture) -> None:
     )
     with pytest.raises(OpaqueTemplateError):
         processor.render_for_discovery("{{ value.now() }}")
+
+
+def test_i18n_macro_adds_an_extra_cache_key(mocker: MockerFixture) -> None:
+    """A locale-dependent macro must vary the query cache key.
+
+    Without this, a viewer in one locale can populate a cached result holding
+    their translated SQL that a viewer in another locale then receives.
+    """
+    mocker.patch(
+        "superset.jinja_context.i18n_macro",
+        side_effect=lambda text: "Ventes" if text == "Sales" else text,
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    extra_cache_keys: list[Any] = []
+    processor = get_template_processor(
+        database=database, extra_cache_keys=extra_cache_keys
+    )
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "Ventes"
+    assert extra_cache_keys == ["Ventes"]
+
+
+def test_i18n_macro_is_detected_as_cache_relevant() -> None:
+    """``ExtraCache.regex`` gates whether a query collects extra cache keys."""
+    assert ExtraCache.regex.search("SELECT '{{ i18n('Sales') }}'")
+
+
+def test_jinja_context_addon_keeps_the_i18n_name(mocker: MockerFixture) -> None:
+    """A deployment that already bound ``i18n`` keeps its own function.
+
+    The macro is new, so an addon of the same name predates it and must not be
+    silently replaced on upgrade.
+    """
+    mocker.patch(
+        "superset.jinja_context.context_addons",
+        return_value={"i18n": lambda text: f"addon:{text}"},
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "addon:Sales"
+
+
+def test_template_param_does_not_unbind_the_i18n_macro(mocker: MockerFixture) -> None:
+    """A dataset template_param must not displace a core macro.
+
+    ``template_params`` are merged into the same context dict before the macros
+    are registered, so guarding on the whole context would leave a non-callable
+    bound to the name and break ``{{ i18n(...) }}`` for that query.
+    """
+    mocker.patch(
+        "superset.jinja_context.i18n_macro",
+        side_effect=lambda text: f"translated:{text}",
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+    processor.set_context(i18n="a template param, not a function")
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "translated:Sales"

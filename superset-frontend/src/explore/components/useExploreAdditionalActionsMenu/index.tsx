@@ -39,6 +39,7 @@ import {
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { isTreeQueryMode } from '@superset-ui/plugin-chart-ag-grid-table';
 import {
   Icons,
   ModalTrigger,
@@ -494,9 +495,9 @@ export const useExploreAdditionalActionsMenu = (
   const meta = vizType ? getChartMetadataRegistry().get(vizType) : undefined;
 
   // Detect if the chart plugin exposes the export-current-view behavior
-  const hasExportCurrentView = !!meta?.behaviors?.includes(
-    'EXPORT_CURRENT_VIEW' as Behavior,
-  );
+  const hasExportCurrentView =
+    !isTreeQueryMode(latestQueryFormData) &&
+    !!meta?.behaviors?.includes('EXPORT_CURRENT_VIEW' as Behavior);
 
   const permalinkChartState = (exploreChartState as { state?: JsonObject })
     ?.state;

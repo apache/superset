@@ -1,0 +1,276 @@
+---
+title: 'Table V2: Tree mode'
+hide_title: true
+sidebar_position: 12
+version: 1
+---
+
+## Table V2: Tree mode
+
+:::note
+Tree mode is in development and gated by the `TABLE_V2_TREE_MODE_ENABLED`
+feature flag. Its behavior can change between releases.
+:::
+
+The Tree query mode of Table V2 shows a hierarchy from one dataset. Expand a row to see
+its detail fields and a table of its children. Each child can expand in turn;
+the last level can open to show its detail fields without another table.
+
+### Enable Tree mode
+
+An operator must enable both flags in `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "AG_GRID_TABLE_ENABLED": True,
+    "TABLE_V2_TREE_MODE_ENABLED": True,
+}
+```
+
+Merge these entries into your deployment's existing feature flags. Both flags
+are off by default. After restarting Superset, choose **Table V2** and set
+**Query mode** to **Tree**. Aggregate and Raw records keep their existing behavior.
+
+### Prepare one dataset
+
+All levels use columns from the same dataset. The chart does not join separate
+datasets. A dataset row carries the child fields and repeats its ancestors'
+fields. For example:
+
+| session_id | session_started_at | channel | step_id | step_started_at | step_name | duration |
+| --- | --- | --- | --- | --- | --- | --- |
+| S1 | 2026-01-01 09:00:00 | Web | A1 | 2026-01-01 09:00:10 | Start | 10 |
+| S1 | 2026-01-01 09:00:00 | Web | A2 | 2026-01-01 09:00:20 | Finish | 20 |
+| S2 | 2026-01-01 10:00:00 | App | B1 | 2026-01-01 10:00:10 | Start | 15 |
+
+Use stable IDs at every level. Each child has a link column containing the
+parent ID. At deeper levels, the complete ancestor path identifies a row:
+an ID repeated under different ancestors has separate expansion state.
+For a temporal ID stored in a custom format, such as a year stored as an
+integer, configure the dataset column's Python date format to match the
+stored value.
+
+Parent columns must be identical on every dataset row for that parent,
+including the level-1 time column. The parent query groups by the configured
+columns; inconsistent repeated values can produce several visible rows with
+the same ID. Duplicate parent IDs share their children. A null or empty parent
+ID cannot expand.
+
+Child IDs must not be null; null child IDs are excluded from child queries.
+Child level columns must be the same on every dataset row for one child ID;
+otherwise the count and Load more can disagree. This includes displayed and
+detail fields: totals count distinct child IDs, while queries group by the
+projected fields. Children without a matching visible ancestor are not shown.
+
+### Configure levels in Explore
+
+Choose **Table V2**, set **Query mode** to **Tree**, and open **Levels**. For the example:
+
+| Setting | Level 1 | Level 2 |
+| --- | --- | --- |
+| Name / plural | Session / Sessions | Step / Steps |
+| ID column | session_id | step_id |
+| Linked to Session by | — | session_id |
+| Time column | session_started_at | step_started_at |
+| Columns | channel | step_name, duration |
+| Detail fields | session_started_at | step_started_at |
+| Default sort | session_id ascending | step_id ascending |
+
+Set a singular name and, optionally, a plural name for each level.
+Without a plural name the singular name is reused. Detail regions use the
+level's name followed by “details”.
+
+Hover or focus a field's information icon for a short explanation of that setting.
+
+Use **Add level** for more levels. Each child level needs its own ID and parent
+link column. The parent link must differ from the child's own ID column.
+Choose Columns for the table and Detail fields for the expanded
+key-value block. Set the default sort for each level. A level with detail fields
+can expand even when it has no children.
+
+Level 1 requires a time column. A child time column is required when
+**Apply date filter to children** is enabled, and must also appear in that
+level's Columns or Detail fields. Configure the initial child batch with the
+shown-per-parent setting; the default is 100.
+Typed values below 1 become 1, values above 1000 become 1000, and an emptied
+field returns to the default of 100 when you leave it.
+
+In **Query**, set filters, the parent row limit, and page length. The **Page Size**
+menu lists 10, 20, 50, 100, and 200 parents per page in ascending order. The
+default is 50. The parent row limit caps the available parents, independently of
+the child and export limits.
+The default parent row limit is 10000 and uses Table V2's row-limit control.
+Page length is a Tree-only setting, independent of Aggregate and Raw records.
+Tree uses the instance's `SQL_MAX_ROW` cap regardless of retained server
+pagination settings. Tree uses its own page length and falls back to 50 for a
+missing or invalid value. Aggregate and Raw records keep their server page length.
+
+### Filters and date ranges
+
+Non-date dashboard filters and the chart's own non-date filters select the
+top-level parents. On-screen children are fetched for those parent paths,
+subject to dataset access, row-level security, and date rules. Non-date filters
+are not reapplied to the on-screen child rows.
+
+The chart's time range (the first time range in its filters) and dashboard
+time filters apply to the level-1 time column, whichever column they name,
+including in children and Load more queries. This preserves the selected
+parents' range. A dashboard time filter replaces the chart's own time range.
+When the dashboard filter is cleared or set to **No filter**, the chart keeps
+its own time range, as other charts do. An explicit **No filter** time range
+in the chart removes its date limit. Any further time range an author adds on another column keeps that column and
+applies to parents, children and exports alike.
+**Apply date filter to children**, off by default, additionally applies the
+level-1 range to the child level's time column; ranges on other columns do not
+carry to children's time columns. Enabled ancestor date rules also carry into
+deeper levels.
+
+A matching child never restores an excluded parent. A visible parent with no
+children matching the child date rule stays visible and shows
+“No Steps in the selected range” when the configured plural name is Steps.
+Dataset-provided child-count columns do not automatically recalculate for that
+range.
+
+### Expand, sort, and load more
+
+Opening the first row loads the first child batch for **every parent on that
+page**, not just the row opened. Further opens use the loaded children.
+**Load more** fetches the next batch for that parent; the status shows how many
+children are loaded and the total. A leaf with detail fields needs no child
+query to open its details.
+
+**Expand all** operates on the current page. When multiple levels can open,
+its arrow menu offers **Expand to Sessions**, **Expand to Steps**, and the
+equivalent action for each configured level. The main button changes to
+**Collapse all**. There is no search control.
+The main button reflects the last expand or collapse action immediately.
+Selecting the deepest openable level from the menu shows **Collapse all**;
+a partial selection keeps **Expand all** while deeper levels remain closed.
+Collapsing while children are loading keeps rows closed when those responses arrive.
+If a refresh adds a collapsed parent to the page, the button shows **Expand all** again.
+
+Click a column header or press Enter on a focused header to sort that level.
+The configured default column alternates between the opposite direction and
+the configured direction. Other columns cycle through ascending, descending,
+and a return to the default sort. If the level has no configured default, all
+columns use the three-step cycle and clearing the sort restores ascending ID
+order. Child sorting is shared by every child table at that level on the page,
+refetching its first batches. Parent page or sort changes collapse rows.
+Auto-refresh retains open rows and reloads their children; manual Force refresh
+collapses them. Changing chart or dashboard filters, including the time range,
+returns to the first parent page. A manual refresh with the same query keeps
+the current page.
+
+Child batches have a 100,000-row query cap, which an operator's lower query
+limit can further constrain. A batch can be cut before every parent's children
+arrive, especially with large parents or deep expansion. Affected rows show
+“Couldn't load Steps —” and a separate **Retry** button. Retry reloads that
+parent alone, keeping the count query. A Load more failure also offers Retry
+for that next batch. Child requests run synchronously even when global async
+queries are enabled, so deployment query timeouts apply.
+
+### Exports and reports
+
+**Export to .CSV** and **Export to Excel** include every matching child of
+the parents across the chart's pages, regardless of which rows are expanded
+or loaded on screen.
+The output is flat: one row per deepest-level child, with ancestor IDs,
+columns, and detail fields repeated. With two levels, each Step gets a row
+carrying its Session fields. Identical dataset rows for one child give one
+export row, as on screen.
+
+Non-date filters choose parents. Children follow the same date filters as
+the screen. The export uses the viewer's parent sort and each child level's
+configured default sort, rather than the child header sort clicked on screen.
+
+With non-date filters, parent selection is capped at the chart's row limit or
+the operator's `SQL_MAX_ROW`, whichever is lower. An engine may reject a large
+parent ID list or SQL statement. Lower the chart's row limit if that happens.
+Without non-date filters, an export can include parents beyond the chart's
+row limit.
+
+The export row cap is the operator's `SQL_MAX_ROW` setting (100,000 by default).
+As with other Superset chart exports, CSV/Excel exports and scheduled CSV
+reports stop silently at this limit. The operator can raise `SQL_MAX_ROW` to
+allow larger exports.
+
+Parents whose ID is NULL or empty can't expand on screen. CSV and Excel
+exports include these as parent rows without children. Regular exports also
+include a row for each parent with zero children in the selected child date
+range. A streaming CSV can omit parents with no children in range.
+Streaming selection depends on the configured threshold and parent row limit
+or expected-row estimate, not on a count of all export children.
+
+Scheduled CSV reports use the same export path and cap. A text report shows
+the first page of parents only, without children. With every row collapsed,
+image downloads from the chart menu contain the parent grid without the Tree
+toolbar and pager.
+Scheduled screenshot reports start with rows collapsed because expansion state
+is not saved.
+
+### Limits
+
+- An image download with open rows, or a dashboard image, can show the grids'
+  hidden paging controls and a misplaced pager. A separate image-export fix in
+  Superset corrects this.
+- A temporal ID or link column stored as a number or string with a date format matches children only when the dataset has no hour offset or timezone shift.
+- Temporal IDs stored as strings with non-zero microseconds in a `%f` field are unsupported.
+- **Export Current View** is not offered in Tree mode. **Export to full .CSV/Excel**
+  is offered when `ALLOW_FULL_CSV_EXPORT` is enabled and includes children under the same export cap.
+- Right-click opens the browser menu; **Drill to detail** is in the chart menu.
+- Switching between Tree and the other modes keeps both modes' settings. A saved
+  chart keeps the other mode's settings as unused values.
+- Page length resets to 10 when server pagination is off and the page-length control becomes hidden.
+- The Results pane shows only the parent page, without a separate count-query tab.
+- CSV/Excel hold all children of each parent, up to the export row cap; the screen shows the first N per parent, with **Load more** to show the next N.
+- A child query for multiple parents reads the children of every parent in the batch before trimming the results to the configured number per parent.
+- If the operator's `SQL_MAX_ROW` is lower than the number of count rows in a child batch, some parents can show no children where you would otherwise see **Couldn't load** with a **Retry** button.
+- Clearing a dashboard time filter or choosing **No filter** keeps the chart's
+  own time range.
+- Children on screen and in exports are limited by their parent path, dataset
+  access and row-level security, the level-1 date range, and the optional child
+  date filter. In a virtual dataset, Jinja (`filter_values`, `get_filters`) sees
+  non-date filters in parent queries on screen and in exports. Child queries
+  receive the selected parent IDs and date filters.
+- Cells show raw values: there are no number formats (D3 or currency),
+  conditional formatting, column settings or HTML rendering. The Customize tab
+  is empty in Tree mode.
+- Matrixify, Drill by, and time comparison are not supported.
+- **View query** shows the parent queries only, not the children's SQL.
+- Child queries stay synchronous when global async queries are enabled.
+- The dashboard **Export to Excel** workbook writes the first page of parents,
+  without children, and a separate sheet with the parent count.
+- A Tree chart switched to the legacy Table chart keeps the Tree query mode and runs as Aggregate.
+- Editing a Tree chart through the MCP `update_chart` tool reports success without changing what the chart shows.
+- The MCP `get_chart_data` tool returns only the parent page for Tree charts.
+- An empty result shows the grid's own "No Rows To Show" message, and Expand all stays enabled.
+- Tree mode uses its own pager, which looks different from the Aggregate and Raw records pager.
+- A new level sorts by its ID column until another default sort is chosen.
+- A scheduled PNG report can fail with a blank screenshot when only one to three parents match.
+
+### When Tree mode is turned off
+
+A saved chart in Tree mode shows **Tree mode is turned off**, including when
+no parents match its filters. Its Levels settings remain available in Explore,
+and an author can switch to Aggregate or Raw records. The data API, CSV/Excel
+exports and CSV reports still work because the flag controls frontend rendering.
+Image and PDF reports show the flag-off message. Table V2 itself still requires
+`AG_GRID_TABLE_ENABLED`; disabling that flag unregisters the chart.
+
+### Keyboard and accessibility
+
+Use Tab and Shift+Tab to move through controls, headers, rows, expanded child
+tables, Retry, and Load more. Arrow keys navigate grid cells. Enter or Space
+on a row's expand cell or button toggles its open area; the button announces
+Expand/Collapse and its expanded state. Header controls support keyboard
+sorting. The grids are nested grids with named child groups, rather than a
+single treegrid.
+
+The page-size selector and pager are keyboard accessible; Enter activates page
+controls. User-triggered loading, completion, and errors are announced through
+live status text. After a successful Retry, focus moves to the row's expand
+button. Load more keeps focus on the button while more children are
+available. After the last batch, focus moves to the first new row and the chart
+and page keep their scroll positions.
+If the last batch adds no rows, focus moves to the last existing child row,
+and if you moved focus elsewhere during loading, it stays there.

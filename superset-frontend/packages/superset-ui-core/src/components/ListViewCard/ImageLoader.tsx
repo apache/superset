@@ -20,6 +20,7 @@ import { useEffect, useState, DetailedHTMLProps, HTMLAttributes } from 'react';
 
 import { logging } from '@apache-superset/core/utils';
 import { styled } from '@apache-superset/core/theme';
+import { SupersetClient } from '../../connection';
 
 export type BackgroundPosition = 'top' | 'bottom';
 interface ImageContainerProps {
@@ -57,7 +58,17 @@ export function ImageLoader({
 
   useEffect(() => {
     if (src) {
-      fetch(src)
+      // Superset endpoints go through SupersetClient so the app root is
+      // prepended; absolute URLs are fetched as-is. Starting inside the chain
+      // lets an unconfigured client (e.g. Storybook) reject into the fallback
+      // instead of throwing.
+      const isAbsoluteUrl = /^(https?:)?\/\//i.test(src);
+      Promise.resolve()
+        .then(() =>
+          isAbsoluteUrl
+            ? fetch(src)
+            : SupersetClient.get({ endpoint: src, parseMethod: 'raw' }),
+        )
         .then(response => response.blob())
         .then(blob => {
           if (/image/.test(blob.type)) {
