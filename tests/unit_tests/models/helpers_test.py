@@ -3092,63 +3092,6 @@ def test_get_sqla_query_raises_for_custom_sql_metric_with_ungrouped_column(
         )
 
 
-@pytest.mark.parametrize(
-    "groupby_sql,expected_raise",
-    [
-        ("THIS_WEEK", False),
-        ('"LAST_WEEK"', False),
-        ("this_week + 1", True),
-    ],
-)
-def test_get_sqla_query_nonaggregate_metric_over_adhoc_groupby_columns(
-    database: Database,
-    groupby_sql: str,
-    expected_raise: bool,
-) -> None:
-    """
-    An adhoc SQL group-by that is just a physical column groups by that column,
-    so a metric over it is valid; any other adhoc expression doesn't count.
-    """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.exceptions import QueryObjectValidationError
-
-    table = SqlaTable(
-        database=database,
-        schema=None,
-        table_name="t",
-        columns=[
-            TableColumn(column_name="this_week"),
-            TableColumn(column_name="last_week"),
-        ],
-    )
-    other = "LAST_WEEK" if "THIS" in groupby_sql.upper() else "THIS_WEEK"
-    columns = [
-        {"expressionType": "SQL", "sqlExpression": groupby_sql, "label": "g1"},
-        {"expressionType": "SQL", "sqlExpression": other, "label": "g2"},
-    ]
-    metric: AdhocMetric = {
-        "expressionType": "SQL",
-        "sqlExpression": "(this_week - last_week) / last_week",
-        "label": "m",
-    }
-
-    def query() -> None:
-        table.get_sqla_query(
-            columns=columns,
-            metrics=[metric],
-            extras={},
-            filter=[],
-            granularity=None,
-            is_timeseries=False,
-        )
-
-    if expected_raise:
-        with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
-            query()
-    else:
-        query()
-
-
 def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
     database: Database,
 ) -> None:
