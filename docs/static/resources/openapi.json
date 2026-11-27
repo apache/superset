@@ -1326,7 +1326,6 @@
             "type": "string"
           },
           "is_managed_externally": {
-            "description": "Whether the canvas is managed by an external system, e.g. as code.",
             "nullable": true,
             "type": "boolean"
           },
