@@ -337,3 +337,80 @@ test('syncs selected state when external value prop changes', () => {
     'false',
   );
 });
+
+test('multiple mode adds a clicked option to the selection and stays open', async () => {
+  const onSelect = jest.fn();
+  const onClose = jest.fn();
+  render(
+    <CompactSelectPanel
+      multiple
+      selects={SMALL_SELECTS}
+      value={[{ label: 'Alice', value: 1 }]}
+      onSelect={onSelect}
+      onClose={onClose}
+    />,
+  );
+  await userEvent.click(screen.getByText('Bob'));
+  expect(onSelect).toHaveBeenCalledWith(
+    [
+      { label: 'Alice', value: 1 },
+      { label: 'Bob', value: 2 },
+    ],
+    false,
+  );
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+test('multiple mode removes an already selected option', async () => {
+  const onSelect = jest.fn();
+  render(
+    <CompactSelectPanel
+      multiple
+      selects={SMALL_SELECTS}
+      value={[
+        { label: 'Alice', value: 1 },
+        { label: 'Bob', value: 2 },
+      ]}
+      onSelect={onSelect}
+    />,
+  );
+  await userEvent.click(screen.getByText('Alice'));
+  expect(onSelect).toHaveBeenCalledWith([{ label: 'Bob', value: 2 }], false);
+});
+
+test('multiple mode clears the filter when the last option is removed', async () => {
+  const onSelect = jest.fn();
+  render(
+    <CompactSelectPanel
+      multiple
+      selects={SMALL_SELECTS}
+      value={[{ label: 'Alice', value: 1 }]}
+      onSelect={onSelect}
+    />,
+  );
+  await userEvent.click(screen.getByText('Alice'));
+  expect(onSelect).toHaveBeenCalledWith(undefined, true);
+});
+
+test('multiple mode marks every selected option and the listbox', () => {
+  render(
+    <CompactSelectPanel
+      multiple
+      selects={SMALL_SELECTS}
+      value={[
+        { label: 'Alice', value: 1 },
+        { label: 'Charlie', value: 3 },
+      ]}
+      onSelect={jest.fn()}
+    />,
+  );
+  expect(screen.getByRole('listbox')).toHaveAttribute(
+    'aria-multiselectable',
+    'true',
+  );
+  const selected = screen
+    .getAllByRole('option')
+    .filter(o => o.getAttribute('aria-selected') === 'true')
+    .map(o => o.textContent);
+  expect(selected).toEqual(['Alice', 'Charlie']);
+});

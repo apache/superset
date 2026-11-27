@@ -203,8 +203,11 @@ export function useListViewResource<D extends object = any>(
         .map(({ id, operator: opr, value }) => ({
           col: id,
           opr,
-          value:
-            value && typeof value === 'object' && 'value' in value
+          value: Array.isArray(value)
+            ? value.map(v =>
+                v && typeof v === 'object' && 'value' in v ? v.value : v,
+              )
+            : value && typeof value === 'object' && 'value' in value
               ? value.value
               : value,
         }));

@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 from flask_babel import lazy_gettext as _
+from sqlalchemy import distinct, func
 from sqlalchemy.orm import Query
 
 from superset.connectors.sqla.models import SqlaTable
@@ -111,9 +112,28 @@ class BaseTagIdFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """ The SQLAlchemy model """
 
     def apply(self, query: Query, value: Any) -> Query:
+        if not isinstance(value, list):
+            tags_query = (
+                db.session.query(self.model.id)
+                .join(self.model.tags)
+                .filter(Tag.id == value)
+            )
+            return query.filter(self.model.id.in_(tags_query))  # type: ignore[union-attr]
+
+        # A list of tag IDs matches objects tagged with *all* of them,
+        # mirroring how multiple label filters combine on GitHub.
+        tag_ids = list(
+            dict.fromkeys(
+                int(v) for v in value if isinstance(v, (int, str)) and str(v).isdigit()
+            )
+        )
+        if not tag_ids:
+            return query
         tags_query = (
             db.session.query(self.model.id)
             .join(self.model.tags)
-            .filter(Tag.id == value)
+            .filter(Tag.id.in_(tag_ids))
+            .group_by(self.model.id)
+            .having(func.count(distinct(Tag.id)) == len(tag_ids))
         )
         return query.filter(self.model.id.in_(tags_query))  # type: ignore[union-attr]

@@ -272,6 +272,43 @@ test('useListViewResource: fetchData filters out empty/null/undefined filter val
   expect(endpoint).not.toContain('col:undef');
 });
 
+test('useListViewResource: fetchData sends the values of a multi-select filter', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [], count: 0 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource('dashboard', 'Dashboards', jest.fn()),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [
+        {
+          id: 'tags',
+          operator: 'dashboard_tag_id',
+          value: [
+            { label: 'finance', value: 3 },
+            { label: 'kpi', value: 5 },
+          ],
+        },
+      ],
+    });
+  });
+
+  const endpoint = findEndpoint(getSpy, '/api/v1/dashboard/?q=');
+  const query = rison.decode(decodeURIComponent(endpoint.split('?q=')[1])) as {
+    filters: { col: string; opr: string; value: unknown }[];
+  };
+
+  expect(query.filters).toEqual([
+    { col: 'tags', opr: 'dashboard_tag_id', value: [3, 5] },
+  ]);
+});
+
 test('useListViewResource: fetchData sets loading to true then false', async () => {
   let resolveGet: ((value: unknown) => void) | undefined;
   jest.spyOn(SupersetClient, 'get').mockImplementation(

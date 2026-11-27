@@ -699,6 +699,7 @@ function DashboardList(props: DashboardListProps) {
               id: 'tags',
               input: 'select',
               operator: FilterOperator.DashboardTagById,
+              selectMode: 'multiple',
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },

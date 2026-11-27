@@ -892,6 +892,7 @@ function ChartList(props: ChartListProps) {
               id: 'tags',
               input: 'select',
               operator: FilterOperator.ChartTagById,
+              selectMode: 'multiple',
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },

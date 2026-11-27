@@ -57,6 +57,11 @@ export interface ListViewFilter {
     | 'datetime_range'
     | 'numerical_range';
   unfilteredLabel?: string;
+  /**
+   * For `select` inputs: `multiple` lets users pick several options, and the
+   * filter value becomes an array of options. Defaults to `single`.
+   */
+  selectMode?: 'single' | 'multiple';
   selects?: SelectOption[];
   onFilterOpen?: () => void;
   onFilterUpdate?: (value?: any) => void;
@@ -89,6 +94,7 @@ export type InnerFilterValue =
   | string[]
   | number[]
   | { label: ReactNode; value: string | number }
+  | { label: ReactNode; value: string | number }[]
   | [number | null, number | null];
 
 export interface ListViewFilterValue {

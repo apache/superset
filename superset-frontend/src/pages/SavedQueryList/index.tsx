@@ -621,6 +621,7 @@ function SavedQueryList({
               key: 'tags',
               input: 'select',
               operator: FilterOperator.SavedQueryTagById,
+              selectMode: 'multiple',
               fetchSelects: loadTags,
             },
           ]
