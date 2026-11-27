@@ -23,9 +23,11 @@ import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
 
 import {
+  act,
   render,
   screen,
   fireEvent,
+  waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import { SubjectType } from 'src/types/Subject';
@@ -290,7 +292,7 @@ describe('thumbnail URL construction', () => {
       </MemoryRouter>,
     );
 
-  test('constructs thumbnail URL from dashboard id and changed_on_utc', () => {
+  test('constructs thumbnail URL from dashboard id and changed_on_utc', async () => {
     renderCard({
       id: 2,
       changed_by_name: '',
@@ -302,12 +304,17 @@ describe('thumbnail URL construction', () => {
       changed_on_utc: '2024-01-01T00:00:00',
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/v1/dashboard/2/thumbnail/2024-01-01T00%3A00%3A00/',
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/api\/v1\/dashboard\/2\/thumbnail\/2024-01-01T00%3A00%3A00\/$/,
+        ),
+        expect.objectContaining({ method: 'GET' }),
+      ),
     );
   });
 
-  test('falls back to changed_on when changed_on_utc is absent', () => {
+  test('falls back to changed_on when changed_on_utc is absent', async () => {
     renderCard({
       id: 3,
       changed_by_name: '',
@@ -319,12 +326,17 @@ describe('thumbnail URL construction', () => {
       changed_on: '2024-06-01T12:00:00',
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/v1/dashboard/3/thumbnail/2024-06-01T12%3A00%3A00/',
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/api\/v1\/dashboard\/3\/thumbnail\/2024-06-01T12%3A00%3A00\/$/,
+        ),
+        expect.objectContaining({ method: 'GET' }),
+      ),
     );
   });
 
-  test('renders no thumbnail when both changed_on_utc and changed_on are absent', () => {
+  test('renders no thumbnail when both changed_on_utc and changed_on are absent', async () => {
     renderCard({
       id: 4,
       changed_by_name: '',
@@ -333,6 +345,12 @@ describe('thumbnail URL construction', () => {
       published: false,
       url: '/dashboard/4',
       editors: [aliceEditor, bobEditor],
+    });
+
+    // The thumbnail request starts asynchronously (after auth), so drain
+    // pending effects and promises before asserting nothing was fetched.
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     expect(fetchSpy).not.toHaveBeenCalled();
