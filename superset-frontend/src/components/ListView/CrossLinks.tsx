@@ -20,11 +20,13 @@ import { memo, useMemo } from 'react';
 import { useTruncation } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Link } from 'react-router-dom';
+import ArchivedLabel from 'src/components/ArchivedLabel';
 import CrossLinksTooltip from './CrossLinksTooltip';
 
 export type CrossLinkProps = {
   title: string;
   id: number;
+  archived?: boolean;
 };
 
 export type CrossLinksProps = {
@@ -78,15 +80,25 @@ function CrossLinks({
   const links = useMemo(
     () => (
       <span className="truncated" ref={crossLinksRef} data-test="crosslinks">
-        {crossLinks.map((link, index) => (
-          <Link
-            key={link.id}
-            to={linkPrefix + link.id}
-            {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
-          >
-            {index === 0 ? link.title : `, ${link.title}`}
-          </Link>
-        ))}
+        {crossLinks.map((link, index) =>
+          link.archived ? (
+            <span key={link.id}>
+              {index === 0 ? link.title : `, ${link.title}`}
+              <ArchivedLabel />
+            </span>
+          ) : (
+            <Link
+              key={link.id}
+              to={linkPrefix + link.id}
+              {...(external && {
+                target: '_blank',
+                rel: 'noopener noreferrer',
+              })}
+            >
+              {index === 0 ? link.title : `, ${link.title}`}
+            </Link>
+          ),
+        )}
       </span>
     ),
     [crossLinks, crossLinksRef, linkPrefix, external],
@@ -96,6 +108,7 @@ function CrossLinks({
       crossLinks.slice(0, maxLinks).map(l => ({
         title: l.title,
         to: linkPrefix + l.id,
+        archived: l.archived,
       })),
     [crossLinks, linkPrefix, maxLinks],
   );

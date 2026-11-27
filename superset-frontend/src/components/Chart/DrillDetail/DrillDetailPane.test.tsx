@@ -484,7 +484,7 @@ test('resets to page 1 and refetches when the drill filters change', async () =>
   await waitForRender({ initialFilters });
   expect(await screen.findByText('11.27')).toBeInTheDocument();
 
-  await userEvent.click(screen.getByTitle('2'));
+  await userEvent.click(screen.getByRole('button', { name: 'Page 2' }));
   expect(await screen.findByText('42.42')).toBeInTheDocument();
   expect(screen.queryByText('11.27')).not.toBeInTheDocument();
 
@@ -509,7 +509,7 @@ test('resets to page 1 and refetches on reload', async () => {
   await waitForRender();
   expect(await screen.findByText('11.27')).toBeInTheDocument();
 
-  await userEvent.click(screen.getByTitle('2'));
+  await userEvent.click(screen.getByRole('button', { name: 'Page 2' }));
   expect(await screen.findByText('42.42')).toBeInTheDocument();
   expect(screen.queryByText('11.27')).not.toBeInTheDocument();
 
@@ -533,7 +533,9 @@ test('pages past a lower-bound total and settles on the exact one', async () => 
     expect(element).toBeTruthy();
     return element as HTMLElement;
   });
-  await userEvent.click(within(pagination).getByTitle('2'));
+  await userEvent.click(
+    within(pagination).getByRole('button', { name: 'Page 2' }),
+  );
 
   expect(await screen.findByText('2020')).toBeInTheDocument();
   expect(screen.getByText('51 rows')).toBeInTheDocument();

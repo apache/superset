@@ -21,6 +21,7 @@ import {
   ControlPanelConfig,
   ControlPanelState,
 } from '@superset-ui/chart-controls';
+import { boundMetricControl } from '../utils/metricBounds';
 
 // Control names match the legacy nvd3 bullet chart so saved charts keep
 // working without a form-data migration.
@@ -29,7 +30,21 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['metric'], ['groupby'], ['adhoc_filters']],
+      controlSetRows: [
+        ['metric'],
+        [
+          boundMetricControl(
+            'target_metric',
+            t('Target from metric'),
+            t(
+              'Optional metric drawn as a target tick on each row, using ' +
+                "that row's own value, e.g. a per-region quota.",
+            ),
+          ),
+        ],
+        ['groupby'],
+        ['adhoc_filters'],
+      ],
     },
     {
       label: t('Chart Options'),
@@ -63,6 +78,20 @@ const config: ControlPanelConfig = {
           },
         ],
         [
+          {
+            name: 'ranges_relative',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Ranges as % of target'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                "Read ranges as percentages of each row's target, e.g. 50,90,120, so the bands scale with each row. Requires Target from metric.",
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.target_metric?.value),
+            },
+          },
           {
             name: 'range_colors',
             config: {

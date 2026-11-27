@@ -1119,6 +1119,7 @@ def _save_with_mapping(
     partition_column: str,
     partition_mapped_column: str | None = None,
     main_dttm_col: str | None = "event_time",
+    columns: list[dict[str, Any]] | None = None,
     stored_database: Any = None,
     requested_database_id: int = 1,
 ) -> MagicMock:
@@ -1162,7 +1163,9 @@ def _save_with_mapping(
                         "main_dttm_col": main_dttm_col,
                         "partition_column": partition_column,
                         "partition_mapped_column": partition_mapped_column,
-                        "columns": [{"column_name": "event_time"}],
+                        "columns": columns
+                        if columns is not None
+                        else [{"column_name": "event_time"}],
                     }
                 )
             },
@@ -1172,6 +1175,39 @@ def _save_with_mapping(
         app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
 
     return mock_orm
+
+
+@pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_refuses_a_templated_partition_column(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    The mirrored predicate is built outside the template processor, so a
+    Jinja-bearing partition key would reach every chart's SQL unrendered.
+    """
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="dt_calc",
+        columns=[
+            {"column_name": "event_time"},
+            {"column_name": "dt_calc", "expression": "{{ 'dt_' ~ 'epoch' }}"},
+        ],
+    )
+
+    mock_json_error_response.assert_called_once()
+    assert mock_json_error_response.call_args.kwargs["status"] == 422
+    mock_orm.update_from_object.assert_not_called()
 
 
 @patch("superset.views.datasource.views._", _identity_gettext)
@@ -2187,3 +2223,105 @@ def test_save_keeps_an_echoed_transform_only_while_the_flag_is_off(
     )
     assert on[0]["partition_value_transform"] is None
     assert on[0]["partition_transform_is_monotonic"] is False
+
+
+def _legacy_mapping_orm(
+    partition_column: str | None, dt_epoch_expression: str | None = None
+) -> MagicMock:
+    columns = []
+    for name, expression in (
+        ("event_time", None),
+        ("dt_epoch", dt_epoch_expression),
+    ):
+        column = MagicMock()
+        column.column_name = name
+        column.expression = expression
+        columns.append(column)
+    orm = MagicMock()
+    orm.database.backend = "sqlite"
+    orm.columns = columns
+    orm.main_dttm_col = "event_time"
+    orm.partition_column = partition_column
+    orm.partition_mapped_column = None
+    return orm
+
+
+def _legacy_mapping_payload(partition_column: str) -> dict[str, Any]:
+    return {
+        "main_dttm_col": "event_time",
+        "partition_column": partition_column,
+        "partition_mapped_column": None,
+        "columns": [{"column_name": "event_time"}, {"column_name": "dt_epoch"}],
+    }
+
+
+@pytest.mark.parametrize("feature_enabled", [True, False])
+def test_legacy_save_refuses_a_reference_the_request_breaks(
+    app: Flask, feature_enabled: bool
+) -> None:
+    """Storing a mapping is not flag-gated: reading one is."""
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = feature_enabled
+    try:
+        error = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch"),
+            _legacy_mapping_payload("no_such_column"),
+            database_changed=False,
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert error is not None
+    assert "no_such_column" in error
+
+
+def test_legacy_save_survives_a_reference_already_broken_in_storage(
+    app: Flask,
+) -> None:
+    """
+    This endpoint's client does GET-then-POST, so it echoes a reference stored
+    broken. Refusing it meant the dataset could not be saved at all.
+    """
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    try:
+        error = _partition_mapping_reference_error(
+            _legacy_mapping_orm("no_such_column"),
+            _legacy_mapping_payload("no_such_column"),
+            database_changed=False,
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert error is None
+
+
+def test_legacy_save_survives_a_templated_key_already_stored(app: Flask) -> None:
+    """The same for a templated partition key the GET-then-POST client echoes."""
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    template = "{{ 'dt_' ~ 'epoch' }}"
+    payload = _legacy_mapping_payload("dt_epoch")
+    payload["columns"][1]["expression"] = template
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    try:
+        echoed = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch", dt_epoch_expression=template),
+            payload,
+            database_changed=False,
+        )
+        introduced = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch"), payload, database_changed=False
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert echoed is None
+    assert introduced is not None
+    assert "Jinja" in introduced

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 import { Store } from 'redux';
@@ -31,7 +31,7 @@ import EstimateQueryCostButton, {
 } from 'src/SqlLab/components/EstimateQueryCostButton';
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />

@@ -224,15 +224,16 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     supports_grouping_sets = True
 
     @classmethod
-    def prepare_identifier(
-        cls,
-        name: str,
-        normalize_columns: bool = False,
-    ) -> str:
-        """Preserve exact-case physical identifiers when columns are not normalized."""
-        if normalize_columns:
-            return name
-        return quoted_name(name, quote=True)
+    def prepare_identifier(cls, name: str, exact_case: bool = False) -> str:
+        """
+        Quote exact-case names verbatim. Snowflake folds unquoted identifiers to
+        uppercase, so a case-sensitive lowercase alias such as ``"species"`` in a
+        virtual dataset only resolves when quoted. Physical dataset metadata can
+        be stale or normalized, so it keeps SQLAlchemy's automatic quoting.
+        """
+        if exact_case:
+            return quoted_name(name, quote=True)
+        return name
 
     metadata = {
         "description": "Snowflake is a cloud-native data warehouse.",

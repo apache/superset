@@ -43,5 +43,6 @@ export function getDrillPayload(
     time_range: queryObject.time_range,
     filters,
     extras,
+    url_params: queryObject.url_params,
   };
 }
