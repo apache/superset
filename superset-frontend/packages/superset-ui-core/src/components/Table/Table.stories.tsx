@@ -30,10 +30,11 @@ import {
   TableProps,
 } from './index';
 import { alphabeticalSort, numericalSort } from './sorters';
-import ButtonCell from './cell-renderers/ButtonCell';
-import ActionCell from './cell-renderers/ActionCell';
+import { ButtonCell } from './cell-renderers/ButtonCell';
+import { ActionCell } from './cell-renderers/ActionCell';
 import { exampleMenuOptions } from './cell-renderers/ActionCell/fixtures';
-import NumericCell, {
+import {
+  NumericCell,
   CurrencyCode,
   LocaleCode,
   Style,

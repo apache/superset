@@ -670,7 +670,7 @@ test('selecting all datasets shows correct count in toolbar', async () => {
 
   // Select all checkbox using semantic selector
   // Note: antd renders multiple checkboxes with same aria-label, use first one (table header)
-  const selectAllCheckboxes = screen.getAllByLabelText('Select all');
+  const selectAllCheckboxes = screen.getAllByLabelText('Select current page');
   await userEvent.click(selectAllCheckboxes[0]);
 
   // Should show selected count in toolbar (use data-test for reliability)

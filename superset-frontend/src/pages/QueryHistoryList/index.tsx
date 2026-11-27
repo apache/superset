@@ -39,7 +39,8 @@ import {
   type ListViewProps,
   type ListViewFilters,
 } from 'src/components';
-import CodeSyntaxHighlighter, {
+import {
+  CodeSyntaxHighlighter,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';

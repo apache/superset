@@ -24,7 +24,7 @@ import Tree, { TreeProps } from '@superset-ui/core/components/Tree';
 import { forwardRef } from 'react';
 import { FlatLayerDataNode, FlatLayerTreeProps, LayerConf } from './types';
 import { handleDrop } from './dragDropUtil';
-import LayerTreeItem from './LayerTreeItem';
+import { LayerTreeItem } from './LayerTreeItem';
 
 export const StyledLayerTreeItem = styled(LayerTreeItem)`
   ${({ theme }) => css`

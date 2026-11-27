@@ -33,25 +33,22 @@ afterEach(() => {
   jest.resetModules();
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('isFrontendRoute', () => {
-  test('returns true if a route matches', () => {
-    routes.forEach(r => {
-      expect(isFrontendRoute(r.path)).toBe(true);
-    });
+test('returns true if a route matches', () => {
+  routes.forEach(r => {
+    expect(isFrontendRoute(r.path)).toBe(true);
   });
+});
 
-  test('returns false if a route does not match', () => {
-    expect(isFrontendRoute('/nonexistent/path/')).toBe(false);
-  });
+test('returns false if a route does not match', () => {
+  expect(isFrontendRoute('/nonexistent/path/')).toBe(false);
+});
 
-  test('does not pattern-match parameterised routes', () => {
-    // Documented limitation: lookup is a literal dictionary check, so a
-    // concrete `/dashboard/123/` does not match the registered
-    // `/dashboard/:idOrSlug/` key. Callers must accept the full-page-reload
-    // fallback for these URLs.
-    expect(isFrontendRoute('/dashboard/123/')).toBe(false);
-  });
+test('does not pattern-match parameterised routes', () => {
+  // Documented limitation: lookup is a literal dictionary check, so a
+  // concrete `/dashboard/123/` does not match the registered
+  // `/dashboard/:idOrSlug/` key. Callers must accept the full-page-reload
+  // fallback for these URLs.
+  expect(isFrontendRoute('/dashboard/123/')).toBe(false);
 });
 
 test('routes used to mount the Superset.* SPA pages no longer carry a /superset prefix', () => {

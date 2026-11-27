@@ -169,6 +169,57 @@ def test_quote_formulas_in_axis_names() -> None:
     df_to_excel(df)
 
 
+def test_quote_formulas_in_array_formula_form() -> None:
+    """
+    A string wrapped in ``{=`` and ``}`` goes out as text, not an array formula.
+
+    XlsxWriter stores that form as an array formula cell, so it needs the quote
+    as much as a leading ``=`` does, in cells, headers, index labels and axis
+    names alike.
+    """
+    df = pd.DataFrame(
+        {"{=1+1}": ["{=SUM(A1:A2)}", " {=1+1}"]},
+        index=pd.Index(["{=2+2}", "row"], name="{=3+3}"),
+    )
+
+    sheet = load_workbook(io.BytesIO(df_to_excel(df))).active
+    cells = [cell for row in sheet.iter_rows() for cell in row]
+
+    assert [cell.value for cell in cells] == [
+        "'{=3+3}",
+        "'{=1+1}",
+        "'{=2+2}",
+        "'{=SUM(A1:A2)}",
+        "row",
+        "' {=1+1}",
+    ]
+    assert {cell.data_type for cell in cells} == {"s"}
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param('{"a": 1}', id="json"),
+        pytest.param("{1+1}", id="no equals sign"),
+        pytest.param("{=1+1", id="no closing brace"),
+        pytest.param("{=1+1} ", id="trailing space"),
+    ],
+)
+def test_quote_formulas_leaves_other_braced_text_alone(value: str) -> None:
+    """
+    Only the exact array-formula form is quoted.
+
+    XlsxWriter stores each of these as a plain string, so quoting one would
+    change what the cell reads for nothing.
+    """
+    df = pd.DataFrame({"cell": [value]})
+
+    cell = load_workbook(io.BytesIO(df_to_excel(df, index=False))).active["A2"]
+
+    assert cell.value == value
+    assert cell.data_type == "s"
+
+
 def test_document_properties_are_neutral() -> None:
     """
     Test that exported workbooks do not carry identifying document properties.

@@ -248,6 +248,13 @@ see some data!
 You should see months in the rows and Department and Travel Class in the columns. Publish this chart
 to your existing Tutorial Dashboard you created earlier.
 
+To choose how much detail the chart shows when it opens, enable subtotals and set
+**Default row expansion depth** or **Default column expansion depth**. The controls appear on axes
+with at least two grouping fields and follow the displayed axes when you transpose the pivot.
+**Fully expanded** shows every level. Depth **1** shows the first grouping level, including when
+metrics are displayed before the groups. **Collapse rows by default** takes precedence over row depth.
+Combining metrics can omit the intermediate subtotals needed to collapse groups on the metric axis.
+
 :::note
 Row and column totals/subtotals for the Pivot Table are correct even for non-additive metrics,
 such as ratios (`SUM(a)/SUM(b)`), `COUNT_DISTINCT`, `AVG`, and percentiles, not just additive ones

@@ -18,6 +18,7 @@
  */
 import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -579,4 +580,60 @@ test('with soft delete on, the card delete flow shows the archive dialog', async
   } finally {
     window.featureFlags = originalFlags;
   }
+});
+
+test('notifies the Home activity feed through both delete refresh paths', async () => {
+  const mockHandleDashboardDelete =
+    require('src/views/CRUD/utils').handleDashboardDelete;
+  mockHandleDashboardDelete.mockClear();
+  const onActivityRefresh = jest.fn();
+
+  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+    state: {
+      loading: false,
+      resourceCollection: mockDashboards,
+      resourceCount: mockDashboards.length,
+      bulkSelectEnabled: false,
+      lastFetched: new Date().toISOString(),
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: jest.fn(),
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  }));
+
+  render(
+    <Router history={history}>
+      <DashboardTable
+        {...defaultProps}
+        mine={mockDashboards}
+        onActivityRefresh={onActivityRefresh}
+      />
+    </Router>,
+    { store },
+  );
+
+  await userEvent.click(screen.getAllByLabelText('more')[0]);
+  await userEvent.click(await screen.findByText('Delete'));
+  expect(onActivityRefresh).not.toHaveBeenCalled();
+  // Set the confirmation text in one change event: typing it key by key can
+  // race the modal's autofocus and drop characters.
+  fireEvent.change(screen.getByTestId('delete-modal-input'), {
+    target: { value: 'DELETE' },
+  });
+  const confirmButton = screen.getByTestId('modal-confirm-button');
+  await waitFor(() => expect(confirmButton).toBeEnabled());
+  await userEvent.click(confirmButton);
+
+  // The mocked handleDashboardDelete invokes the refreshData callback, which
+  // stands in for a successful delete on the Mine/Favorite tabs.
+  await waitFor(() => {
+    expect(onActivityRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  // The Other tab refreshes through the getData callback instead.
+  const getDataParam = mockHandleDashboardDelete.mock.calls[0][6];
+  getDataParam('Other');
+  expect(onActivityRefresh).toHaveBeenCalledTimes(2);
 });
