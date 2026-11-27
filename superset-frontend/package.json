@@ -190,7 +190,7 @@
     "mustache": "^4.2.0",
     "nanoid": "^6.0.2",
     "ol": "^10.11.0",
-    "postcss": "^8.5.31",
+    "postcss": "^8.5.33",
     "query-string": "10.0.0",
     "re-resizable": "^6.11.2",
     "react": "^18.3.0",

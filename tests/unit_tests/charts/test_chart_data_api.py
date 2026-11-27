@@ -1537,7 +1537,7 @@ def test_data_marks_form_submitted_exports_as_downloads(
     """
     body = {"result_format": "json", "result_type": "results"}
     request_kwargs: dict[str, Any] = (
-        {"data": {"form_data": json.dumps(body)}}
+        {"data": {"form_data": json.dumps(body), "expected_rows": "120000"}}
         if submitted_as_form
         else {"json": body}
     )
@@ -1555,6 +1555,9 @@ def test_data_marks_form_submitted_exports_as_downloads(
     ):
         data(api)
 
+    create_query_context.assert_called_once_with(
+        body, expected_rows=120000 if submitted_as_form else None
+    )
     assert create_query_context.return_value.is_download is submitted_as_form
 
 
@@ -1664,6 +1667,7 @@ def test_get_data_response_executes_when_not_streaming_up_front(
         app.test_request_context("/api/v1/chart/data"),
         patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
         patch.object(api, "_create_streaming_csv_response") as mock_stream,
+        patch.object(api, "_has_export_permission", return_value=True),
         patch.object(api, "_send_chart_response", return_value=sent),
     ):
         response = api._get_data_response(command, expected_rows=expected_rows)
@@ -1706,6 +1710,47 @@ def test_get_data_response_streaming_up_front_requires_export_permission(
     mock_stream.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
+def test_tree_export_requires_permission_before_querying_parents(
+    app: SupersetApp, result_format: ChartDataResultFormat
+) -> None:
+    """Reject a Tree export before executing its parent query."""
+    command = _csv_export_command(result_format, num_queries=2)
+    context = command.query_context
+    context.form_data = {
+        "viz_type": "ag-grid-table",
+        "query_mode": "tree",
+        "tree_export": {
+            "query": {
+                "post_processing": [
+                    {
+                        "operation": "tree_rows",
+                        "options": {"levels": [{"id_column": "parent_id"}]},
+                    }
+                ]
+            }
+        },
+    }
+    context.queries[1].columns = ["parent_id"]
+    context.datasource = MagicMock(spec=SqlaTable)
+    context.datasource.query.return_value = MagicMock(
+        status="failed", error_message="Parent query failed"
+    )
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.object(api, "_has_export_permission", return_value=False),
+    ):
+        response = api._get_data_response(command)
+
+    context.datasource.query.assert_not_called()
+    command.execute.assert_not_called()
+    assert response.status_code == 403
+
+
 def test_get_data_response_executes_multi_query_export(
     app: SupersetApp,
 ) -> None:
@@ -1722,6 +1767,7 @@ def test_get_data_response_executes_multi_query_export(
         app.test_request_context("/api/v1/chart/data"),
         patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
         patch.object(api, "_create_streaming_csv_response") as mock_stream,
+        patch.object(api, "_has_export_permission", return_value=True),
         patch.object(api, "_send_chart_response", return_value=sent),
     ):
         response = api._get_data_response(command, expected_rows=380273)

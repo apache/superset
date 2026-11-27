@@ -22,7 +22,13 @@ import re
 from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING
 
-from flask import current_app as app, make_response, request, Response
+from flask import (
+    current_app as app,
+    has_request_context,
+    make_response,
+    request,
+    Response,
+)
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from flask_caching.backends import NullCache
@@ -38,6 +44,11 @@ from superset.charts.data.dashboard_filter_context import (
     get_dashboard_filter_context,
 )
 from superset.charts.data.form_data import set_form_data
+from superset.charts.data.tree_export import (
+    apply_tree_export,
+    resolve_tree_export_parents,
+    tree_export_uses_streaming,
+)
 from superset.charts.schemas import ChartDataQueryContextSchema, ChartDataStopSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.data.streaming_export_command import (
@@ -256,21 +267,15 @@ class ChartDataRestApi(ChartRestApi):
             except SupersetSecurityException:
                 return self.response_403()
 
-            if efd := dashboard_filter_context.extra_form_data:
-                # Note: this helper currently mutates `json_body` and `efd` in place.
-                # Changes won't persist as these are dicts detached from the ORM state,
-                # but highlighting in case they're further used (mind the changes).
-                apply_dashboard_filter_context(json_body, efd)
-
-        # We need to apply the form data to the global context as jinja
-        # templating pulls form data from the request globally, so this
-        # fallback ensures it has the filters and extra_form_data applied
-        # when used in get_sqla_query which constructs the final query.
-        set_form_data(json_body)
-
         try:
             with timed("chart_data.query_context.build"):
-                query_context = self._create_query_context_from_form(json_body)
+                if dashboard_filter_context is None:
+                    query_context = self._create_query_context_from_form(json_body)
+                else:
+                    query_context = self._create_query_context_from_form(
+                        json_body,
+                        dashboard_filter_context=dashboard_filter_context,
+                    )
             if query_context.datasource.type == "semantic_view":
                 query_context.slice_ = chart
             command = ChartDataCommand(query_context)
@@ -383,9 +388,12 @@ class ChartDataRestApi(ChartRestApi):
         if json_body is None:
             return self.response_400(message=_("Request is not JSON"))
 
+        filename, expected_rows = self._extract_export_params_from_request()
         try:
             with timed("chart_data.query_context.build"):
-                query_context = self._create_query_context_from_form(json_body)
+                query_context = self._create_query_context_from_form(
+                    json_body, expected_rows=expected_rows
+                )
             query_context.is_download = is_download
             command = ChartDataCommand(query_context)
             with timed("chart_data.query_context.validate"):
@@ -417,7 +425,6 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command, add_extra_log_payload)
 
         form_data = json_body.get("form_data")
-        filename, expected_rows = self._extract_export_params_from_request()
 
         return self._get_data_response(
             command,
@@ -798,7 +805,13 @@ class ChartDataRestApi(ChartRestApi):
     ) -> Response:
         """Get data response and optionally log is_cached information."""
         query_context = command.query_context
+        if (
+            query_context.result_format in ChartDataResultFormat.table_like()
+            and not self._has_export_permission()
+        ):
+            return self.response_403()
         try:
+            resolve_tree_export_parents(query_context)
             if self._should_stream_before_execution(query_context, expected_rows):
                 # The client already decided to stream this export, so skip the
                 # regular execution: it would run the full query and hold every
@@ -811,8 +824,6 @@ class ChartDataRestApi(ChartRestApi):
                 # validates and compiles synchronously, before the generator
                 # starts) map to the usual chart-data 4xx responses instead of
                 # escaping as a 500.
-                if not self._has_export_permission():
-                    return self.response_403()
                 return self._create_streaming_csv_response(
                     {"query_context": query_context},
                     form_data,
@@ -840,15 +851,23 @@ class ChartDataRestApi(ChartRestApi):
             ]
             add_extra_log_payload(is_cached=is_cached_values)
 
-        return self._send_chart_response(
-            result,
-            form_data,
-            datasource,
-            filename,
-            expected_rows,
-            dashboard_filter_context=dashboard_filter_context,
-            slice_=slice_,
-        )
+        try:
+            return self._send_chart_response(
+                result,
+                form_data,
+                datasource,
+                filename,
+                expected_rows,
+                dashboard_filter_context=dashboard_filter_context,
+                slice_=slice_,
+            )
+        except QueryObjectValidationError as exc:
+            # Client-side post-processing (e.g. the pivot table) raises this
+            # when a groupby/metric label the chart requested isn't actually
+            # a column of the query result -- a malformed/stale request, not
+            # a server bug, so map it to the usual chart-data 4xx instead of
+            # escaping as a 500.
+            return self.response_400(message=sanitize_error_message(exc.message))
 
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
         """Extract filename and expected_rows from request for streaming exports."""
@@ -882,7 +901,7 @@ class ChartDataRestApi(ChartRestApi):
             return None
 
     def _map_form_data_datasource_to_dataset_id(
-        self, form_data: dict[str, Any]
+        self, form_data: dict[str, Any], **_: Any
     ) -> dict[str, Any]:
         inner = form_data.get("form_data", {})
         return {
@@ -901,7 +920,11 @@ class ChartDataRestApi(ChartRestApi):
 
     @logs_context(context_func=_map_form_data_datasource_to_dataset_id)
     def _create_query_context_from_form(
-        self, form_data: dict[str, Any]
+        self,
+        form_data: dict[str, Any],
+        dashboard_filter_context: DashboardFilterContext | None = None,
+        *,
+        expected_rows: int | None = None,
     ) -> QueryContext:
         """
         Create the query context from the form data.
@@ -916,7 +939,21 @@ class ChartDataRestApi(ChartRestApi):
             schema.query_context_factory = QueryContextFactory(
                 authorize_semantic_before_metadata=True
             )
-            return schema.load(form_data)
+            extra_form_data = (
+                dashboard_filter_context.extra_form_data
+                if dashboard_filter_context
+                else None
+            )
+            prepared = apply_tree_export(
+                form_data,
+                lambda: expected_rows,
+                dashboard_extra_form_data=extra_form_data,
+            )
+            if prepared is form_data and extra_form_data:
+                apply_dashboard_filter_context(prepared, extra_form_data)
+            if has_request_context() and request.method == "GET":
+                set_form_data(prepared)
+            return schema.load(prepared)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
         except ValueError as ex:
@@ -943,8 +980,6 @@ class ChartDataRestApi(ChartRestApi):
         on the regular path: the streaming command exports a single query,
         while the regular path bundles every query into a zip.
         """
-        if expected_rows is None:
-            return False
         if len(query_context.queries) != 1:
             return False
         if query_context.result_format != ChartDataResultFormat.CSV:
@@ -952,7 +987,9 @@ class ChartDataRestApi(ChartRestApi):
         if query_context.result_type != ChartDataResultType.FULL:
             return False
         threshold = app.config.get("CSV_STREAMING_ROW_THRESHOLD", 100000)
-        return expected_rows >= threshold
+        return (expected_rows is not None and expected_rows >= threshold) or (
+            tree_export_uses_streaming(query_context.form_data)
+        )
 
     def _should_use_streaming(
         self, result: dict[Any, Any], form_data: dict[str, Any] | None = None

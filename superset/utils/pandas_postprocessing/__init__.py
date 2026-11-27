@@ -25,6 +25,7 @@ from superset.utils.pandas_postprocessing.compare import compare
 from superset.utils.pandas_postprocessing.contribution import contribution
 from superset.utils.pandas_postprocessing.cum import cum
 from superset.utils.pandas_postprocessing.diff import diff
+from superset.utils.pandas_postprocessing.first_n_per_group import first_n_per_group
 from superset.utils.pandas_postprocessing.flatten import flatten
 from superset.utils.pandas_postprocessing.geography import (
     geodetic_parse,
@@ -40,6 +41,7 @@ from superset.utils.pandas_postprocessing.resample import resample
 from superset.utils.pandas_postprocessing.rolling import rolling
 from superset.utils.pandas_postprocessing.select import select
 from superset.utils.pandas_postprocessing.sort import sort
+from superset.utils.pandas_postprocessing.tree_rows import tree_rows
 from superset.utils.pandas_postprocessing.utils import (
     escape_separator,
     unescape_separator,
@@ -52,6 +54,7 @@ __all__ = [
     "contribution",
     "cum",
     "diff",
+    "first_n_per_group",
     "geohash_encode",
     "geohash_decode",
     "geodetic_parse",
@@ -64,6 +67,7 @@ __all__ = [
     "rolling",
     "select",
     "sort",
+    "tree_rows",
     "flatten",
     "escape_separator",
     "unescape_separator",

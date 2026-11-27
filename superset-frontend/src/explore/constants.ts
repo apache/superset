@@ -240,6 +240,7 @@ export enum ExploreStandaloneMode {
 }
 
 export const QUERY_MODE_REQUISITES = new Set([
+  'levels',
   'all_columns',
   'groupby',
   'metrics',
