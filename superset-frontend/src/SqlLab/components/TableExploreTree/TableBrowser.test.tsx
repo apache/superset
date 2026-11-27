@@ -442,3 +442,28 @@ test('clears highlighted and expanded table when selectedTable becomes null', as
   );
   expect(screen.queryByText('id')).not.toBeInTheDocument();
 });
+
+test('keeps the parent table selected when clicking a column in preview mode', async () => {
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    result: ['public'],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
+    result: [{ label: 'orders', value: 'orders', type: 'table' }],
+    count: 1,
+  });
+  fetchMock.get('glob:*/api/v1/database/1/table_metadata/*', {
+    columns: [{ name: 'id', type: 'INTEGER' }],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/table_metadata/extra/*', {});
+
+  render(<TableBrowser dbId={1} onPreviewTable={jest.fn()} />, {
+    useRedux: true,
+  });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(await screen.findByText('orders'));
+  const column = await screen.findByText('id');
+  await userEvent.click(column);
+  expect(
+    screen.getByText('orders').closest('.tree-node'),
+  ).toHaveAttribute('data-selected', 'true');
+});
