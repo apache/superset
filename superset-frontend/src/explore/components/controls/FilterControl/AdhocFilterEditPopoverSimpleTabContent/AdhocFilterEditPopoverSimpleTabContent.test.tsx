@@ -26,7 +26,7 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import {
@@ -175,7 +175,7 @@ fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
   },
 });
 
-const mockStore = configureStore([thunk]);
+const mockStore = createMockStore([thunk]);
 const store = mockStore({});
 
 // Either a JSON body ({ result, limit }), a fetch-mock response config

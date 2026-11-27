@@ -24,8 +24,8 @@ page (``/user_info/``, whose "Reset my password" modal calls ``PUT
 /api/v1/me/``) until they change it; the flag is cleared automatically on a
 successful *self-service* password change (see
 ``CurrentUserRestApi.pre_update`` and ``SupersetSecurityManager.reset_password``).
-An admin-initiated reset deliberately preserves the flag so the target user is
-still forced to change the temporary password at next login.
+An admin-initiated reset sets the flag so the target user is forced to change
+the temporary password at next login.
 """
 
 from __future__ import annotations
@@ -125,6 +125,16 @@ def set_password_must_change(user_id: int, value: bool = True) -> None:
 
     Intended to be called by administrative flows when provisioning an account
     that should require a password change on first use.
+    """
+    write_password_must_change(user_id, value)
+
+
+def write_password_must_change(user_id: int, value: bool = True) -> None:
+    """Set (or clear) the forced-password-change flag without committing.
+
+    For callers already inside their own unit of work, such as
+    ``SupersetUserApi.pre_update``, whose change has to ride the commit FAB
+    issues right after it rather than commit the half-applied user edit early.
     """
     from superset.extensions import db
     from superset.models.user_attributes import UserAttribute

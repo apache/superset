@@ -87,6 +87,26 @@ def semantic_layer_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(decorators, "semantic_layer", _registration)
 
 
+_GRAIN_FINENESS: dict[str, int] = {
+    representation: index
+    for index, representation in enumerate(
+        ("PT1S", "PT1M", "PT1H", "P1D", "P1W", "P1M", "P3M", "P1Y")
+    )
+}
+
+
+def _metadata_preference(dimension: Dimension) -> tuple[int, int, str]:
+    """Apply the SDK Grains contract without depending on the host package."""
+    if dimension.grain is None:
+        return (0, 0, "")
+    representation: str = dimension.grain.representation
+    return (
+        1,
+        _GRAIN_FINENESS.get(representation, len(_GRAIN_FINENESS)),
+        representation,
+    )
+
+
 # Keep test data and provider construction in the provider's own fixtures. This
 # suite consumes the real SDK types rather than a copy of a factory signature.
 class SemanticProviderConformance:
@@ -106,9 +126,52 @@ class SemanticProviderConformance:
         assert semantic_view.uid()
         assert semantic_view.uid() == semantic_reloaded_view.uid()
         assert _catalog(semantic_view) == _catalog(semantic_reloaded_view)
+        view: SemanticView
+        for view in (semantic_view, semantic_reloaded_view):
+            preferred: str | None = view.preferred_temporal_dimension
+            if preferred is not None:
+                assert isinstance(preferred, str), (
+                    "preferred_temporal_dimension must be a string or None"
+                )
+                selected = min(
+                    (
+                        dimension
+                        for dimension in view.get_dimensions()
+                        if dimension.name == preferred
+                    ),
+                    key=_metadata_preference,
+                    default=None,
+                )
+                assert selected is not None, (
+                    "preferred_temporal_dimension must name an exposed dimension"
+                )
+                assert (
+                    pa.types.is_date(selected.type)
+                    or pa.types.is_timestamp(selected.type)
+                    or pa.types.is_time(selected.type)
+                ), (
+                    "preferred_temporal_dimension must name "
+                    "an exposed temporal dimension selected by the host"
+                )
+        assert (
+            semantic_view.preferred_temporal_dimension
+            == semantic_reloaded_view.preferred_temporal_dimension
+        ), "preferred_temporal_dimension must remain stable on equivalent reload"
 
     @pytest.mark.parametrize(
-        "case", ["identity", "grain", "null", "not_null", "or", "order_limit"]
+        "case",
+        [
+            "identity",
+            "grain",
+            "null",
+            "not_null",
+            "or",
+            "or_not_in",
+            "or_not_equals",
+            "or_not_like",
+            "or_not_ilike",
+            "order_limit",
+        ],
     )
     def test_query_outputs(
         self,
@@ -144,6 +207,25 @@ class SemanticProviderConformance:
             )
         elif case == "or":
             _assert_normalized_or_witness(query)
+        elif case in {"or_not_in", "or_not_equals", "or_not_like", "or_not_ilike"}:
+            exclusion: Operator = {
+                "or_not_in": Operator.NOT_IN,
+                "or_not_equals": Operator.NOT_EQUALS,
+                "or_not_like": Operator.NOT_LIKE,
+                "or_not_ilike": Operator.NOT_ILIKE,
+            }[case]
+            _assert_normalized_or_witness(query, exclusion)
+            group: OrFilter = next(
+                item for item in query.filters or set() if isinstance(item, OrFilter)
+            )
+            member: Dimension | Metric | None = next(iter(group.filters)).column
+            assert member is not None, "exclusion fixture requires a member"
+            assert member in query.dimensions, (
+                "exclusion fixture must group by the filtered dimension"
+            )
+            assert 0 < expected.column(member.name).null_count < expected.num_rows, (
+                "exclusion fixture must retain NULL and non-NULL groups"
+            )
         elif case == "order_limit":
             assert query.order
             assert query.limit is not None
@@ -386,34 +468,53 @@ _NULL_WHEN_EMPTY: frozenset[AggregationType] = frozenset(
 )
 
 
-def _assert_normalized_or_witness(query: SemanticQuery) -> None:
-    """Require the host's mixed-IN/NULL group and an outer comparison."""
+def _assert_normalized_or_witness(
+    query: SemanticQuery, operator: Operator = Operator.IN
+) -> None:
+    """Require a normalized comparison/NULL group and an outer comparison."""
     groups: list[OrFilter] = [
         item for item in query.filters or set() if isinstance(item, OrFilter)
     ]
-    assert len(groups) == 1, "or fixture requires one normalized IN/NULL group"
+    assert len(groups) == 1, (
+        f"or fixture requires one normalized {operator.value}/NULL group"
+    )
     group: OrFilter = groups[0]
     membership: list[Filter] = [
-        leaf for leaf in group.filters if leaf.operator == Operator.IN
+        leaf for leaf in group.filters if leaf.operator == operator
     ]
     nulls: list[Filter] = [
         leaf for leaf in group.filters if leaf.operator == Operator.IS_NULL
     ]
-    assert len(group.filters) == 2, "or fixture requires IN and IS_NULL leaves"
-    assert len(membership) == 1, "or fixture requires IN and IS_NULL leaves"
-    assert len(nulls) == 1, "or fixture requires IN and IS_NULL leaves"
+    message: str = f"or fixture requires {operator.value} and IS_NULL leaves"
+    assert len(group.filters) == 2, message
+    assert len(membership) == 1, message
+    assert len(nulls) == 1, message
     selected: Filter = membership[0]
     assert selected.column is not None, "or fixture leaves must select the same member"
     assert selected.column == nulls[0].column, (
         "or fixture leaves must select the same member"
     )
-    assert isinstance(selected.value, frozenset), "or fixture IN requires a frozenset"
-    assert len(selected.value) >= 2, (
-        "or fixture IN requires at least two non-NULL values"
-    )
-    assert None not in selected.value, (
-        "or fixture IN requires at least two non-NULL values"
-    )
+    if operator in {Operator.IN, Operator.NOT_IN}:
+        assert isinstance(selected.value, frozenset), (
+            "or fixture membership requires a frozenset"
+        )
+        assert len(selected.value) >= 2, (
+            "or fixture membership requires at least two non-NULL values"
+        )
+        assert None not in selected.value, (
+            "or fixture membership requires at least two non-NULL values"
+        )
+    else:
+        assert selected.value is not None, (
+            "or fixture comparison requires a non-NULL value"
+        )
+        if operator in {Operator.NOT_LIKE, Operator.NOT_ILIKE}:
+            assert isinstance(selected.value, str), (
+                "or fixture pattern requires a string"
+            )
+            assert any(char in selected.value for char in "%_"), (
+                "or fixture pattern requires a wildcard"
+            )
     assert any(
         isinstance(item, Filter)
         and item.type == selected.type

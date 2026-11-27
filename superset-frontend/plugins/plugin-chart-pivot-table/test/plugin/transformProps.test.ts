@@ -129,9 +129,10 @@ test('non-additive: transformProps splits the GROUPING SETS result by level', ()
         // One combined GROUPING SETS result: leaf rows (region marker 0) +
         // grand total row (region marker 1).
         data: [
-          { region: 'US', m: 10, [gm('region')]: 0 },
-          { region: 'EU', m: 5, [gm('region')]: 0 },
-          { region: null, m: 15, [gm('region')]: 1 },
+          { region: 'US', m: 0.25, [gm('region')]: 0 },
+          { region: 'EU', m: 0.5, [gm('region')]: 0 },
+          // A ratio's provider-computed total is not the sum of cell ratios.
+          { region: null, m: 0.4, [gm('region')]: 1 },
         ],
         colnames: ['region', 'm', gm('region')],
         coltypes: [1, 0, 0],
@@ -150,10 +151,10 @@ test('non-additive: transformProps splits the GROUPING SETS result by level', ()
   )!;
   const leaf = result.data.find((d: QueryData) => d.groupby.rows.length === 1)!;
   // Markers stripped; rows routed to the correct level.
-  expect(grand.data).toEqual([{ region: null, m: 15 }]);
+  expect(grand.data).toEqual([{ region: null, m: 0.4 }]);
   expect(leaf.data).toEqual([
-    { region: 'US', m: 10 },
-    { region: 'EU', m: 5 },
+    { region: 'US', m: 0.25 },
+    { region: 'EU', m: 0.5 },
   ]);
 });
 
@@ -342,6 +343,33 @@ test('should preserve static currency format when not using AUTO mode', () => {
     symbol: 'EUR',
     symbolPosition: 'suffix',
   });
+});
+
+test('should pass default row/column expansion depth through to the renderer', () => {
+  const expansionChartProps = new ChartProps<QueryFormData>({
+    formData: {
+      ...formData,
+      defaultRowExpansionDepth: 2,
+      defaultColExpansionDepth: 1,
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
+        colnames: ['name', 'sum__num', '__timestamp'],
+        coltypes: [1, 0, 2],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(expansionChartProps);
+  expect(result.defaultRowExpansionDepth).toBe(2);
+  expect(result.defaultColExpansionDepth).toBe(1);
 });
 
 test('should map conditional formatting rules to metricColorFormatters with correct colors', () => {
@@ -681,3 +709,20 @@ test('result aggregation wins over the additive fast path for an additive metric
   expect(result.data).toHaveLength(1);
   expect(result.data[0].data).toEqual(additiveResultProps.queriesData[0].data);
 });
+
+test.each([undefined, true, false])(
+  'hideEmptyColumns defaults on for saved charts (%s)',
+  value => {
+    const props = new ChartProps<QueryFormData>({
+      ...chartProps,
+      formData: {
+        ...formData,
+        ...(value === undefined ? {} : { hideEmptyColumns: value }),
+      },
+    });
+    expect(transformProps(props)).toHaveProperty(
+      'hideEmptyColumns',
+      value !== false,
+    );
+  },
+);

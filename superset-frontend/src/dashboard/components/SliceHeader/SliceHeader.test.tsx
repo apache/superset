@@ -1051,6 +1051,61 @@ test('Should show row count warning for non-table chart when row limit is reache
   mockUseUiConfig.mockRestore();
 });
 
+test.each([
+  ['warns when the parent count reaches the limit', 1000, true],
+  ['hides the warning when the parent count is below the limit', 120, false],
+] as const)('Tree mode %s', (_label, total, warned) => {
+  const treeTable = {
+    ...createProps().formData,
+    viz_type: VizType.TableAgGrid,
+    query_mode: 'tree',
+    row_limit: 1000,
+  };
+  const props = createProps({
+    formData: treeTable,
+    slice: {
+      ...createProps().slice,
+      form_data: { ...createProps().slice.form_data, ...treeTable },
+      viz_type: VizType.TableAgGrid,
+      query_mode: 'tree',
+    },
+  });
+  const treeTableState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          { sql_rowcount: 50, data: Array(50).fill({}) },
+          { data: [{ rowcount: total }] },
+        ],
+      },
+    },
+  };
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: treeTableState,
+  });
+
+  expect(screen.queryByTestId('warning') !== null).toBe(warned);
+
+  mockUseUiConfig.mockRestore();
+});
+
 test('Should show row count warning for ag-grid table chart with server pagination when limit is reached', () => {
   const props = createProps({
     formData: {
@@ -1171,4 +1226,89 @@ test('Should NOT show row count warning for table chart with server pagination w
   expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
 
   mockUseUiConfig.mockRestore();
+});
+
+const mockDefaultUiConfig = () => {
+  (useUiConfig as jest.Mock).mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: false,
+  });
+};
+
+test('Should display the localized name when not in edit mode', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(screen.getByText('Ventes')).toBeInTheDocument();
+  expect(screen.queryByText('Sales')).not.toBeInTheDocument();
+});
+
+test('Should display the canonical name in edit mode so edits target it', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: true,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  // In edit mode the editable field must show the canonical name, otherwise a
+  // save would round-trip the translation into slice_name. Asserted on the
+  // field's value: EditableTitle renders an Input.TextArea when editing.
+  expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();
+  expect(screen.queryByDisplayValue('Ventes')).not.toBeInTheDocument();
+  expect(screen.queryByText('Ventes')).not.toBeInTheDocument();
+});
+
+test('Should fall back to the canonical name when no localized name is set', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: undefined,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(screen.getByText('Sales')).toBeInTheDocument();
+});
+
+test('Should use the localized name in the click-to-edit tooltip', async () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/dashboard/1/'],
+  });
+  render(
+    <Router history={history}>
+      <SliceHeader {...props} />
+    </Router>,
+    { useRedux: true, initialState },
+  );
+
+  // The tooltip describes what is on screen, so it names the localized title
+  // rather than the canonical one behind it.
+  await userEvent.hover(screen.getByText('Ventes'));
+  expect(await screen.findByText('Click to edit Ventes.')).toBeInTheDocument();
 });

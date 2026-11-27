@@ -17,9 +17,11 @@
  * under the License.
  */
 import { useMemo } from 'react';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
+import { ErrorBoundary } from 'src/components';
 import {
   Button,
   EmptyState,
@@ -46,8 +48,7 @@ import RelatedUpdateRow from './RelatedUpdateRow';
 import CurrentVersionSection, {
   hasCurrentVersionContent,
 } from './CurrentVersionSection';
-
-const VERSION_HISTORY_PANEL_WIDTH = 320;
+import { VERSION_HISTORY_PANEL_WIDTH } from './constants';
 
 const Panel = styled.aside`
   ${({ theme }) => `
@@ -183,6 +184,9 @@ export default function VersionHistoryPanel({
   onOpenRelated,
   sessionEntries = [],
 }: VersionHistoryPanelProps) {
+  const FooterExtension = getExtensionsRegistry().get(
+    'versionHistory.panel.footer',
+  );
   const {
     timeline,
     newestGroup,
@@ -352,6 +356,13 @@ export default function VersionHistoryPanel({
           <TruncationNotice role="note">
             {t('Older history exists but is beyond what can be shown here.')}
           </TruncationNotice>
+        )}
+        {FooterExtension && (
+          <ErrorBoundary showMessage={false}>
+            <Footer>
+              <FooterExtension entityType={entityType} />
+            </Footer>
+          </ErrorBoundary>
         )}
       </Body>
     </Panel>

@@ -26,6 +26,8 @@ from unittest.mock import patch
 
 import pytest
 from _pytest.fixtures import SubRequest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from flask_appbuilder.menu import Menu
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
@@ -142,6 +144,42 @@ def _preload_clock_reading_drivers() -> None:
         pass
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _reuse_migration_script_directory() -> Iterator[None]:
+    """Parse the alembic migration scripts once per worker instead of per app.
+
+    Every app built here runs ``SupersetApp.sync_config_to_db``, whose
+    migration-status check loads the whole ``superset/migrations`` script
+    directory to find the head revision. With one app per test module (about a
+    thousand per suite run), that re-parse was about 40% of each build: 1.3s
+    against 0.5s per build when cached, measured under coverage. The scripts
+    cannot change while the tests run, so each distinct configuration is parsed
+    once; configurations read from an ini file are not cached.
+    """
+    from_config: classmethod[ScriptDirectory, [Config], ScriptDirectory] = (
+        ScriptDirectory.__dict__["from_config"]
+    )
+    cache: dict[tuple[tuple[str, str], ...], ScriptDirectory] = {}
+
+    def cached_from_config(
+        cls: type[ScriptDirectory], config: Config
+    ) -> ScriptDirectory:
+        uncached: Callable[[Config], ScriptDirectory] = from_config.__get__(None, cls)
+        if cls is not ScriptDirectory or config.config_file_name is not None:
+            return uncached(config)
+        options = config.get_section(config.config_ini_section, {})
+        key: tuple[tuple[str, str], ...] = tuple(sorted(options.items()))
+        if key not in cache:
+            cache[key] = uncached(config)
+        return cache[key]
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            ScriptDirectory, "from_config", classmethod(cached_from_config)
+        )
+        yield
+
+
 def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
     """
     Build and initialize a Superset app for the unit tests.
@@ -235,6 +273,20 @@ def app_context(app: SupersetApp) -> Iterator[None]:
         yield
 
 
+@pytest.fixture(autouse=True)
+def _clear_local_partition_probe_cache() -> Iterator[None]:
+    """
+    The test app runs a null cache, so partition probes fall back to a
+    per-process one -- which would otherwise serve one test's mocked probe
+    result to the next test that happens to share its cache key.
+    """
+    from superset.connectors.sqla.partition_mapping import _LOCAL_PROBE_CACHE
+
+    _LOCAL_PROBE_CACHE.clear()
+    yield
+    _LOCAL_PROBE_CACHE.clear()
+
+
 @pytest.fixture
 def full_api_access(mocker: MockerFixture) -> Union[Iterator[None], None]:
     """
@@ -275,6 +327,41 @@ def dummy_query_object(request, app_context):
         },
         _datasource_dao=unittest.mock.Mock(),
     ).create(parent_result_type=result_type, **query_object)
+
+
+@pytest.fixture
+def sqlite_supports_partition_filter_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Let SQLite-backed fixtures exercise partition filter mapping.
+
+    The query path and the Explore summary only resolve a mapping on an engine
+    that advertises `supports_partition_filter_mapping`, which SQLite does not.
+    Tests that build their datasets on SQLite and assert a mapping resolves opt
+    into this to keep testing the mapping itself rather than the engine gate.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", True)
+
+
+@pytest.fixture
+def every_engine_supports_partition_filter_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Let a test exercise partition filter mapping on any engine spec.
+
+    Tests that check how the mirror reads and writes values on a specific
+    dialect -- Trino, Presto, BigQuery, Oracle and the rest -- are about that
+    dialect's literals, not about which engines the gate admits. They opt into
+    this so the gate does not decline the mapping before the code under test
+    runs. A spec that sets the flag explicitly keeps its own value.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    monkeypatch.setattr(BaseEngineSpec, "supports_partition_filter_mapping", True)
 
 
 def with_feature_flags(**mock_feature_flags):

@@ -371,6 +371,27 @@ test('Should "export full CSV" for ag-grid table', async () => {
   expect(props.exportFullCSV).toHaveBeenCalledWith(371);
 });
 
+test.each([
+  ['Export to full .CSV', 'exportFullCSV'],
+  ['Export to full Excel', 'exportFullXLSX'],
+] as const)('Tree mode offers %s with children', async (label, exportHook) => {
+  window.featureFlags = {
+    ...window.featureFlags,
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const props = createProps(VizType.TableAgGrid);
+  props.formData = {
+    ...props.formData,
+    viz_type: VizType.TableAgGrid,
+    query_mode: 'tree',
+  };
+  renderWrapper(props);
+  await openMenu();
+  await userEvent.hover(screen.getByText('Download'));
+  await userEvent.click(await screen.findByText(label));
+  expect(props[exportHook]).toHaveBeenCalledWith(371);
+});
+
 test('Should not show export full CSV if report is not table', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
@@ -1201,4 +1222,22 @@ test('A Big Number chart offers image exports only, without CSV, Excel or PDF', 
   expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
   expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+});
+
+test('menu strings the viewer reads use the displayed name', async () => {
+  // The header can show a translation or a panel title override while
+  // slice_name stays canonical for edits and download filenames, so these two
+  // strings have to follow what is on screen rather than the stored name.
+  const props = createProps();
+  renderWrapper({
+    ...props,
+    slice: { ...props.slice, display_name: 'Ventes' },
+  } as SliceHeaderControlsProps);
+  await openMenu();
+
+  await userEvent.hover(screen.getByText('Edit chart'));
+  expect(await screen.findByText(/Click to edit Ventes/)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('View as table'));
+  expect(await screen.findByText('Chart Data: Ventes')).toBeInTheDocument();
 });

@@ -46,8 +46,10 @@ class SemanticLayerError(MCPBaseError):
     success: Literal[False] = False
 
     @classmethod
-    def create(cls, *, error: str, error_type: str) -> "SemanticLayerError":
-        return cls(error=error, error_type=error_type)
+    def create(
+        cls, *, error: str, error_type: str, error_code: str | None = None
+    ) -> "SemanticLayerError":
+        return cls(error=error, error_type=error_type, error_code=error_code)
 
 
 class ListSemanticViewsRequest(BaseModel):
@@ -192,6 +194,14 @@ class ListMetricsRequest(BaseModel):
         return self
 
 
+class MetricDiscoveryRefusal(BaseModel):
+    """A discovery refusal for a semantic view the caller is allowed to see."""
+
+    view_id: int = Field(
+        description="ID of the visible semantic view that refused discovery."
+    )
+
+
 class MetricList(BaseModel):
     """Response schema for list_metrics."""
 
@@ -201,6 +211,20 @@ class MetricList(BaseModel):
     page_size: int
     total_pages: int
     success: Literal[True] = True
+    incomplete: bool = Field(
+        default=False,
+        description=(
+            "Some sources could not be discovered; "
+            "counts and pages cover only usable metrics."
+        ),
+    )
+    refused_views: list[MetricDiscoveryRefusal] = Field(
+        default_factory=list,
+        description=(
+            "Visible views that refused discovery, "
+            "independent of the requested metric page."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------

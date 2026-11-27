@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from '@superset-ui/core/spec';
-import NumericCell, { CurrencyCode, LocaleCode, Style } from './index';
+import { NumericCell, CurrencyCode, LocaleCode, Style } from './index';
 
 test('renders with French locale and Euro currency format', () => {
   render(

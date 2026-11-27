@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder.api import (
     expose,
     permission_name,
@@ -53,6 +53,7 @@ from superset.daos.report import ReportConfigDAO
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
 from superset.extensions import event_logger
+from superset.integrations.teams.destinations import list_teams_destinations
 from superset.reports.filters import (
     ReportScheduleAllTextFilter,
     ReportScheduleFilter,
@@ -72,6 +73,7 @@ from superset.reports.schemas import (
     ReportScheduleSubscribeSchema,
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
+from superset.tasks.types import FixedExecutor
 from superset.utils.slack import (
     get_channels_with_search,
     SlackChannelListingClientError,
@@ -108,6 +110,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.RELATED,
         "bulk_delete",
+        "teams_destinations",
         "slack_channels",  # not using RouteMethod since locally defined
         "subscribe",
         "execute",  # not using RouteMethod since locally defined
@@ -118,6 +121,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "get_configuration": "read",
+        "teams_destinations": "read",
         "put_configuration": "write",
     }
     resource_name = "report"
@@ -127,6 +131,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         **BaseSupersetModelRestApi.extra_fields_rel_fields,
         "created_by": ["email", "active"],
         "editors": ["type", "active", "secondary_label", "img"],
+        "dashboard": ["published"],
         "run_as": ["email", "active"],
         "run_alert_query_as": ["email", "active"],
     }
@@ -386,6 +391,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                   schema:
                     type: object
                     properties:
+                      default_executor:
+                        type: string
+                        nullable: true
+                        description: >-
+                          Fixed default execution account, visible only to admins.
                       result:
                         $ref: '#/components/schemas/ReportConfigurationSchema'
             401:
@@ -396,7 +406,21 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         config = ReportConfigDAO.get_effective_config()
-        return self.response(200, result=self.configuration_schema.dump(config))
+        # Only disclose a fixed execution identity to administrators. Other
+        # executor strategies depend on the schedule and cannot be named here.
+        executors = current_app.config["ALERT_REPORTS_EXECUTORS"]
+        default_executor = None
+        if (
+            security_manager.is_admin()
+            and executors
+            and isinstance(executors[0], FixedExecutor)
+        ):
+            default_executor = executors[0].username
+        return self.response(
+            200,
+            result=self.configuration_schema.dump(config),
+            default_executor=default_executor,
+        )
 
     @expose("/configuration/", methods=("PUT",))
     @protect()
@@ -828,6 +852,41 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ReportScheduleDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/teams_destinations/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def teams_destinations(self) -> Response:
+        """List approved Teams destinations using Reports read permissions.
+        ---
+        get:
+          summary: List approved Teams alert destinations
+          responses:
+            200:
+              description: Approved destinations and installation availability
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            key:
+                              type: string
+                            label:
+                              type: string
+                            available:
+                              type: boolean
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        return self.response(200, result=list_teams_destinations())
 
     @expose("/slack_channels/", methods=("GET",))
     @protect()
