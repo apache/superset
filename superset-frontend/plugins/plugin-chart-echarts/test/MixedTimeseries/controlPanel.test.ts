@@ -169,3 +169,82 @@ test('should show only_totalB based on the Query B value and stack controls', ()
     } as unknown as ControlPanelsContainerProps),
   ).toBe(false);
 });
+
+/* --------------------------------------------------------------------------
+ * Shared X-axis and time grain with a secondary dataset
+ * ------------------------------------------------------------------------ */
+
+type MappedControl = {
+  name: string;
+  config: {
+    validationDependencies?: string[];
+    mapStateToProps: (
+      state: unknown,
+      controlState?: { value?: unknown },
+    ) => {
+      choices?: [string, string][];
+      externalValidationErrors?: string[];
+    };
+  };
+};
+
+const datasetA = {
+  type: 'table',
+  columns: [
+    { column_name: 'ds', is_dttm: true, groupby: true, type_generic: 2 },
+    { column_name: 'gender', groupby: true, type_generic: 1 },
+  ],
+  metrics: [],
+  time_grain_sqla: [
+    ['P1D', 'Day'],
+    ['P1W', 'Week'],
+    ['P1M', 'Month'],
+  ],
+};
+
+test('time grain lists Dataset A grains when the secondary dataset is off', () => {
+  const timeGrainCtrl = getControl(
+    'time_grain_sqla',
+  ) as unknown as MappedControl;
+  const props = timeGrainCtrl.config.mapStateToProps(
+    {
+      datasource: datasetA,
+      controls: {},
+      form_data: { use_secondary_dataset: false },
+    },
+    { value: 'P1W' },
+  );
+  expect(props.choices).toEqual(datasetA.time_grain_sqla);
+  expect(props.externalValidationErrors).toEqual([]);
+  expect(timeGrainCtrl.config.validationDependencies).toEqual([
+    'datasource_b',
+    'use_secondary_dataset',
+  ]);
+});
+
+test('x_axis_b re-validates when Query A X-axis or Dataset B changes', () => {
+  const xAxisBCtrl = getControl('x_axis_b') as unknown as MappedControl;
+  expect(xAxisBCtrl.config.validationDependencies).toEqual([
+    'x_axis',
+    'datasource_b',
+    'use_secondary_dataset',
+  ]);
+});
+
+test('x_axis_b keeps the saved value while Dataset B is loading', () => {
+  const xAxisBCtrl = getControl('x_axis_b') as unknown as MappedControl;
+  const props = xAxisBCtrl.config.mapStateToProps(
+    {
+      datasource: datasetA,
+      controls: {},
+      form_data: {
+        use_secondary_dataset: true,
+        datasource_b: '999__table',
+        x_axis: 'ds',
+      },
+    },
+    { value: 'order_date' },
+  );
+  expect(props.choices).toEqual([['order_date', 'order_date']]);
+  expect(props.externalValidationErrors).toEqual([]);
+});

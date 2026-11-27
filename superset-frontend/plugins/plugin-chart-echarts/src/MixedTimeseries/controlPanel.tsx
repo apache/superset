@@ -18,7 +18,11 @@
  */
 import { ReactNode, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { ensureIsArray, SupersetClient } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  QueryFormData,
+  SupersetClient,
+} from '@superset-ui/core';
 import { AsyncSelect, Loading } from '@superset-ui/core/components';
 import { cloneDeep } from 'lodash-es';
 import {
@@ -34,6 +38,7 @@ import {
   CustomControlItem,
   Dataset,
   getStandardizedControls,
+  isDataset,
   sections,
   sharedControls,
   DEFAULT_SORT_SERIES_DATA,
@@ -41,6 +46,14 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './types';
+import {
+  checkCompatibility,
+  checkTimeGrainSupport,
+  Choice,
+  getCompatibleXAxisColumns,
+  getSharedTimeGrains,
+  suggestXAxisColumn,
+} from './multiDataset/compatibility';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import {
   legendSection,
@@ -150,14 +163,18 @@ const loadSecondaryDatasetOptions = (
   }));
 };
 
+/**
+ * Reads a control value, preferring form data. When the explore reducer
+ * re-validates dependent controls it passes form data that already holds the
+ * new value while `controls` still holds the old one.
+ */
 function readControlValue(
   state: Pick<ControlPanelState, 'controls' | 'form_data'> | undefined,
   name: string,
 ) {
-  const controlValue = state?.controls?.[name]?.value;
-  return controlValue !== undefined
-    ? controlValue
-    : (state?.form_data as Record<string, unknown> | undefined)?.[name];
+  const formData = state?.form_data as Record<string, unknown> | undefined;
+  if (formData && name in formData) return formData[name];
+  return state?.controls?.[name]?.value;
 }
 
 function isSecondaryDatasetEnabled(
@@ -188,45 +205,30 @@ function shouldShowQueryBDataControls(
   return !isSecondaryDatasetEnabled(state) || isSecondaryDatasetReady(state);
 }
 
-/** Returns the physical Dataset A column selected for the shared X-axis. */
-function getSharedXAxisName(
+/** Dataset A metadata when it is a dataset (not a SQL Lab query result). */
+function getPrimaryDataset(state: ControlPanelState): Dataset | undefined {
+  return isDataset(state.datasource) ? state.datasource : undefined;
+}
+
+/** Dataset B metadata, when the secondary dataset is on and loaded. */
+function getActiveSecondaryDataset(
   state: Pick<ControlPanelState, 'controls' | 'form_data'> | undefined,
-): string | undefined {
-  const value = readControlValue(state, 'x_axis');
-  return typeof value === 'string' && value ? value : undefined;
+): Dataset | undefined {
+  if (!isSecondaryDatasetEnabled(state)) return undefined;
+  const uid = getSecondaryDatasourceUid(state);
+  return uid ? secondaryDatasetCache.get(uid) : undefined;
 }
 
-/** Checks whether Dataset A's selected shared X-axis is temporal. */
-function isSharedXAxisTemporal(state: ControlPanelState): boolean {
-  const xAxis = getSharedXAxisName(state);
-  return Boolean(
-    xAxis &&
-    state.datasource?.columns?.some(
-      column => column.column_name === xAxis && column.is_dttm,
-    ),
-  );
-}
-
-/**
- * Mirrors the existing shared X-axis behavior for Dataset B. Non-temporal
- * axes accept every groupable column; temporal axes only accept groupable
- * temporal columns.
- */
+/** Dataset B columns that can stand in for Query A's X-axis. */
 function getSecondaryXAxisColumns(
-  dataset: Dataset,
-  sharedXAxisIsTemporal: boolean,
+  state: ControlPanelState,
+  datasetB: Dataset,
 ): ColumnMeta[] {
-  const columns = ensureIsArray(dataset.columns);
-  const groupableColumns = Object.prototype.hasOwnProperty.call(
-    columns[0] ?? {},
-    'groupby',
-  )
-    ? columns.filter(column => column.groupby)
-    : columns;
-
-  return sharedXAxisIsTemporal
-    ? groupableColumns.filter(column => column.is_dttm)
-    : groupableColumns;
+  return getCompatibleXAxisColumns(
+    getPrimaryDataset(state),
+    datasetB,
+    readControlValue(state, 'x_axis'),
+  );
 }
 
 /**
@@ -287,8 +289,8 @@ type SecondaryDatasourceControlProps = {
   hovered?: boolean;
   validationErrors?: string[];
   currentXAxisB?: string | null;
-  sharedXAxisName?: string;
-  sharedXAxisIsTemporal?: boolean;
+  sharedXAxis?: unknown;
+  primaryDataset?: Dataset;
   onChange: (value: string | null) => void;
   actions?: {
     setControlValue?: (
@@ -319,11 +321,14 @@ function SecondaryDatasourceControl({
   hovered,
   validationErrors,
   currentXAxisB,
-  sharedXAxisName,
-  sharedXAxisIsTemporal = false,
+  sharedXAxis,
+  primaryDataset,
   onChange,
   actions,
 }: SecondaryDatasourceControlProps) {
+  // Re-run the X-axis mapping when Query A's X-axis changes, not on every
+  // re-render (ad-hoc axes are objects, so compare them by content).
+  const sharedXAxisKey = JSON.stringify(sharedXAxis ?? null);
   const [loadedUid, setLoadedUid] = useState<string | undefined>(() =>
     value && secondaryDatasetCache.get(value) ? value : undefined,
   );
@@ -342,20 +347,17 @@ function SecondaryDatasourceControl({
         // Re-dispatch the same value so dependent Query B controls re-map
         // their props against the freshly cached Dataset B metadata.
         setControlValue(name, value, undefined, { programmatic: true });
-        const xAxisColumns = getSecondaryXAxisColumns(
+        // Keep x_axis_b when it is still compatible with Query A's X-axis;
+        // otherwise preselect a safe match or leave it for the user.
+        const isValidXAxisB = getCompatibleXAxisColumns(
+          primaryDataset,
           dataset,
-          sharedXAxisIsTemporal,
-        );
-        const isValidXAxisB = xAxisColumns.some(
-          column => column.column_name === currentXAxisB,
-        );
+          sharedXAxis,
+        ).some(column => column.column_name === currentXAxisB);
         if (!isValidXAxisB) {
-          const matchingColumn = xAxisColumns.find(
-            column => column.column_name === sharedXAxisName,
-          );
           setControlValue(
             X_AXIS_B,
-            matchingColumn?.column_name ?? null,
+            suggestXAxisColumn(primaryDataset, dataset, sharedXAxis),
             undefined,
             { programmatic: true },
           );
@@ -368,7 +370,7 @@ function SecondaryDatasourceControl({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedXAxisIsTemporal, sharedXAxisName, value]);
+  }, [sharedXAxisKey, value]);
 
   const dataset =
     value && loadedUid === value ? secondaryDatasetCache.get(value) : undefined;
@@ -442,8 +444,8 @@ function createSecondaryDatasetRows(): ControlSetRow[] {
           shouldMapStateToProps: () => true,
           mapStateToProps: (state: ControlPanelState) => ({
             currentXAxisB: readControlValue(state, X_AXIS_B),
-            sharedXAxisName: getSharedXAxisName(state),
-            sharedXAxisIsTemporal: isSharedXAxisTemporal(state),
+            sharedXAxis: readControlValue(state, 'x_axis'),
+            primaryDataset: getPrimaryDataset(state),
           }),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             Boolean(controls?.[USE_SECONDARY_DATASET]?.value),
@@ -470,17 +472,25 @@ function createSecondaryDatasetRows(): ControlSetRow[] {
           type: 'SelectControl',
           label: t('Map shared X-axis to'),
           description: t(
-            'Column of the Query B dataset aligned with the shared X-axis.',
+            'Column of the Query B dataset aligned with the shared X-axis. ' +
+              'A temporal X-axis lists Dataset B time columns; a categorical ' +
+              'one lists columns of the same type, same name first.',
           ),
           clearable: false,
           default: null,
+          // Re-validate when Query A's X-axis, Dataset B (including when its
+          // metadata finishes loading) or the switch changes.
+          validationDependencies: [
+            'x_axis',
+            DATASOURCE_B,
+            USE_SECONDARY_DATASET,
+          ],
           shouldMapStateToProps: () => true,
           mapStateToProps: (
             state: ControlPanelState,
             controlState?: { value?: unknown },
           ) => {
-            const uid = getSecondaryDatasourceUid(state);
-            const dataset = uid ? secondaryDatasetCache.get(uid) : undefined;
+            const dataset = getActiveSecondaryDataset(state);
             const current = controlState?.value;
             if (!dataset) {
               // Metadata not loaded yet: keep the saved value selectable so
@@ -490,17 +500,33 @@ function createSecondaryDatasetRows(): ControlSetRow[] {
                   typeof current === 'string' && current
                     ? [[current, current]]
                     : [],
+                externalValidationErrors: [],
               };
             }
-            const xAxisColumns = getSecondaryXAxisColumns(
-              dataset,
-              isSharedXAxisTemporal(state),
-            );
+            const xAxisColumns = getSecondaryXAxisColumns(state, dataset);
+            const errors: string[] = [];
+            if (typeof current !== 'string' || !current) {
+              errors.push(t('Select the Dataset B column for the X-axis.'));
+            } else {
+              errors.push(
+                ...checkCompatibility(
+                  getPrimaryDataset(state) ?? { columns: [] },
+                  dataset,
+                  {
+                    ...state.form_data,
+                    x_axis: readControlValue(state, 'x_axis'),
+                    x_axis_b: current,
+                  } as QueryFormData,
+                ),
+              );
+            }
             return {
               choices: xAxisColumns.map(column => [
                 column.column_name,
                 column.verbose_name || column.column_name,
               ]),
+              // Shown on the control and blocks running the chart until fixed.
+              externalValidationErrors: errors,
             };
           },
           visibility: (props: ControlPanelsContainerProps) =>
@@ -511,6 +537,53 @@ function createSecondaryDatasetRows(): ControlSetRow[] {
     ],
   ];
 }
+
+/**
+ * The shared Time Grain, narrowed to the grains both datasets support when
+ * Query B uses its own dataset. Both queries are bucketed by this one grain,
+ * each in its own database. With the switch off it behaves exactly like the
+ * shared `time_grain_sqla` control.
+ */
+const sharedTimeGrainControl: CustomControlItem = {
+  name: 'time_grain_sqla',
+  config: {
+    ...sharedControls.time_grain_sqla,
+    // Re-validate when Dataset B (including when its metadata finishes
+    // loading) or the switch changes.
+    validationDependencies: [DATASOURCE_B, USE_SECONDARY_DATASET],
+    shouldMapStateToProps: () => true,
+    mapStateToProps: (
+      state: ControlPanelState,
+      controlState?: { value?: unknown },
+    ) => {
+      const baseProps =
+        sharedControls.time_grain_sqla.mapStateToProps?.(
+          state,
+          controlState as never,
+        ) ?? {};
+      const datasetB = getActiveSecondaryDataset(state);
+      if (!datasetB) {
+        return { ...baseProps, externalValidationErrors: [] };
+      }
+      const choicesA = ensureIsArray(baseProps.choices) as Choice[];
+      const value = controlState?.value;
+      const current = choicesA.find(([code]) => code === value);
+      const sharedChoices = getSharedTimeGrains(choicesA, datasetB);
+      // Keep an unsupported saved grain selectable so it is flagged instead
+      // of being silently cleared as a missing choice.
+      const choices =
+        current && !sharedChoices.some(([code]) => code === value)
+          ? [...sharedChoices, current]
+          : sharedChoices;
+      const label = current?.[1];
+      return {
+        ...baseProps,
+        choices,
+        externalValidationErrors: checkTimeGrainSupport(datasetB, value, label),
+      };
+    },
+  },
+};
 
 function createQuerySection(
   label: string,
@@ -833,7 +906,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Shared query fields'),
       expanded: true,
-      controlSetRows: [['x_axis'], ['time_grain_sqla']],
+      controlSetRows: [['x_axis'], [sharedTimeGrainControl]],
     },
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
