@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ComponentType } from 'react';
 import {
   AppSection,
   getExtensionsRegistry,
   NO_TIME_RANGE,
 } from '@superset-ui/core';
 import { act, render, screen } from 'spec/helpers/testing-library';
+import { DateFilterControlProps } from 'src/explore/components/controls/DateFilterControl/types';
 import TimeFilterPlugin from './TimeFilterPlugin';
 import { PluginFilterTimeProps } from './types';
 
@@ -216,8 +218,8 @@ test('the full control is told the calendar interface is enabled only when the o
 
 test('a registered filter.dateFilterControl override is used instead of the built-in calendar picker', () => {
   const overrideProps: Array<Record<string, unknown>> = [];
-  const Override = (props: Record<string, unknown>) => {
-    overrideProps.push(props);
+  const Override: ComponentType<DateFilterControlProps> = props => {
+    overrideProps.push({ ...props });
     return <div data-test="date-filter-override" />;
   };
   const registry = getExtensionsRegistry();
