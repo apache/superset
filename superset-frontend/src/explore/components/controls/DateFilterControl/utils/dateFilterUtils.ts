@@ -28,8 +28,21 @@ import {
   CURRENT_RANGE_VALUES_SET,
 } from '.';
 import { FrameType } from '../types';
+import { isCalendarRange } from './calendarRange';
 
-export const guessFrame = (timeRange: string): FrameType => {
+export interface GuessFrameOptions {
+  /**
+   * Treat a fixed whole-day range as the Calendar frame. Off by default here: such
+   * a value is also what the Advanced frame saves, so the caller opts in, as the
+   * date control does wherever the Calendar range type is offered.
+   */
+  calendarFrame?: boolean;
+}
+
+export const guessFrame = (
+  timeRange: string,
+  { calendarFrame = false }: GuessFrameOptions = {},
+): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
     return 'Common';
   }
@@ -41,6 +54,9 @@ export const guessFrame = (timeRange: string): FrameType => {
   }
   if (timeRange === NO_TIME_RANGE) {
     return 'No filter';
+  }
+  if (calendarFrame && isCalendarRange(timeRange)) {
+    return 'DateRange';
   }
   if (customTimeRangeDecode(timeRange).matchedFlag) {
     return 'Custom';

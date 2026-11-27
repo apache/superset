@@ -16,10 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NO_TIME_RANGE, getExtensionsRegistry } from '@superset-ui/core';
+import {
+  AppSection,
+  NO_TIME_RANGE,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import { CalendarRangePicker } from 'src/explore/components/controls/DateFilterControl/components';
+import { formatCalendarRangeLabel } from 'src/explore/components/controls/DateFilterControl/utils/calendarRange';
 import { PluginFilterTimeProps } from './types';
 import { FilterPluginStyle } from '../common';
 
@@ -80,6 +86,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     filterState,
     inputRef,
     isOverflowingFilterBar = false,
+    appSection,
   } = props;
   const extensionsRegistry = getExtensionsRegistry();
 
@@ -87,10 +94,25 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     'filter.dateFilterControl',
   );
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
+  // The default value is always set with the full control, so any time range
+  // (e.g. "Last week") can be chosen; only the dashboard filter bar uses the calendar.
+  // A registered `filter.dateFilterControl` override wins: it replaces the date
+  // control, so the built-in calendar must not bypass it.
+  const useCalendarPicker =
+    !!props.formData.calendarPicker &&
+    appSection !== AppSection.FilterConfigModal &&
+    !DateFilterControlExtension;
 
   const handleTimeRangeChange = useCallback(
     (timeRange?: string): void => {
       const isSet = timeRange && timeRange !== NO_TIME_RANGE;
+      // The saved value ends one day after the last picked day (the end is exclusive), so
+      // places that print the value (the "Applied filters" tooltip) get the days the user
+      // picked instead: "2026-11-01 – 2026-11-30".
+      const label =
+        isSet && useCalendarPicker
+          ? formatCalendarRangeLabel(timeRange)
+          : undefined;
       setDataMask({
         extraFormData: isSet
           ? {
@@ -99,10 +121,11 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           : {},
         filterState: {
           value: isSet ? timeRange : undefined,
+          ...(label ? { label } : {}),
         },
       });
     },
-    [setDataMask],
+    [setDataMask, useCalendarPicker],
   );
 
   useEffect(() => {
@@ -120,19 +143,37 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseLeave={unsetHoveredFilter}
         tabIndex={-1}
       >
-        <DateFilterComponent
-          value={filterState.value || NO_TIME_RANGE}
-          name={props.formData.nativeFilterId || 'time_range'}
-          onChange={handleTimeRangeChange}
-          onOpenPopover={() => setFilterActive(true)}
-          onClosePopover={() => {
-            setFilterActive(false);
-            unsetHoveredFilter();
-            unsetFocusedFilter();
-          }}
-          isOverflowingFilterBar={isOverflowingFilterBar}
-          displayFormat={props.formData.displayFormat}
-        />
+        {useCalendarPicker ? (
+          <CalendarRangePicker
+            value={filterState.value || NO_TIME_RANGE}
+            onChange={handleTimeRangeChange}
+            onOpenChange={open => {
+              setFilterActive(open);
+              if (!open) {
+                unsetHoveredFilter();
+                unsetFocusedFilter();
+              }
+            }}
+            status={
+              filterState.validateStatus === 'error' ? 'error' : undefined
+            }
+          />
+        ) : (
+          <DateFilterComponent
+            value={filterState.value || NO_TIME_RANGE}
+            name={props.formData.nativeFilterId || 'time_range'}
+            onChange={handleTimeRangeChange}
+            onOpenPopover={() => setFilterActive(true)}
+            onClosePopover={() => {
+              setFilterActive(false);
+              unsetHoveredFilter();
+              unsetFocusedFilter();
+            }}
+            isOverflowingFilterBar={isOverflowingFilterBar}
+            displayFormat={props.formData.displayFormat}
+            calendarFrame={!!props.formData.calendarPicker}
+          />
+        )}
       </ControlContainer>
     </TimeFilterStyles>
   ) : null;

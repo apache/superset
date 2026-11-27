@@ -62,6 +62,21 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'calendarPicker',
+            config: {
+              type: 'CheckboxControl',
+              label: () => t('Calendar date picker'),
+              default: false,
+              renderTrigger: true,
+              description: () =>
+                t(
+                  'Show a plain date range picker that selects whole days, with the end date included, instead of all time range options. The default value is still set with all options.',
+                ),
+            },
+          },
+        ],
+        [
+          {
             name: 'displayFormat',
             config: {
               type: 'SelectControl',

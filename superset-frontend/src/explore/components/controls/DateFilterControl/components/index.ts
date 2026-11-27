@@ -18,7 +18,9 @@
  */
 export { CommonFrame } from './CommonFrame';
 export { CalendarFrame } from './CalendarFrame';
+export { DateRangeFrame } from './DateRangeFrame';
 export { CurrentCalendarFrame } from './CurrentCalendarFrame';
 export { CustomFrame } from './CustomFrame';
 export { AdvancedFrame } from './AdvancedFrame';
 export { DateLabel } from './DateLabel';
+export { CalendarRangePicker } from './CalendarRangePicker';

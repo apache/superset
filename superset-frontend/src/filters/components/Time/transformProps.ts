@@ -31,6 +31,7 @@ export default function transformProps(chartProps: ChartProps) {
     filterState,
     inputRef,
     displaySettings,
+    appSection,
   } = chartProps;
   const {
     setDataMask = noOp,
@@ -59,6 +60,7 @@ export default function transformProps(chartProps: ChartProps) {
     setFilterActive,
     width,
     inputRef,
+    appSection,
     filterBarOrientation: displaySettings?.filterBarOrientation,
     isOverflowingFilterBar: displaySettings?.isOverflowingFilterBar,
   };

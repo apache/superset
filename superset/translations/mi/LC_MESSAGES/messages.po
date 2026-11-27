@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-27 16:01+0530\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -234,12 +234,6 @@ msgstr "% o te tapeke rārangi"
 msgid "% of total"
 msgstr "% o te katoa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "I whakahohe angitu te %(alertType)s \"%(alertName)s\""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -274,6 +268,16 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "Kāore e taea te whakamahi i te %(dialect)s hei puna raraunga mō ngā take "
 "haumaru."
+
+#, python-format
+msgid ""
+"%(engine)s doesn't support partition filter mapping, so charts won't "
+"mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
 
 #. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
 #. parameter name except the last one, which is %(lastSuggestion)s.
@@ -377,6 +381,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
+
+#, python-format
+msgid ""
 "%(report_type)s schedule frequency exceeding limit. Please configure a "
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
 "execution."
@@ -409,6 +419,18 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -882,6 +904,9 @@ msgstr ""
 " tonu mēnā ka whakakore koe i ō pihikete, ka huri rawa rānei i ngā "
 "pūtirotiro.\n"
 
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "... and %d more"
 msgstr "me %s atu anō"
@@ -1270,6 +1295,9 @@ msgstr "Kōwhiri tīwae hei poroporo hei rā"
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "He rārangi māmā-wehea o ngā hanga e whakāetia ana ngā kōnae ki te tukuake."
 
+msgid "A configured Teams destination key is required"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -1285,6 +1313,12 @@ msgstr ""
 " o taua mana. Mō ētahi atu tātai, mana rānei, tautuhia anō ka kowhiri anō"
 " i ngā āpure, i ngā uara rongoā rānei. Mēnā e aro ana ki tētahi atu "
 "tirohanga pūtaketake, tangohia tēnei hoahoa i tōna whānuitanga."
+
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "E hiahiatia ana he tauranga pātengi raraunga ina hono mā te SSH Tunnel."
@@ -1520,6 +1554,12 @@ msgstr "He URL ka taea te pānui mō tō papatohu"
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "He tohutoro ki te whirihora [Wā], me te aro ki te māeneene"
 
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
+
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
 msgstr "Kei te tīari kē tētahi pūrongo ko \"%(name)s\" te ingoa"
@@ -1533,6 +1573,9 @@ msgstr ""
 #, fuzzy
 msgid "A rule with this name already exists."
 msgstr "Kua whai wāhi kē tētahi ture me tēnei ingoa."
+
+msgid "A saved query with this name already exists"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -1701,6 +1744,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "HER"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Kua Tīmata"
@@ -1742,6 +1800,12 @@ msgstr "Mahinga"
 
 msgid "Active"
 msgstr "Hohe"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Uara Tūturu"
@@ -1821,6 +1885,9 @@ msgstr "Tāpiri Mono"
 
 msgid "Add a dataset"
 msgstr "Tāpiri rārangi raraunga"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Tāpiri ripa hou"
@@ -1951,6 +2018,9 @@ msgstr "Tāpiri tātari"
 msgid "Add group"
 msgstr "Tāpiri rōpū"
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr "Tāpiri mea"
 
@@ -1984,6 +2054,9 @@ msgstr "Tāpiri, whakatika rānei i ngā tātari"
 #, fuzzy
 msgid "Add or edit filters and controls"
 msgstr "Tāpiri, whakatika rānei i ngā tātari"
+
+msgid "Add ranges above to configure their colors here."
+msgstr ""
 
 #, fuzzy
 msgid "Add report"
@@ -2243,6 +2316,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Matohi"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Matohi Kua Whakaohongia, I roto i te Wā Aroha"
 
@@ -2254,6 +2331,9 @@ msgstr "Ihirangi matohi"
 
 msgid "Alert ended grace period."
 msgstr "Matohi kua mutu te wā aroha."
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "I rahua te matohi"
@@ -2925,6 +3005,11 @@ msgstr "Kei te haere kē he kaweake mō tēnei papatohu."
 msgid "An unexpected error occurred"
 msgstr "I puta he hapa ohorere"
 
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
+
 msgid "Anchor to"
 msgstr "Punga ki"
 
@@ -3240,6 +3325,12 @@ msgstr "I tuhia te %s tūemi; i muku tūturu te %s tirohanga kupu-tikanga"
 msgid "Archived by"
 msgstr "Tuhia e"
 
+msgid ""
+"Archived charts and dashboards may still depend on this dataset, "
+"including assets you cannot view. Archiving or permanently deleting this "
+"dataset can prevent those assets from working after they are recovered."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Archived items must be recovered before they can be opened."
@@ -3396,6 +3487,10 @@ msgstr ""
 msgid "Arrow"
 msgstr "Pere"
 
+#, python-format
+msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "Tūtohua tētahi huinga tawhā hei"
 
@@ -3410,11 +3505,17 @@ msgstr "Ngā whakatūpato me ngā pūrongo e pā ana"
 msgid "Asynchronous query execution"
 msgstr "Whakatutukitanga pātai kore-hangarite"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Whakatuakī"
 
 msgid "August"
 msgstr "Hereturikōkā"
+
+msgid "Authentication method"
+msgstr ""
 
 #, fuzzy
 msgid "Authorization Request URI"
@@ -3580,6 +3681,9 @@ msgstr "Ahunga pae"
 msgid "Base"
 msgstr "Pūtake"
 
+msgid "Base background"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Pūmahi pūtake"
 
@@ -3662,6 +3766,9 @@ msgstr "PŪRUHI"
 #, fuzzy, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "Poraka %(block_num)s o %(block_count)s"
+
+msgid "Border"
+msgstr ""
 
 msgid "Border color"
 msgstr "Tae tapa"
@@ -3766,6 +3873,9 @@ msgstr "Rohe mō te tukutuku-Y tuarua. Ka mahi anake ina whakahohe i ngā rohe"
 
 msgid "Box Plot"
 msgstr "Kauwhata Pouaka"
+
+msgid "Break"
+msgstr ""
 
 msgid "Breakdowns"
 msgstr "Wāwāhi"
@@ -3994,8 +4104,19 @@ msgstr "Tīwae tatau"
 msgid "Calculation type"
 msgstr "Momo tatauranga"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Mahere Wera Maramataka"
+
+msgid ""
+"Calendar Heatmap is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
+msgid "Calendar date picker"
+msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
 msgstr "Kāore e taea te neke i te ripa taumata runga ki ngā ripa whakawhāiti"
@@ -4063,6 +4184,9 @@ msgstr ""
 " mua i te muku i te pātengi raraunga. Mā te whakahoki mai i ēnei (POST "
 "/api/v1/dataset/<uuid>/restore) ka mau tonu ngā huinga raraunga, engari e"
 " kore tonu e taea te muku i te pātengi raraunga."
+
+msgid "Cannot delete semantic views"
+msgstr ""
 
 #, fuzzy
 msgid "Cannot delete system themes"
@@ -4442,6 +4566,10 @@ msgstr "Kua tiakina te kauwhata [%s]"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "I tāpiritia te kauwhata [%s] ki te papatohu [%s]"
 
+#, python-format
+msgid "Chart archived: %s"
+msgstr ""
+
 msgid "Chart cache timeout"
 msgstr "Wā kore-mahi keteroki kauwhata"
 
@@ -4539,6 +4667,9 @@ msgstr "Taitara kauwhata"
 msgid "Chart type"
 msgstr "Taitara kauwhata"
 
+msgid "Chart type must be a string."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Chart updated: %s"
@@ -4591,6 +4722,12 @@ msgstr "Tirohia tēnei kauwhata: "
 msgid "Check out this dashboard: "
 msgstr "Tirohia tēnei papatohu: "
 
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Check the value transform →"
@@ -4615,6 +4752,9 @@ msgstr ""
 #, fuzzy
 msgid "Checking for affected charts and dashboards…"
 msgstr "E tirotiro ana i ngā tūtohi me ngā papatohu kua pāngia…"
+
+msgid "Checking which charts will be removed…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -5120,6 +5260,20 @@ msgstr "Tae mō ngā pae kei te taha matau o te hoahoa"
 msgid "Color for breakpoint"
 msgstr "Tohu wehe peeke"
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 msgid "Color metric"
 msgstr "Ine tae"
 
@@ -5137,6 +5291,16 @@ msgstr "Kaupapa tae"
 #, fuzzy, python-format
 msgid "Color scheme: %s"
 msgstr "Kaupapa tae: %s"
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5285,6 +5449,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Ko te kōpaki tīwae ka taea anake te pupuri i ngā mea tīwae"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Tīwae e ngaro ana i te rārangi raraunga: %(invalid_columns)s"
 
@@ -5329,15 +5497,6 @@ msgstr "Ngā pou e taea ai e ngā kaiwhakaaro te kōwhiri hei whakarōpū i ngā
 
 msgid "Combine metrics"
 msgstr "Whakakotahi ine"
-
-msgid ""
-"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
-"denote colors from the chosen color scheme and are 1-indexed. Length must"
-" be matching that of interval bounds."
-msgstr ""
-"Tīpako tae māmā-wehea mō ngā wā, hei tauira 1,2,4. Ko ngā tau ka tohu i "
-"ngā tae mai i te kaupapa tae kua kōwhiria, ā, ka tīmata i te 1. Me ōrite "
-"te roa ki te roa o ngā rohe wā."
 
 msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
@@ -5470,6 +5629,9 @@ msgstr "Whirihora %s"
 msgid "Configure Advanced Time Range "
 msgstr "Whirihora Awhe Wā Aromatawai "
 
+msgid "Configure Time Range: Calendar..."
+msgstr ""
+
 msgid "Configure Time Range: Current..."
 msgstr "Whirihora Awhe Wā: Ināianei..."
 
@@ -5521,6 +5683,9 @@ msgstr "Whirihora i tēnei papatohu hei tāmau ki tētahi taupānga tukutuku o w
 
 msgid "Configure your how you overlay is displayed here."
 msgstr "Whirihora i te whakaaturanga o tō kōpaki ki konei."
+
+msgid "Configured"
+msgstr ""
 
 #, fuzzy
 msgid "Confirm"
@@ -5596,6 +5761,9 @@ msgstr "He pai te tūhononga!"
 #, fuzzy
 msgid "Contact the report owner for error details."
 msgstr "Whakapā atu ki te rangatira o te pūrongo mō ngā taipitopito hapa."
+
+msgid "Container background"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -5807,14 +5975,14 @@ msgstr ""
 "whakawhirinaki ana ki ngā %s kua tīpakohia. Tērā pea ka pakaru ngā tūtohi"
 " me ngā papatohu mēnā ka mukua."
 
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
+msgstr ""
+
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Kāore i taea te hono ki te pātengi raraunga: \"%(database)s\""
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "Kāore i taea te muku i ngā tirohanga tikanga %s: %s"
 
 msgid "Could not fetch all saved charts"
 msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
@@ -5823,6 +5991,10 @@ msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
 #, fuzzy, python-format
 msgid "Could not find %s"
 msgstr "Kāore i kitea a %s"
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -5846,6 +6018,10 @@ msgid ""
 msgstr ""
 "Kāore i taea te uta i te raraunga meta mō tēnei whirihora; e whakaaturia "
 "ana te puka taunoa. Tirohia ngā rangitaki tūmau mō ngā taipitopito."
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -5879,6 +6055,9 @@ msgstr ""
 "Kāore i taea te whakatau i te kaiwhakamahi hei whakaahua i runga i te "
 "hononga pātengi raraunga. Kāore i whakahaerea te pātai, nā te mea tērā ka"
 " hono hei kaiwhakamahi he."
+
+msgid "Could not save this schedule"
+msgstr ""
 
 msgid "Could not validate the user in the current session."
 msgstr "Kāore i taea te manatoko i te kaiwhakamahi i te wātaka o nāianei."
@@ -6049,10 +6228,10 @@ msgstr "Ngā"
 msgid "Cross-filter column"
 msgstr "Korahi tātari-whiti"
 
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
+msgid ""
+"Cross-filter will be applied to the charts in this chart's cross-"
+"filtering scope."
 msgstr ""
-"Ka whakahaeretia te tātari-whiti ki ngā kauwhata katoa e whakamahi ana i "
-"tēnei rārangi raraunga."
 
 msgid "Cross-filtering is not enabled for this dashboard."
 msgstr "Kāore i whakahohengia te tātari-whiti mō tēnei papatohu."
@@ -6355,6 +6534,10 @@ msgstr "Papatohu"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Kāore i kitea te papatohu %(dashboard_id)s"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -6904,6 +7087,9 @@ msgstr "Uara Taunoa"
 msgid "Default color"
 msgstr "Kātaloka Taunoa"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 #, fuzzy
 msgid "Default datetime column"
 msgstr "Wā taunoa"
@@ -6928,6 +7114,12 @@ msgid ""
 msgstr ""
 "Whānui tīwae iti taunoa i ngā pika, ka taea e te whānui tūturu te rahi "
 "ake i tēnei mēnā karekau e hiahiatia e ētahi atu tīwae te wāhi nui"
+
+msgid "Default row expansion depth"
+msgstr ""
+
+msgid "Default schema (database) to connect to"
+msgstr ""
 
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr "Me tautuhi te uara taunoa ina pātia \"He uara taunoa tō te Tātari\""
@@ -7187,6 +7379,15 @@ msgstr "Mukua te mea kua tīpakohia"
 msgid "Delete template"
 msgstr "Muku tauira"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Muku tauira"
@@ -7285,6 +7486,12 @@ msgstr "Kua Mukua %s"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "Kua mukua te %s tūemi"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7425,6 +7632,9 @@ msgstr "Kupu whakamārama ka puta i raro i tō Tau Nui"
 
 msgid "Deselect all"
 msgstr "Kore-tīpakohia te katoa"
+
+msgid "Deselect the items you cannot modify and try again."
+msgstr ""
 
 #, fuzzy
 msgid "Design with"
@@ -7815,6 +8025,9 @@ msgstr ""
 msgid "Draft"
 msgstr "Tuhinga"
 
+msgid "Draft dashboard access"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -8039,7 +8252,9 @@ msgstr "Ahunga"
 msgid "Dynamic group by"
 msgstr "KĀORE I RŌPŪNGIA MĀ"
 
-msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
 msgstr ""
 
 #, fuzzy
@@ -8247,14 +8462,6 @@ msgstr "Kua hē te pūwaea o te pātengi raraunga, karekau pea rānei."
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr "Kua hē te ingoa kaiwhakamahi \"%(username)s\", te kupuhipa rānei."
 
-#, python-format
-msgid ""
-"Either the username \"%(username)s\", password, or database name "
-"\"%(database)s\" is incorrect."
-msgstr ""
-"Kua hē te ingoa kaiwhakamahi \"%(username)s\", te kupuhipa rānei, te "
-"ingoa pātengi raraunga \"%(database)s\" rānei."
-
 msgid "Either the username or the password is wrong."
 msgstr "Kua hē te ingoa kaiwhakamahi, te kupuhipa rānei."
 
@@ -8309,6 +8516,26 @@ msgstr ""
 
 msgid "Embedded dashboard could not be deleted."
 msgstr "Kāore i taea te muku i te papatohu tāmau."
+
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials can't be added or changed while the embedded "
+"credential fallback is turned off. Leave the stored credentials unchanged"
+" or clear them."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
 
 msgid "Embedding deactivated."
 msgstr "Tāmau kua whakakore."
@@ -8463,6 +8690,10 @@ msgstr "Me muri te rā mutunga i te rā tīmata"
 msgid "Ends With"
 msgstr "Whānui tapa"
 
+#, python-format
+msgid "Ends with %s."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Ends with (ILIKE %x)"
 msgstr "Whānui tapa"
@@ -8559,6 +8790,12 @@ msgstr "Tāuru i te ingoa kaiwhakamahi o te kaiwhakamahi"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Tāuru i ngā taipitopito %(dbModelName)s e hiahiatia ana"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Tāuru i te id kaupapa ahurei mō tō pātengi raraunga."
@@ -8890,6 +9127,10 @@ msgstr "Whakawhānui"
 msgid "Expand %s"
 msgstr "Whakawhānuitia %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Whakawhānui katoa"
@@ -8934,6 +9175,14 @@ msgstr "Whakamātautau"
 msgid "Expired"
 msgstr "Tūhura"
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Expires on"
@@ -8953,10 +9202,6 @@ msgstr ""
 
 msgid "Explore"
 msgstr "Tūhura"
-
-#, python-format
-msgid "Explore - %(table)s"
-msgstr "Tūhura - %(table)s"
 
 msgid "Explore the result set in the data exploration view"
 msgstr "Tūhuratia te huinga hua i te tirohanga tūhuratanga raraunga"
@@ -9126,6 +9371,9 @@ msgstr "kāore e taea te noho kau"
 msgid "Expression evaluated — data not checked"
 msgstr "Kua arotakehia te kīanga — kāore ngā raraunga i tirohia"
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
 msgid ""
@@ -9237,6 +9485,10 @@ msgstr "Tārua ki te papatopenga"
 #, fuzzy
 msgid "Failed to create API key"
 msgstr "I rahua te hanga i te pūrongo"
+
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9404,10 +9656,6 @@ msgstr "I rahua te tiki i te momo aromatawai"
 msgid "Failed to revoke API key"
 msgstr "I rahua te whakamutua i te pātai."
 
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "I rahua te uta i ngā raraunga kauwhata"
-
 msgid "Failed to save cross-filter scoping"
 msgstr "I rahua te tiaki i te korahi tātari-whiti"
 
@@ -9446,11 +9694,13 @@ msgstr "I rahua te penapena i ngā hua pātai. Tēnā koa ngana anō."
 msgid "Failed to tag items"
 msgstr "I rahua te tohu i ngā mea"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "I rahua te whakahohe i a %(alertType)s \"%(alertName)s\": %(error)s"
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "I rahua te whakahou i te pūrongo"
@@ -9829,6 +10079,11 @@ msgid "Fix the Extra JSON to edit certification"
 msgstr "Whakatikahia te JSON Atu hei whakatika i te whakamana"
 
 msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
+
+msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
 msgstr ""
@@ -10108,6 +10363,9 @@ msgstr "Ingoa katoa"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Kāore anō kia tautokona te keri mā mō tēnei momo kauwhata"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Kauwhata Kōrere"
 
@@ -10200,6 +10458,9 @@ msgstr ""
 "Haere ki Kua Pūranga Tata Nei hei whakahoki, hei whakatau anō i ngā rawa "
 "kua pūranga, hei mukua pūmau rānei, hei pātai rānei ki tētahi "
 "kaiwhakahaere mō te āwhina."
+
+msgid "Go to Secure extra"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10294,6 +10555,12 @@ msgstr "Ingoa rōpū"
 msgid "Group remaining as \"Others\""
 msgstr "Whakaropu i ngā toenga hei \"Ētahi Atu\""
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -10336,6 +10603,9 @@ msgstr "Kāore e taea e te kaiwhakamahi manuhiri te whakarereke i te uta kauwhat
 #, fuzzy
 msgid "HTTP Path"
 msgstr "Ara HTTP"
+
+msgid "HTTPS will be used to connect to the Druid SQL endpoint."
+msgstr ""
 
 #. do-not-translate
 msgid "Handlebars"
@@ -10422,7 +10692,15 @@ msgstr "Te uara teitei mō ia wā."
 msgid "Histogram"
 msgstr "Kauwhata Auau"
 
-msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgid ""
+"Histogram is not yet supported on semantic views. Use a Bar or Table "
+"chart with an explicit count metric."
+msgstr ""
+
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
 msgstr ""
 
 msgid "Home"
@@ -10430,6 +10708,9 @@ msgstr "Kāinga"
 
 msgid "Horizon Chart"
 msgstr "Kauwhata Pae Rangi"
+
+msgid "Horizon is not yet supported on semantic views. Use a Line or Bar chart."
+msgstr ""
 
 msgid "Horizontal"
 msgstr "Whakapae"
@@ -10466,11 +10747,29 @@ msgstr "Tahapa hāora"
 msgid "How do you want to enter service account credentials?"
 msgstr "Me pēhea koe ki te tomo i ngā taipitopito kaute ratonga?"
 
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
+
 msgid "How many buckets should the data be grouped in."
 msgstr "Kia hia ngā peeke me rōpū ai ngā raraunga."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Kia hia ngā wā ki mua e hiahia ana tātou ki te matapae"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10521,8 +10820,6 @@ msgstr "Id"
 msgid "Id of root node of the tree."
 msgstr "Id o te pona pākiaka o te rākau."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
@@ -10531,19 +10828,10 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
-"Mēnā he Presto, he Trino rānei, ka whakahaerehia ngā pātai katoa i roto i"
-" te SQL Lab hei kaiwhakamahi kua takiuru i tēnei wā, me whai whakaaetanga"
-" ia hei whakahaere i aua pātai. Mēnā he Hive, ā, kua whakahohea te "
-"hive.server2.enable.doAs, ka whakahaerehia ngā pātai hei pūkete ratonga, "
-"engari ka whakaahua i te kaiwhakamahi kua takiuru i tēnei wā mā te taonga"
-" hive.server2.proxy.user. Mēnā he Databricks, ka whakamahia te OAuth2 hei"
-" tuakiri hei kaiwhakamahi kua takiuru i tēnei wā. Mēnā he Snowflake, he "
-"Google Sheets rānei, ā, kua whirihorahia te whakamotuhēhēnga OAuth mō te "
-"pātengi raraunga, ka whakahaerehia ngā pātai hei kaiwhakamahi kua takiuru"
-" i tēnei wā mā ōna ake taipitopito OAuth."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Mēnā kua tohua tētahi ine, ka mahia te kōmaka i runga i te uara ine"
@@ -10866,6 +11154,11 @@ msgstr "Runga mauī"
 msgid "Inside top right"
 msgstr "Runga matau"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Kaha"
 
@@ -10936,6 +11229,12 @@ msgstr ""
 msgid "Invalid SQL: %(error)s"
 msgstr "SQL muhu: %(error)s"
 
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
@@ -10985,6 +11284,10 @@ msgstr "Kaiwhakahaere whakakōputu muhu: %(operator)s"
 
 msgid "Invalid currency code in saved metrics"
 msgstr "Waehere moni muhu i ngā ine kua tiakina"
+
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
 
 msgid "Invalid date/timestamp format"
 msgstr "Hōputu rā/waitohu muhu"
@@ -11093,6 +11396,10 @@ msgstr "Kore e tika ana te tau tātari wā mō te pou %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "He rohe wā muhu mō te resample: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11273,6 +11580,9 @@ msgstr "Kī"
 msgid "Key Prefix"
 msgstr "Kūmua"
 
+msgid "Key pair"
+msgstr ""
+
 msgid "Keyboard shortcuts"
 msgstr "Pokatata papatuhi"
 
@@ -11298,6 +11608,12 @@ msgstr "Ihirangi Tapanga"
 
 msgid "Label Line"
 msgstr "Rārangi Tapanga"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -11789,6 +12105,9 @@ msgstr "Tīwae rārangi"
 msgid "Lines encoding"
 msgstr "Whakakohu rārangi"
 
+msgid "Link"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy
@@ -11836,6 +12155,15 @@ msgstr "Rārangi kua whakahouhia"
 #, fuzzy
 msgid "List view"
 msgstr "Rārangi Kaiwhakamahi"
+
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
 
 msgid "Live render"
 msgstr "Whakaatu ora"
@@ -11887,6 +12215,9 @@ msgstr "E utaina ana ngā momo paparanga kiko…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "E utaina ana ngā paparanga kiko…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 #, fuzzy
 msgid "Loading timezones..."
@@ -11940,9 +12271,6 @@ msgstr "Tukutuku-x pūkete"
 
 msgid "Logarithmic y-axis"
 msgstr "Tukutuku-y pūkete"
-
-msgid "Login"
-msgstr "Takiuru"
 
 msgid "Login count"
 msgstr "Tatau takiuru"
@@ -12032,6 +12360,9 @@ msgstr "Matua"
 msgid "Main navigation"
 msgstr "Whakahihiko"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -12041,6 +12372,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Kia kāwai te tukutuku-x"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -12191,6 +12525,17 @@ msgstr ""
 "Ka tohu i ngā kauwhata i hangaia mā te kirimana matawhenua MCP kia mau "
 "tonu ai ngā tūmau manatoko a Explore."
 
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Momo tohu"
 
@@ -12297,6 +12642,11 @@ msgstr "Uara rahi"
 
 msgid "Maximum value on the gauge axis"
 msgstr "Uara rahi i te tukutuku ine"
+
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
 
 #, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
@@ -12929,6 +13279,11 @@ msgstr "Tohua he ingoa mō tō pātengi raraunga"
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr "Ingoa tō kōpaki; hei tāpua i muri ake, pāwhiria te ingoa kōpaki"
 
+msgid ""
+"Named instances can't be entered as the host. Enter only the host and the"
+" port the instance listens on, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
 #, fuzzy
 msgid "Native filter column is required"
 msgstr "E hiahiatia ana te uara tātari"
@@ -13008,6 +13363,11 @@ msgstr "Nightingale"
 msgid "Nightingale Rose Chart"
 msgstr "Kauwhata Rōhi Nightingale"
 
+msgid ""
+"Nightingale Rose is not yet supported on semantic views. Use a Line or "
+"Bar chart."
+msgstr ""
+
 msgid "No"
 msgstr "Kāo"
 
@@ -13061,6 +13421,9 @@ msgstr "Kāore anō he tohu"
 
 msgid "No applied filters"
 msgstr "Kāore he tātari kua whakahaeretia"
+
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -13144,8 +13507,14 @@ msgstr "Kāore he pātengi raraunga e hāngai ana ki tō rapu"
 msgid "No description available."
 msgstr "Kāore he whakamārama wātea."
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 msgid "No entities have this tag currently assigned"
 msgstr "Kāore he pūtahi kei te whai i tēnei tohu i tēnei wā"
+
+msgid "No extension provides a page with this name."
+msgstr ""
 
 msgid "No filter"
 msgstr "Kāore he tātari"
@@ -13319,6 +13688,10 @@ msgstr ""
 "kaiwhakahaere kia whakatūria he paparanga whakamārama, kia whakaaetia "
 "rānei koe ki tētahi."
 
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "No sort (original order)"
@@ -13473,8 +13846,14 @@ msgstr "Kāore i tāpiritia ki tētahi papatohu"
 msgid "Not all required fields are complete. Please provide the following:"
 msgstr "Kāore i oti ngā āpure katoa e hiahiatia ana. Tēnā whakarato i ēnei:"
 
+msgid "Not authorized"
+msgstr ""
+
 msgid "Not available"
 msgstr "Karekau e wātea ana"
+
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13845,6 +14224,10 @@ msgstr "Ko ngā pātai kotahi anake e tautokona ana"
 msgid "Only the default catalog is supported for this connection"
 msgstr "Te kātaloka taunoa me whakamahi mō te hononga."
 
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Only the first %s values are listed."
@@ -13935,6 +14318,12 @@ msgstr "Huaki i SQL Lab"
 msgid "Open in SQL lab"
 msgstr "Huaki i SQL Lab"
 
+msgid "Open in Superset"
+msgstr ""
+
+msgid "Open page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, ja]
 #, fuzzy
 msgid "Open price"
@@ -13945,6 +14334,9 @@ msgstr "Huaki pātai i SQL Lab"
 
 msgid "Opening value for each period."
 msgstr "Te uara whakatuwhera mō ia wā."
+
+msgid "Opens a page contributed by an extension."
+msgstr ""
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -13971,6 +14363,11 @@ msgstr ""
 "Ihirangi CA_BUNDLE kōwhiringa hei manatoko i ngā tono HTTPS. Kei te wātea"
 " anake i ētahi pūkaha pātengi raraunga."
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 msgid "Optional d3 date format string"
 msgstr "Aho hōputu rā d3 kōwhiringa"
 
@@ -13981,6 +14378,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "He matotoru kōwhiri hei wehe i te kauwhata ki ētahi raupapa kānara."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -14214,8 +14614,16 @@ msgstr "Ture tauira-anō Pandas"
 msgid "Page navigation"
 msgstr "Whakaarotautanga"
 
+msgid "Page not found"
+msgstr ""
+
 msgid "Paired t-test Table"
 msgstr "Tūtohi Tukutahi"
+
+msgid ""
+"Paired t-test is not yet supported on semantic views. Use a Table chart "
+"to inspect the metric by time."
+msgstr ""
 
 msgid "Pandas resample method"
 msgstr "Hapa tawhā"
@@ -14327,6 +14735,9 @@ msgstr "Whakahou"
 
 msgid "Paste Private Key here"
 msgstr "Whakapiri tō tohu urunga ki konei"
+
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
 
 msgid "Paste content of service credentials JSON file here"
 msgstr "Tauira"
@@ -14459,6 +14870,12 @@ msgstr "Tīpakohia tētahi ine mō te x, y me te rahi"
 msgid "Physical (table or view)"
 msgstr "Tīpakohia tētahi ine hei whakaatu"
 
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
+"keep following the chosen color scheme until an interval color is edited."
+msgstr ""
+
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr ""
 "Tīpakohia he ingoa hei āwhina i a koe ki te tautuhi i tēnei pātengi "
@@ -14522,6 +14939,22 @@ msgstr "aratau whakatika"
 
 msgid "Pivot Table"
 msgstr "Kua Hurihuritia"
+
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
 
 msgid "Pivot operation must include at least one aggregate"
 msgstr "Teitei pika o ia raupapa"
@@ -14657,9 +15090,6 @@ msgstr "Tukuna ngā rohe wā e rua (Mai i me Tae atu ki)"
 
 msgid "Please re-enter the password."
 msgstr "Tēnā tāuru anō te kupuhipa."
-
-msgid "Please re-export your file and try importing again"
-msgstr "Tēnā kaweatu-anō tō kōnae, ā, whakamātauhia anō te kawemai"
 
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
@@ -14929,6 +15359,12 @@ msgstr "Kī Matawhā me te Kupuhipa"
 msgid "Private Key Password"
 msgstr "Kupuhipa Kī Matawhā"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Haere tonu"
 
@@ -15105,6 +15541,9 @@ msgstr "Korahi"
 msgid "Range Type"
 msgstr "MOMO AWHE"
 
+msgid "Range colors"
+msgstr ""
+
 msgid "Range filter"
 msgstr "Tātari korahi"
 
@@ -15141,6 +15580,14 @@ msgstr ""
 msgid "Raw records"
 msgstr "Rekoata mata"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -15150,6 +15597,9 @@ msgstr "Tīpako anō i ngā āpure"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "Tīpako anō i ngā āpure mō tēnei tūtohi"
+
+msgid "Read from the token's exp claim."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15269,6 +15719,9 @@ msgstr "E whakahou ana i ngā kauwhata"
 msgid "Refreshing columns"
 msgstr "E whakahou ana i ngā tīwae"
 
+msgid "Region"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Region name"
@@ -15380,6 +15833,9 @@ msgstr "Momo Whakakitenga"
 #, fuzzy
 msgid "Remove dependency"
 msgstr "Tango i te whakawhirinakitanga"
+
+msgid "Remove embedded guest credentials"
+msgstr ""
 
 #, fuzzy
 msgid "Remove filter"
@@ -15504,6 +15960,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Pūrongo"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15751,6 +16211,11 @@ msgstr "E hiahiatia ana mehemea kei te whai kupuwhakauru kē tō pūkete"
 msgid "Required to mirror range filters, including the time range."
 msgstr "E hiahiatia ana hei whakaata i ngā tātari awhe, tae atu ki te awhe wā."
 
+msgid ""
+"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
+" (Advanced → Security)."
+msgstr ""
+
 msgid "Resample"
 msgstr "Tauira-anō"
 
@@ -15809,6 +16274,9 @@ msgstr "Tautuhi anō i te kupuwhakauru"
 
 msgid "Reset state"
 msgstr "Tautuhi anō i te tūnga"
+
+msgid "Reset to default datetime column"
+msgstr ""
 
 #, fuzzy
 msgid "Reset to default folders?"
@@ -15873,6 +16341,21 @@ msgid ""
 msgstr ""
 "Ka waihangahia he putanga hou ina whakahokia. Ka mau tonu tō hītori "
 "putanga o mua."
+
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 msgid "Results"
 msgstr "Hua"
@@ -16196,6 +16679,15 @@ msgstr "E Rere Ana"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "E whakahaere ana i te kīanga %(block_num)s i waho o %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "HĀT"
@@ -16747,6 +17239,9 @@ msgstr "Ine Tuarua"
 msgid "Secondary currency format"
 msgstr "Hōputu moni tuarua"
 
+msgid "Secondary text"
+msgstr ""
+
 msgid "Secondary y-axis Bounds"
 msgstr "Rohe tukutuku-y Tuarua"
 
@@ -16940,6 +17435,9 @@ msgstr "Tīpakohia ngā raraunga katoa"
 
 msgid "Select all items"
 msgstr "Tīpakohia ngā mea katoa"
+
+msgid "Select an approved Teams channel"
+msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "Tīpakohia kātaloka, pato rānei hei rapu kātaloka"
@@ -17351,6 +17849,9 @@ msgstr "Ngā Tirohanga Tikanga"
 #, fuzzy
 msgid "Semantic cache"
 msgstr "Keteroki tikanga"
+
+msgid "Semantic colors"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -17839,6 +18340,12 @@ msgid "Show a draggable slider to control the visible range of the Y-axis."
 msgstr ""
 "Whakaatuhia he kauneke tō-ahei hei whakahaere i te awhe e kitea ana o te "
 "toki Y."
+
+msgid ""
+"Show a plain date range picker that selects whole days, with the end date"
+" included, instead of all time range options. The default value is still "
+"set with all options."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -18591,6 +19098,9 @@ msgstr "Longitude me Latitude Tīmata"
 msgid "Start Time"
 msgstr "Rā tīmata"
 
+msgid "Start and end date (end date included)"
+msgstr ""
+
 msgid "Start angle"
 msgstr "Koki tīmata"
 
@@ -18724,6 +19234,10 @@ msgid ""
 msgstr ""
 "Kua neke ake te kī rongoā i te roa nui rawa e whakaaetia ana, e "
 "%(max_length)d ngā tohu."
+
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
 
 msgid "Stream"
 msgstr "Rere"
@@ -18898,6 +19412,11 @@ msgstr "Tuhinga SDK Tāmau Superset."
 
 msgid "Superset chart"
 msgstr "Kauwhata Superset"
+
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
 
 #, fuzzy
 msgid "Superset docs link"
@@ -19209,6 +19728,32 @@ msgstr ""
 "Ka puta ngā mahi ki konei i te wā e whakahaerehia ana ngā mahi "
 "papakupenga."
 
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr "Tauira"
 
@@ -19297,11 +19842,12 @@ msgstr "Kupu tāmautia i te īmēra"
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "Kāore te whakatōpū %(aggregate)s e tautokona i tēnei pātengi raraunga"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
-msgstr "Me tau tōpū e kore e kōaro te %(key)s i metadata_cache_timeout."
+#, python-format
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19438,8 +19984,21 @@ msgstr ""
 "Ka whai te kauwhata Sankey i te nekeneke me te whakaahua o ngā uara puta "
 "noa"
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "Kei te ngaro i te URL ngā tawhā dataset_id, slice_id rānei."
+
+msgid ""
+"The X-axis is a SQL expression, so time range filtering is not applied "
+"automatically. Without a time filter, queries may scan the entire table. "
+"Add a filter on your dataset's time column in the Filters section to "
+"limit the rows read."
+msgstr ""
 
 msgid "The X-axis is not on the filters list"
 msgstr "Kāore te tukutuku-X i runga i te rārangi tātari"
@@ -19457,6 +20016,16 @@ msgstr ""
 #, fuzzy, python-format
 msgid "The `%(field)s` field must be a string."
 msgstr "Me aho te āpure `%(field)s`."
+
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19478,8 +20047,21 @@ msgstr "Kua tiakina te tohu"
 msgid "The annotation has been updated"
 msgstr "Kua whakahouhia te tohu"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 msgid "The background color of the charts."
 msgstr "Te tae papamuri o ngā kauwhata."
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -19627,6 +20209,13 @@ msgstr ""
 "Kāore i taea te tautuhi i te putanga o nāianei. Kāore e wātea mō te wā "
 "poto te whakahoki."
 
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
+
 msgid "The dashboard has been saved"
 msgstr "Kua tiakina te papatohu"
 
@@ -19658,11 +20247,32 @@ msgstr ""
 "Kua kore e wātea ngā raraunga i hangaia ai tēnei putanga, nō reira kāore "
 "e taea te arokite"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr "Ngā tīwae pātengi raraunga kei roto ngā mōhiohio rārangi"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
 msgstr "Kāore i kitea te pātengi raraunga"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "Kei te rere te tini rawa o ngā pātai i te pātengi raraunga i tēnei wā."
@@ -19677,6 +20287,17 @@ msgstr ""
 "Kāore i kitea te pātengi raraunga kua tohutorohia i tēnei pātai. Tēnā "
 "whakapā atu ki tētahi kaiwhakahaere mō te āwhina, whakamātauhia anō "
 "rānei."
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "I whakahoki mai te pātengi raraunga i tētahi hapa ohorere."
@@ -19730,6 +20351,12 @@ msgstr "Ka pā te whirihora rārangi raraunga kua whakaaturia ki konei"
 msgid "The dataset has been saved"
 msgstr "Kua tiakina te rārangi raraunga"
 
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19782,8 +20409,17 @@ msgstr ""
 "Te roa o te wā i ngā hēkona i mua i te whakamuhutanga o te keteroki. "
 "Tautuhia ki -1 hei poke i te keteroki."
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 msgid "The encoding format of the lines"
 msgstr "Te hōputu whakakohu o ngā rārangi"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
@@ -19798,6 +20434,11 @@ msgstr "Te pūmahi hei tatau i ngā rahi katoa mai. \"EXP\" anake"
 #, fuzzy, python-format
 msgid "The extension %(id)s could not be loaded."
 msgstr "Kāore i taea te uta te toronga %(id)s."
+
+msgid ""
+"The extension may not be installed, may be switched off, or may have "
+"failed to load. Check the browser console and the Extensions screen."
+msgstr ""
 
 msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
@@ -19815,6 +20456,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Ko te āhuatanga o te tūemi hei whakamahi mō ngā tapanga tohu"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "The following charts could not be exported:"
@@ -19826,6 +20477,12 @@ msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
 msgstr "I whakarērea ēnei mahere nā te hapa i te kaweake:"
+
+msgid ""
+"The following charts were omitted because their chart type is not yet "
+"supported on semantic views. To include them, switch each chart to a "
+"supported type such as Table, Bar or Line."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19974,6 +20631,10 @@ msgstr "I hangaia te hononga engari kāore i taea te kape: %s"
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Te tepe raro o te awhe paepae o te Isoband"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
@@ -20135,55 +20796,31 @@ msgstr "I tiakina pai tēnei papatohu."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"E hiahiatia ana ngā kupuhipa mō ngā pātengi raraunga i raro nei hei "
-"kawemai i a rātou tahi me ngā kauwhata. Tēnā kia mōhio karekau ngā "
-"wāhanga \"Taapiri Haumaru\" me \"Tiwhikete\" o te whirihora pātengi "
-"raraunga i roto i ngā kōnae kaweatu, ā, me tāpiri ā-ringa i muri i te "
-"kawemai mēnā e hiahiatia ana."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"E hiahiatia ana ngā kupuhipa mō ngā pātengi raraunga i raro nei hei "
-"kawemai i a rātou tahi me ngā papatohu. Tēnā kia mōhio karekau ngā "
-"wāhanga \"Taapiri Haumaru\" me \"Tiwhikete\" o te whirihora pātengi "
-"raraunga i roto i ngā kōnae kaweatu, ā, me tāpiri ā-ringa i muri i te "
-"kawemai mēnā e hiahiatia ana."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"E hiahiatia ana ngā kupuhipa mō ngā pātengi raraunga i raro nei hei "
-"kawemai i a rātou tahi me ngā rārangi raraunga. Tēnā kia mōhio karekau "
-"ngā wāhanga \"Taapiri Haumaru\" me \"Tiwhikete\" o te whirihora pātengi "
-"raraunga i roto i ngā kōnae kaweatu, ā, me tāpiri ā-ringa i muri i te "
-"kawemai mēnā e hiahiatia ana."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"E hiahiatia ana ngā kupuhipa mō ngā pātengi raraunga i raro nei hei "
-"kawemai i a rātou tahi me ngā pātai kua tiakina. Tēnā kia mōhio karekau "
-"ngā wāhanga \"Taapiri Haumaru\" me \"Tiwhikete\" o te whirihora pātengi "
-"raraunga i roto i ngā kōnae kaweatu, ā, me tāpiri ā-ringa i muri i te "
-"kawemai mēnā e hiahiatia ana."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20478,16 +21115,12 @@ msgstr "Kua tikiake te hopuataata."
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "Kei te hangaia te hopuataata. Tēnā kaua e waiho i te whārangi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
-"Kua honoa ngā %(type)s i tīpakohia ki %(charts)s i runga i "
-"%(dashboards)s. Mēnā ka pūrangatia, ka kore e wātea ngā tūtohi "
-"whakawhirinaki kia whakahokia mai rānei."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20499,14 +21132,11 @@ msgstr ""
 "pūrangatia, ka kore e wātea ngā tūtohi whakawhirinaki kia whakahokia mai "
 "rānei."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %s are linked to %s on %s. Deleting them will break those "
+"The selected %s are linked to %s and %s. Deleting them will break those "
 "objects."
 msgstr ""
-"Kua honoa ngā %s i tīpakohia ki %s i runga i %s. Mēnā ka mukua, ka pakaru"
-" aua tūemi."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20560,6 +21190,20 @@ msgstr "Te rahi o te pūtau tapawhā rite, i ngā pika"
 
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "Te taha hei tatau i ngā rahi katoa. \"LINEAR\" anake"
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
 
 msgid "The submitted payload failed validation."
 msgstr "I rahua te manatokotanga o te uta kua tukuna."
@@ -20659,6 +21303,14 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Te waeine wā ka whakamahia mō te rōpūtanga o ngā poraka"
 
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20727,7 +21379,11 @@ msgstr ""
 "katoa."
 
 #, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -20741,7 +21397,9 @@ msgstr ""
 "tēnei pātengi raraunga te tuhi ki tētahi pātai hei uara %(type)s me te "
 "kore e whakarereke. E kore e whakaatatia ngā tātari o tēnei mahere."
 
-msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
 
 #, fuzzy
@@ -20852,11 +21510,15 @@ msgstr ""
 "wāhanga motuhake, ka rongoātia te hua, nā reira ka tārewa te kupu "
 "whakaaturanga i puta i tētahi whakaahua o taua wā."
 
-msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
-msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgid ""
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -20895,6 +21557,13 @@ msgstr "Te putanga o te ratonga"
 #, fuzzy
 msgid "The view configuration must be a JSON object."
 msgstr "Me tauira JSON te whirihora tirohanga."
+
+msgid ""
+"The virtual dataset query could not be safely parsed, so the tables it "
+"references cannot be resolved. Qualify tables explicitly and avoid "
+"dynamic SQL or statements that change the default schema (e.g. USE, "
+"search_path)."
+msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "Te taitara kite o te papa"
@@ -21324,15 +21993,11 @@ msgstr ""
 "kaiwhakahaere anake te mōhio ki te whakarerekē i ōna ihirangi; whakaritea"
 " te āpure Whakahaere Hei ki tō ake kaute hei whakarerekē i tēnei."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
-"Kua hono tēnei %(type)s ki %(charts)s i runga i %(dashboards)s. Mā te "
-"whakapūranga i a ia ka kore e watea ngā tūtohi e whakawhirinaki ana ki a "
-"ia kia whakahokia ra ano ia."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21450,6 +22115,13 @@ msgstr ""
 "Ka taea e tēnei te noho hei wāhitau IP (hei tauira 127.0.0.1), hei ingoa "
 "rohe rānei (hei tauira mydatabase.com)."
 
+msgid ""
+"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
+"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
+"host here and the port the instance listens on below, or connect with a "
+"SQLAlchemy URI instead."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "This cannot be undone."
@@ -21476,8 +22148,21 @@ msgstr ""
 "Ka whakahaeretia e tēnei kauwhata ngā tātari-whiti ki ngā kauwhata kei ō "
 "rātou rārangi raraunga he tīwae me te ingoa ōrite."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Kua nekehia tēnei kauwhata ki tētahi korahi tātari rerekē."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -21511,6 +22196,11 @@ msgstr "Kāore tēnei tūtohi i te noho tonu."
 #, fuzzy
 msgid "This chart only"
 msgstr "Ko tēnei tūtohi anake"
+
+msgid ""
+"This chart uses legacy color positions past the end of the selected color"
+" scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21561,6 +22251,9 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr "Ka whakahokia tēnei tūtohi ki te putanga e whai ake nei:"
 
+msgid "This chart's cross-filtering scope doesn't include any other charts."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "This column holds the mapping instead of the default datetime column."
@@ -21577,6 +22270,15 @@ msgstr "Kāhore pea e hāngai tēnei tīwae ki te rārangi raraunga o nāianei"
 
 msgid "This column must contain date/time information."
 msgstr "Me whai tēnei tīwae i ngā mōhiohio rā/wā."
+
+msgid "This comparison time range is empty."
+msgstr ""
+
+msgid ""
+"This connection stores embedded guest credentials, which only apply with "
+"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
+"before turning impersonation off."
+msgstr ""
 
 msgid ""
 "This control filters the whole chart based on the selected time range. "
@@ -21627,6 +22329,27 @@ msgstr ""
 "He nui rawa ngā raraunga o tēnei papatohu hei tango ā-tuku tonu. Tonoa "
 "tētahi kaiwhakahaere kia whakahohe i ngā kaweake kei muri, kia whakahekea"
 " rānei ngā tepe rārangi o ōna tūtohi."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -21803,6 +22526,11 @@ msgid ""
 msgstr ""
 "Ka whakamahia tēnei āpure hei waitohu ahurei hei tāpiri i te ine ki ngā "
 "kauwhata. Ka whakamahia hoki hei ingoa-kē i te pātai SQL."
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 #, fuzzy
 msgid "This filter already exist on the report"
@@ -22040,17 +22768,22 @@ msgstr ""
 " rerekē ngā tapeke me ngā tapeke āpiti i mua. Tirohia ēnei, ā, whakaaetia"
 " tēnei pānui, tiakina rānei te tūtohi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+msgid ""
+"This range includes a time of day, so it is not made of whole days. Pick "
+"dates to use whole days."
+msgstr ""
+
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Ka whakahaerehia tēnei pūrongo hei %(username)s, kāore e taea e ia te "
-"whakauru ki tēnei %(kind)s. Kōwhiria he %(kind)s e taea e taua "
-"kaiwhakamahi te whakauru, he kaiwhakamahi rerekē rānei hei whakahaere i "
-"te pūrongo."
+
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22060,6 +22793,12 @@ msgid ""
 msgstr ""
 "Nō mua i te hōputu ID-mema tēnei āhua tātari kua tiakina. Tautuhia "
 "anōtia, ā, kōwhiria anō ōna uara."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22177,6 +22916,9 @@ msgid ""
 msgstr ""
 "Whakamahia e tēnei ahua te hātepe marama. Ka whakaaturia ki te hātepe "
 "pōuri hei utu, nō reira kāore pea ōna tae e rite ki te hoahoa."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22361,6 +23103,11 @@ msgid "Time comparison"
 msgstr "Whakatairite wā"
 
 msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
+
+msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr "Hōputu wā"
@@ -22439,8 +23186,18 @@ msgstr ""
 msgid "Time-series Period Pivot"
 msgstr "Hurihuri Wā Raupapa-wā"
 
+msgid ""
+"Time-series Period Pivot is not yet supported on semantic views. Use a "
+"Line or Bar chart."
+msgstr ""
+
 msgid "Time-series Table"
 msgstr "Ripanga Raupapa-wā"
+
+msgid ""
+"Time-series Table is not yet supported on semantic views. Use a Table "
+"chart with an explicit time dimension."
+msgstr ""
 
 #, fuzzy
 msgid "Timed Out"
@@ -22577,6 +23334,12 @@ msgid ""
 msgstr ""
 "He nui rawa ngā tirohanga i te tono kotahi: %(count)s kua whakaratoa, e "
 "%(limit)s te mōrahi e whakaaetia ana."
+
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -22723,6 +23486,9 @@ msgstr "Whakaoho ināianei"
 #, fuzzy
 msgid "True"
 msgstr "TŪR"
+
+msgid "Truncate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -23013,6 +23779,10 @@ msgstr ""
 "paparanga."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kāore e taea te kimi i tētahi hararei pēnei: [%(holiday)s]"
 
@@ -23045,6 +23815,9 @@ msgid ""
 msgstr ""
 "Kāore e taea te whakamārama i te nekeneke wā: %(offset)s. Whakamahia he "
 "wā whanaunga pēnei i te \"1 month ago\"."
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23355,6 +24128,10 @@ msgstr "Pātai kāore i taitarahia"
 msgid "Unverified"
 msgstr "Kāore i Tautuhia"
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr "Whakahou"
 
@@ -23489,6 +24266,9 @@ msgstr "Whakamahia te whānuitanga o nāianei"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Whakamahia hōputu rā ahakoa karekau te uara ine he waitohu"
 
+msgid "Use default"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23532,6 +24312,9 @@ msgstr ""
 msgid "Use only a single value."
 msgstr "Whakamahia kotahi uara anake."
 
+msgid "Use scheme colors"
+msgstr ""
+
 msgid "Use the Advanced Analytics options below"
 msgstr "Whakamahia ngā kōwhiringa Tātaritanga Aromatawai i raro nei"
 
@@ -23554,6 +24337,14 @@ msgid ""
 msgstr ""
 "Ka whakamahia i roto hei tautuhi i te mono. Me tautuhi ki te ingoa kete "
 "mai i te package.json o te mono"
+
+msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
 
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -23898,6 +24689,9 @@ msgstr "Kaitiro"
 msgid "Viewers"
 msgstr "Ngā kaitiro"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -24138,6 +24932,11 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Kāore e taea e mātou te whakatau i te tīwhiri \"%(column_name)s\"."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -24600,6 +25399,9 @@ msgstr "Kapua Kupu"
 msgid "Word Rotation"
 msgstr "Hurihuri Kupu"
 
+msgid "Work Group"
+msgstr ""
+
 msgid "Working"
 msgstr "E Mahi Ana"
 
@@ -24763,6 +25565,16 @@ msgstr "Āe, tuhirua huringa"
 msgid "You are adding tags to %s %ss"
 msgstr "E tāpiri ana koe i ngā tohu ki %s %ss"
 
+msgid ""
+"You are already subscribed to this chart. Your existing report has been "
+"opened for editing."
+msgstr ""
+
+msgid ""
+"You are already subscribed to this dashboard. Your existing report has "
+"been opened for editing."
+msgstr ""
+
 #, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr "Kua tangohia 1 tīwae mai i te rārangi raraunga mariko"
@@ -24858,6 +25670,9 @@ msgstr ""
 "Ka taea hoki e koe te pāwhiri noa i te kauwhata hei whakahaeretia i te "
 "tātari-whiti."
 
+msgid "You can also select an authorized account in Run as."
+msgstr ""
+
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
@@ -24948,6 +25763,17 @@ msgstr "Karekau ō mōtika ki te whakatika i tēnei kauwhata"
 
 msgid "You do not have permission to edit this dashboard"
 msgstr "Karekau ō mōtika ki te whakatika i tēnei papatohu"
+
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
+
+msgid "You do not have permission to modify this semantic view."
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
 
 #, fuzzy
 msgid "You do not have permission to perform this operation"
@@ -25247,11 +26073,8 @@ msgstr ""
 "Kua hurihia e koe ngā rārangi raraunga. Kua puritia ngā whakahaere katoa "
 "me ngā raraunga (tīwae, ine) e hāngai ana ki tēnei rārangi raraunga hou."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Your account is activated. You can log in with your credentials."
-msgstr "Kua whakahohaia tō pūkete. Ka āhei koe ki te takiuru me ōu tohu."
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -25292,6 +26115,10 @@ msgstr ""
 "tauira, wehea ki ētahi papatohu maha) me whakanui rānei i te tautuhinga "
 "whirihora SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25327,6 +26154,10 @@ msgstr "Kāore i taea te whakaoti te kaweake o \"%(title)s\"."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Kua rite te kaweake o \"%(title)s\"."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25397,6 +26228,9 @@ msgstr "kī z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Kei te kōnae ZIP he momo kōnae maha"
+
+msgid "ZIP file contains no data files"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25660,9 +26494,6 @@ msgstr "waehere ISO 3166-1 alpha-3 (cca3)"
 msgid "code International Olympic Committee (cioc)"
 msgstr "waehere International Olympic Committee (cioc)"
 
-msgid "color scheme for comparison"
-msgstr "kaupapa tae mō te whakatairite"
-
 msgid "color type"
 msgstr "momo tae"
 
@@ -25688,6 +26519,9 @@ msgstr "hanga"
 
 msgid "create a new chart"
 msgstr "hanga kauwhata hou"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "hanga rārangi raraunga mai i te pātai SQL"
@@ -25722,6 +26556,10 @@ msgstr "Hononga Pātengi Raraunga"
 
 msgid "database"
 msgstr "pātengi raraunga"
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
 
 #, fuzzy
 msgid "databases"
@@ -25834,8 +26672,17 @@ msgstr "hei tauira ********"
 msgid "e.g. 127.0.0.1"
 msgstr "hei tauira 127.0.0.1"
 
+msgid "e.g. 1433"
+msgstr ""
+
 msgid "e.g. 5432"
 msgstr "hei tauira 5432"
+
+msgid "e.g. 8082 (8888 for the router)"
+msgstr ""
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
 
 msgid "e.g. AccountAdmin"
 msgstr "hei tauira AccountAdmin"
@@ -25849,14 +26696,26 @@ msgstr "hei tauira compute_wh"
 msgid "e.g. default"
 msgstr "hei tauira default"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "hei tauira hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "hei tauira param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "hei tauira sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "hei tauira world_population"
@@ -26044,6 +26903,12 @@ msgstr "He teka"
 
 #, python-format
 msgid ""
+"is linked to %s charts and %s dashboards. Are you sure you want to "
+"continue? Deleting the dataset will break those objects."
+msgstr ""
+
+#, python-format
+msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
@@ -26052,15 +26917,6 @@ msgstr ""
 "ripa SQL Lab a ngā kaiwhakamahi e whakamahi ana i tēnei pātengi raraunga "
 "e tuwhera ana. Kei te tino hiahia koe ki te haere tonu? Mā te muku i te "
 "pātengi raraunga ka pakaru aua ahanoa."
-
-#, python-format
-msgid ""
-"is linked to %s charts that appear on %s dashboards. Are you sure you "
-"want to continue? Deleting the dataset will break those objects."
-msgstr ""
-"kei te hono ki ngā kauwhata %s e puta ana i ngā papatohu %s. Kei te tino "
-"hiahia koe ki te haere tonu? Mā te muku i te rārangi raraunga ka pakaru "
-"aua ahanoa."
 
 msgid "is not"
 msgstr "ehara"
@@ -26524,6 +27380,9 @@ msgstr "ngā tuhinga tūtohi Handlebars"
 msgid "theme"
 msgstr "Wā"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Whakaatu Waitohu"
@@ -26615,6 +27474,9 @@ msgstr "y: ka whakawhānuitia ngā uara i roto i ia rārangi"
 
 msgid "year"
 msgstr "tau"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

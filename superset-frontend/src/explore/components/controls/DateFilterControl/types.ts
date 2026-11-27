@@ -28,6 +28,7 @@ export type FrameType =
   | 'Common'
   | 'Calendar'
   | 'Current'
+  | 'DateRange'
   | 'Custom'
   | 'Advanced'
   | 'No filter';
@@ -128,4 +129,11 @@ export interface DateFilterControlProps {
    */
   partitionMapping?: PartitionFilterMapping | null;
   displayFormat?: string;
+  /**
+   * Whether a fixed whole-day value opens on the Calendar frame and is shown as the
+   * days the user picked. On by default, since the Calendar range type is offered
+   * wherever this control is; a native filter with the calendar option off passes
+   * `false` so such a value keeps opening on the Advanced frame.
+   */
+  calendarFrame?: boolean;
 }
