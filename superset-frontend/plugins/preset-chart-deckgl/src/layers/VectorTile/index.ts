@@ -19,8 +19,8 @@
 
 import { t } from '@apache-superset/core/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import thumbnail from '../Geojson/images/thumbnail.png';
-import thumbnailDark from '../Geojson/images/thumbnail-dark.png';
+import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
