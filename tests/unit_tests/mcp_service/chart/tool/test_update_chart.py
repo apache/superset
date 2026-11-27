@@ -4120,10 +4120,14 @@ async def test_ambiguous_column_guidance_reaches_signed_in_caller(
         assert _AMBIGUOUS_COLUMN_GUIDANCE in error["details"]
 
 
+@pytest.mark.parametrize("generate_preview", [False, True])
+@pytest.mark.parametrize("datasource_type", ["druid", "query", "saved_query"])
 @pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
 @pytest.mark.asyncio
 async def test_unsupported_datasource_type_guidance_reaches_signed_in_caller(
     guest: bool,
+    datasource_type: str,
+    generate_preview: bool,
 ) -> None:
     """A chart on a source family update_chart cannot edit says so."""
     from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
@@ -4134,16 +4138,19 @@ async def test_unsupported_datasource_type_guidance_reaches_signed_in_caller(
         slice_name="Legacy",
         viz_type="table",
         datasource_id=10,
-        datasource_type="druid",
+        datasource_type=datasource_type,
         params=json.dumps({"viz_type": "table"}),
     )
     request = {
         "identifier": 1,
-        "dataset_id": 11,
+        "generate_preview": generate_preview,
         "config": {"chart_type": "table", "columns": [{"name": "region"}]},
     }
     with (
         patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+        patch.object(
+            update_chart_module.security_manager, "raise_for_access"
+        ) as access,
         patch("superset.commands.chart.update.UpdateChartCommand") as update_command,
         patch("superset.db.session"),
         patch(
@@ -4154,9 +4161,13 @@ async def test_unsupported_datasource_type_guidance_reaches_signed_in_caller(
         async with Client(mcp) as client:
             result = await client.call_tool("update_chart", {"request": request})
 
+    if datasource_type == "druid":
+        access.assert_not_called()
+    else:
+        access.assert_called_once_with(chart=chart)
     update_command.assert_not_called()
     error = result.structured_content["error"]
-    guidance = "Unsupported chart datasource type: druid"
+    guidance = f"Unsupported chart datasource type: {datasource_type}"
     if guest:
         assert guidance not in str(error)
         assert error["details"] == str(GENERIC_ERROR_MESSAGE)

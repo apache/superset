@@ -55,12 +55,13 @@ def production_middleware() -> Iterator[None]:
         mcp.middleware[:] = original_middleware
 
 
-@pytest.fixture
-def tool_app() -> Flask:
-    """The Flask app the tool call resolves its user in."""
-    from superset.mcp_service.flask_singleton import get_flask_app
-
-    return get_flask_app()
+@pytest.fixture(params=[False, True], ids=["shared-app", "distinct-apps"])
+def tool_app(app: Flask, request: pytest.FixtureRequest) -> Iterator[Flask]:
+    """Configure the active host app, even when the singleton is a different app."""
+    singleton = Flask("separate_mcp_app") if request.param else app
+    with patch("superset.mcp_service.flask_singleton.app", singleton):
+        # Authentication uses the active app context rather than the singleton.
+        yield app
 
 
 def _token(claims: dict[str, Any], client_id: str | None = None) -> Any:
@@ -86,8 +87,8 @@ def _dev_user_not_found(stack: ExitStack, app: Flask) -> None:
 
 
 def _disabled_account(stack: ExitStack, app: Flask) -> None:
-    stack.enter_context(patch.dict(app.config, {"MCP_DEV_USERNAME": "alice"}))
-    user = Mock(username="alice", is_active=False, roles=[], groups=[])
+    stack.enter_context(patch.dict(app.config, {"MCP_DEV_USERNAME": "disabled_user"}))
+    user = Mock(username="disabled_user", is_active=False, roles=[], groups=[])
     stack.enter_context(
         patch(
             "superset.mcp_service.auth.load_user_with_relationships",
@@ -124,7 +125,7 @@ def _jwt(claims: dict[str, Any], client_id: str | None = None):
 
 
 def _multi_issuer(stack: ExitStack, app: Flask) -> None:
-    _jwt({"sub": "alice"})(stack, app)
+    _jwt({"sub": "disabled_user"})(stack, app)
     stack.enter_context(
         patch.dict(
             app.config,
@@ -174,7 +175,7 @@ _CASES = [
     ),
     pytest.param(
         _disabled_account,
-        "Account for user 'alice' is disabled.",
+        "Account for user 'disabled_user' is disabled.",
         id="account-disabled",
     ),
     pytest.param(

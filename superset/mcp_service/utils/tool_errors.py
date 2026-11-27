@@ -106,7 +106,9 @@ def _translated_completeness_error(
     return None
 
 
-def public_query_error(exc: Exception, *, semantic: bool = False) -> tuple[str, str, str]:
+def public_query_error(
+    exc: Exception, *, semantic: bool = False
+) -> tuple[str, str, str]:
     """Return a safe error code, message, and MCP type for a failed query.
 
     A provider can raise a host exception class. Its provenance marker takes
@@ -181,6 +183,7 @@ def public_query_error(exc: Exception, *, semantic: bool = False) -> tuple[str, 
         str(GENERIC_ERROR_MESSAGE),
         "QueryError",
     )
+
 
 # Errors of any MCP tool.
 #
