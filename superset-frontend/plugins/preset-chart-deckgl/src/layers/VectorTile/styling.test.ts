@@ -26,6 +26,7 @@ import { RGBAColor } from './layerSettings';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const TEAL: RGBAColor = [0, 122, 135, 255];
+const GREY: RGBAColor = [158, 158, 158, 255];
 const point = (properties: Record<string, unknown>) => ({
   type: 'Feature' as const,
   geometry: { type: 'Point' as const, coordinates: [0, 0] },
@@ -40,6 +41,19 @@ const settings = {
   colorSchemeType: COLOR_SCHEME_TYPES.categorical_palette,
   colorProperty: 'category',
   colorScheme: 'supersetColors',
+  colorBreakpoints: [],
+  defaultBreakpointColor: GREY,
+};
+
+const breakpointSettings = {
+  ...settings,
+  colorSchemeType: COLOR_SCHEME_TYPES.color_breakpoints,
+  colorProperty: 'rating',
+  breakpointProperty: 'rating',
+  colorBreakpoints: [
+    { minValue: 0, maxValue: 2, color: [255, 0, 0, 255] as RGBAColor },
+    { minValue: 2.5, maxValue: 5, color: [0, 0, 255, 255] as RGBAColor },
+  ],
 };
 
 jest.mock('@superset-ui/core', () => {
@@ -54,7 +68,7 @@ jest.mock('@superset-ui/core', () => {
   };
 });
 
-test('builds an rgba expression with alpha scaled to 0–1', () => {
+test('builds an rgba expression with alpha scaled to 0-1', () => {
   expect(buildColorExpression([0, 122, 135, 127.5])).toEqual([
     'rgba',
     0,
@@ -64,7 +78,7 @@ test('builds an rgba expression with alpha scaled to 0–1', () => {
   ]);
 });
 
-test('a fixed colour expression returns the same 0–255 colour', () => {
+test('a fixed colour expression returns the same 0-255 colour', () => {
   const getColor = compileColorAccessor(buildColorExpression(TEAL), TEAL);
   expect(getColor(point({}))).toEqual(TEAL);
 });
@@ -104,4 +118,27 @@ test('changing the palette changes the update trigger', () => {
     1,
   ).updateTrigger;
   expect(a).not.toEqual(b);
+});
+
+test('breakpoints colour numeric values, including numbers sent as text', () => {
+  const { getColor } = createColorAccessor(breakpointSettings);
+  expect(getColor(point({ rating: '1.7' }))).toEqual([255, 0, 0, 255]);
+  expect(getColor(point({ rating: 5 }))).toEqual([0, 0, 255, 255]);
+});
+
+test('breakpoints use the default colour for gaps, missing and non-numeric values', () => {
+  const { getColor } = createColorAccessor(breakpointSettings);
+  expect(getColor(point({ rating: 2.2 }))).toEqual(GREY);
+  expect(getColor(point({}))).toEqual(GREY);
+  expect(getColor(point({ rating: null }))).toEqual(GREY);
+  expect(getColor(point({ rating: 'abc' }))).toEqual(GREY);
+});
+
+test('breakpoints ignore the categorical property', () => {
+  const { getColor } = createColorAccessor({
+    ...breakpointSettings,
+    colorProperty: 'rating',
+    breakpointProperty: undefined,
+  });
+  expect(getColor(point({ rating: 1 }))).toEqual(TEAL);
 });

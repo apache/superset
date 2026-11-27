@@ -29,6 +29,15 @@ export interface TileProperty {
 
 type VectorLayer = { id?: unknown; fields?: Record<string, unknown> };
 
+// Numeric type names as reported by common tile servers: Postgres (Martin)
+// and TileJSON/tippecanoe ("Number").
+const NUMERIC_TILE_TYPE =
+  /^(number|numeric|decimal|real|double( precision)?|float\d*|int\d*|integer|smallint|bigint)$/i;
+
+/** False only when the server reports a non-numeric type; unknown types count as numeric. */
+export const isNumericTileType = (type?: string): boolean =>
+  type === undefined || NUMERIC_TILE_TYPE.test(type.trim());
+
 /**
  * Lists properties from a TileJSON document's `vector_layers`. Uses only the
  * source layer's fields when one is given, otherwise merges every layer's.

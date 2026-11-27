@@ -18,9 +18,11 @@
  */
 
 import { t } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelConfig,
   ControlPanelState,
+  ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { validateInteger } from '@superset-ui/core';
 import TilePropertyControl from './TilePropertyControl';
@@ -33,6 +35,8 @@ import {
   mapProvider,
   tooltipTemplate,
   viewport,
+  breakpointsDefaultColor,
+  deckGLColorBreakpointsSelect,
 } from '../../utilities/Shared_DeckGL';
 
 import { columnChoices } from '../../utilities/controls';
@@ -60,6 +64,23 @@ const tilePropertyControlState = (state: ControlPanelState) => ({
     state.form_data?.source_layer) as string | undefined,
   datasetChoices: columnChoices(state.datasource),
 });
+
+/** Like tilePropertyControlState, but lists only numeric properties (for breakpoints). */
+const numericPropertyControlState = (state: ControlPanelState) => {
+  const baseProps = tilePropertyControlState(state);
+  const numericColumns = new Set(
+    ((state.datasource?.columns ?? []) as ColumnMeta[])
+      .filter(column => column.type_generic === GenericDataType.Numeric)
+      .map(column => column.column_name),
+  );
+  return {
+    ...baseProps,
+    numericOnly: true,
+    datasetChoices: baseProps.datasetChoices.filter(([name]) =>
+      numericColumns.has(name),
+    ),
+  };
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -93,7 +114,11 @@ const config: ControlPanelConfig = {
               ),
               default: '',
               renderTrigger: true,
-              rerender: ['tooltip_properties', 'color_property'],
+              rerender: [
+                'tooltip_properties',
+                'color_property',
+                'breakpoint_property',
+              ],
             },
           },
         ],
@@ -108,7 +133,11 @@ const config: ControlPanelConfig = {
               ),
               default: '',
               renderTrigger: true,
-              rerender: ['tooltip_properties', 'color_property'],
+              rerender: [
+                'tooltip_properties',
+                'color_property',
+                'breakpoint_property',
+              ],
             },
           },
         ],
@@ -169,6 +198,7 @@ const config: ControlPanelConfig = {
                   COLOR_SCHEME_TYPES.categorical_palette,
                   t('Categorical palette'),
                 ],
+                [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
               ],
               default: COLOR_SCHEME_TYPES.fixed_color,
             },
@@ -201,10 +231,35 @@ const config: ControlPanelConfig = {
                   controls,
                   COLOR_SCHEME_TYPES.categorical_palette,
                 ),
+              resetOnHide: false,
             },
           },
         ],
         [deckGLCategoricalColorSchemeSelect],
+        [
+          {
+            name: 'breakpoint_property',
+            config: {
+              type: TilePropertyControl,
+              multi: false,
+              label: t('Colour by'),
+              description: t(
+                "Numeric tile property whose value picks each feature's breakpoint.",
+              ),
+              default: null,
+              renderTrigger: true,
+              mapStateToProps: numericPropertyControlState,
+              visibility: ({ controls }) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.color_breakpoints,
+                ),
+              resetOnHide: false,
+            },
+          },
+        ],
+        [deckGLColorBreakpointsSelect],
+        [breakpointsDefaultColor],
       ],
     },
     {

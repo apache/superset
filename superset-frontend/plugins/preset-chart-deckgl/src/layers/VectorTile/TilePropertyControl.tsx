@@ -21,7 +21,7 @@ import { useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Select } from '@superset-ui/core/components';
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { useTileJsonProperties } from './tileJson';
+import { useTileJsonProperties, isNumericTileType } from './tileJson';
 
 export interface TilePropertyControlProps {
   name: string;
@@ -34,6 +34,7 @@ export interface TilePropertyControlProps {
   sourceLayer?: string;
   /** [column_name, display name] pairs from the dataset, the fallback list. */
   datasetChoices: string[][];
+  numericOnly?: boolean;
 }
 
 /**
@@ -50,6 +51,7 @@ export default function TilePropertyControl({
   tileJsonUrl,
   sourceLayer,
   datasetChoices,
+  numericOnly = false,
 }: TilePropertyControlProps) {
   const { properties, loading, error } = useTileJsonProperties(
     tileJsonUrl,
@@ -60,10 +62,14 @@ export default function TilePropertyControl({
   const options = useMemo(
     () =>
       useTileJson
-        ? properties.map(property => ({
-            value: property.name,
-            label: property.name,
-          }))
+        ? properties
+            .filter(
+              property => !numericOnly || isNumericTileType(property.type),
+            )
+            .map(property => ({
+              value: property.name,
+              label: property.name,
+            }))
         : datasetChoices.map(([column, displayName]) => ({
             value: column,
             label: displayName,

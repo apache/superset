@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { getTileJsonProperties } from './tileJson';
+import { getTileJsonProperties, isNumericTileType } from './tileJson';
 
 const tileJson = {
   vector_layers: [
@@ -47,4 +47,13 @@ test('throws when the source layer is missing', () => {
 
 test('throws when the document has no vector_layers', () => {
   expect(() => getTileJsonProperties({ tiles: [] })).toThrow();
+});
+
+test('recognises numeric tile types from different servers', () => {
+  ['int4', 'numeric', 'float8', 'Number', undefined].forEach(type =>
+    expect(isNumericTileType(type)).toBe(true),
+  );
+  ['text', 'String', 'Boolean'].forEach(type =>
+    expect(isNumericTileType(type)).toBe(false),
+  );
 });

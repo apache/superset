@@ -30,7 +30,11 @@ import { CategoricalColorNamespace } from '@superset-ui/core';
 import { hexToRGB } from '../../utils/colors';
 import { NULL_CATEGORY_KEY } from '../../utils';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
-import { RGBAColor, VectorTileLayerSettings } from './layerSettings';
+import {
+  ColorRange,
+  RGBAColor,
+  VectorTileLayerSettings,
+} from './layerSettings';
 
 /** Turns a deck.gl colour (0–255 channels) into a MapLibre `rgba` expression. */
 export const toRgbaExpression = ([
@@ -45,6 +49,31 @@ export function buildColorExpression(
   fillColor: RGBAColor,
 ): ExpressionSpecification {
   return toRgbaExpression(fillColor);
+}
+
+/**
+ * Colours features by numeric ranges, inclusive at both ends. The first
+ * matching range wins. Missing values, values in no range, and text that is
+ * not a number get `fallback`.
+ */
+export function buildBreakpointExpression(
+  property: string,
+  breakpoints: ColorRange[],
+  fallback: RGBAColor,
+): ExpressionSpecification {
+  const value: ExpressionSpecification = ['to-number', ['get', property]];
+  const ranges = breakpoints.flatMap(({ minValue, maxValue, color }) => [
+    ['all', ['>=', value, minValue], ['<=', value, maxValue]],
+    toRgbaExpression(color),
+  ]);
+  return [
+    'case',
+    // Checked before to-number, which turns null into 0.
+    ['==', ['get', property], null],
+    toRgbaExpression(fallback),
+    ...ranges,
+    toRgbaExpression(fallback),
+  ] as ExpressionSpecification;
 }
 
 // Evaluated per feature, not per zoom level.
@@ -167,6 +196,9 @@ export function createColorAccessor(
     colorProperty,
     colorScheme,
     fillColor,
+    colorBreakpoints,
+    defaultBreakpointColor,
+    breakpointProperty,
   }: VectorTileLayerSettings,
   sliceId?: number,
 ): ColorAccessor {
@@ -186,6 +218,23 @@ export function createColorAccessor(
       getColor: feature =>
         hexToRGB(scale(readCategory(feature), sliceId), fillColor[3]),
       updateTrigger: JSON.stringify([expression, colorScheme, fillColor[3]]),
+    };
+  }
+
+  if (
+    colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints &&
+    breakpointProperty
+  ) {
+    const expression = buildBreakpointExpression(
+      breakpointProperty,
+      colorBreakpoints,
+      defaultBreakpointColor,
+    );
+    return {
+      // Text that is not a number makes to-number fail; the spec's default
+      // (this fallback) is used then.
+      getColor: compileColorAccessor(expression, defaultBreakpointColor),
+      updateTrigger: JSON.stringify(expression),
     };
   }
 

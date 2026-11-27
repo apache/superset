@@ -18,9 +18,10 @@
  */
 
 import { QueryFormData } from '@superset-ui/core';
-import { ColorType } from '../../types';
+import { ColorBreakpointType, ColorType } from '../../types';
 import { PRIMARY_COLOR } from '../../utilities/controls';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../../utilities/utils';
+import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
 
 export const TILE_URL_PLACEHOLDERS = ['{z}', '{x}', '{y}'];
 export const DEFAULT_MIN_ZOOM = 0;
@@ -29,6 +30,12 @@ export const DEFAULT_MAX_ZOOM = 14;
 const MAX_TILE_ZOOM = 24;
 
 export type RGBAColor = [number, number, number, number];
+
+export interface ColorRange {
+  minValue: number;
+  maxValue: number;
+  color: RGBAColor;
+}
 
 export interface VectorTileFormData extends QueryFormData {
   tile_url?: string;
@@ -39,7 +46,10 @@ export interface VectorTileFormData extends QueryFormData {
   tooltip_properties?: string[];
   color_scheme_type?: ColorSchemeType;
   color_property?: string | null;
+  breakpoint_property?: string | null;
   color_scheme?: string;
+  color_breakpoints?: ColorBreakpointType[];
+  default_breakpoint_color?: ColorType;
 }
 
 export interface VectorTileLayerSettings {
@@ -51,10 +61,14 @@ export interface VectorTileLayerSettings {
   maxZoom: number;
   fillColor: RGBAColor;
   colorSchemeType: ColorSchemeType;
-  /** Property that decides each feature's colour; undefined when none is chosen. */
+  /** Property whose values pick categorical colours; undefined when none is chosen. */
   colorProperty?: string;
+  /** Numeric property compared against the breakpoints; undefined when none is chosen. */
+  breakpointProperty?: string;
   /** Categorical palette name; undefined uses Superset's default palette. */
   colorScheme?: string;
+  colorBreakpoints: ColorRange[];
+  defaultBreakpointColor: RGBAColor;
 }
 
 /** True when the value is a tile URL template containing {z}, {x} and {y}. */
@@ -101,6 +115,20 @@ export function getLayerSettings(
     colorSchemeType:
       formData.color_scheme_type ?? COLOR_SCHEME_TYPES.fixed_color,
     colorProperty: formData.color_property?.trim() || undefined,
+    breakpointProperty: formData.breakpoint_property?.trim() || undefined,
     colorScheme: formData.color_scheme,
+    colorBreakpoints: (formData.color_breakpoints ?? [])
+      .filter(
+        ({ minValue, maxValue, color }) =>
+          Number.isFinite(minValue) && Number.isFinite(maxValue) && color,
+      )
+      .map(({ minValue, maxValue, color }) => ({
+        minValue,
+        maxValue,
+        color: toRGBA(color),
+      })),
+    defaultBreakpointColor: toRGBA(
+      formData.default_breakpoint_color ?? DEFAULT_DECKGL_COLOR,
+    ),
   };
 }
