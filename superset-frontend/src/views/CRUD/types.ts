@@ -50,6 +50,7 @@ export interface DashboardTableProps {
   otherTabData?: Array<Dashboard>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
+  onActivityRefresh?: () => void;
 }
 
 export interface Dashboard {

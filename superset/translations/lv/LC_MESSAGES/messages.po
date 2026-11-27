@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-25 16:54+0530\n"
+"POT-Creation-Date: 2026-11-27 15:47+0530\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -195,22 +195,22 @@ msgid "% calculation"
 msgstr "% aprēķins"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% no"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% no kolonnas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% no kolonnas kopsummas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% no kopsummas"
 
@@ -219,7 +219,7 @@ msgid "% of parent"
 msgstr "% no vecāka"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% no rindas kopsummas"
 
@@ -412,7 +412,15 @@ msgid "%s %s"
 msgstr "%s%s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1304,6 +1312,9 @@ msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Ar komatu atdalīts shēmu saraksts, kurās atļauts augšupielādēt failus."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2306,6 +2317,9 @@ msgstr "Brīdinājuma saturs"
 
 msgid "Alert ended grace period."
 msgstr "Brīdinājuma labvēlības periods beidzies."
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "Brīdinājums neizdevās"
@@ -6833,6 +6847,9 @@ msgstr "Noklusējuma vērtība"
 msgid "Default color"
 msgstr "Noklusējuma krāsa"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "Noklusējuma datuma un laika kolonna"
 
@@ -6854,6 +6871,9 @@ msgid ""
 msgstr ""
 "Noklusējuma minimālais kolonnas platums pikseļos, faktiskais platums "
 "joprojām var būt lielāks, ja citām kolonnām nav nepieciešams daudz vietas"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -8773,6 +8793,10 @@ msgstr "Izvērst"
 msgid "Expand %s"
 msgstr "Izvērst %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Izvērst visu"
 
@@ -9929,6 +9953,9 @@ msgstr "Pilns vārds"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Iedziļināšanās pēc vēl nav atbalstīta šim diagrammas tipam"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Piltuves diagramma"
 
@@ -10296,8 +10323,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "Cik intervālos grupēt datus."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Cik periodus nākotnē mēs vēlamies prognozēt"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "Cik daudz augstāko vērtību izvēlēties"
@@ -10646,6 +10685,11 @@ msgstr "Augšējā kreisajā stūrī"
 msgid "Inside top right"
 msgstr "Labajā augšējā stūrī"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intensitāte"
 
@@ -10710,6 +10754,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Nepareizs SQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12830,6 +12880,9 @@ msgstr "Pagaidām nav anotāciju"
 msgid "No applied filters"
 msgstr "Nav piemērotu filtru"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -13681,6 +13734,9 @@ msgstr "Atvērt SQL laboratorijā"
 msgid "Open in SQL lab"
 msgstr "Atvērt SQL laboratorijā"
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open page"
 msgstr ""
 
@@ -13758,7 +13814,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Neobligāts brīdinājums par šīs metrikas lietošanu"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -16678,6 +16734,9 @@ msgstr "Atlasīt visus datus"
 msgid "Select all items"
 msgstr "Atlasīt visus elementus"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr "Atlasīt katalogu vai ierakstiet, lai meklētu katalogos"
 
@@ -18825,6 +18884,32 @@ msgstr "birkas"
 #, fuzzy
 msgid "Tasks will appear here as background operations are executed."
 msgstr "Uzdevumi parādīsies šeit, kad tiks izpildītas fona operācijas."
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
 
 msgid "Template"
 msgstr "Veidne"
@@ -21719,6 +21804,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22714,6 +22804,9 @@ msgstr ""
 "Nevar interpretēt laika nobīdi: %(offset)s. Izmantojiet relatīvu laiku, "
 "piemēram, \"1 month ago\"."
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Unable to load columns for the selected table."
@@ -23401,7 +23494,7 @@ msgid "Value transform"
 msgstr "Vērtības transformācija"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -23415,7 +23508,7 @@ msgstr ""
 "lappušošana."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

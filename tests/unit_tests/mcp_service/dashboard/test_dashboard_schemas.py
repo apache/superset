@@ -494,6 +494,44 @@ class TestExtractNativeFilters:
         )
         assert result[0].targets == [{"column": {"name": "col1"}}]
 
+    @pytest.mark.parametrize("include_metadata", [True, False])
+    def test_projects_cascade_parent_ids(self, include_metadata: bool) -> None:
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {"id": "country", "filterType": "filter_select"},
+                    {
+                        "id": "city",
+                        "filterType": "filter_select",
+                        "cascadeParentIds": ["country"],
+                    },
+                ]
+            }
+        )
+        result = _extract_native_filters(
+            metadata, include_data_model_metadata=include_metadata
+        )
+        assert result[0].cascade_parent_ids == []
+        assert result[1].cascade_parent_ids == ["country"]
+
+    def test_cascade_parent_ids_ignore_malformed_and_dividers(self) -> None:
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {"id": "a", "cascadeParentIds": "not-a-list"},
+                    {"id": "b", "cascadeParentIds": ["a", 7, None]},
+                    {
+                        "id": "d",
+                        "type": "DIVIDER",
+                        "title": "Sep",
+                        "cascadeParentIds": ["a"],
+                    },
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert [f.cascade_parent_ids for f in result] == [[], ["a"], []]
+
     def test_skips_non_dict_entries(self) -> None:
         metadata = json_dumps(
             {"native_filter_configuration": [{"id": "f1", "name": "ok"}, "bad", 123]}
