@@ -192,22 +192,22 @@ msgid "% calculation"
 msgstr "% கணக்கீடு"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% இல்"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "நெடுவரிசையின் %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "நெடுவரிசை மொத்தத்தின் %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "மொத்தத் தொகையின் %"
 
@@ -216,7 +216,7 @@ msgid "% of parent"
 msgstr "முதன்மை உறுப்பில் % (parent %)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "வரிசை மொத்தத்தின் %"
 
@@ -13840,7 +13840,7 @@ msgid "Optional warning about use of this metric"
 msgstr "இந்த அளவீட்டைப் பயன்படுத்துவது குறித்த விருப்பத்தேர்வு எச்சரிக்கை"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -23427,7 +23427,7 @@ msgid "Value transform"
 msgstr "மதிப்பு உருமாற்றம்"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -23441,7 +23441,7 @@ msgstr ""
 "தானியங்கி தரவு வரம்பைப் பயன்படுத்தும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

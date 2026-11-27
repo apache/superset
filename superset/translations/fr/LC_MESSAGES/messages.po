@@ -193,22 +193,22 @@ msgid "% calculation"
 msgstr "% calcul"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% de"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% de la colonne"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% du total de la colonne"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% du total général"
 
@@ -219,7 +219,7 @@ msgid "% of parent"
 msgstr "% du parent"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% du total de la ligne"
 
@@ -13840,7 +13840,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Avertissement facultatif concernant l'utilisation de cette mesure"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -23648,7 +23648,7 @@ msgid "Value transform"
 msgstr "Transformation de valeur"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -23663,7 +23663,7 @@ msgstr ""
 "activée."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

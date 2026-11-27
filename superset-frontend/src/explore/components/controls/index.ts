@@ -62,6 +62,7 @@ import IntervalColorsControl from './IntervalColorsControl';
 import BulletRangeColorsControl from './BulletRangeColorsControl';
 import MatrixifyDimensionControl from './MatrixifyDimensionControl';
 import JSEditorControl from './JSEditorControl';
+import LevelsControl from './LevelsControl';
 import SwitchControl from './SwitchControl';
 import VerticalRadioControl from './VerticalRadioControl';
 import HeaderGroupsControl from './HeaderGroupsControl';
@@ -95,6 +96,7 @@ const controlMap = {
   HiddenControl,
   JSEditorControl,
   LayerConfigsControl,
+  LevelsControl,
   MapViewControl,
   SelectAsyncControl,
   SelectControl,
