@@ -2586,13 +2586,38 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if cached is not None and cached[0] is user and key in cached[1]:
             return cached[1][key]
         allowed: bool = (
-            self.is_item_public(permission_name, view_name)
+            self._is_item_public_retrying(permission_name, view_name)
             if user.is_anonymous
             else self._has_view_access(user, permission_name, view_name)
         )
         if cached is not None and cached[0] is user:
             cached[1][key] = allowed
         return allowed
+
+    def _is_item_public_retrying(self, permission_name: str, view_name: str) -> bool:
+        """
+        Call ``is_item_public``, retrying once on a transient SQLAlchemy race.
+
+        ``is_item_public`` queries for the public role via SQLAlchemy's ORM,
+        which dispatches through class-level event listener collections
+        backed by a plain ``deque``. A concurrent ``event.listen``/``remove``
+        call on another thread (e.g. a different request registering a
+        mapper event) can mutate that deque while this thread iterates it,
+        raising ``RuntimeError: deque mutated during iteration``. The race is
+        inherent to SQLAlchemy's event dispatch under a threaded app server
+        and clears on its own, so retrying once avoids surfacing a transient
+        500 to anonymous chart/dashboard requests.
+        """
+        try:
+            return self.is_item_public(permission_name, view_name)
+        except RuntimeError as ex:
+            if "deque mutated during iteration" not in str(ex):
+                raise
+            logger.warning(
+                "Retrying is_item_public after a transient event-dispatch race: %s",
+                ex,
+            )
+            return self.is_item_public(permission_name, view_name)
 
     @contextmanager
     def cache_permission_checks(self) -> Iterator[None]:
